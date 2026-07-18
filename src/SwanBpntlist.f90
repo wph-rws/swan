@@ -1,5 +1,5 @@
 subroutine SwanBpntlist
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -57,17 +57,17 @@ subroutine SwanBpntlist
 !   The vertices which define the island boundary are inserted in the clockwise direction
 !
 !   Modules used
-!
+
     use ocpcomm4
     use SwanGriddata
     use SwanGridobjects
     use SwanCompdata
     use OUTP_DATA                                                       ! 41.14
-!
+
     implicit none
-!
+
 !   Local variables
-!
+
     integer, dimension(3)              :: fc         ! cell face ID                                     41.39
     integer                            :: icell      ! cell index
     integer                            :: icntfc     ! counts number of faces without finding vc        41.39
@@ -101,26 +101,26 @@ subroutine SwanBpntlist
     integer                            :: VM         ! index of a boundary part                         41.14
     integer                            :: VMMAX      ! highest value of VM                              41.14
     integer                            :: vn         ! next vertex with respect to considered vertex (counterclockwise)
-    !
+
     integer, dimension(:), allocatable :: blistot    ! list of all boundary vertices in ascending order
     integer, dimension(:), allocatable :: IARR1      ! temporary array                                  41.14
     integer, dimension(:), allocatable :: IARR2      ! another temporary array                          41.14
-    !
+
     real                               :: d1         ! distance of a point to origin
     real                               :: d2         ! distance of another point to origin
     real                               :: xp, yp     ! coordinates of a boundary point                  41.14
-    !
+
     character(7)                       :: intstr     ! string to pass integer                           43.01
     character(80)                      :: msgstr     ! string to pass message
     character (len=8)                  :: PSNAME     ! name of output curve                             41.14
-    !
+
     logical                            :: firstvert  ! indicate whether considered vertex is first vertex of boundary polygon
     logical                            :: found      ! indicates whether a new boundary part was found  41.14
-    !
+
     type(celltype), dimension(:), pointer :: cell    ! datastructure for cells with their attributes
     type(facetype), dimension(:), pointer :: face    ! datastructure for faces with their attributes
     type(verttype), dimension(:), pointer :: vert    ! datastructure for vertices with their attributes
-    !
+
     type(OPSDAT), pointer :: OPSTMP                                     ! 41.14
     type XYPT                                                           ! 41.14
         real                :: X, Y                                     ! 41.14
@@ -128,89 +128,89 @@ subroutine SwanBpntlist
     end type XYPT
     type(XYPT), target  :: FRST                                         ! 41.14
     type(XYPT), pointer :: CURR, TMP                                    ! 41.14
-!
+
 !   Structure
 !
 !   Description of the pseudo code
 !
 !   Source text
-!
+
     if (ltrace) call strace (ient,'SwanBpntlist')
-    !
+
     ! point to vertex, cell and face objects
-    !
+
     vert => gridobject%vert_grid
     cell => gridobject%cell_grid
     face => gridobject%face_grid
-    !
+
     vert(:)%atti(BPOL) = 0
     nbpt               = 0
-    !
+
     ! determine total number of boundary vertices
-    !
+
     nbptot = count(mask=vert(:)%atti(VMARKER)==1)
-    !
+
     allocate(blistot(0:nbptot))
     blistot = 0
-    !
+
     ! determine first boundary vertex nearest to the origin
-    !
+
     kx = minloc(vert(:)%attr(VERTX), vert(:)%atti(VMARKER)==1)
     ky = minloc(vert(:)%attr(VERTY), vert(:)%atti(VMARKER)==1)
-    !
+
     if ( kx(1) == ky(1) ) then
-       !
+
        vc = kx(1)
-       !
+
     else
-       !
+
        d1 = sqrt((vert(kx(1))%attr(VERTX))**2+(vert(kx(1))%attr(VERTY))**2)
        d2 = sqrt((vert(ky(1))%attr(VERTX))**2+(vert(ky(1))%attr(VERTY))**2)
-       !
+
        if ( d1 < d2 ) then
           vc = kx(1)
        else
           vc = ky(1)
        endif
-       !
+
     endif
-    !
+
     ! store first boundary vertex
-    !
+
     vcf                 = vc
     blistot(1)          = vc
     nbpol               = 1
     firstvert           = .true.
     vert(vc)%atti(BPOL) = nbpol
-    !
+
     nptemp = 0
     icntfc = 0
-    !
+
     ! algorithm start to store next subsequent boundary vertices in ascending order
-    !
+
     k     = 1
     iface = 1
-    !
+
     faceloop: do
-       !
+
        if ( face(iface)%atti(FMARKER) == 1 ) then
-          !
+
           if ( firstvert ) then
-             !
+
              icell = face(iface)%atti(FACEC1)
-             !
+
              ! identify the vertices and faces of the current cell
-             !
+
              v(1) = cell(icell)%atti(CELLV1)
              v(2) = cell(icell)%atti(CELLV2)
              v(3) = cell(icell)%atti(CELLV3)
-             !
+
              fc(1) = cell(icell)%face(1)%atti(FACEID)
              fc(2) = cell(icell)%face(2)%atti(FACEID)
              fc(3) = cell(icell)%face(3)%atti(FACEID)
-             !
+
              ! pick up next vertex (counterclockwise counting of vertices is assumed)
-             !
+
              vn = 0
              do j = 1, cell(icell)%nov
                 if ( v(j) == vc ) then
@@ -218,93 +218,93 @@ subroutine SwanBpntlist
                    exit
                 endif
              enddo
-             !
-             if ( vn == 0 ) goto 10
-             if ( vert(vn)%atti(VMARKER) /= 1 ) goto 10
-             !
+
+             if ( vn == 0 ) cycle faceloop
+             if ( vert(vn)%atti(VMARKER) /= 1 ) cycle faceloop
+
              ! prevent algorithm from skipping sections of boundary by identifying where a bridge element is encountered  41.39
-             !
+
              if ( j == 1 .and. face(fc(1))%atti(FMARKER) /= 1 ) then
                 if ( ITEST >= 30 .or. idebug == 1 ) write(PRTEST,*) 'bridge element encountered on face 1'
-                goto 10
+                cycle faceloop
              endif
              if ( j == 2 .and. face(fc(2))%atti(FMARKER) /= 1 ) then
                 if ( ITEST >= 30 .or. idebug == 1 ) write(PRTEST,*) 'bridge element encountered on face 2'
-                goto 10
+                cycle faceloop
              endif
              if ( j == 3 .and. face(fc(3))%atti(FMARKER) /= 1 ) then
                 if ( ITEST >= 30 .or. idebug == 1 ) write(PRTEST,*) 'bridge element encountered on face 3'
-                goto 10
+                cycle faceloop
              endif
-             !
+
              if ( ITEST >= 30 .or. idebug == 1 ) write(PRTEST,*) 'next vertex found = ', vn
-             !
+
              firstvert = .false.
-             !
+
           endif
-          !
+
           ! we have found a correct boundary face and we continue to store subsequent boundary vertices
-          !
+
           v1 = face(iface)%atti(FACEV1)
           v2 = face(iface)%atti(FACEV2)
-          !
+
           if ( v1 == vc ) then
-             !
+
              if ( v2 == vcf .and. vcf /= blistot(k-1) ) vc = vcf
-             if ( any( v2 == blistot ) ) goto 10
-             !
+             if ( any( v2 == blistot ) ) cycle faceloop
+
              k = k + 1
              blistot(k)          = v2
              vert(v2)%atti(BPOL) = nbpol
              vc = v2
-             !
+
              icntfc = 0   ! reset counting of number of faces
-             !
+
           elseif ( v2 == vc ) then
-             !
+
              if ( v1 == vcf .and. vcf /= blistot(k-1) ) vc = vcf
-             if ( any( v1 == blistot ) ) goto 10
-             !
+             if ( any( v1 == blistot ) ) cycle faceloop
+
              k = k + 1
              blistot(k)          = v1
              vert(v1)%atti(BPOL) = nbpol
              vc = v1
-             !
+
              icntfc = 0   ! reset counting of number of faces
-             !
+
           elseif ( vc == vcf ) then        ! end of considered boundary polygon is found
-             !
+
              ! prevent search algorithm from doubling back on itself                                                      41.39
-             !
+
              if ( vcf == blistot(k) ) then
-                !
+
                 if ( ITEST >= 30 .or. idebug == 1 ) write(PRTEST,*) 'REPEAT!'
                 k = k + 1
                 blistot(k)          = vn
                 vert(vn)%atti(BPOL) = nbpol
                 vc = vn
-                !
+
                 icntfc = 0   ! reset counting of number of faces
-                !
-                goto 10
-                !
+
+                cycle faceloop
+
              endif
-             !
-             if ( any( v1 == blistot ) .and. any( v2 == blistot ) ) goto 10
-             !
+
+             if ( any( v1 == blistot ) .and. any( v2 == blistot ) ) cycle faceloop
+
              ! store number of boundary vertices for present polygon
-             !
+
              nbpt(nbpol) = k - nptemp
              nptemp = k
-             !
+
              ! some diagnostics
              if ( ITEST >= 30 .or. idebug == 1 ) then
                 write(PRTEST,*) 'END OF POLYGON'
                 write(PRTEST,*) 'v1 = ', v1, '   v2 = ', v2
              endif
-             !
+
              ! take first vertex of next boundary polygon
-             !
+
              vc                  = v1
              vcf                 = vc
              k = k + 1
@@ -312,31 +312,30 @@ subroutine SwanBpntlist
              nbpol               = nbpol + 1
              firstvert           = .true.
              vert(vc)%atti(BPOL) = nbpol
-             !
+
              ! give error if more than 10000 boundary polygons are found
-             !
+
              if ( nbpol > 10000 ) call msgerr ( 2, ' More than 10000 boundary polygons are found in grid' )
-             !
+
              icntfc = 0   ! reset counting of number of faces
-             !
+
           endif
-          !
+
           if ( k == nbptot ) exit faceloop
-          !
+
        endif
-       !
- 10    continue
+
        iface = iface + 1
        if ( iface > nfaces ) iface = 1
-       !
+
        icntfc = icntfc + 1
-       !
+
        ! print diagnostics and stop program if count of number of faces suggests an endless loop                          41.39
-       !
+
        if ( icntfc > 4*nfaces ) then
-          !
+
           call msgerr ( 4, 'SwanBpntlist: list of boundary vertices could not be completed ' )
-          !
+
           if ( ITEST >= 30 .or. idebug == 1 ) then
              write(PRTEST,*) 'error in SwanBpntlist: vertex vc not found'
              write(PRTEST,*) 'error in SwanBpntlist: vc =      ', vc
@@ -346,31 +345,31 @@ subroutine SwanBpntlist
              write(PRTEST,*) 'error in SwanBpntlist: blistot = ', blistot
           endif
           return
-          !
+
        endif
-       !
+
     enddo faceloop
-    !
+
     ! store number of boundary vertices for last polygon
-    !
+
     nbpt(nbpol) = nbptot - nptemp
-    !
+
     ! check if list contains boundary vertices only
-    !
+
     do j = 1, nbptot
-       !
+
        vc = blistot(j)
        if (vert(vc)%atti(VMARKER) /= 1) then
           write (msgstr, '(a,i4,a)') ' Vertex with index ',vc,' in boundary list is not a valid boundary point'
           call msgerr( 2, trim(msgstr) )
        endif
-       !
+
     enddo
-    !
+
     ! determine maximum number of boundary vertices in set of polygons and allocate blist
-    !
+
     maxnbp = maxval(nbpt)
-    !
+
     istat = 0
     if(.not.allocated(blist)) allocate (blist(maxnbp,nbpol), stat = istat)
     if ( istat /= 0 ) then
@@ -378,26 +377,26 @@ subroutine SwanBpntlist
        return
     endif
     blist = 0
-    !
+
     ! fill blist in appropriate manner
-    !
+
     k = 0
-    !
+
     do j = 1, nbpol
-       !
+
        do m = 1, nbpt(j)
           vc         = blistot(k+m)
           blist(m,j) = vc
        enddo
-       !
+
        k = k + nbpt(j)
-       !
+
     enddo
-    !
+
     deallocate(blistot)
-    !
+
     !  add output curve corresponding to boundary                         41.14
-    !
+
     ALLOCATE(OPSTMP)
     OPSTMP%PSTYPE = 'C'
     MIP = nbpt(1)
@@ -410,8 +409,7 @@ subroutine SwanBpntlist
       OPSTMP%XP(m) = vert(vc)%attr(VERTX)
       OPSTMP%YP(m) = vert(vc)%attr(VERTY)
     enddo
-    IF (ITEST.GE.10) WRITE (PRTEST, 101) 'BOUNDARY', MIP
-101 format (' Generated output curve ', A8, ' with ', I6, ' vertices.')
+    IF (ITEST.GE.10) WRITE (PRTEST, "(' Generated output curve ', A8, ' with ', I6, ' vertices.')") 'BOUNDARY', MIP
 !   ***** store number of points of the curve *****
     NULLIFY(OPSTMP%NEXTOPS)
     IF ( .NOT.LOPS ) THEN
@@ -422,9 +420,9 @@ subroutine SwanBpntlist
        COPS%NEXTOPS => OPSTMP
        COPS => OPSTMP
     END IF
-    !
+
     ! determine highest value of boundary marker
-    !
+
     VMMAX = 0
     DO JBG = 1, nbpol
       DO IP = 1, nbpt(JBG)
@@ -434,17 +432,17 @@ subroutine SwanBpntlist
       ENDDO
     ENDDO
 !TEST    write (prtest, *) 'test VMMAX ', VMMAX, nbpol
-    !
+
     ALLOCATE(IARR1(SUM(nbpt)))
     DO VM=1, VMMAX
       MIP = 0
       JJ = 0
       DO JBG = 1, nbpol
-        !
+
         ! first boundary polygon is assumed an outer one
         ! (sea/mainland boundary) and hence, content of blist
         ! is ordered in counterclockwise manner
-        !
+
         DO IP = 1, nbpt(JBG)
           IX = blist(IP,JBG)
           IF ( vmark(IX) == VM .AND. vmark(IX) < excmark ) THEN
@@ -458,9 +456,9 @@ subroutine SwanBpntlist
           ENDIF
         ENDDO
       ENDDO
-      !
+
       IF ( MIP/=0 ) THEN
-        !
+
         ALLOCATE(IARR2(MIP))
         IARR2(1:MIP) = IARR1(1:MIP)
         ISH = 0
@@ -472,7 +470,7 @@ subroutine SwanBpntlist
         ENDDO
         IARR2 = CSHIFT(IARR2,ISH)
 !TEST        write (prtest, *) 'Shift ', ISH, MIP, IARR2(1)
-        !
+
         ALLOCATE(OPSTMP)
         OPSTMP%PSTYPE = 'C'
         OPSTMP%MIP = MIP
@@ -489,7 +487,7 @@ subroutine SwanBpntlist
           OPSTMP%YP(IPP) = vert(IX)%attr(VERTY)
         ENDDO
         DEALLOCATE(IARR2)
-        IF (ITEST.GE.10) WRITE (PRTEST, 101) TRIM(PSNAME), MIP
+        IF (ITEST.GE.10) WRITE (PRTEST, "(' Generated output curve ', A8, ' with ', I6, ' vertices.')") TRIM(PSNAME), MIP
         NULLIFY(OPSTMP%NEXTOPS)
         IF ( .NOT.LOPS ) THEN
           FOPS = OPSTMP
@@ -499,9 +497,9 @@ subroutine SwanBpntlist
           COPS%NEXTOPS => OPSTMP
           COPS => OPSTMP
         END IF
-        !
+
       ENDIF
     ENDDO
     DEALLOCATE(IARR1)
-    !
+
 end subroutine SwanBpntlist

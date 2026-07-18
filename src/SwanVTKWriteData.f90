@@ -1,5 +1,5 @@
 subroutine SwanVTKWriteData ( uvtk, pstype, nvar, ivtyp, voqr, data, lenp, mxk, myk, ionod )
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -44,44 +44,44 @@ subroutine SwanVTKWriteData ( uvtk, pstype, nvar, ivtyp, voqr, data, lenp, mxk, 
 !   See https://vtk.org/wp-content/uploads/2015/04/file-formats.pdf
 !
 !   Modules used
-!
+
     use ocpcomm4
     use swcomm1
     use m_parall
     use outp_data
     use SwanGriddata
     use SwanGridobjects
-!
+
     implicit none
-!
+
 !   Argument variables
-!
+
     integer, intent(in)                       :: lenp   ! length of piece data
     integer, intent(in)                       :: mxk    ! number of points in x-direction of frame
     integer, intent(in)                       :: myk    ! number of points in y-direction of frame
     integer, intent(in)                       :: nvar   ! number of output variables
     integer, intent(in)                       :: uvtk   ! unit number of VTK file
-    !
+
     integer, dimension(nvar)  , intent(in)    :: ivtyp  ! types of output variable
     integer, dimension(nmovar), intent(in)    :: voqr   ! pointer in list of variables
-    !
+
     integer, dimension(*), intent(in)         :: ionod  ! indicates in which subdomain nodes are located
-    !
-    real*4 , dimension(mxk*myk,*), intent(in) :: data   ! output data
-    !
+
+    REAL(KIND=KIND(0.0)) , dimension(mxk*myk,*), intent(in) :: data   ! output data
+
     character(1), intent(in)                  :: pstype ! type of output point set
-!
+
 !   Parameter variables
-!
+
     integer     , parameter :: datasize = 4             ! number of bytes of integers and reals
     integer     , parameter :: ndim = 3                 ! space dimension
                                                         ! (set to 3 as required by Paraview)
     integer     , parameter :: nov = 3                  ! number of vertices in cell (triangles only)
-    integer*1   , parameter :: ptype = 5                ! polygon type (5 = triangle)
+    INTEGER(KIND=SELECTED_INT_KIND(2))   , parameter :: ptype = 5                ! polygon type (5 = triangle)
     character(1), parameter :: lf = char(10)            ! line feed character
-!
+
 !   Local variables
-!
+
     integer                 :: i                        ! loop counter
     integer, save           :: ient = 0                 ! number of entries in this subroutine
     integer                 :: ip                       ! local pointer
@@ -90,41 +90,41 @@ subroutine SwanVTKWriteData ( uvtk, pstype, nvar, ivtyp, voqr, data, lenp, mxk, 
     integer                 :: ivtype                   ! type of output quantity
     integer                 :: j                        ! loop counter
     integer                 :: jvar                     ! loop counter over output variables
-    integer*4               :: nbytes                   ! number of bytes in the block of data
+    INTEGER(KIND=SELECTED_INT_KIND(9))               :: nbytes                   ! number of bytes in the block of data
     integer                 :: v1                       ! first vertex of cell
     integer                 :: v2                       ! second vertex of cell
     integer                 :: v3                       ! third vertex of cell
-    !
+
     character(80)           :: msgstr                   ! string to pass message
-    !
+
     type(celltype), dimension(:), pointer :: cell       ! datastructure for cells with their attributes
-!
+
 !   Structure
 !
 !   Description of the pseudo code
 !
 !   Source text
-!
+
     if (ltrace) call strace (ient,'SwanVTKWriteData')
-    !
+
     ! point to cell object
-    !
+
     cell => gridobject%cell_grid
-    !
+
     ios = 0
-    !
+
     iproc = INODE
-    !
+
     ! write the output data
-    !
+
     do jvar = 1, nvar
-       !
+
        ivtype = ivtyp(jvar)
-       !
+
        if ( ovsvty(ivtype) < 3 ) then        ! scalars
-          !
+
           nbytes = lenp * datasize
-          !
+
           if ( ios == 0 ) write(uvtk,iostat=ios) nbytes
           do j = 1, myk
              ip = (j-1)*mxk
@@ -132,11 +132,11 @@ subroutine SwanVTKWriteData ( uvtk, pstype, nvar, ivtyp, voqr, data, lenp, mxk, 
                 if ( ios == 0 .and. ionod(ip+i) == iproc ) write(uvtk,iostat=ios) data(ip+i,voqr(ivtype))
              enddo
           enddo
-          !
+
        else                                  ! vectors (three components per node!)
-          !
+
           nbytes = ndim * lenp * datasize
-          !
+
           if ( ios == 0 ) write(uvtk,iostat=ios) nbytes
           do j = 1, myk
              ip = (j-1)*mxk
@@ -144,14 +144,14 @@ subroutine SwanVTKWriteData ( uvtk, pstype, nvar, ivtyp, voqr, data, lenp, mxk, 
                 if ( ios == 0 .and. ionod(ip+i) == iproc ) write(uvtk,iostat=ios) data(ip+i,voqr(ivtype)), data(ip+i,voqr(ivtype)+1), 0.
              enddo
           enddo
-          !
+
        endif
-       !
+
     enddo
-    !
+
     ! write coordinates
     ! note: three components per node are required by Paraview, therefore add z = 0
-    !
+
     nbytes = ndim * lenp * datasize
     if ( ios == 0 ) write(uvtk,iostat=ios) nbytes
     do j = 1, myk
@@ -160,12 +160,12 @@ subroutine SwanVTKWriteData ( uvtk, pstype, nvar, ivtyp, voqr, data, lenp, mxk, 
           if ( ios == 0 .and. ionod(ip+i) == iproc ) write(uvtk,iostat=ios) data(ip+i,voqr(1)), data(ip+i,voqr(2)), 0.
        enddo
     enddo
-    !
+
     if ( pstype == 'U' ) then
-       !
+
        ! connectivity
        ! note: Triangle connectivity list start with 1, here 0
-       !
+
        nbytes = nov * ncells * datasize
        if ( ios == 0 ) write(uvtk,iostat=ios) nbytes
        do j = 1, ncells
@@ -174,34 +174,34 @@ subroutine SwanVTKWriteData ( uvtk, pstype, nvar, ivtyp, voqr, data, lenp, mxk, 
           v3 = cell(j)%face(3)%atti(FACEV1) -1
           if ( ios == 0 ) write(uvtk,iostat=ios) v1, v2, v3
        enddo
-       !
+
        ! write offset into the connectivity array for the end of each cell
-       !
+
        nbytes = ncells * datasize
        if ( ios == 0 ) write(uvtk,iostat=ios) nbytes
        if ( ios == 0 ) write(uvtk,iostat=ios) (j, j=nov, nov*ncells, nov)
-       !
+
        ! write cell type
-       !
+
        nbytes = ncells * datasize
        if ( ios == 0 ) write(uvtk,iostat=ios) nbytes
        if ( ios == 0 ) write(uvtk,iostat=ios) (ptype, j=1, ncells)
-       !
+
     endif
-    !
+
     vtkline = lf//'  </AppendedData>'//lf
     if ( ios == 0 ) write(uvtk,iostat=ios) trim(vtkline)
-    !
+
     ! end of the file
-    !
+
     vtkline = '</VTKFile>'//lf
     if ( ios == 0 ) write(uvtk,iostat=ios) trim(vtkline)
-    !
+
     ! if necessary, give message that error occurred while writing file
-    !
+
     if ( ios /= 0 ) then
        write (msgstr, '(a,i5)') 'Error while writing VTK file - iostat number =',ios
        call msgerr( 2, trim(msgstr) )
     endif
-    !
+
 end subroutine SwanVTKWriteData

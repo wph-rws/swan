@@ -1,11 +1,12 @@
 !   This file contains subroutines for the Babanin physics according to Rogers et al (JTECH 2012)
 !   based on work of Babanin, Young, Tsagareli, Ardhuin and others
 MODULE SDSBABANIN
+  IMPLICIT NONE
 
 CONTAINS
 
   SUBROUTINE CALC_SDS(NFREQ,EDENS,F,KDS,ANAR_IN,TESTFL,KWAVE,CG)
-    !
+
     USE SWCOMM1, ONLY: CHTIME
     USE SWCOMM3, ONLY: A1SDS,A2SDS,P1SDS,P2SDS,UPWARDS,GRAV,PI
 
@@ -22,8 +23,8 @@ CONTAINS
     ! LOGICAL UPWARDS : true if concave up
 
     IMPLICIT NONE
-    !
-!
+
+
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
@@ -40,7 +41,7 @@ CONTAINS
 !     You should have received a copy of the GNU General Public License
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
-    !
+
     ! INPUT: EDENS(f), f, OUTPUT: calculate Kds(f) [Kds(f)=Sds(f)/EDENS(f)]
     ! EDENS is given wave spectrum m2/Hz
     ! f is frequency in Hz example: f=0.01:0.01:0.5
@@ -124,18 +125,20 @@ CONTAINS
     REAL             , INTENT(OUT) ::  KDS(:)     ! Kds(f)=Sds(f)/E(f)
 
     ! Local variables:
-    REAL             , ALLOCATABLE ::  SDS(:)     ! Sds(f), the source term
-    REAL             , ALLOCATABLE ::  NDEDENS(:)
+    ! note: automatic arrays (not allocatables); this routine is called for
+    ! every grid point, so heap traffic must stay out of it
+    REAL              ::  SDS(NFREQ)     ! Sds(f), the source term
+    REAL              ::  NDEDENS(NFREQ)
     ! NDEDENS(f)=DEDENS(f)/EDENST(f)
-    REAL             , ALLOCATABLE ::  DEDENS(:)  ! DEDENS(f)=EDENS(f)-EDENST(f)
-    REAL             , ALLOCATABLE ::  EDENST(:)  ! E(f) threshold for breaking
-    REAL             , ALLOCATABLE ::  T1(:)      ! inherent dissipation/E(f)
-    REAL             , ALLOCATABLE ::  T2(:)      ! induced dissipation/E(f)
-    REAL             , ALLOCATABLE ::  ST1(:)     ! inherent dissipation
-    REAL             , ALLOCATABLE ::  ST2(:)     ! induced dissipation
-    REAL             , ALLOCATABLE ::  ANAR(:)
+    REAL              ::  DEDENS(NFREQ)  ! DEDENS(f)=EDENS(f)-EDENST(f)
+    REAL              ::  EDENST(NFREQ)  ! E(f) threshold for breaking
+    REAL              ::  T1(NFREQ)      ! inherent dissipation/E(f)
+    REAL              ::  T2(NFREQ)      ! induced dissipation/E(f)
+    REAL              ::  ST1(NFREQ)     ! inherent dissipation
+    REAL              ::  ST2(NFREQ)     ! induced dissipation
+    REAL              ::  ANAR(NFREQ)
     ! ANAR = directional narrowness as defined in Babanin publications
-    REAL             , ALLOCATABLE ::  XFF(:),ADF(:) ! temporary arrays
+    REAL              ::  XFF(NFREQ),ADF(NFREQ) ! temporary arrays
     REAL              :: ASUM   ! temporary variable for integration
     REAL              :: BNT
     ! BNT is an empirical coefficient related to the spectral density in the
@@ -146,31 +149,18 @@ CONTAINS
     ! IMAX,I3FP, fp,  FD(:) re: T1 and T2 at 3fp (for test output only)
     INTEGER           :: IMAX,I3FP
     REAL              :: FP
-    REAL, ALLOCATABLE :: FD(:)
+    REAL              :: FD(NFREQ)
     REAL ::  ELIM  ! needed for UPWARDS=.FALSE.
     REAL ::  CTMP1 ! temporary variable
 
     ! ------- START SUBROUTINE -------------------------------------------------
-
-    ALLOCATE(SDS(NFREQ))
-    ALLOCATE(XFF(NFREQ))
-    ALLOCATE(NDEDENS(NFREQ))
-    ALLOCATE(DEDENS(NFREQ))
-    ALLOCATE(EDENST(NFREQ))
-    ALLOCATE(T1(NFREQ))
-    ALLOCATE(T2(NFREQ))
-    ALLOCATE(ANAR(NFREQ))
-    ALLOCATE(ST1(NFREQ))
-    ALLOCATE(ST2(NFREQ))
-    ALLOCATE(ADF(NFREQ))
-    ALLOCATE(FD(NFREQ))
 
     BNT=(0.035**2)    !  Bnt value given by Babanin et al (2007)
 
     ! --------------------------------------------------------------------------
     ! get a1 and a2 as a function of U/cp
     ! --------------------------------------------------------------------------
-
+    !
     ! needed: A(f), see Young and Babanin eq 19.
     ! Originally, it was read in and applied, but per recommendation by Alex
     ! that A(f) is unnecessary/obsolete, I set it to 1.0 here:
@@ -197,7 +187,7 @@ CONTAINS
 ! notes: Mar 22 2011, Stefan has noticed sensitivity to ELIM.  (this variable
 !   only applies to concave down case). I have experimented with ELIM=0.0 and
 !   noticed no sensitivity for the U10=12 m/s point model case.
-
+!
 ! ELIM is needed for "concave down"
 !   ELIM=maxval(Edens)*1.0e-5 ! option 1
     ELIM=0.0 ! option 2
@@ -228,22 +218,23 @@ CONTAINS
     ! --------------------------------------------------------------------------
     !                      calculate  T2  an integration from fp to f
     ! --------------------------------------------------------------------------
-
+    !
     ! Note that we do not worry about starting at fp (which can be difficult to
     !  define), since stuff below fp is typically not breaking, so it is not
     !  part of the calculation anyway.
 
     IF(A2SDS.GT.0.)THEN
-      XFF=0.0
-      DO  IS=1,NFREQ
-         ASUM=0.0
-         DO II=1,IS
-            XFF(II)=F(II)
-            ADF(II)=ANAR(II)*NDEDENS(II)**P2SDS
-         ENDDO
-         ! THE "INTEGRATE" ROUTINE IS BASED ON FINITE DIFFERENCING, BUT WE COULD
-         ! REPLACE WITH AN OPERATION THAT USES FRINTF
-         CALL INTEGRATE(ASUM,XFF,ADF,IS)
+      XFF=F
+      DO IS=1,NFREQ
+         ADF(IS)=ANAR(IS)*NDEDENS(IS)**P2SDS
+      ENDDO
+      ! running trapezoidal integral; the terms are accumulated in the same
+      ! order as the former per-IS calls to INTEGRATE, so the result is
+      ! bit-identical while the cost drops from O(NFREQ**2) to O(NFREQ)
+      ASUM=0.0
+      T2(1)=0.0
+      DO IS=2,NFREQ
+         ASUM=ASUM+.5*(ADF(IS-1)+ADF(IS))*(XFF(IS)-XFF(IS-1))
          T2(IS)=A2SDS*ASUM
       ENDDO
     ELSE
@@ -263,9 +254,8 @@ CONTAINS
 !NRL       WRITE(411,*)CHTIME,' % CHTIME'
 !NRL       WRITE(412,*)'% f(is),EDENS(is),EDENST(is),T1(is),T2(is)'
 !NRL       DO  IS=1,NFREQ
-!NRL          WRITE(412,205)F(IS),EDENS(IS),EDENST(IS),T1(IS),T2(IS)
+!NRL          WRITE(412,"(5(1X,E11.5))") F(IS),EDENS(IS),EDENST(IS),T1(IS),T2(IS)
 !NRL       END DO
-!NRL205    FORMAT(5(1X,E11.5))
 !NRL
 !NRL       ! calculate integrated T1 and T2 (for output purposes only)
 !NRL
@@ -289,23 +279,9 @@ CONTAINS
 !NRL       I3FP=MINLOC(FD,1)
 !NRL
 !NRL       ! (POINT OUTPUT WRITE LOCATION 3)
-!NRL       WRITE(*,208)ST1_INT,ST2_INT,SDS_INT,ST1(I3FP),ST2(I3FP)
-!NRL208    FORMAT('integral of T1,T2,Sds = ',5(1X,E14.8))
+!NRL       WRITE(*,"('integral of T1,T2,Sds = ',5(1X,E14.8))") &
+!NRL          ST1_INT,ST2_INT,SDS_INT,ST1(I3FP),ST2(I3FP)
 !NRL    ENDIF
-
-! Deallocate and return
-    DEALLOCATE(SDS)
-    DEALLOCATE(XFF)
-    DEALLOCATE(NDEDENS)
-    DEALLOCATE(DEDENS)
-    DEALLOCATE(EDENST)
-    DEALLOCATE(T1)
-    DEALLOCATE(T2)
-    DEALLOCATE(ANAR)
-    DEALLOCATE(ST1)
-    DEALLOCATE(ST2)
-    DEALLOCATE(ADF)
-    DEALLOCATE(FD)
 
   END SUBROUTINE CALC_SDS
 
@@ -322,8 +298,8 @@ CONTAINS
 !ESMF    USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
 
     IMPLICIT NONE
-!
-!
+
+
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
@@ -340,7 +316,7 @@ CONTAINS
 !     You should have received a copy of the GNU General Public License
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
-    !
+
     !  SUBROUTINE SWIND_DBYB follows the structure of SWIND3 of SWAN.
     !     As such, it contains features that are not general to all wave models.
     !     In particular, the quadrant sweeping creates special challenges that
@@ -522,7 +498,7 @@ CONTAINS
     REAL    ANAR(MSC),SIGDENS(MSC),SQRTBN(MSC),CINV(MSC)
     REAL    GAMMAD,GDONEL,TEMP4,WPSI,TEMP5,TEMP6,BN
     REAL    SIN1D(MSC),SWND,FREQ,STRESS
-    INTEGER IENT
+    INTEGER, SAVE :: IENT = 0
     REAL    RMSDIR(MSC)
 
     REAL EDENS2D ! for test calcs
@@ -531,8 +507,6 @@ CONTAINS
 !NRL    REAL TAUX_tmp,TAUY_tmp,ENCHECK
     REAL ZE   !roughness length
 
-    SAVE IENT
-    DATA IENT/0/
     IF (LTRACE) CALL STRACE (IENT,'SWIND_DBYB')
 
     CTW   = COS(THETAW)
@@ -592,7 +566,7 @@ CONTAINS
 !   each bin), it is nececessary in order to have the correct stress going
 !   into CALC_LFACTOR
 ! Update May 2017: Above issue was addressed by Marcel Z. via "memsin".
-
+!
 ! Note, if this setting for TEMP2 is modified, it should also be modified in
 ! subroutine "CALC_TAU_TOTAL"
     IF(TRUE_U10)THEN
@@ -629,7 +603,7 @@ CONTAINS
 
 ! In Donelan notation, SWINEB is BETA, so I use BETA=GAMMA*sigma*rhoa/rhow
 !   (Donelan eq 3)
-
+!
 ! Calculate actual wind input term Sin=Beta*Edens
 
              S_IN(ID,IS)=SWINEB*AC2(ID,IS,KCGRD(1))*SPCSIG(IS)
@@ -664,7 +638,7 @@ CONTAINS
 !-------------------------------------------------------------------------------
 !   Begin negative wind input
 !-------------------------------------------------------------------------------
-
+!
 !-------------------------------------------------------------------------------
 ! Yalin, Aug30, 2013.    Add negative input when wind and wave have large angle
 ! RDCOEF is the user adjustable reduction coefficient for the negative energy.
@@ -708,7 +682,7 @@ CONTAINS
 !-------------------------------------------------------------------------------
 !   End negative wind input
 !-------------------------------------------------------------------------------
-
+!
 ! We want to add B*N to RHS. This is SWINEB*AC2, see SWIND3.
 ! Above, we had S_IN(ID,IS)=SWINEB*AC2(ID,IS,KCGRD(1))*SPCSIG(IS)
 ! Thus, we just need to divide out SPCSIG(IS).
@@ -750,15 +724,11 @@ CONTAINS
 
     !     *** test output ***
     IF (ITEST.GE. 80.AND.TESTFL) THEN
-       WRITE(PRTEST,6000) KCGRD(1), THETAW*180./PI
-6000   FORMAT(' SWIND_DBYB: POINT  THETAW        :',I5,E12.4)
-       WRITE(PRTEST,6100) TEMP2, UFRIC
-6100   FORMAT(' SWIND_DBYB: TEMP2 UFRC     :',3E12.4, /, &
-         '  IS ID1 ID2       Wind source term')
+       WRITE(PRTEST,"(' SWIND_DBYB: POINT THETAW :',I5,E12.4)") KCGRD(1), THETAW*180./PI
+       WRITE(PRTEST,"(' SWIND_DBYB: TEMP2 UFRC :',3E12.4, /, ' IS ID1 ID2 Wind source term')") TEMP2, UFRIC
        DO IS = 1, MSC
-          WRITE(PRTEST,6200) IS, 1, MDC,(MEMSINB(ID,IS,KCGRD(1)), &
+          WRITE(PRTEST,"(3I4, 600e12.4)") IS, 1, MDC,(MEMSINB(ID,IS,KCGRD(1)), &
              ID=1,MDC)
-6200      FORMAT(3I4, 600e12.4)
        ENDDO
        WRITE(PRTEST,*)
     END IF
@@ -769,12 +739,12 @@ CONTAINS
   SUBROUTINE CALC_LFACTOR(TAUX_linear,TAUY_linear,LFACTOR_L,S_IN,UFRIC,PWIND,DDIR_RAD,SIGMA_S,FRINTF, &
                           CINV_S,GRAV,WIND10,TESTFL,SPCDIR,VECTOR_TAU,TRUE_U10,CTHETA_WIND, &
                           STHETA_WIND, ZE)
-!
+
     USE SWCOMM1, ONLY: CHTIME
-!
+
     IMPLICIT NONE
-!
-!
+
+
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
@@ -798,7 +768,7 @@ CONTAINS
 !   tau_normal definitely has a monotonic dependence on REDUC, so this
 !   potential limitation on the solver is OK. (Monotonicity of S_in, or lack
 !   thereof, is irrelevant.)
-
+!
 !   Points made here:
 !   1) The normal stress plus the tangential/viscous stress cannot be greater
 !      than the total stress.
@@ -829,7 +799,7 @@ CONTAINS
 !      Having said that, it would be useful to include it, as a future code
 !      improvement. (Update: Yalin has added linear part to stress calculation.
 !      This was rev 669, Feb 26 2014.)
-
+!
 !    Notes re: "vector_tau":
 !      In earlier versions of this code, to simplify calcs, I used S_in1D(f)
 !      S_in1D_S=sum(S_in,1)*DDIR_rad*(2.0*PI) ! in units m2/Hz
@@ -852,7 +822,7 @@ CONTAINS
 !      If vector_tau is false, we do not need the directional Sin(f,theta).
 !      However, to keep the code simple I pass Sin(f,theta) to calc_tau_total
 !      routine regardless.
-
+!
 !   Note: "_S" denotes "short" (fewer freqs)
 !         "_L" denotes "long" (freqs out to 10 Hz)
 !         (1d version: was used for calculations, but now used only
@@ -934,7 +904,7 @@ CONTAINS
 !   selects. To correct this, we should stop at 10 Hz and change df of last bin
 !   df for the last bin would have to use finite differencing, instead of
 !   FRINTF (as used below), e.g. DF=FREQ(nf_new)-FREQ(nf_new-1)
-
+!
 !... allocate arrays on nf_new
     ALLOCATE(S_IN_L(NDIR,NF_NEW))
     ALLOCATE(S_IN1D_L(NF_NEW)) ! for diagnostic output only
@@ -978,7 +948,7 @@ CONTAINS
 
 !   Method: Tsagareli (thesis, 2009); Tsagareli et al. (JPO 2010, eq 3.7);
 !     based on fitting to data of Banner and Peirson (JFM 1998).
-
+!
 !   New Aug 30 2013: Previously, tau_visc would go to zero for high wind speeds
 !     (U10>22 m/s), which looks strange when plotted. This is addressed now by
 !     reformulating such that tau_visc remains constant beyond the wind speed
@@ -1021,7 +991,7 @@ CONTAINS
 !         tau_visc as implemented after Aug 30 2013: 0.1 Pa
 !         tau_visc from Makin_iter.m : 1.4 Pa
 !         tau_total: 4.3 Pa
-
+!
 !   We will assume that viscous stress is in wind direction
     TAU_VISC_X=TAU_VISC*CTHETA_WIND
     TAU_VISC_Y=TAU_VISC*STHETA_WIND
@@ -1038,10 +1008,8 @@ CONTAINS
       RHOW,SPCDIR,DDIR_RAD,VECTOR_TAU,TRUE_U10,UFRIC,TAU_VISC_X,TAU_VISC_Y, &
       TAU_SIN_X,TAU_SIN_Y,TAUX_linear,TAUY_linear,SIGMA_L,TESTFL)
 
-206 FORMAT('tau_total_max = ',F9.6,' ; tau_total = ',F10.6,' ; tau_visc = ',&
-           F9.6)
 !NRL    IF(TESTFL)THEN
-!NRL       WRITE(*,206)TAU_TOTAL_MAX,TAU_TOTAL,TAU_VISC
+!NRL       WRITE(*,"('tau_total_max = ',F9.6,' ; tau_total = ',F10.6,' ; tau_visc = ', F9.6)")TAU_TOTAL_MAX,TAU_TOTAL,TAU_VISC
 !NRL    ENDIF
 
     IF(TAU_TOTAL < TAU_TOTAL_MAX .OR. TAU_TOTAL < 1E-10)THEN
@@ -1083,7 +1051,7 @@ CONTAINS
     ERR=TAU_TOTAL-TAU_TOTAL_MAX
     SIGN_NEW=SIGN(1.0,ERR)
 !NRL    IF(TESTFL)THEN
-!NRL       WRITE(*,207)0,REDUC,0.0,TAU_TOTAL,ERR
+!NRL       WRITE(*,"('iter = ',I3,' ; REDUC = ',F9.6,' ; RCHANGE = ',F9.6, ' ; tau_total = ', F9.6,' ; err = ',F7.4,' ; tau_sin_x = ',F9.6, ' ; tau_sin_y = ',F9.6)")0,REDUC,0.0,TAU_TOTAL,ERR
 !NRL    ENDIF
     SLOW_DOWN=0
     RCHANGE=2.0
@@ -1107,13 +1075,10 @@ CONTAINS
        ERR=TAU_TOTAL-TAU_TOTAL_MAX
        SIGN_OLD=SIGN_NEW
        SIGN_NEW=SIGN(1.0,ERR)
-207    FORMAT('iter = ',I3,' ; REDUC = ',F9.6,' ; RCHANGE = ',F9.6, &
-              ' ; tau_total = ', F9.6,' ; err = ',F7.4,' ; tau_sin_x = ',F9.6, &
-              ' ; tau_sin_y = ',F9.6)
 !NRL       IF(TESTFL)THEN
-!NRL          WRITE(*,207)ITER,REDUC,RCHANGE,TAU_TOTAL,ERR,TAU_SIN_X,TAU_SIN_Y
+!NRL          WRITE(*,"('iter = ',I3,' ; REDUC = ',F9.6,' ; RCHANGE = ',F9.6, ' ; tau_total = ', F9.6,' ; err = ',F7.4,' ; tau_sin_x = ',F9.6, ' ; tau_sin_y = ',F9.6)")ITER,REDUC,RCHANGE,TAU_TOTAL,ERR,TAU_SIN_X,TAU_SIN_Y
 !NRL       ENDIF
-
+!
 !     once "slow_down" is set for a given iteration, it stays in this state
 !     for future iterations
        IF(SIGN_NEW /= SIGN_OLD)THEN
@@ -1161,22 +1126,22 @@ CONTAINS
        ENDIF
     END IF
 !!  END: force stop in case of failure
-
+!
 !!  BEGIN: test output for NRL purposes
-!NRL210 FORMAT(F9.6,' ',E12.6,' % (freq , Lfactor)')
 !NRL    IF(TESTFL)THEN
 !NRL       DO IS=1,NF_NEW
-!NRL          WRITE(413,210)(SIGMA_L(IS)/(2.0*PI)),LFACTOR_L(IS)
+!NRL          WRITE(413,"(F9.6,' ',E12.6,' % (freq , Lfactor)')") &
+!NRL             (SIGMA_L(IS)/(2.0*PI)),LFACTOR_L(IS)
 !NRL       END DO
 !NRL    ENDIF
 
     S_IN1D_L=SUM(S_IN_L,1)*DDIR_RAD
-!NRL211 FORMAT(F9.6,1X,E12.6)
 !NRL    IF(TESTFL)THEN
 !NRL       WRITE(414,*)CHTIME,' % CHTIME'
 !NRL       WRITE(414,*)' % (freq , new S_in)'
 !NRL       DO IS=1,NF_NEW
-!NRL          WRITE(414,211)(SIGMA_L(IS)/(2.0*PI)),(S_IN1D_L(IS)*LFACTOR_L(IS))
+!NRL          WRITE(414,"(F9.6,1X,E12.6)") &
+!NRL             (SIGMA_L(IS)/(2.0*PI)),(S_IN1D_L(IS)*LFACTOR_L(IS))
 !NRL       END DO
 !NRL    ENDIF
 !    S_IN1D_L=0.0
@@ -1208,7 +1173,7 @@ CONTAINS
 !        with factor smoothly intersecting value=1 at U/C=1. It is not applied
 !         for U/C<1 since that would produce an increase...so factor 1
 !         for U/C<=1
-
+!
 !     On methods used (Aug 14 2012):
 !        Old method (reasonable enough if tau_wave, tau_total, and tau_visc are
 !        all in the same direction) (does not make much sense if tau_wave is
@@ -1231,7 +1196,7 @@ CONTAINS
 !            plus tau_visc components and returns tau_total (a scalar)
 !          * repeat until tau_total (a scalar) is less than tau_total_maximum
 !            (a scalar)
-
+!
 !     On computational efficiency, David Johnson, March 1 2013, writes: "... I
 !        profiled your SWAN code and found out that fully 50% of the total run
 !        time is spent in subroutine calc_tau_total, with an effective doubling
@@ -1244,7 +1209,7 @@ CONTAINS
 !        makes the code itself less concise, less readable and more prone to
 !        bugs. Therefore, I keep calc_tau_total as a separate subroutine for
 !        now.
-
+!
 !     On run time:
 !        I find that for a square domain, deep water, run in serial mode,
 !        there is the following increase in computation time (expressed as a
@@ -1257,8 +1222,8 @@ CONTAINS
     USE SWCOMM3, ONLY: WNDSCL
 
     IMPLICIT NONE
-!
-!
+
+
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
@@ -1274,8 +1239,8 @@ CONTAINS
 !
 !     You should have received a copy of the GNU General Public License
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
+
+
     REAL             , INTENT(OUT) ::  TAU_TOTAL
     REAL             , INTENT(OUT) ::  LFACTOR(:)
     REAL             , INTENT(IN)  ::  REDUC
@@ -1378,19 +1343,19 @@ CONTAINS
   END SUBROUTINE CALC_TAU_TOTAL
 
 !****************************************************************
-!
+
   SUBROUTINE SWIND0_NRL (SPCSIG,THETAW,ANYWND,         &
                          UFRIC,FPM,MEMSINA,SPCDIR,KWAVE)
-!
+
 !****************************************************************
-!
+
       USE SWCOMM3
       USE SWCOMM4
       USE OCPCOMM4
 
       IMPLICIT NONE
-!
-!
+
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1419,7 +1384,7 @@ CONTAINS
 !
 !
 !     For background info on SWIND0_NRL, see SWIND0
-
+!
 !     Q: How is SWIND0_NRL different from SWIND0 ?
 !     A: linear wind input term is reduced in some cases
 !
@@ -1448,15 +1413,13 @@ CONTAINS
       REAL    KWAVE(MSC,MICMAX)
       LOGICAL ANYWND(MDC)
       REAL    TAUX_linear,TAUY_linear,CINV2,CTH,STH,TAU_FROM_UFRIC,TAU_MAGNITUDE
-      INTEGER IENT
+      INTEGER, SAVE :: IENT = 0
       REAL    ARGU
 
-      SAVE IENT
-      DATA IENT/0/
       IF (LTRACE) CALL STRACE (IENT,'SWIND0_NRL')
-!
+
 !     *** calculate linear wind input term ***
-!
+
       CTW = COS(THETAW)
       STW = SIN(THETAW)
       FPM =  GRAV / ( 28.0 * UFRIC )
@@ -1529,12 +1492,11 @@ CONTAINS
                MEMSINA(ID,IS,KCGRD(1)) = SWINEA(ID,IS)
 !              *** test output ***
                IF (ITEST .GE. 80 .AND. TESTFL )  &
-               WRITE (PRTEST, 333) ID, IS, FILTER, SWINEA(ID,IS)
- 333           FORMAT (' ID IS FILTER  WIND SOURCE ',2I4, 1X, 2(1X,E11.4))
+               WRITE (PRTEST, "(' ID IS FILTER WIND SOURCE ',2I4, 1X, 2(1X,E11.4))") ID, IS, FILTER, SWINEA(ID,IS)
             ENDDO
          ENDIF
       ENDDO
-!
+
 ! calculate stress (test point only)
 !NRL      IF(TESTFL)THEN
 !NRL         TAUX_linear=0.0
@@ -1560,29 +1522,26 @@ CONTAINS
 !NRL      ENDIF
 !
 !     *** test output ***
-!
+
       IF (ITEST.GE. 60.AND.TESTFL) THEN
-        WRITE(PRINTF,400) KCGRD(1), THETAW*180./PI
- 400    FORMAT(' SWIND0: POINT  THETAW       :',I5,E12.4)
-        WRITE(PRINTF,500) TEMP1, FPM, UFRIC
- 500    FORMAT(' SWIND0: TEMP1 FPM UFRC     :',3E12.4)
+        WRITE(PRINTF,"(' SWIND0: POINT THETAW :',I5,E12.4)") KCGRD(1), THETAW*180./PI
+        WRITE(PRINTF,"(' SWIND0: TEMP1 FPM UFRC :',3E12.4)") TEMP1, FPM, UFRIC
         WRITE(PRINTF,*)
         IF (ITEST.GE. 120.AND.TESTFL) THEN
           DO IS = 1, MSC
             DO ID = 1, MDC
-              WRITE(PRINTF,100) IS,ID,ANYWND(ID)
- 100          FORMAT(' IS ID ANYWND : ', 2I5,1X,L2)
+              WRITE(PRINTF,"(' IS ID ANYWND : ', 2I5,1X,L2)") IS,ID,ANYWND(ID)
             ENDDO
           ENDDO
         ENDIF
       END IF
-!
+
       RETURN
 !     end of subroutine SWIND0_NRL
       END SUBROUTINE SWIND0_NRL
-!
+
 subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc0, aiceloc )
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1628,39 +1587,39 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
 !   Fills IMATRA and GENC0 arrays with wind input term for every gridpoint per sweep direction
 !
 !   Modules used
-!
+
     use swcomm3
     use swcomm4
     use ocpcomm4
-!
+
     implicit none
-!
+
 !   Argument variables
-!
+
     integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
-    !
+
     integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
     integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
-    !
+
     real, intent(in)                            :: aiceloc ! local ice fraction, at current time
-    !
+
     real, dimension(MDC,MSC)      , intent(out) :: imatra ! coefficients of right hand side of action balance equation
     real, dimension(MDC,MSC,MGENR), intent(out) :: genc0  ! explicit part of generation in present vertex for output purposes
     real, dimension(MDC,MSC,MCGRD), intent(in)  :: memsin ! wind input stored in all active grid points
     real, dimension(MDC,MSC,NPTST), intent(out) :: plwnds ! explicit part of wind input for test output
-    !
+
     logical, dimension(MDC)       , intent(in)  :: anywnd ! determine if wind input is active for bin
-!
+
 !   Local variables
-!
+
     integer       :: id       ! loop counter over direction bins
     integer       :: iddum    ! counter in directional space for considered sweep
     integer, save :: ient = 0 ! number of entries in this subroutine
     integer       :: is       ! loop counter over frequency bins
-!
+
     real          :: memsins  ! temp variable for memsin value
     real          :: factor_on_Sin ! exactly what it sounds like
-!
+
 !   Structure
 !
 !   Description of the pseudo code
@@ -1679,9 +1638,9 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
 !     but is intended to reduce the math operations.
 !
 !   Source text
-!
+
     if (ltrace) call strace (ient,'filsin')
-    !
+
     factor_on_Sin = (1.-aiceloc*(1.-icewind))
     do is = 1, isstop
        do iddum = idcmin(is), idcmax(is)
@@ -1698,9 +1657,9 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
           endif
        enddo
     enddo
-    !
+
     if ( TESTFL .and. ITEST > 50 ) then
-       write (PRINTF,101) idcmin(1), idcmax(1), MSC, isstop
+       write (PRINTF,"(' FILSIN: ID_MIN ID_MAX MSC ISTOP :',4i6)") idcmin(1), idcmax(1), MSC, isstop
        if ( ITEST > 100 ) then
           do is = 1, isstop
              do iddum = idcmin(is), idcmax(is)
@@ -1710,32 +1669,30 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
                    factor_on_Sin = (1.-aiceloc*(1.-icewind))
                    memsins = memsins * factor_on_Sin
                 endif
-                write (PRINTF,102) is, id, memsins
+                write (PRINTF,"(' FILSIN: IS ID MEMSIN() :',2i6,e12.4)") is, id, memsins
              enddo
           enddo
        endif
     endif
-    !
- 101 format(' FILSIN: ID_MIN ID_MAX MSC ISTOP :',4i6)
- 102 format(' FILSIN: IS ID MEMSIN()          :',2i6,e12.4)
-    !
+
+
 end subroutine filsin
-!
+
   !****************************************************************
   SUBROUTINE SSWELL_ROGERS (SPCSIG  ,KWAVE   ,IDCMIN  ,IDCMAX,ISSTOP , DISSC1 ,ETOT &
                            ,IMATDA,URMSTOP, GRAV   , RHOAW  , MDC,TESTFL,IPTST,PLSWEL,CGO,CDSV,FESWELL)
 
     ! note that CGo is for diagnostic purposes only
     ! excluded : SPCDIR AC2 DEP2 IMATRA
-
+    !
     ! WARNING: This source term may have a large impact in stationary
     ! computations with SWAN, e.g. on scales of 2 deg x 2 deg
-
+    !
     !****************************************************************
 
     IMPLICIT NONE
-!
-!
+
+
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
@@ -1751,8 +1708,8 @@ end subroutine filsin
 !
 !     You should have received a copy of the GNU General Public License
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
+
+
     LOGICAL, INTENT(IN) :: TESTFL
     INTEGER, INTENT(IN) :: ISSTOP,MDC,IPTST
     INTEGER, INTENT(IN) :: IDCMIN(:) ! IDCMIN(MSC)
@@ -1802,7 +1759,7 @@ end subroutine filsin
 !   6)  Ardhuin et al. (JPO 2010) say: "Assuming a constant fe in (9),
 !     Ardhuin et al. (2009b) found that swell observations are consistent
 !     with 0.004 < fe < 0.013.
-
+!
 ! Q: What should Re_crit be ?
 !   1) my original code (up to and including v54):
 !     ==>Re_crit=1e+5
@@ -1827,7 +1784,7 @@ end subroutine filsin
 !   9) Supplemental information for "Ocean swell evolution from distant
 !     storms"
 !     ==>Re_crit=1e+5
-
+!
 !   my notes from phone call w/Fabrice:
 ! "....10^5 w/bug ....2x10^5 w/out bug.....sqrt orbital displacement aorb"
 !
@@ -1836,14 +1793,14 @@ end subroutine filsin
 !    where C(sig) has units of rad/sec
 !    ...so if we are passing to IMATDA, we just need to pass C(sig)
 !    Here, SWDIS(IS) is my C(sig)
-
+!
 ! Notes about proportionality:
 ! Both S_{swell,Babanin} and S_{swell,Ardhuin} are proportional
 !      to a^1 and omega^3.
 ! The only difference is in
 !      1) the proportionality coefficient
 !      2) the manner in which amplitude is converted to E(f)
-
+!
 ! The dissipation by viscosity in the water is different. It is proportional to
 !      a^0 and omega^4.
 
@@ -1870,7 +1827,7 @@ end subroutine filsin
 !   Thus, Kds_Phillips=4*nuw*(k^2), where Kds is (@E/@t)/E
 ! For other ideas about S_visc, see Pierson et al. (2013+),
 !    "Rain-induced attenuation of water waves"
-
+!
 ! Alternate reference: Dulov and Kosnnik (Izvestiya, Atmospheric and
 ! Oceanic Physics, 2009, vol 45, No 3, pp 380-391) :
 !  gamma=-4*nu*k^2, where nu=1.3e-6 m2/s
@@ -1881,11 +1838,11 @@ end subroutine filsin
 ! The implication is that viscosity is only important for the shortest
 ! waves in the capillary range, for "forming the spectrum", and perhaps
 ! for dissipation also.
-
+!
 ! Problem identified: if we use this for calculation of tau_wave_to_atm,
 !   then we should not include Sds,visc...that part would go to
 !   tau_wave_to_ocean
-
+!
 !   DO IS=1, ISSTOP
 !      KDS_PHILLIPS=4.0*NU_WATER*(KWAVE(IS,1)**2)  ! UNITS OF RADIAN^2/S
 !      SWDIS(IS) = SWDIS(IS) + KDS_PHILLIPS
@@ -1977,7 +1934,7 @@ end subroutine filsin
 !-------------------------------------------------------------------------------------
 
     IMPLICIT NONE
-!
+
     LOGICAL, INTENT(IN) :: TESTFL
     INTEGER, INTENT(IN) :: ISSTOP,MDC,IPTST
     INTEGER, INTENT(IN) :: IDCMIN(:) ! IDCMIN(MSC)
@@ -2121,7 +2078,7 @@ end subroutine filsin
     USE SWCOMM3, ONLY : KCGRD, DDIR, MSC, B1Z
 
     IMPLICIT NONE
-!
+
     ! Subroutine arguments:
     LOGICAL, INTENT(IN)   :: TESTFL
     INTEGER, INTENT(IN)   :: ISSTOP,MDC,IPTST
@@ -2222,8 +2179,8 @@ end subroutine filsin
 !-------------------------------------------------------------------------
 
     IMPLICIT NONE
-!
-!
+
+
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
@@ -2240,7 +2197,7 @@ end subroutine filsin
 !     You should have received a copy of the GNU General Public License
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
-    !
+
     !    Use Trapezoidal Rule to Integrate the area under the curve
     !    specified by the data points in x and y
     !
@@ -2251,7 +2208,7 @@ end subroutine filsin
     !
     !    esterr   -   estimated error for Trapizoidal integration
     !    sum2     -   Trapizoidal integration using every other available point
-    !
+
 
     REAL          , INTENT(IN)  ::  X(:)
     REAL          , INTENT(IN)  ::  Y(:)
@@ -2272,7 +2229,7 @@ end subroutine filsin
 
 
       SUBROUTINE SURF_ROUGH_FAN (FPI,U,UST,CD)
-!
+
 !     Parameter list
 !     ----------------------------------------------------------------
 !       FPI     Real   I   Peak-input frequency.
@@ -2305,7 +2262,7 @@ end subroutine filsin
       G=9.8
       CAPA=0.4
       PII=3.141517
-!
+
 !----      A1=0.57   produce too high Hs  ----------
 !---- First try, use 0.4521, still too large
 !---- Second try, use 0.3931, Hs is still 1.5m higher
@@ -2313,11 +2270,11 @@ end subroutine filsin
       A1=0.354
       B1=-1.5
       B2=1.5
-!
+
 !---- a transition point of wave age
       CW=11
 
-!
+
 ! 1. Defining CD function ---------------------------------------------- *
         IF(U.LE.0.) THEN
           Z0FTN=0.000001
@@ -2329,42 +2286,42 @@ end subroutine filsin
           Z0FTN=(0.085*U-0.58)*0.001
           CDFTN=0.4*0.4*(LOG(10./Z0FTN)**(-2))
         END IF
-!
+
 !---- UST
       IF(UST.LE.0.) UST=SQRT(CDFTN)*U
-!
+
 !---- Phase velocity at peak
       CPEAK=SQRT(G**2/(2.*PII*FPI)**2)
-!
+
 !---- First check----------------------------------
       IF(U.LE.0.) THEN
           Z0  =  0.000001
           ZCH =  0.000001
           CD  =  0.000001
           UST =  0.000001
-        GO TO 900
+        RETURN
       ELSE
-!
+
 !----- Initial guess of UST using a function
        X=SQRT(CDFTN)*U
-!
+
 !----- Iteration to get UST------------------------------------------- *
-!
+
       DO I=1,5
-!
+
 !----- Wave age
          WAGE=CPEAK/X
-!
+
 !----- Relationship between wave age and Charnock Coeff.
           xx1=100.0
           slope= 0.15*(U/12.5)
           ZCH=0.023/xx1**slope*WAGE**slope
-!
+
 !----- Calculation of Charnock Coefficient(Zch-Wage relationship)
 
-!
+
          FX=X/CAPA*LOG(10.*G/(X**2*ZCH))-U
-!
+
         IF(ABS(FX).GE. 0.001) THEN
           X=X-(X/CAPA*LOG(10*G/(X**2*ZCH))-U)/                        &
                  ((1/CAPA)*(LOG(10*G/(X**2*ZCH))-2.))
@@ -2374,13 +2331,13 @@ end subroutine filsin
 
        END DO
 !------------------ End of Iteration --------------------------------- *
-!
+
         UST=X
         Z0=UST**2*ZCH/G
         IF (Z0.LT.0.00001) Z0 = 0.00001
         CD=(1/CAPA*LOG(10/Z0))**(-2)
 
-!
+
 !----- Second Check--------
 !       IF((WAGE.GT.3.).AND.(WAGE.LT.32.)) THEN
 !
@@ -2394,7 +2351,7 @@ end subroutine filsin
 !         ZCH=Z0*G/UST**2
 !       END IF
 !---------------------------
-!
+
       END IF
 !--------------------------- First Check Ending
 !
@@ -2408,8 +2365,6 @@ end subroutine filsin
 !       END IF
 !
 !---- Direction of Stress
-!
-900   continue
 
       RETURN
 
@@ -2469,7 +2424,7 @@ end subroutine filsin
       AFA = 0.01
       RHOW = 1025.0
       RHOA = 1.28
-!
+
 ! 1. Difining CD function ---------------------------------------------- *
         IF(U.LE.0.) THEN
           Z0FTN=0.000001
@@ -2481,13 +2436,12 @@ end subroutine filsin
           Z0FTN=(0.085*U-0.58)*0.001
           CDFTN=0.4*0.4*(LOG(10./Z0FTN)**(-2))
         END IF
-!
+
 !---- UST
       IF(UST.LE.1E-10) THEN
          CDRAG = CDFTN
          UST = SQRT ( CDRAG ) * U
-         GOTO 110
-      ENDIF
+      ELSE
 
 !...S_in(theta,freq)
       NDIR=SIZE(S_IN,1)
@@ -2540,7 +2494,7 @@ end subroutine filsin
 !...   we should apply the same reduction to GENC0 as well. This requires to bring array
 !...   LFACTOR to this subroutine.
 !      *** Note that LFACTOR_SRC is renamed here as RDFSIN ***
-
+!
 !Yalin: S_IN(NF_OLD) / GENC0(NF_OLD) was already drawn down by LFACTOR(NF_OLD)
 ! before pass into routine ADDDIS. But, in CALC_LFACTOR, the tail is added using
 ! the original S_IN(NF_OLD) before add tail then calculate LFACTOR.
@@ -2570,8 +2524,7 @@ end subroutine filsin
       ZE = Z0/SQRT(1-TAU_wav/TAU_total)
       X = SQRT(G*Z0/AFA)*LOG((10.0+ZE-Z0)/Z0)/CAPA - U
 
-      IF (ABS(X) .LT. 1E-6) GO TO 100
-
+      IF (ABS(X) .GE. 1E-6) THEN
       IF (X.GT.0.0) THEN
           A = 0
           B = Z0
@@ -2581,7 +2534,8 @@ end subroutine filsin
       ENDIF
 
       K = 0
-80    Z0 = (A+B)/2
+      DO
+      Z0 = (A+B)/2
       UST = SQRT(Z0*G/AFA)
       TAU_total = RHOA * UST**2
       ZE = Z0/SQRT(1-TAU_wav/TAU_total)
@@ -2592,9 +2546,9 @@ end subroutine filsin
           A = (A+B)/2
       ENDIF
       K = K + 1
-      IF (ABS(X) > u*1E-6 .or. X < 0) GOTO 80
-
-100   CONTINUE
+      IF (.NOT.(ABS(X) > u*1E-6 .or. X < 0)) EXIT
+      END DO
+      END IF
 
       UST = SQRT(Z0*G/AFA)
 
@@ -2602,8 +2556,7 @@ end subroutine filsin
       DEALLOCATE(SIGMA_L)
       DEALLOCATE(DF_L)
       DEALLOCATE(S_IN_L)
-
-110   CONTINUE
+      END IF
 
       RETURN
 
@@ -2614,10 +2567,10 @@ end subroutine filsin
 !------------------------------------------------------------------------------
   REAL FUNCTION KUIK(E_AT_FREQ,DTHETA_RAD,CTH,STH,DIAGNOSTICS)
 !------------------------------------------------------------------------------
-!
+
   IMPLICIT NONE
-!
-!
+
+
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
@@ -2657,7 +2610,7 @@ end subroutine filsin
   REAL, INTENT(IN) ::  CTH(:)  !  cos(theta)
   REAL, INTENT(IN) ::  STH(:)  !  sin(theta)
   LOGICAL, INTENT(IN) ::  DIAGNOSTICS !  Flag for diagnostic output
-!
+
 !  4. Error messages
 !
 !  5. Called by:
@@ -2673,7 +2626,7 @@ end subroutine filsin
 ! 10. Source code:
 !------------------------------------------------------------------------------
 ! local variables
-!
+
   INTEGER NDIR,IDIR            ! number of directions and counter for directions
   REAL EF                              ! E(f) at this frequency
   REAL INTEG3,INTEG4,a1,b1,m1,DSPR     ! temporary variables for integration

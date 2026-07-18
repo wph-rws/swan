@@ -1,5 +1,5 @@
 subroutine SwanReadADCGrid
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -51,16 +51,16 @@ subroutine SwanReadADCGrid
 !   Bottom topography from file fort.14 will also be stored
 !
 !   Modules used
-!
+
     use ocpcomm2
     use ocpcomm4
     use m_genarr
     use SwanGriddata
-!
+
     implicit none
-!
+
 !   Local variables
-!
+
     character(lenfnm)       :: grdfil   ! name of grid file including path
     integer, save           :: ient = 0 ! number of entries in this subroutine
     integer                 :: idum     ! dummy integer
@@ -79,30 +79,32 @@ subroutine SwanReadADCGrid
     integer                 :: vm       ! boundary marker
     character(80)           :: line     ! auxiliary textline
     logical                 :: stpnow   ! indicate whether program must be terminated or not
-!
+
 !   Structure
 !
 !   Description of the pseudo code
 !
 !   Source text
-!
+
     if (ltrace) call strace (ient,'SwanReadADCGrid')
-    !
+
     ! open file fort.14
-    !
+
     ndsd   = 0
     iostat = 0
     grdfil = 'fort.14'
     call for (ndsd, grdfil, 'OF', iostat)
-    if (stpnow()) goto 900
-    !
+    if (stpnow()) return
+
     ! skip first line
-    !
-    read(ndsd,'(a80)', end=950, err=910) line
-    !
+
+    read(ndsd,'(a80)', iostat=iostat) line
+    if (read_failed(iostat)) return
+
     ! read number of elements and number of vertices
-    !
-    read(ndsd, *, end=950, err=910) ncells, nverts
+
+    read(ndsd, *, iostat=iostat) ncells, nverts
+    if (read_failed(iostat)) return
     istat = 0
     if(.not.allocated(xcugrd)) allocate (xcugrd(nverts), stat = istat)
     if ( istat == 0 ) then
@@ -113,77 +115,95 @@ subroutine SwanReadADCGrid
     endif
     if ( istat /= 0 ) then
        call msgerr ( 4, 'Allocation problem in SwanReadADCGrid: array xcugrd, ycugrd or depth ' )
-       goto 900
+       return
     endif
-    !
+
     ! read coordinates of vertices and bottom topography
-    !
+
     do j = 1, nverts
-       read(ndsd, *, end=950, err=910) ii, xcugrd(ii), ycugrd(ii), DEPTH(ii)
+       read(ndsd, *, iostat=iostat) ii, xcugrd(ii), ycugrd(ii), DEPTH(ii)
+       if (read_failed(iostat)) return
        if ( ii/=j ) call msgerr ( 1, 'numbering of vertices is not sequential in grid file fort.14 ' )
     enddo
-    !
+
     if(.not.allocated(kvertc)) allocate (kvertc(3,ncells), stat = istat)
     if ( istat /= 0 ) then
        call msgerr ( 4, 'Allocation problem in SwanReadADCGrid: array kvertc ' )
-       goto 900
+       return
     endif
-    !
+
     ! read vertices of triangles
-    !
+
     do j = 1, ncells
-       read(ndsd, *, end=950, err=910) ii, idum, kvertc(1,ii), kvertc(2,ii), kvertc(3,ii)
+       read(ndsd, *, iostat=iostat) ii, idum, kvertc(1,ii), kvertc(2,ii), kvertc(3,ii)
+       if (read_failed(iostat)) return
        if ( ii/=j ) call msgerr ( 1, 'numbering of triangles is not sequential in grid file fort.14 ' )
     enddo
-    !
+
     if(.not.allocated(vmark)) allocate (vmark(nverts), stat = istat)
     if ( istat /= 0 ) then
        call msgerr ( 4, 'Allocation problem in SwanReadADCGrid: array vmark ' )
-       goto 900
+       return
     endif
     vmark = 0
-    !
+
     ! read ADCIRC boundary information and store boundary markers
-    !
-    read(ndsd, *, end=950, err=910) nopbc
-    read(ndsd, *, end=950, err=910) idum
+
+    read(ndsd, *, iostat=iostat) nopbc
+    if (read_failed(iostat)) return
+    read(ndsd, *, iostat=iostat) idum
+    if (read_failed(iostat)) return
     do j = 1, nopbc
        vm = j
-       read(ndsd, *, end=950, err=910) n2
+       read(ndsd, *, iostat=iostat) n2
+       if (read_failed(iostat)) return
        do k = 1, n2
-           read(ndsd, *, end=950, err=910) ivert
+           read(ndsd, *, iostat=iostat) ivert
+           if (read_failed(iostat)) return
            vmark(ivert) = vm
        enddo
     enddo
-    !
-    read(ndsd, *, end=950, err=910) n1
-    read(ndsd, *, end=950, err=910) idum
+
+    read(ndsd, *, iostat=iostat) n1
+    if (read_failed(iostat)) return
+    read(ndsd, *, iostat=iostat) idum
+    if (read_failed(iostat)) return
     do j = 1, n1
        vm = nopbc + j
-       read(ndsd, *, end=950, err=910) n2, itype
+       read(ndsd, *, iostat=iostat) n2, itype
+       if (read_failed(iostat)) return
        if ( itype /= 4 .and. itype /= 24 ) then
           do k = 1, n2
-             read(ndsd, *, end=950, err=910) ivert
+             read(ndsd, *, iostat=iostat) ivert
+             if (read_failed(iostat)) return
              vmark(ivert) = vm
           enddo
        else
           do k = 1, n2
-             read(ndsd, *, end=950, err=910) ivert, ivert1
+             read(ndsd, *, iostat=iostat) ivert, ivert1
+             if (read_failed(iostat)) return
              vmark(ivert ) = vm
              vmark(ivert1) = vm
           enddo
        endif
     enddo
-    !
+
     ! close file fort.14
-    !
+
     close(ndsd)
-    !
- 900 return
-    !
- 910 call msgerr (4, 'error reading data from grid file fort.14' )
-    goto 900
- 950 call msgerr (4, 'unexpected end of file in grid file fort.14' )
-    goto 900
-    !
+
+contains
+
+    logical function read_failed(status)
+       integer, intent(in) :: status
+
+       read_failed = status /= 0
+       if (.not.read_failed) return
+       if (is_iostat_end(status)) then
+          call msgerr (4, 'unexpected end of file in grid file fort.14')
+       else
+          call msgerr (4, 'error reading data from grid file fort.14')
+       endif
+    end function read_failed
+
 end subroutine SwanReadADCGrid

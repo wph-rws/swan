@@ -1,5 +1,5 @@
 subroutine SwanVertlist ( compda )
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -57,7 +57,7 @@ subroutine SwanVertlist ( compda )
 !   Sorting based on increasing distance along sweep direction
 !
 !   Modules used
-!
+
     use ocpcomm4
     use swcomm2, only: COSWC, SINWC, VARWI
     use swcomm3, only: MCMVAR, JWX2, JWY2, JWX3, JWY3
@@ -66,13 +66,13 @@ subroutine SwanVertlist ( compda )
     use SwanGriddata
     use SwanGridobjects
     use SwanCompdata
-!
+
     implicit none
-!
+
 !   Argument variables
-!
+
     real, dimension(nverts,MCMVAR), intent(in) :: compda ! array containing space-dependent info (e.g. wind)
-!
+
 !   Parameter variables
 !
 !GRAPH    integer, parameter :: nlpf = 1 ! number of levels per wavefront
@@ -86,11 +86,9 @@ subroutine SwanVertlist ( compda )
 !GRAPH    integer                              :: ifront   ! front id / loop counter
 !FXFRO    integer                              :: ifront   ! loop counter over wavefronts
     integer                              :: istat    ! indicate status of allocation
-    integer                              :: itmp     ! temporary stored integer for swapping
     integer                              :: j        ! loop counter over vertices
 !GRAPH    integer                              :: jc       ! loop counter over cells
     integer                              :: k        ! counter
-    integer, dimension(1)                :: kd       ! location of minimum value in array dist
 !GRAPH    integer                              :: l        ! counter
 !GRAPH    integer                              :: lmax     ! indicate maximum level of upstream neighbours
 !GRAPH    integer                              :: m        ! neighbour vertex
@@ -101,8 +99,7 @@ subroutine SwanVertlist ( compda )
     integer                              :: swpdir   ! sweep counter
 !GRAPH    integer, dimension(3)                :: v        ! vertices in present cell
 !GRAPH    integer, dimension(2)                :: vu       ! upwave vertices in present cell
-    !
-    real                                 :: rtmp     ! temporary stored real for swapping
+
     real                                 :: sdir     ! sweep direction
     real                                 :: wdsum    ! total sum of wind direction
     real                                 :: wx       ! wind velocity in x-direction
@@ -113,9 +110,9 @@ subroutine SwanVertlist ( compda )
 !GRAPH    integer, dimension(:)  , allocatable :: fill     ! auxiliary ptr array
 !GRAPH    integer, dimension(:)  , allocatable :: level    ! graph levels
 !GRAPH    integer, dimension(:)  , allocatable :: pos      ! vertex position in vlist
-    !
+
     real, dimension(:,:), allocatable    :: dist     ! distance of each point with respect to reference point
-    !
+
 !GRAPH    type(celltype), dimension(:), pointer :: cell    ! datastructure for cells with their attributes
     type(verttype), dimension(:), pointer :: vert    ! datastructure for vertices with their attributes
 !FXFRO    !
@@ -126,28 +123,28 @@ subroutine SwanVertlist ( compda )
 !   Description of the pseudo code
 !
 !   Source text
-!
+
     if (ltrace) call strace (ient,'SwanVertlist')
-    !
+
 !GRAPH    ! point to vertex and cell objects
 !FXFRO    ! point to vertex object
-    !
+
     vert => gridobject%vert_grid
 !GRAPH    cell => gridobject%cell_grid
-    !
+
     ! create vertex list
-    !
+
     istat = 0
     if(.not.allocated(vlist)) allocate (vlist(nverts,nsweep), stat = istat)
     if ( istat /= 0 ) then
        call msgerr ( 4, 'Allocation problem in SwanVertlist: array vlist ' )
        return
     endif
-    !
+
     allocate (dist(nverts,nsweep))
-    !
+
     ! check first sweep direction
-    !
+
     if ( .not. asort > -999. ) then
 !      if asort still does not have a value, try space-varying wind and take the mean of wind direction
        if ( VARWI ) then
@@ -167,18 +164,18 @@ subroutine SwanVertlist ( compda )
              endif
           enddo
           asort = wdsum / real(k)
-          call SWREDUCE( asort, 1, SWREAL, SWSUM )
+          call SWREDUCE( asort, 1, SWSUM )
           asort = asort / real(NPROC)
        else
 !         final attempt: set sweep direction to zero
           asort = 0.
        endif
     endif
-    if ( ITEST >= 40 ) write (PRINTF,10) nsweep, 180.*asort/PI
+    if ( ITEST >= 40 ) write (PRINTF,"(' Number of sweeps = ',i2,'; chosen wave direction for sweeping: ',f7.2,' degrees')") nsweep, 180.*asort/PI
     asort = asort - PI/real(nsweep)
-    !
+
     ! order vertices according to sweep direction; base vector is user-given/wave/wind direction
-    !
+
     sdir = asort + PI/real(nsweep)
     do swpdir = 1, nsweep
        do j = 1, nverts
@@ -186,39 +183,22 @@ subroutine SwanVertlist ( compda )
        enddo
        sdir = sdir + PI2/real(nsweep)
     enddo
-    !
+
     ! sort vertex list in order of increasing distance
-    !
+
     do swpdir = 1, nsweep
-       !
+
        do j = 1, nverts
           vlist(j,swpdir) = j
        enddo
-       !
-       do j = 1, nverts-1
-          !
-          kd = minloc(dist(j:nverts,swpdir))
-          k  = kd(1) + j-1
-          !
-          if ( k /= j ) then
-             !
-             rtmp            = dist(j,swpdir)
-             dist(j,swpdir)  = dist(k,swpdir)
-             dist(k,swpdir)  = rtmp
-             !
-             itmp            = vlist(j,swpdir)
-             vlist(j,swpdir) = vlist(k,swpdir)
-             vlist(k,swpdir) = itmp
-             !
-          endif
-          !
-       enddo
-       !
+
+       call SwanTreeSort ( dist(:,swpdir), vlist(:,swpdir) )
+
     enddo
-    !
+
 !GRAPH    ! create wavefronts based on graph levels
 !FXFRO    ! create wavefronts
-    !
+!
 !GRAPH    allocate (nfront(nsweep))
 !GRAPH    !
 !GRAPH    allocate (pos  (nverts))
@@ -296,9 +276,10 @@ subroutine SwanVertlist ( compda )
 !GRAPH       !
 !GRAPH       if ( ITEST >= 40 ) then
 !GRAPH          if ( nlpf == 1 ) then
-!GRAPH             write(PRINTF,20) swpdir, nlevel
+!GRAPH             write(PRINTF,"(' sweepnr= ',i2,': number of graph levels = ',i8)") swpdir, nlevel
 !GRAPH          else
-!GRAPH             write(PRINTF,30) swpdir, nlevel, nfront(swpdir)
+!GRAPH             write(PRINTF,"(' sweepnr= ',i2,': number of graph levels = ',i8, &
+!GRAPH             & ' and number of fronts = ',i8)") swpdir, nlevel, nfront(swpdir)
 !GRAPH          endif
 !GRAPH       endif
 !GRAPH       !
@@ -396,7 +377,8 @@ subroutine SwanVertlist ( compda )
 !FXFRO    ! compute actual number of vertices per front
 !FXFRO    !
 !FXFRO    nvf = int( (nverts+nfront-1)/nfront )
-!FXFRO    if ( ITEST >= 40 ) write (PRINTF,20) nfront, nvf
+!FXFRO    if ( ITEST >= 40 ) write (PRINTF, &
+!FXFRO       "(' Number of fronts = ',i4,' and number of vertices per front = ',i6)") nfront, nvf
 !FXFRO    !
 !FXFRO    ! per wavefront, determine start and end vertex indices
 !FXFRO    !
@@ -406,13 +388,108 @@ subroutine SwanVertlist ( compda )
 !FXFRO       fronte(ifront) = min(nverts, ifront*nvf)
 !FXFRO       !
 !FXFRO    enddo
-    !
+!
 !GRAPH    deallocate(dist,fid,level,pos)
 !FXFRO    deallocate(dist)
-    !
- 10 format (' Number of sweeps = ',i2,'; chosen wave direction for sweeping: ',f7.2,' degrees')
-!GRAPH 20 format (' sweepnr= ',i2,': number of graph levels = ',i8)
-!GRAPH 30 format (' sweepnr= ',i2,': number of graph levels = ',i8,' and number of fronts = ',i8)
-!FXFRO 20 format (' Number of fronts = ',i4,' and number of vertices per front = ',i6)
-    !
+
+contains
+
+    subroutine SwanTreeSort ( key, order )
+
+    ! Sort vertex indices by increasing projected distance in O(N log N).
+    ! The segment tree tracks the first minimum at its current position, thus
+    ! preserving the tie behaviour of the former MINLOC selection sort.
+
+    real   , dimension(:), intent(in)    :: key
+    integer, dimension(:), intent(inout) :: order
+
+    integer                            :: base
+    integer                            :: ierr
+    integer                            :: itmp
+    integer                            :: j
+    integer                            :: k
+    integer                            :: n
+    integer                            :: node
+    integer, dimension(:), allocatable :: tree
+
+    n = size(order)
+    if ( n < 2 ) return
+
+    base = 1
+    do while ( base < n )
+       base = 2*base
+    enddo
+
+    allocate(tree(2*base),stat=ierr)
+    if ( ierr /= 0 ) then
+       call msgerr ( 4, 'Allocation problem in SwanTreeSort: array tree ' )
+       return
+    endif
+    tree = 0
+
+    do j = 1, n
+       tree(base+j-1) = j
+    enddo
+    do node = base-1, 1, -1
+       tree(node) = SwanTreeWinner ( tree(2*node), tree(2*node+1), key, order )
+    enddo
+
+    do j = 1, n-1
+
+       k = tree(1)
+       if ( k /= j ) then
+          itmp     = order(j)
+          order(j) = order(k)
+          order(k) = itmp
+       endif
+
+       tree(base+j-1) = 0
+       call SwanTreeRefresh ( tree, base, j, key, order )
+       if ( k /= j ) call SwanTreeRefresh ( tree, base, k, key, order )
+
+    enddo
+
+    deallocate(tree)
+
+    end subroutine SwanTreeSort
+
+    subroutine SwanTreeRefresh ( tree, base, position, key, order )
+
+    integer, dimension(:), intent(inout) :: tree
+    integer              , intent(in)    :: base
+    integer              , intent(in)    :: position
+    real   , dimension(:), intent(in)    :: key
+    integer, dimension(:), intent(in)    :: order
+
+    integer :: node
+
+    node = (base+position-1)/2
+    do while ( node > 0 )
+       tree(node) = SwanTreeWinner ( tree(2*node), tree(2*node+1), key, order )
+       node = node/2
+    enddo
+
+    end subroutine SwanTreeRefresh
+
+    integer function SwanTreeWinner ( left, right, key, order )
+
+    integer              , intent(in) :: left
+    integer              , intent(in) :: right
+    real   , dimension(:), intent(in) :: key
+    integer, dimension(:), intent(in) :: order
+
+    if ( left == 0 ) then
+       SwanTreeWinner = right
+    elseif ( right == 0 ) then
+       SwanTreeWinner = left
+    elseif ( key(order(left)) < key(order(right)) ) then
+       SwanTreeWinner = left
+    elseif ( key(order(left)) > key(order(right)) ) then
+       SwanTreeWinner = right
+    else
+       SwanTreeWinner = min(left,right)
+    endif
+
+    end function SwanTreeWinner
+
 end subroutine SwanVertlist

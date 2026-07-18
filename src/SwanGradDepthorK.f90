@@ -1,5 +1,5 @@
 subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert )
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -46,20 +46,20 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
 !   a constant gradient over the controle volume (centroid dual)
 !
 !   Modules used
-!
+
     use ocpcomm4
     use swcomm2
     use swcomm3
     use swcomm4
     use SwanGriddata
     use SwanGridobjects
-!
+
     implicit none
-!
+
 !   Argument variables
-!
+
     integer                , intent(in)   :: ivert  ! counter corresponding to current vertex
-    !
+
     real, dimension(nverts), intent(in)   :: dep2   ! water depth at current time level
     real                   , intent(out)  :: dhdx   ! derivative of depth in x-direction
     real                   , intent(out)  :: dhdy   ! derivative of depth in y-direction
@@ -67,17 +67,17 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
     real, dimension(MSC)   , intent(out)  :: dkdy   ! derivative of wave number in y-direction
     real, dimension(nverts), intent(in)   :: mudl2  ! mud layer at current time level
     real, dimension(MSC)   , intent(in)   :: spcsig ! relative frequency bins
-!
+
 !   Local variables
-!
+
     integer                               :: icell    ! index of present cell
     integer, save                         :: ient = 0 ! number of entries in this subroutine
     integer                               :: jc       ! loop counter
     integer                               :: jcell    ! index of next cell
-    !
+
     integer, dimension(3)                 :: v        ! vertices in present cell
-    !
-    double precision                      :: area     ! twices the area of centroid dual around present vertex
+
+    REAL(KIND=KIND(0.0D0))                      :: area     ! twices the area of centroid dual around present vertex
     real, dimension(MSC)                  :: arr      ! auxiliary array
     real                                  :: cslat    ! cosine of latitude
     real                                  :: dpmax    ! maximum depth found in centroid dual
@@ -92,192 +92,205 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
     real, dimension(MSC)                  :: k0       ! wave number in centroid of present cell
     real, dimension(MSC)                  :: k1       ! wave number in centroid of next cell
     real, dimension(MSC,3)                :: kloc     ! local wave number at vertices
-    double precision                      :: x0       ! x-coordinate of the centroid of present cell
-    double precision                      :: x1       ! x-coordinate of the centroid of next cell
-    double precision                      :: y0       ! y-coordinate of the centroid of present cell
-    double precision                      :: y1       ! y-coordinate of the centroid of next cell
-    !
+    REAL(KIND=KIND(0.0D0))                      :: x0       ! x-coordinate of the centroid of present cell
+    REAL(KIND=KIND(0.0D0))                      :: x1       ! x-coordinate of the centroid of next cell
+    REAL(KIND=KIND(0.0D0))                      :: y0       ! y-coordinate of the centroid of present cell
+    REAL(KIND=KIND(0.0D0))                      :: y1       ! y-coordinate of the centroid of next cell
+
     character(80)                         :: msgstr   ! string to pass message
-    !
+
     type(celltype), dimension(:), pointer :: cell     ! datastructure for cells with their attributes
     type(verttype), dimension(:), pointer :: vert     ! datastructure for vertices with their attributes
-!
+
 !   Structure
 !
 !   Description of the pseudo code
 !
 !   Source text
-!
+
     if (ltrace) call strace (ient,'SwanGradDepthorK')
-    !
+
     dhdx = 0.
     dhdy = 0.
-    !
+
     dkdx = 0.
     dkdy = 0.
-    !
+
     ! if no frequency shift and no refraction, return
-    !
+
     if ( (ITFRE == 0 .or. ICUR == 0) .and. IREFR == 0 ) return
-    !
+
     ! point to vertex and cell objects
-    !
+
     vert => gridobject%vert_grid
     cell => gridobject%cell_grid
-    !
+
     if ( vert(ivert)%atti(VMARKER) == 1 ) return    ! boundary vertex
-    !
+
     if ( (IREFR /= 0 .and. int(PNUMS(32)) == 0) .or. (ITFRE /= 0 .and. ICUR /= 0) ) then
-       !
+       depth_gradient: do
+
        area  =  0d0
        dpmax = -99999.
        dpmin =  99999.
-       !
+
        ! loop over cells around considered vertex
-       !
+
        do jc = 1, vert(ivert)%noc
-          !
+
           ! get present cell and its vertices
-          !
+
           icell = vert(ivert)%cell(jc)%atti(CELLID)
-          !
+
           v(1) = cell(icell)%atti(CELLV1)
           v(2) = cell(icell)%atti(CELLV2)
           v(3) = cell(icell)%atti(CELLV3)
-          !
+
           dloc(1) = dep2(v(1))
           dloc(2) = dep2(v(2))
           dloc(3) = dep2(v(3))
-          !
-          if ( dloc(1) <= DEPMIN .or. dloc(2) <= DEPMIN .or. dloc(3) <= DEPMIN ) goto 10
-          !
+
+          if ( dloc(1) <= DEPMIN .or. dloc(2) <= DEPMIN .or. dloc(3) <= DEPMIN ) then
+             dhdx = 0.
+             dhdy = 0.
+             exit depth_gradient
+          endif
+
           dminc = min ( min( dloc(1), dloc(2) ), dloc(3) )
           if ( dminc < dpmin ) dpmin = dminc
-          !
+
           dmaxc = max ( max( dloc(1), dloc(2) ), dloc(3) )
           if ( dmaxc > dpmax ) dpmax = dmaxc
-          !
+
           ! determine centroid of present cell
-          !
+
           x0 = cell(icell)%attr(CELLCX)
           y0 = cell(icell)%attr(CELLCY)
-          !
+
           ! determine depth in centroid in present cell
-          !
+
           h0 = ( dloc(1) + dloc(2) + dloc(3) )/ 3.
-          !
+
           ! get next cell in counterclockwise direction
-          !
+
           jcell = vert(ivert)%cell(jc)%atti(NEXTCELL)
-          !
+
           v(1) = cell(jcell)%atti(CELLV1)
           v(2) = cell(jcell)%atti(CELLV2)
           v(3) = cell(jcell)%atti(CELLV3)
-          !
+
           dloc(1) = dep2(v(1))
           dloc(2) = dep2(v(2))
           dloc(3) = dep2(v(3))
-          !
-          if ( dloc(1) <= DEPMIN .or. dloc(2) <= DEPMIN .or. dloc(3) <= DEPMIN ) goto 10
-          !
+
+          if ( dloc(1) <= DEPMIN .or. dloc(2) <= DEPMIN .or. dloc(3) <= DEPMIN ) then
+             dhdx = 0.
+             dhdy = 0.
+             exit depth_gradient
+          endif
+
           ! determine centroid of next cell
-          !
+
           x1 = cell(jcell)%attr(CELLCX)
           y1 = cell(jcell)%attr(CELLCY)
-          !
+
           ! determine depth in centroid of next cell
-          !
+
           h1 = ( dloc(1) + dloc(2) + dloc(3) )/ 3.
-          !
+
           ! compute contribution to area of centroid dual
-          !
+
           area = area + x0*y1 - x1*y0
-          !
+
           ! compute contribution to x-gradient of depth
-          !
+
           dhdx = dhdx + ( h0 + h1 ) * real( y1 - y0 )
-          !
+
           ! compute contribution to y-gradient of depth
-          !
+
           dhdy = dhdy + ( h0 + h1 ) * real( x1 - x0 )
-          !
+
        enddo
-       !
+
        ! if ratio between max and min depth is too large, set gradients to zero and skip to next vertex
        !
        !if ( dpmax > drat * dpmin ) goto 10
        !
        ! if area is non-positive, give error and go to next vertex
-       !
+
        if ( .not. area > 0d0 ) then
           write (msgstr, '(a,i5)') ' Area of centroid dual is negative or zero in vertex ', ivert
           call msgerr( 2, trim(msgstr) )
           return
        endif
-       !
+
        dhdx =  dhdx/real(area)
        dhdy = -dhdy/real(area)
-       !
+
        ! in case of spherical coordinates, transform back to Cartesian coordinates
-       !
+
        if ( KSPHER > 0 ) then
-          !
+
           cslat = cos(DEGRAD*(vert(ivert)%attr(VERTY) + YOFFS))
-          !
+
           dhdx = dhdx/(cslat * LENDEG)
           dhdy = dhdy/LENDEG
-          !
+
        endif
-       !
-       goto 20
- 10    dhdx = 0.
-       dhdy = 0.
-       !
+
+       exit depth_gradient
+       end do depth_gradient
+
     endif
-    !
- 20 if ( IREFR /= 0 .and. int(PNUMS(32)) == 1 ) then
-       !
+
+    if ( IREFR /= 0 .and. int(PNUMS(32)) == 1 ) then
+       wave_number_gradient: do
+
        area  =  0d0
        dpmax = -99999.
        dpmin =  99999.
-       !
+
        ! loop over cells around considered vertex
-       !
+
        do jc = 1, vert(ivert)%noc
-          !
+
           ! get present cell and its vertices
-          !
+
           icell = vert(ivert)%cell(jc)%atti(CELLID)
-          !
+
           v(1) = cell(icell)%atti(CELLV1)
           v(2) = cell(icell)%atti(CELLV2)
           v(3) = cell(icell)%atti(CELLV3)
-          !
+
           dloc(1) = dep2(v(1))
           dloc(2) = dep2(v(2))
           dloc(3) = dep2(v(3))
-          !
-          if ( dloc(1) <= DEPMIN .or. dloc(2) <= DEPMIN .or. dloc(3) <= DEPMIN ) goto 30
-          !
+
+          if ( dloc(1) <= DEPMIN .or. dloc(2) <= DEPMIN .or. dloc(3) <= DEPMIN ) then
+             dkdx = 0.
+             dkdy = 0.
+             exit wave_number_gradient
+          endif
+
           dminc = min ( min( dloc(1), dloc(2) ), dloc(3) )
           if ( dminc < dpmin ) dpmin = dminc
-          !
+
           dmaxc = max ( max( dloc(1), dloc(2) ), dloc(3) )
           if ( dmaxc > dpmax ) dpmax = dmaxc
-          !
+
           ! determine centroid of present cell
-          !
+
           x0 = cell(icell)%attr(CELLCX)
           y0 = cell(icell)%attr(CELLCY)
-          !
+
           ! compute wave numbers for all frequencies
-          !
+
           call KSCIP1 (MSC, spcsig, dloc(1), kloc(1,1), arr, arr, arr)
           call KSCIP1 (MSC, spcsig, dloc(2), kloc(1,2), arr, arr, arr)
           call KSCIP1 (MSC, spcsig, dloc(3), kloc(1,3), arr, arr, arr)
-          !
+
           if ( IMUD == 1 ) then
-             !
+
              if (VARMUD) then
                 dm(1) = mudl2(v(1))
                 dm(2) = mudl2(v(2))
@@ -287,104 +300,107 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
                 dm(2) = PMUD(1)
                 dm(3) = PMUD(1)
              endif
-             !
+
              call KSCIP2 (MSC, spcsig, dloc(1), kloc(1,1), arr, arr, arr, arr, dm(1))
              call KSCIP2 (MSC, spcsig, dloc(2), kloc(1,2), arr, arr, arr, arr, dm(2))
              call KSCIP2 (MSC, spcsig, dloc(3), kloc(1,3), arr, arr, arr, arr, dm(3))
-             !
+
           endif
-          !
+
           ! determine wave number in centroid in present cell
-          !
+
           k0(:) = ( kloc(:,1) + kloc(:,2) + kloc(:,3) )/ 3.
-          !
+
           ! get next cell in counterclockwise direction
-          !
+
           jcell = vert(ivert)%cell(jc)%atti(NEXTCELL)
-          !
+
           v(1) = cell(jcell)%atti(CELLV1)
           v(2) = cell(jcell)%atti(CELLV2)
           v(3) = cell(jcell)%atti(CELLV3)
-          !
+
           dloc(1) = dep2(v(1))
           dloc(2) = dep2(v(2))
           dloc(3) = dep2(v(3))
-          !
-          if ( dloc(1) <= DEPMIN .or. dloc(2) <= DEPMIN .or. dloc(3) <= DEPMIN ) goto 30
-          !
+
+          if ( dloc(1) <= DEPMIN .or. dloc(2) <= DEPMIN .or. dloc(3) <= DEPMIN ) then
+             dkdx = 0.
+             dkdy = 0.
+             exit wave_number_gradient
+          endif
+
           ! determine centroid of next cell
-          !
+
           x1 = cell(jcell)%attr(CELLCX)
           y1 = cell(jcell)%attr(CELLCY)
-          !
+
           ! compute wave numbers for all frequencies
-          !
+
           call KSCIP1 (MSC, spcsig, dloc(1), kloc(1,1), arr, arr, arr)
           call KSCIP1 (MSC, spcsig, dloc(2), kloc(1,2), arr, arr, arr)
           call KSCIP1 (MSC, spcsig, dloc(3), kloc(1,3), arr, arr, arr)
-          !
+
           if ( IMUD == 1 ) then
-             !
+
              if (VARMUD) then
                 dm(1) = mudl2(v(1))
                 dm(2) = mudl2(v(2))
                 dm(3) = mudl2(v(3))
              endif
-             !
+
              call KSCIP2 (MSC, spcsig, dloc(1), kloc(1,1), arr, arr, arr, arr, dm(1))
              call KSCIP2 (MSC, spcsig, dloc(2), kloc(1,2), arr, arr, arr, arr, dm(2))
              call KSCIP2 (MSC, spcsig, dloc(3), kloc(1,3), arr, arr, arr, arr, dm(3))
-             !
+
           endif
-          !
+
           ! determine wave number in centroid of next cell
-          !
+
           k1(:) = ( kloc(:,1) + kloc(:,2) + kloc(:,3) )/ 3.
-          !
+
           ! compute contribution to area of centroid dual
-          !
+
           area = area + x0*y1 - x1*y0
-          !
+
           ! compute contribution to x-gradient of wave number
-          !
+
           dkdx(:) = dkdx(:) + ( k0(:) + k1(:) ) * real( y1 - y0 )
-          !
+
           ! compute contribution to y-gradient of wave number
-          !
+
           dkdy(:) = dkdy(:) + ( k0(:) + k1(:) ) * real( x1 - x0 )
-          !
+
        enddo
-       !
+
        ! if ratio between max and min depth is too large, set gradients to zero and skip to next vertex
        !
        !if ( dpmax > drat * dpmin ) goto 30
        !
        ! if area is non-positive, give error and go to next vertex
-       !
+
        if ( .not. area > 0d0 ) then
           write (msgstr, '(a,i5)') ' Area of centroid dual is negative or zero in vertex ', ivert
           call msgerr( 2, trim(msgstr) )
           return
        endif
-       !
+
        dkdx(:) =  dkdx(:)/real(area)
        dkdy(:) = -dkdy(:)/real(area)
-       !
+
        ! in case of spherical coordinates, transform back to Cartesian coordinates
-       !
+
        if ( KSPHER > 0 ) then
-          !
+
           cslat = cos(DEGRAD*(vert(ivert)%attr(VERTY) + YOFFS))
-          !
+
           dkdx(:) = dkdx(:)/(cslat * LENDEG)
           dkdy(:) = dkdy(:)/LENDEG
-          !
+
        endif
-       !
-       return
- 30    dkdx = 0.
-       dkdy = 0.
-       !
+
+       exit wave_number_gradient
+       end do wave_number_gradient
+
     endif
-    !
+
 end subroutine SwanGradDepthorK

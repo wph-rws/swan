@@ -1,5 +1,5 @@
 subroutine SwanReadTriangleGrid ( basenm, lenfnm )
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -45,19 +45,19 @@ subroutine SwanReadTriangleGrid ( basenm, lenfnm )
 !   Vertices of triangles are read from file <name>.ele and stored in Swan data structure
 !
 !   Modules used
-!
+
     use ocpcomm4
     use SwanGriddata
-!
+
     implicit none
-!
+
 !   Argument variables
-!
+
     integer, intent(in)           :: lenfnm ! length of file names
     character(lenfnm), intent(in) :: basenm ! base name of Triangle files
-!
+
 !   Local variables
-!
+
     character(lenfnm) :: filenm   ! file name
     integer, save     :: ient = 0 ! number of entries in this subroutine
     integer           :: idum     ! dummy integer
@@ -73,26 +73,27 @@ subroutine SwanReadTriangleGrid ( basenm, lenfnm )
     real              :: rdum     ! dummy value
     character(80)     :: line     ! auxiliary textline
     logical           :: stpnow   ! indicate whether program must be terminated or not
-!
+
 !   Structure
 !
 !   Description of the pseudo code
 !
 !   Source text
-!
+
     if (ltrace) call strace (ient,'SwanReadTriangleGrid')
-    !
+
     ! open file <name>.node containing the coordinates of vertices
-    !
+
     filenm = trim(basenm)//'.node'
     ndsd   = 0
     iostat = 0
     call for (ndsd, filenm, 'OF', iostat)
-    if (stpnow()) goto 900
-    !
+    if (stpnow()) return
+
     ! read first line to determine number of vertices
-    !
-    read(ndsd, *, end=950, err=910) nverts, ndim, nattr, nbmark
+
+    read(ndsd, *, iostat=iostat) nverts, ndim, nattr, nbmark
+    if (read_failed(iostat)) return
     istat = 0
     if(.not.allocated(xcugrd)) allocate (xcugrd(nverts), stat = istat)
     if ( istat == 0 ) then
@@ -103,76 +104,87 @@ subroutine SwanReadTriangleGrid ( basenm, lenfnm )
     endif
     if ( istat /= 0 ) then
        call msgerr ( 4, 'Allocation problem in SwanReadTriangleGrid: array xcugrd, ycugrd or vmark ' )
-       goto 900
+       return
     endif
-    !
+
     ! check if boundary marker has been specified
-    !
+
     if ( nbmark == 0 ) then
        call msgerr ( 4, 'boundary marker for vertices/faces must be specified ' )
-       goto 900
+       return
     endif
-    !
+
     ! read coordinates of vertices and boundary marker
-    !
+
     if ( nattr == 0 ) then
        do j = 1, nverts
-          read(ndsd, *, end=950, err=910) ii, xcugrd(ii), ycugrd(ii), vmark(ii)
+          read(ndsd, *, iostat=iostat) ii, xcugrd(ii), ycugrd(ii), vmark(ii)
+          if (read_failed(iostat)) return
           if ( ii/=j ) call msgerr ( 1, 'numbering of vertices is not sequential in Triangle file '//filenm )
        enddo
     else
        do j = 1, nverts
-          read(ndsd, *, end=950, err=910) ii, xcugrd(ii), ycugrd(ii), rdum, vmark(ii)
+          read(ndsd, *, iostat=iostat) ii, xcugrd(ii), ycugrd(ii), rdum, vmark(ii)
+          if (read_failed(iostat)) return
           if ( ii/=j ) call msgerr ( 1, 'numbering of vertices is not sequential in Triangle file '//filenm )
        enddo
     endif
-    !
+
     ! close file <name>.node
-    !
+
     close(ndsd)
-    !
+
     ! open file <name>.ele containing the (Delaunay) triangles
-    !
+
     filenm = trim(basenm)//'.ele'
     ndsd   = 0
     iostat = 0
     call for (ndsd, filenm, 'OF', iostat)
-    if (stpnow()) goto 900
-    !
+    if (stpnow()) return
+
     ! read first line to determine number of triangles
-    !
-    read(ndsd, *, end=950, err=910) ncells, nnodes, nattr
+
+    read(ndsd, *, iostat=iostat) ncells, nnodes, nattr
+    if (read_failed(iostat)) return
     if(.not.allocated(kvertc)) allocate (kvertc(3,ncells), stat = istat)
     if ( istat /= 0 ) then
        call msgerr ( 4, 'Allocation problem in SwanReadTriangleGrid: array kvertc ' )
-       goto 900
+       return
     endif
-    !
+
     ! read vertices of triangles
-    !
+
     if ( nnodes == 3 .and. nattr == 0 ) then
        do j = 1, ncells
-          read(ndsd, *, end=950, err=910) ii, kvertc(1,ii), kvertc(2,ii), kvertc(3,ii)
+          read(ndsd, *, iostat=iostat) ii, kvertc(1,ii), kvertc(2,ii), kvertc(3,ii)
+          if (read_failed(iostat)) return
           if ( ii/=j ) call msgerr ( 1, 'numbering of triangles is not sequential in Triangle file '//filenm )
        enddo
     else
        do j = 1, ncells
-          read(ndsd, *, end=950, err=910) ii, kvertc(1,ii), kvertc(2,ii), kvertc(3,ii), line
+          read(ndsd, *, iostat=iostat) ii, kvertc(1,ii), kvertc(2,ii), kvertc(3,ii), line
+          if (read_failed(iostat)) return
           if ( ii/=j ) call msgerr ( 1, 'numbering of triangles is not sequential in Triangle file '//filenm )
        enddo
     endif
-    !
+
     ! close file <name>.ele
-    !
+
     close(ndsd)
-    !
- 900 return
-    !
- 910 inquire (unit=ndsd, name=filenm)
-    call msgerr (4, 'error reading data from Triangle file '//filenm )
-    goto 900
- 950 inquire (unit=ndsd, name=filenm)
-    call msgerr (4, 'unexpected end of file in Triangle file '//filenm )
-    goto 900
-    !
+
+contains
+
+    logical function read_failed(status)
+       integer, intent(in) :: status
+
+       read_failed = status /= 0
+       if (.not.read_failed) return
+       inquire (unit=ndsd, name=filenm)
+       if (is_iostat_end(status)) then
+          call msgerr (4, 'unexpected end of file in Triangle file '//filenm)
+       else
+          call msgerr (4, 'error reading data from Triangle file '//filenm)
+       endif
+    end function read_failed
+
 end subroutine SwanReadTriangleGrid

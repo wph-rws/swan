@@ -69,7 +69,7 @@
 !         %byte          int*1
 !         %short         int*2
 !         %float         real
-!         %double        real*8
+!         %double        REAL(KIND=KIND(0.0D0))
 !
 !  3.a.variables
 !       ncid             int        identifier of opened / created file
@@ -131,7 +131,7 @@
 !        arrays in derived data type (eg, structs)
 !     e. set when opening an existing file or creation of a variable in
 !        a new file
-!
+
       module agioncmd
         use netcdf
         use nctablemd
@@ -171,7 +171,7 @@
         end type spcgrid_type
 
         type recordaxe_type
-            integer*8, dimension(:), allocatable     :: content
+            INTEGER(KIND=SELECTED_INT_KIND(18)), dimension(:), allocatable     :: content
             integer                                  :: delta
             integer                                  :: ncontent = 0, dimid, varid
             logical                                  :: nstatm = .true.
@@ -211,7 +211,7 @@
             module procedure timeindex32, timeindex64
         end interface timeindex
       contains
-!
+
 ! ---- create new netcdf files ----
 !       name
 !       agnc_define_mapgrid
@@ -372,9 +372,9 @@
                 nf90_var_type  = NF90_FLOAT
             end if
 
-            !
+
             ! frequency
-            !
+
             call nccheck ( nf90_def_dim( ncid, 'frequency', spcgrid%nfreq, spcgrid%frq_dimid ) );
             call nccheck ( nf90_def_var( ncid, 'frequency', NF90_FLOAT, spcgrid%frq_dimid, spcgrid%frq_varid ) );
             call nccheck ( nf90_put_att( ncid, spcgrid%frq_varid, 'units', 's-1') )
@@ -387,9 +387,9 @@
             call agnc_get_recordaxe_ids( ncid, ra_dimid )
 
             if ( spcgrid%ndir > 0 ) then
-                !
+
                 ! 2D direction axe
-                !
+
                 call nccheck ( nf90_def_dim( ncid, 'direction', spcgrid%ndir, spcgrid%dir_dimid ) )
                 call nccheck ( nf90_def_var( ncid, 'direction', NF90_FLOAT, spcgrid%dir_dimid, spcgrid%dir_varid ) );
                 call nccheck ( nf90_put_att( ncid, spcgrid%dir_varid, 'units', 'radians') )
@@ -401,9 +401,9 @@
                 end if
                 call nccheck ( nf90_put_att( ncid, spcgrid%dir_varid, 'mdc',   spcgrid%ndir ) )
 
-                !
+
                 ! 2D density spectrum
-                !
+
                 if ( present(mapgrid) ) then
                     call nccheck ( nf90_def_var( ncid, 'density', nf90_var_type, &
                                             (/ spcgrid%dir_dimid, spcgrid%frq_dimid, mapgrid%lon_dimid, mapgrid%lat_dimid, ra_dimid /), evarid ) )
@@ -433,9 +433,9 @@
                     call nccheck ( nf90_put_att( ncid, evarid, 'relative_to_current', 'false') )
                 end if
 
-                !
+
                 ! scale_density
-                !
+
                 if ( do_scale ) then
                     if ( present(mapgrid) ) then
                         call nccheck ( nf90_def_var( ncid, 'scale_density', NF90_FLOAT, &
@@ -472,9 +472,9 @@
                 end if
                 call agnc_add_coordinates_attribute(ncid, evarid)
 
-                !
+
                 ! scale_density
-                !
+
                 if ( do_scale ) then
                     call nccheck ( nf90_put_att( ncid, evarid, 'note', &
                             'multiply with scale_energy_1d') )
@@ -492,9 +492,9 @@
                             '1') )
                 end if
 
-                !
+
                 ! theta_1d
-                !
+
                 if ( present(mapgrid) ) then
                     call nccheck ( nf90_def_var( ncid, 'theta_1d', NF90_BYTE, &
                                                 (/ spcgrid%frq_dimid, mapgrid%lon_dimid, mapgrid%lat_dimid, ra_dimid /), evarid ) )
@@ -510,9 +510,9 @@
                 call nccheck ( nf90_put_att( ncid, evarid, 'add_offset', 360. / 2.) )
                 call agnc_add_coordinates_attribute(ncid, evarid)
 
-                !
+
                 ! spread_1d
-                !
+
                 if ( present(mapgrid) ) then
                     call nccheck ( nf90_def_var( ncid, 'spread_1d', NF90_BYTE, &
                                                 (/ spcgrid%frq_dimid, mapgrid%lon_dimid, mapgrid%lat_dimid, ra_dimid /), evarid ) )
@@ -683,9 +683,9 @@
 !       name                                            status
 !       open_ncfile( ncfile, 'read/write', &
 !                    recordaxe, monthly )       done
-!
+
         subroutine open_ncfile( ncfile, permission, ncid, recordaxe, monthly )
-        !
+
         ! recordaxe, is optional. When permission is "read", the information is read from the file.
         ! When permission is write, a check is made whether the recordaxe and grid is set in
         ! the dimension variables in the file.
@@ -722,7 +722,7 @@
             end if
         end subroutine open_ncfile
 
-!
+
 !       --------- set (quasi-) dimension variables -------------
 !       name
 !       agnc_set_recordaxe
@@ -910,7 +910,7 @@
             integer, intent ( in )                  :: ncid
             type (recordaxe_type), intent(out)      :: recordaxe
             character(len=nf90_max_name)            :: units, raname, emsg
-            integer*8, allocatable, dimension(:)    :: dvalues
+            INTEGER(KIND=SELECTED_INT_KIND(18)), allocatable, dimension(:)    :: dvalues
             integer                                 :: factor, dvec(6)
 
             ! find time dimid
@@ -954,7 +954,7 @@
             integer,                                intent(out)        :: dimid
             integer,                      optional, intent(out)        :: varid, ncontent
             character(len=nf90_max_name), optional, intent(out)        :: raname
-            character*6                                                :: dnames(2), dname
+            CHARACTER(LEN=6)                                                :: dnames(2), dname
             integer                                                    :: i
             logical                                                    :: dim_found
 
@@ -1129,7 +1129,7 @@
 
         end subroutine get_scalies_double
 
-!
+
 !       ------ insert/append data ------
 !
 !       agnc_add_mapdata(ncid, varname, time, values)     done
@@ -1158,24 +1158,24 @@
             call get_scalies_float(ncid, varid, add_offset, scale_factor, fill_value, xtype)
             call agnc_get_griddef(ncid, mapgrid)
 
-            !
+
             ! _FillValue
-            !
+
             if ( present(dummyvalue) ) then
                 where (abs(values - dummyvalue) < epsilon(1.)) values = fill_value
             end if
 
-            !
+
             ! packed_data_value = nint((unpacked_data_value - add_offset) / scale_factor)
-            !
+
             if ( xtype == NF90_SHORT .or. xtype == NF90_BYTE .or. xtype == NF90_INT ) then
                 where ( abs(values - fill_value) > epsilon(1.) ) &
                     values = nint( (values - add_offset) / scale_factor)
             end if
 
-            !
+
             ! Chunked write
-            !
+
             allocate(vloc(chunksize, chunksize))
 
             do sx=1,mapgrid%nx,chunksize
@@ -1192,9 +1192,9 @@
 
                     nf90_stat = nf90_put_var(ncid, varid, vloc(1:cx,1:cy), (/sx,sy,ti/), (/cx, cy,1/))
 
-                    !
+
                     ! If the write failed, check the values against the limits configured in nctablemd.ftn90
-                    !
+
                     if ( nf90_stat /= NF90_NOERR ) then
                         if ( values_in_range_float(ncid, varid, values, &
                                 fill_value, scale_factor, add_offset, varname) ) then
@@ -1229,24 +1229,24 @@
             call get_scalies_double(ncid, varid, add_offset, scale_factor, fill_value, xtype)
             call agnc_get_griddef(ncid, mapgrid)
 
-            !
+
             ! _FillValue
-            !
+
             if ( present(dummyvalue) ) then
                 where (abs(values - dummyvalue) < epsilon(1.)) values = fill_value
             end if
 
-            !
+
             ! packed_data_value = nint((unpacked_data_value - add_offset) / scale_factor)
-            !
+
             if ( xtype == NF90_SHORT .or. xtype == NF90_BYTE .or. xtype == NF90_INT ) then
                 where ( abs(values - fill_value) > epsilon(1.) ) &
                     values = nint( (values - add_offset) / scale_factor)
             end if
 
-            !
+
             ! Chunked write
-            !
+
             allocate(vloc(chunksize, chunksize))
 
             do sx=1,mapgrid%nx,chunksize
@@ -1263,9 +1263,9 @@
 
                     nf90_stat = nf90_put_var(ncid, varid, vloc(1:cx,1:cy), (/sx,sy,ti/), (/cx, cy,1/))
 
-                    !
+
                     ! If the write failed, check the values against the limits configured in nctablemd.ftn90
-                    !
+
                     if ( nf90_stat /= NF90_NOERR ) then
                         if ( values_in_range_double(ncid, varid, values, &
                                 fill_value, scale_factor, add_offset, varname) ) then
@@ -1318,10 +1318,10 @@
             ! Allocating the density array creates a new copy for all 2D spectral points in the heap.
             allocate(density(spcgrid%ndir, spcgrid%nfreq, msc))
 
-            !
+
             ! - scale and/or replace energy dummies with _FillValue
             ! - if scaling requested, write scale factors to netcdf
-            !
+
             if ( varid_scale_density > 0 ) then
                 do_scale = .true.
                 allocate(scale_density(msc))
@@ -1365,9 +1365,9 @@
                 end do
             end if
 
-            !
+
             ! chunked write to netcdf
-            !
+
             if ( spc_as_map ) then
                 allocate(edloc(spcgrid%ndir, spcgrid%nfreq, chunksize, chunksize))
 
@@ -1520,9 +1520,9 @@
                 end do
             end do
 
-            !
+
             ! chunked write to netcdf
-            !
+
             if ( spc_as_map ) then
                 allocate(eloc(spcgrid%nfreq, chunksize, chunksize))
                 allocate(tloc(spcgrid%nfreq, chunksize, chunksize))
@@ -1800,7 +1800,7 @@
             end if
 
         end subroutine agnc_add_pntdata3d_double
-!
+
 !       ------------- utils -------------
 !       name                                            status
 !       agnc_get_varid_by_name(ncid, searchfor, varid)  done
@@ -1872,7 +1872,7 @@
         end function axe_is_regular_integer
 
         function axe_is_regular_integer64(x, nx, dx, fill_check) result (isregular)
-            integer*8, intent(in)                :: x(:)
+            INTEGER(KIND=SELECTED_INT_KIND(18)), intent(in)                :: x(:)
             integer,   intent(in)                :: dx,nx
             logical,   intent(in), optional      :: fill_check
             logical                              :: isregular
@@ -2109,7 +2109,7 @@
         end function timeindex32
 
         function timeindex64(tarr, t) result (ti)
-            integer*8, dimension(:), intent( in)        :: tarr
+            INTEGER(KIND=SELECTED_INT_KIND(18)), dimension(:), intent( in)        :: tarr
             integer,               intent( in)          :: t
             integer                                     :: ti
             if ( t >= minval(tarr) .and. t <= maxval(tarr) ) then
@@ -2157,12 +2157,12 @@
         end subroutine agnc_collect_spcmeta_2d
 
         function datevec_from_epoch( t_in ) result (datevec)
-            integer*8, intent( in)  :: t_in
+            INTEGER(KIND=SELECTED_INT_KIND(18)), intent( in)  :: t_in
             integer                 :: t, year, month ,day, s
             integer                 :: datevec(6)
             ! number of days per month
-            integer, save           :: ndpm(12)
-            data    ndpm / 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 /
+            integer, parameter :: ndpm(12) = &
+                [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
             t = t_in
             datevec = (/0, 0, 0, 0, 0, 0/)
             datevec(6) = mod(t, 60)
@@ -2214,18 +2214,18 @@
 
         function seconds_since_epoch_twoint ( date, time ) result (seconds_since_epoch)
             integer, intent( in)    :: date, time
-            integer*8               :: seconds_since_epoch
+            INTEGER(KIND=SELECTED_INT_KIND(18))               :: seconds_since_epoch
             seconds_since_epoch = seconds_since_epoch_datevec( datevec_from_twoint(date, time) )
         end function seconds_since_epoch_twoint
 
         function seconds_since_epoch_datevec ( datevec ) result (seconds_since_epoch)
         !     convert date time in (int yyyymmdd, hhmmss) format to seconds since 1-jan-1970
             integer                 :: datevec(6)
-            integer*8               :: seconds_since_epoch
+            INTEGER(KIND=SELECTED_INT_KIND(18))               :: seconds_since_epoch
             integer                 :: year, month, y1, y2, f
             ! number of days per month
-            integer, save           :: ndpm(12)
-            data    ndpm / 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 /
+            integer, parameter :: ndpm(12) = &
+                [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
             seconds_since_epoch = 0
             y1 = 1970
             y2 = 1970
@@ -2268,7 +2268,8 @@
             integer,               intent(out) :: factor, dvec(6)
             character(len=*),      intent(out) :: emsg
             integer                            :: j, slen, nspace
-            character                          :: fstr*20, dlim1, dlim2
+            character(len=20)                  :: fstr
+            character                         :: dlim1, dlim2
 
             factor = -1
             emsg   = ' '

@@ -1,5 +1,5 @@
 subroutine SwanInterpolateOutput ( foutp, x, y, finp, mip, kvert, excval )
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -51,7 +51,7 @@ subroutine SwanInterpolateOutput ( foutp, x, y, finp, mip, kvert, excval )
 !   Interpolate output quantity using the resulting weighting coefficients
 !
 !   Modules used
-!
+
     use ocpcomm4
     use swcomm2
     use swcomm3
@@ -59,22 +59,22 @@ subroutine SwanInterpolateOutput ( foutp, x, y, finp, mip, kvert, excval )
     use outp_data
     use SwanGriddata
     use SwanGridobjects
-!
+
     implicit none
-!
+
 !   Argument variables
-!
+
     integer, intent(in)                 :: mip    ! number of given points
     integer, dimension(mip), intent(in) :: kvert  ! vertex indices of output points
-    !
+
     real, intent(in)                    :: excval ! exception value for output quantity
     real, dimension(nverts), intent(in) :: finp   ! output quantity defined on the computational grid
     real, dimension(mip), intent(out)   :: foutp  ! interpolated output quantity at given points
     real, dimension(mip), intent(in)    :: x      ! x-coordinate of given points
     real, dimension(mip), intent(in)    :: y      ! y-coordinate of given points
-!
+
 !   Local variables
-!
+
     integer                               :: icell     ! cell index
     integer, save                         :: ient = 0  ! number of entries in this subroutine
     integer                               :: ip        ! loop counter
@@ -85,7 +85,7 @@ subroutine SwanInterpolateOutput ( foutp, x, y, finp, mip, kvert, excval )
     integer                               :: l         ! loop counter
     integer                               :: numcor    ! number of corner points in an obstacle
     integer, dimension(3)                 :: v         ! vertices in present cell
-    !
+
     real                                  :: dxp       ! distance between given point and present vertex in x-direction
     real, dimension (3)                   :: dxv       ! difference of vertices of opposite side in x-coordinate
     real                                  :: dyp       ! distance between given point and present vertex in y-direction
@@ -103,89 +103,89 @@ subroutine SwanInterpolateOutput ( foutp, x, y, finp, mip, kvert, excval )
     real                                  :: ye        ! user y-coordinate of end of obstacle side
     real, dimension (3)                   :: yv        ! y-coordinate of the vertex
     real, dimension (3)                   :: ww        ! weight of each vertex in the interpolation
-    !
+
     character(80)                         :: msgstr    ! string to pass message
-    !
+
     logical                               :: cellfound ! indicate whether cell containing given point is found or not
     logical, dimension (3)                :: cross     ! if true there is an obstacle between given point and vertex
     logical                               :: EQREAL    ! indicate whether two reals are equal or not
     logical                               :: obstcell  ! if true there is an obstacle in cell
     logical                               :: TCROSS    ! determines whether two line segments cross
     logical                               :: xonobst   ! not used
-    !
+
     type(OBSTDAT), pointer                :: COBST     ! pointer to obstacle data
-    !
+
     type(celltype), dimension(:), pointer :: cell      ! datastructure for cells with their attributes
     type(verttype), dimension(:), pointer :: vert      ! datastructure for vertices with their attributes
-!
+
 !   Structure
 !
 !   Description of the pseudo code
 !
 !   Source text
-!
+
     if (ltrace) call strace (ient,'SwanInterpolateOutput')
-    !
+
     if ( LCOMPGRD .and. mip == nvertsg ) then
        foutp = finp
        return
     endif
-    !
+
     ! point to vertex and cell objects
-    !
+
     vert => gridobject%vert_grid
     cell => gridobject%cell_grid
-    !
+
     ! assign exception value to output quantity (possibly overwritten by interpolated values)
-    !
+
     foutp = excval
-    !
+
     ! loop over all given points
-    !
+
     pointloop: do ip = 1, mip
-       !
+
        ! assign vertex index of given point
-       !
+
        ivert = kvert(ip)
-       !
+
        ! if point not found, go to next point
-       !
+
        if ( ivert < 0 ) cycle pointloop
-       !
+
        ! if closest vertex is not active, go to next point
-       !
+
        if ( .not.vert(ivert)%active ) cycle pointloop
-       !
+
        ! determine direction of given point to closest vertex
-       !
+
        dxp = xcugrd(ivert) - x(ip)
        dyp = ycugrd(ivert) - y(ip)
-       !
+
        ! if given point equals closest vertex, determine output quantity and go to next point
-       !
+
        if ( EQREAL(dxp,0.) .and. EQREAL(dyp,0.) ) then
           foutp(ip) = finp(ivert)
           cycle pointloop
        endif
-       !
+
        th = atan2(dyp,dxp)
-       !
+
        cellfound = .false.
-       !
+
        ! loop over cells around closest vertex
-       !
+
        celloop: do jc = 1, vert(ivert)%noc
-          !
+
           ! get cell and its vertices
-          !
+
           icell = vert(ivert)%cell(jc)%atti(CELLID)
-          !
+
           v(1) = cell(icell)%atti(CELLV1)
           v(2) = cell(icell)%atti(CELLV2)
           v(3) = cell(icell)%atti(CELLV3)
-          !
+
           ! get directions of faces to closest vertex
-          !
+
           do k = 1, 3
              if ( v(k) == ivert ) then
                 th1 = cell(icell)%geom(k)%th1
@@ -193,99 +193,99 @@ subroutine SwanInterpolateOutput ( foutp, x, y, finp, mip, kvert, excval )
                 exit
              endif
           enddo
-          !
+
           thdiff = th - th2
           do
              if ( abs(thdiff) <= PI ) exit
              th = th - sign (2., thdiff) * PI
              thdiff = th - th2
           enddo
-          !
+
           ! is given point inside considered cell?
-          !
+
           if ( vert(ivert)%atti(VMARKER) == 1 ) then   ! boundary vertex
              eps = PI/360.
           else
              eps = 0.
           endif
-          !
+
           if ( th > th1-eps .and. th <= th2+eps ) then
              cellfound = .true.
              exit celloop
           endif
-          !
+
        enddo celloop
-       !
+
        ! if cell containing given point not found, give warning and go to next point
-       !
+
        if ( .not.cellfound ) then
           write (msgstr, '(a,f12.4,a,f12.4,a)') ' No triangle containing point (',x(ip)+XOFFS,',',y(ip)+YOFFS,') is found'
           call msgerr( 1, trim(msgstr) )
           cycle pointloop
        endif
-       !
+
        ! 2D linear interpolation on considered triangle is carried out only if all vertices are active
-       !
+
        if ( vert(v(1))%active .and. vert(v(2))%active .and. vert(v(3))%active ) then
-          !
+
           !  get coordinates of the vertices
-          !
+
           do k = 1, 3
              xv(k) = xcugrd(v(k))
              yv(k) = ycugrd(v(k))
              cross(k) = .false.
           enddo
-          !
+
           ! determine difference in x and y of opposite side
-          !
+
           do k = 1, 3
              ivc(2) = mod(k  ,3)+1
              ivc(3) = mod(k+1,3)+1
              dxv(k) = xv(ivc(3)) - xv(ivc(2))
              dyv(k) = yv(ivc(3)) - yv(ivc(2))
           enddo
-          !
+
           ! determine whether there is an obstacle between given point and vertices
-          !
+
           if ( NUMOBS > 0 ) then
-             !
+
              COBST => FOBSTAC
-             !
+
              do jc = 1, NUMOBS
-                !
+
                 numcor = COBST%NCRPTS
-                if ( ITEST >= 120 ) write (PRINTF,10) jc, numcor
-                !
+                if ( ITEST >= 120 ) write (PRINTF,"(' Obstacle number : ', i4,' has ', i4, ' corners')") jc, numcor
+
                 xb = COBST%XCRP(1)
                 yb = COBST%YCRP(1)
-                if ( ITEST >= 120 ) write (PRINTF,20) 1, xb+XOFFS, yb+YOFFS
-                !
+                if ( ITEST >= 120 ) write (PRINTF,"(' Corner number:', i4,' Xp: ', e10.4, ' Yp: ', e11.4)") 1, xb+XOFFS, yb+YOFFS
+
                 do l = 2, numcor
-                   !
+
                    xe = COBST%XCRP(l)
                    ye = COBST%YCRP(l)
-                   if ( ITEST >= 120 ) write (PRINTF,20) l, xe+XOFFS, ye+YOFFS
-                   !
+                   if ( ITEST >= 120 ) write (PRINTF,"(' Corner number:', i4,' Xp: ', e10.4, ' Yp: ', e11.4)") l, xe+XOFFS, ye+YOFFS
+
                    ! loop over vertices
-                   !
+
                    do k = 1, 3
                       if ( TCROSS(x(ip), xv(k), xb, xe, y(ip), yv(k), yb, ye, xonobst) ) cross(k) = .true.
                    enddo
-                   !
+
                    xb = xe
                    yb = ye
-                   !
+
                 enddo
-                !
+
                 if (.not.associated(COBST%NEXTOBST)) exit
                 COBST => COBST%NEXTOBST
-                !
+
              enddo
-             !
+
           endif
-          !
+
           ! determine weighting coefficients
-          !
+
           obstcell = .false.
           do k = 1, 3
              if (cross(k)) then
@@ -299,19 +299,17 @@ subroutine SwanInterpolateOutput ( foutp, x, y, finp, mip, kvert, excval )
              endif
           enddo
           if (obstcell) sumww = sum(ww)
-          !
+
           ! use weighting coefficients to determine interpolated output quantity
-          !
+
           do k = 1, 3
              if (obstcell) ww(k) = ww(k) / sumww
           enddo
           foutp(ip) = sum (ww(:) * finp(v(:)))
-          !
+
        endif
-       !
+
     enddo pointloop
-    !
- 10 format (' Obstacle number : ', i4,'  has ', i4, ' corners')
- 20 format (' Corner number:', i4,'    Xp: ', e10.4, ' Yp: ', e11.4)
-    !
+
+
 end subroutine SwanInterpolateOutput

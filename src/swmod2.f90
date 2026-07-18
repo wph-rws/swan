@@ -11,10 +11,10 @@
 !     M_GENARR           contains a number of general arrays
 !     M_PARALL           information for parallelisation with MPI
 !     M_DIFFR            information for diffraction
-!
-      MODULE M_WCAP
-!
-!
+
+MODULE M_WCAP
+
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -28,8 +28,8 @@
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
+!     This program is free software: you can redistribute it and/or modi
+!     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
 !
@@ -39,7 +39,7 @@
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!     along with this program. If not, see <http://www.gnu.org/licenses/
 !
 !
 !  0. Authors
@@ -52,7 +52,7 @@
 !
 !  2. Purpose
 !
-!     Create global variables used in whitecapping and integral parameter
+!     Create global variables used in whitecapping and integral paramete
 !     subroutines
 !
 !  3. Method
@@ -62,9 +62,10 @@
 !  4. Modules used
 !
 !     ---
-!
-      IMPLICIT NONE
-!
+
+   IMPLICIT NONE
+
+
 !  5. Argument variables
 !
 !     ---
@@ -82,31 +83,31 @@
 !     ETOT2  : Second moment of the energy density
 !     ETOT4  : Fourth moment of the energy density
 !     KM_WAM : Mean wavenumber according to the WAM-formulation
-!     KM01   : Mean wavenumber according to first and zeroth order moments
-!     SIGM_10: Mean frequency according to zeroth and first order moments
-!     SIGM01 : Mean frequency according to first and zeroth order moments
-!
-      REAL, SAVE    :: ACTOT
-      REAL, SAVE    :: EDRKTOT
-      REAL, SAVE    :: EKTOT
-      REAL, SAVE    :: ETOT1
-      REAL, SAVE    :: ETOT2
-      REAL, SAVE    :: ETOT4
-      REAL, SAVE    :: KM_WAM
-      REAL, SAVE    :: KM01
-      REAL, SAVE    :: SIGM_WAM
-      REAL, SAVE    :: SIGM_10
-      REAL, SAVE    :: SIGM01
-!
-!$OMP THREADPRIVATE(ACTOT, EDRKTOT, EKTOT, ETOT1, ETOT2, ETOT4,
-!$OMP&              KM_WAM, KM01, SIGM_WAM,
+!     KM01   : Mean wavenumber according to first and zeroth order momen
+!     SIGM_10: Mean frequency according to zeroth and first order moment
+!     SIGM01 : Mean frequency according to first and zeroth order moment
+
+   REAL, SAVE    :: ACTOT
+   REAL, SAVE    :: EDRKTOT
+   REAL, SAVE    :: EKTOT
+   REAL, SAVE    :: ETOT1
+   REAL, SAVE    :: ETOT2
+   REAL, SAVE    :: ETOT4
+   REAL, SAVE    :: KM_WAM
+   REAL, SAVE    :: KM01
+   REAL, SAVE    :: SIGM_WAM
+   REAL, SAVE    :: SIGM_10
+   REAL, SAVE    :: SIGM01
+
+!$OMP THREADPRIVATE(ACTOT, EDRKTOT, EKTOT, ETOT1, ETOT2, ETOT4, &
+!$OMP&              KM_WAM, KM01, SIGM_WAM, &
 !$OMP&              SIGM_10, SIGM01)
 !
 !     SIGPOW : contains powers of relative frequencies
 !              second dimension indicates power of sigma
-!
-      REAL, SAVE, ALLOCATABLE :: SIGPOW(:,:)
-!
+
+   REAL, SAVE, ALLOCATABLE :: SIGPOW(:,:)
+
 !  8. Subroutines and functions used
 !
 !     ---
@@ -130,12 +131,12 @@
 !     ---
 !
 ! 13. Source text
-!
-      END MODULE M_WCAP
 
-      MODULE OUTP_DATA
-!
-!
+end module M_WCAP
+
+MODULE OUTP_DATA
+
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -149,8 +150,8 @@
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
+!     This program is free software: you can redistribute it and/or modi
+!     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
 !
@@ -160,7 +161,7 @@
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!     along with this program. If not, see <http://www.gnu.org/licenses/
 !
 !
 !  0. Authors
@@ -187,11 +188,12 @@
 !     MODULE construct
 !
 !  4. Modules used
-!
-      USE OCPCOMM2
-!
-      IMPLICIT NONE
-!
+
+   USE OCPCOMM2
+
+   IMPLICIT NONE
+
+
 !  5. Argument variables
 !
 !     ---
@@ -202,88 +204,88 @@
 !
 !  7. Local variables
 
-      INTEGER, PARAMETER :: MAX_OUTP_REQ = 250 ! max. number of output requests
+   INTEGER, PARAMETER :: MAX_OUTP_REQ = 250 ! max. number of output r
 
-      CHARACTER (LEN=1)  :: OUT_COMMENT = '%' ! comment sign for heading lines
+   CHARACTER (LEN=1)  :: OUT_COMMENT = '%' ! comment sign for heading
 
-      LOGICAL            :: LCOMPGRD
+   LOGICAL            :: LCOMPGRD
 
-      ! formats for output:
-      CHARACTER (LEN=40) :: FLT_BLOCK = '(6E12.4)'       ! floating point block
-      CHARACTER (LEN=40) :: FLT_TABLE = '(E11.4)'        ! floating point table
-      CHARACTER (LEN=40) :: FIX_SPEC  = '(200(1X,I4))'   ! spectral output
+   ! formats for output:
+   CHARACTER (LEN=40) :: FLT_BLOCK = '(6E12.4)'       ! floating poin
+   CHARACTER (LEN=40) :: FLT_TABLE = '(E11.4)'        ! floating poin
+   CHARACTER (LEN=40) :: FIX_SPEC  = '(200(1X,I4))'   ! spectral outp
 
 !     format for block output per process in case of collecting data
-      CHARACTER (LEN=40) :: FLT_BLKP = '(6E17.9)'
+   CHARACTER (LEN=40) :: FLT_BLKP = '(6E17.9)'
 
-      INTEGER :: FLD_TABLE = 12       ! field length for fixed-point table
-      INTEGER :: DEC_BLOCK =  4       ! number of decimals for fixed-point block
-      INTEGER :: DEC_SPEC  =  4       ! number of decimals for spectral output
+   INTEGER :: FLD_TABLE = 12       ! field length for fixed-point tab
+   INTEGER :: DEC_BLOCK =  4       ! number of decimals for fixed-poi
+   INTEGER :: DEC_SPEC  =  4       ! number of decimals for spectral
 
 !     longer filenames for output requests
-      CHARACTER (LEN=LENFNM) :: OUTP_FILES(1:MAX_OUTP_REQ)
-      ! filenames for output; index is output request sequence number
+   CHARACTER (LEN=LENFNM) :: OUTP_FILES(1:MAX_OUTP_REQ)
+   ! filenames for output; index is output request sequence number
 
-      INTEGER, SAVE :: NREOQ = 0         ! actual number of requests saved
+   INTEGER, SAVE :: NREOQ = 0         ! actual number of requests sav
 
 !     unit number PVD files
-      INTEGER :: UPVDF(1:MAX_OUTP_REQ)
+   INTEGER :: UPVDF(1:MAX_OUTP_REQ)
 
 !     timestep counter for time-varying VTK files
-      INTEGER, SAVE :: NTVTK(1:MAX_OUTP_REQ) = -1
+   INTEGER, SAVE :: NTVTK(1:MAX_OUTP_REQ) = -1
 
 !     output directory containing a series of time-varying VTK files
-      CHARACTER (LEN=LENFNM) :: VTKDIR(1:MAX_OUTP_REQ)
+   CHARACTER (LEN=LENFNM) :: VTKDIR(1:MAX_OUTP_REQ)
 
 !     textline containing VTK line in XML format
-      CHARACTER(LEN=1024) :: VTKLINE
+   CHARACTER(LEN=1024) :: VTKLINE
 
 !     XML header lines
-      CHARACTER(LEN=25) :: XMLLIN1 = '<?xml version="1.0"?>'
-      CHARACTER(LEN= 5) :: XMLLIN2 = '<!--'
-      CHARACTER(LEN= 5) :: XMLLIN3 = '-->'
+   CHARACTER(LEN=25) :: XMLLIN1 = '<?xml version="1.0"?>'
+   CHARACTER(LEN= 5) :: XMLLIN2 = '<!--'
+   CHARACTER(LEN= 5) :: XMLLIN3 = '-->'
 
 !     default lines of PVD file
-      CHARACTER(LEN=80) :: PVDLIN1 = '<VTKFile type="Collection" '//
-     &                        'version="0.1" byte_order="LittleEndian">'
-      CHARACTER(LEN=15) :: PVDLIN2 = '  <Collection>'
-      CHARACTER(LEN=15) :: PVDLIN3 = '  </Collection>'
-      CHARACTER(LEN=10) :: PVDLIN4 = '</VTKFile>'
+   CHARACTER(LEN=80) :: PVDLIN1 = '<VTKFile type="Collection" '//&
+   &'version="0.1" byte_order="LittleEndian">'
+   CHARACTER(LEN=15) :: PVDLIN2 = '  <Collection>'
+   CHARACTER(LEN=15) :: PVDLIN3 = '  </Collection>'
+   CHARACTER(LEN=10) :: PVDLIN4 = '</VTKFile>'
 
-      TYPE OPSDAT
-         CHARACTER (LEN=1)     :: PSTYPE                     ! type (F, C, P, ...)
-         CHARACTER (LEN=8)     :: PSNAME                     ! name of point set
-         INTEGER               :: OPI(2)                     ! integer coefficients
-         REAL                  :: OPR(5)                     ! real coefficients
-         INTEGER               :: MIP                        ! number of points
-         REAL, POINTER         :: XP(:), YP(:), XQ(:), YQ(:) ! point coordinates
-         TYPE(OPSDAT), POINTER :: NEXTOPS
-      END TYPE OPSDAT
+   TYPE OPSDAT
+      CHARACTER (LEN=1)     :: PSTYPE                     ! type (F,
+      CHARACTER (LEN=8)     :: PSNAME                     ! name of p
+      INTEGER               :: OPI(2)                     ! integer c
+      REAL                  :: OPR(5)                     ! real coef
+      INTEGER               :: MIP                        ! number of
+      REAL, POINTER         :: XP(:), YP(:), XQ(:), YQ(:) ! point coo
+      TYPE(OPSDAT), POINTER :: NEXTOPS
+   end type OPSDAT
 
-      TYPE(OPSDAT), SAVE, TARGET  :: FOPS
-      TYPE(OPSDAT), SAVE, POINTER :: COPS
-      LOGICAL, SAVE :: LOPS = .FALSE.
+   TYPE(OPSDAT), SAVE, TARGET  :: FOPS
+   TYPE(OPSDAT), SAVE, POINTER :: COPS
+   LOGICAL, SAVE :: LOPS = .FALSE.
 
-      TYPE ORQDAT
-         CHARACTER (LEN=4)      :: RQTYPE   ! type (BLK, TAB, SPC ...)
-         CHARACTER (LEN=8)      :: PSNAME   ! name of point set
-         INTEGER                :: OQI(4)   ! integer coefficients
-         REAL*8                 :: OQR(2)   ! real coefficients
-         INTEGER, POINTER       :: IVTYP(:) ! type of output variable
-         REAL, POINTER          :: FAC(:)   ! multiplication factor of block output
-         TYPE(ORQDAT), POINTER  :: NEXTORQ
-      END TYPE ORQDAT
+   TYPE ORQDAT
+      CHARACTER (LEN=4)      :: RQTYPE   ! type (BLK, TAB, SPC ...)
+      CHARACTER (LEN=8)      :: PSNAME   ! name of point set
+      INTEGER                :: OQI(4)   ! integer coefficients
+      REAL(KIND=KIND(0.0D0))                 :: OQR(2)   ! real coefficients
+      INTEGER, POINTER       :: IVTYP(:) ! type of output variable
+      REAL, POINTER          :: FAC(:)   ! multiplication factor of b
+      TYPE(ORQDAT), POINTER  :: NEXTORQ
+   end type ORQDAT
 
-      TYPE(ORQDAT), SAVE, TARGET  :: FORQ
-      LOGICAL, SAVE :: LORQ = .FALSE.
-!
+   TYPE(ORQDAT), SAVE, TARGET  :: FORQ
+   LOGICAL, SAVE :: LORQ = .FALSE.
+
 !  8. Subroutines and functions used
-!
-      INTERFACE DELETE
-        MODULE PROCEDURE DELETEOPS
-        MODULE PROCEDURE DELETEORQ
-      END INTERFACE
-!
+
+   INTERFACE DELETE
+      MODULE PROCEDURE DELETEOPS
+      MODULE PROCEDURE DELETEORQ
+   end interface DELETE
+
 !  9. Subroutines and functions calling
 !
 !     SWREAD : reads data (command OUTPut OPTions)
@@ -303,10 +305,22 @@
 !     ---
 !
 ! 13. Source text
-!
-      CONTAINS
-!
-      RECURSIVE SUBROUTINE DELETEOPS ( OPS )
+
+INTERFACE
+   SUBROUTINE SWREDUCI(IARR, ILEN, ITYPRD)
+      INTEGER, INTENT(IN) :: ILEN, ITYPRD
+      INTEGER, INTENT(INOUT) :: IARR(ILEN)
+   END SUBROUTINE SWREDUCI
+
+   SUBROUTINE SWREDUCR(ARR, ILEN, ITYPRD)
+      INTEGER, INTENT(IN) :: ILEN, ITYPRD
+      REAL, INTENT(INOUT) :: ARR(ILEN)
+   END SUBROUTINE SWREDUCR
+END INTERFACE
+
+CONTAINS
+
+   RECURSIVE SUBROUTINE DELETEOPS ( OPS )
 
       TYPE(OPSDAT) :: OPS
 
@@ -334,9 +348,9 @@
          ENDIF
       ENDIF
 
-      END SUBROUTINE
-!
-      RECURSIVE SUBROUTINE DELETEORQ ( ORQ )
+   end subroutine DELETEOPS
+
+   RECURSIVE SUBROUTINE DELETEORQ ( ORQ )
 
       TYPE(ORQDAT) :: ORQ
 
@@ -356,13 +370,13 @@
          ENDIF
       ENDIF
 
-      END SUBROUTINE
+   end subroutine DELETEORQ
 
-      END MODULE OUTP_DATA
+end module OUTP_DATA
 
-      MODULE M_SNL4
-!
-!
+MODULE M_SNL4
+
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -376,8 +390,8 @@
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
+!     This program is free software: you can redistribute it and/or modi
+!     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
 !
@@ -387,7 +401,7 @@
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!     along with this program. If not, see <http://www.gnu.org/licenses/
 !
 !
 !  0. Authors
@@ -409,9 +423,9 @@
 !  4. Modules used
 !
 !     ---
-!
-      IMPLICIT NONE
-!
+
+   IMPLICIT NONE
+
 !  5. Argument variables
 !
 !     ---
@@ -421,20 +435,38 @@
 !     ---
 !
 !  7. Local variables
-
+!
 !     MDIA  : Number of quadruplets in the MDIA formulation
 
-      INTEGER, PUBLIC, SAVE           :: MDIA = 1
+   INTEGER, PUBLIC, SAVE           :: MDIA = 1
 
 !     AF11  : Contains the scaling frequency for the DIA.
 !     CNL4_1: Contains the values for C1 in the MDIA formulation.
 !     CNL4_2: Contains the values for C2 in the MDIA formulation.
 !     LAMBDA: Contains the values for lambda in the MDIA formulation.
 
-      REAL, PUBLIC, SAVE, ALLOCATABLE :: AF11(:)
-      REAL, PUBLIC, SAVE, ALLOCATABLE :: CNL4_1(:)
-      REAL, PUBLIC, SAVE, ALLOCATABLE :: CNL4_2(:)
-      REAL, PUBLIC, SAVE, ALLOCATABLE :: LAMBDA(:)
+   REAL, PUBLIC, SAVE, ALLOCATABLE :: AF11(:)
+   REAL, PUBLIC, SAVE, ALLOCATABLE :: CNL4_1(:)
+   REAL, PUBLIC, SAVE, ALLOCATABLE :: CNL4_2(:)
+   REAL, PUBLIC, SAVE, ALLOCATABLE :: LAMBDA(:)
+
+!     cached interaction coefficients per quadruplet of the MDIA,
+!     filled once by SWPRE4W so that the per-gridpoint source term
+!     evaluation does not recompute them (see FAC4WW)
+!
+!     DAL1M : Contains the cached DAL1 per quadruplet.
+!     DAL2M : Contains the cached DAL2 per quadruplet.
+!     DAL3M : Contains the cached DAL3 per quadruplet.
+!     WWAWGM: Contains the cached WWAWG per quadruplet.
+!     WWINTM: Contains the cached WWINT per quadruplet.
+!     WWSWGM: Contains the cached WWSWG per quadruplet.
+
+   REAL,    PUBLIC, SAVE, ALLOCATABLE :: DAL1M(:)
+   REAL,    PUBLIC, SAVE, ALLOCATABLE :: DAL2M(:)
+   REAL,    PUBLIC, SAVE, ALLOCATABLE :: DAL3M(:)
+   REAL,    PUBLIC, SAVE, ALLOCATABLE :: WWAWGM(:,:)
+   INTEGER, PUBLIC, SAVE, ALLOCATABLE :: WWINTM(:,:)
+   REAL,    PUBLIC, SAVE, ALLOCATABLE :: WWSWGM(:,:)
 
 !  8. Subroutines and functions used
 !
@@ -457,12 +489,12 @@
 !     ---
 !
 ! 13. Source text
-!
-      END MODULE M_SNL4
 
-      MODULE M_SNL3
-!
-!
+end module M_SNL4
+
+MODULE M_SNL3
+
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -476,8 +508,8 @@
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
+!     This program is free software: you can redistribute it and/or modi
+!     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
 !
@@ -487,7 +519,7 @@
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!     along with this program. If not, see <http://www.gnu.org/licenses/
 !
 !
 !  0. Authors
@@ -509,9 +541,9 @@
 !  4. Modules used
 !
 !     ---
-!
-      IMPLICIT NONE
-!
+
+   IMPLICIT NONE
+
 !  5. Argument variables
 !
 !     ---
@@ -531,21 +563,21 @@
 !     QTRI1 : frequency-dependent interpolation data
 !     QTRI2 : frequency- and space-dependent scaling factors
 !     TCOLL : true if collinear, otherwise noncollinear
-!     WISM  : interpolation weight factor corresponding to lower harmonic
-!     WISM1 : interpolation weight factor corresponding to lower harmonic
-!     WISP  : interpolation weight factor corresponding to higher harmonic
-!     WISP1 : interpolation weight factor corresponding to higher harmonic
-!
-      INTEGER MSC4D
-!
-      INTEGER  ISM(3,2),  ISM1(3,2),  ISP(3),  ISP1(3)
-      REAL    WISM(3,2), WISM1(3,2), WISP(3), WISP1(3)
-!
-      REAL   , DIMENSION(:)    , SAVE, ALLOCATABLE :: BPHTMP
-      REAL   , DIMENSION(:,:)  , SAVE, ALLOCATABLE :: QTRI1
-      REAL   , DIMENSION(:,:,:), SAVE, ALLOCATABLE :: QTRI2
-!
-      LOGICAL :: TCOLL
+!     WISM  : interpolation weight factor corresponding to lower harmoni
+!     WISM1 : interpolation weight factor corresponding to lower harmoni
+!     WISP  : interpolation weight factor corresponding to higher harmon
+!     WISP1 : interpolation weight factor corresponding to higher harmon
+
+   INTEGER MSC4D
+
+   INTEGER  ISM(3,2),  ISM1(3,2),  ISP(3),  ISP1(3)
+   REAL    WISM(3,2), WISM1(3,2), WISP(3), WISP1(3)
+
+   REAL   , DIMENSION(:)    , SAVE, ALLOCATABLE :: BPHTMP
+   REAL   , DIMENSION(:,:)  , SAVE, ALLOCATABLE :: QTRI1
+   REAL   , DIMENSION(:,:,:), SAVE, ALLOCATABLE :: QTRI2
+
+   LOGICAL :: TCOLL
 
 !  8. Subroutines and functions used
 !
@@ -568,12 +600,12 @@
 !     ---
 !
 ! 13. Source text
-!
-      END MODULE M_SNL3
 
-      MODULE M_BNDSPEC
-!
-!
+end module M_SNL3
+
+MODULE M_BNDSPEC
+
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -587,8 +619,8 @@
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
+!     This program is free software: you can redistribute it and/or modi
+!     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
 !
@@ -598,7 +630,7 @@
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!     along with this program. If not, see <http://www.gnu.org/licenses/
 !
 !
 !  0. Authors
@@ -623,9 +655,9 @@
 !  4. Modules used
 !
 !     ---
-!
-      IMPLICIT NONE
-!
+
+   IMPLICIT NONE
+
 !  5. Argument variables
 !
 !     ---
@@ -639,18 +671,18 @@
 !     ALOBND  : if true, user has specified boundary conditions
 !     BFILED  : data concerning boundary condition files
 !     BGP     : array containing data w.r.t. boundary grid points
-!     BSPLOC  : place in array BSPECS where to store interpolated spectra
+!     BSPLOC  : place in array BSPECS where to store interpolated spectr
 !     BSPDIR  : spectral directions of input spectrum
 !     BSPFRQ  : spectral frequencies of input spectrum
 !     CUBGP   : current item in list of boundary grid points
-!     DSHAPE  : indicates option for computation of directional distribution
+!     DSHAPE  : indicates option for computation of directional distribu
 !               in the spectrum (boundary spectra etc.)
 !               =1: directional spread in degrees is given
 !               =2: power of COS is given
 !     FBNDFIL : first boundary condition file in list of files
 !     FBGP    : first item in list of boundary grid points
 !     FBS     : first item in list of boundary spectrum parameters
-!     FSHAPE  : indicates option for computation of frequency distribution
+!     FSHAPE  : indicates option for computation of frequency distributi
 !               in the spectrum (boundary spectra etc.)
 !               =1: Pierson-Moskowitz
 !               =2: Jonswap
@@ -658,7 +690,7 @@
 !               =4: Gaussian
 !     NBS     : index of BSPECS
 !     NEXTBGP : pointer to next item in list of boundary grid points
-!     NEXTBS  : pointer to next item in list of boundary spectrum parameters
+!     NEXTBS  : pointer to next item in list of boundary spectrum parame
 !     NEXTBSPC: pointer to next boundary condition file in list
 !     SPPARM  : integral parameters used for computation of
 !               incident spectrum. Meaning:
@@ -667,45 +699,45 @@
 !               3: average wave direction
 !               4: directional distribution coefficient
 
-      LOGICAL :: ALOBND
+   LOGICAL :: ALOBND
 
-      TYPE BSPCDAT
-         INTEGER                :: BFILED(20)
-         INTEGER, POINTER       :: BSPLOC(:)
-         REAL, POINTER          :: BSPDIR(:), BSPFRQ(:)
-         TYPE(BSPCDAT), POINTER :: NEXTBSPC
-      END TYPE BSPCDAT
+   TYPE BSPCDAT
+      INTEGER                :: BFILED(20)
+      INTEGER, POINTER       :: BSPLOC(:)
+      REAL, POINTER          :: BSPDIR(:), BSPFRQ(:)
+      TYPE(BSPCDAT), POINTER :: NEXTBSPC
+   end type BSPCDAT
 
-      TYPE(BSPCDAT), SAVE, TARGET :: FBNDFIL
-      LOGICAL, SAVE :: LBFILS = .FALSE.
+   TYPE(BSPCDAT), SAVE, TARGET :: FBNDFIL
+   LOGICAL, SAVE :: LBFILS = .FALSE.
 
-      TYPE BSDAT
-         INTEGER                :: NBS
-         INTEGER                :: FSHAPE, DSHAPE
-         REAL                   :: SPPARM(4)
-         TYPE(BSDAT), POINTER   :: NEXTBS
-      END TYPE BSDAT
+   TYPE BSDAT
+      INTEGER                :: NBS
+      INTEGER                :: FSHAPE, DSHAPE
+      REAL                   :: SPPARM(4)
+      TYPE(BSDAT), POINTER   :: NEXTBS
+   end type BSDAT
 
-      TYPE(BSDAT), SAVE, TARGET :: FBS
-      LOGICAL, SAVE :: LBS = .FALSE.
+   TYPE(BSDAT), SAVE, TARGET :: FBS
+   LOGICAL, SAVE :: LBS = .FALSE.
 
-      TYPE BGPDAT
-         INTEGER                :: BGP(6)
-         TYPE(BGPDAT), POINTER  :: NEXTBGP
-      END TYPE BGPDAT
+   TYPE BGPDAT
+      INTEGER                :: BGP(6)
+      TYPE(BGPDAT), POINTER  :: NEXTBGP
+   end type BGPDAT
 
-      TYPE(BGPDAT), SAVE, TARGET  :: FBGP
-      TYPE(BGPDAT), SAVE, POINTER :: CUBGP
-      LOGICAL, SAVE :: LBGP = .FALSE.
+   TYPE(BGPDAT), SAVE, TARGET  :: FBGP
+   TYPE(BGPDAT), SAVE, POINTER :: CUBGP
+   LOGICAL, SAVE :: LBGP = .FALSE.
 
 !  8. Subroutines and functions used
-!
-      INTERFACE DELETE
-        MODULE PROCEDURE DELETEBSPC
-        MODULE PROCEDURE DELETEBS
-        MODULE PROCEDURE DELETEBGP
-      END INTERFACE
-!
+
+   INTERFACE DELETE
+      MODULE PROCEDURE DELETEBSPC
+      MODULE PROCEDURE DELETEBS
+      MODULE PROCEDURE DELETEBGP
+   end interface DELETE
+
 !  9. Subroutines and functions calling
 !
 !     ---
@@ -723,10 +755,10 @@
 !     ---
 !
 ! 13. Source text
-!
-      CONTAINS
-!
-      RECURSIVE SUBROUTINE DELETEBSPC ( BSPC )
+
+CONTAINS
+
+   RECURSIVE SUBROUTINE DELETEBSPC ( BSPC )
 
       TYPE(BSPCDAT) :: BSPC
 
@@ -750,9 +782,9 @@
          ENDIF
       ENDIF
 
-      END SUBROUTINE
-!
-      RECURSIVE SUBROUTINE DELETEBS ( BS )
+   end subroutine DELETEBSPC
+
+   RECURSIVE SUBROUTINE DELETEBS ( BS )
 
       TYPE(BSDAT) :: BS
 
@@ -764,9 +796,9 @@
          ENDIF
       ENDIF
 
-      END SUBROUTINE
-!
-      RECURSIVE SUBROUTINE DELETEBGP ( BGP )
+   end subroutine DELETEBS
+
+   RECURSIVE SUBROUTINE DELETEBGP ( BGP )
 
       TYPE(BGPDAT) :: BGP
 
@@ -778,13 +810,13 @@
          ENDIF
       ENDIF
 
-      END SUBROUTINE
+   end subroutine DELETEBGP
 
-      END MODULE M_BNDSPEC
+end module M_BNDSPEC
 
-      MODULE M_OBSTA
-!
-!
+MODULE M_OBSTA
+
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -798,8 +830,8 @@
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
+!     This program is free software: you can redistribute it and/or modi
+!     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
 !
@@ -809,7 +841,7 @@
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!     along with this program. If not, see <http://www.gnu.org/licenses/
 !
 !
 !  0. Authors
@@ -831,9 +863,9 @@
 !  4. Modules used
 !
 !     ---
-!
-      IMPLICIT NONE
-!
+
+   IMPLICIT NONE
+
 !  5. Argument variables
 !
 !     ---
@@ -859,31 +891,31 @@
 !     RFTYP2  : reflection type: diffusive/specular (RDIFF/RSPEC)
 !     RFTYP3  : reflection type: frequency-dependent (RFD)
 !     TRCF1D  : frequency dependent transmission coefficients
-!     TRCF2D  : frequency and direction dependent transmission coefficients
+!     TRCF2D  : frequency and direction dependent transmission coefficie
 !     TRCOEF  : transmission coefficients
 !     TRTYPE  : transmission type
 !     XCRP    : x-coordinate of corner point
 !     YCRP    : y-coordinate of corner point
 
-      LOGICAL, SAVE             :: OBSTDONE
-!
-      TYPE OBSTDAT
-         INTEGER                :: TRTYPE
-         REAL                   :: TRCOEF(3)
-         REAL, POINTER          :: TRCF1D(:), TRCF2D(:,:)
-         INTEGER                :: RFTYP1, RFTYP2, RFTYP3
-         REAL                   :: RFCOEF(6)
-         INTEGER                :: FBTYP1, FBTYP2
-         REAL                   :: FBCOEF(3)
-         INTEGER                :: IGTYP
-         REAL                   :: IGCOEF(7)
-         REAL, POINTER          :: IGFRQD(:)
-         INTEGER                :: NCRPTS
-         REAL, POINTER          :: XCRP(:), YCRP(:)
-         TYPE(OBSTDAT), POINTER :: NEXTOBST
-      END TYPE OBSTDAT
+   LOGICAL, SAVE             :: OBSTDONE
 
-      TYPE(OBSTDAT), SAVE, TARGET  :: FOBSTAC
+   TYPE OBSTDAT
+      INTEGER                :: TRTYPE
+      REAL                   :: TRCOEF(3)
+      REAL, POINTER          :: TRCF1D(:), TRCF2D(:,:)
+      INTEGER                :: RFTYP1, RFTYP2, RFTYP3
+      REAL                   :: RFCOEF(6)
+      INTEGER                :: FBTYP1, FBTYP2
+      REAL                   :: FBCOEF(3)
+      INTEGER                :: IGTYP
+      REAL                   :: IGCOEF(7)
+      REAL, POINTER          :: IGFRQD(:)
+      INTEGER                :: NCRPTS
+      REAL, POINTER          :: XCRP(:), YCRP(:)
+      TYPE(OBSTDAT), POINTER :: NEXTOBST
+   end type OBSTDAT
+
+   TYPE(OBSTDAT), SAVE, TARGET  :: FOBSTAC
 
 !  8. Subroutines and functions used
 !
@@ -906,12 +938,12 @@
 !     ---
 !
 ! 13. Source text
-!
-      END MODULE M_OBSTA
 
-      MODULE M_GENARR
-!
-!
+end module M_OBSTA
+
+MODULE M_GENARR
+
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -925,8 +957,8 @@
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
+!     This program is free software: you can redistribute it and/or modi
+!     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
 !
@@ -936,7 +968,7 @@
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!     along with this program. If not, see <http://www.gnu.org/licenses/
 !
 !
 !  0. Authors
@@ -974,9 +1006,9 @@
 !  4. Modules used
 !
 !     ---
-!
-      IMPLICIT NONE
-!
+
+   IMPLICIT NONE
+
 !  5. Argument variables
 !
 !     ---
@@ -996,7 +1028,7 @@
 !     HICEF : input field containing ice thickness (meters)
 !     HSSF  : input field containing sea-swell sig wave height
 !     KGRBND: array containing all boundary points
-!             (+ 2 extra zeros as area separator for all separated areas)
+!             (+ 2 extra zeros as area separator for all separated areas
 !     KGRPNT: array containing indirect addresses for grid points
 !     LAYH  : layer thickness for vegetation model
 !     MUDLF : input field containing fluid mud layer
@@ -1007,7 +1039,7 @@
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-!     SPCSIG: Relative frequencies in computational domain in sigma-space
+!     SPCSIG: Relative frequencies in computational domain in sigma-spac
 !     TSSF  : input field containing sea-swell mean wave period
 !     TURBF : input field containing turbulent viscosity
 !     UXB   : input field of contravariant U-velocity
@@ -1022,26 +1054,26 @@
 !     XYTST : Grid point indices of test points
 !     YCGRID: Coordinates of computational grid in y-direction
 
-      INTEGER, SAVE, ALLOCATABLE :: KGRPNT(:,:), KGRBND(:)
-      INTEGER, SAVE, ALLOCATABLE :: XYTST(:)
-      REAL   , SAVE, ALLOCATABLE :: AC2(:,:,:)
-      REAL   , SAVE, ALLOCATABLE :: XCGRID(:,:), YCGRID(:,:)
-      REAL   , SAVE, ALLOCATABLE :: SPCSIG(:)  , SPCDIR(:,:)
-      REAL   , SAVE, ALLOCATABLE :: DEPTH(:) , FRIC(:)
-      REAL   , SAVE, ALLOCATABLE :: UXB(:)   , UYB(:)
-      REAL   , SAVE, ALLOCATABLE :: WXI(:)   , WYI(:)
-      REAL   , SAVE, ALLOCATABLE :: WLEVL(:) , ASTDF(:)
-      REAL   , SAVE, ALLOCATABLE :: MUDLF(:)
-      REAL   , SAVE, ALLOCATABLE :: NPLAF(:) , TURBF(:)
-      REAL   , SAVE, ALLOCATABLE :: AICEF(:) , HICEF(:)
-      REAL   , SAVE, ALLOCATABLE :: LAYH(:), VEGDIL(:), VEGDRL(:),
-     &                              VEGNSL(:)
-      REAL   , SAVE, ALLOCATABLE :: HSSF(:)  , TSSF(:), DSSF(:)
+   INTEGER, SAVE, ALLOCATABLE :: KGRPNT(:,:), KGRBND(:)
+   INTEGER, SAVE, ALLOCATABLE :: XYTST(:)
+   REAL   , SAVE, ALLOCATABLE :: AC2(:,:,:)
+   REAL   , SAVE, ALLOCATABLE :: XCGRID(:,:), YCGRID(:,:)
+   REAL   , SAVE, ALLOCATABLE :: SPCSIG(:)  , SPCDIR(:,:)
+   REAL   , SAVE, ALLOCATABLE :: DEPTH(:) , FRIC(:)
+   REAL   , SAVE, ALLOCATABLE :: UXB(:)   , UYB(:)
+   REAL   , SAVE, ALLOCATABLE :: WXI(:)   , WYI(:)
+   REAL   , SAVE, ALLOCATABLE :: WLEVL(:) , ASTDF(:)
+   REAL   , SAVE, ALLOCATABLE :: MUDLF(:)
+   REAL   , SAVE, ALLOCATABLE :: NPLAF(:) , TURBF(:)
+   REAL   , SAVE, ALLOCATABLE :: AICEF(:) , HICEF(:)
+   REAL   , SAVE, ALLOCATABLE :: LAYH(:), VEGDIL(:), VEGDRL(:),&
+   &VEGNSL(:)
+   REAL   , SAVE, ALLOCATABLE :: HSSF(:)  , TSSF(:), DSSF(:)
 !ESMF!
 !ESMF!     added to save Sin exponential growth term for coupling
-!ESMF      LOGICAL, SAVE :: SAVE_SINBAC
-!ESMF      REAL   , SAVE, ALLOCATABLE :: SINBAC(:,:,:)
-
+!ESMF   LOGICAL, SAVE :: SAVE_SINBAC
+!ESMF   REAL   , SAVE, ALLOCATABLE :: SINBAC(:,:,:)
+!
 !  8. Subroutines and functions used
 !
 !     ---
@@ -1063,10 +1095,11 @@
 !     ---
 !
 ! 13. Source text
-!
-      END MODULE M_GENARR
 
-      MODULE M_PARALL
+end module M_GENARR
+
+MODULE M_PARALL
+!MPI   USE MPI
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -1082,8 +1115,8 @@
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
+!     This program is free software: you can redistribute it and/or modi
+!     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
 !
@@ -1093,7 +1126,7 @@
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!     along with this program. If not, see <http://www.gnu.org/licenses/
 !
 !
 !  0. Authors
@@ -1118,9 +1151,38 @@
 !  4. Modules used
 !
 !     ---
-!
-      IMPLICIT NONE
-!
+
+   IMPLICIT NONE
+
+!     Type-safe interfaces for collective communication.  The legacy
+!     implementations receive a typed first element and a count; callers
+!     no longer pass an MPI datatype that can disagree with the Fortran
+!     datatype of the actual argument.
+   INTERFACE SWREDUCE
+      MODULE PROCEDURE SWREDUCE_I0, SWREDUCE_I1
+      MODULE PROCEDURE SWREDUCE_R0, SWREDUCE_R1
+   end interface SWREDUCE
+
+   INTERFACE SWBROADC
+      MODULE PROCEDURE SWBROADC_I0, SWBROADC_I1, SWBROADC_I2
+      MODULE PROCEDURE SWBROADC_R0, SWBROADC_R1, SWBROADC_R2
+      MODULE PROCEDURE SWBROADC_R3, SWBROADC_R4
+      MODULE PROCEDURE SWBROADC_C0
+   end interface SWBROADC
+
+   INTERFACE SWSENDNB
+      MODULE PROCEDURE SWSENDNB_R1, SWSENDNB_R2
+   end interface SWSENDNB
+
+   INTERFACE SWRECVNB
+      MODULE PROCEDURE SWRECVNB_R1, SWRECVNB_R2
+   end interface SWRECVNB
+
+   INTERFACE SWGATHER
+      MODULE PROCEDURE SWGATHER_I21, SWGATHER_I12
+      MODULE PROCEDURE SWGATHER_R11
+   end interface SWGATHER
+
 !  5. Argument variables
 !
 !     ---
@@ -1138,17 +1200,12 @@
 !JAC!     IYELOW  : integer used to colour subdomains 'yellow' for
 !JAC!               determining sequence of sweeps (=2,3,4,1)
 !     MASTER  : rank of master process
-!
-      INTEGER MASTER
-!JAC      INTEGER IRED, IYELOW, IGREEN, IBLACK
-      INTEGER IHALOX, IHALOY
-      PARAMETER (MASTER = 1
-!JAC     &          ,IRED   = 1, IYELOW = 2,
-!JAC     &           IGREEN = 3, IBLACK = 4,
-!JAC     &           IHALOX = 1, IHALOY = 1
-!WFR     &          ,IHALOX = 3, IHALOY = 3
-     &          )
-!
+
+   INTEGER, PARAMETER :: MASTER=1
+!JAC   INTEGER, PARAMETER :: IRED=1, IYELOW=2, IGREEN=3, IBLACK=4,&
+!JAC   &IHALOX=1, IHALOY=1
+!WFR   INTEGER, PARAMETER :: IHALOX=3, IHALOY=3
+
 !  7. Local variables
 !
 !     *** variables for parallel process with MPI:
@@ -1163,25 +1220,25 @@
 !     SWMIN   : MPI collective minimum operation
 !     SWREAL  : MPI datatype for reals
 !     SWSUM   : MPI collective summation
-!
-      INTEGER INODE, NPROC
-      INTEGER SWCHAR, SWINT, SWREAL
-      INTEGER SWMAX, SWMIN, SWSUM
-      LOGICAL IAMMASTER, PARLL
-!
+
+   INTEGER INODE, NPROC
+   INTEGER SWCHAR, SWINT, SWREAL
+   INTEGER SWMAX, SWMIN, SWSUM
+   LOGICAL IAMMASTER, PARLL
+
 !     *** information related to global domain and subdomains
 !
 !JAC!     IBCOL   : integer indicating the color of own subdomain
 !     IBLKAD  : administration array for subdomain interfaces
 !               contents:
-!               pos. 1                     number of neighbouring subdomains
+!               pos. 1                     number of neighbouring subdom
 !                                          =m
 !               pos. 3*i-1                 number of i-th neighbour
-!               pos. 3*i                   position of i-th neighbour with
+!               pos. 3*i                   position of i-th neighbour wi
 !                                          respect to present subdomain
 !               pos. 3*i+1                 pointer of i-th neighbour in
 !                                          last part of this array
-!               pos. 3*m+2                 number of overlapping unknowns
+!               pos. 3*m+2                 number of overlapping unknown
 !                                          on subdomain interface
 !               pos. 3*m+3 ... 3*m+2+n     position of unknown in array
 !                                          to be sent to neighbour
@@ -1189,19 +1246,19 @@
 !                                          to be received from neighbour
 !     IWEIG   : weights to determine load per part
 !     KGRBGL  : array containing all boundary points in global domain
-!               (+ 2 extra zeros as area separator for all separated areas)
+!               (+ 2 extra zeros as area separator for all separated are
 !     KGRPGL  : indirect addressing for grid points in global domain
 !               =1: not active point
 !               >1: active point
 !     LENSPO  : format length for spectral output
-!     LMXF    : logical indicating whether first x-point of subdomain equals
-!               first x-point of global domain (=.TRUE.) or not (=.FALSE.)
-!     LMXL    : logical indicating whether last x-point of subdomain equals
-!               last x-point of global domain (=.TRUE.) or not (=.FALSE.)
-!     LMYF    : logical indicating whether first y-point of subdomain equals
-!               first y-point of global domain (=.TRUE.) or not (=.FALSE.)
-!     LMYL    : logical indicating whether last y-point of subdomain equals
-!               last y-point of global domain (=.TRUE.) or not (=.FALSE.)
+!     LMXF    : logical indicating whether first x-point of subdomain eq
+!               first x-point of global domain (=.TRUE.) or not (=.FALSE
+!     LMXL    : logical indicating whether last x-point of subdomain equ
+!               last x-point of global domain (=.TRUE.) or not (=.FALSE.
+!     LMYF    : logical indicating whether first y-point of subdomain eq
+!               first y-point of global domain (=.TRUE.) or not (=.FALSE
+!     LMYL    : logical indicating whether last y-point of subdomain equ
+!               last y-point of global domain (=.TRUE.) or not (=.FALSE.
 !     MCGRDGL : number of wet grid points in global computational grid
 !     MXCGL   : number of grid points in x-direction in global
 !               computational grid
@@ -1221,21 +1278,21 @@
 !     XGRDGL  : x-coordinate of computational grid in global domain
 !     YGRDGL  : y-coordinate of computational grid in global domain
 !
-!JAC      INTEGER IBCOL
-      INTEGER MCGRDGL, MXCGL, MYCGL
-      INTEGER MXF, MXL, MYF, MYL
-      INTEGER NGRBGL, NBGGL
-      REAL    XCLMAX, XCLMIN, YCLMAX, YCLMIN
+!JAC   INTEGER IBCOL
+   INTEGER MCGRDGL, MXCGL, MYCGL
+   INTEGER MXF, MXL, MYF, MYL
+   INTEGER NGRBGL, NBGGL
+   REAL    XCLMAX, XCLMIN, YCLMAX, YCLMIN
 
-      INTEGER :: LENSPO = 1000
+   INTEGER :: LENSPO = 1000
 
-      LOGICAL LMXF, LMXL, LMYF, LMYL
+   LOGICAL LMXF, LMXL, LMYF, LMYL
 
-      INTEGER, SAVE, ALLOCATABLE :: IBLKAD(:)
-      INTEGER, SAVE, ALLOCATABLE :: IWEIG(:)
-      INTEGER, SAVE, ALLOCATABLE :: KGRPGL(:,:), KGRBGL(:)
-      REAL   , SAVE, ALLOCATABLE :: XGRDGL(:,:), YGRDGL(:,:)
-!
+   INTEGER, SAVE, ALLOCATABLE :: IBLKAD(:)
+   INTEGER, SAVE, ALLOCATABLE :: IWEIG(:)
+   INTEGER, SAVE, ALLOCATABLE :: KGRPGL(:,:), KGRBGL(:)
+   REAL   , SAVE, ALLOCATABLE :: XGRDGL(:,:), YGRDGL(:,:)
+
 !  8. Subroutines and functions used
 !
 !     ---
@@ -1257,12 +1314,272 @@
 !     ---
 !
 ! 13. Source text
-!
-      END MODULE M_PARALL
 
-      MODULE M_DIFFR
-!
-!
+CONTAINS
+
+   SUBROUTINE SWREDUCE_I0 ( VALUE, ILEN, ITYPRD )
+      INTEGER, INTENT(INOUT) :: VALUE
+      INTEGER, INTENT(IN)    :: ILEN, ITYPRD
+      INTEGER                :: VALUES(1)
+      IF (.NOT.PARLL) RETURN
+      VALUES(1) = VALUE
+      CALL SWREDUCI ( VALUES, ILEN, ITYPRD )
+      VALUE = VALUES(1)
+   end subroutine SWREDUCE_I0
+
+   SUBROUTINE SWREDUCE_I1 ( VALUES, ILEN, ITYPRD )
+      INTEGER, INTENT(INOUT) :: VALUES(:)
+      INTEGER, INTENT(IN)    :: ILEN, ITYPRD
+      IF (.NOT.PARLL) RETURN
+      CALL SWREDUCI ( VALUES, ILEN, ITYPRD )
+   end subroutine SWREDUCE_I1
+
+   SUBROUTINE SWREDUCE_R0 ( VALUE, ILEN, ITYPRD )
+      REAL, INTENT(INOUT) :: VALUE
+      INTEGER, INTENT(IN) :: ILEN, ITYPRD
+      REAL                :: VALUES(1)
+      IF (.NOT.PARLL) RETURN
+      VALUES(1) = VALUE
+      CALL SWREDUCR ( VALUES, ILEN, ITYPRD )
+      VALUE = VALUES(1)
+   end subroutine SWREDUCE_R0
+
+   SUBROUTINE SWREDUCE_R1 ( VALUES, ILEN, ITYPRD )
+      REAL, INTENT(INOUT) :: VALUES(:)
+      INTEGER, INTENT(IN) :: ILEN, ITYPRD
+      IF (.NOT.PARLL) RETURN
+      CALL SWREDUCR ( VALUES, ILEN, ITYPRD )
+   end subroutine SWREDUCE_R1
+
+   SUBROUTINE SWBROADC_I0 ( VALUE, ILEN )
+      INTEGER, INTENT(INOUT) :: VALUE
+      INTEGER, INTENT(IN)    :: ILEN
+      INTEGER                :: IERR
+      IF (.NOT.PARLL) RETURN
+!MPI      CALL MPI_BCAST ( VALUE, ILEN, SWINT, MASTER-1,&
+!MPI      &MPI_COMM_WORLD, IERR )
+!MPI      CALL SWBROADC_CHECK ( IERR )
+   end subroutine SWBROADC_I0
+
+   SUBROUTINE SWBROADC_I1 ( VALUES, ILEN )
+      INTEGER, INTENT(INOUT)             :: VALUES(*)
+      INTEGER, INTENT(IN)                :: ILEN
+      INTEGER                            :: IERR
+      IF (.NOT.PARLL) RETURN
+!MPI      CALL MPI_BCAST ( VALUES, ILEN, SWINT, MASTER-1,&
+!MPI      &MPI_COMM_WORLD, IERR )
+!MPI      CALL SWBROADC_CHECK ( IERR )
+   end subroutine SWBROADC_I1
+
+   SUBROUTINE SWBROADC_I2 ( VALUES, ILEN )
+      INTEGER, CONTIGUOUS, INTENT(INOUT) :: VALUES(:,:)
+      INTEGER, INTENT(IN)                :: ILEN
+      INTEGER                            :: IERR
+      IF (.NOT.PARLL) RETURN
+!MPI      CALL MPI_BCAST ( VALUES, ILEN, SWINT, MASTER-1,&
+!MPI      &MPI_COMM_WORLD, IERR )
+!MPI      CALL SWBROADC_CHECK ( IERR )
+   end subroutine SWBROADC_I2
+
+   SUBROUTINE SWBROADC_R0 ( VALUE, ILEN )
+      REAL, INTENT(INOUT) :: VALUE
+      INTEGER, INTENT(IN) :: ILEN
+      INTEGER             :: IERR
+      IF (.NOT.PARLL) RETURN
+!MPI      CALL MPI_BCAST ( VALUE, ILEN, SWREAL, MASTER-1,&
+!MPI      &MPI_COMM_WORLD, IERR )
+!MPI      CALL SWBROADC_CHECK ( IERR )
+   end subroutine SWBROADC_R0
+
+   SUBROUTINE SWBROADC_R1 ( VALUES, ILEN )
+      REAL, INTENT(INOUT)             :: VALUES(*)
+      INTEGER, INTENT(IN)             :: ILEN
+      INTEGER                         :: IERR
+      IF (.NOT.PARLL) RETURN
+!MPI      CALL MPI_BCAST ( VALUES, ILEN, SWREAL, MASTER-1,&
+!MPI      &MPI_COMM_WORLD, IERR )
+!MPI      CALL SWBROADC_CHECK ( IERR )
+   end subroutine SWBROADC_R1
+
+   SUBROUTINE SWBROADC_R2 ( VALUES, ILEN )
+      REAL, CONTIGUOUS, INTENT(INOUT) :: VALUES(:,:)
+      INTEGER, INTENT(IN)             :: ILEN
+      INTEGER                         :: IERR
+      IF (.NOT.PARLL) RETURN
+!MPI      CALL MPI_BCAST ( VALUES, ILEN, SWREAL, MASTER-1,&
+!MPI      &MPI_COMM_WORLD, IERR )
+!MPI      CALL SWBROADC_CHECK ( IERR )
+   end subroutine SWBROADC_R2
+
+   SUBROUTINE SWBROADC_R3 ( VALUES, ILEN )
+      REAL, CONTIGUOUS, INTENT(INOUT) :: VALUES(:,:,:)
+      INTEGER, INTENT(IN)             :: ILEN
+      INTEGER                         :: IERR
+      IF (.NOT.PARLL) RETURN
+!MPI      CALL MPI_BCAST ( VALUES, ILEN, SWREAL, MASTER-1,&
+!MPI      &MPI_COMM_WORLD, IERR )
+!MPI      CALL SWBROADC_CHECK ( IERR )
+   end subroutine SWBROADC_R3
+
+   SUBROUTINE SWBROADC_R4 ( VALUES, ILEN )
+      REAL, CONTIGUOUS, INTENT(INOUT) :: VALUES(:,:,:,:)
+      INTEGER, INTENT(IN)             :: ILEN
+      INTEGER                         :: IERR
+      IF (.NOT.PARLL) RETURN
+!MPI      CALL MPI_BCAST ( VALUES, ILEN, SWREAL, MASTER-1,&
+!MPI      &MPI_COMM_WORLD, IERR )
+!MPI      CALL SWBROADC_CHECK ( IERR )
+   end subroutine SWBROADC_R4
+
+   SUBROUTINE SWBROADC_C0 ( VALUE, ILEN )
+      CHARACTER(LEN=*), INTENT(INOUT) :: VALUE
+      INTEGER, INTENT(IN)             :: ILEN
+      INTEGER                         :: IERR
+      IF (.NOT.PARLL) RETURN
+!MPI      CALL MPI_BCAST ( VALUE, ILEN, SWCHAR, MASTER-1,&
+!MPI      &MPI_COMM_WORLD, IERR )
+!MPI      CALL SWBROADC_CHECK ( IERR )
+   end subroutine SWBROADC_C0
+
+   SUBROUTINE SWBROADC_CHECK ( IERR )
+      INTEGER, INTENT(IN) :: IERR
+!MPI      CHARACTER(LEN=80) :: MSGSTR
+!MPI      IF ( IERR.NE.MPI_SUCCESS ) THEN
+!MPI         WRITE(MSGSTR,'(A,I0)')&
+!MPI         &'MPI_BCAST failed with return code ', IERR
+!MPI         CALL MSGERR ( 4, MSGSTR )
+!MPI      END IF
+   end subroutine SWBROADC_CHECK
+
+   SUBROUTINE SWSENDNB_R1 ( VALUES, ILEN, IDEST, ITAG )
+      REAL, INTENT(IN)       :: VALUES(*)
+      INTEGER, INTENT(IN)    :: ILEN, IDEST, ITAG
+      INTEGER                :: IERR
+      IF (.NOT.PARLL) RETURN
+!MPI      CALL MPI_SEND ( VALUES, ILEN, SWREAL, IDEST-1, ITAG,&
+!MPI      &MPI_COMM_WORLD, IERR )
+!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_SEND' )
+   end subroutine SWSENDNB_R1
+
+   SUBROUTINE SWSENDNB_R2 ( VALUES, ILEN, IDEST, ITAG )
+      REAL, CONTIGUOUS, INTENT(IN) :: VALUES(:,:)
+      INTEGER, INTENT(IN)          :: ILEN, IDEST, ITAG
+      INTEGER                      :: IERR
+      IF (.NOT.PARLL) RETURN
+!MPI      CALL MPI_SEND ( VALUES, ILEN, SWREAL, IDEST-1, ITAG,&
+!MPI      &MPI_COMM_WORLD, IERR )
+!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_SEND' )
+   end subroutine SWSENDNB_R2
+
+   SUBROUTINE SWRECVNB_R1 ( VALUES, ILEN, ISOURCE, ITAG )
+      REAL, INTENT(OUT)      :: VALUES(*)
+      INTEGER, INTENT(IN)    :: ILEN, ISOURCE, ITAG
+      INTEGER                :: IERR
+!MPI      INTEGER             :: ISTAT(MPI_STATUS_SIZE)
+      IF (.NOT.PARLL) RETURN
+!MPI      CALL MPI_RECV ( VALUES, ILEN, SWREAL, ISOURCE-1, ITAG,&
+!MPI      &MPI_COMM_WORLD, ISTAT, IERR )
+!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_RECV' )
+   end subroutine SWRECVNB_R1
+
+   SUBROUTINE SWRECVNB_R2 ( VALUES, ILEN, ISOURCE, ITAG )
+      REAL, CONTIGUOUS, INTENT(OUT) :: VALUES(:,:)
+      INTEGER, INTENT(IN)            :: ILEN, ISOURCE, ITAG
+      INTEGER                        :: IERR
+!MPI      INTEGER                     :: ISTAT(MPI_STATUS_SIZE)
+      IF (.NOT.PARLL) RETURN
+!MPI      CALL MPI_RECV ( VALUES, ILEN, SWREAL, ISOURCE-1, ITAG,&
+!MPI      &MPI_COMM_WORLD, ISTAT, IERR )
+!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_RECV' )
+   end subroutine SWRECVNB_R2
+
+   SUBROUTINE SWGATHER_I21 ( OUTPUT, IOLEN, INPUT, IILEN )
+      INTEGER, INTENT(OUT) :: OUTPUT(:,:)
+      INTEGER, INTENT(IN)  :: INPUT(:)
+      INTEGER, INTENT(IN)  :: IOLEN, IILEN
+      INTEGER              :: IERR
+      INTEGER, ALLOCATABLE :: ICOUNT(:), IDSPLC(:)
+      IF (.NOT.PARLL) RETURN
+      CALL SWGATHER_LAYOUT ( IILEN, IOLEN, ICOUNT, IDSPLC, IERR )
+!MPI      IF ( IERR.EQ.MPI_SUCCESS )&
+!MPI      &CALL MPI_GATHERV ( INPUT, IILEN, SWINT, OUTPUT, ICOUNT,&
+!MPI      &IDSPLC, SWINT, MASTER-1, MPI_COMM_WORLD, IERR )
+!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_GATHERV' )
+      DEALLOCATE(ICOUNT,IDSPLC)
+   end subroutine SWGATHER_I21
+
+   SUBROUTINE SWGATHER_I12 ( OUTPUT, IOLEN, INPUT, IILEN )
+      INTEGER, INTENT(OUT) :: OUTPUT(:)
+      INTEGER, INTENT(IN)  :: INPUT(:,:)
+      INTEGER, INTENT(IN)  :: IOLEN, IILEN
+      INTEGER              :: IERR
+      INTEGER, ALLOCATABLE :: ICOUNT(:), IDSPLC(:)
+      IF (.NOT.PARLL) RETURN
+      CALL SWGATHER_LAYOUT ( IILEN, IOLEN, ICOUNT, IDSPLC, IERR )
+!MPI      IF ( IERR.EQ.MPI_SUCCESS )&
+!MPI      &CALL MPI_GATHERV ( INPUT, IILEN, SWINT, OUTPUT, ICOUNT,&
+!MPI      &IDSPLC, SWINT, MASTER-1, MPI_COMM_WORLD, IERR )
+!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_GATHERV' )
+      DEALLOCATE(ICOUNT,IDSPLC)
+   end subroutine SWGATHER_I12
+
+   SUBROUTINE SWGATHER_R11 ( OUTPUT, IOLEN, INPUT, IILEN )
+      REAL, INTENT(OUT)    :: OUTPUT(*)
+      REAL, INTENT(IN)     :: INPUT(*)
+      INTEGER, INTENT(IN)  :: IOLEN, IILEN
+      INTEGER              :: IERR
+      INTEGER, ALLOCATABLE :: ICOUNT(:), IDSPLC(:)
+      IF (.NOT.PARLL) RETURN
+      CALL SWGATHER_LAYOUT ( IILEN, IOLEN, ICOUNT, IDSPLC, IERR )
+!MPI      IF ( IERR.EQ.MPI_SUCCESS )&
+!MPI      &CALL MPI_GATHERV ( INPUT, IILEN, SWREAL, OUTPUT, ICOUNT,&
+!MPI      &IDSPLC, SWREAL, MASTER-1, MPI_COMM_WORLD, IERR )
+!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_GATHERV' )
+      DEALLOCATE(ICOUNT,IDSPLC)
+   end subroutine SWGATHER_R11
+
+   SUBROUTINE SWGATHER_LAYOUT ( IILEN, IOLEN, ICOUNT, IDSPLC,&
+   &IERR )
+      INTEGER, INTENT(IN)                 :: IILEN, IOLEN
+      INTEGER, ALLOCATABLE, INTENT(OUT)   :: ICOUNT(:), IDSPLC(:)
+      INTEGER, INTENT(OUT)                :: IERR
+      INTEGER                             :: I
+      ALLOCATE(ICOUNT(0:NPROC-1),IDSPLC(0:NPROC-1))
+      ICOUNT = 0
+      IDSPLC = 0
+      IERR = 0
+!MPI      CALL MPI_GATHER ( IILEN, 1, SWINT, ICOUNT, 1, SWINT,&
+!MPI      &MASTER-1, MPI_COMM_WORLD, IERR )
+!MPI      IF ( IERR.NE.MPI_SUCCESS ) RETURN
+      IF (IAMMASTER) THEN
+         IF ( SUM(ICOUNT).GT.IOLEN ) THEN
+            CALL MSGERR ( 4,&
+            &'Not enough space allocated for gathered data' )
+!MPI            IERR = MPI_ERR_COUNT
+            RETURN
+         END IF
+         DO I = 1, NPROC-1
+            IDSPLC(I) = ICOUNT(I-1) + IDSPLC(I-1)
+         END DO
+      END IF
+   end subroutine SWGATHER_LAYOUT
+
+   SUBROUTINE SWMPI_CHECK ( IERR, ROUTINE_NAME )
+      INTEGER, INTENT(IN)          :: IERR
+      CHARACTER(LEN=*), INTENT(IN) :: ROUTINE_NAME
+!MPI      CHARACTER(LEN=80)         :: MSGSTR
+!MPI      IF ( IERR.NE.MPI_SUCCESS ) THEN
+!MPI         WRITE(MSGSTR,'(A,A,A,I0)') TRIM(ROUTINE_NAME),&
+!MPI         &' failed on this process with return code ', '', IERR
+!MPI         CALL MSGERR ( 4, MSGSTR )
+!MPI      END IF
+   end subroutine SWMPI_CHECK
+
+end module M_PARALL
+
+MODULE M_DIFFR
+
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1276,8 +1593,8 @@
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
+!     This program is free software: you can redistribute it and/or modi
+!     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
 !
@@ -1287,7 +1604,7 @@
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!     along with this program. If not, see <http://www.gnu.org/licenses/
 !
 !
 !  0. Authors
@@ -1309,9 +1626,9 @@
 !  4. Modules used
 !
 !     ---
-!
-      IMPLICIT NONE
-!
+
+   IMPLICIT NONE
+
 !  5. Argument variables
 !
 !     ---
@@ -1326,9 +1643,9 @@
 !     DIFPARDX: derivative of DIFPARAM in x-direction
 !     DIFPARDY: derivative of DIFPARAM in y-direction
 
-      REAL, SAVE, ALLOCATABLE :: DIFPARAM(:)
-      REAL, SAVE, ALLOCATABLE :: DIFPARDX(:)
-      REAL, SAVE, ALLOCATABLE :: DIFPARDY(:)
+   REAL, SAVE, ALLOCATABLE :: DIFPARAM(:)
+   REAL, SAVE, ALLOCATABLE :: DIFPARDX(:)
+   REAL, SAVE, ALLOCATABLE :: DIFPARDY(:)
 
 !  8. Subroutines and functions used
 !
@@ -1336,7 +1653,7 @@
 !
 !  9. Subroutines and functions calling
 !
-!     DIFPAR :   calculates the above arrays DIFPARAM, DIFPARDX, DIFPARDY
+!     DIFPAR :   calculates the above arrays DIFPARAM, DIFPARDX, DIFPARD
 !     SPROSD :   computes propagation velocity in (x,y,theta) based on
 !                arrays DIFPARAM, DIFPARDX, DIFPARDY
 !
@@ -1353,9 +1670,9 @@
 !     ---
 !
 ! 13. Source text
-!
-      END MODULE M_DIFFR
+
+end module M_DIFFR
 !MPI!/impi
-!MPI!/impi      MODULE MPI
-!MPI!/impi      INCLUDE 'mpif.h'
-!MPI!/impi      END MODULE MPI
+!MPI!/impiMODULE MPI
+!MPI!/impi   INCLUDE 'mpif.h'
+!MPI!/impiend module MPI
