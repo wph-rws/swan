@@ -1,5 +1,5 @@
 logical function SwanPointinMesh ( x, y )
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -45,83 +45,97 @@ logical function SwanPointinMesh ( x, y )
 !   if the number of crossings is odd then the given point is inside the mesh
 !
 !   Modules used
-!
+
     use ocpcomm4
     use SwanGriddata
     use SwanGridobjects
-!
+    use SwanSpatialIndex
+
     implicit none
-!
+
 !   Argument variables
-!
+
     real, intent(in) :: x ! x-coordinate of given point
     real, intent(in) :: y ! y-coordinate of given point
-!
+
 !   Local variables
-!
+
     integer, save                         :: ient = 0 ! number of entries in this subroutine
     integer                               :: iface    ! loop counter over faces
+    integer                               :: nscan    ! number of boundary/full faces to scan
     integer                               :: numcrs   ! number of crossings with boundary faces
     integer                               :: v1       ! first vertex of present face
     integer                               :: v2       ! second vertex of present face
-    !
+
     real                                  :: x1       ! x-coordinate of begin of boundary face
     real                                  :: x2       ! x-coordinate of end of boundary face
     real                                  :: y1       ! y-coordinate of begin of boundary face
     real                                  :: y2       ! y-coordinate of end of boundary face
     real                                  :: yc       ! y-coordinate of cross point
-    !
-    type(facetype), dimension(:), pointer :: face     ! datastructure for faces with their attributes
-!
+
+    logical                               :: usecache ! boundary-face cache is available
+
+    type(facetype), dimension(:), pointer :: face     ! fallback face data
+
 !   Structure
 !
 !   Description of the pseudo code
 !
 !   Source text
-!
+
     if (ltrace) call strace (ient,'SwanPointinMesh')
-    !
-    ! point to face object
-    !
-    face => gridobject%face_grid
-    !
+
+    ! make sure the cached list of boundary faces is available
+
+    call SwanBndFaceCache
+    usecache = nbfac >= 0
+    if ( usecache ) then
+       nscan = nbfac
+    else
+       ! allocation-failure fallback: retain the former full-face scan
+       face => gridobject%face_grid
+       nscan = nfaces
+    endif
+
     numcrs = 0
-    !
-    ! loop over faces (both internal and boundary faces)
-    !
-    do iface = 1, nfaces
-       !
-       if ( face(iface)%atti(FMARKER) == 1 ) then   ! boundary face
-          !
+
+    ! loop over cached boundary faces
+
+    do iface = 1, nscan
+
+       if ( usecache ) then
+          v1 = bfv1(iface)
+          v2 = bfv2(iface)
+       else
+          if ( face(iface)%atti(FMARKER) /= 1 ) cycle
           v1 = face(iface)%atti(FACEV1)
           v2 = face(iface)%atti(FACEV2)
-          !
-          x1 = xcugrd(v1)
-          y1 = ycugrd(v1)
-          x2 = xcugrd(v2)
-          y2 = ycugrd(v2)
-          !
-          if ( ( (x1 > x) .and. (x2 <= x) ) .or. ( (x2 > x) .and. (x1 <= x) ) ) then
-             !
-             if ( y1 > y .or. y2 > y ) then
-                !
-                yc = y1 + (x-x1) * (y2-y1) / (x2-x1)
-                if ( yc > y ) numcrs = numcrs + 1
-                !
-             endif
-             !
-          endif
-          !
        endif
-       !
+
+       x1 = xcugrd(v1)
+       y1 = ycugrd(v1)
+       x2 = xcugrd(v2)
+       y2 = ycugrd(v2)
+
+       if ( ( (x1 > x) .and. (x2 <= x) ) .or. ( (x2 > x) .and. (x1 <= x) ) ) then
+
+          if ( y1 > y .or. y2 > y ) then
+
+             yc = y1 + (x-x1) * (y2-y1) / (x2-x1)
+             if ( yc > y ) numcrs = numcrs + 1
+
+          endif
+
+       endif
+
     enddo
-    !
+
     ! if number of crossings is odd then point is inside the grid
-    !
+
     if ( mod(numcrs,2) == 1 ) then
        SwanPointinMesh = .true.
     else
        SwanPointinMesh = .false.
     endif
-    !
+
 end function SwanPointinMesh
