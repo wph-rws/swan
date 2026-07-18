@@ -72,5 +72,5 @@ ${SWITCHED}/SwanVTKPDataSets.f90
 ${SWITCHED}/ocpids.f90
 ${SWITCHED}/ocpcre.f90
 ${SWITCHED}/ocpmix.f90
-${SWITCHED}/fftpack51.f90
+${SWITCHED}/fftw_compat.f90
 )

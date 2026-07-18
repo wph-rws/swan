@@ -61,6 +61,10 @@ set( CMAKE_Fortran_MODULE_DIRECTORY ${MOD} )
 # add find modules to the module path
 list( APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" )
 
+# the complex two-dimensional transforms use FFTW3, through a layer that
+# keeps the calls and the normalisation of FFTPACK
+find_package( FFTW3 REQUIRED )
+
 # Perl is required for setting switches in the source code
 find_package( Perl REQUIRED )
 
