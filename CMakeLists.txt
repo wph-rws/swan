@@ -16,11 +16,23 @@ endif()
 # Fortran project for SWAN
 project( SWAN Fortran )
 
+# Require portable, standard-conforming free-form Fortran.  CMake 3.20 and
+# GNU Fortran 13 support Fortran 2018 as the newest enforceable language mode;
+# disabling extensions rejects legacy declarations such as REAL*8.
+set( CMAKE_Fortran_STANDARD 2018 )
+set( CMAKE_Fortran_STANDARD_REQUIRED ON )
+set( CMAKE_Fortran_EXTENSIONS OFF )
+
 # set the SWAN version
 set( VERSION 41.51 )
 
-# enable common build
-set( CMAKE_BUILD_TYPE None CACHE STRING "" FORCE )
+# Use an optimized build by default while respecting an explicitly selected
+# configuration. Multi-config generators select their configuration at build
+# time and therefore do not use CMAKE_BUILD_TYPE.
+if( NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES )
+  set( CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE )
+endif()
+set_property( CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release RelWithDebInfo MinSizeRel )
 
 # set the executable names
 if( WIN32 )
@@ -31,13 +43,6 @@ else()
    set( HEXE hcat.exe )
 endif()
 
-# set the Fortran77 extension
-if( WIN32 )
-   set( EXTF for )
-else()
-   set( EXTF f   )
-endif()
-
 # extra build options for the user
 option( OPENMP "" OFF )
 option( MPI "" OFF )
@@ -45,6 +50,79 @@ option( JAC "" OFF )
 option( METIS "" OFF )
 option( FFRO "" OFF )
 option( NETCDF "" OFF )
+option( TIMG "Enable internal timing instrumentation" OFF )
+option( MATL4 "Enable MATLAB version 4 output" OFF )
+option( SWAN_NATIVE "Optimize for the CPU that performs the build" OFF )
+option( SWAN_LTO "Enable interprocedural/link-time optimization" OFF )
+
+# Compiler compatibility options are target-specific so CMake's build-type
+# flags and user-provided CMAKE_Fortran_FLAGS remain effective.
+add_library( swan_build_options INTERFACE )
+if( CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
+  target_compile_options( swan_build_options INTERFACE
+    -std=f2018 -fimplicit-none -fno-second-underscore
+    -ffree-line-length-none
+  )
+elseif( CMAKE_Fortran_COMPILER_ID MATCHES "Intel" )
+  if( UNIX )
+    target_compile_options( swan_build_options INTERFACE
+      -W0 -assume byterecl -traceback
+      -diag-disable 8290 -diag-disable 8291 -diag-disable 8293
+    )
+  elseif( WIN32 )
+    target_compile_options( swan_build_options INTERFACE
+      /assume:byterecl /traceback /nowarn /nologo
+      /Qdiag-disable:8290 /Qdiag-disable:8291 /Qdiag-disable:8293
+    )
+  endif()
+elseif( CMAKE_Fortran_COMPILER_ID MATCHES "PGI" )
+  target_compile_options( swan_build_options INTERFACE "$<$<CONFIG:Release>:-fast>" )
+elseif( CMAKE_Fortran_COMPILER_ID MATCHES "Fujitsu" )
+  target_compile_options( swan_build_options INTERFACE -O1 -staticlink -nwo )
+elseif( CMAKE_Fortran_COMPILER_ID MATCHES "XL" )
+  target_compile_options( swan_build_options INTERFACE
+    -O3 -qstrict -qarch=auto -qtune=auto -qcache=auto -qalign=4k -w
+  )
+else()
+  message( FATAL_ERROR "-- Current Fortran compiler ${CMAKE_Fortran_COMPILER} not supported" )
+endif()
+
+if( SWAN_NATIVE )
+  if( CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
+    # Native vector instructions may otherwise contract multiply-add pairs
+    # and produce different rounding from portable Release builds.
+    target_compile_options( swan_build_options INTERFACE -march=native -ffp-contract=off )
+  elseif( CMAKE_Fortran_COMPILER_ID MATCHES "Intel" )
+    if( WIN32 )
+      target_compile_options( swan_build_options INTERFACE /QxHost )
+    else()
+      target_compile_options( swan_build_options INTERFACE -xHost )
+    endif()
+  elseif( CMAKE_Fortran_COMPILER_ID MATCHES "PGI" )
+    target_compile_options( swan_build_options INTERFACE -tp=native )
+  elseif( CMAKE_Fortran_COMPILER_ID MATCHES "XL" )
+    # The standard XL options above already select and tune for this host.
+  else()
+    message( FATAL_ERROR
+      "-- SWAN_NATIVE is not supported for ${CMAKE_Fortran_COMPILER_ID} Fortran"
+    )
+  endif()
+endif()
+
+if( SWAN_LTO )
+  include( CheckIPOSupported )
+  check_ipo_supported( RESULT SWAN_IPO_SUPPORTED OUTPUT SWAN_IPO_ERROR LANGUAGES Fortran )
+  if( NOT SWAN_IPO_SUPPORTED )
+    message( FATAL_ERROR "-- SWAN_LTO is not supported: ${SWAN_IPO_ERROR}" )
+  endif()
+  if( CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
+    # A few legacy work arrays still use storage association.
+    # Without this LTO can misoptimize a valid run into non-convergence.
+    target_compile_options( swan_build_options INTERFACE -fno-strict-aliasing )
+    target_link_options( swan_build_options INTERFACE -fno-strict-aliasing )
+  endif()
+  set( CMAKE_INTERPROCEDURAL_OPTIMIZATION ON )
+endif()
 
 # define bin/lib//mod/src directories
 set( BIN ${CMAKE_BINARY_DIR}/bin )
@@ -63,8 +141,12 @@ set( CMAKE_Fortran_MODULE_DIRECTORY ${MOD} )
 # add find modules to the module path
 list( APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" )
 
-# Perl is required for setting switches in the source code
-find_package( Perl REQUIRED )
+# The complex two-dimensional transforms use FFTW through a compatibility
+# layer that preserves the former FFTPACK normalization and public routines.
+find_package( FFTW3 REQUIRED )
+
+# Python is required for setting switches in the source code
+find_package( Python3 REQUIRED COMPONENTS Interpreter )
 
 # find Metis
 if( METIS )
@@ -85,3 +167,10 @@ add_subdirectory( ${SRC} ${BIN} )
 
 # if desired, create the HCAT executable
 add_subdirectory( ${SRC}/hcat )
+
+include( CTest )
+if( BUILD_TESTING )
+  add_executable( test_fftw_compat tests/test_fftw_compat.f90 )
+  target_link_libraries( test_fftw_compat PRIVATE swan${VERSION} )
+  add_test( NAME fftw_compat COMMAND test_fftw_compat )
+endif()

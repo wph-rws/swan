@@ -1,111 +1,137 @@
-# --- parsing arguments
-$esmf = "FALSE";
-$tim = "FALSE";
-$jac = "FALSE";
-$ffro = "FALSE";
-$mpi = "FALSE";
-$f95 = "FALSE";
-$dos = "FALSE";
-$unx = "FALSE";
-$cry = "FALSE";
-$sgi = "FALSE";
-$imp = "FALSE";
-$cvi = "FALSE";
-$adc = "FALSE";
-$coh = "FALSE";
-$met = "FALSE";
-$ncf = "FALSE";
-$mv4 = "FALSE";
-while ( $ARGV[0]=~/-.*/ )
-   {
-   if ($ARGV[0]=~/-esmf/) {$esmf="TRUE";shift;}
-   if ($ARGV[0]=~/-timg/) {$tim="TRUE";shift;}
-   if ($ARGV[0]=~/-jac/) {$jac="TRUE";shift;}
-   if ($ARGV[0]=~/-fixfront/) {$ffro="TRUE";shift;}
-   if ($ARGV[0]=~/-mpi/) {$mpi="TRUE";shift;}
-   if ($ARGV[0]=~/-f95/) {$f95="TRUE";shift;}
-   if ($ARGV[0]=~/-dos/) {$dos="TRUE";shift;}
-   if ($ARGV[0]=~/-unix/) {$unx="TRUE";shift;}
-   if ($ARGV[0]=~/-cray/) {$cry="TRUE";shift;}
-   if ($ARGV[0]=~/-sgi/) {$sgi="TRUE";shift;}
-   if ($ARGV[0]=~/-impi/) {$imp="TRUE";shift;}
-   if ($ARGV[0]=~/-cvis/) {$cvi="TRUE";shift;}
-   if ($ARGV[0]=~/-adcirc/) {$adc="TRUE";shift;}
-   if ($ARGV[0]=~/-coh/) {$coh="TRUE";shift;}
-   if ($ARGV[0]=~/-metis/) {$met="TRUE";shift;}
-   if ($ARGV[0]=~/-netcdf/) {$ncf="TRUE";shift;}
-   if ($ARGV[0]=~/-matl4/) {$mv4="TRUE";shift;}
-   }
+#!/usr/bin/env python3
+"""Apply SWAN compile-time switches to the Fortran source templates."""
 
-# --- trap unsupported switch combinations
-if ($esmf=~/TRUE/ && $adc=~/TRUE/)
-{
-   die "$0: -esmf and -adcirc is not supported.\n";
-}
-if ($esmf=~/TRUE/ && $met=~/TRUE/)
-{
-   die "$0: -esmf and -metis is not supported.\n";
+from __future__ import annotations
+
+import glob
+import os
+import sys
+from pathlib import Path
+
+
+SWITCHES = {
+    "-esmf": "esmf",
+    "-timg": "tim",
+    "-jac": "jac",
+    "-fixfront": "ffro",
+    "-mpi": "mpi",
+    "-f95": "f95",
+    "-dos": "dos",
+    "-unix": "unx",
+    "-cray": "cry",
+    "-sgi": "sgi",
+    "-impi": "imp",
+    "-cvis": "cvi",
+    "-adcirc": "adc",
+    "-coh": "coh",
+    "-metis": "met",
+    "-netcdf": "ncf",
+    "-matl4": "mv4",
 }
 
-# --- make a list of all files
-@files = ();
-foreach (@ARGV) {
-   @files = (@files , glob );
-}
 
-# --- change each file if necessary
-foreach $file (@files)
-{
-# --- set output file name
-  if ($unx=~/TRUE/)
-  {
-    ($tempf)=split(/.ftn/, $file);
-    $ext = ($file =~ m/ftn90/) ? "f90" : "f";
-    $outfile = join(".",$tempf,$ext);
-  }
-  else
-  {
-    ($tempf)=split(/.ftn/, $file);
-    $ext = ($file =~ m/ftn90/) ? "f90" : "for";
-    $outfile = join(".",$tempf,$ext);
-  }
-# --- process file
-  if (   (! -e $outfile)            #outfile doesn't exist
-      || (-M $file < -M $outfile) ) #.ftn file recently modified
-  {
-    open file or die "can't open $file\n";
-    open(OUTFILE,">".$outfile);
-    while ($line=<file>)
-    {
-      $newline=$line;
-      # ESMF must be processed first
-      if ($esmf=~/TRUE/) {$newline=~s/^!ESMF//;}
-      else               {$newline=~s/^!!ESMF//;} #second "!" is negation
-      if ($tim=~/TRUE/) {$newline=~s/^!TIMG//;}
-      if ($jac=~/TRUE/) {$newline=~s/^!JAC//;}
-      else              {$newline=~s/^!WFR//;}
-      if ($ffro=~/TRUE/) {$newline=~s/^!FXFRO//;}
-      else               {$newline=~s/^!GRAPH//;}
-      if ($mpi=~/TRUE/) {$newline=~s/^!MPI//;}
-      if ($f95=~/TRUE/) {$newline=~s/^!F95//;}
-      if ($dos=~/TRUE/) {$newline=~s/^!DOS//;}
-      if ($unx=~/TRUE/) {$newline=~s/^!UNIX//;}
-      if ($cry=~/TRUE/) {$newline=~s/^!\/Cray//;}
-      if ($sgi=~/TRUE/) {$newline=~s/^!\/SGI//;}
-      if ($imp=~/TRUE/) {$newline=~s/^!\/impi//;}
-      if ($cvi=~/TRUE/) {$newline=~s/^!CVIS//;}
-      if ($adc=~/TRUE/) {$newline=~s/^!ADC//;}
-      if ($adc=~/FALSE/) {$newline=~s/^!NADC//;}
-      if ($coh=~/TRUE/) {$newline=~s/^!COH//;}
-      if ($coh=~/FALSE/){$newline=~s/^!NCOH//;}
-      if ($met=~/TRUE/) {$newline=~s/^!METIS//;}
-      if ($ncf=~/TRUE/) {$newline=~s/^!NCF//;}
-      if ($ncf=~/FALSE/){$newline=~s/^!NNCF//;}
-      if ($mv4=~/TRUE/) {$newline=~s/^!MatL4//;}
-      if ($mv4=~/FALSE/) {$newline=~s/^!MatL5//;}
-      print OUTFILE $newline;
-    }
-    close file;
-    close(OUTFILE);
-  }
-}
+def parse_arguments(
+    arguments: list[str],
+) -> tuple[set[str], Path | None, list[str]]:
+    enabled: set[str] = set()
+    output_directory: Path | None = None
+    index = 0
+    while index < len(arguments) and arguments[index].startswith("-"):
+        option = arguments[index]
+        if option == "--output-dir":
+            index += 1
+            if index >= len(arguments):
+                raise SystemExit(
+                    f"{Path(sys.argv[0]).name}: --output-dir requires a path"
+                )
+            output_directory = Path(arguments[index])
+            index += 1
+            continue
+        try:
+            enabled.add(SWITCHES[option])
+        except KeyError:
+            raise SystemExit(f"{Path(sys.argv[0]).name}: unsupported switch {option}")
+        index += 1
+
+    if "esmf" in enabled and "adc" in enabled:
+        raise SystemExit(f"{Path(sys.argv[0]).name}: -esmf and -adcirc is not supported.")
+    if "esmf" in enabled and "met" in enabled:
+        raise SystemExit(f"{Path(sys.argv[0]).name}: -esmf and -metis is not supported.")
+
+    return enabled, output_directory, arguments[index:]
+
+
+def expand_files(patterns: list[str]) -> list[Path]:
+    files: list[Path] = []
+    for pattern in patterns:
+        matches = glob.glob(pattern)
+        files.extend(Path(match) for match in matches)
+    return files
+
+
+def output_path(source: Path, output_directory: Path | None) -> Path:
+    name = source.name
+    if not name.endswith(".f90"):
+        raise ValueError(f"unsupported source extension: {source}")
+    if output_directory is None:
+        raise ValueError(".f90 input requires --output-dir to protect the source")
+    return output_directory / name
+
+
+def transform(line: str, enabled: set[str]) -> str:
+    replacements = [
+        ("!ESMF", "esmf" in enabled),
+        ("!!ESMF", "esmf" not in enabled),
+        ("!TIMG", "tim" in enabled),
+        ("!JAC", "jac" in enabled),
+        ("!WFR", "jac" not in enabled),
+        ("!FXFRO", "ffro" in enabled),
+        ("!GRAPH", "ffro" not in enabled),
+        ("!MPI", "mpi" in enabled),
+        ("!F95", "f95" in enabled),
+        ("!DOS", "dos" in enabled),
+        ("!UNIX", "unx" in enabled),
+        ("!/Cray", "cry" in enabled),
+        ("!/SGI", "sgi" in enabled),
+        ("!/impi", "imp" in enabled),
+        ("!CVIS", "cvi" in enabled),
+        ("!ADC", "adc" in enabled),
+        ("!NADC", "adc" not in enabled),
+        ("!COH", "coh" in enabled),
+        ("!NCOH", "coh" not in enabled),
+        ("!METIS", "met" in enabled),
+        ("!NCF", "ncf" in enabled),
+        ("!NNCF", "ncf" not in enabled),
+        ("!MatL4", "mv4" in enabled),
+        ("!MatL5", "mv4" not in enabled),
+    ]
+    for marker, active in replacements:
+        if active and line.startswith(marker):
+            line = line[len(marker) :]
+    return line
+
+
+def process(
+    source: Path, enabled: set[str], output_directory: Path | None
+) -> None:
+    destination = output_path(source, output_directory)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with source.open("r", encoding="ascii", newline="") as input_file:
+        contents = input_file.readlines()
+    with destination.open("w", encoding="ascii", newline="") as output_file:
+        output_file.writelines(transform(line, enabled) for line in contents)
+
+
+def main(arguments: list[str]) -> int:
+    enabled, output_directory, patterns = parse_arguments(arguments)
+    try:
+        for source in expand_files(patterns):
+            process(source, enabled, output_directory)
+    except (OSError, ValueError) as error:
+        print(f"{Path(sys.argv[0]).name}: {error}", file=sys.stderr)
+        return os.EX_IOERR
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
