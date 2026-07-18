@@ -12,7 +12,7 @@
 !     M_PARALL           information for parallelisation with MPI
 !     M_DIFFR            information for diffraction
 !
-      MODULE M_WCAP
+MODULE M_WCAP
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -63,7 +63,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -86,26 +86,26 @@
 !     SIGM_10: Mean frequency according to zeroth and first order moments
 !     SIGM01 : Mean frequency according to first and zeroth order moments
 !
-      REAL, SAVE    :: ACTOT
-      REAL, SAVE    :: EDRKTOT
-      REAL, SAVE    :: EKTOT
-      REAL, SAVE    :: ETOT1
-      REAL, SAVE    :: ETOT2
-      REAL, SAVE    :: ETOT4
-      REAL, SAVE    :: KM_WAM
-      REAL, SAVE    :: KM01
-      REAL, SAVE    :: SIGM_WAM
-      REAL, SAVE    :: SIGM_10
-      REAL, SAVE    :: SIGM01
+   REAL, SAVE    :: ACTOT
+   REAL, SAVE    :: EDRKTOT
+   REAL, SAVE    :: EKTOT
+   REAL, SAVE    :: ETOT1
+   REAL, SAVE    :: ETOT2
+   REAL, SAVE    :: ETOT4
+   REAL, SAVE    :: KM_WAM
+   REAL, SAVE    :: KM01
+   REAL, SAVE    :: SIGM_WAM
+   REAL, SAVE    :: SIGM_10
+   REAL, SAVE    :: SIGM01
 !
-!$OMP THREADPRIVATE(ACTOT, EDRKTOT, EKTOT, ETOT1, ETOT2, ETOT4,
-!$OMP&              KM_WAM, KM01, SIGM_WAM,
-!$OMP&              SIGM_10, SIGM01)
+   !$OMP THREADPRIVATE(ACTOT, EDRKTOT, EKTOT, ETOT1, ETOT2, ETOT4, &
+      !$OMP KM_WAM, KM01, SIGM_WAM, &
+      !$OMP SIGM_10, SIGM01)
 !
 !     SIGPOW : contains powers of relative frequencies
 !              second dimension indicates power of sigma
 !
-      REAL, SAVE, ALLOCATABLE :: SIGPOW(:,:)
+   REAL, SAVE, ALLOCATABLE :: SIGPOW(:,:)
 !
 !  8. Subroutines and functions used
 !
@@ -131,9 +131,9 @@
 !
 ! 13. Source text
 !
-      END MODULE M_WCAP
+END MODULE M_WCAP
 
-      MODULE OUTP_DATA
+MODULE OUTP_DATA
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -188,9 +188,9 @@
 !
 !  4. Modules used
 !
-      USE OCPCOMM2
+   USE OCPCOMM2
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -202,87 +202,87 @@
 !
 !  7. Local variables
 
-      INTEGER, PARAMETER :: MAX_OUTP_REQ = 250 ! max. number of output requests
+   INTEGER, PARAMETER :: MAX_OUTP_REQ = 250 ! max. number of output requests
 
-      CHARACTER (LEN=1)  :: OUT_COMMENT = '%' ! comment sign for heading lines
+   CHARACTER (LEN=1)  :: OUT_COMMENT = '%' ! comment sign for heading lines
 
-      LOGICAL            :: LCOMPGRD
+   LOGICAL            :: LCOMPGRD
 
-      ! formats for output:
-      CHARACTER (LEN=40) :: FLT_BLOCK = '(6E12.4)'       ! floating point block
-      CHARACTER (LEN=40) :: FLT_TABLE = '(E11.4)'        ! floating point table
-      CHARACTER (LEN=40) :: FIX_SPEC  = '(200(1X,I4))'   ! spectral output
+   ! formats for output:
+   CHARACTER (LEN=40) :: FLT_BLOCK = '(6E12.4)' ! floating point block
+   CHARACTER (LEN=40) :: FLT_TABLE = '(E11.4)' ! floating point table
+   CHARACTER (LEN=40) :: FIX_SPEC  = '(200(1X,I4))' ! spectral output
 
 !     format for block output per process in case of collecting data
-      CHARACTER (LEN=40) :: FLT_BLKP = '(6E17.9)'
+   CHARACTER (LEN=40) :: FLT_BLKP = '(6E17.9)'
 
-      INTEGER :: FLD_TABLE = 12       ! field length for fixed-point table
-      INTEGER :: DEC_BLOCK =  4       ! number of decimals for fixed-point block
-      INTEGER :: DEC_SPEC  =  4       ! number of decimals for spectral output
+   INTEGER :: FLD_TABLE = 12 ! field length for fixed-point table
+   INTEGER :: DEC_BLOCK =  4 ! number of decimals for fixed-point block
+   INTEGER :: DEC_SPEC  =  4 ! number of decimals for spectral output
 
 !     longer filenames for output requests
-      CHARACTER (LEN=LENFNM) :: OUTP_FILES(1:MAX_OUTP_REQ)
-      ! filenames for output; index is output request sequence number
+   CHARACTER (LEN=LENFNM) :: OUTP_FILES(1:MAX_OUTP_REQ)
+   ! filenames for output; index is output request sequence number
 
-      INTEGER, SAVE :: NREOQ = 0         ! actual number of requests saved
+   INTEGER, SAVE :: NREOQ = 0 ! actual number of requests saved
 
 !     unit number PVD files
-      INTEGER :: UPVDF(1:MAX_OUTP_REQ)
+   INTEGER :: UPVDF(1:MAX_OUTP_REQ)
 
 !     timestep counter for time-varying VTK files
-      INTEGER, SAVE :: NTVTK(1:MAX_OUTP_REQ) = -1
+   INTEGER, SAVE :: NTVTK(1:MAX_OUTP_REQ) = -1
 
 !     output directory containing a series of time-varying VTK files
-      CHARACTER (LEN=LENFNM) :: VTKDIR(1:MAX_OUTP_REQ)
+   CHARACTER (LEN=LENFNM) :: VTKDIR(1:MAX_OUTP_REQ)
 
 !     textline containing VTK line in XML format
-      CHARACTER(LEN=1024) :: VTKLINE
+   CHARACTER(LEN=1024) :: VTKLINE
 
 !     XML header lines
-      CHARACTER(LEN=25) :: XMLLIN1 = '<?xml version="1.0"?>'
-      CHARACTER(LEN= 5) :: XMLLIN2 = '<!--'
-      CHARACTER(LEN= 5) :: XMLLIN3 = '-->'
+   CHARACTER(LEN=25) :: XMLLIN1 = '<?xml version="1.0"?>'
+   CHARACTER(LEN= 5) :: XMLLIN2 = '<!--'
+   CHARACTER(LEN= 5) :: XMLLIN3 = '-->'
 
 !     default lines of PVD file
-      CHARACTER(LEN=80) :: PVDLIN1 = '<VTKFile type="Collection" '//
-     &                        'version="0.1" byte_order="LittleEndian">'
-      CHARACTER(LEN=15) :: PVDLIN2 = '  <Collection>'
-      CHARACTER(LEN=15) :: PVDLIN3 = '  </Collection>'
-      CHARACTER(LEN=10) :: PVDLIN4 = '</VTKFile>'
+   CHARACTER(LEN=80) :: PVDLIN1 = '<VTKFile type="Collection" '// &
+                           'version="0.1" byte_order="LittleEndian">'
+   CHARACTER(LEN=15) :: PVDLIN2 = '  <Collection>'
+   CHARACTER(LEN=15) :: PVDLIN3 = '  </Collection>'
+   CHARACTER(LEN=10) :: PVDLIN4 = '</VTKFile>'
 
-      TYPE OPSDAT
-         CHARACTER (LEN=1)     :: PSTYPE                     ! type (F, C, P, ...)
-         CHARACTER (LEN=8)     :: PSNAME                     ! name of point set
-         INTEGER               :: OPI(2)                     ! integer coefficients
-         REAL                  :: OPR(5)                     ! real coefficients
-         INTEGER               :: MIP                        ! number of points
-         REAL, POINTER         :: XP(:), YP(:), XQ(:), YQ(:) ! point coordinates
-         TYPE(OPSDAT), POINTER :: NEXTOPS
-      END TYPE OPSDAT
+   TYPE OPSDAT
+      CHARACTER (LEN=1)     :: PSTYPE ! type (F, C, P, ...)
+      CHARACTER (LEN=8)     :: PSNAME ! name of point set
+      INTEGER               :: OPI(2) ! integer coefficients
+      REAL                  :: OPR(5) ! real coefficients
+      INTEGER               :: MIP ! number of points
+      REAL, POINTER         :: XP(:), YP(:), XQ(:), YQ(:) ! point coordinates
+      TYPE(OPSDAT), POINTER :: NEXTOPS
+   END TYPE OPSDAT
 
-      TYPE(OPSDAT), SAVE, TARGET  :: FOPS
-      TYPE(OPSDAT), SAVE, POINTER :: COPS
-      LOGICAL, SAVE :: LOPS = .FALSE.
+   TYPE(OPSDAT), SAVE, TARGET  :: FOPS
+   TYPE(OPSDAT), SAVE, POINTER :: COPS
+   LOGICAL, SAVE :: LOPS = .FALSE.
 
-      TYPE ORQDAT
-         CHARACTER (LEN=4)      :: RQTYPE   ! type (BLK, TAB, SPC ...)
-         CHARACTER (LEN=8)      :: PSNAME   ! name of point set
-         INTEGER                :: OQI(4)   ! integer coefficients
-         REAL*8                 :: OQR(2)   ! real coefficients
-         INTEGER, POINTER       :: IVTYP(:) ! type of output variable
-         REAL, POINTER          :: FAC(:)   ! multiplication factor of block output
-         TYPE(ORQDAT), POINTER  :: NEXTORQ
-      END TYPE ORQDAT
+   TYPE ORQDAT
+      CHARACTER (LEN=4)      :: RQTYPE ! type (BLK, TAB, SPC ...)
+      CHARACTER (LEN=8)      :: PSNAME ! name of point set
+      INTEGER                :: OQI(4) ! integer coefficients
+      REAL*8                 :: OQR(2) ! real coefficients
+      INTEGER, POINTER       :: IVTYP(:) ! type of output variable
+      REAL, POINTER          :: FAC(:) ! multiplication factor of block output
+      TYPE(ORQDAT), POINTER  :: NEXTORQ
+   END TYPE ORQDAT
 
-      TYPE(ORQDAT), SAVE, TARGET  :: FORQ
-      LOGICAL, SAVE :: LORQ = .FALSE.
+   TYPE(ORQDAT), SAVE, TARGET  :: FORQ
+   LOGICAL, SAVE :: LORQ = .FALSE.
 !
 !  8. Subroutines and functions used
 !
-      INTERFACE DELETE
-        MODULE PROCEDURE DELETEOPS
-        MODULE PROCEDURE DELETEORQ
-      END INTERFACE
+   INTERFACE DELETE
+      MODULE PROCEDURE DELETEOPS
+      MODULE PROCEDURE DELETEORQ
+   END INTERFACE
 !
 !  9. Subroutines and functions calling
 !
@@ -304,63 +304,63 @@
 !
 ! 13. Source text
 !
-      CONTAINS
+CONTAINS
 !
-      RECURSIVE SUBROUTINE DELETEOPS ( OPS )
+RECURSIVE SUBROUTINE DELETEOPS ( OPS )
 
-      TYPE(OPSDAT) :: OPS
+   TYPE(OPSDAT) :: OPS
 
-      IF ( LOPS ) THEN
-         IF ( ASSOCIATED( OPS%XP ) ) THEN
-            DEALLOCATE( OPS%XP )
-            NULLIFY( OPS%XP )
-         ENDIF
-         IF ( ASSOCIATED( OPS%YP ) ) THEN
-            DEALLOCATE( OPS%YP )
-            NULLIFY( OPS%YP )
-         ENDIF
-         IF ( OPS%PSTYPE.EQ.'R' .AND. ASSOCIATED( OPS%XQ ) ) THEN
-            DEALLOCATE( OPS%XQ )
-            NULLIFY( OPS%XQ )
-         ENDIF
-         IF ( OPS%PSTYPE.EQ.'R' .AND. ASSOCIATED( OPS%YQ ) ) THEN
-            DEALLOCATE( OPS%YQ )
-            NULLIFY( OPS%YQ )
-         ENDIF
-         IF ( ASSOCIATED( OPS%NEXTOPS ) ) THEN
-            CALL DELETEOPS ( OPS%NEXTOPS )
-            DEALLOCATE( OPS%NEXTOPS )
-            NULLIFY( OPS%NEXTOPS )
-         ENDIF
+   IF ( LOPS ) THEN
+      IF ( ASSOCIATED( OPS%XP ) ) THEN
+         DEALLOCATE( OPS%XP )
+         NULLIFY( OPS%XP )
       ENDIF
+      IF ( ASSOCIATED( OPS%YP ) ) THEN
+         DEALLOCATE( OPS%YP )
+         NULLIFY( OPS%YP )
+      ENDIF
+      IF ( OPS%PSTYPE.EQ.'R' .AND. ASSOCIATED( OPS%XQ ) ) THEN
+         DEALLOCATE( OPS%XQ )
+         NULLIFY( OPS%XQ )
+      ENDIF
+      IF ( OPS%PSTYPE.EQ.'R' .AND. ASSOCIATED( OPS%YQ ) ) THEN
+         DEALLOCATE( OPS%YQ )
+         NULLIFY( OPS%YQ )
+      ENDIF
+      IF ( ASSOCIATED( OPS%NEXTOPS ) ) THEN
+         CALL DELETEOPS ( OPS%NEXTOPS )
+         DEALLOCATE( OPS%NEXTOPS )
+         NULLIFY( OPS%NEXTOPS )
+      ENDIF
+   ENDIF
 
-      END SUBROUTINE
+END SUBROUTINE
 !
-      RECURSIVE SUBROUTINE DELETEORQ ( ORQ )
+RECURSIVE SUBROUTINE DELETEORQ ( ORQ )
 
-      TYPE(ORQDAT) :: ORQ
+   TYPE(ORQDAT) :: ORQ
 
-      IF ( LORQ ) THEN
-         IF ( ASSOCIATED( ORQ%IVTYP ) ) THEN
-            DEALLOCATE( ORQ%IVTYP )
-            NULLIFY( ORQ%IVTYP )
-         ENDIF
-         IF ( ASSOCIATED( ORQ%FAC ) ) THEN
-            DEALLOCATE( ORQ%FAC )
-            NULLIFY( ORQ%FAC )
-         ENDIF
-         IF ( ASSOCIATED( ORQ%NEXTORQ ) ) THEN
-            CALL DELETEORQ ( ORQ%NEXTORQ )
-            DEALLOCATE( ORQ%NEXTORQ )
-            NULLIFY( ORQ%NEXTORQ )
-         ENDIF
+   IF ( LORQ ) THEN
+      IF ( ASSOCIATED( ORQ%IVTYP ) ) THEN
+         DEALLOCATE( ORQ%IVTYP )
+         NULLIFY( ORQ%IVTYP )
       ENDIF
+      IF ( ASSOCIATED( ORQ%FAC ) ) THEN
+         DEALLOCATE( ORQ%FAC )
+         NULLIFY( ORQ%FAC )
+      ENDIF
+      IF ( ASSOCIATED( ORQ%NEXTORQ ) ) THEN
+         CALL DELETEORQ ( ORQ%NEXTORQ )
+         DEALLOCATE( ORQ%NEXTORQ )
+         NULLIFY( ORQ%NEXTORQ )
+      ENDIF
+   ENDIF
 
-      END SUBROUTINE
+END SUBROUTINE
 
-      END MODULE OUTP_DATA
+END MODULE OUTP_DATA
 
-      MODULE M_SNL4
+MODULE M_SNL4
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -410,7 +410,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -424,17 +424,17 @@
 
 !     MDIA  : Number of quadruplets in the MDIA formulation
 
-      INTEGER, PUBLIC, SAVE           :: MDIA = 1
+   INTEGER, PUBLIC, SAVE           :: MDIA = 1
 
 !     AF11  : Contains the scaling frequency for the DIA.
 !     CNL4_1: Contains the values for C1 in the MDIA formulation.
 !     CNL4_2: Contains the values for C2 in the MDIA formulation.
 !     LAMBDA: Contains the values for lambda in the MDIA formulation.
 
-      REAL, PUBLIC, SAVE, ALLOCATABLE :: AF11(:)
-      REAL, PUBLIC, SAVE, ALLOCATABLE :: CNL4_1(:)
-      REAL, PUBLIC, SAVE, ALLOCATABLE :: CNL4_2(:)
-      REAL, PUBLIC, SAVE, ALLOCATABLE :: LAMBDA(:)
+   REAL, PUBLIC, SAVE, ALLOCATABLE :: AF11(:)
+   REAL, PUBLIC, SAVE, ALLOCATABLE :: CNL4_1(:)
+   REAL, PUBLIC, SAVE, ALLOCATABLE :: CNL4_2(:)
+   REAL, PUBLIC, SAVE, ALLOCATABLE :: LAMBDA(:)
 
 !  8. Subroutines and functions used
 !
@@ -458,9 +458,9 @@
 !
 ! 13. Source text
 !
-      END MODULE M_SNL4
+END MODULE M_SNL4
 
-      MODULE M_SNL3
+MODULE M_SNL3
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -510,7 +510,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -536,16 +536,16 @@
 !     WISP  : interpolation weight factor corresponding to higher harmonic
 !     WISP1 : interpolation weight factor corresponding to higher harmonic
 !
-      INTEGER MSC4D
+   INTEGER MSC4D
 !
-      INTEGER  ISM(3,2),  ISM1(3,2),  ISP(3),  ISP1(3)
-      REAL    WISM(3,2), WISM1(3,2), WISP(3), WISP1(3)
+   INTEGER  ISM(3,2),  ISM1(3,2),  ISP(3),  ISP1(3)
+   REAL    WISM(3,2), WISM1(3,2), WISP(3), WISP1(3)
 !
-      REAL   , DIMENSION(:)    , SAVE, ALLOCATABLE :: BPHTMP
-      REAL   , DIMENSION(:,:)  , SAVE, ALLOCATABLE :: QTRI1
-      REAL   , DIMENSION(:,:,:), SAVE, ALLOCATABLE :: QTRI2
+   REAL   , DIMENSION(:)    , SAVE, ALLOCATABLE :: BPHTMP
+   REAL   , DIMENSION(:,:)  , SAVE, ALLOCATABLE :: QTRI1
+   REAL   , DIMENSION(:,:,:), SAVE, ALLOCATABLE :: QTRI2
 !
-      LOGICAL :: TCOLL
+   LOGICAL :: TCOLL
 
 !  8. Subroutines and functions used
 !
@@ -569,9 +569,9 @@
 !
 ! 13. Source text
 !
-      END MODULE M_SNL3
+END MODULE M_SNL3
 
-      MODULE M_BNDSPEC
+MODULE M_BNDSPEC
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -624,7 +624,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -667,44 +667,44 @@
 !               3: average wave direction
 !               4: directional distribution coefficient
 
-      LOGICAL :: ALOBND
+   LOGICAL :: ALOBND
 
-      TYPE BSPCDAT
-         INTEGER                :: BFILED(20)
-         INTEGER, POINTER       :: BSPLOC(:)
-         REAL, POINTER          :: BSPDIR(:), BSPFRQ(:)
-         TYPE(BSPCDAT), POINTER :: NEXTBSPC
-      END TYPE BSPCDAT
+   TYPE BSPCDAT
+      INTEGER                :: BFILED(20)
+      INTEGER, POINTER       :: BSPLOC(:)
+      REAL, POINTER          :: BSPDIR(:), BSPFRQ(:)
+      TYPE(BSPCDAT), POINTER :: NEXTBSPC
+   END TYPE BSPCDAT
 
-      TYPE(BSPCDAT), SAVE, TARGET :: FBNDFIL
-      LOGICAL, SAVE :: LBFILS = .FALSE.
+   TYPE(BSPCDAT), SAVE, TARGET :: FBNDFIL
+   LOGICAL, SAVE :: LBFILS = .FALSE.
 
-      TYPE BSDAT
-         INTEGER                :: NBS
-         INTEGER                :: FSHAPE, DSHAPE
-         REAL                   :: SPPARM(4)
-         TYPE(BSDAT), POINTER   :: NEXTBS
-      END TYPE BSDAT
+   TYPE BSDAT
+      INTEGER                :: NBS
+      INTEGER                :: FSHAPE, DSHAPE
+      REAL                   :: SPPARM(4)
+      TYPE(BSDAT), POINTER   :: NEXTBS
+   END TYPE BSDAT
 
-      TYPE(BSDAT), SAVE, TARGET :: FBS
-      LOGICAL, SAVE :: LBS = .FALSE.
+   TYPE(BSDAT), SAVE, TARGET :: FBS
+   LOGICAL, SAVE :: LBS = .FALSE.
 
-      TYPE BGPDAT
-         INTEGER                :: BGP(6)
-         TYPE(BGPDAT), POINTER  :: NEXTBGP
-      END TYPE BGPDAT
+   TYPE BGPDAT
+      INTEGER                :: BGP(6)
+      TYPE(BGPDAT), POINTER  :: NEXTBGP
+   END TYPE BGPDAT
 
-      TYPE(BGPDAT), SAVE, TARGET  :: FBGP
-      TYPE(BGPDAT), SAVE, POINTER :: CUBGP
-      LOGICAL, SAVE :: LBGP = .FALSE.
+   TYPE(BGPDAT), SAVE, TARGET  :: FBGP
+   TYPE(BGPDAT), SAVE, POINTER :: CUBGP
+   LOGICAL, SAVE :: LBGP = .FALSE.
 
 !  8. Subroutines and functions used
 !
-      INTERFACE DELETE
-        MODULE PROCEDURE DELETEBSPC
-        MODULE PROCEDURE DELETEBS
-        MODULE PROCEDURE DELETEBGP
-      END INTERFACE
+   INTERFACE DELETE
+      MODULE PROCEDURE DELETEBSPC
+      MODULE PROCEDURE DELETEBS
+      MODULE PROCEDURE DELETEBGP
+   END INTERFACE
 !
 !  9. Subroutines and functions calling
 !
@@ -724,65 +724,65 @@
 !
 ! 13. Source text
 !
-      CONTAINS
+CONTAINS
 !
-      RECURSIVE SUBROUTINE DELETEBSPC ( BSPC )
+RECURSIVE SUBROUTINE DELETEBSPC ( BSPC )
 
-      TYPE(BSPCDAT) :: BSPC
+   TYPE(BSPCDAT) :: BSPC
 
-      IF ( LBFILS ) THEN
-         IF ( ASSOCIATED( BSPC%BSPLOC ) ) THEN
-            DEALLOCATE( BSPC%BSPLOC )
-            NULLIFY( BSPC%BSPLOC )
-         ENDIF
-         IF ( ASSOCIATED( BSPC%BSPDIR ) ) THEN
-            DEALLOCATE( BSPC%BSPDIR )
-            NULLIFY( BSPC%BSPDIR )
-         ENDIF
-         IF ( ASSOCIATED( BSPC%BSPFRQ ) ) THEN
-            DEALLOCATE( BSPC%BSPFRQ )
-            NULLIFY( BSPC%BSPFRQ )
-         ENDIF
-         IF ( ASSOCIATED( BSPC%NEXTBSPC ) ) THEN
-            CALL DELETEBSPC ( BSPC%NEXTBSPC )
-            DEALLOCATE( BSPC%NEXTBSPC )
-            NULLIFY( BSPC%NEXTBSPC )
-         ENDIF
+   IF ( LBFILS ) THEN
+      IF ( ASSOCIATED( BSPC%BSPLOC ) ) THEN
+         DEALLOCATE( BSPC%BSPLOC )
+         NULLIFY( BSPC%BSPLOC )
       ENDIF
+      IF ( ASSOCIATED( BSPC%BSPDIR ) ) THEN
+         DEALLOCATE( BSPC%BSPDIR )
+         NULLIFY( BSPC%BSPDIR )
+      ENDIF
+      IF ( ASSOCIATED( BSPC%BSPFRQ ) ) THEN
+         DEALLOCATE( BSPC%BSPFRQ )
+         NULLIFY( BSPC%BSPFRQ )
+      ENDIF
+      IF ( ASSOCIATED( BSPC%NEXTBSPC ) ) THEN
+         CALL DELETEBSPC ( BSPC%NEXTBSPC )
+         DEALLOCATE( BSPC%NEXTBSPC )
+         NULLIFY( BSPC%NEXTBSPC )
+      ENDIF
+   ENDIF
 
-      END SUBROUTINE
+END SUBROUTINE
 !
-      RECURSIVE SUBROUTINE DELETEBS ( BS )
+RECURSIVE SUBROUTINE DELETEBS ( BS )
 
-      TYPE(BSDAT) :: BS
+   TYPE(BSDAT) :: BS
 
-      IF ( LBS ) THEN
-         IF ( ASSOCIATED( BS%NEXTBS ) ) THEN
-            CALL DELETEBS ( BS%NEXTBS )
-            DEALLOCATE( BS%NEXTBS )
-            NULLIFY( BS%NEXTBS )
-         ENDIF
+   IF ( LBS ) THEN
+      IF ( ASSOCIATED( BS%NEXTBS ) ) THEN
+         CALL DELETEBS ( BS%NEXTBS )
+         DEALLOCATE( BS%NEXTBS )
+         NULLIFY( BS%NEXTBS )
       ENDIF
+   ENDIF
 
-      END SUBROUTINE
+END SUBROUTINE
 !
-      RECURSIVE SUBROUTINE DELETEBGP ( BGP )
+RECURSIVE SUBROUTINE DELETEBGP ( BGP )
 
-      TYPE(BGPDAT) :: BGP
+   TYPE(BGPDAT) :: BGP
 
-      IF ( LBGP ) THEN
-         IF ( ASSOCIATED( BGP%NEXTBGP ) ) THEN
-            CALL DELETEBGP ( BGP%NEXTBGP )
-            DEALLOCATE( BGP%NEXTBGP )
-            NULLIFY( BGP%NEXTBGP )
-         ENDIF
+   IF ( LBGP ) THEN
+      IF ( ASSOCIATED( BGP%NEXTBGP ) ) THEN
+         CALL DELETEBGP ( BGP%NEXTBGP )
+         DEALLOCATE( BGP%NEXTBGP )
+         NULLIFY( BGP%NEXTBGP )
       ENDIF
+   ENDIF
 
-      END SUBROUTINE
+END SUBROUTINE
 
-      END MODULE M_BNDSPEC
+END MODULE M_BNDSPEC
 
-      MODULE M_OBSTA
+MODULE M_OBSTA
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -832,7 +832,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -865,25 +865,25 @@
 !     XCRP    : x-coordinate of corner point
 !     YCRP    : y-coordinate of corner point
 
-      LOGICAL, SAVE             :: OBSTDONE
+   LOGICAL, SAVE             :: OBSTDONE
 !
-      TYPE OBSTDAT
-         INTEGER                :: TRTYPE
-         REAL                   :: TRCOEF(3)
-         REAL, POINTER          :: TRCF1D(:), TRCF2D(:,:)
-         INTEGER                :: RFTYP1, RFTYP2, RFTYP3
-         REAL                   :: RFCOEF(6)
-         INTEGER                :: FBTYP1, FBTYP2
-         REAL                   :: FBCOEF(3)
-         INTEGER                :: IGTYP
-         REAL                   :: IGCOEF(7)
-         REAL, POINTER          :: IGFRQD(:)
-         INTEGER                :: NCRPTS
-         REAL, POINTER          :: XCRP(:), YCRP(:)
-         TYPE(OBSTDAT), POINTER :: NEXTOBST
-      END TYPE OBSTDAT
+   TYPE OBSTDAT
+      INTEGER                :: TRTYPE
+      REAL                   :: TRCOEF(3)
+      REAL, POINTER          :: TRCF1D(:), TRCF2D(:,:)
+      INTEGER                :: RFTYP1, RFTYP2, RFTYP3
+      REAL                   :: RFCOEF(6)
+      INTEGER                :: FBTYP1, FBTYP2
+      REAL                   :: FBCOEF(3)
+      INTEGER                :: IGTYP
+      REAL                   :: IGCOEF(7)
+      REAL, POINTER          :: IGFRQD(:)
+      INTEGER                :: NCRPTS
+      REAL, POINTER          :: XCRP(:), YCRP(:)
+      TYPE(OBSTDAT), POINTER :: NEXTOBST
+   END TYPE OBSTDAT
 
-      TYPE(OBSTDAT), SAVE, TARGET  :: FOBSTAC
+   TYPE(OBSTDAT), SAVE, TARGET  :: FOBSTAC
 
 !  8. Subroutines and functions used
 !
@@ -907,9 +907,9 @@
 !
 ! 13. Source text
 !
-      END MODULE M_OBSTA
+END MODULE M_OBSTA
 
-      MODULE M_GENARR
+MODULE M_GENARR
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -975,7 +975,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -1022,25 +1022,25 @@
 !     XYTST : Grid point indices of test points
 !     YCGRID: Coordinates of computational grid in y-direction
 
-      INTEGER, SAVE, ALLOCATABLE :: KGRPNT(:,:), KGRBND(:)
-      INTEGER, SAVE, ALLOCATABLE :: XYTST(:)
-      REAL   , SAVE, ALLOCATABLE :: AC2(:,:,:)
-      REAL   , SAVE, ALLOCATABLE :: XCGRID(:,:), YCGRID(:,:)
-      REAL   , SAVE, ALLOCATABLE :: SPCSIG(:)  , SPCDIR(:,:)
-      REAL   , SAVE, ALLOCATABLE :: DEPTH(:) , FRIC(:)
-      REAL   , SAVE, ALLOCATABLE :: UXB(:)   , UYB(:)
-      REAL   , SAVE, ALLOCATABLE :: WXI(:)   , WYI(:)
-      REAL   , SAVE, ALLOCATABLE :: WLEVL(:) , ASTDF(:)
-      REAL   , SAVE, ALLOCATABLE :: MUDLF(:)
-      REAL   , SAVE, ALLOCATABLE :: NPLAF(:) , TURBF(:)
-      REAL   , SAVE, ALLOCATABLE :: AICEF(:) , HICEF(:)
-      REAL   , SAVE, ALLOCATABLE :: LAYH(:), VEGDIL(:), VEGDRL(:),
-     &                              VEGNSL(:)
-      REAL   , SAVE, ALLOCATABLE :: HSSF(:)  , TSSF(:), DSSF(:)
+   INTEGER, SAVE, ALLOCATABLE :: KGRPNT(:,:), KGRBND(:)
+   INTEGER, SAVE, ALLOCATABLE :: XYTST(:)
+   REAL   , SAVE, ALLOCATABLE :: AC2(:,:,:)
+   REAL   , SAVE, ALLOCATABLE :: XCGRID(:,:), YCGRID(:,:)
+   REAL   , SAVE, ALLOCATABLE :: SPCSIG(:)  , SPCDIR(:,:)
+   REAL   , SAVE, ALLOCATABLE :: DEPTH(:) , FRIC(:)
+   REAL   , SAVE, ALLOCATABLE :: UXB(:)   , UYB(:)
+   REAL   , SAVE, ALLOCATABLE :: WXI(:)   , WYI(:)
+   REAL   , SAVE, ALLOCATABLE :: WLEVL(:) , ASTDF(:)
+   REAL   , SAVE, ALLOCATABLE :: MUDLF(:)
+   REAL   , SAVE, ALLOCATABLE :: NPLAF(:) , TURBF(:)
+   REAL   , SAVE, ALLOCATABLE :: AICEF(:) , HICEF(:)
+   REAL   , SAVE, ALLOCATABLE :: LAYH(:), VEGDIL(:), VEGDRL(:), &
+                                 VEGNSL(:)
+   REAL   , SAVE, ALLOCATABLE :: HSSF(:)  , TSSF(:), DSSF(:)
 !ESMF!
 !ESMF!     added to save Sin exponential growth term for coupling
-!ESMF      LOGICAL, SAVE :: SAVE_SINBAC
-!ESMF      REAL   , SAVE, ALLOCATABLE :: SINBAC(:,:,:)
+!ESMF   LOGICAL, SAVE :: SAVE_SINBAC
+!ESMF   REAL   , SAVE, ALLOCATABLE :: SINBAC(:,:,:)
 
 !  8. Subroutines and functions used
 !
@@ -1064,9 +1064,9 @@
 !
 ! 13. Source text
 !
-      END MODULE M_GENARR
+END MODULE M_GENARR
 
-      MODULE M_PARALL
+MODULE M_PARALL
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -1119,7 +1119,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -1139,15 +1139,15 @@
 !JAC!               determining sequence of sweeps (=2,3,4,1)
 !     MASTER  : rank of master process
 !
-      INTEGER MASTER
-!JAC      INTEGER IRED, IYELOW, IGREEN, IBLACK
-      INTEGER IHALOX, IHALOY
-      PARAMETER (MASTER = 1
-!JAC     &          ,IRED   = 1, IYELOW = 2,
-!JAC     &           IGREEN = 3, IBLACK = 4,
-!JAC     &           IHALOX = 1, IHALOY = 1
-!WFR     &          ,IHALOX = 3, IHALOY = 3
-     &          )
+   INTEGER MASTER
+!JAC   INTEGER IRED, IYELOW, IGREEN, IBLACK
+   INTEGER IHALOX, IHALOY
+   PARAMETER (MASTER = 1 &
+!JAC             ,IRED   = 1, IYELOW = 2, &
+!JAC              IGREEN = 3, IBLACK = 4, &
+!JAC              IHALOX = 1, IHALOY = 1 &
+!WFR             ,IHALOX = 3, IHALOY = 3 &
+             )
 !
 !  7. Local variables
 !
@@ -1164,10 +1164,10 @@
 !     SWREAL  : MPI datatype for reals
 !     SWSUM   : MPI collective summation
 !
-      INTEGER INODE, NPROC
-      INTEGER SWCHAR, SWINT, SWREAL
-      INTEGER SWMAX, SWMIN, SWSUM
-      LOGICAL IAMMASTER, PARLL
+   INTEGER INODE, NPROC
+   INTEGER SWCHAR, SWINT, SWREAL
+   INTEGER SWMAX, SWMIN, SWSUM
+   LOGICAL IAMMASTER, PARLL
 !
 !     *** information related to global domain and subdomains
 !
@@ -1221,20 +1221,20 @@
 !     XGRDGL  : x-coordinate of computational grid in global domain
 !     YGRDGL  : y-coordinate of computational grid in global domain
 !
-!JAC      INTEGER IBCOL
-      INTEGER MCGRDGL, MXCGL, MYCGL
-      INTEGER MXF, MXL, MYF, MYL
-      INTEGER NGRBGL, NBGGL
-      REAL    XCLMAX, XCLMIN, YCLMAX, YCLMIN
+!JAC   INTEGER IBCOL
+   INTEGER MCGRDGL, MXCGL, MYCGL
+   INTEGER MXF, MXL, MYF, MYL
+   INTEGER NGRBGL, NBGGL
+   REAL    XCLMAX, XCLMIN, YCLMAX, YCLMIN
 
-      INTEGER :: LENSPO = 1000
+   INTEGER :: LENSPO = 1000
 
-      LOGICAL LMXF, LMXL, LMYF, LMYL
+   LOGICAL LMXF, LMXL, LMYF, LMYL
 
-      INTEGER, SAVE, ALLOCATABLE :: IBLKAD(:)
-      INTEGER, SAVE, ALLOCATABLE :: IWEIG(:)
-      INTEGER, SAVE, ALLOCATABLE :: KGRPGL(:,:), KGRBGL(:)
-      REAL   , SAVE, ALLOCATABLE :: XGRDGL(:,:), YGRDGL(:,:)
+   INTEGER, SAVE, ALLOCATABLE :: IBLKAD(:)
+   INTEGER, SAVE, ALLOCATABLE :: IWEIG(:)
+   INTEGER, SAVE, ALLOCATABLE :: KGRPGL(:,:), KGRBGL(:)
+   REAL   , SAVE, ALLOCATABLE :: XGRDGL(:,:), YGRDGL(:,:)
 !
 !  8. Subroutines and functions used
 !
@@ -1258,9 +1258,9 @@
 !
 ! 13. Source text
 !
-      END MODULE M_PARALL
+END MODULE M_PARALL
 
-      MODULE M_DIFFR
+MODULE M_DIFFR
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -1310,7 +1310,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -1326,9 +1326,9 @@
 !     DIFPARDX: derivative of DIFPARAM in x-direction
 !     DIFPARDY: derivative of DIFPARAM in y-direction
 
-      REAL, SAVE, ALLOCATABLE :: DIFPARAM(:)
-      REAL, SAVE, ALLOCATABLE :: DIFPARDX(:)
-      REAL, SAVE, ALLOCATABLE :: DIFPARDY(:)
+   REAL, SAVE, ALLOCATABLE :: DIFPARAM(:)
+   REAL, SAVE, ALLOCATABLE :: DIFPARDX(:)
+   REAL, SAVE, ALLOCATABLE :: DIFPARDY(:)
 
 !  8. Subroutines and functions used
 !
@@ -1354,8 +1354,8 @@
 !
 ! 13. Source text
 !
-      END MODULE M_DIFFR
-!MPI!/impi
-!MPI!/impi      MODULE MPI
-!MPI!/impi      INCLUDE 'mpif.h'
-!MPI!/impi      END MODULE MPI
+END MODULE M_DIFFR
+
+!MPI!/impi MODULE MPI
+!MPI!/impi   INCLUDE 'mpif.h'
+!MPI!/impi END MODULE MPI

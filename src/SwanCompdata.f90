@@ -50,33 +50,33 @@ module SwanCompdata
 !
 !   Modules used
 !
-    use swcomm3
+   use swcomm3
 !
-    implicit none
+   implicit none
 !
 !   Module parameters
 !
 !
 !   Module variables
 !
-    integer                                    :: nbpol  ! total number of boundary polygons
-    integer, dimension(10000)                  :: nbpt   ! number of boundary vertices for each boundary polygon
-!FXFRO    integer                                    :: nfront ! number of wavefronts
+   integer                                    :: nbpol ! total number of boundary polygons
+   integer, dimension(10000)                  :: nbpt ! number of boundary vertices for each boundary polygon
+!FXFRO   integer                                    :: nfront ! number of wavefronts
 !
-    integer, dimension(MICMAX)                 :: vs     ! computational stencil, i.e. set of vertices
-                                                         ! needed for the computation of a new value
-                                                         ! in the present vertex
-!$omp threadprivate(vs)
+   integer, dimension(MICMAX)                 :: vs ! computational stencil, i.e. set of vertices
+                                                            ! needed for the computation of a new value
+                                                            ! in the present vertex
+   !$omp threadprivate(vs)
 !
-    integer, dimension(:,:), save, allocatable :: blist  ! list of boundary vertices in ascending order for each boundary polygon
-    integer, dimension(:,:), save, allocatable :: bmark  ! list of corresponding boundary markers for each boundary polygon
-    integer, dimension(:,:), save, allocatable :: bvertg ! global index of boundary vertex in own subdomain
-!GRAPH    integer, dimension(:,:), save, allocatable :: flist  ! wavefront list
-!GRAPH    integer, dimension(:,:), save, allocatable :: fptr   ! pointers per wavefront
-!FXFRO    integer, dimension(:)  , save, allocatable :: fronts ! start vertex index of wavefronts
-!FXFRO    integer, dimension(:)  , save, allocatable :: fronte ! end vertex index of wavefronts
-!GRAPH    integer, dimension(:)  , save, allocatable :: nfront ! number of wavefronts
-    integer, dimension(:,:), save, allocatable :: vlist  ! vertex list
+   integer, dimension(:,:), save, allocatable :: blist ! list of boundary vertices in ascending order for each boundary polygon
+   integer, dimension(:,:), save, allocatable :: bmark ! list of corresponding boundary markers for each boundary polygon
+   integer, dimension(:,:), save, allocatable :: bvertg ! global index of boundary vertex in own subdomain
+!GRAPH   integer, dimension(:,:), save, allocatable :: flist ! wavefront list
+!GRAPH   integer, dimension(:,:), save, allocatable :: fptr ! pointers per wavefront
+!FXFRO   integer, dimension(:)  , save, allocatable :: fronts ! start vertex index of wavefronts
+!FXFRO   integer, dimension(:)  , save, allocatable :: fronte ! end vertex index of wavefronts
+!GRAPH   integer, dimension(:)  , save, allocatable :: nfront ! number of wavefronts
+   integer, dimension(:,:), save, allocatable :: vlist ! vertex list
 !
 !   Source text
 !

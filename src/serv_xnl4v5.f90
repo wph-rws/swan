@@ -2,43 +2,43 @@ module serv_xnl4v5
 contains
 SUBROUTINE y_gauleg(x1,x2,x,w,n)
 !-------------------------------------------------------------------
-INTEGER, intent(in) ::  n    ! Number of intervals
-real, intent(in)    ::  x1   ! lower limit of integration interval
-real, intent(in)    ::  x2   ! upper limit of integration interval
-real, intent(out)   ::  x(n) ! Positions for function evaluations
-real, intent(out)   ::  w(n) ! Weights
+   INTEGER, intent(in) ::  n ! Number of intervals
+   real, intent(in)    ::  x1 ! lower limit of integration interval
+   real, intent(in)    ::  x2 ! upper limit of integration interval
+   real, intent(out)   ::  x(n) ! Positions for function evaluations
+   real, intent(out)   ::  w(n) ! Weights
 !
 !-----------------------------------------------------------------------
-DOUBLE PRECISION EPS
-PARAMETER (EPS=3.d-14)
-INTEGER i,j,m
-DOUBLE PRECISION p1,p2,p3,pp,xl,xm,z,z1
+   DOUBLE PRECISION EPS
+   PARAMETER (EPS=3.d-14)
+   INTEGER i,j,m
+   DOUBLE PRECISION p1,p2,p3,pp,xl,xm,z,z1
 !-----------------------------------------------------------------------
-      m=(n+1)/2
-      xm=0.5d0*(x2+x1)
-      xl=0.5d0*(x2-x1)
-      do 12 i=1,m
-        z=cos(3.141592654d0*(i-.25d0)/(n+.5d0))
-1       continue
-          p1=1.d0
-          p2=0.d0
-          do 11 j=1,n
-            p3=p2
-            p2=p1
-            p1=((2.d0*j-1.d0)*z*p2-(j-1.d0)*p3)/j
-11        continue
-          pp=n*(z*p1-p2)/(z*z-1.d0)
-          z1=z
+   m=(n+1)/2
+   xm=0.5d0*(x2+x1)
+   xl=0.5d0*(x2-x1)
+   do 12 i=1,m
+      z=cos(3.141592654d0*(i-.25d0)/(n+.5d0))
+1     continue
+      p1=1.d0
+      p2=0.d0
+      do 11 j=1,n
+         p3=p2
+         p2=p1
+         p1=((2.d0*j-1.d0)*z*p2-(j-1.d0)*p3)/j
+11    continue
+      pp=n*(z*p1-p2)/(z*z-1.d0)
+      z1=z
 
-          z=z1-p1/pp
-        if(abs(z-z1).gt.EPS)goto 1
-        x(i)=xm-xl*z
-        x(n+1-i)=xm+xl*z
-        w(i)=2.d0*xl/((1.d0-z*z)*pp*pp)
-        w(n+1-i)=w(i)
-12    continue
+      z=z1-p1/pp
+      if(abs(z-z1).gt.EPS)goto 1
+      x(i)=xm-xl*z
+      x(n+1-i)=xm+xl*z
+      w(i)=2.d0*xl/((1.d0-z*z)*pp*pp)
+      w(n+1-i)=w(i)
+12 continue
 !
-return
+   return
 END subroutine
 
 !-----------------------------------------------------------------------------!
@@ -70,7 +70,7 @@ subroutine z_cmpcg(sigma,depth,grav,cg)
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
-implicit none
+   implicit none
 !
 !  0. Update history
 !
@@ -90,33 +90,33 @@ implicit none
 !
 !Type   I/O           Name    Description
 !------------------------------------------------------------------------------
-real, intent(in)  :: sigma  !  radian frequency (rad)
-real, intent(in)  :: depth  !  water depth (m)
-real, intent(in)  :: grav   !  gravitational acceleration (m/s^2)
-real, intent(out) :: cg     !  group velocity (m/s)
+   real, intent(in)  :: sigma !  radian frequency (rad)
+   real, intent(in)  :: depth !  water depth (m)
+   real, intent(in)  :: grav !  gravitational acceleration (m/s^2)
+   real, intent(out) :: cg !  group velocity (m/s)
 !
-real k                      !  wave number
+   real k !  wave number
 !/A
 !!real z_wnumb                !  compute wave number
 !/Z
 !-----------------------------------------------------------------------------
-k = z_wnumb(sigma,depth,grav)
+   k = z_wnumb(sigma,depth,grav)
 !
-if(depth <= 0. .or. sigma <= 0.) then
-  cg = -10.
-else
-  if(depth*k > 30.) then
-    cg = grav/(2.*sigma)
-  else
-    cg = sigma/k*(0.5+depth*k/sinh(2.*depth*k))
-  end if
-end if
+   if(depth <= 0. .or. sigma <= 0.) then
+      cg = -10.
+   else
+      if(depth*k > 30.) then
+         cg = grav/(2.*sigma)
+      else
+         cg = sigma/k*(0.5+depth*k/sinh(2.*depth*k))
+      end if
+   end if
 !
-return
+   return
 end subroutine
 !
 !-----------------------------------------------------------------------------!
-subroutine z_intp1(x1,y1,x2,y2,n1,n2,ierr)                                    !
+subroutine z_intp1(x1,y1,x2,y2,n1,n2,ierr) !
 !-----------------------------------------------------------------------------!
 !
 !   +-------+    ALKYON Hydraulic Consultancy & Research
@@ -144,7 +144,7 @@ subroutine z_intp1(x1,y1,x2,y2,n1,n2,ierr)                                    !
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
-implicit none
+   implicit none
 !
 !  0. Update history
 !
@@ -172,13 +172,13 @@ implicit none
 !
 !     Name    I/O  Type  Description
 !
-integer, intent(in) ::  n1   !   number of data points in x1-y1 arrays
-integer, intent(in) ::  n2   !   number of data points in x2-y2 arrays
-real, intent(in) ::  x1(n1)  !   x-values of input data
-real, intent(in) ::  y1(n1)  !   y-values of input data
-real, intent(in) ::  x2(n2)  !   x-values of output data
-real, intent(out) :: y2(n2)  !   y-values of output data
-integer, intent(out) :: ierr !   Error indicator
+   integer, intent(in) ::  n1 !   number of data points in x1-y1 arrays
+   integer, intent(in) ::  n2 !   number of data points in x2-y2 arrays
+   real, intent(in) ::  x1(n1) !   x-values of input data
+   real, intent(in) ::  y1(n1) !   y-values of input data
+   real, intent(in) ::  x2(n2) !   x-values of output data
+   real, intent(out) :: y2(n2) !   y-values of output data
+   integer, intent(out) :: ierr !   Error indicator
 !
 !  4. Subroutines used
 !
@@ -211,115 +211,115 @@ integer, intent(out) :: ierr !   Error indicator
 !              x2 =  5,  y2 = 0
 !
 !------------------------------------------------------------------------------
-integer i1,i2        ! counters
+   integer i1,i2 ! counters
 !
-real ds            ! step size
-real fac           ! factor in linear interpolation
-real s1,s2         ! search values
-real xmin1,xmax1   ! minimum and maximum of x1-data
-real xmin2,xmax2   ! minimum and maximum of x2-data
+   real ds ! step size
+   real fac ! factor in linear interpolation
+   real s1,s2 ! search values
+   real xmin1,xmax1 ! minimum and maximum of x1-data
+   real xmin2,xmax2 ! minimum and maximum of x2-data
 !
-real, parameter :: eps=1.e-20
+   real, parameter :: eps=1.e-20
 !------------------------------------------------------------------------------
 !   initialisation
 !
-ierr = 0
+   ierr = 0
 !
 !  check number of points of input array
 !
-if(n1==1) then
-  y2 = y1(1)
-  goto 9999
-end if
+   if(n1==1) then
+      y2 = y1(1)
+      goto 9999
+   end if
 !
 !  check minimum and maximum data values
 !
-xmin1 = minval(x1)
-xmax1 = maxval(x1)
-xmin2 = minval(x2)
-xmax2 = maxval(x2)
+   xmin1 = minval(x1)
+   xmax1 = maxval(x1)
+   xmin2 = minval(x2)
+   xmax2 = maxval(x2)
 !
-if (abs(xmin1-xmax1) < eps .or. abs(x1(1)-x1(n1)) < eps) then
-  ierr = 2
-  goto 9999
-end if
+   if (abs(xmin1-xmax1) < eps .or. abs(x1(1)-x1(n1)) < eps) then
+      ierr = 2
+      goto 9999
+   end if
 !
-if ((abs(xmin2-xmax2) < eps .or. abs(x2(1)-x2(n2)) < eps) .and. n2 > 1) then
-  ierr = 3
-  goto 9999
-end if
+   if ((abs(xmin2-xmax2) < eps .or. abs(x2(1)-x2(n2)) < eps) .and. n2 > 1) then
+      ierr = 3
+      goto 9999
+   end if
 !
 ! check input data for monotonicity
 !
-if(x1(1) < x1(n1)) then             ! data increasing
-  do i1=1,n1-1
-    if(x1(i1) > x1(i1+1)) then
-      ierr=1
-      write(*,*) 'z_intp1: i1 x1(i1) x1(i1+1):',i1,x1(i1),x1(i1+1)
-      goto 9999
-    end if
-  end do
+   if(x1(1) < x1(n1)) then ! data increasing
+      do i1=1,n1-1
+         if(x1(i1) > x1(i1+1)) then
+            ierr=1
+            write(*,*) 'z_intp1: i1 x1(i1) x1(i1+1):',i1,x1(i1),x1(i1+1)
+            goto 9999
+         end if
+      end do
 !
-  do i2=1,n2-1
-    if(x2(i2) > x2(i2+1)) then
-      ierr=ierr+10
-      write(*,*) 'z_intp1: i2 x2(i2) x2(i2+1):',i2,x2(i2),x2(i2+1)
-      goto 9999
-    end if
-  end do
+      do i2=1,n2-1
+         if(x2(i2) > x2(i2+1)) then
+            ierr=ierr+10
+            write(*,*) 'z_intp1: i2 x2(i2) x2(i2+1):',i2,x2(i2),x2(i2+1)
+            goto 9999
+         end if
+      end do
 !
-else                                 ! data decreasing
-  do i1=1,n1-1
-    if(x1(i1) < x1(i1+1)) then
-      ierr=2
-      write(*,*) 'z_intp1: i1 x1(i1) x1(i1+1):',i1,x1(i1),x1(i1+1)
-      goto 9999
-    end if
-  end do
+   else ! data decreasing
+      do i1=1,n1-1
+         if(x1(i1) < x1(i1+1)) then
+            ierr=2
+            write(*,*) 'z_intp1: i1 x1(i1) x1(i1+1):',i1,x1(i1),x1(i1+1)
+            goto 9999
+         end if
+      end do
 !
-  do i2=1,n2-1
-    if(x2(i2) < x2(i2+1)) then
-      ierr=ierr + 20
-      write(*,*) 'z_intp1: i2 x2(i2) x2(i2+1):',i2,x2(i2),x2(i2+1)
-      goto 9999
-    end if
-  end do
-end if
+      do i2=1,n2-1
+         if(x2(i2) < x2(i2+1)) then
+            ierr=ierr + 20
+            write(*,*) 'z_intp1: i2 x2(i2) x2(i2+1):',i2,x2(i2),x2(i2+1)
+            goto 9999
+         end if
+      end do
+   end if
 !
 !------------------------------------------------------------------------------
 ! initialize
 !------------------------------------------------------------------------------
-if(ierr==0) then
-  i1 = 1
-  s1 = x1(i1)
-!
-  do i2 = 1,n2
-    s2 = x2(i2)
-    do while (s1 <= s2 .and. i1 < n1)
-      i1 = i1 + 1
+   if(ierr==0) then
+      i1 = 1
       s1 = x1(i1)
-    end do
+!
+      do i2 = 1,n2
+         s2 = x2(i2)
+         do while (s1 <= s2 .and. i1 < n1)
+            i1 = i1 + 1
+            s1 = x1(i1)
+         end do
 !
 !  special point
 !  choose lowest s1-value if x2(:) < x1(1)
 !
-    if(i1 ==1) then
-      y2(i2) = y1(i1)
-    else
-      ds = s2 - x1(i1-1)
-      fac = ds/(x1(i1)-x1(i1-1))
-      y2(i2) = y1(i1-1) + fac*(y1(i1)-y1(i1-1))
-    end if
+         if(i1 ==1) then
+            y2(i2) = y1(i1)
+         else
+            ds = s2 - x1(i1-1)
+            fac = ds/(x1(i1)-x1(i1-1))
+            y2(i2) = y1(i1-1) + fac*(y1(i1)-y1(i1-1))
+         end if
 !
 ! special case at end: choose s2(n2) > s1(n1), choose last value of y1(1)
 !
-    if(i2==n2 .and. s2>s1) y2(n2) = y1(n1)
-  end do
-end if
+         if(i2==n2 .and. s2>s1) y2(n2) = y1(n1)
+      end do
+   end if
 !
 9999 continue
 !
-return
+   return
 end subroutine
 !
 !-----------------------------------------------------------------------------!
@@ -369,10 +369,10 @@ subroutine z_polyarea(xpol,ypol,npol,area)
 !
 !     Name    I/O  Type  Description
 !
-integer, intent(in)  ::  npol       ! Number of points of polygon
-real, intent(in)     ::  xpol(npol) ! x-coodinates of polygon
-real, intent(in)     ::  ypol(npol) ! y-coordinates of polygon
-real, intent(out)    ::  area       ! area of polygon
+   integer, intent(in)  ::  npol ! Number of points of polygon
+   real, intent(in)     ::  xpol(npol) ! x-coodinates of polygon
+   real, intent(in)     ::  ypol(npol) ! y-coordinates of polygon
+   real, intent(out)    ::  area ! area of polygon
 !
 !  4. Subroutines used
 !
@@ -380,55 +380,55 @@ real, intent(out)    ::  area       ! area of polygon
 !
 !  6. Remarks
 !
-integer ipol,ipol1         ! counters
-real xmin,xmax,ymin,ymax   ! minima and maxima of polygon
-real xmean,ymean           ! mean values
-real xa,ya,xb,yb           ! temporary variables
-real sumx,sumy             ! sums
-real darea                 ! piece of area
+   integer ipol,ipol1 ! counters
+   real xmin,xmax,ymin,ymax ! minima and maxima of polygon
+   real xmean,ymean ! mean values
+   real xa,ya,xb,yb ! temporary variables
+   real sumx,sumy ! sums
+   real darea ! piece of area
 !-------------------------------------------------------------------------------
-if(npol<=1) then
-  crf  = 0.
-  xz   = 0.
-  yz   = 0.
-  area = 0.
-  return
-end if
+   if(npol<=1) then
+      crf  = 0.
+      xz   = 0.
+      yz   = 0.
+      area = 0.
+      return
+   end if
 !
 ! compute minimum and maximum coordinates
 !
-xmin = minval(xpol)
-xmax = maxval(xpol)
-ymin = minval(ypol)
-ymax = maxval(ypol)
+   xmin = minval(xpol)
+   xmax = maxval(xpol)
+   ymin = minval(ypol)
+   ymax = maxval(ypol)
 !
 !  compute mean of range of x- and y-coordinates
 !
-xmean = 0.5*(xmin + xmax)
-ymean = 0.5*(ymin + ymax)
+   xmean = 0.5*(xmin + xmax)
+   ymean = 0.5*(ymin + ymax)
 !
 ! compute area and center of gravity
 ! do loop over all line pieces of polygon
 !
-area = 0.
-sumx = 0.
-sumy = 0.
+   area = 0.
+   sumx = 0.
+   sumy = 0.
 !
-do ipol=1,npol
-  ipol1 = ipol + 1
-  if(ipol==npol) ipol1 = 1
-  xa = xpol(ipol)
-  ya = ypol(ipol)
-  xb = xpol(ipol1)
-  yb = ypol(ipol1)
+   do ipol=1,npol
+      ipol1 = ipol + 1
+      if(ipol==npol) ipol1 = 1
+      xa = xpol(ipol)
+      ya = ypol(ipol)
+      xb = xpol(ipol1)
+      yb = ypol(ipol1)
 !
-  darea = 0.5*((xa-xmean)*(yb-ymean) - (xb-xmean)*(ya-ymean))
-  area  = area + darea
-  sumx  = sumx + darea*(xa+xb+xmean)/3.
-  sumy  = sumy + darea*(ya+yb+ymean)/3.
-end do
+      darea = 0.5*((xa-xmean)*(yb-ymean) - (xb-xmean)*(ya-ymean))
+      area  = area + darea
+      sumx  = sumx + darea*(xa+xb+xmean)/3.
+      sumy  = sumy + darea*(ya+yb+ymean)/3.
+   end do
 !
-return
+   return
 end subroutine
 !
 !-----------------------------------------------------------------------------!
@@ -470,34 +470,34 @@ subroutine z_steps(x,dx,nx)
 !
 !     Compute bandwidth of spectral discretization
 !
-implicit none
+   implicit none
 !
-integer, intent(in) :: nx     ! Number of elements in array
-real, intent(in)    :: x(nx)  ! Input data array with elements
-real, intent(out)   :: dx(nx) ! Output array with step sizes
+   integer, intent(in) :: nx ! Number of elements in array
+   real, intent(in)    :: x(nx) ! Input data array with elements
+   real, intent(out)   :: dx(nx) ! Output array with step sizes
 !
-integer ix                    ! counter
+   integer ix ! counter
 !------------------------------------------------------------------------------
-if (nx<1) then
-  return
+   if (nx<1) then
+      return
 !
-elseif (nx==1) then
-  dx = 0
-else
-  do ix=2,nx-1
-    dx(ix) = 0.5 * (x(ix+1) - x(ix-1))
-  end do
+   elseif (nx==1) then
+      dx = 0
+   else
+      do ix=2,nx-1
+         dx(ix) = 0.5 * (x(ix+1) - x(ix-1))
+      end do
 !
-  if (nx >= 4) then
-    dx(1)  = dx(2)*dx(2)/dx(3)
-    dx(nx) = dx(nx-1)*dx(nx-1)/dx(nx-2)
-  else
-    dx(1)  = dx(2)
-    dx(nx) = dx(nx-1)
-  end if
-end if
+      if (nx >= 4) then
+         dx(1)  = dx(2)*dx(2)/dx(3)
+         dx(nx) = dx(nx-1)*dx(nx-1)/dx(nx-2)
+      else
+         dx(1)  = dx(2)
+         dx(nx) = dx(nx-1)
+      end if
+   end if
 !
-return
+   return
 end subroutine
 !-----------------------------------------------------------------------------!
 real function z_root2(func,x1,x2,xacc,iprint,ierr)
@@ -584,135 +584,135 @@ real function z_root2(func,x1,x2,xacc,iprint,ierr)
 !                   if no file is connected to this unit, no output is written
 !
 !
-implicit none
+   implicit none
 !
-real func                         ! external function
-real, intent (in) :: x1           ! x-value at one side of interval
-real, intent (in) :: x2           ! x-value at other side of interval
-real, intent (in) :: xacc         ! requested accuracy
-integer, intent (in) :: iprint    ! number of output channel, only used when
-integer, intent (out) :: ierr     ! error indicator
+   real func ! external function
+   real, intent (in) :: x1 ! x-value at one side of interval
+   real, intent (in) :: x2 ! x-value at other side of interval
+   real, intent (in) :: xacc ! requested accuracy
+   integer, intent (in) :: iprint ! number of output channel, only used when
+   integer, intent (out) :: ierr ! error indicator
 !
-real unused                       ! default value
-real zriddr                       ! intermediate function value
-real xx1,xx2,xx                   ! local boundaries during iteration
-integer maxit                     ! maximum number of iteration
-integer luprint                   ! unit of test output
-logical lopen                     ! check if a file is opened
+   real unused ! default value
+   real zriddr ! intermediate function value
+   real xx1,xx2,xx ! local boundaries during iteration
+   integer maxit ! maximum number of iteration
+   integer luprint ! unit of test output
+   logical lopen ! check if a file is opened
 
-parameter (maxit = 20)
-external func
+   parameter (maxit = 20)
+   external func
 !
-integer iter      ! counter for number of iterations
-real fh           ! function value FUNC(xh)
-real fl           ! function value FUNC(xl)
-real fm           ! function value FUNC(xm)
-real fnew         ! function value FUNC(xnew)
-real s            ! temp. function value, used for inverse quadratic interpolation
-real xh           ! upper (high) boundary of interval
-real xl           ! lower boundary of interval
-real xm           ! middle point of interval
-real xnew         ! new estimate according to Ridders method
+   integer iter ! counter for number of iterations
+   real fh ! function value FUNC(xh)
+   real fl ! function value FUNC(xl)
+   real fm ! function value FUNC(xm)
+   real fnew ! function value FUNC(xnew)
+   real s ! temp. function value, used for inverse quadratic interpolation
+   real xh ! upper (high) boundary of interval
+   real xl ! lower boundary of interval
+   real xm ! middle point of interval
+   real xnew ! new estimate according to Ridders method
 !
-ierr   = 0        ! set error level
-unused =-1.11e30  ! set start value
+   ierr   = 0 ! set error level
+   unused =-1.11e30 ! set start value
 !
-xx1 = x1          ! copy boundaries of interval to local variables
-xx2 = x2
+   xx1 = x1 ! copy boundaries of interval to local variables
+   xx2 = x2
 !
-luprint = iprint
+   luprint = iprint
 !
-if(luprint > 0) then
-  inquire(unit=luprint,opened=lopen)
-  if(.not.lopen) then
-    luprint = 0
-    write(*,'(a,i4)') 'Z_ROOT2: invalid unit number:',iprint
-  end if
-end if
+   if(luprint > 0) then
+      inquire(unit=luprint,opened=lopen)
+      if(.not.lopen) then
+         luprint = 0
+         write(*,'(a,i4)') 'Z_ROOT2: invalid unit number:',iprint
+      end if
+   end if
 !
 ! check boundaries on requirement x2 > x1
 !
-if(xx1 > xx2) then
-  xx  = xx1
-  xx1 = xx2
-  xx2 = xx
-end if
+   if(xx1 > xx2) then
+      xx  = xx1
+      xx1 = xx2
+      xx2 = xx
+   end if
 !
-fl = func(xx1)
-fh = func(xx2)
+   fl = func(xx1)
+   fh = func(xx2)
 !
 !if(luprint > 0) write(luprint,'(a,4e13.5)') &
 !&  'Z_ROOT2: xx1 xx2 fl fh:',xx1,xx2,fl,fh
 !
-if((fl > 0. .and. fh < 0.) .or. (fl < 0. .and. fh > 0.))then
-   xl = xx1
-   xh = xx2
-   zriddr = unused
+   if((fl > 0. .and. fh < 0.) .or. (fl < 0. .and. fh > 0.))then
+      xl = xx1
+      xh = xx2
+      zriddr = unused
 !
-   do iter=1,maxit
-      xm = 0.5*(xl+xh)
-      fm = func(xm)
-      s = sqrt(fm**2-fl*fh)
-      if(s == 0.) goto 9000
-      xnew = xm+(xm-xl)*(sign(1.,fl-fh)*fm/s)
+      do iter=1,maxit
+         xm = 0.5*(xl+xh)
+         fm = func(xm)
+         s = sqrt(fm**2-fl*fh)
+         if(s == 0.) goto 9000
+         xnew = xm+(xm-xl)*(sign(1.,fl-fh)*fm/s)
 !
 !      if(luprint>0) write(luprint,'(a,4e13.5)') &
 !&       'Z_ROOT2: xm,fm,s,xnew:',xm,fm,s,xnew
 !
-      if (abs(xnew-zriddr) <= xacc) then
+         if (abs(xnew-zriddr) <= xacc) then
 !        if(luprint>0) write(luprint,'(a)') 'Z_ROOT2: xnew=zriddr'
-        goto 9000
-      end if
+            goto 9000
+         end if
 !
-      zriddr = xnew
-      fnew = func(zriddr)
-      if (fnew == 0.) goto 9000
+         zriddr = xnew
+         fnew = func(zriddr)
+         if (fnew == 0.) goto 9000
 !
-      if(sign(fm,fnew) /= fm) then
-         xl = xm
-         fl = fm
-         xh = zriddr
-         fh = fnew
-      elseif(sign(fl,fnew) /= fl) then
-         xh = zriddr
-         fh = fnew
-      elseif(sign(fh,fnew) /= fh) then
-         xl = zriddr
-         fl = fnew
-      else
-         ierr = 1
-         goto 9000
-      endif
+         if(sign(fm,fnew) /= fm) then
+            xl = xm
+            fl = fm
+            xh = zriddr
+            fh = fnew
+         elseif(sign(fl,fnew) /= fl) then
+            xh = zriddr
+            fh = fnew
+         elseif(sign(fh,fnew) /= fh) then
+            xl = zriddr
+            fl = fnew
+         else
+            ierr = 1
+            goto 9000
+         endif
 !
-      if(abs(xh-xl) <= xacc) goto 9000
+         if(abs(xh-xl) <= xacc) goto 9000
 !
-      if(luprint > 0) write(luprint,'(a,i4,5e14.6)') &
-&     'Z_ROOT2: iter,x1,x2,|x1-x2|,xacc,z:', iter,xl,xh,abs(xl-xh),xacc,fnew
+         if(luprint > 0) write(luprint,'(a,i4,5e14.6)') &
+            'Z_ROOT2: iter,x1,x2,|x1-x2|,xacc,z:', iter,xl,xh,abs(xl-xh),xacc,fnew
 !
-   end do
-   ierr = 2
-   if(luprint > 0) write(luprint,'(a)') 'Z_ROOT2: -> ierr=2'
-   goto 9000
-else if (fl == 0.) then
-  zriddr = xx1
-else if (fh == 0.) then
-  zriddr = xx2
-else
-  ierr = 3
-  goto 9999
+      end do
+      ierr = 2
+      if(luprint > 0) write(luprint,'(a)') 'Z_ROOT2: -> ierr=2'
+      goto 9000
+   else if (fl == 0.) then
+      zriddr = xx1
+   else if (fh == 0.) then
+      zriddr = xx2
+   else
+      ierr = 3
+      goto 9999
 ! 'root must be bracketed in zriddr'
-endif
+   endif
 !
 9000 continue
 !
-z_root2 = zriddr
+   z_root2 = zriddr
 !
-if(luprint > 0) write(luprint,'(a,2i3,5e13.5)') &
-&     'Z_ROOT2: ierr,iter,xl,xh,acc,x0,z0:', ierr,iter,xl,xh,xacc,z_root2,func(z_root2)
+   if(luprint > 0) write(luprint,'(a,2i3,5e13.5)') &
+      'Z_ROOT2: ierr,iter,xl,xh,acc,x0,z0:', ierr,iter,xl,xh,xacc,z_root2,func(z_root2)
 !
 9999 continue
 !
-return
+   return
 end function
 !
 !-----------------------------------------------------------------------------!
@@ -756,8 +756,8 @@ subroutine z_upper(str)
 !
 !     Name    I/O  Type  Description
 !
-implicit none
-character(len=*), intent(inout) :: str  ! Character string to be converted
+   implicit none
+   character(len=*), intent(inout) :: str ! Character string to be converted
 !
 !  4. Subroutines used
 !
@@ -765,22 +765,22 @@ character(len=*), intent(inout) :: str  ! Character string to be converted
 !
 !  6. Remarks
 !
-integer nlen
-integer i,ial,iau,izl
+   integer nlen
+   integer i,ial,iau,izl
 !
-nlen = len(str)
+   nlen = len(str)
 !
-ial = ichar('a')
-iau = ichar('A')
-izl = ichar('z')
+   ial = ichar('a')
+   iau = ichar('A')
+   izl = ichar('z')
 !
-do i=1,nlen
-  if(ichar(str(i:i)) >= ial.and. ichar(str(i:i)) <= izl) then
-    str(i:i) = char(ichar(str(i:i))-ial+iau)
-  end if
-end do
+   do i=1,nlen
+      if(ichar(str(i:i)) >= ial.and. ichar(str(i:i)) <= izl) then
+         str(i:i) = char(ichar(str(i:i))-ial+iau)
+      end if
+   end do
 !
-return
+   return
 end subroutine
 !
 !-----------------------------------------------------------------------------!
@@ -812,7 +812,7 @@ real function z_wnumb(w,d,grav)
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
-implicit none
+   implicit none
 !
 !  0. Update history
 !
@@ -833,9 +833,9 @@ implicit none
 !
 !Type   I/O           Name     Description
 !------------------------------------------------------------------------------
-real, intent(in)  ::  w      ! radian frequency (rad)
-real, intent(in)  ::  d      ! water depth (m)
-real, intent(in)  ::  grav   ! graviational acceleration (m/s^2)
+   real, intent(in)  ::  w ! radian frequency (rad)
+   real, intent(in)  ::  d ! water depth (m)
+   real, intent(in)  ::  grav ! graviational acceleration (m/s^2)
 !
 !  4. Subroutines used
 !
@@ -849,23 +849,23 @@ real, intent(in)  ::  grav   ! graviational acceleration (m/s^2)
 !       Ocean Division, ASCE, Vol. 105, No. WW4, 457-459.
 !
 !
-real x,xx,y,omega
+   real x,xx,y,omega
 !
-if(d<=0 .or. w<= 0.) then
-  z_wnumb = -10.
-else
-  omega   = w**2/grav
-  y       = omega*d
-  if (y>15.) then
-    x = y
-  else
-    xx      = y*(y+1./(1.+y*(0.66667+y*(0.35550+y*(0.16084+y*(0.06320+y* &
-&             (0.02174+y*(0.00654+y*(0.00171+y*(0.00039+y*0.00011))))))))))
-    x       = sqrt(xx)
-  end if
-  z_wnumb = x/d
-end if
+   if(d<=0 .or. w<= 0.) then
+      z_wnumb = -10.
+   else
+      omega   = w**2/grav
+      y       = omega*d
+      if (y>15.) then
+         x = y
+      else
+         xx      = y*(y+1./(1.+y*(0.66667+y*(0.35550+y*(0.16084+y*(0.06320+y* &
+            (0.02174+y*(0.00654+y*(0.00171+y*(0.00039+y*0.00011))))))))))
+         x       = sqrt(xx)
+      end if
+      z_wnumb = x/d
+   end if
 !
-return
+   return
 end function
 end module

@@ -12,7 +12,7 @@
 !     SWCOMM4            contains common variables for SWAN
 !     TIMECOMM           contains common variables for SWAN
 !
-      MODULE OCPCOMM1
+MODULE OCPCOMM1
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -62,7 +62,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -72,8 +72,8 @@
 !
 !     LINELN [ 180]  max length of input lines (in command file)
 !
-      INTEGER LINELN
-      PARAMETER  (LINELN=180)
+   INTEGER LINELN
+   PARAMETER  (LINELN=180)
 !
 !  7. Local variables
 !
@@ -112,14 +112,14 @@
 ! KEYWRD [      ] contents of the last keyword read by reading system
 ! TABC   [CALCUL] =CHAR(9); tabular character
 !
-      CHARACTER*4        BLANK
-      CHARACTER          COMID
-      CHARACTER*(LINELN) ELTEXT
-      CHARACTER*4        ELTYPE
-      CHARACTER*(LINELN) KAART
-      CHARACTER          KAR
-      CHARACTER*8        KEYWRD
-      CHARACTER          TABC
+   CHARACTER*4        BLANK
+   CHARACTER          COMID
+   CHARACTER*(LINELN) ELTEXT
+   CHARACTER*4        ELTYPE
+   CHARACTER*(LINELN) KAART
+   CHARACTER          KAR
+   CHARACTER*8        KEYWRD
+   CHARACTER          TABC
 !
 !     *** numerical data used by the command reading system ***
 !
@@ -133,16 +133,16 @@
 ! LENCST [      ] length of the string stored in ELTEXT
 ! ELREAL [      ] last element read from user command, when real or double
 !
-      INTEGER          ELINT, KARNR, LENCST
-      DOUBLE PRECISION ELREAL
-      LOGICAL          CHGVAL
+   INTEGER          ELINT, KARNR, LENCST
+   DOUBLE PRECISION ELREAL
+   LOGICAL          CHGVAL
 !
 !     *** origin for day and time ***
 !
 ! REFDAY    [    ] Day number of the reference day. The first day entered is used
 !                  as reference day, the reference time is 0:00 of the reference day.
 !
-      INTEGER REFDAY
+   INTEGER REFDAY
 !
 !  8. Subroutines and functions used
 !
@@ -166,9 +166,9 @@
 !
 ! 13. Source text
 !
-      END MODULE OCPCOMM1
+END MODULE OCPCOMM1
 
-      MODULE OCPCOMM2
+MODULE OCPCOMM2
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -218,7 +218,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -228,8 +228,8 @@
 !
 !     LENFNM [ 140]  length of file names (including path)
 !
-      INTEGER LENFNM
-      PARAMETER (LENFNM=140)
+   INTEGER LENFNM
+   PARAMETER (LENFNM=140)
 !
 !  7. Local variables
 !
@@ -255,14 +255,14 @@
 ! PTITLE [      ] not used
 ! VERTXT [calcul] program version, character representation
 !
-      CHARACTER (LEN=1)      :: DIRCH1, DIRCH2
-      CHARACTER (LEN=LENFNM) :: FILEA , FILEB , FILENM
-      CHARACTER (LEN=40)     :: INST
-      CHARACTER (LEN=16)     :: PROJID
-      CHARACTER (LEN=4)      :: PROJNR
-      CHARACTER (LEN=72)     :: PROJT1, PROJT2, PROJT3
-      CHARACTER (LEN=36)     :: PTITLE
-      CHARACTER (LEN=20)     :: VERTXT
+   CHARACTER (LEN=1)      :: DIRCH1, DIRCH2
+   CHARACTER (LEN=LENFNM) :: FILEA , FILEB , FILENM
+   CHARACTER (LEN=40)     :: INST
+   CHARACTER (LEN=16)     :: PROJID
+   CHARACTER (LEN=4)      :: PROJNR
+   CHARACTER (LEN=72)     :: PROJT1, PROJT2, PROJT3
+   CHARACTER (LEN=36)     :: PTITLE
+   CHARACTER (LEN=20)     :: VERTXT
 !
 !  8. Subroutines and functions used
 !
@@ -286,9 +286,9 @@
 !
 ! 13. Source text
 !
-      END MODULE OCPCOMM2
+END MODULE OCPCOMM2
 
-      MODULE OCPCOMM3
+MODULE OCPCOMM3
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -338,7 +338,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -362,8 +362,8 @@
 ! MYQ    [CALCUL] number of grid points of the output frame in Y-direction
 ! VERNUM [ 40.41] version number of SWAN
 !
-      INTEGER MXQ, MYQ
-      REAL    DXQ, DYQ, VERNUM
+   INTEGER MXQ, MYQ
+   REAL    DXQ, DYQ, VERNUM
 !
 !  8. Subroutines and functions used
 !
@@ -387,9 +387,9 @@
 !
 ! 13. Source text
 !
-      END MODULE OCPCOMM3
+END MODULE OCPCOMM3
 
-      MODULE OCPCOMM4
+MODULE OCPCOMM4
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -439,7 +439,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -450,10 +450,10 @@
 !     INAN   [   1]  integer representing not a number
 !     RNAN   [   1]  real representing not a number
 !
-      INTEGER INAN
-      REAL    RNAN
-      PARAMETER (INAN=-1073750760,
-     &           RNAN=-1.07374515E+09)
+   INTEGER INAN
+   REAL    RNAN
+   PARAMETER (INAN=-1073750760, &
+              RNAN=-1.07374515E+09)
 !
 !  7. Local variables
 !
@@ -482,9 +482,9 @@
 ! SCREEN [    6] unit number for the screen
 !                (is for batch-oriented systems equal to PRINTF)
 !
-      INTEGER EXPORT, FUNHI , FUNLO , HIOPEN
-      INTEGER IMPORT, INPUTF, ITMOPT, IUNMAX
-      INTEGER IUNMIN, PRINTF, PRTEST, SCREEN
+   INTEGER EXPORT, FUNHI , FUNLO , HIOPEN
+   INTEGER IMPORT, INPUTF, ITMOPT, IUNMAX
+   INTEGER IUNMIN, PRINTF, PRTEST, SCREEN
 
 !     *** test parameters ***
 !
@@ -503,8 +503,8 @@
 !              =4; terminating errors
 !              =maxerr; set by command SET ... [maxerr] ...
 !
-      INTEGER ITEST, ITRACE, LEVERR, MAXERR
-      LOGICAL LTRACE
+   INTEGER ITEST, ITRACE, LEVERR, MAXERR
+   LOGICAL LTRACE
 !
 !  8. Subroutines and functions used
 !
@@ -528,9 +528,9 @@
 !
 ! 13. Source text
 !
-      END MODULE OCPCOMM4
+END MODULE OCPCOMM4
 
-      MODULE SWCOMM1
+MODULE SWCOMM1
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -604,7 +604,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -615,8 +615,8 @@
 !     NMOVAR [ 171]  maximum number of output variables                   41.62 40.85 40.64 40.61 40.51 40.21 40.41
 !     MOUTPA [  51]  number of output parameters                          41.72 40.87
 !
-      INTEGER NMOVAR, MOUTPA
-      PARAMETER (NMOVAR = 171, MOUTPA=51)                                 41.72 41.62 40.35 41.15 40.85 40.87 40.64 40.61 40.51 40.21 40.41
+   INTEGER NMOVAR, MOUTPA
+   PARAMETER (NMOVAR = 171, MOUTPA=51)
 !
 !  7. Local variables
 !
@@ -942,16 +942,16 @@
 ! UT    [   'sec'] unit of time (change to s ???)
 ! UV    [   'm/s'] unit of velocity
 !
-      CHARACTER*20 CHTIME
-      CHARACTER*36 FBCL,          FBCR,        FNEST
-      CHARACTER*8  OVKEYW(NMOVAR)
-      CHARACTER*40 OVLNAM(NMOVAR)
-      CHARACTER*6  OVSNAM(NMOVAR)
-      CHARACTER*16 OVUNIT(NMOVAR)
-      CHARACTER*8  SNAME
-      CHARACTER*6  UAP,           UD,          UDI,         UDL
-      CHARACTER*6  UET,           UF,          UH,          UL
-      CHARACTER*6  UP,            UST,         UT,          UV
+   CHARACTER*20 CHTIME
+   CHARACTER*36 FBCL,          FBCR,        FNEST
+   CHARACTER*8  OVKEYW(NMOVAR)
+   CHARACTER*40 OVLNAM(NMOVAR)
+   CHARACTER*6  OVSNAM(NMOVAR)
+   CHARACTER*16 OVUNIT(NMOVAR)
+   CHARACTER*8  SNAME
+   CHARACTER*6  UAP,           UD,          UDI,         UDL
+   CHARACTER*6  UET,           UF,          UH,          UL
+   CHARACTER*6  UP,            UST,         UT,          UV
 
 !     *** information for output ***
 !
@@ -1428,16 +1428,16 @@
 ! YQLEN  [       ] length of y-side of output frame
 ! YQP    [       ] y-coordinate (user coord.) of origin of output frame
 !
-      INTEGER ERRPTS
-      INTEGER INRHOG,         IUBOTR
-      INTEGER OVSVTY(NMOVAR), SPCPOW
-      REAL    AKPOWR,         ALCQ,        ALPQ,          COSCQ
-      REAL    COSPQ,          DXK,         DYK
-      REAL    OVEXCV(NMOVAR),              OVLEXP(NMOVAR)
-      REAL    OVLLIM(NMOVAR),              OVHEXP(NMOVAR)
-      REAL    OVULIM(NMOVAR),              SINCQ,         SINPQ
-      REAL    XPQ,            XQLEN,       XQP,           YPQ
-      REAL    YQLEN,          YQP,         OUTPAR(MOUTPA)
+   INTEGER ERRPTS
+   INTEGER INRHOG,         IUBOTR
+   INTEGER OVSVTY(NMOVAR), SPCPOW
+   REAL    AKPOWR,         ALCQ,        ALPQ,          COSCQ
+   REAL    COSPQ,          DXK,         DYK
+   REAL    OVEXCV(NMOVAR),              OVLEXP(NMOVAR)
+   REAL    OVLLIM(NMOVAR),              OVHEXP(NMOVAR)
+   REAL    OVULIM(NMOVAR),              SINCQ,         SINPQ
+   REAL    XPQ,            XQLEN,       XQP,           YPQ
+   REAL    YQLEN,          YQP,         OUTPAR(MOUTPA)
 !
 !  8. Subroutines and functions used
 !
@@ -1461,9 +1461,9 @@
 !
 ! 13. Source text
 !
-      END MODULE SWCOMM1
+END MODULE SWCOMM1
 
-      MODULE SWCOMM2
+MODULE SWCOMM2
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -1517,7 +1517,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -1527,8 +1527,8 @@
 !
 !     NUMGRD [  17]  maximum number of input grids
 !
-      INTEGER NUMGRD
-      PARAMETER (NUMGRD = 18)
+   INTEGER NUMGRD
+   PARAMETER (NUMGRD = 18)
 !
 !  7. Local variables
 !
@@ -1616,25 +1616,25 @@
 ! YOFFS         [    0.] offset value in y
 !                        (from user coord. system to internal coord. system)
 !
-      INTEGER ICOND
-      INTEGER IGTYPE(NUMGRD),           LEDS(NUMGRD)
-      INTEGER MXG(NUMGRD), MYG(NUMGRD), LWDATE
-      INTEGER OPTG,        NBFILS,      NBSPEC,      NBGRPT
-      REAL*8  RDTIM
-      REAL    ALPG(NUMGRD),             COSPG(NUMGRD)
-      REAL    COSVC,       COSWC,       DXG(NUMGRD)
-      REAL    DYG(NUMGRD), EXCFLD(NUMGRD)
-      REAL    SINPG(NUMGRD)
-      REAL    SINVC,       SINWC,       STAGX(NUMGRD)
-      REAL    STAGY(NUMGRD),            XOFFS
-      REAL    XPG(NUMGRD), YOFFS,       YPG(NUMGRD)
-      LOGICAL CVLEFT,      LXOFFS,      VARFR
-      LOGICAL VARWI,       VARWLV,      DYNDEP
-      LOGICAL VARAST
-      LOGICAL VARNPL,      VARTUR,      VARMUD
-      LOGICAL CCURV                                                       41.53
-      LOGICAL VARAICE,     VARHICE
-      LOGICAL VARHSS,      VARTSS,      VARDSS
+   INTEGER ICOND
+   INTEGER IGTYPE(NUMGRD),           LEDS(NUMGRD)
+   INTEGER MXG(NUMGRD), MYG(NUMGRD), LWDATE
+   INTEGER OPTG,        NBFILS,      NBSPEC,      NBGRPT
+   REAL*8  RDTIM
+   REAL    ALPG(NUMGRD),             COSPG(NUMGRD)
+   REAL    COSVC,       COSWC,       DXG(NUMGRD)
+   REAL    DYG(NUMGRD), EXCFLD(NUMGRD)
+   REAL    SINPG(NUMGRD)
+   REAL    SINVC,       SINWC,       STAGX(NUMGRD)
+   REAL    STAGY(NUMGRD),            XOFFS
+   REAL    XPG(NUMGRD), YOFFS,       YPG(NUMGRD)
+   LOGICAL CVLEFT,      LXOFFS,      VARFR
+   LOGICAL VARWI,       VARWLV,      DYNDEP
+   LOGICAL VARAST
+   LOGICAL VARNPL,      VARTUR,      VARMUD
+   LOGICAL CCURV
+   LOGICAL VARAICE,     VARHICE
+   LOGICAL VARHSS,      VARTSS,      VARDSS
 !
 !     *** variables for input files ***
 !
@@ -1652,13 +1652,13 @@
 !     IFLNHF     number of heading lines per file
 !     IFLTIM     time of last reading
 !
-      INTEGER      IFLDYN(NUMGRD)
-      INTEGER      IFLIDL(NUMGRD), IFLIFM(NUMGRD), IFLNHF(NUMGRD),
-     &             IFLNHD(NUMGRD), IFLNDS(NUMGRD), IFLNDF(NUMGRD)
-      REAL*8       IFLBEG(NUMGRD), IFLINT(NUMGRD), IFLEND(NUMGRD)
-      REAL*8       IFLTIM(NUMGRD)
-      REAL         IFLFAC(NUMGRD)
-      CHARACTER*40 IFLFRM(NUMGRD)
+   INTEGER      IFLDYN(NUMGRD)
+   INTEGER      IFLIDL(NUMGRD), IFLIFM(NUMGRD), IFLNHF(NUMGRD), &
+                IFLNHD(NUMGRD), IFLNDS(NUMGRD), IFLNDF(NUMGRD)
+   REAL*8       IFLBEG(NUMGRD), IFLINT(NUMGRD), IFLEND(NUMGRD)
+   REAL*8       IFLTIM(NUMGRD)
+   REAL         IFLFAC(NUMGRD)
+   CHARACTER*40 IFLFRM(NUMGRD)
 !
 !  8. Subroutines and functions used
 !
@@ -1682,9 +1682,9 @@
 !
 ! 13. Source text
 !
-      END MODULE SWCOMM2
+END MODULE SWCOMM2
 
-      MODULE SWCOMM3
+MODULE SWCOMM3
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -1736,7 +1736,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -1767,40 +1767,40 @@
 !     MBRAG  [   5] dimension of array PBRAG                              41.80
 !     MSCAT  [  10] dimension of array PSCAT                              41.90
 !
-      INTEGER             MBOT,        MNUMS,       MQUAD
-      INTEGER             MSETUP,      MSHAPE,      MSPPAR,      MSURF
-      INTEGER             MTRIAD,      MWCAP,       MWIND,       MTURBV
-      INTEGER             MSICE,       MICE                               41.81 41.75
-      INTEGER             MICMAX
-      INTEGER             MDIFFR                                          40.21
-      INTEGER             MMUD
-      INTEGER             MDISP                                           40.67
-      INTEGER             MGENR, MREDS, MTRNP                             40.85
-      INTEGER             MBRAG                                           41.80
-      INTEGER             MSCAT                                           41.90
+   INTEGER             MBOT,        MNUMS,       MQUAD
+   INTEGER             MSETUP,      MSHAPE,      MSPPAR,      MSURF
+   INTEGER             MTRIAD,      MWCAP,       MWIND,       MTURBV
+   INTEGER             MSICE,       MICE
+   INTEGER             MICMAX
+   INTEGER             MDIFFR
+   INTEGER             MMUD
+   INTEGER             MDISP
+   INTEGER             MGENR, MREDS, MTRNP
+   INTEGER             MBRAG
+   INTEGER             MSCAT
 !
-      PARAMETER           (MBOT   = 10)
-      PARAMETER           (MDIFFR = 10)                                   40.21
-      PARAMETER           (MDISP  =  8)                                   41.75 40.59 40.35 40.67
-      PARAMETER           (MGENR  =  1)                                   40.85
-      PARAMETER           (MREDS  =  4)                                   41.90 41.80 40.85
-      PARAMETER           (MTRNP  =  3)                                   40.85
-      PARAMETER           (MICMAX = 13)
-      PARAMETER           (MMUD   = 10)
-      PARAMETER           (MNUMS  = 40)
-      PARAMETER           (MQUAD  = 10)
-      PARAMETER           (MSETUP =  2)
-      PARAMETER           (MSHAPE =  5)
-      PARAMETER           (MSPPAR =  5)
-      PARAMETER           (MSURF  = 20)                                   41.38 41.06
-      PARAMETER           (MTRIAD = 10)
-      PARAMETER           (MWCAP  = 15)
-      PARAMETER           (MWIND  = 40)
-      PARAMETER           (MTURBV =  5)                                   40.35
-      PARAMETER           (MSICE  =  8)                                   41.81 41.75
-      PARAMETER           (MICE   =  2)                                   41.81 41.75
-      PARAMETER           (MBRAG  =  5)                                   41.80
-      PARAMETER           (MSCAT  = 10)                                   41.90
+   PARAMETER           (MBOT   = 10)
+   PARAMETER           (MDIFFR = 10)
+   PARAMETER           (MDISP  =  8)
+   PARAMETER           (MGENR  =  1)
+   PARAMETER           (MREDS  =  4)
+   PARAMETER           (MTRNP  =  3)
+   PARAMETER           (MICMAX = 13)
+   PARAMETER           (MMUD   = 10)
+   PARAMETER           (MNUMS  = 40)
+   PARAMETER           (MQUAD  = 10)
+   PARAMETER           (MSETUP =  2)
+   PARAMETER           (MSHAPE =  5)
+   PARAMETER           (MSPPAR =  5)
+   PARAMETER           (MSURF  = 20)
+   PARAMETER           (MTRIAD = 10)
+   PARAMETER           (MWCAP  = 15)
+   PARAMETER           (MWIND  = 40)
+   PARAMETER           (MTURBV =  5)
+   PARAMETER           (MSICE  =  8)
+   PARAMETER           (MICE   =  2)
+   PARAMETER           (MBRAG  =  5)
+   PARAMETER           (MSCAT  = 10)
 !
 !  7. Local variables
 !
@@ -1976,46 +1976,46 @@
 ! MSWMATR [ 16] within array SWMATR
 ! MTSVAR  [ 15] within array TESTDA
 !
-      INTEGER             JABIN,       JABLK,       JAOLD
-      INTEGER             JASTD2,      JASTD3,      JGAMMA
-      INTEGER             JCDRAG,      JDHS,        JDIS0
-      INTEGER             JDIS1,       JDISS,       JDPSAV,      JDP1
-      INTEGER             JDP2
-      INTEGER             JDP3,        JDTM,        JFRC2,       JFRC3
-      INTEGER             JGEN0,       JGEN1,       JRED0,       JRED1
-      INTEGER             JTRA0,       JTRA1
-      INTEGER             JDSXB
-      INTEGER             JDSXL
-      INTEGER             JDSXS
-      INTEGER             JDSXW
-      INTEGER             JDSXM
-      INTEGER             JDSXV,       JDSXT
-      INTEGER             JGSXW,       JGENR
-      INTEGER             JRSXQ,       JRSXT,       JREDS,       JRADS
-      INTEGER             JTSXG,       JTSXT,       JTSXS,       JTRAN
-      INTEGER             JHS,         JHSIBC,      JLEAK
-      INTEGER             JLEK1,       JMAT5,       JMAT6,       JMATD
-      INTEGER             JMATL,       JMATR,       JMATU
-      INTEGER             JP4D,        JP4S,        JPBTFR,      JPTRI
-      INTEGER             JPWBRK,      JPWCAP,      JPWNDD,      JPWNDS
-      INTEGER             JPMUD,       JMUDL1,      JMUDL2,      JMUDL3
-      INTEGER             JPVEGT,      JNPLA2,      JNPLA3
-      INTEGER             JPTURB,      JTURB2,      JTURB3
-      INTEGER             JQB,         JSETUP,      JSTP,        JTAUW
-      INTEGER             JUBOT,       JUSTAR,      JVX1,        JVX2
-      INTEGER             JVX3,        JVY1,        JVY2,        JVY3
-      INTEGER             JWLV1,       JWLV2,       JWLV3
-      INTEGER             JWX2,        JWX3
-      INTEGER             JWY2,        JWY3,        JZEL  ,      JPBOT
-      INTEGER             MCMVAR,                   MTSVAR,      JURSEL
-      INTEGER             JBIPH                                           41.97
-      INTEGER             JBOTLV,      MSWMATR,     MLSWMAT
-      INTEGER             JPSWEL
-      INTEGER             JAICE2,      JAICE3,      JHICE2,      JHICE3   41.75
-      INTEGER             JPICE,       JDSXI                              41.75
-      INTEGER             JHSS2,       JHSS3,       JTSS2,       JTSS3    41.82
-      INTEGER             JDSS2,       JDSS3                              42.06
-      INTEGER             JPBRAG,      JRSXB,       JPQCS,       JRSXC    41.90 41.80
+   INTEGER             JABIN,       JABLK,       JAOLD
+   INTEGER             JASTD2,      JASTD3,      JGAMMA
+   INTEGER             JCDRAG,      JDHS,        JDIS0
+   INTEGER             JDIS1,       JDISS,       JDPSAV,      JDP1
+   INTEGER             JDP2
+   INTEGER             JDP3,        JDTM,        JFRC2,       JFRC3
+   INTEGER             JGEN0,       JGEN1,       JRED0,       JRED1
+   INTEGER             JTRA0,       JTRA1
+   INTEGER             JDSXB
+   INTEGER             JDSXL
+   INTEGER             JDSXS
+   INTEGER             JDSXW
+   INTEGER             JDSXM
+   INTEGER             JDSXV,       JDSXT
+   INTEGER             JGSXW,       JGENR
+   INTEGER             JRSXQ,       JRSXT,       JREDS,       JRADS
+   INTEGER             JTSXG,       JTSXT,       JTSXS,       JTRAN
+   INTEGER             JHS,         JHSIBC,      JLEAK
+   INTEGER             JLEK1,       JMAT5,       JMAT6,       JMATD
+   INTEGER             JMATL,       JMATR,       JMATU
+   INTEGER             JP4D,        JP4S,        JPBTFR,      JPTRI
+   INTEGER             JPWBRK,      JPWCAP,      JPWNDD,      JPWNDS
+   INTEGER             JPMUD,       JMUDL1,      JMUDL2,      JMUDL3
+   INTEGER             JPVEGT,      JNPLA2,      JNPLA3
+   INTEGER             JPTURB,      JTURB2,      JTURB3
+   INTEGER             JQB,         JSETUP,      JSTP,        JTAUW
+   INTEGER             JUBOT,       JUSTAR,      JVX1,        JVX2
+   INTEGER             JVX3,        JVY1,        JVY2,        JVY3
+   INTEGER             JWLV1,       JWLV2,       JWLV3
+   INTEGER             JWX2,        JWX3
+   INTEGER             JWY2,        JWY3,        JZEL  ,      JPBOT
+   INTEGER             MCMVAR,                   MTSVAR,      JURSEL
+   INTEGER             JBIPH
+   INTEGER             JBOTLV,      MSWMATR,     MLSWMAT
+   INTEGER             JPSWEL
+   INTEGER             JAICE2,      JAICE3,      JHICE2,      JHICE3
+   INTEGER             JPICE,       JDSXI
+   INTEGER             JHSS2,       JHSS3,       JTSS2,       JTSS3
+   INTEGER             JDSS2,       JDSS3
+   INTEGER             JPBRAG,      JRSXB,       JPQCS,       JRSXC
 !
 !     *** location and dimensions of computational grid ***
 !
@@ -2075,26 +2075,26 @@
 !                  origin of user coordinates w.r.t. computational coordinates
 ! YPC    [    0.]  y coordinate of origin of computational grid
 !
-      INTEGER             IXCGRD(MICMAX), IYCGRD(MICMAX), KCGRD(MICMAX)
-      INTEGER             ICOMP,       MCGRD
-      INTEGER             MDC,         MDC4MA,      MDC4MI,      MMCGR
-      INTEGER             MSC,         MSC4MA,      MSC4MI,      MTC
-      INTEGER             MXC,         MYC,         NX,          NY
-      INTEGER             NGRBND
-      INTEGER             ILMAX
-      REAL                COSLAT(MICMAX)
-      REAL                RDFSIN(100)
-      REAL                ALCP,        ALPC,        COSPC,       DDIR
-      REAL                DX,          DXRP,        DY,          DYRP
-      REAL                FRINTF,      FRINTH,      SHIG,        SINPC
-      REAL                SLOW,        SPDIR1,      SPDIR2,      XCLEN
-      REAL                XCP,         XPC,         YCLEN,       YCP
-      REAL                YPC
-      REAL                XCGMIN,      XCGMAX,      YCGMIN,      YCGMAX
-      LOGICAL             FULCIR
-      LOGICAL ::          ALOCMP = .FALSE.                                40.97
-!$OMP THREADPRIVATE(IXCGRD,IYCGRD,KCGRD,COSLAT)
-!$OMP THREADPRIVATE(RDFSIN)
+   INTEGER             IXCGRD(MICMAX), IYCGRD(MICMAX), KCGRD(MICMAX)
+   INTEGER             ICOMP,       MCGRD
+   INTEGER             MDC,         MDC4MA,      MDC4MI,      MMCGR
+   INTEGER             MSC,         MSC4MA,      MSC4MI,      MTC
+   INTEGER             MXC,         MYC,         NX,          NY
+   INTEGER             NGRBND
+   INTEGER             ILMAX
+   REAL                COSLAT(MICMAX)
+   REAL                RDFSIN(100)
+   REAL                ALCP,        ALPC,        COSPC,       DDIR
+   REAL                DX,          DXRP,        DY,          DYRP
+   REAL                FRINTF,      FRINTH,      SHIG,        SINPC
+   REAL                SLOW,        SPDIR1,      SPDIR2,      XCLEN
+   REAL                XCP,         XPC,         YCLEN,       YCP
+   REAL                YPC
+   REAL                XCGMIN,      XCGMAX,      YCGMIN,      YCGMAX
+   LOGICAL             FULCIR
+   LOGICAL ::          ALOCMP = .FALSE.
+   !$OMP THREADPRIVATE(IXCGRD,IYCGRD,KCGRD,COSLAT)
+   !$OMP THREADPRIVATE(RDFSIN)
 !
 !     *** physical parameters ***
 !
@@ -2134,10 +2134,10 @@
 ! ICEWIND [   0.] factor controlling wind input through ice cover
 !                 ; set by command SET [ICEWIND] ...
 !
-      REAL CASTD,       CDCAP,       USCAP
-      REAL DEGRAD,      DNORTH,      GRAV,        PI
-      REAL PI2,         PWTAIL(10),  RHO,         WLEV
-      REAL ICEWIND
+   REAL CASTD,       CDCAP,       USCAP
+   REAL DEGRAD,      DNORTH,      GRAV,        PI
+   REAL PI2,         PWTAIL(10),  RHO,         WLEV
+   REAL ICEWIND
 !
 !     *** information related to the numerical scheme ***
 !
@@ -2677,60 +2677,60 @@
 ! WDIP   [    0.] wind direction with respect to problem coordinates
 !                 =dir; set by command WIND ... [dir]
 !
-      INTEGER             DSHAPE,      FSHAPE
-      INTEGER             ICMAX
-      INTEGER             IBOT,        ICOR,        ICUR
-      INTEGER             IDBR,        IDIF,        IGEN,        IINC
-      INTEGER             IPRE,        IQUAD,       IREFR,       ISURF
-      INTEGER             ITERMX,      ITFRE,       ITRIAD,      IBIPH
-      INTEGER             IWCAP,       IWIND,       LSETUP,      IDRAG
-      INTEGER             MXITST,      MXITNS,                   NCOR
-      INTEGER             NSTATC,      NSTATM,      NUMOBS,      NCOMPT   40.41
-      INTEGER             IDIFFR                                          40.21
-      INTEGER             IWCCUR                                          42.04
-      INTEGER             IMUD                                            40.59
-      INTEGER             IVEG                                            40.55
-      INTEGER             ITURBV                                          40.35
-      INTEGER             IBRAG                                           41.80
-      INTEGER             IQCM                                            41.90
-      INTEGER             IFRSRF                                          41.06
-      INTEGER             IDISRF                                          41.47
+   INTEGER             DSHAPE,      FSHAPE
+   INTEGER             ICMAX
+   INTEGER             IBOT,        ICOR,        ICUR
+   INTEGER             IDBR,        IDIF,        IGEN,        IINC
+   INTEGER             IPRE,        IQUAD,       IREFR,       ISURF
+   INTEGER             ITERMX,      ITFRE,       ITRIAD,      IBIPH
+   INTEGER             IWCAP,       IWIND,       LSETUP,      IDRAG
+   INTEGER             MXITST,      MXITNS,                   NCOR
+   INTEGER             NSTATC,      NSTATM,      NUMOBS,      NCOMPT
+   INTEGER             IDIFFR
+   INTEGER             IWCCUR
+   INTEGER             IMUD
+   INTEGER             IVEG
+   INTEGER             ITURBV
+   INTEGER             IBRAG
+   INTEGER             IQCM
+   INTEGER             IFRSRF
+   INTEGER             IDISRF
 !CTGA 111003:  Full ice implementation.  Parameter read in swanpre1.ftn
-      INTEGER             IICE                                            41.75/CTGA
-      REAL                DEPMIN,      PBOT(MBOT),  PNUMS(MNUMS)
-      REAL                PSETUP(MSETUP),           PSHAPE(MSHAPE)
-      REAL                PSURF(MSURF),             PTRIAD(MTRIAD)
-      REAL                PWCAP(MWCAP),             PWIND(MWIND)
-      REAL                SIGMAG
-      REAL                SPPARM(MSPPAR),SY0,       U10
-      REAL                WDIC,          WDIP,      HSRERR
-      REAL                PQUAD(MQUAD)
-      REAL*8              RCOMPT(300,5)
-      REAL                PDIFFR(MDIFFR)                                  40.21
-      REAL                PMUD(MMUD)                                      40.59
-      REAL                PTURBV(MTURBV)                                  40.35
-      REAL                PBRAG(MBRAG)                                    41.80
-      REAL                PSICE(MSICE)                                    41.81 41.75
-      REAL                PICE(MICE)                                      41.81 41.75
-      REAL                PSCAT(MSCAT)                                    41.90
+   INTEGER             IICE
+   REAL                DEPMIN,      PBOT(MBOT),  PNUMS(MNUMS)
+   REAL                PSETUP(MSETUP),           PSHAPE(MSHAPE)
+   REAL                PSURF(MSURF),             PTRIAD(MTRIAD)
+   REAL                PWCAP(MWCAP),             PWIND(MWIND)
+   REAL                SIGMAG
+   REAL                SPPARM(MSPPAR),SY0,       U10
+   REAL                WDIC,          WDIP,      HSRERR
+   REAL                PQUAD(MQUAD)
+   REAL*8              RCOMPT(300,5)
+   REAL                PDIFFR(MDIFFR)
+   REAL                PMUD(MMUD)
+   REAL                PTURBV(MTURBV)
+   REAL                PBRAG(MBRAG)
+   REAL                PSICE(MSICE)
+   REAL                PICE(MICE)
+   REAL                PSCAT(MSCAT)
 !CTGA 111003:  Full ice implementation.  Parameter read in swanpre1.ftn
-      REAL                WBICETH
-      LOGICAL             ACUPDA
-      LOGICAL             BNDCHK,      BNAUT,       ONED,        BRESCL
-      LOGICAL             OFFSRC                                          40.80
-      LOGICAL             LADDS                                           40.85
-      LOGICAL             CSETUP
-      LOGICAL             LSPNAR
-      LOGICAL             LSRFB                                           41.85
-      LOGICAL, SAVE ::    RUNMADE = .FALSE.                               41.79
-      LOGICAL, SAVE ::    MODGAM = .TRUE.                                 41.96
+   REAL                WBICETH
+   LOGICAL             ACUPDA
+   LOGICAL             BNDCHK,      BNAUT,       ONED,        BRESCL
+   LOGICAL             OFFSRC
+   LOGICAL             LADDS
+   LOGICAL             CSETUP
+   LOGICAL             LSPNAR
+   LOGICAL             LSRFB
+   LOGICAL, SAVE ::    RUNMADE = .FALSE.
+   LOGICAL, SAVE ::    MODGAM = .TRUE.
 ! parameters for Babanin physics and swell, see Rogers et al (JTECH, 2012)
-      REAL                A1SDS, A2SDS, P1SDS, P2SDS, CDSV, FESWELL       40.88
-      REAL                RDCOEF, B1Z, WNDSCL, CDFAC                      40.88
-      LOGICAL             UPWARDS, VECTOR_TAU, TRUE_U10                   40.88
-      LOGICAL             ROGERS, ZIEGER, ARDHUIN                         40.88
-      REAL                FPI                                             40.88
-!$OMP THREADPRIVATE(ICMAX,CSETUP)
+   REAL                A1SDS, A2SDS, P1SDS, P2SDS, CDSV, FESWELL
+   REAL                RDCOEF, B1Z, WNDSCL, CDFAC
+   LOGICAL             UPWARDS, VECTOR_TAU, TRUE_U10
+   LOGICAL             ROGERS, ZIEGER, ARDHUIN
+   REAL                FPI
+   !$OMP THREADPRIVATE(ICMAX,CSETUP)
 !
 !  8. Subroutines and functions used
 !
@@ -2754,9 +2754,9 @@
 !
 ! 13. Source text
 !
-      END MODULE SWCOMM3
+END MODULE SWCOMM3
 
-      MODULE SWCOMM4
+MODULE SWCOMM4
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -2806,7 +2806,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -2847,14 +2847,14 @@
 ! TESTFL [   FAL] test output must/must not be made, mainly for testpoints
 ! UNDFLW [1.E-15] small number to prevent underflows
 !
-      INTEGER ICOTES,      INTES,       IOUTES
-      INTEGER IPTST
-      INTEGER IFPAR,       IFS1D,       IFS2D
-      INTEGER LXDMP,       LYDMP,       MAXMES,      NEGMES
-      INTEGER NPTST,       NPTSTA
-      REAL    UNDFLW
-      LOGICAL TESTFL
-!$OMP THREADPRIVATE(IPTST,TESTFL)
+   INTEGER ICOTES,      INTES,       IOUTES
+   INTEGER IPTST
+   INTEGER IFPAR,       IFS1D,       IFS2D
+   INTEGER LXDMP,       LYDMP,       MAXMES,      NEGMES
+   INTEGER NPTST,       NPTSTA
+   REAL    UNDFLW
+   LOGICAL TESTFL
+   !$OMP THREADPRIVATE(IPTST,TESTFL)
 !
 !     *** higher order propagation and spherical coordinates ***
 !
@@ -2877,12 +2877,12 @@
 ! WAVAGE [    0.] indicates "wave age" parameter (used in counteracting garden-sprinkler effect
 !                 in subroutine SANDL)
 !
-      INTEGER PROPSC,    KSPHER,    KREPTX
-      INTEGER PROPSL
-      INTEGER PROPSS,    PROPSN,    PROJ_METHOD
-      INTEGER PROPFL
-      REAL    WAVAGE,    REARTH,    LENDEG
-!$OMP THREADPRIVATE(PROPSL)
+   INTEGER PROPSC,    KSPHER,    KREPTX
+   INTEGER PROPSL
+   INTEGER PROPSS,    PROPSN,    PROJ_METHOD
+   INTEGER PROPFL
+   REAL    WAVAGE,    REARTH,    LENDEG
+   !$OMP THREADPRIVATE(PROPSL)
 !
 !  8. Subroutines and functions used
 !
@@ -2906,9 +2906,9 @@
 !
 ! 13. Source text
 !
-      END MODULE SWCOMM4
+END MODULE SWCOMM4
 
-      MODULE TIMECOMM
+MODULE TIMECOMM
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -2958,7 +2958,7 @@
 !
 !     ---
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !  5. Argument variables
 !
@@ -2970,8 +2970,8 @@
 !TIMG!                   work-arrays LISTTM, TIMERS
 !TIMG!     NSECTM [ 300] number of sections that may be defined for an application
 !TIMG!
-!TIMG      INTEGER NSECTM, MXTIMR
-!TIMG      PARAMETER (NSECTM=300, MXTIMR=10)
+!TIMG   INTEGER NSECTM, MXTIMR
+!TIMG   PARAMETER (NSECTM=300, MXTIMR=10)
 !
 !  7. Local variables
 !
@@ -2990,7 +2990,7 @@
 ! TIMCO     [    ] Time and date of the computation during the simulation (in
 !                  seconds since the reference day (REFDAY))
 !
-      REAL*8 TINIC, DT, TFINC, TIMCO
+   REAL*8 TINIC, DT, TFINC, TIMCO
 !
 !     *** Time related variables for nested runs ***
 !
@@ -3007,8 +3007,8 @@
 ! TINTBO    [    ] Time step between non-stationary boundary conditions (in seconds)
 !                  in the case of nested runs. Read from the nest file
 !
-      INTEGER  IFACMX, IFACMY
-      REAL     BEGBOU, TIMERB, TINTBO
+   INTEGER  IFACMX, IFACMY
+   REAL     BEGBOU, TIMERB, TINTBO
 !TIMG!
 !TIMG!     *** contains the cpu and wall-clock times ***
 !TIMG!
@@ -3023,9 +3023,9 @@
 !TIMG! TIMERS    [ 600] start-time of active timers; columns 1,2: cpu-time,
 !TIMG!                  wall-clock time
 !TIMG!
-!TIMG      INTEGER, SAVE          :: NCUMTM(NSECTM), LISTTM(MXTIMR), LASTTM
-!TIMG      DOUBLE PRECISION, SAVE :: DCUMTM(NSECTM,2), TIMERS(MXTIMR,2)
-!TIMG!$OMP THREADPRIVATE(DCUMTM,TIMERS,NCUMTM,LISTTM,LASTTM)
+!TIMG   INTEGER, SAVE          :: NCUMTM(NSECTM), LISTTM(MXTIMR), LASTTM
+!TIMG   DOUBLE PRECISION, SAVE :: DCUMTM(NSECTM,2), TIMERS(MXTIMR,2)
+!TIMG   !$OMP THREADPRIVATE(DCUMTM,TIMERS,NCUMTM,LISTTM,LASTTM)
 !
 !  8. Subroutines and functions used
 !
@@ -3049,4 +3049,4 @@
 !
 ! 13. Source text
 !
-      END MODULE TIMECOMM
+END MODULE TIMECOMM

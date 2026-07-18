@@ -46,16 +46,16 @@ subroutine SwanGridTopology
 !
 !   Modules used
 !
-    use ocpcomm4
-    use SwanGriddata
-    use SwanGridobjects
+   use ocpcomm4
+   use SwanGriddata
+   use SwanGridobjects
 !
-    implicit none
+   implicit none
 !
 !   Local variables
 !
-    integer, save :: ient = 0 ! number of entries in this subroutine
-    integer       :: istat    ! indicate status of allocation
+   integer, save :: ient = 0 ! number of entries in this subroutine
+   integer       :: istat ! indicate status of allocation
 !
 !   Structure
 !
@@ -63,32 +63,32 @@ subroutine SwanGridTopology
 !
 !   Source text
 !
-    if (ltrace) call strace (ient,'SwanGridTopology')
-    !
-    ! allocate arrays vert, cell and face
-    !
-    allocate(gridobject%vert_grid(nverts), stat = istat)
-    if ( istat == 0 ) allocate(gridobject%cell_grid(ncells), stat = istat)
-    if ( istat == 0 ) allocate(gridobject%face_grid(nfaces), stat = istat)
-    if ( istat /= 0 ) then
-       call msgerr ( 4, 'Allocation problem in SwanGridTopology: array vert, cell or face' )
-       return
-    endif
-    !
-    ! setup the vertices
-    !
-    call SwanGridVert ( nverts, xcugrd, ycugrd, vmark )
-    !
-    ! setup the cells
-    !
-    call SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
-    !
-    ! setup the faces
-    !
-    call SwanGridFace ( nfaces, ncells, nverts, xcugrd, ycugrd, kvertf )
-    !
-    ! print some info about the grid
-    !
-    call SwanPrintGridInfo
+   if (ltrace) call strace (ient,'SwanGridTopology')
+   !
+   ! allocate arrays vert, cell and face
+   !
+   allocate(gridobject%vert_grid(nverts), stat = istat)
+   if ( istat == 0 ) allocate(gridobject%cell_grid(ncells), stat = istat)
+   if ( istat == 0 ) allocate(gridobject%face_grid(nfaces), stat = istat)
+   if ( istat /= 0 ) then
+      call msgerr ( 4, 'Allocation problem in SwanGridTopology: array vert, cell or face' )
+      return
+   endif
+   !
+   ! setup the vertices
+   !
+   call SwanGridVert ( nverts, xcugrd, ycugrd, vmark )
+   !
+   ! setup the cells
+   !
+   call SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
+   !
+   ! setup the faces
+   !
+   call SwanGridFace ( nfaces, ncells, nverts, xcugrd, ycugrd, kvertf )
+   !
+   ! print some info about the grid
+   !
+   call SwanPrintGridInfo
     !
 end subroutine SwanGridTopology

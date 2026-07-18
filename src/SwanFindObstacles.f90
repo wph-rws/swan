@@ -45,39 +45,39 @@ subroutine SwanFindObstacles ( cross )
 !
 !   Modules used
 !
-    use ocpcomm4
-    use swcomm3
-    use m_obsta
-    use SwanGriddata
-    use SwanGridobjects
+   use ocpcomm4
+   use swcomm3
+   use m_obsta
+   use SwanGriddata
+   use SwanGridobjects
 !
-    implicit none
+   implicit none
 !
 !   Argument variables
 !
-    integer, dimension(nfaces), intent(out) :: cross           ! contains sequence number of obstacles for each face
-                                                               ! where they crossing or zero if no crossing
+   integer, dimension(nfaces), intent(out) :: cross ! contains sequence number of obstacles for each face
+                                                              ! where they crossing or zero if no crossing
 !
 !   Local variables
 !
-    integer, save                         :: ient = 0          ! number of entries in this subroutine
-    integer                               :: iface             ! loop counter over faces
-    integer                               :: j                 ! loop counter
-    integer                               :: k                 ! loop counter
-    integer                               :: vb                ! vertex of begin of present face
-    integer                               :: ve                ! vertex of end of present face
-    !
-    real, dimension(2)                    :: xobs              ! x-coordinate of obstacle point
-    real, dimension(2)                    :: xv                ! x-coordinate of vertex of face
-    real, dimension(2)                    :: yobs              ! y-coordinate of obstacle point
-    real, dimension(2)                    :: yv                ! y-coordinate of vertex of face
-    !
-    logical                               :: SwanCrossObstacle ! indicate whether a face cross an obstacle
-    !
-    type(OBSTDAT), pointer                :: cobst             ! pointer to a considered obstacle
-    !
-    type(facetype), dimension(:), pointer :: face              ! datastructure for faces with their attributes
-    type(verttype), dimension(:), pointer :: vert              ! datastructure for vertices with their attributes
+   integer, save                         :: ient = 0 ! number of entries in this subroutine
+   integer                               :: iface ! loop counter over faces
+   integer                               :: j ! loop counter
+   integer                               :: k ! loop counter
+   integer                               :: vb ! vertex of begin of present face
+   integer                               :: ve ! vertex of end of present face
+   !
+   real, dimension(2)                    :: xobs ! x-coordinate of obstacle point
+   real, dimension(2)                    :: xv ! x-coordinate of vertex of face
+   real, dimension(2)                    :: yobs ! y-coordinate of obstacle point
+   real, dimension(2)                    :: yv ! y-coordinate of vertex of face
+   !
+   logical                               :: SwanCrossObstacle ! indicate whether a face cross an obstacle
+   !
+   type(OBSTDAT), pointer                :: cobst ! pointer to a considered obstacle
+   !
+   type(facetype), dimension(:), pointer :: face ! datastructure for faces with their attributes
+   type(verttype), dimension(:), pointer :: vert ! datastructure for vertices with their attributes
 !
 !   Structure
 !
@@ -85,59 +85,59 @@ subroutine SwanFindObstacles ( cross )
 !
 !   Source text
 !
-    if (ltrace) call strace (ient,'SwanFindObstacles')
-    !
-    ! point to vertex and face objects
-    !
-    vert => gridobject%vert_grid
-    face => gridobject%face_grid
-    !
-    ! initialize array cross
-    !
-    cross = 0
-    !
-    ! go to first obstacle
-    !
-    cobst => FOBSTAC
-    !
-    do j = 1, NUMOBS
-       !
-       xobs(1) = cobst%XCRP(1)
-       yobs(1) = cobst%YCRP(1)
-       !
-       do k = 2, cobst%NCRPTS    ! number of corner points of considered obstacle
-          !
-          xobs(2) = cobst%XCRP(k)
-          yobs(2) = cobst%YCRP(k)
-          !
-          ! loop over faces
-          !
-          faceloop : do iface = 1, nfaces
-             !
-             if ( face(iface)%atti(FMARKER) == 1 ) cycle faceloop    ! boundary face
-             !
-             vb = face(iface)%atti(FACEV1)
-             ve = face(iface)%atti(FACEV2)
-             !
-             xv(1) = vert(vb)%attr(VERTX)
-             yv(1) = vert(vb)%attr(VERTY)
-             xv(2) = vert(ve)%attr(VERTX)
-             yv(2) = vert(ve)%attr(VERTY)
-             !
-             if ( SwanCrossObstacle( xv, yv, xobs, yobs ) ) cross(iface) = j
-             !
-          enddo faceloop
-          !
-          xobs(1) = xobs(2)
-          yobs(1) = yobs(2)
-          !
-       enddo
-       !
-       ! go to next obstacle, if present
-       !
-       if (.not.associated(cobst%NEXTOBST)) exit
-       cobst => cobst%NEXTOBST
-       !
-    enddo
+   if (ltrace) call strace (ient,'SwanFindObstacles')
+   !
+   ! point to vertex and face objects
+   !
+   vert => gridobject%vert_grid
+   face => gridobject%face_grid
+   !
+   ! initialize array cross
+   !
+   cross = 0
+   !
+   ! go to first obstacle
+   !
+   cobst => FOBSTAC
+   !
+   do j = 1, NUMOBS
+      !
+      xobs(1) = cobst%XCRP(1)
+      yobs(1) = cobst%YCRP(1)
+      !
+      do k = 2, cobst%NCRPTS ! number of corner points of considered obstacle
+         !
+         xobs(2) = cobst%XCRP(k)
+         yobs(2) = cobst%YCRP(k)
+         !
+         ! loop over faces
+         !
+         faceloop : do iface = 1, nfaces
+            !
+            if ( face(iface)%atti(FMARKER) == 1 ) cycle faceloop ! boundary face
+            !
+            vb = face(iface)%atti(FACEV1)
+            ve = face(iface)%atti(FACEV2)
+            !
+            xv(1) = vert(vb)%attr(VERTX)
+            yv(1) = vert(vb)%attr(VERTY)
+            xv(2) = vert(ve)%attr(VERTX)
+            yv(2) = vert(ve)%attr(VERTY)
+            !
+            if ( SwanCrossObstacle( xv, yv, xobs, yobs ) ) cross(iface) = j
+            !
+         enddo faceloop
+         !
+         xobs(1) = xobs(2)
+         yobs(1) = yobs(2)
+         !
+      enddo
+      !
+      ! go to next obstacle, if present
+      !
+      if (.not.associated(cobst%NEXTOBST)) exit
+      cobst => cobst%NEXTOBST
+      !
+   enddo
     !
 end subroutine SwanFindObstacles

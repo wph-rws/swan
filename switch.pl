@@ -16,8 +16,10 @@ $coh = "FALSE";
 $met = "FALSE";
 $ncf = "FALSE";
 $mv4 = "FALSE";
-while ( $ARGV[0]=~/-.*/ )
+$outdir = "";
+while ( $ARGV[0]=~/^-/ )   # only arguments that start with a hyphen are options
    {
+   $nargs = scalar(@ARGV);
    if ($ARGV[0]=~/-esmf/) {$esmf="TRUE";shift;}
    if ($ARGV[0]=~/-timg/) {$tim="TRUE";shift;}
    if ($ARGV[0]=~/-jac/) {$jac="TRUE";shift;}
@@ -35,6 +37,9 @@ while ( $ARGV[0]=~/-.*/ )
    if ($ARGV[0]=~/-metis/) {$met="TRUE";shift;}
    if ($ARGV[0]=~/-netcdf/) {$ncf="TRUE";shift;}
    if ($ARGV[0]=~/-matl4/) {$mv4="TRUE";shift;}
+   if ($ARGV[0]=~/^-outdir$/) {shift;$outdir=$ARGV[0];shift;}
+   # an option that is not known would otherwise loop for ever
+   if (scalar(@ARGV) == $nargs) {die "$0: unknown option $ARGV[0]\n";}
    }
 
 # --- trap unsupported switch combinations
@@ -57,7 +62,14 @@ foreach (@ARGV) {
 foreach $file (@files)
 {
 # --- set output file name
-  if ($unx=~/TRUE/)
+  if ($outdir ne "")
+  {
+    # free-form source (.f90): write it under the same name to $outdir
+    ($base) = $file =~ m{([^/\\]+)$};
+    mkdir $outdir unless -d $outdir;
+    $outfile = join("/",$outdir,$base);
+  }
+  elsif ($unx=~/TRUE/)
   {
     ($tempf)=split(/.ftn/, $file);
     $ext = ($file =~ m/ftn90/) ? "f90" : "f";

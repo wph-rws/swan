@@ -47,20 +47,21 @@ module SwanBraggScat
 !
 !   Modules used
 !
-    implicit none
+   implicit none
 !
 !   Module variables
 !
-    integer                                     :: mkbx   ! size of wave number space in x-direction related to bottom spectrum
-    integer                                     :: mkby   ! size of wave number space in y-direction related to bottom spectrum
-    !
-    real                                        :: dkbx   ! resolution of wave number space in x-direction related to bottom spectrum
-    real                                        :: dkby   ! resolution of wave number space in y-direction related to bottom spectrum
-    !
-    real, dimension(:,:)    , save, allocatable :: botspc ! bottom spectrum provided by the user
-    real, dimension(:)      , save, allocatable :: dpmean ! mean depth at computational grid points
-    real, dimension(:,:,:)  , save, allocatable :: fb     ! bed elevation spectrum at computational grid points
-    real, dimension(:,:,:,:), save, allocatable :: fbdxy  ! bottom spectrum at wave number difference k - k' for all computational grid points
+   integer                                     :: mkbx ! size of wave number space in x-direction related to bottom spectrum
+   integer                                     :: mkby ! size of wave number space in y-direction related to bottom spectrum
+   !
+   real                                        :: dkbx ! resolution of wave number space in x-direction related to bottom spectrum
+   real                                        :: dkby ! resolution of wave number space in y-direction related to bottom spectrum
+   !
+   real, dimension(:,:)    , save, allocatable :: botspc ! bottom spectrum provided by the user
+   real, dimension(:)      , save, allocatable :: dpmean ! mean depth at computational grid points
+   real, dimension(:,:,:)  , save, allocatable :: fb ! bed elevation spectrum at computational grid points
+   ! bottom spectrum at wave number difference k - k' for all computational grid points
+   real, dimension(:,:,:,:), save, allocatable :: fbdxy
 !
 !   Source text
 !
@@ -109,63 +110,64 @@ subroutine SWBRBOT
 !
 !   Modules used
 !
-    use ocpcomm4
-    use swcomm2
-    use swcomm3, only: pbrag, PI, MXC, MYC, MCGRD
-    use m_genarr, only: DEPTH, XCGRID, YCGRID, KGRPNT
-    use SwanGriddata, only: nverts, xcugrd, ycugrd
+   use ocpcomm4
+   use swcomm2
+   use swcomm3, only: pbrag, PI, MXC, MYC, MCGRD
+   use m_genarr, only: DEPTH, XCGRID, YCGRID, KGRPNT
+   use SwanGriddata, only: nverts, xcugrd, ycugrd
 !
-    implicit none
+   implicit none
 !
 !   Local variables
 !
-    integer       :: ic       ! computational grid counter
-    integer, save :: ient = 0 ! number of entries in this subroutine
-    integer       :: ierr     ! error indicator
-    integer       :: ip       ! pointer in array DEPTH
-    integer       :: ish      ! shift level for shifting matrix
-    integer       :: istat    ! indicate status of allocation
-    integer       :: ix       ! loop counter over region of depth points in x-direction
-    integer       :: ixc      ! loop counter over computational grid in x-direction
-    integer       :: ixe      ! end x-index of region of depth points around the computational point
-    integer       :: ixg      ! index of computational point in depth grid in x-direction
-    integer       :: ixs      ! start x-index of region of depth points around the computational point
-    integer       :: iy       ! loop counter over region of depth points in y-direction
-    integer       :: iyc      ! loop counter over computational grid in y-direction
-    integer       :: iye      ! end y-index of region of depth points around the computational point
-    integer       :: iyg      ! index of computational point in depth grid in y-direction
-    integer       :: iys      ! start y-index of region of depth points around the computational point
-    integer       :: k        ! counter
-    integer       :: lensav   ! size of work array wsave (FFT)
-    integer       :: lenwrk   ! size of work array work (FFT)
-    integer       :: n        ! squared size region
-    integer       :: nreg     ! size of region of depth points around computational grid point for computing mean depth and bottom spectrum
-    !
-    real          :: ixf      ! distance to origin of depth grid divided by mesh size in x-direction (fractional number)
-    real          :: iyf      ! distance to origin of depth grid divided by mesh size in y-direction (fractional number)
-    real*8        :: p0       ! polynomial fit coefficient
-    real*8        :: p1       ! polynomial fit coefficient
-    real*8        :: p2       ! polynomial fit coefficient
-    real          :: s        ! sum of surrounding depths
-    real          :: vard     ! variance of small scale bed elevation
-    real          :: vars     ! variance of bed elevation spectrum
-    real          :: xpc      ! x-coordinate of computational grid point
-    real          :: ypc      ! y-coordinate of computational grid point
-    !
-    logical       :: filb     ! indicate whether bottom spectrum is available through file or not
-    logical       :: ingrd    ! Boolean variable to determine whether point is in depth grid or not
-    logical       :: EQREAL   ! indicate whether two reals are equal or not
-    !
-    character(80) :: msgstr   ! string to pass message
-    !
-    real   (kind=8), dimension(:)  , allocatable :: x     ! work array (bi-linear fit)
-    real   (kind=8), dimension(:)  , allocatable :: y     ! work array (bi-linear fit)
-    real   (kind=8), dimension(:)  , allocatable :: z     ! work array (bi-linear fit)
-    !
-    complex(kind=8), dimension(:,:), allocatable :: c     ! Fourier coefficients (FFT)
-    real   (kind=8), dimension(:,:), allocatable :: r     ! input data (FFT)
-    real   (kind=8), dimension(:)  , allocatable :: work  ! work array (FFT)
-    real   (kind=8), dimension(:)  , allocatable :: wsave ! work array (FFT)
+   integer       :: ic ! computational grid counter
+   integer, save :: ient = 0 ! number of entries in this subroutine
+   integer       :: ierr ! error indicator
+   integer       :: ip ! pointer in array DEPTH
+   integer       :: ish ! shift level for shifting matrix
+   integer       :: istat ! indicate status of allocation
+   integer       :: ix ! loop counter over region of depth points in x-direction
+   integer       :: ixc ! loop counter over computational grid in x-direction
+   integer       :: ixe ! end x-index of region of depth points around the computational point
+   integer       :: ixg ! index of computational point in depth grid in x-direction
+   integer       :: ixs ! start x-index of region of depth points around the computational point
+   integer       :: iy ! loop counter over region of depth points in y-direction
+   integer       :: iyc ! loop counter over computational grid in y-direction
+   integer       :: iye ! end y-index of region of depth points around the computational point
+   integer       :: iyg ! index of computational point in depth grid in y-direction
+   integer       :: iys ! start y-index of region of depth points around the computational point
+   integer       :: k ! counter
+   integer       :: lensav ! size of work array wsave (FFT)
+   integer       :: lenwrk ! size of work array work (FFT)
+   integer       :: n ! squared size region
+   ! size of region of depth points around computational grid point for computing mean depth and bottom spectrum
+   integer       :: nreg
+   !
+   real          :: ixf ! distance to origin of depth grid divided by mesh size in x-direction (fractional number)
+   real          :: iyf ! distance to origin of depth grid divided by mesh size in y-direction (fractional number)
+   real*8        :: p0 ! polynomial fit coefficient
+   real*8        :: p1 ! polynomial fit coefficient
+   real*8        :: p2 ! polynomial fit coefficient
+   real          :: s ! sum of surrounding depths
+   real          :: vard ! variance of small scale bed elevation
+   real          :: vars ! variance of bed elevation spectrum
+   real          :: xpc ! x-coordinate of computational grid point
+   real          :: ypc ! y-coordinate of computational grid point
+   !
+   logical       :: filb ! indicate whether bottom spectrum is available through file or not
+   logical       :: ingrd ! Boolean variable to determine whether point is in depth grid or not
+   logical       :: EQREAL ! indicate whether two reals are equal or not
+   !
+   character(80) :: msgstr ! string to pass message
+   !
+   real   (kind=8), dimension(:)  , allocatable :: x ! work array (bi-linear fit)
+   real   (kind=8), dimension(:)  , allocatable :: y ! work array (bi-linear fit)
+   real   (kind=8), dimension(:)  , allocatable :: z ! work array (bi-linear fit)
+   !
+   complex(kind=8), dimension(:,:), allocatable :: c ! Fourier coefficients (FFT)
+   real   (kind=8), dimension(:,:), allocatable :: r ! input data (FFT)
+   real   (kind=8), dimension(:)  , allocatable :: work ! work array (FFT)
+   real   (kind=8), dimension(:)  , allocatable :: wsave ! work array (FFT)
 !
 !   Structure
 !
@@ -173,388 +175,388 @@ subroutine SWBRBOT
 !
 !   Source text
 !
-    if (ltrace) call strace (ient,'SWBRBOT')
-    !
-    ! check if bottom spectrum is available
-    !
-    if ( allocated(botspc) ) then
-       filb = .true.
-    else
-       filb = .false.
-    endif
-    !
-    nreg = int(pbrag(1))
-    n    = nreg * nreg
-    !
-    ! allocate data for bi-linear fit
-    !
-    allocate ( x(n) )
-    allocate ( y(n) )
-    allocate ( z(n) )
-    !
-    ! allocate and initialize mean depth and bed elevation spectrum
-    !
-    istat = 0
-    if (                   .not.allocated(dpmean) ) allocate(dpmean(          MCGRD), stat = istat)
-    if (  istat == 0 .and. .not.allocated(fb    ) ) allocate(fb    (mkbx,mkby,MCGRD), stat = istat)
-    if ( istat /= 0 ) then
-       write (msgstr, '(a,i6)') 'allocation problem: Bragg scattering data and return code is ',istat
-       call msgerr ( 4, trim(msgstr) )
-       return
-    endif
-    !
-    dpmean = 0.
-    fb     = 0.
-    !
-    ierr = 0
-    !
-    ! do some preparation for FFT, if necessary
-    !
-    if ( .not.filb ) then
-       !
-       ish = nreg/2 + mod(nreg,2)
-       !
-       dkbx = 2.*PI * 1./dxg(1) / pbrag(1)
-       dkby = 2.*PI * 1./dyg(1) / pbrag(1)
-       !
-       ! allocate work arrays for FFT
-       !
-       lenwrk = 2 * n
-       lensav = 2 * nreg + int( log(pbrag(1)) / log(2.) ) + 4
-       lensav = 2 * lensav
-       !
-       allocate ( r(nreg,nreg) )
-       allocate ( c(nreg,nreg) )
-       !
-       allocate ( work (lenwrk) )
-       allocate ( wsave(lensav) )
-       !
-       ! initialization FFT
-       !
-       call cfft2i ( nreg, nreg, wsave, lensav, ierr )
-       if ( ierr /= 0 ) goto 10
-       !
-    endif
-    !
-    ! compute mean depth and bed elevation spectrum in all active grid points
-    !
-    ! --- rectilinear / curvilinear computational grid
-    !
-    do ixc = 1, MXC
-       do iyc = 1, MYC
-          !
-          ic = KGRPNT(ixc,iyc)
-          if ( ic == 1 ) cycle
-          !
-          xpc = XCGRID(ixc,iyc)
-          ypc = YCGRID(ixc,iyc)
-          !
-          ingrd = .true.
-          !
-          ! find computational point in depth grid
-          !
-          ixf = ( ( xpc - xpg(1) ) * cospg(1) + ( ypc - ypg(1) ) * sinpg(1) ) / dxg(1)
-          !
-          if ( ixf <= 0. ) then
-             ixg = 1
-             if ( ixf < -0.1 ) ingrd = .false.
-          else if ( ixf >= float(mxg(1)-1) ) then
-             ixg = mxg(1) - 1
-             if ( ixf > float(mxg(1))-0.9 ) ingrd = .false.
-          else
-             ixg = int(ixf) + 1
-          endif
-          !
-          if ( myg(1) > 1 ) then
-             !
-             iyf = ( -( xpc - xpg(1) ) * sinpg(1) + ( ypc - ypg(1) ) * cospg(1) ) / dyg(1)
-             !
-             if ( iyf <= 0. ) then
-                iyg = 1
-                if ( iyf < -0.1 ) ingrd = .false.
-             else if ( iyf >= float(myg(1)-1) ) then
-                iyg = myg(1) - 1
-                if ( iyf > float(myg(1))-0.9 ) ingrd = .false.
-             else
-                iyg = int(iyf) + 1
-             endif
-             !
-          else
+   if (ltrace) call strace (ient,'SWBRBOT')
+   !
+   ! check if bottom spectrum is available
+   !
+   if ( allocated(botspc) ) then
+      filb = .true.
+   else
+      filb = .false.
+   endif
+   !
+   nreg = int(pbrag(1))
+   n    = nreg * nreg
+   !
+   ! allocate data for bi-linear fit
+   !
+   allocate ( x(n) )
+   allocate ( y(n) )
+   allocate ( z(n) )
+   !
+   ! allocate and initialize mean depth and bed elevation spectrum
+   !
+   istat = 0
+   if (                   .not.allocated(dpmean) ) allocate(dpmean(          MCGRD), stat = istat)
+   if (  istat == 0 .and. .not.allocated(fb    ) ) allocate(fb    (mkbx,mkby,MCGRD), stat = istat)
+   if ( istat /= 0 ) then
+      write (msgstr, '(a,i6)') 'allocation problem: Bragg scattering data and return code is ',istat
+      call msgerr ( 4, trim(msgstr) )
+      return
+   endif
+   !
+   dpmean = 0.
+   fb     = 0.
+   !
+   ierr = 0
+   !
+   ! do some preparation for FFT, if necessary
+   !
+   if ( .not.filb ) then
+      !
+      ish = nreg/2 + mod(nreg,2)
+      !
+      dkbx = 2.*PI * 1./dxg(1) / pbrag(1)
+      dkby = 2.*PI * 1./dyg(1) / pbrag(1)
+      !
+      ! allocate work arrays for FFT
+      !
+      lenwrk = 2 * n
+      lensav = 2 * nreg + int( log(pbrag(1)) / log(2.) ) + 4
+      lensav = 2 * lensav
+      !
+      allocate ( r(nreg,nreg) )
+      allocate ( c(nreg,nreg) )
+      !
+      allocate ( work (lenwrk) )
+      allocate ( wsave(lensav) )
+      !
+      ! initialization FFT
+      !
+      call cfft2i ( nreg, nreg, wsave, lensav, ierr )
+      if ( ierr /= 0 ) goto 10
+      !
+   endif
+   !
+   ! compute mean depth and bed elevation spectrum in all active grid points
+   !
+   ! --- rectilinear / curvilinear computational grid
+   !
+   do ixc = 1, MXC
+      do iyc = 1, MYC
+         !
+         ic = KGRPNT(ixc,iyc)
+         if ( ic == 1 ) cycle
+         !
+         xpc = XCGRID(ixc,iyc)
+         ypc = YCGRID(ixc,iyc)
+         !
+         ingrd = .true.
+         !
+         ! find computational point in depth grid
+         !
+         ixf = ( ( xpc - xpg(1) ) * cospg(1) + ( ypc - ypg(1) ) * sinpg(1) ) / dxg(1)
+         !
+         if ( ixf <= 0. ) then
+            ixg = 1
+            if ( ixf < -0.1 ) ingrd = .false.
+         else if ( ixf >= float(mxg(1)-1) ) then
+            ixg = mxg(1) - 1
+            if ( ixf > float(mxg(1))-0.9 ) ingrd = .false.
+         else
+            ixg = int(ixf) + 1
+         endif
+         !
+         if ( myg(1) > 1 ) then
+            !
+            iyf = ( -( xpc - xpg(1) ) * sinpg(1) + ( ypc - ypg(1) ) * cospg(1) ) / dyg(1)
+            !
+            if ( iyf <= 0. ) then
+               iyg = 1
+               if ( iyf < -0.1 ) ingrd = .false.
+            else if ( iyf >= float(myg(1)-1) ) then
+               iyg = myg(1) - 1
+               if ( iyf > float(myg(1))-0.9 ) ingrd = .false.
+            else
+               iyg = int(iyf) + 1
+            endif
+            !
+         else
             !
             iyg = 1
+           !
+         endif
+         !
+         ! determine region of surronding points with respect to computational point
+         !
+         ixs = max(     1,ixg - (nreg-1)/2)
+         ixe = min(mxg(1),ixg + (nreg-1)/2)
+         !
+         iys = max(     1,iyg - (nreg-1)/2)
+         iye = min(myg(1),iyg + (nreg-1)/2)
+         !
+         ! compute the mean depth and bottom spectrum in given region
+         !
+         if ( ingrd ) then
             !
-          endif
-          !
-          ! determine region of surronding points with respect to computational point
-          !
-          ixs = max(     1,ixg - (nreg-1)/2)
-          ixe = min(mxg(1),ixg + (nreg-1)/2)
-          !
-          iys = max(     1,iyg - (nreg-1)/2)
-          iye = min(myg(1),iyg + (nreg-1)/2)
-          !
-          ! compute the mean depth and bottom spectrum in given region
-          !
-          if ( ingrd ) then
-             !
-             k = 0
-             s = 0.
-             !
-             do ix = ixs, ixe
-                do iy = iys, iye
-                   ip = ix + (iy-1) * mxg(1)
-                   if ( .not.EQREAL(DEPTH(ip),excfld(1)) ) then
-                      k    = k + 1
-                      x(k) = xpg(1) + cospg(1)*(ix-1)*dxg(1) - sinpg(1)*(iy-1)*dyg(1)
-                      y(k) = ypg(1) + sinpg(1)*(ix-1)*dxg(1) + cospg(1)*(iy-1)*dyg(1)
-                      z(k) = DEPTH(ip)
-                      s    = s + z(k)
-                   endif
-                enddo
-             enddo
-             !
-             if ( k == 0 ) then
-                dpmean(ic) = excfld(1)
-                cycle
-             else
-                dpmean(ic) = s / real(k)
-             endif
-             !
-             if ( .not. filb ) then
-                !
-                ! bi-linear fit
-                call fit2(x,y,z,k,p0,p1,p2,ierr)
-                if ( ierr /= 0 ) cycle
-                !
-                k = 0
-                r = 0.
-                !
-                ! compute modulation (small scale bathymetry)
-                !
-                do ix = ixs, ixe
-                   do iy = iys, iye
-                      ip = ix + (iy-1) * mxg(1)
-                      if ( .not.EQREAL(DEPTH(ip),excfld(1)) ) then
-                         k                    = k + 1
-                         r(ix-ixs+1,iy-iys+1) = DEPTH(ip) - p0 - p1*x(k) - p2*y(k)
-                      endif
-                   enddo
-                enddo
-                !
-                vard = sum(r*r) / pbrag(1) / pbrag(1)
-                !
-                c = cmplx(r)
-                !
-                ! compute amplitudes
-                !
-                call cfft2b ( nreg, nreg, nreg, c, wsave, lensav, work, lenwrk, ierr )   ! use back transform to prevent normalization!
-                if ( ierr /= 0 ) exit
-                !
-                ! compute bed elevation spectrum
-                !
-                c = cshift(c, shift=ish, dim=2 )
-                c = cshift(c, shift=ish, dim=1 )
-                !
-                r = 0.5 * abs(c)**2
-                !
-                vars = sum(r) * dkbx * dkby
-                !
-                ! scale to get the correct variance
-                !
-                if ( vars /= 0. ) r = r * vard / vars
-                !
-                fb(:,:,ic) = r(:,:)
-                !
-             else
-                !
-                fb(:,:,ic) = botspc(:,:)
-                !
-             endif
-             !
-          endif
-          !
-       enddo
-    enddo
-    !
-    ! --- unstructured computational grid
-    !
-    do ic = 1, nverts
-       !
-       xpc = xcugrd(ic)
-       ypc = ycugrd(ic)
-       !
-       ingrd = .true.
-       !
-       ! find computational point in depth grid
-       !
-       ixf = ( ( xpc - xpg(1) ) * cospg(1) + ( ypc - ypg(1) ) * sinpg(1) ) / dxg(1)
-       !
-       if ( ixf <= 0. ) then
-          ixg = 1
-          if ( ixf < -0.1 ) ingrd = .false.
-       else if ( ixf >= float(mxg(1)-1) ) then
-          ixg = mxg(1) - 1
-          if ( ixf > float(mxg(1))-0.9 ) ingrd = .false.
-       else
-          ixg = int(ixf) + 1
-       endif
-       !
-       if ( myg(1) > 1 ) then
-          !
-          iyf = ( -( xpc - xpg(1) ) * sinpg(1) + ( ypc - ypg(1) ) * cospg(1) ) / dyg(1)
-          !
-          if ( iyf <= 0. ) then
-             iyg = 1
-             if ( iyf < -0.1 ) ingrd = .false.
-          else if ( iyf >= float(myg(1)-1) ) then
-             iyg = myg(1) - 1
-             if ( iyf > float(myg(1))-0.9 ) ingrd = .false.
-          else
-             iyg = int(iyf) + 1
-          endif
-          !
-       else
+            k = 0
+            s = 0.
+            !
+            do ix = ixs, ixe
+               do iy = iys, iye
+                  ip = ix + (iy-1) * mxg(1)
+                  if ( .not.EQREAL(DEPTH(ip),excfld(1)) ) then
+                     k    = k + 1
+                     x(k) = xpg(1) + cospg(1)*(ix-1)*dxg(1) - sinpg(1)*(iy-1)*dyg(1)
+                     y(k) = ypg(1) + sinpg(1)*(ix-1)*dxg(1) + cospg(1)*(iy-1)*dyg(1)
+                     z(k) = DEPTH(ip)
+                     s    = s + z(k)
+                  endif
+               enddo
+            enddo
+            !
+            if ( k == 0 ) then
+               dpmean(ic) = excfld(1)
+               cycle
+            else
+               dpmean(ic) = s / real(k)
+            endif
+            !
+            if ( .not. filb ) then
+               !
+               ! bi-linear fit
+               call fit2(x,y,z,k,p0,p1,p2,ierr)
+               if ( ierr /= 0 ) cycle
+               !
+               k = 0
+               r = 0.
+               !
+               ! compute modulation (small scale bathymetry)
+               !
+               do ix = ixs, ixe
+                  do iy = iys, iye
+                     ip = ix + (iy-1) * mxg(1)
+                     if ( .not.EQREAL(DEPTH(ip),excfld(1)) ) then
+                        k                    = k + 1
+                        r(ix-ixs+1,iy-iys+1) = DEPTH(ip) - p0 - p1*x(k) - p2*y(k)
+                     endif
+                  enddo
+               enddo
+               !
+               vard = sum(r*r) / pbrag(1) / pbrag(1)
+               !
+               c = cmplx(r)
+               !
+               ! compute amplitudes
+               !
+               call cfft2b ( nreg, nreg, nreg, c, wsave, lensav, work, lenwrk, ierr ) ! use back transform to prevent normalization!
+               if ( ierr /= 0 ) exit
+               !
+               ! compute bed elevation spectrum
+               !
+               c = cshift(c, shift=ish, dim=2 )
+               c = cshift(c, shift=ish, dim=1 )
+               !
+               r = 0.5 * abs(c)**2
+               !
+               vars = sum(r) * dkbx * dkby
+               !
+               ! scale to get the correct variance
+               !
+               if ( vars /= 0. ) r = r * vard / vars
+               !
+               fb(:,:,ic) = r(:,:)
+               !
+            else
+               !
+               fb(:,:,ic) = botspc(:,:)
+               !
+            endif
+            !
+         endif
+         !
+      enddo
+   enddo
+   !
+   ! --- unstructured computational grid
+   !
+   do ic = 1, nverts
+      !
+      xpc = xcugrd(ic)
+      ypc = ycugrd(ic)
+      !
+      ingrd = .true.
+      !
+      ! find computational point in depth grid
+      !
+      ixf = ( ( xpc - xpg(1) ) * cospg(1) + ( ypc - ypg(1) ) * sinpg(1) ) / dxg(1)
+      !
+      if ( ixf <= 0. ) then
+         ixg = 1
+         if ( ixf < -0.1 ) ingrd = .false.
+      else if ( ixf >= float(mxg(1)-1) ) then
+         ixg = mxg(1) - 1
+         if ( ixf > float(mxg(1))-0.9 ) ingrd = .false.
+      else
+         ixg = int(ixf) + 1
+      endif
+      !
+      if ( myg(1) > 1 ) then
+         !
+         iyf = ( -( xpc - xpg(1) ) * sinpg(1) + ( ypc - ypg(1) ) * cospg(1) ) / dyg(1)
+         !
+         if ( iyf <= 0. ) then
+            iyg = 1
+            if ( iyf < -0.1 ) ingrd = .false.
+         else if ( iyf >= float(myg(1)-1) ) then
+            iyg = myg(1) - 1
+            if ( iyf > float(myg(1))-0.9 ) ingrd = .false.
+         else
+            iyg = int(iyf) + 1
+         endif
+         !
+      else
          !
          iyg = 1
+        !
+      endif
+      !
+      ! determine region of surronding points with respect to computational point
+      !
+      ixs = max(     1,ixg - (nreg-1)/2)
+      ixe = min(mxg(1),ixg + (nreg-1)/2)
+      !
+      iys = max(     1,iyg - (nreg-1)/2)
+      iye = min(myg(1),iyg + (nreg-1)/2)
+      !
+      ! compute the mean depth and bottom spectrum in given region
+      !
+      if ( ingrd ) then
          !
-       endif
-       !
-       ! determine region of surronding points with respect to computational point
-       !
-       ixs = max(     1,ixg - (nreg-1)/2)
-       ixe = min(mxg(1),ixg + (nreg-1)/2)
-       !
-       iys = max(     1,iyg - (nreg-1)/2)
-       iye = min(myg(1),iyg + (nreg-1)/2)
-       !
-       ! compute the mean depth and bottom spectrum in given region
-       !
-       if ( ingrd ) then
-          !
-          k = 0
-          s = 0.
-          !
-          do ix = ixs, ixe
-             do iy = iys, iye
-                ip = ix + (iy-1) * mxg(1)
-                if ( .not.EQREAL(DEPTH(ip),excfld(1)) ) then
-                   k    = k + 1
-                   x(k) = xpg(1) + cospg(1)*(ix-1)*dxg(1) - sinpg(1)*(iy-1)*dyg(1)
-                   y(k) = ypg(1) + sinpg(1)*(ix-1)*dxg(1) + cospg(1)*(iy-1)*dyg(1)
-                   z(k) = DEPTH(ip)
-                   s    = s + z(k)
-                endif
-             enddo
-          enddo
-          !
-          if ( k == 0 ) then
-             dpmean(ic) = excfld(1)
-             cycle
-          else
-             dpmean(ic) = s / real(k)
-          endif
-          !
-          if ( .not. filb ) then
-             !
-             ! bi-linear fit
-             call fit2(x,y,z,k,p0,p1,p2,ierr)
-             if ( ierr /= 0 ) cycle
-             !
-             k = 0
-             r = 0.
-             !
-             ! compute modulation (small scale bathymetry)
-             !
-             do ix = ixs, ixe
-                do iy = iys, iye
-                   ip = ix + (iy-1) * mxg(1)
-                   if ( .not.EQREAL(DEPTH(ip),excfld(1)) ) then
-                      k                    = k + 1
-                      r(ix-ixs+1,iy-iys+1) = DEPTH(ip) - p0 - p1*x(k) - p2*y(k)
-                   endif
-                enddo
-             enddo
-             !
-             vard = sum(r*r) / pbrag(1) / pbrag(1)
-             !
-             c = cmplx(r)
-             !
-             ! compute amplitudes
-             !
-             call cfft2b ( nreg, nreg, nreg, c, wsave, lensav, work, lenwrk, ierr )   ! use back transform to prevent normalization!
-             if ( ierr /= 0 ) exit
-             !
-             ! compute bed elevation spectrum
-             !
-             c = cshift(c, shift=ish, dim=2 )
-             c = cshift(c, shift=ish, dim=1 )
-             !
-             r = 0.5 * abs(c)**2
-             !
-             vars = sum(r) * dkbx * dkby
-             !
-             ! scale to get the correct variance
-             !
-             if ( vars /= 0. ) r = r * vard / vars
-             !
-             fb(:,:,ic) = r(:,:)
-             !
-          else
-             !
-             fb(:,:,ic) = botspc(:,:)
-             !
-          endif
-          !
-       endif
-       !
-    enddo
-    !
- 10 continue
-    if ( .not.filb ) deallocate ( r, c, work, wsave )
-    deallocate ( x, y, z )
-    !
-    if ( ierr /= 0 ) then
-       write (msgstr, '(a,i6)') 'something went wrong with the Fourier transform - return code is ',ierr
-       call msgerr ( 4, trim(msgstr) )
-       return
-    endif
-    !
-    contains
-    !
-    subroutine fit2(x,y,z,n,a,b,c,ierr)
-    integer n, ierr
-    real*8 a,b,c,x(n),y(n),z(n)
-    integer i
-    real*8 ss, sx, sy, sz, sxx, sxy, sxz, syy, syz, d
-    ierr=1
-    ss=dble(n)
-    sx=0.
-    sy=0.
-    sz=0.
-    sxx=0.
-    sxy=0.
-    sxz=0.
-    syy=0.
-    syz=0.
-    do i=1,n
-       sx=sx+x(i)
-       sy=sy+y(i)
-       sz=sz+z(i)
-       sxx=sxx+x(i)*x(i)
-       sxy=sxy+x(i)*y(i)
-       sxz=sxz+x(i)*z(i)
-       syy=syy+y(i)*y(i)
-       syz=syz+y(i)*z(i)
-    enddo
-    d=ss*sxx*syy+sy*sx*sxy+sx*sxy*sy-sy*sxx*sy-ss*sxy*sxy-sx*sx*syy
-    if (d.ne.0d0) then
-       ierr=0
-       a=(sz*sxx*syy+syz*sx*sxy+sxz*sxy*sy-syz*sxx*sy-sz*sxy*sxy-sxz*sx*syy)/d
-       b=(ss*sxz*syy+sy*sz*sxy+sx*syz*sy-sy*sxz*sy-ss*syz*sxy-sx*sz*syy)/d
-       c=(ss*sxx*syz+sy*sx*sxz+sx*sxy*sz-sy*sxx*sz-ss*sxy*sxz-sx*sx*syz)/d
-    endif
-    return
-    end subroutine fit2
+         k = 0
+         s = 0.
+         !
+         do ix = ixs, ixe
+            do iy = iys, iye
+               ip = ix + (iy-1) * mxg(1)
+               if ( .not.EQREAL(DEPTH(ip),excfld(1)) ) then
+                  k    = k + 1
+                  x(k) = xpg(1) + cospg(1)*(ix-1)*dxg(1) - sinpg(1)*(iy-1)*dyg(1)
+                  y(k) = ypg(1) + sinpg(1)*(ix-1)*dxg(1) + cospg(1)*(iy-1)*dyg(1)
+                  z(k) = DEPTH(ip)
+                  s    = s + z(k)
+               endif
+            enddo
+         enddo
+         !
+         if ( k == 0 ) then
+            dpmean(ic) = excfld(1)
+            cycle
+         else
+            dpmean(ic) = s / real(k)
+         endif
+         !
+         if ( .not. filb ) then
+            !
+            ! bi-linear fit
+            call fit2(x,y,z,k,p0,p1,p2,ierr)
+            if ( ierr /= 0 ) cycle
+            !
+            k = 0
+            r = 0.
+            !
+            ! compute modulation (small scale bathymetry)
+            !
+            do ix = ixs, ixe
+               do iy = iys, iye
+                  ip = ix + (iy-1) * mxg(1)
+                  if ( .not.EQREAL(DEPTH(ip),excfld(1)) ) then
+                     k                    = k + 1
+                     r(ix-ixs+1,iy-iys+1) = DEPTH(ip) - p0 - p1*x(k) - p2*y(k)
+                  endif
+               enddo
+            enddo
+            !
+            vard = sum(r*r) / pbrag(1) / pbrag(1)
+            !
+            c = cmplx(r)
+            !
+            ! compute amplitudes
+            !
+            call cfft2b ( nreg, nreg, nreg, c, wsave, lensav, work, lenwrk, ierr ) ! use back transform to prevent normalization!
+            if ( ierr /= 0 ) exit
+            !
+            ! compute bed elevation spectrum
+            !
+            c = cshift(c, shift=ish, dim=2 )
+            c = cshift(c, shift=ish, dim=1 )
+            !
+            r = 0.5 * abs(c)**2
+            !
+            vars = sum(r) * dkbx * dkby
+            !
+            ! scale to get the correct variance
+            !
+            if ( vars /= 0. ) r = r * vard / vars
+            !
+            fb(:,:,ic) = r(:,:)
+            !
+         else
+            !
+            fb(:,:,ic) = botspc(:,:)
+            !
+         endif
+         !
+      endif
+      !
+   enddo
+   !
+10 continue
+   if ( .not.filb ) deallocate ( r, c, work, wsave )
+   deallocate ( x, y, z )
+   !
+   if ( ierr /= 0 ) then
+      write (msgstr, '(a,i6)') 'something went wrong with the Fourier transform - return code is ',ierr
+      call msgerr ( 4, trim(msgstr) )
+      return
+   endif
+ !
+contains
+ !
+subroutine fit2(x,y,z,n,a,b,c,ierr)
+   integer n, ierr
+   real*8 a,b,c,x(n),y(n),z(n)
+   integer i
+   real*8 ss, sx, sy, sz, sxx, sxy, sxz, syy, syz, d
+   ierr=1
+   ss=dble(n)
+   sx=0.
+   sy=0.
+   sz=0.
+   sxx=0.
+   sxy=0.
+   sxz=0.
+   syy=0.
+   syz=0.
+   do i=1,n
+      sx=sx+x(i)
+      sy=sy+y(i)
+      sz=sz+z(i)
+      sxx=sxx+x(i)*x(i)
+      sxy=sxy+x(i)*y(i)
+      sxz=sxz+x(i)*z(i)
+      syy=syy+y(i)*y(i)
+      syz=syz+y(i)*z(i)
+   enddo
+   d=ss*sxx*syy+sy*sx*sxy+sx*sxy*sy-sy*sxx*sy-ss*sxy*sxy-sx*sx*syy
+   if (d.ne.0d0) then
+      ierr=0
+      a=(sz*sxx*syy+syz*sx*sxy+sxz*sxy*sy-syz*sxx*sy-sz*sxy*sxy-sxz*sx*syy)/d
+      b=(ss*sxz*syy+sy*sz*sxy+sx*syz*sy-sy*sxz*sy-ss*syz*sxy-sx*sz*syy)/d
+      c=(ss*sxx*syz+sy*sx*sxz+sx*sxy*sz-sy*sxx*sz-ss*sxy*sxz-sx*sx*syz)/d
+   endif
+   return
+end subroutine fit2
     !
 end subroutine SWBRBOT
 !
@@ -605,56 +607,56 @@ subroutine SWFBXY ( dep2, mudl2, spcsig, spcdir )
 !
 !   Modules used
 !
-    use ocpcomm4
-    use swcomm2
-    use swcomm3
+   use ocpcomm4
+   use swcomm2
+   use swcomm3
 !
-    implicit none
+   implicit none
 !
 !   Argument variables
 !
-    real, dimension(MCGRD), intent(in)        :: dep2     ! water depth at current time level
-    real, dimension(MCGRD), intent(in)        :: mudl2    ! mud thickness at current time level
-    real, dimension(MDC,6), intent(in)        :: spcdir   ! (*,1): spectral direction bins (radians)
-                                                          ! (*,2): cosine of spectral directions
-                                                          ! (*,3): sine of spectral directions
-                                                          ! (*,4): cosine^2 of spectral directions
-                                                          ! (*,5): cosine*sine of spectral directions
-                                                          ! (*,6): sine^2 of spectral directions
-    real, dimension(MSC), intent(in)          :: spcsig   ! relative frequency bins
+   real, dimension(MCGRD), intent(in)        :: dep2 ! water depth at current time level
+   real, dimension(MCGRD), intent(in)        :: mudl2 ! mud thickness at current time level
+   real, dimension(MDC,6), intent(in)        :: spcdir ! (*,1): spectral direction bins (radians)
+                                                         ! (*,2): cosine of spectral directions
+                                                         ! (*,3): sine of spectral directions
+                                                         ! (*,4): cosine^2 of spectral directions
+                                                         ! (*,5): cosine*sine of spectral directions
+                                                         ! (*,6): sine^2 of spectral directions
+   real, dimension(MSC), intent(in)          :: spcsig ! relative frequency bins
 !
 !   Local variables
 !
-    integer                                   :: ic       ! loop counter over computational grid points
-    integer                                   :: id       ! loop counter over direction bins
-    integer                                   :: ida      ! loop counter over direction bins
-    integer, save                             :: ient = 0 ! number of entries in this subroutine
-    integer                                   :: ik       ! x-index in wave number space
-    integer                                   :: is       ! loop counter over frequency bins
-    integer                                   :: istat    ! indicate status of allocation
-    integer                                   :: jk       ! y-index in wave number space
-    !
-    real, dimension(MSC)                      :: arr      ! auxiliary array
-    real                                      :: d        ! local depth
-    real                                      :: dm       ! local mud layer
-    real                                      :: fmax     ! maximum value of bottom spectrum at a computational point
-    real                                      :: ikb      ! broken coordinate for given point lx in wave number space
-    real                                      :: jkb      ! broken coordinate for given point ly in wave number space
-    real                                      :: k        ! frequency-dependent wave number
-    real, dimension(MSC)                      :: kwave    ! wave numbers for all frequencies
-    real                                      :: kcoff2   ! squared cutoff to bottom wave number
-    real                                      :: kcuti    ! inverse of cutoff to k/l
-    real                                      :: kd       ! = k * d
-    real                                      :: kxo      ! x-origin of wave number space
-    real                                      :: kyo      ! y-origin of wave number space
-    real                                      :: lx       ! x-component of wave number difference k - k'
-    real                                      :: ly       ! y-component of wave number difference k - k'
-    real                                      :: sxk1     ! first weight factor for distance in x-direction
-    real                                      :: sxk2     ! second weight factor for distance in x-direction
-    real                                      :: syk1     ! first weight factor for distance in y-direction
-    real                                      :: syk2     ! second weight factor for distance in y-direction
-    !
-    character(80)                             :: msgstr   ! string to pass message
+   integer                                   :: ic ! loop counter over computational grid points
+   integer                                   :: id ! loop counter over direction bins
+   integer                                   :: ida ! loop counter over direction bins
+   integer, save                             :: ient = 0 ! number of entries in this subroutine
+   integer                                   :: ik ! x-index in wave number space
+   integer                                   :: is ! loop counter over frequency bins
+   integer                                   :: istat ! indicate status of allocation
+   integer                                   :: jk ! y-index in wave number space
+   !
+   real, dimension(MSC)                      :: arr ! auxiliary array
+   real                                      :: d ! local depth
+   real                                      :: dm ! local mud layer
+   real                                      :: fmax ! maximum value of bottom spectrum at a computational point
+   real                                      :: ikb ! broken coordinate for given point lx in wave number space
+   real                                      :: jkb ! broken coordinate for given point ly in wave number space
+   real                                      :: k ! frequency-dependent wave number
+   real, dimension(MSC)                      :: kwave ! wave numbers for all frequencies
+   real                                      :: kcoff2 ! squared cutoff to bottom wave number
+   real                                      :: kcuti ! inverse of cutoff to k/l
+   real                                      :: kd ! = k * d
+   real                                      :: kxo ! x-origin of wave number space
+   real                                      :: kyo ! y-origin of wave number space
+   real                                      :: lx ! x-component of wave number difference k - k'
+   real                                      :: ly ! y-component of wave number difference k - k'
+   real                                      :: sxk1 ! first weight factor for distance in x-direction
+   real                                      :: sxk2 ! second weight factor for distance in x-direction
+   real                                      :: syk1 ! first weight factor for distance in y-direction
+   real                                      :: syk2 ! second weight factor for distance in y-direction
+   !
+   character(80)                             :: msgstr ! string to pass message
 !
 !   Structure
 !
@@ -662,109 +664,110 @@ subroutine SWFBXY ( dep2, mudl2, spcsig, spcdir )
 !
 !   Source text
 !
-    if (ltrace) call strace (ient,'SWFBXY')
-    !
-    ! allocate and initialize bed elevation spectrum at wave number difference
-    !
-    istat = 0
-    if (.not.allocated(fbdxy)) allocate(fbdxy(MDC,MDC,MSC,MCGRD), stat = istat)
-    if ( istat /= 0 ) then
-       write (msgstr, '(a,i6)') 'allocation problem: bottom spectrum and return code is ',istat
-       call msgerr ( 4, trim(msgstr) )
-       return
-    endif
-    !
-    fbdxy = 0.
-    !
-    kcuti = 1. / pbrag(2)
-    !
-    ! origin wave number space based on Nyquist
-    kxo = -0.5 * mkbx * dkbx
-    if ( mod(mkbx,2)/=0 ) kxo = kxo + 0.5 * dkbx
-    !
-    kyo = -0.5 * mkby * dkby
-    if ( mod(mkby,2)/=0 ) kyo = kyo + 0.5 * dkby
-    !
-    do ic = 1, MCGRD
-       !
-       fmax = maxval(abs(fb(:,:,ic)))
-       if ( .not. fmax > 1.e-6 ) cycle
-       !
-       d = dep2(ic)
-       !
-       if ( .not. d > DEPMIN ) cycle
-       !
-       if (VARMUD) then
-          dm = mudl2(ic)
-       else
-          dm = PMUD(1)
-       endif
-       !
-       ! compute wave number for all frequencies
-       !
-       call KSCIP1 ( MSC, spcsig, d, kwave, arr, arr, arr )
-       if ( IMUD == 1 ) call KSCIP2 ( MSC, spcsig, d, kwave, arr, arr, arr, arr, dm )
-       !
-       do is = 1, MSC
-          !
-          k  = kwave(is)
-          kd = k * d
-          !
-          if ( kd < 5. ) then
-             !
-             kcoff2 = ( kcuti * k )**2
-             !
-             do id = 1, MDC
-                do ida = 1, MDC
-                   !
-                   lx = k * ( spcdir(id,2) - spcdir(ida,2) )
-                   ly = k * ( spcdir(id,3) - spcdir(ida,3) )
-                   !
-                   if ( lx*lx + ly*ly > kcoff2 ) then
-                      !
-                      ikb = ( lx - kxo ) / dkbx
-                      jkb = ( ly - kyo ) / dkby
-                      !
-                      if ( .not. ikb > 0. ) then
-                         ik   = 1
-                         sxk2 = 0.
-                      else if ( .not. ikb < real(mkbx-1) ) then
-                         ik   = mkbx - 1
-                         sxk2 = 1.
-                      else
-                         ik   = int(ikb)
-                         sxk2 = ikb - real(ik)
-                         ik   = ik + 1
-                      endif
-                      !
-                      if ( .not. jkb > 0.) then
-                         jk   = 1
-                         syk2 = 0.
-                      else if ( .not. jkb < real(mkby-1) ) then
-                         jk   = mkby - 1
-                         syk2 = 1.
-                      else
-                         jk   = int(jkb)
-                         syk2 = jkb - real(jk)
-                         jk   = jk + 1
-                      endif
-                      !
-                      sxk1 = 1.- sxk2
-                      syk1 = 1.- syk2
-                      !
-                      fbdxy(ida,id,is,ic) = sxk1*syk1*fb(ik,jk,ic) + sxk1*syk2*fb(ik,jk+1,ic) + sxk2*syk1*fb(ik+1,jk,ic) + sxk2*syk2*fb(ik+1,jk+1,ic)
-                      !
-                   endif
-                   !
-                enddo
-                !
-             enddo
-             !
-          endif
-          !
-       enddo
-       !
-    enddo
+   if (ltrace) call strace (ient,'SWFBXY')
+   !
+   ! allocate and initialize bed elevation spectrum at wave number difference
+   !
+   istat = 0
+   if (.not.allocated(fbdxy)) allocate(fbdxy(MDC,MDC,MSC,MCGRD), stat = istat)
+   if ( istat /= 0 ) then
+      write (msgstr, '(a,i6)') 'allocation problem: bottom spectrum and return code is ',istat
+      call msgerr ( 4, trim(msgstr) )
+      return
+   endif
+   !
+   fbdxy = 0.
+   !
+   kcuti = 1. / pbrag(2)
+   !
+   ! origin wave number space based on Nyquist
+   kxo = -0.5 * mkbx * dkbx
+   if ( mod(mkbx,2)/=0 ) kxo = kxo + 0.5 * dkbx
+   !
+   kyo = -0.5 * mkby * dkby
+   if ( mod(mkby,2)/=0 ) kyo = kyo + 0.5 * dkby
+   !
+   do ic = 1, MCGRD
+      !
+      fmax = maxval(abs(fb(:,:,ic)))
+      if ( .not. fmax > 1.e-6 ) cycle
+      !
+      d = dep2(ic)
+      !
+      if ( .not. d > DEPMIN ) cycle
+      !
+      if (VARMUD) then
+         dm = mudl2(ic)
+      else
+         dm = PMUD(1)
+      endif
+      !
+      ! compute wave number for all frequencies
+      !
+      call KSCIP1 ( MSC, spcsig, d, kwave, arr, arr, arr )
+      if ( IMUD == 1 ) call KSCIP2 ( MSC, spcsig, d, kwave, arr, arr, arr, arr, dm )
+      !
+      do is = 1, MSC
+         !
+         k  = kwave(is)
+         kd = k * d
+         !
+         if ( kd < 5. ) then
+            !
+            kcoff2 = ( kcuti * k )**2
+            !
+            do id = 1, MDC
+               do ida = 1, MDC
+                  !
+                  lx = k * ( spcdir(id,2) - spcdir(ida,2) )
+                  ly = k * ( spcdir(id,3) - spcdir(ida,3) )
+                  !
+                  if ( lx*lx + ly*ly > kcoff2 ) then
+                     !
+                     ikb = ( lx - kxo ) / dkbx
+                     jkb = ( ly - kyo ) / dkby
+                     !
+                     if ( .not. ikb > 0. ) then
+                        ik   = 1
+                        sxk2 = 0.
+                     else if ( .not. ikb < real(mkbx-1) ) then
+                        ik   = mkbx - 1
+                        sxk2 = 1.
+                     else
+                        ik   = int(ikb)
+                        sxk2 = ikb - real(ik)
+                        ik   = ik + 1
+                     endif
+                     !
+                     if ( .not. jkb > 0.) then
+                        jk   = 1
+                        syk2 = 0.
+                     else if ( .not. jkb < real(mkby-1) ) then
+                        jk   = mkby - 1
+                        syk2 = 1.
+                     else
+                        jk   = int(jkb)
+                        syk2 = jkb - real(jk)
+                        jk   = jk + 1
+                     endif
+                     !
+                     sxk1 = 1.- sxk2
+                     syk1 = 1.- syk2
+                     !
+                     fbdxy(ida,id,is,ic) = sxk1*syk1*fb(ik,jk,ic) + sxk1*syk2*fb(ik,jk+1, &
+                           ic) + sxk2*syk1*fb(ik+1,jk,ic) + sxk2*syk2*fb(ik+1,jk+1,ic)
+                     !
+                  endif
+                  !
+               enddo
+               !
+            enddo
+            !
+         endif
+         !
+      enddo
+      !
+   enddo
     !
 end subroutine SWFBXY
 !
@@ -815,44 +818,44 @@ subroutine SWFB ( fbd, dep2, kwave, ecos, esin )
 !
 !   Modules used
 !
-    use ocpcomm4
-    use swcomm3
+   use ocpcomm4
+   use swcomm3
 !
-    implicit none
+   implicit none
 !
 !   Argument variables
 !
-    real, dimension(MCGRD), intent(in)        :: dep2     ! water depth at current time level
-    real, dimension(MDC), intent(in)          :: ecos     ! help array containing cosine of spectral directions
-    real, dimension(MDC), intent(in)          :: esin     ! help array containing sine of spectral directions
-    real, dimension(MDC,MDC,MSC), intent(out) :: fbd      ! bottom spectrum at wave number difference k - k'
-    real, dimension(MSC,MICMAX), intent(in)   :: kwave    ! wave number
+   real, dimension(MCGRD), intent(in)        :: dep2 ! water depth at current time level
+   real, dimension(MDC), intent(in)          :: ecos ! help array containing cosine of spectral directions
+   real, dimension(MDC), intent(in)          :: esin ! help array containing sine of spectral directions
+   real, dimension(MDC,MDC,MSC), intent(out) :: fbd ! bottom spectrum at wave number difference k - k'
+   real, dimension(MSC,MICMAX), intent(in)   :: kwave ! wave number
 !
 !   Local variables
 !
-    integer                                   :: id       ! loop counter over direction bins
-    integer                                   :: ida      ! loop counter over direction bins
-    integer, save                             :: ient = 0 ! number of entries in this subroutine
-    integer                                   :: ik       ! x-index in wave number space
-    integer                                   :: is       ! loop counter over frequency bins
-    integer                                   :: jk       ! y-index in wave number space
-    !
-    real                                      :: d        ! local depth
-    real                                      :: fmax     ! maximum value of bottom spectrum
-    real                                      :: ikb      ! broken coordinate for given point lx in wave number space
-    real                                      :: jkb      ! broken coordinate for given point ly in wave number space
-    real                                      :: k        ! local wave number
-    real                                      :: kcoff2   ! squared cutoff to bottom wave number
-    real                                      :: kcuti    ! inverse of cutoff to k/l
-    real                                      :: kd       ! = k * d
-    real                                      :: kxo      ! x-origin of wave number space
-    real                                      :: kyo      ! y-origin of wave number space
-    real                                      :: lx       ! x-component of wave number difference k - k'
-    real                                      :: ly       ! y-component of wave number difference k - k'
-    real                                      :: sxk1     ! first weight factor for distance in x-direction
-    real                                      :: sxk2     ! second weight factor for distance in x-direction
-    real                                      :: syk1     ! first weight factor for distance in y-direction
-    real                                      :: syk2     ! second weight factor for distance in y-direction
+   integer                                   :: id ! loop counter over direction bins
+   integer                                   :: ida ! loop counter over direction bins
+   integer, save                             :: ient = 0 ! number of entries in this subroutine
+   integer                                   :: ik ! x-index in wave number space
+   integer                                   :: is ! loop counter over frequency bins
+   integer                                   :: jk ! y-index in wave number space
+   !
+   real                                      :: d ! local depth
+   real                                      :: fmax ! maximum value of bottom spectrum
+   real                                      :: ikb ! broken coordinate for given point lx in wave number space
+   real                                      :: jkb ! broken coordinate for given point ly in wave number space
+   real                                      :: k ! local wave number
+   real                                      :: kcoff2 ! squared cutoff to bottom wave number
+   real                                      :: kcuti ! inverse of cutoff to k/l
+   real                                      :: kd ! = k * d
+   real                                      :: kxo ! x-origin of wave number space
+   real                                      :: kyo ! y-origin of wave number space
+   real                                      :: lx ! x-component of wave number difference k - k'
+   real                                      :: ly ! y-component of wave number difference k - k'
+   real                                      :: sxk1 ! first weight factor for distance in x-direction
+   real                                      :: sxk2 ! second weight factor for distance in x-direction
+   real                                      :: syk1 ! first weight factor for distance in y-direction
+   real                                      :: syk2 ! second weight factor for distance in y-direction
 !
 !   Structure
 !
@@ -860,82 +863,83 @@ subroutine SWFB ( fbd, dep2, kwave, ecos, esin )
 !
 !   Source text
 !
-    if (ltrace) call strace (ient,'SWFB')
-    !
-    fbd = 0.
-    !
-    fmax = maxval(abs(fb(:,:,KCGRD(1))))
-    if ( .not. fmax > 1.e-6 ) return
-    !
-    d = dep2(KCGRD(1))
-    !
-    kcuti = 1. / pbrag(2)
-    !
-    ! origin wave number space based on Nyquist
-    kxo = -0.5 * mkbx * dkbx
-    if ( mod(mkbx,2)/=0 ) kxo = kxo + 0.5 * dkbx
-    !
-    kyo = -0.5 * mkby * dkby
-    if ( mod(mkby,2)/=0 ) kyo = kyo + 0.5 * dkby
-    !
-    do is = 1, MSC
-       !
-       k  = kwave(is,1)
-       kd = k * d
-       !
-       if ( kd < 5. ) then
-          !
-          kcoff2 = ( kcuti * k )**2
-          !
-          do id = 1, MDC
-             do ida = 1, MDC
-                !
-                lx = k * ( ecos(id) - ecos(ida) )
-                ly = k * ( esin(id) - esin(ida) )
-                !
-                if ( lx*lx + ly*ly > kcoff2 ) then
-                   !
-                   ikb = ( lx - kxo ) / dkbx
-                   jkb = ( ly - kyo ) / dkby
-                   !
-                   if ( .not. ikb > 0. ) then
-                      ik   = 1
-                      sxk2 = 0.
-                   else if ( .not. ikb < real(mkbx-1) ) then
-                      ik   = mkbx - 1
-                      sxk2 = 1.
-                   else
-                      ik   = int(ikb)
-                      sxk2 = ikb - real(ik)
-                      ik   = ik + 1
-                   endif
-                   !
-                   if ( .not. jkb > 0.) then
-                      jk   = 1
-                      syk2 = 0.
-                   else if ( .not. jkb < real(mkby-1) ) then
-                      jk   = mkby - 1
-                      syk2 = 1.
-                   else
-                      jk   = int(jkb)
-                      syk2 = jkb - real(jk)
-                      jk   = jk + 1
-                   endif
-                   !
-                   sxk1 = 1.- sxk2
-                   syk1 = 1.- syk2
-                   !
-                   fbd(ida,id,is) = sxk1*syk1*fb(ik,jk,KCGRD(1)) + sxk1*syk2*fb(ik,jk+1,KCGRD(1)) + sxk2*syk1*fb(ik+1,jk,KCGRD(1)) + sxk2*syk2*fb(ik+1,jk+1,KCGRD(1))
-                   !
-                endif
-                !
-             enddo
-             !
-          enddo
-          !
-       endif
-       !
-    enddo
+   if (ltrace) call strace (ient,'SWFB')
+   !
+   fbd = 0.
+   !
+   fmax = maxval(abs(fb(:,:,KCGRD(1))))
+   if ( .not. fmax > 1.e-6 ) return
+   !
+   d = dep2(KCGRD(1))
+   !
+   kcuti = 1. / pbrag(2)
+   !
+   ! origin wave number space based on Nyquist
+   kxo = -0.5 * mkbx * dkbx
+   if ( mod(mkbx,2)/=0 ) kxo = kxo + 0.5 * dkbx
+   !
+   kyo = -0.5 * mkby * dkby
+   if ( mod(mkby,2)/=0 ) kyo = kyo + 0.5 * dkby
+   !
+   do is = 1, MSC
+      !
+      k  = kwave(is,1)
+      kd = k * d
+      !
+      if ( kd < 5. ) then
+         !
+         kcoff2 = ( kcuti * k )**2
+         !
+         do id = 1, MDC
+            do ida = 1, MDC
+               !
+               lx = k * ( ecos(id) - ecos(ida) )
+               ly = k * ( esin(id) - esin(ida) )
+               !
+               if ( lx*lx + ly*ly > kcoff2 ) then
+                  !
+                  ikb = ( lx - kxo ) / dkbx
+                  jkb = ( ly - kyo ) / dkby
+                  !
+                  if ( .not. ikb > 0. ) then
+                     ik   = 1
+                     sxk2 = 0.
+                  else if ( .not. ikb < real(mkbx-1) ) then
+                     ik   = mkbx - 1
+                     sxk2 = 1.
+                  else
+                     ik   = int(ikb)
+                     sxk2 = ikb - real(ik)
+                     ik   = ik + 1
+                  endif
+                  !
+                  if ( .not. jkb > 0.) then
+                     jk   = 1
+                     syk2 = 0.
+                  else if ( .not. jkb < real(mkby-1) ) then
+                     jk   = mkby - 1
+                     syk2 = 1.
+                  else
+                     jk   = int(jkb)
+                     syk2 = jkb - real(jk)
+                     jk   = jk + 1
+                  endif
+                  !
+                  sxk1 = 1.- sxk2
+                  syk1 = 1.- syk2
+                  !
+                  fbd(ida,id,is) = sxk1*syk1*fb(ik,jk,KCGRD(1)) + sxk1*syk2*fb(ik,jk+1, &
+                        KCGRD(1)) + sxk2*syk1*fb(ik+1,jk,KCGRD(1)) + sxk2*syk2*fb(ik+1,jk+1,KCGRD(1))
+                  !
+               endif
+               !
+            enddo
+            !
+         enddo
+         !
+      endif
+      !
+   enddo
     !
 end subroutine SWFB
 !
@@ -987,48 +991,48 @@ subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, iss
 !
 !   Modules used
 !
-    use ocpcomm4
-    use swcomm3
-    use swcomm4
+   use ocpcomm4
+   use swcomm3
+   use swcomm4
 !
-    implicit none
+   implicit none
 !
 !   Argument variables
 !
-    integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
-    !
-    integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
-    integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
-    !
-    real, dimension(MDC,MSC,MCGRD), intent(in)  :: ac2    ! action density at current time level
-    real, dimension(MSC,MICMAX), intent(in)     :: cgo    ! group velocity
-    real, dimension(MCGRD), intent(in)          :: dep2   ! water depth at current time level
-    real, dimension(MDC), intent(in)            :: ecos   ! help array containing cosine of spectral directions
-    real, dimension(MDC), intent(in)            :: esin   ! help array containing sine of spectral directions
-    real, dimension(MDC,MSC)      , intent(out) :: imatra ! coefficients of right hand side of action balance equation
-    real, dimension(MSC,MICMAX), intent(in)     :: kwave  ! wave number
-    real, dimension(MDC,MSC,NPTST), intent(out) :: plbrag ! array containing the bragg scattering source term for test output
-    real, dimension(MDC,MSC,MREDS), intent(out) :: redc0  ! explicit part of redistribution in present vertex for output purposes
-    real, dimension(MSC), intent(in)            :: spcsig ! relative frequency bins
+   integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
+   !
+   integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
+   integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
+   !
+   real, dimension(MDC,MSC,MCGRD), intent(in)  :: ac2 ! action density at current time level
+   real, dimension(MSC,MICMAX), intent(in)     :: cgo ! group velocity
+   real, dimension(MCGRD), intent(in)          :: dep2 ! water depth at current time level
+   real, dimension(MDC), intent(in)            :: ecos ! help array containing cosine of spectral directions
+   real, dimension(MDC), intent(in)            :: esin ! help array containing sine of spectral directions
+   real, dimension(MDC,MSC)      , intent(out) :: imatra ! coefficients of right hand side of action balance equation
+   real, dimension(MSC,MICMAX), intent(in)     :: kwave ! wave number
+   real, dimension(MDC,MSC,NPTST), intent(out) :: plbrag ! array containing the bragg scattering source term for test output
+   real, dimension(MDC,MSC,MREDS), intent(out) :: redc0 ! explicit part of redistribution in present vertex for output purposes
+   real, dimension(MSC), intent(in)            :: spcsig ! relative frequency bins
 !
 !   Local variables
 !
-    integer                               :: id       ! loop counter over direction bins
-    integer                               :: ida      ! loop counter over direction bins
-    integer                               :: iddum    ! counter in directional space
-    integer, save                         :: ient = 0 ! number of entries in this subroutine
-    integer                               :: is       ! loop counter over frequency bins
-    !
-    real                                  :: cf       ! coupling coefficient
-    real                                  :: cg       ! local group velocity
-    real                                  :: cosdif   ! = cos( t - t' )
-    real                                  :: d        ! local depth
-    real                                  :: edif     ! difference in action density N(k') - N(k)
-    real                                  :: fac      ! auxiliary factor
-    real                                  :: fbdif    ! local bottom spectrum at wave number difference FB( k - k' )
-    real                                  :: k        ! local wave number
-    real                                  :: kd       ! = k * d
-    real                                  :: sbragg   ! Bragg scattering contribution, see Eq. (2.48) of Ardhuin and Herbers (2002)
+   integer                               :: id ! loop counter over direction bins
+   integer                               :: ida ! loop counter over direction bins
+   integer                               :: iddum ! counter in directional space
+   integer, save                         :: ient = 0 ! number of entries in this subroutine
+   integer                               :: is ! loop counter over frequency bins
+   !
+   real                                  :: cf ! coupling coefficient
+   real                                  :: cg ! local group velocity
+   real                                  :: cosdif ! = cos( t - t' )
+   real                                  :: d ! local depth
+   real                                  :: edif ! difference in action density N(k') - N(k)
+   real                                  :: fac ! auxiliary factor
+   real                                  :: fbdif ! local bottom spectrum at wave number difference FB( k - k' )
+   real                                  :: k ! local wave number
+   real                                  :: kd ! = k * d
+   real                                  :: sbragg ! Bragg scattering contribution, see Eq. (2.48) of Ardhuin and Herbers (2002)
 !
 !   Structure
 !
@@ -1036,58 +1040,58 @@ subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, iss
 !
 !   Source text
 !
-    if (ltrace) call strace (ient,'SWBRAGG1')
-    !
-    d = dep2(KCGRD(1))
-    !
-    do is = 1, isstop
-       !
-       k  = kwave(is,1)
-       cg = cgo  (is,1)
-       kd = k * d
-       !
-       if ( kd < 5. ) then
-          !
-          fac = spcsig(is) / sinh( 2.*kd )
-          !
-          cf = PI2 * fac**2 * k**3 / cg
-          !
-          do iddum = idcmin(is), idcmax(is)
-             id = mod ( iddum - 1 + MDC , MDC ) + 1
-             !
-             sbragg = 0.
-             !
-             do ida = 1, MDC
-                !
-                cosdif = ecos(id)*ecos(ida) + esin(id)*esin(ida)
-                !
-                edif = ac2(ida,is,KCGRD(1)) - ac2(id,is,KCGRD(1))
-                !
-                fbdif = fbdxy(ida,id,is,KCGRD(1))
-                !
-                sbragg = sbragg + cosdif**2. * fbdif * edif
-                !
-             enddo
-             !
-             sbragg = cf * DDIR * sbragg
-             !
-             ! store the results in the array IMATRA
-             ! if TESTFL store results in array for isoline plot
-             !
-             imatra(id,is) = imatra(id,is) + sbragg
-             if ( TESTFL ) plbrag(id,is,iptst) = sbragg
-             redc0(id,is,3) = redc0(id,is,3) + sbragg
-             !
-             ! test output
-             !
-             if ( ITEST > 120 .and. TESTFL ) write (PRTEST, 100) KCGRD(1), id, is, d, cf, sbragg
- 100         format (' BRAGG: INDX ID IS DEP CHI BRAGG:', 3i6, 3(1x,e12.4))
-             !
-          enddo
-          !
-       endif
-       !
-    enddo
+   if (ltrace) call strace (ient,'SWBRAGG1')
+   !
+   d = dep2(KCGRD(1))
+   !
+   do is = 1, isstop
+      !
+      k  = kwave(is,1)
+      cg = cgo  (is,1)
+      kd = k * d
+      !
+      if ( kd < 5. ) then
+         !
+         fac = spcsig(is) / sinh( 2.*kd )
+         !
+         cf = PI2 * fac**2 * k**3 / cg
+         !
+         do iddum = idcmin(is), idcmax(is)
+            id = mod ( iddum - 1 + MDC , MDC ) + 1
+            !
+            sbragg = 0.
+            !
+            do ida = 1, MDC
+               !
+               cosdif = ecos(id)*ecos(ida) + esin(id)*esin(ida)
+               !
+               edif = ac2(ida,is,KCGRD(1)) - ac2(id,is,KCGRD(1))
+               !
+               fbdif = fbdxy(ida,id,is,KCGRD(1))
+               !
+               sbragg = sbragg + cosdif**2. * fbdif * edif
+               !
+            enddo
+            !
+            sbragg = cf * DDIR * sbragg
+            !
+            ! store the results in the array IMATRA
+            ! if TESTFL store results in array for isoline plot
+            !
+            imatra(id,is) = imatra(id,is) + sbragg
+            if ( TESTFL ) plbrag(id,is,iptst) = sbragg
+            redc0(id,is,3) = redc0(id,is,3) + sbragg
+            !
+            ! test output
+            !
+            if ( ITEST > 120 .and. TESTFL ) write (PRTEST, 100) KCGRD(1), id, is, d, cf, sbragg
+100         format (' BRAGG: INDX ID IS DEP CHI BRAGG:', 3i6, 3(1x,e12.4))
+            !
+         enddo
+         !
+      endif
+      !
+   enddo
     !
 end subroutine SWBRAGG1
 !
@@ -1139,49 +1143,49 @@ subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax
 !
 !   Modules used
 !
-    use ocpcomm4
-    use swcomm3
-    use swcomm4
+   use ocpcomm4
+   use swcomm3
+   use swcomm4
 !
-    implicit none
+   implicit none
 !
 !   Argument variables
 !
-    integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
-    !
-    integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
-    integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
-    !
-    real, dimension(MDC,MSC,MCGRD), intent(in)  :: ac2    ! action density at current time level
-    real, dimension(MSC,MICMAX), intent(in)     :: cgo    ! group velocity
-    real, dimension(MCGRD), intent(in)          :: dep2   ! water depth at current time level
-    real, dimension(MDC), intent(in)            :: ecos   ! help array containing cosine of spectral directions
-    real, dimension(MDC), intent(in)            :: esin   ! help array containing sine of spectral directions
-    real, dimension(MDC,MDC,MSC), intent(in)    :: fbd    ! bottom spectrum at wave number difference k - k'
-    real, dimension(MDC,MSC)      , intent(out) :: imatra ! coefficients of right hand side of action balance equation
-    real, dimension(MSC,MICMAX), intent(in)     :: kwave  ! wave number
-    real, dimension(MDC,MSC,NPTST), intent(out) :: plbrag ! array containing the bragg scattering source term for test output
-    real, dimension(MDC,MSC,MREDS), intent(out) :: redc0  ! explicit part of redistribution in present vertex for output purposes
-    real, dimension(MSC), intent(in)            :: spcsig ! relative frequency bins
+   integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
+   !
+   integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
+   integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
+   !
+   real, dimension(MDC,MSC,MCGRD), intent(in)  :: ac2 ! action density at current time level
+   real, dimension(MSC,MICMAX), intent(in)     :: cgo ! group velocity
+   real, dimension(MCGRD), intent(in)          :: dep2 ! water depth at current time level
+   real, dimension(MDC), intent(in)            :: ecos ! help array containing cosine of spectral directions
+   real, dimension(MDC), intent(in)            :: esin ! help array containing sine of spectral directions
+   real, dimension(MDC,MDC,MSC), intent(in)    :: fbd ! bottom spectrum at wave number difference k - k'
+   real, dimension(MDC,MSC)      , intent(out) :: imatra ! coefficients of right hand side of action balance equation
+   real, dimension(MSC,MICMAX), intent(in)     :: kwave ! wave number
+   real, dimension(MDC,MSC,NPTST), intent(out) :: plbrag ! array containing the bragg scattering source term for test output
+   real, dimension(MDC,MSC,MREDS), intent(out) :: redc0 ! explicit part of redistribution in present vertex for output purposes
+   real, dimension(MSC), intent(in)            :: spcsig ! relative frequency bins
 !
 !   Local variables
 !
-    integer                               :: id       ! loop counter over direction bins
-    integer                               :: ida      ! loop counter over direction bins
-    integer                               :: iddum    ! counter in directional space
-    integer, save                         :: ient = 0 ! number of entries in this subroutine
-    integer                               :: is       ! loop counter over frequency bins
-    !
-    real                                  :: cf       ! coupling coefficient
-    real                                  :: cg       ! local group velocity
-    real                                  :: cosdif   ! = cos( t - t' )
-    real                                  :: d        ! local depth
-    real                                  :: edif     ! difference in action density N(k') - N(k)
-    real                                  :: fac      ! auxiliary factor
-    real                                  :: fbdif    ! bottom spectrum at wave number difference FB( k - k' )
-    real                                  :: k        ! local wave number
-    real                                  :: kd       ! = k * d
-    real                                  :: sbragg   ! Bragg scattering contribution, see Eq. (2.48) of Ardhuin and Herbers (2002)
+   integer                               :: id ! loop counter over direction bins
+   integer                               :: ida ! loop counter over direction bins
+   integer                               :: iddum ! counter in directional space
+   integer, save                         :: ient = 0 ! number of entries in this subroutine
+   integer                               :: is ! loop counter over frequency bins
+   !
+   real                                  :: cf ! coupling coefficient
+   real                                  :: cg ! local group velocity
+   real                                  :: cosdif ! = cos( t - t' )
+   real                                  :: d ! local depth
+   real                                  :: edif ! difference in action density N(k') - N(k)
+   real                                  :: fac ! auxiliary factor
+   real                                  :: fbdif ! bottom spectrum at wave number difference FB( k - k' )
+   real                                  :: k ! local wave number
+   real                                  :: kd ! = k * d
+   real                                  :: sbragg ! Bragg scattering contribution, see Eq. (2.48) of Ardhuin and Herbers (2002)
 !
 !   Structure
 !
@@ -1189,58 +1193,58 @@ subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax
 !
 !   Source text
 !
-    if (ltrace) call strace (ient,'SWBRAGG2')
-    !
-    d = dep2(KCGRD(1))
-    !
-    do is = 1, isstop
-       !
-       k  = kwave(is,1)
-       cg = cgo  (is,1)
-       kd = k * d
-       !
-       if ( kd < 5. ) then
-          !
-          fac = spcsig(is) / sinh( 2.*kd )
-          !
-          cf = PI2 * fac**2 * k**3 / cg
-          !
-          do iddum = idcmin(is), idcmax(is)
-             id = mod ( iddum - 1 + MDC , MDC ) + 1
-             !
-             sbragg = 0.
-             !
-             do ida = 1, MDC
-                !
-                cosdif = ecos(id)*ecos(ida) + esin(id)*esin(ida)
-                !
-                edif = ac2(ida,is,KCGRD(1)) - ac2(id,is,KCGRD(1))
-                !
-                fbdif = fbd(ida,id,is)
-                !
-                sbragg = sbragg + cosdif**2. * fbdif * edif
-                !
-             enddo
-             !
-             sbragg = cf * DDIR * sbragg
-             !
-             ! store the results in the array IMATRA
-             ! if TESTFL store results in array for isoline plot
-             !
-             imatra(id,is) = imatra(id,is) + sbragg
-             if ( TESTFL ) plbrag(id,is,iptst) = sbragg
-             redc0(id,is,3) = redc0(id,is,3) + sbragg
-             !
-             ! test output
-             !
-             if ( ITEST > 120 .and. TESTFL ) write (PRTEST, 100) KCGRD(1), id, is, d, cf, sbragg
- 100         format (' BRAGG: INDX ID IS DEP CHI BRAGG:', 3i6, 3(1x,e12.4))
-             !
-          enddo
-          !
-       endif
-       !
-    enddo
+   if (ltrace) call strace (ient,'SWBRAGG2')
+   !
+   d = dep2(KCGRD(1))
+   !
+   do is = 1, isstop
+      !
+      k  = kwave(is,1)
+      cg = cgo  (is,1)
+      kd = k * d
+      !
+      if ( kd < 5. ) then
+         !
+         fac = spcsig(is) / sinh( 2.*kd )
+         !
+         cf = PI2 * fac**2 * k**3 / cg
+         !
+         do iddum = idcmin(is), idcmax(is)
+            id = mod ( iddum - 1 + MDC , MDC ) + 1
+            !
+            sbragg = 0.
+            !
+            do ida = 1, MDC
+               !
+               cosdif = ecos(id)*ecos(ida) + esin(id)*esin(ida)
+               !
+               edif = ac2(ida,is,KCGRD(1)) - ac2(id,is,KCGRD(1))
+               !
+               fbdif = fbd(ida,id,is)
+               !
+               sbragg = sbragg + cosdif**2. * fbdif * edif
+               !
+            enddo
+            !
+            sbragg = cf * DDIR * sbragg
+            !
+            ! store the results in the array IMATRA
+            ! if TESTFL store results in array for isoline plot
+            !
+            imatra(id,is) = imatra(id,is) + sbragg
+            if ( TESTFL ) plbrag(id,is,iptst) = sbragg
+            redc0(id,is,3) = redc0(id,is,3) + sbragg
+            !
+            ! test output
+            !
+            if ( ITEST > 120 .and. TESTFL ) write (PRTEST, 100) KCGRD(1), id, is, d, cf, sbragg
+100         format (' BRAGG: INDX ID IS DEP CHI BRAGG:', 3i6, 3(1x,e12.4))
+            !
+         enddo
+         !
+      endif
+      !
+   enddo
     !
 end subroutine SWBRAGG2
 !
@@ -1292,40 +1296,41 @@ subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin )
 !
 !   Modules used
 !
-    use ocpcomm4
-    use swcomm3
+   use ocpcomm4
+   use swcomm3
 !
-    implicit none
+   implicit none
 !
 !   Argument variables
 !
-    real, dimension(MDC,MSC,MCGRD), intent(in)  :: ac2    ! action density at current time level
-    real, dimension(MSC,MICMAX), intent(in)     :: cgo    ! group velocity
-    real, dimension(MCGRD), intent(in)          :: dep2   ! water depth at current time level
-    real, dimension(MDC), intent(in)            :: ecos   ! help array containing cosine of spectral directions
-    real, dimension(MDC), intent(in)            :: esin   ! help array containing sine of spectral directions
-    real, dimension(MDC,MDC,MSC), intent(in)    :: fbd    ! bottom spectrum at wave number difference k - k'
-    real, dimension(MSC,MICMAX), intent(in)     :: kwave  ! wave number
-    real, dimension(MDC,MSC,MCGRD), intent(out) :: membrg ! auxiliary array to store results of Bragg scattering in full spectral space
-    real, dimension(MSC), intent(in)            :: spcsig ! relative frequency bins
+   real, dimension(MDC,MSC,MCGRD), intent(in)  :: ac2 ! action density at current time level
+   real, dimension(MSC,MICMAX), intent(in)     :: cgo ! group velocity
+   real, dimension(MCGRD), intent(in)          :: dep2 ! water depth at current time level
+   real, dimension(MDC), intent(in)            :: ecos ! help array containing cosine of spectral directions
+   real, dimension(MDC), intent(in)            :: esin ! help array containing sine of spectral directions
+   real, dimension(MDC,MDC,MSC), intent(in)    :: fbd ! bottom spectrum at wave number difference k - k'
+   real, dimension(MSC,MICMAX), intent(in)     :: kwave ! wave number
+   ! auxiliary array to store results of Bragg scattering in full spectral space
+   real, dimension(MDC,MSC,MCGRD), intent(out) :: membrg
+   real, dimension(MSC), intent(in)            :: spcsig ! relative frequency bins
 !
 !   Local variables
 !
-    integer                               :: id       ! loop counter over direction bins
-    integer                               :: ida      ! loop counter over direction bins
-    integer, save                         :: ient = 0 ! number of entries in this subroutine
-    integer                               :: is       ! loop counter over frequency bins
-    !
-    real                                  :: cf       ! coupling coefficient
-    real                                  :: cg       ! local group velocity
-    real                                  :: cosdif   ! = cos( t - t' )
-    real                                  :: d        ! local depth
-    real                                  :: edif     ! difference in action density N(k') - N(k)
-    real                                  :: fac      ! auxiliary factor
-    real                                  :: fbdif    ! bottom spectrum at wave number difference FB( k - k' )
-    real                                  :: k        ! local wave number
-    real                                  :: kd       ! = k * d
-    real                                  :: sbragg   ! Bragg scattering contribution, see Eq. (2.48) of Ardhuin and Herbers (2002)
+   integer                               :: id ! loop counter over direction bins
+   integer                               :: ida ! loop counter over direction bins
+   integer, save                         :: ient = 0 ! number of entries in this subroutine
+   integer                               :: is ! loop counter over frequency bins
+   !
+   real                                  :: cf ! coupling coefficient
+   real                                  :: cg ! local group velocity
+   real                                  :: cosdif ! = cos( t - t' )
+   real                                  :: d ! local depth
+   real                                  :: edif ! difference in action density N(k') - N(k)
+   real                                  :: fac ! auxiliary factor
+   real                                  :: fbdif ! bottom spectrum at wave number difference FB( k - k' )
+   real                                  :: k ! local wave number
+   real                                  :: kd ! = k * d
+   real                                  :: sbragg ! Bragg scattering contribution, see Eq. (2.48) of Ardhuin and Herbers (2002)
 !
 !   Structure
 !
@@ -1333,49 +1338,49 @@ subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin )
 !
 !   Source text
 !
-    if (ltrace) call strace (ient,'SWBRAGG3')
-    !
-    d = dep2(KCGRD(1))
-    !
-    do is = 1, MSC
-       !
-       k  = kwave(is,1)
-       cg = cgo  (is,1)
-       kd = k * d
-       !
-       if ( kd < 5. ) then
-          !
-          fac = spcsig(is) / sinh( 2.*kd )
-          !
-          cf = PI2 * fac**2 * k**3 / cg
-          !
-          do id = 1, MDC
-             !
-             sbragg = 0.
-             !
-             do ida = 1, MDC
-                !
-                cosdif = ecos(id)*ecos(ida) + esin(id)*esin(ida)
-                !
-                edif = ac2(ida,is,KCGRD(1)) - ac2(id,is,KCGRD(1))
-                !
-                fbdif = fbd(ida,id,is)
-                !
-                sbragg = sbragg + cosdif**2. * fbdif * edif
-                !
-             enddo
-             !
-             membrg(id,is,KCGRD(1)) = cf * DDIR * sbragg
-             !
-          enddo
-          !
-       else
-          !
-          membrg(:,is,KCGRD(1)) = 0.
-          !
-       endif
-       !
-    enddo
+   if (ltrace) call strace (ient,'SWBRAGG3')
+   !
+   d = dep2(KCGRD(1))
+   !
+   do is = 1, MSC
+      !
+      k  = kwave(is,1)
+      cg = cgo  (is,1)
+      kd = k * d
+      !
+      if ( kd < 5. ) then
+         !
+         fac = spcsig(is) / sinh( 2.*kd )
+         !
+         cf = PI2 * fac**2 * k**3 / cg
+         !
+         do id = 1, MDC
+            !
+            sbragg = 0.
+            !
+            do ida = 1, MDC
+               !
+               cosdif = ecos(id)*ecos(ida) + esin(id)*esin(ida)
+               !
+               edif = ac2(ida,is,KCGRD(1)) - ac2(id,is,KCGRD(1))
+               !
+               fbdif = fbd(ida,id,is)
+               !
+               sbragg = sbragg + cosdif**2. * fbdif * edif
+               !
+            enddo
+            !
+            membrg(id,is,KCGRD(1)) = cf * DDIR * sbragg
+            !
+         enddo
+         !
+      else
+         !
+         membrg(:,is,KCGRD(1)) = 0.
+         !
+      endif
+      !
+   enddo
     !
 end subroutine SWBRAGG3
 !
@@ -1422,30 +1427,31 @@ subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 )
 !
 !   Modules used
 !
-    use ocpcomm4
-    use swcomm3
-    use swcomm4
+   use ocpcomm4
+   use swcomm3
+   use swcomm4
 !
-    implicit none
+   implicit none
 !
 !   Argument variables
 !
-    integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
-    !
-    integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
-    integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
-    !
-    real, dimension(MDC,MSC)      , intent(out) :: imatra ! coefficients of right hand side of action balance equation
-    real, dimension(MDC,MSC,MCGRD), intent(in)  :: membrg ! auxiliary array to store results of Bragg scattering in full spectral space
-    real, dimension(MDC,MSC,NPTST), intent(out) :: plbrag ! array containing the bragg scattering source term for test output
-    real, dimension(MDC,MSC,MREDS), intent(out) :: redc0  ! explicit part of redistribution in present vertex for output purposes
+   integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
+   !
+   integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
+   integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
+   !
+   real, dimension(MDC,MSC)      , intent(out) :: imatra ! coefficients of right hand side of action balance equation
+   ! auxiliary array to store results of Bragg scattering in full spectral space
+   real, dimension(MDC,MSC,MCGRD), intent(in)  :: membrg
+   real, dimension(MDC,MSC,NPTST), intent(out) :: plbrag ! array containing the bragg scattering source term for test output
+   real, dimension(MDC,MSC,MREDS), intent(out) :: redc0 ! explicit part of redistribution in present vertex for output purposes
 !
 !   Local variables
 !
-    integer       :: id       ! loop counter over direction bins
-    integer       :: iddum    ! counter in directional space
-    integer, save :: ient = 0 ! number of entries in this subroutine
-    integer       :: is       ! loop counter over frequency bins
+   integer       :: id ! loop counter over direction bins
+   integer       :: iddum ! counter in directional space
+   integer, save :: ient = 0 ! number of entries in this subroutine
+   integer       :: is ! loop counter over frequency bins
 !
 !   Structure
 !
@@ -1453,38 +1459,38 @@ subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 )
 !
 !   Source text
 !
-    if (ltrace) call strace (ient,'FILBRG')
-    !
-    do is = 1, isstop
-       !
-       do iddum = idcmin(is), idcmax(is)
-          id = mod ( iddum - 1 + MDC , MDC ) + 1
-          !
-          ! store the results in the array IMATRA
-          ! if TESTFL store results in array for isoline plot
-          !
-          imatra(id,is) = imatra(id,is) + membrg(id,is,KCGRD(1))
-          if ( TESTFL ) plbrag(id,is,IPTST) = membrg(id,is,KCGRD(1))
-          redc0(id,is,3) = redc0(id,is,3) + membrg(id,is,KCGRD(1))
-          !
-       enddo
-       !
-    enddo
-    !
-    if ( TESTFL .and. ITEST > 50 ) then
-       write (PRTEST,101) idcmin(1), idcmax(1), MSC, isstop
-       if ( ITEST > 100 ) then
-          do is = 1, isstop
-             do iddum = idcmin(is), idcmax(is)
-                id = mod ( iddum - 1 + MDC , MDC ) + 1
-                write (PRTEST,102) is, id, membrg(id,is,KCGRD(1))
-             enddo
-          enddo
-       endif
-    endif
-    !
- 101 format(' FILBRG: ID_MIN ID_MAX MSC ISTOP :',4i6)
- 102 format(' FILBRG: IS ID MEMBRG()          :',2i6,e12.4)
+   if (ltrace) call strace (ient,'FILBRG')
+   !
+   do is = 1, isstop
+      !
+      do iddum = idcmin(is), idcmax(is)
+         id = mod ( iddum - 1 + MDC , MDC ) + 1
+         !
+         ! store the results in the array IMATRA
+         ! if TESTFL store results in array for isoline plot
+         !
+         imatra(id,is) = imatra(id,is) + membrg(id,is,KCGRD(1))
+         if ( TESTFL ) plbrag(id,is,IPTST) = membrg(id,is,KCGRD(1))
+         redc0(id,is,3) = redc0(id,is,3) + membrg(id,is,KCGRD(1))
+         !
+      enddo
+      !
+   enddo
+   !
+   if ( TESTFL .and. ITEST > 50 ) then
+      write (PRTEST,101) idcmin(1), idcmax(1), MSC, isstop
+      if ( ITEST > 100 ) then
+         do is = 1, isstop
+            do iddum = idcmin(is), idcmax(is)
+               id = mod ( iddum - 1 + MDC , MDC ) + 1
+               write (PRTEST,102) is, id, membrg(id,is,KCGRD(1))
+            enddo
+         enddo
+      endif
+   endif
+   !
+101 format(' FILBRG: ID_MIN ID_MAX MSC ISTOP :',4i6)
+102 format(' FILBRG: IS ID MEMBRG()          :',2i6,e12.4)
     !
 end subroutine FILBRG
 !

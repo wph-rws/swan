@@ -31,12 +31,10 @@ else()
    set( HEXE hcat.exe )
 endif()
 
-# set the Fortran77 extension
-if( WIN32 )
-   set( EXTF for )
-else()
-   set( EXTF f   )
-endif()
+# all sources are free form; switch.pl writes the sources with the chosen
+# switches to the build folder, from where they are compiled
+set( EXTF f90 )
+set( SWITCHED ${CMAKE_BINARY_DIR}/switched )
 
 # extra build options for the user
 option( OPENMP "" OFF )

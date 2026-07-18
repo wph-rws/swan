@@ -33,7 +33,7 @@ endif()
 
 # set switches
 if( PERL_FOUND )
-  execute_process( COMMAND ${PERL_EXECUTABLE} ${CMAKE_SOURCE_DIR}/switch.pl ${SWITCHES} ${SRC}/*.ftn ${SRC}/*.ftn90 )
+  execute_process( COMMAND ${PERL_EXECUTABLE} ${CMAKE_SOURCE_DIR}/switch.pl -outdir ${SWITCHED} ${SWITCHES} ${SRC}/*.f90 )
 else()
   message( FATAL_ERROR "-- Cannot build ${CMAKE_PROJECT_NAME} without Perl" )
 endif()
@@ -115,7 +115,7 @@ endif()
 
 # build executable
 if( NOT TARGET ${EXE} )
-  set( swanmain ${SRC}/swanmain.${EXTF} )
+  set( swanmain ${SWITCHED}/swanmain.f90 )
   add_executable( ${EXE} ${swanmain} )
   target_link_libraries( ${EXE} swan${VERSION} ${MPI_Fortran_LIBRARIES} )
 endif()

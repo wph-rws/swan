@@ -47,42 +47,42 @@ module SwanGriddata
 !
 !   none
 !
-    implicit none
+   implicit none
 !
 !   Module parameters
 !
-    integer, parameter :: meth_adcirc   = 1 !
-    integer, parameter :: meth_triangle = 2 !
-    integer, parameter :: meth_easy     = 3 !
+   integer, parameter :: meth_adcirc   = 1 !
+   integer, parameter :: meth_triangle = 2 !
+   integer, parameter :: meth_easy     = 3 !
 !
 !   Module variables
 !
-    integer                                    :: grid_generator ! used grid generator
-    !
-    integer                                    :: ncells         ! number of cells in (subdomain) grid
-    integer                                    :: ncellsg        ! number of cells in global grid
-    integer                                    :: nfaces         ! number of faces in grid
-    integer                                    :: nverts         ! number of vertices in (subdomain) grid
-    integer                                    :: nvertsg        ! number of vertices in global grid
-    !
-    integer, dimension(:,:), save, allocatable :: kvertc         !
-    integer, dimension(:,:), save, allocatable :: kvertf         !
-    !
-    integer, dimension(:), save, allocatable   :: ivertg         ! global vertex index of local vertex
-    integer, dimension(:), save, allocatable   :: vmark          ! boundary marker for vertices
-    !
-    integer                                    :: excmark        ! exception boundary marker
-    integer                                    :: nsweep         ! fixed number of sweeps through grid
-    !
-    real                                       :: asort          ! ordering of vertices along user-given/wave/wind direction
-    real                                       :: maxgsiz        ! maximum gridsize
-    real                                       :: mingsiz        ! minimum gridsize
-    real                                       :: usort          ! user-given direction for sweep method
-    !
-    real, dimension(:), save, allocatable      :: xcugrd         ! the x-coordinates of the grid vertices
-    real, dimension(:), save, allocatable      :: xcugrdgl       ! the x-coordinates of the grid vertices in global grid
-    real, dimension(:), save, allocatable      :: ycugrd         ! the y-coordinates of the grid vertices
-    real, dimension(:), save, allocatable      :: ycugrdgl       ! the y-coordinates of the grid vertices in global grid
+   integer                                    :: grid_generator ! used grid generator
+   !
+   integer                                    :: ncells ! number of cells in (subdomain) grid
+   integer                                    :: ncellsg ! number of cells in global grid
+   integer                                    :: nfaces ! number of faces in grid
+   integer                                    :: nverts ! number of vertices in (subdomain) grid
+   integer                                    :: nvertsg ! number of vertices in global grid
+   !
+   integer, dimension(:,:), save, allocatable :: kvertc !
+   integer, dimension(:,:), save, allocatable :: kvertf !
+   !
+   integer, dimension(:), save, allocatable   :: ivertg ! global vertex index of local vertex
+   integer, dimension(:), save, allocatable   :: vmark ! boundary marker for vertices
+   !
+   integer                                    :: excmark ! exception boundary marker
+   integer                                    :: nsweep ! fixed number of sweeps through grid
+   !
+   real                                       :: asort ! ordering of vertices along user-given/wave/wind direction
+   real                                       :: maxgsiz ! maximum gridsize
+   real                                       :: mingsiz ! minimum gridsize
+   real                                       :: usort ! user-given direction for sweep method
+   !
+   real, dimension(:), save, allocatable      :: xcugrd ! the x-coordinates of the grid vertices
+   real, dimension(:), save, allocatable      :: xcugrdgl ! the x-coordinates of the grid vertices in global grid
+   real, dimension(:), save, allocatable      :: ycugrd ! the y-coordinates of the grid vertices
+   real, dimension(:), save, allocatable      :: ycugrdgl ! the y-coordinates of the grid vertices in global grid
 !
 !   Source text
 !

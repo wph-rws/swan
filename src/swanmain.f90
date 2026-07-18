@@ -26,11 +26,11 @@
 !
 !***********************************************************************
 !                                                                      *
-      PROGRAM SWAN
+PROGRAM SWAN
 !                                                                      *
 !***********************************************************************
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -94,7 +94,7 @@
 !     SWINITMPI                                                           40.30
 !     SWMAIN
 !
-      LOGICAL STPNOW                                                      40.30 34.01
+   LOGICAL STPNOW
 !
 ! 11. Remarks
 !
@@ -107,46 +107,46 @@
 !
 !     --- initialize the MPI execution environment                        40.30
 
-      CALL SWINITMPI                                                      40.30
-      IF (STPNOW()) GOTO 999                                              40.30
+   CALL SWINITMPI
+   IF (STPNOW()) GOTO 999
 
 !     --- start SWAN run
 
-      CALL SWMAIN                                                         40.31 34.01
+   CALL SWMAIN
 
-999   CONTINUE
+999 CONTINUE
 
 !     --- stop MPI                                                        40.30
 
-      CALL SWEXITMPI                                                      40.30
+   CALL SWEXITMPI
 !
 !     --- end of MAIN PROGRAM
 !
-      END
+END
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE SWMAIN                                                   40.31 34.01
+SUBROUTINE SWMAIN
 !                                                                      *
 !***********************************************************************
 !
-      USE TIMECOMM                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
-      USE OUTP_DATA                                                       40.51
-      USE M_GENARR                                                        40.31
-      USE M_BNDSPEC
-      USE M_PARALL                                                        40.31
-      USE SwanIEM                                                         41.85
-      USE SwanBraggScat                                                   41.80
-      USE SwanQCM                                                         41.90
-      USE SwanGriddata                                                    40.80
-!METIS      USE SwanParallel                                                    41.36
+   USE TIMECOMM
+   USE OCPCOMM2
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
+   USE OUTP_DATA
+   USE M_GENARR
+   USE M_BNDSPEC
+   USE M_PARALL
+   USE SwanIEM
+   USE SwanBraggScat
+   USE SwanQCM
+   USE SwanGriddata
+!METIS   USE SwanParallel
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -280,23 +280,23 @@
 !     LOPEN :     indicates whether a file is open                        34.01
 !     MSGSTR:     string to pass message to call MSGERR                   40.41
 !
-      INTEGER   IUNIT                                                     34.01
-      INTEGER   IOSTAT, IT0, IT, SAVITE, ILEN                             40.30
-      INTEGER   INERR                                                     40.31
-      INTEGER   ISTAT, IF1, IL1                                           40.41
-      CHARACTER COMPUT *4, DTTIWR*18                                      40.00
-      CHARACTER*20 NUMSTR, CHARS(1)                                       40.41
-      CHARACTER*80 MSGSTR                                                 40.41
-      LOGICAL   LOPEN                                                     34.01
-      INTEGER   IRQ, UPVD                                                 41.95
+   INTEGER   IUNIT
+   INTEGER   IOSTAT, IT0, IT, SAVITE, ILEN
+   INTEGER   INERR
+   INTEGER   ISTAT, IF1, IL1
+   CHARACTER COMPUT *4, DTTIWR*18
+   CHARACTER*20 NUMSTR, CHARS(1)
+   CHARACTER*80 MSGSTR
+   LOGICAL   LOPEN
+   INTEGER   IRQ, UPVD
 
-      INTEGER, ALLOCATABLE :: CROSS(:)                                    40.80 40.31
-      INTEGER, ALLOCATABLE :: BGRIDP(:)                                   40.31
-      REAL   , ALLOCATABLE :: BSPECS(:,:,:,:)                             40.31
-      REAL   , ALLOCATABLE :: AC1(:,:,:), COMPDA(:,:)                     40.31
+   INTEGER, ALLOCATABLE :: CROSS(:)
+   INTEGER, ALLOCATABLE :: BGRIDP(:)
+   REAL   , ALLOCATABLE :: BSPECS(:,:,:,:)
+   REAL   , ALLOCATABLE :: AC1(:,:,:), COMPDA(:,:)
 !
-      REAL, ALLOCATABLE    :: BLKND(:), BLKNDC(:)                         40.51 40.41
-      REAL*8, ALLOCATABLE  :: OURQT(:)                                    40.51 40.41
+   REAL, ALLOCATABLE    :: BLKND(:), BLKNDC(:)
+   REAL*8, ALLOCATABLE  :: OURQT(:)
 !
 !  7. Common blocks used
 !
@@ -326,7 +326,7 @@
 !     NUMSTR : Converts integer/real to string                            40.41
 !     TXPBLA : Removes leading and trailing blanks in string              40.41
 !
-      LOGICAL STPNOW                                                      34.01
+   LOGICAL STPNOW
 !
 !  9. Subroutines calling
 !
@@ -369,427 +369,427 @@
 ! 13. Source text
 !
 !     --- initialize various data
-!TIMG
-!TIMG      DCUMTM(:,1:2) = 0D0                                                 40.23
-!TIMG      NCUMTM(:)     = 0                                                   40.23
-!TIMG      CALL SWTSTA(1)                                                      40.23
 
-      LEVERR=0                                                            40.23
-      MAXERR=1                                                            34.01
-      ITRACE=0                                                            40.23
-      INERR =0                                                            40.31
-      ISTAT =0
+!TIMG   DCUMTM(:,1:2) = 0D0
+!TIMG   NCUMTM(:)     = 0
+!TIMG   CALL SWTSTA(1)
 
-!TIMG      CALL SWTSTA(2)                                                      40.23
-      CALL SWINIT (INERR)                                                 40.31 34.01
-!TIMG      CALL SWTSTO(2)                                                      40.23
-      IF (INERR.GT.0) RETURN                                              34.01
-      IF (STPNOW()) RETURN                                                34.01
+   LEVERR=0
+   MAXERR=1
+   ITRACE=0
+   INERR =0
+   ISTAT =0
+
+!TIMG   CALL SWTSTA(2)
+   CALL SWINIT (INERR)
+!TIMG   CALL SWTSTO(2)
+   IF (INERR.GT.0) RETURN
+   IF (STPNOW()) RETURN
 !
-      COMPUT = '    '
-      RUNMADE=.FALSE.                                                     41.79
+   COMPUT = '    '
+   RUNMADE=.FALSE.
 
 !     --- repeat
 
-      DO
+   DO
 
 !       --- read and process user commands
 
-!TIMG        CALL SWTSTA(3)                                                    40.23
-        CALL SWREAD (COMPUT)                                              40.31 30.90
-!TIMG        CALL SWTSTO(3)                                                    40.23
-        IF (STPNOW()) RETURN                                              34.01
+!TIMG      CALL SWTSTA(3)
+      CALL SWREAD (COMPUT)
+!TIMG      CALL SWTSTO(3)
+      IF (STPNOW()) RETURN
 
 !       --- if last command was STOP then exit from repeat
 
-        IF (COMPUT.EQ.'STOP') THEN                                        40.13
-          IUNIT  = 0                                                      40.13
-          IOSTAT = 0                                                      40.13
-          FILENM = 'norm_end'                                             40.13
-          CALL FOR (IUNIT, FILENM, 'UF', IOSTAT)                          40.13
-          WRITE (IUNIT, *) ' Normal end of run ', PROJNR                  40.13
-          GOTO 900                                                        40.13
-        ENDIF                                                             40.13
+      IF (COMPUT.EQ.'STOP') THEN
+         IUNIT  = 0
+         IOSTAT = 0
+         FILENM = 'norm_end'
+         CALL FOR (IUNIT, FILENM, 'UF', IOSTAT)
+         WRITE (IUNIT, *) ' Normal end of run ', PROJNR
+         GOTO 900
+      ENDIF
 !
 !       --- surfbeat: initialize variables and arrays for 2nd COMPUTE     41.85
 !
-        IF ( ntf.GT.0 ) CALL SwanIEMinitig
+      IF ( ntf.GT.0 ) CALL SwanIEMinitig
 
 !       --- allocate some arrays meant for computation                    40.31
 
-        IF (NUMOBS .GT. 0) THEN
-           IF (OPTG.NE.5) THEN                                            40.80
+      IF (NUMOBS .GT. 0) THEN
+         IF (OPTG.NE.5) THEN
 !             structured grid                                             40.80
-              ILEN = 2*MCGRD                                              40.80
-           ELSE                                                           40.80
+            ILEN = 2*MCGRD
+         ELSE
 !             unstructured grid                                           40.80
-              ILEN = nfaces                                               40.80
-           ENDIF                                                          40.80
-           IF (.NOT.ALLOCATED(CROSS)) ALLOCATE(CROSS(ILEN))               40.80 40.31
-        ELSE
-           IF (.NOT.ALLOCATED(CROSS)) ALLOCATE(CROSS(0))                  40.80 40.31
-        ENDIF                                                             34.01
-        IF (ALOBND.AND.ALLOCATED(BSPECS)) DEALLOCATE(BSPECS)
-        IF (.NOT.ALLOCATED(BSPECS)) ALLOCATE(BSPECS(MDC,MSC,NBSPEC,2))    40.31
-        IF (ALOBND.AND.ALLOCATED(BGRIDP)) DEALLOCATE(BGRIDP)
-        IF (.NOT.ALLOCATED(BGRIDP)) ALLOCATE(BGRIDP(6*NBGRPT))            40.31
+            ILEN = nfaces
+         ENDIF
+         IF (.NOT.ALLOCATED(CROSS)) ALLOCATE(CROSS(ILEN))
+      ELSE
+         IF (.NOT.ALLOCATED(CROSS)) ALLOCATE(CROSS(0))
+      ENDIF
+      IF (ALOBND.AND.ALLOCATED(BSPECS)) DEALLOCATE(BSPECS)
+      IF (.NOT.ALLOCATED(BSPECS)) ALLOCATE(BSPECS(MDC,MSC,NBSPEC,2))
+      IF (ALOBND.AND.ALLOCATED(BGRIDP)) DEALLOCATE(BGRIDP)
+      IF (.NOT.ALLOCATED(BGRIDP)) ALLOCATE(BGRIDP(6*NBGRPT))
 
 !       --- do some preparations before computation                       40.31
 
-!TIMG        CALL SWTSTA(4)                                                    40.23
-        CALL SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID, YCGRID, KGRPNT,     40.31
-     &                KGRBND, SPCDIR, SPCSIG )                            40.31
-        IF (OPTG.EQ.5) CALL SwanPrepComp ( CROSS )                        40.80
-        IF (STPNOW()) RETURN                                              40.80
-        ALOBND = .FALSE.
-!TIMG        CALL SWTSTO(4)                                                    40.23
+!TIMG      CALL SWTSTA(4)
+      CALL SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID, YCGRID, KGRPNT, &
+                    KGRBND, SPCDIR, SPCSIG )
+      IF (OPTG.EQ.5) CALL SwanPrepComp ( CROSS )
+      IF (STPNOW()) RETURN
+      ALOBND = .FALSE.
+!TIMG      CALL SWTSTO(4)
 
 !       --- check all possible flags and if necessary change
 !           if option is not correct
 
-        CALL ERRCHK                                                       30.60
-        IF (STPNOW()) RETURN                                              34.01
+      CALL ERRCHK
+      IF (STPNOW()) RETURN
 
 !       --- compute mean depths and bottom spectra                        41.80
 !           in case of Bragg scattering
-        IF ( IBRAG.NE.0 ) CALL SWBRBOT                                    41.80
-        IF (STPNOW()) RETURN                                              41.80
+      IF ( IBRAG.NE.0 ) CALL SWBRBOT
+      IF (STPNOW()) RETURN
 
 !       --- initialisation of necessary grids for depth,
 !           current, wind and friction
 
-        IF (ALOCMP.AND.ALLOCATED(COMPDA)) DEALLOCATE(COMPDA)              40.97
-        IF (.NOT.ALLOCATED(COMPDA)) THEN                                  40.97
-           ALLOCATE(COMPDA(MCGRD,MCMVAR),STAT=ISTAT)                      40.97 40.41 40.31
-           COMPDA = 0.                                                    43.02
-           ALOCMP = .FALSE.                                               40.97
-        END IF                                                            40.97
-        IF ( ISTAT.NE.0 ) THEN                                            40.41
-           CHARS(1) = NUMSTR(ISTAT,RNAN,'(I6)')                           40.41
-           CALL TXPBLA(CHARS(1),IF1,IL1)                                  40.41
-           MSGSTR =                                                       40.41
-     &         'Allocation problem: array COMPDA and return code is '//   40.41
-     &         CHARS(1)(IF1:IL1)                                          40.41
-           CALL MSGERR ( 4, MSGSTR )                                      40.41
-           RETURN                                                         40.41
-        END IF                                                            40.41
+      IF (ALOCMP.AND.ALLOCATED(COMPDA)) DEALLOCATE(COMPDA)
+      IF (.NOT.ALLOCATED(COMPDA)) THEN
+         ALLOCATE(COMPDA(MCGRD,MCMVAR),STAT=ISTAT)
+         COMPDA = 0.
+         ALOCMP = .FALSE.
+      END IF
+      IF ( ISTAT.NE.0 ) THEN
+         CHARS(1) = NUMSTR(ISTAT,RNAN,'(I6)')
+         CALL TXPBLA(CHARS(1),IF1,IL1)
+         MSGSTR = &
+             'Allocation problem: array COMPDA and return code is '// &
+             CHARS(1)(IF1:IL1)
+         CALL MSGERR ( 4, MSGSTR )
+         RETURN
+      END IF
 
-!TIMG        CALL SWTSTA(5)                                                    40.23
-        CALL SWRBC(COMPDA)                                                40.31
-!TIMG        CALL SWTSTO(5)                                                    40.23
+!TIMG      CALL SWTSTA(5)
+      CALL SWRBC(COMPDA)
+!TIMG      CALL SWTSTO(5)
 
-        IF ( IBRAG.NE.0 ) THEN                                            41.80
+      IF ( IBRAG.NE.0 ) THEN
 !          arrays dpmean and botspc are temporary, can be de-allocated
-           IF (ALLOCATED(dpmean)) DEALLOCATE(dpmean)                      41.80
-           IF (ALLOCATED(botspc)) DEALLOCATE(botspc)                      41.80
+         IF (ALLOCATED(dpmean)) DEALLOCATE(dpmean)
+         IF (ALLOCATED(botspc)) DEALLOCATE(botspc)
 
 !          --- compute bed elevation spectrum at wave number difference   41.80
 !              for the whole computational grid                           41.80
-           IF (IBRAG.EQ.1) CALL SWFBXY(COMPDA(1,JDP2), COMPDA(1,JMUDL2),  41.80
-     &                                 SPCSIG        , SPCDIR          )
-           IF (STPNOW()) RETURN
-        ENDIF
+         IF (IBRAG.EQ.1) CALL SWFBXY(COMPDA(1,JDP2), COMPDA(1,JMUDL2), &
+                                     SPCSIG        , SPCDIR          )
+         IF (STPNOW()) RETURN
+      ENDIF
 
 !       --- setup a vertex list
 
-        IF (OPTG.EQ.5) CALL SwanVertlist(COMPDA)
+      IF (OPTG.EQ.5) CALL SwanVertlist(COMPDA)
 
 !       --- allocate AC1 in case of non-stationary situation or in case   40.31
 !           of using the S&L scheme                                       40.31
 
-        IF ( NSTATM.EQ.1 .AND. MXITNS.GT.1 .OR. PROPSC.EQ.3 ) THEN        40.31
-           IF (.NOT.ALLOCATED(AC1)) THEN                                  40.41 40.31
-              ALLOCATE(AC1(MDC,MSC,MCGRD),STAT=ISTAT)                     40.41
-           ELSE IF (SIZE(AC1).EQ.0) THEN                                  40.41
-              DEALLOCATE(AC1)                                             40.41
-              ALLOCATE(AC1(MDC,MSC,MCGRD),STAT=ISTAT)                     40.41
-           END IF                                                         40.41
-           IF ( ISTAT.NE.0 ) THEN                                         40.41
-              CHARS(1) = NUMSTR(ISTAT,RNAN,'(I6)')                        40.41
-              CALL TXPBLA(CHARS(1),IF1,IL1)                               40.41
-              MSGSTR =                                                    40.41
-     &            'Allocation problem: array AC1 and return code is '//   40.41
-     &            CHARS(1)(IF1:IL1)                                       40.41
-              CALL MSGERR ( 4, MSGSTR )                                   40.41
-              RETURN                                                      40.41
-           END IF                                                         40.41
-           AC1 = 0.                                                       40.31
-        ELSE                                                              40.31
-           IF(.NOT.ALLOCATED(AC1)) ALLOCATE(AC1(0,0,0))                   40.31
-        ENDIF
+      IF ( NSTATM.EQ.1 .AND. MXITNS.GT.1 .OR. PROPSC.EQ.3 ) THEN
+         IF (.NOT.ALLOCATED(AC1)) THEN
+            ALLOCATE(AC1(MDC,MSC,MCGRD),STAT=ISTAT)
+         ELSE IF (SIZE(AC1).EQ.0) THEN
+            DEALLOCATE(AC1)
+            ALLOCATE(AC1(MDC,MSC,MCGRD),STAT=ISTAT)
+         END IF
+         IF ( ISTAT.NE.0 ) THEN
+            CHARS(1) = NUMSTR(ISTAT,RNAN,'(I6)')
+            CALL TXPBLA(CHARS(1),IF1,IL1)
+            MSGSTR = &
+                'Allocation problem: array AC1 and return code is '// &
+                CHARS(1)(IF1:IL1)
+            CALL MSGERR ( 4, MSGSTR )
+            RETURN
+         END IF
+         AC1 = 0.
+      ELSE
+         IF(.NOT.ALLOCATED(AC1)) ALLOCATE(AC1(0,0,0))
+      ENDIF
 
-        IF (LEVERR.GT.MAXERR) THEN                                        40.00
+      IF (LEVERR.GT.MAXERR) THEN
 
-          WRITE (PRINTF, 6010) LEVERR
-          IF (LEVERR.LT.4) WRITE (PRINTF, 6011)                           30.72
- 6010     FORMAT(' ** No start of computation because of error level:'
-     &      ,I3)
- 6011     FORMAT(' ** To ignore this error, change [maxerr] with the',    30.72
-     &           ' SET command')                                          30.72
+         WRITE (PRINTF, 6010) LEVERR
+         IF (LEVERR.LT.4) WRITE (PRINTF, 6011)
+6010     FORMAT(' ** No start of computation because of error level:' &
+            ,I3)
+6011     FORMAT(' ** To ignore this error, change [maxerr] with the', &
+                ' SET command')
 
-        ELSE
+      ELSE
 !
-          IF (ITEST.GE.40) THEN                                           40.00
-            IF (NSTATC.EQ.1) THEN                                         33.08
-              WRITE (PRINTF, '(" Type of computation: dynamic")')         32.02
-            ELSE                                                          32.02
-              IF (ONED) THEN                                              32.02
-                WRITE (PRINTF, '(" Type of computation: static 1-D")')    32.02
-              ELSE                                                        32.02
-                WRITE (PRINTF, '(" Type of computation: static 2-D")')    32.02
-              ENDIF                                                       32.02
-            ENDIF                                                         32.02
-          ENDIF
+         IF (ITEST.GE.40) THEN
+            IF (NSTATC.EQ.1) THEN
+               WRITE (PRINTF, '(" Type of computation: dynamic")')
+            ELSE
+               IF (ONED) THEN
+                  WRITE (PRINTF, '(" Type of computation: static 1-D")')
+               ELSE
+                  WRITE (PRINTF, '(" Type of computation: static 2-D")')
+               ENDIF
+            ENDIF
+         ENDIF
 !
-          IF (NSTATC.EQ.1) THEN                                           40.00
-            IT0 = 0                                                       40.00
-            IF (ICOND.EQ.1) THEN                                          40.00
+         IF (NSTATC.EQ.1) THEN
+            IT0 = 0
+            IF (ICOND.EQ.1) THEN
 !
 !             --- compute default initial conditions
 !
-!TIMG              CALL SWTSTA(6)                                              40.23
-              CALL SWINCO ( AC2   , COMPDA, XCGRID, YCGRID,               40.31
-     &                      KGRPNT, SPCDIR, SPCSIG, XYTST )               40.31
-!TIMG              CALL SWTSTO(6)                                              40.23
+!TIMG               CALL SWTSTA(6)
+               CALL SWINCO ( AC2   , COMPDA, XCGRID, YCGRID, &
+                             KGRPNT, SPCDIR, SPCSIG, XYTST )
+!TIMG               CALL SWTSTO(6)
 !
 !             --- reset ICOND to prevent second computation of
 !                 initial condition
-              ICOND = 0                                                   40.00
+               ICOND = 0
 
             ENDIF
-          ELSE
+         ELSE
             IT0 = 1
-          ENDIF
+         ENDIF
 
 !         --- synchronize nodes                                           40.30
 
-          CALL SWSYNC                                                     40.30
-          IF (STPNOW()) RETURN                                            40.30
+         CALL SWSYNC
+         IF (STPNOW()) RETURN
 
 !         --- loop over time steps                                        40.00
 
-          DO 500 IT = IT0, MTC                                            40.00
+         DO 500 IT = IT0, MTC
 !
-            IF (LEVERR.GT.MAXERR) THEN                                    30.82
-              WRITE (PRINTF, 6030) LEVERR                                 30.82
-              IF (LEVERR.LT.4) WRITE (PRINTF, 6011)                       40.30 30.82
- 6030         FORMAT(' ** No continuation of computation because ',       30.82
-     &               'of error level:',I3)                                30.82
-              EXIT                                                        40.30
-            ENDIF                                                         30.82
+            IF (LEVERR.GT.MAXERR) THEN
+               WRITE (PRINTF, 6030) LEVERR
+               IF (LEVERR.LT.4) WRITE (PRINTF, 6011)
+6030           FORMAT(' ** No continuation of computation because ', &
+                      'of error level:',I3)
+               EXIT
+            ENDIF
 
 !           --- synchronize nodes
 
-            CALL SWSYNC                                                   40.30
-            IF (STPNOW()) RETURN                                          40.30
+            CALL SWSYNC
+            IF (STPNOW()) RETURN
 !
 !           --- update boundary conditions and input fields
 !
-!TIMG            CALL SWTSTA(7)                                                40.23
-            CALL SNEXTI ( BSPECS, BGRIDP, COMPDA, AC1   , AC2   ,         40.31
-     &                    SPCSIG, SPCDIR, XCGRID, YCGRID, KGRPNT,         40.31
-     &                    XYTST , DEPTH , WLEVL , FRIC  , UXB   ,         40.31
-     &                    UYB   , NPLAF , TURBF , MUDLF , WXI   ,         40.59 40.35 40.55 40.31
-     &                    AICEF , HICEF , HSSF  , TSSF  , DSSF  ,         42.06 41.82 41.75
-     &                    WYI   )
-!TIMG            CALL SWTSTO(7)                                                40.23
-            IF (STPNOW()) RETURN                                          34.01
+!TIMG            CALL SWTSTA(7)
+            CALL SNEXTI ( BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
+                          SPCSIG, SPCDIR, XCGRID, YCGRID, KGRPNT, &
+                          XYTST , DEPTH , WLEVL , FRIC  , UXB   , &
+                          UYB   , NPLAF , TURBF , MUDLF , WXI   , &
+                          AICEF , HICEF , HSSF  , TSSF  , DSSF  , &
+                          WYI   )
+!TIMG            CALL SWTSTO(7)
+            IF (STPNOW()) RETURN
 !
 !           --- initialize quasi-coherent modelling framework             41.90
 !               note: data of incident spectrum is required
 
-            IF ( IQCM.NE.0 .AND. IT.EQ.IT0 )                              41.90
-     &                                  CALL SWQCINIT ( BGRIDP, COMPDA )  41.90
-            IF (STPNOW()) RETURN                                          41.90
+            IF ( IQCM.NE.0 .AND. IT.EQ.IT0 ) &
+                                        CALL SWQCINIT ( BGRIDP, COMPDA )
+            IF (STPNOW()) RETURN
 !
 !           --- synchronize nodes
 
-            CALL SWSYNC                                                   40.30
-            IF (STPNOW()) RETURN                                          40.30
+            CALL SWSYNC
+            IF (STPNOW()) RETURN
 
-            IF (COMPUT.NE.'NOCO' .AND. IT.GT.0) THEN                      40.00
+            IF (COMPUT.NE.'NOCO' .AND. IT.GT.0) THEN
 
-              SAVITE = ITEST                                              30.21
-              IF (ICOTES .GT. ITEST) ITEST = ICOTES
+               SAVITE = ITEST
+               IF (ICOTES .GT. ITEST) ITEST = ICOTES
 !
 !             --- compute action density for current time step
 !
-!TIMG              CALL SWTSTA(8)                                              40.23
-              IF (OPTG.NE.5) THEN                                         40.80
+!TIMG               CALL SWTSTA(8)
+               IF (OPTG.NE.5) THEN
 !                structured grid                                          40.80
-                 CALL SWCOMP( AC1   , AC2   , COMPDA, SPCDIR, SPCSIG,     40.31
-     &                        XYTST , IT    , KGRPNT, XCGRID, YCGRID,     40.31
-     &                        CROSS )                                     40.31
-              ELSE                                                        40.80
+                  CALL SWCOMP( AC1   , AC2   , COMPDA, SPCDIR, SPCSIG, &
+                               XYTST , IT    , KGRPNT, XCGRID, YCGRID, &
+                               CROSS )
+               ELSE
 !                unstructured grid                                        40.80
-                 CALL SwanCompUnstruc ( AC2   , AC1   , COMPDA,           40.80
-     &                                  SPCSIG, SPCDIR, XYTST ,           40.80
-     &                                  CROSS , IT    )                   40.80
-              ENDIF                                                       40.80
-!TIMG              CALL SWTSTO(8)                                              40.23
-              IF (STPNOW()) RETURN                                        34.01
+                  CALL SwanCompUnstruc ( AC2   , AC1   , COMPDA, &
+                                         SPCSIG, SPCDIR, XYTST , &
+                                         CROSS , IT    )
+               ENDIF
+!TIMG               CALL SWTSTO(8)
+               IF (STPNOW()) RETURN
 !
 !             --- set ICOND=4 for stationary computation, for next
 !                 (stationary) COMPUTE command                            40.13
-              ICOND = 4                                                   40.13
+               ICOND = 4
 !
 !             --- check whether computed significant wave height at       32.01
 !                 boundary differs from prescribed value given in         32.01
 !                 boundary command values of incident Hs                  32.01
 !
-              IF ( BNDCHK ) THEN                                          32.01
-                CALL HSOBND ( AC2, SPCSIG, COMPDA(1,JHSIBC), KGRPNT )     40.31
-              ENDIF                                                       32.01
+               IF ( BNDCHK ) THEN
+                  CALL HSOBND ( AC2, SPCSIG, COMPDA(1,JHSIBC), KGRPNT )
+               ENDIF
 !
 !             --- compute surfbeat based on IEM, if appropriate           41.85
 !
-              IF ( LSRFB .AND. ntf.LT.0 ) THEN                            41.85
-                 !
-                 CALL SwanIEMmeanwav ( AC2, COMPDA(1,JHSIBC), SPCSIG,
-     &                                 KGRPNT, COMPDA(1,JHS) )
-                 CALL SwanIEMncalc
-                 IF ( STPNOW() ) RETURN
-                 CALL SwanIEMsrfbeat ( COMPDA(1,JHS ), AC2,
-     &                                 COMPDA(1,JDP2),
-     &                                 SPCDIR, SPCSIG, KGRPNT )
-                 !
-              ENDIF
+               IF ( LSRFB .AND. ntf.LT.0 ) THEN
+                  !
+                  CALL SwanIEMmeanwav ( AC2, COMPDA(1,JHSIBC), SPCSIG, &
+                                        KGRPNT, COMPDA(1,JHS) )
+                  CALL SwanIEMncalc
+                  IF ( STPNOW() ) RETURN
+                  CALL SwanIEMsrfbeat ( COMPDA(1,JHS ), AC2, &
+                                        COMPDA(1,JDP2), &
+                                        SPCDIR, SPCSIG, KGRPNT )
+                  !
+               ENDIF
 !
-              ITEST = SAVITE                                              30.21
+               ITEST = SAVITE
 
             ENDIF
 !
-            IF ( IT.EQ.IT0 .AND. .NOT.ALLOCATED(OURQT) ) THEN             40.51 40.31
-               ALLOCATE (OURQT(MAX_OUTP_REQ))                             40.51 40.30
-               OURQT = -9999.                                             40.51 40.30
-            ENDIF                                                         40.00
+            IF ( IT.EQ.IT0 .AND. .NOT.ALLOCATED(OURQT) ) THEN
+               ALLOCATE (OURQT(MAX_OUTP_REQ))
+               OURQT = -9999.
+            ENDIF
 !
-            SAVITE = ITEST                                                30.21
+            SAVITE = ITEST
             IF (IOUTES .GT. ITEST) ITEST = IOUTES
 
 !           --- synchronize nodes
 
-            CALL SWSYNC                                                   40.30
-            IF (STPNOW()) RETURN                                          40.30
+            CALL SWSYNC
+            IF (STPNOW()) RETURN
 
 !           --- carry out the output requests
 
-!TIMG            CALL SWTSTA(9)                                                40.30
-            CALL SWOUTP ( AC2   , SPCSIG, SPCDIR, COMPDA, XYTST ,         40.31
-     &                    KGRPNT, XCGRID, YCGRID, OURQT )                 40.51 40.31
-!TIMG            CALL SWTSTO(9)                                                40.30
-            IF (STPNOW()) RETURN                                          40.30
+!TIMG            CALL SWTSTA(9)
+            CALL SWOUTP ( AC2   , SPCSIG, SPCDIR, COMPDA, XYTST , &
+                          KGRPNT, XCGRID, YCGRID, OURQT )
+!TIMG            CALL SWTSTO(9)
+            IF (STPNOW()) RETURN
 !
-            IF (ERRPTS.GT.0) REWIND(ERRPTS)                               30.50
-            ITEST = SAVITE                                                30.21
+            IF (ERRPTS.GT.0) REWIND(ERRPTS)
+            ITEST = SAVITE
 
 !           --- update time
 
-            IF (NSTATC.EQ.1) THEN                                         40.00
-              IF (IT.LT.MTC) THEN
-                 TIMCO = TIMCO + DT                                       40.00
-                 CHTIME = DTTIWR(ITMOPT, TIMCO)                           40.00
-                 WRITE (PRINTF, 222) CHTIME, TIMCO                        40.00
-              ENDIF
- 222          FORMAT(' Time of computation ->  ',A,' in sec:', F12.0)     40.00
-            ENDIF                                                         40.00
+            IF (NSTATC.EQ.1) THEN
+               IF (IT.LT.MTC) THEN
+                  TIMCO = TIMCO + DT
+                  CHTIME = DTTIWR(ITMOPT, TIMCO)
+                  WRITE (PRINTF, 222) CHTIME, TIMCO
+               ENDIF
+222            FORMAT(' Time of computation ->  ',A,' in sec:', F12.0)
+            ENDIF
 
- 500      CONTINUE
+500      CONTINUE
 
-          IF (LEVERR.GT.MAXERR) GOTO 900                                  40.30
+         IF (LEVERR.GT.MAXERR) GOTO 900
 
-        END IF
+      END IF
 
-      END DO
+   END DO
 !
- 900  CONTINUE
+900 CONTINUE
 !
-!TIMG      CALL SWTSTO(1)                                                      40.23
+!TIMG   CALL SWTSTO(1)
 !
 !     finalize PVD collection files
 !
-      DO IRQ = 1, MAX_OUTP_REQ                                            41.95
-         UPVD=UPVDF(IRQ)                                                  41.95
-         IF (UPVD.GT.0) THEN                                              41.95
-            WRITE(UPVD,'(A)') TRIM(PVDLIN3)                               41.95
-            WRITE(UPVD,'(A)') TRIM(PVDLIN4)                               41.95
-         ENDIF                                                            41.95
-      ENDDO                                                               41.95
+   DO IRQ = 1, MAX_OUTP_REQ
+      UPVD=UPVDF(IRQ)
+      IF (UPVD.GT.0) THEN
+         WRITE(UPVD,'(A)') TRIM(PVDLIN3)
+         WRITE(UPVD,'(A)') TRIM(PVDLIN4)
+      ENDIF
+   ENDDO
 !
-      DO IUNIT=1,HIOPEN                                                   34.01
-         INQUIRE ( UNIT=IUNIT, OPENED=LOPEN, NAME=FILENM )                41.79 34.01
-         IF (LOPEN.AND.IUNIT.NE.PRINTF.AND.
-     &       FILENM.NE.'CONOUT$'.AND.FILENM.NE.'CONIN$') CLOSE(IUNIT)     41.79 40.30
-      END DO                                                              34.01
+   DO IUNIT=1,HIOPEN
+      INQUIRE ( UNIT=IUNIT, OPENED=LOPEN, NAME=FILENM )
+      IF (LOPEN.AND.IUNIT.NE.PRINTF.AND. &
+          FILENM.NE.'CONOUT$'.AND.FILENM.NE.'CONIN$') CLOSE(IUNIT)
+   END DO
 
 !     --- collect contents of individual process files for                40.30
 !         output requests in case of parallel computation                 40.30
 
-      CALL SWSYNC                                                         40.30
-!TIMG      CALL SWTSTA(9)                                                      40.30
-      IF ( PARLL ) THEN                                                   40.30
-         IF (OPTG.NE.5) THEN                                              41.36
-            ALLOCATE (BLKND(MXC*MYC))                                     40.51 40.41
-            BLKND = REAL(INODE)                                           40.41
-         ENDIF                                                            41.36
-         IF ( IAMMASTER ) THEN                                            40.95
-            ALLOCATE(BLKNDC(MXCGL*MYCGL))                                 40.51 40.41
-            BLKNDC = 0.                                                   40.96
-         END IF
-         IF (OPTG.NE.5) THEN                                              41.36
-            CALL SWCOLLECT ( BLKNDC, BLKND, .TRUE. )                      40.51 40.41
-            IF (STPNOW()) RETURN                                          40.41
-         ELSE                                                             41.36
-!METIS            BLKNDC = REAL(ipown)                                          41.36
-         ENDIF                                                            41.36
-         IF ( IAMMASTER ) THEN                                            40.95 40.30
-            CALL SWCOLOUT ( OURQT, BLKNDC )                               40.51 40.41 40.30
-            DEALLOCATE(BLKNDC)                                            40.41 40.30
-         END IF                                                           40.30
-      END IF                                                              40.30
-!TIMG      CALL SWTSTO(9)                                                      40.30
+   CALL SWSYNC
+!TIMG   CALL SWTSTA(9)
+   IF ( PARLL ) THEN
+      IF (OPTG.NE.5) THEN
+         ALLOCATE (BLKND(MXC*MYC))
+         BLKND = REAL(INODE)
+      ENDIF
+      IF ( IAMMASTER ) THEN
+         ALLOCATE(BLKNDC(MXCGL*MYCGL))
+         BLKNDC = 0.
+      END IF
+      IF (OPTG.NE.5) THEN
+         CALL SWCOLLECT ( BLKNDC, BLKND, .TRUE. )
+         IF (STPNOW()) RETURN
+      ELSE
+!METIS         BLKNDC = REAL(ipown)
+      ENDIF
+      IF ( IAMMASTER ) THEN
+         CALL SWCOLOUT ( OURQT, BLKNDC )
+         DEALLOCATE(BLKNDC)
+      END IF
+   END IF
+!TIMG   CALL SWTSTO(9)
 !
-!TIMG      CALL SWPRTI                                                         40.23
+!TIMG   CALL SWPRTI
 !
-      INQUIRE(UNIT=PRINTF,OPENED=LOPEN)                                   40.30
-      IF (LOPEN) CLOSE(PRINTF)                                            40.30
+   INQUIRE(UNIT=PRINTF,OPENED=LOPEN)
+   IF (LOPEN) CLOSE(PRINTF)
 !
 !     --- deallocate all allocated arrays                                 40.31
 
-      IF (ALLOCATED(AC1   )) DEALLOCATE(AC1   )                           40.31
-      IF (ALLOCATED(BGRIDP)) DEALLOCATE(BGRIDP)                           40.31
-      IF (ALLOCATED(BSPECS)) DEALLOCATE(BSPECS)                           40.31
-      IF (ALLOCATED(COMPDA)) DEALLOCATE(COMPDA)                           40.31
-      IF (ALLOCATED(CROSS )) DEALLOCATE(CROSS )                           40.31
-      IF (ALLOCATED(OURQT )) DEALLOCATE(OURQT )                           40.51 40.30
-      IF (ALLOCATED(BLKND )) DEALLOCATE(BLKND )                           40.41
-      CALL SWCLME                                                         40.31
+   IF (ALLOCATED(AC1   )) DEALLOCATE(AC1   )
+   IF (ALLOCATED(BGRIDP)) DEALLOCATE(BGRIDP)
+   IF (ALLOCATED(BSPECS)) DEALLOCATE(BSPECS)
+   IF (ALLOCATED(COMPDA)) DEALLOCATE(COMPDA)
+   IF (ALLOCATED(CROSS )) DEALLOCATE(CROSS )
+   IF (ALLOCATED(OURQT )) DEALLOCATE(OURQT )
+   IF (ALLOCATED(BLKND )) DEALLOCATE(BLKND )
+   CALL SWCLME
 !
-      RETURN                                                              30.82
+   RETURN
 !     end of subroutine SWMAIN
-      END
+END
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE SWINIT (INERR)                                           40.31 34.01
+SUBROUTINE SWINIT (INERR)
 !                                                                      *
 !***********************************************************************
 
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
-      USE TIMECOMM                                                        40.41
-      USE OUTP_DATA, ONLY: NREOQ, LOPS, LORQ, UPVDF                       41.95 41.79
-      USE M_SNL4                                                          40.17
-      USE M_BNDSPEC                                                       40.31
-      USE M_PARALL                                                        40.31
-      USE SwanGriddata                                                    40.80
-      USE SwanIEM, only: sflog                                            41.85
-      USE SwanQCM                                                         41.90
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
+   USE TIMECOMM
+   USE OUTP_DATA, ONLY: NREOQ, LOPS, LORQ, UPVDF
+   USE M_SNL4
+   USE M_BNDSPEC
+   USE M_PARALL
+   USE SwanGriddata
+   USE SwanIEM, only: sflog
+   USE SwanQCM
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -926,7 +926,7 @@
 !
 !     INERR : Number of the initialisation error
 !
-      INTEGER INERR
+   INTEGER INERR
 !
 !  6. Local variables
 !
@@ -935,7 +935,7 @@
 !
 !  8. Subroutines used
 !
-      LOGICAL STPNOW                                                      34.01
+   LOGICAL STPNOW
 !
 !  9. Subroutines calling
 !
@@ -961,282 +961,282 @@
 !
 ! 13. Source text
 !
-      VERTXT = BLANK                                                      40.03
-      VERNUM = 41.51
-      WRITE (VERTXT, '(F5.2)') VERNUM                                     40.03
-      CALL BUGFIX ('A')
-      CALL BUGFIX ('B')
+   VERTXT = BLANK
+   VERNUM = 41.51
+   WRITE (VERTXT, '(F5.2)') VERNUM
+   CALL BUGFIX ('A')
+   CALL BUGFIX ('B')
 !
-      CALL OCPINI ('swaninit', .TRUE.,INERR)                              34.01
-      IF (INERR.GT.0) RETURN                                              34.01
-      IF (STPNOW()) RETURN                                                34.01
+   CALL OCPINI ('swaninit', .TRUE.,INERR)
+   IF (INERR.GT.0) RETURN
+   IF (STPNOW()) RETURN
 !
-      WRITE (PRINTF, 6010) VERTXT                                         40.03
- 6010 FORMAT (/,20X,'---------------------------------------',
-     &        /,20X,'                 SWAN',
-     &        /,20X,'SIMULATION OF WAVES IN NEAR SHORE AREAS',
-     &        /,20X,'         VERSION NUMBER ', A,                        40.03
-     &        /,20X,'---------------------------------------',//)
+   WRITE (PRINTF, 6010) VERTXT
+6010 FORMAT (/,20X,'---------------------------------------', &
+             /,20X,'                 SWAN', &
+             /,20X,'SIMULATION OF WAVES IN NEAR SHORE AREAS', &
+             /,20X,'         VERSION NUMBER ', A, &
+             /,20X,'---------------------------------------',//)
 !
-      IF (SCREEN.NE.PRINTF.AND.IAMMASTER) WRITE (SCREEN,6020)             40.95 40.30
- 6020 FORMAT (/, ' SWAN is preparing computation',/)
+   IF (SCREEN.NE.PRINTF.AND.IAMMASTER) WRITE (SCREEN,6020)
+6020 FORMAT (/, ' SWAN is preparing computation',/)
 !
 !     ***** initial values for common variables *****
 !     ***** names *****
-      PROJID = 'SWAN'
-      PROJNR = BLANK
-      PROJT1 = BLANK
-      PROJT2 = BLANK
-      PROJT3 = BLANK
-      FNEST  = BLANK
-      FBCR   = BLANK
-      FBCL   = BLANK
-      UH     = 'm'
-      UV     = 'm/s'
-      UT     = 'sec'
-      UL     = 'm'
-      UET    = 'm3/s'
-      UDI    = 'degr'
-      UST    = 'm2/s2'
-      UF     = 'N/m2'
-      UP     = 'W/m'
-      UAP    = 'W/m2'
-      UDL    = 'm2/s'
+   PROJID = 'SWAN'
+   PROJNR = BLANK
+   PROJT1 = BLANK
+   PROJT2 = BLANK
+   PROJT3 = BLANK
+   FNEST  = BLANK
+   FBCR   = BLANK
+   FBCL   = BLANK
+   UH     = 'm'
+   UV     = 'm/s'
+   UT     = 'sec'
+   UL     = 'm'
+   UET    = 'm3/s'
+   UDI    = 'degr'
+   UST    = 'm2/s2'
+   UF     = 'N/m2'
+   UP     = 'W/m'
+   UAP    = 'W/m2'
+   UDL    = 'm2/s'
 !     ***** physical parameters *****
-      GRAV   = 9.81
-      WLEV   = 0.
-      CASTD  = 0.               ! const. air-sea temp diff                40.03
-      CDCAP  = 99999.
-      USCAP  = 99999.                                                     40.88
-      PI     = 4.*ATAN(1.)                                                40.31
-      PI2    = 2.*PI
-      UNDFLW = 1.E-15
-      DNORTH = 90.                                                        30.72
-      DEGRAD = PI/180.
-      RHO    = 1025.
+   GRAV   = 9.81
+   WLEV   = 0.
+   CASTD  = 0. ! const. air-sea temp diff
+   CDCAP  = 99999.
+   USCAP  = 99999.
+   PI     = 4.*ATAN(1.)
+   PI2    = 2.*PI
+   UNDFLW = 1.E-15
+   DNORTH = 90.
+   DEGRAD = PI/180.
+   RHO    = 1025.
 !     power of tail in spectrum, 1: E with f, 2: E with k,
 !                                3: A with f, 4: A with k
-      PWTAIL(1) = 4.
-      PWTAIL(2) = 2.5
-      PWTAIL(3) = PWTAIL(1)+1.                                            30.72
-      PWTAIL(4) = 3.
+   PWTAIL(1) = 4.
+   PWTAIL(2) = 2.5
+   PWTAIL(3) = PWTAIL(1)+1.
+   PWTAIL(4) = 3.
 !     ***** number of computational grid points ****                      30.60
-      MCGRD   = 1                                                         30.60
-      MCGRDGL = 1                                                         40.30
-      NGRBND  = 0                                                         40.00
-      NGRBGL  = 0                                                         40.30
-      nverts  = 0                                                         40.80
-      ncells  = 0                                                         40.80
-      nfaces  = 0                                                         40.80
+   MCGRD   = 1
+   MCGRDGL = 1
+   NGRBND  = 0
+   NGRBGL  = 0
+   nverts  = 0
+   ncells  = 0
+   nfaces  = 0
 !     time of computation                                                 40.00
-      TIMCO = -1.E10                                                      40.00
-      CHTIME = '    '                                                     40.00
+   TIMCO = -1.E10
+   CHTIME = '    '
 !     boundary conditions                                                 40.00
-      NBFILS = 0                                                          40.00
-      NBSPEC = 0                                                          40.00
-      NBGRPT = 0                                                          40.00
-      NBGGL  = 0                                                          40.51
-      FSHAPE = 2                                                          40.00
-      DSHAPE = 2                                                          40.00
-      PSHAPE(1) = 3.3                                                     40.00
-      PSHAPE(2) = 0.1                                                     40.00
-      ALOBND = .FALSE.
+   NBFILS = 0
+   NBSPEC = 0
+   NBGRPT = 0
+   NBGGL  = 0
+   FSHAPE = 2
+   DSHAPE = 2
+   PSHAPE(1) = 3.3
+   PSHAPE(2) = 0.1
+   ALOBND = .FALSE.
 !     ***** input grids *****
-      DO 80 IGRID = 1, NUMGRD
-        XPG(IGRID)    = 0.
-        YPG(IGRID)    = 0.
-        ALPG(IGRID)   = 0.
-        COSPG(IGRID)  = 1.                                                40.13
-        SINPG(IGRID)  = 0.
-        DXG(IGRID)    = 0.
-        DYG(IGRID)    = 0.
-        MXG(IGRID)    = 0
-        MYG(IGRID)    = 0
-        LEDS(IGRID)   = 0
-        STAGX(IGRID)  = 0.                                                30.21
-        STAGY(IGRID)  = 0.                                                30.21
-        EXCFLD(IGRID) = -1.E20                                            30.60
-        IFLDYN(IGRID) = 0                                                 40.00
-        IFLTIM(IGRID) = -1.E20                                            40.00
-  80  CONTINUE
+   DO 80 IGRID = 1, NUMGRD
+      XPG(IGRID)    = 0.
+      YPG(IGRID)    = 0.
+      ALPG(IGRID)   = 0.
+      COSPG(IGRID)  = 1.
+      SINPG(IGRID)  = 0.
+      DXG(IGRID)    = 0.
+      DYG(IGRID)    = 0.
+      MXG(IGRID)    = 0
+      MYG(IGRID)    = 0
+      LEDS(IGRID)   = 0
+      STAGX(IGRID)  = 0.
+      STAGY(IGRID)  = 0.
+      EXCFLD(IGRID) = -1.E20
+      IFLDYN(IGRID) = 0
+      IFLTIM(IGRID) = -1.E20
+80 CONTINUE
 !     ***** computational grid *****
-      OPTG   = 1                                                          40.80
-      MXC    = 0
-      MYC    = 0
-      MXCGL  = 0                                                          40.30
-      MYCGL  = 0                                                          40.30
-      MXF    = 1                                                          40.30
-      MXL    = 0                                                          40.80 40.30
-      MYF    = 1                                                          40.30
-      MYL    = 0                                                          40.80 40.30
-      MSC    = 0
-      MDC    = 0
-      MTC    = 1
-      ICOMP  = 1
-      ALPC   = 0.
-      FULCIR = .TRUE.
-      SPDIR1 = 0.
-      excmark = 999                                                       43.01
-      asort  = -999.                                                      41.48
-      usort  = -999.                                                      41.68
-      nsweep = -999                                                       41.68
-      CCURV  = .FALSE.                                                    41.53
+   OPTG   = 1
+   MXC    = 0
+   MYC    = 0
+   MXCGL  = 0
+   MYCGL  = 0
+   MXF    = 1
+   MXL    = 0
+   MYF    = 1
+   MYL    = 0
+   MSC    = 0
+   MDC    = 0
+   MTC    = 1
+   ICOMP  = 1
+   ALPC   = 0.
+   FULCIR = .TRUE.
+   SPDIR1 = 0.
+   excmark = 999
+   asort  = -999.
+   usort  = -999.
+   nsweep = -999
+   CCURV  = .FALSE.
 !     number of points needed in computational stencil:
-      ICMAX  = 5
+   ICMAX  = 5
 !     ***** numerical scheme *****
-      NCOR   = 1
-      NSTATM = -1                                                         40.00
-      NSTATC = -1                                                         40.00
-      NCOMPT = 0                                                          40.41
+   NCOR   = 1
+   NSTATM = -1
+   NSTATC = -1
+   NCOMPT = 0
 !
 !     initialise number of iterations stationary and nonstationary        40.03
-      MXITST = 50                                                         40.80 40.03
-      MXITNS = 1                                                          40.03
-      ITERMX = MXITST                                                     40.03
-      ICUR   = 0
-      IDIF   = 0
-      IINC   = 0
+   MXITST = 50
+   MXITNS = 1
+   ITERMX = MXITST
+   ICUR   = 0
+   IDIF   = 0
+   IINC   = 0
 !
 !     --- meaning IREFR:                                                  40.31
 !         IREFR = -1: limiter on Ctheta activated                         30.80
 !         IREFR =  1: No limiter on Ctheta                                30.80
 !         IREFR =  0: No refraction                                       30.80
 !
-      IREFR  = 1                                                          40.02
-      ITFRE  = 1
-      IWIND  = 0
+   IREFR  = 1
+   ITFRE  = 1
+   IWIND  = 0
 !     when coupled with ADCIRC, the default is to use ADCIRC drag formulation
-      IDRAG  = 1                                                          42.00 41.49 41.33
-      IGEN   = 3                                                          32.06
-      IQUAD  = 2                                                          30.72
-      IWCAP  = 7                                                          42.00
-      ISURF  = 1
-      IBOT   = 0
-      ITRIAD = 0
-      IBIPH  = 0                                                          41.97
-      IMUD   = 0                                                          40.59
-      IVEG   = 0                                                          40.55
-      ITURBV = 0                                                          40.35
-      IICE   = 0                                                          41.75
-      ICEWIND= 0.                                                         41.75
-      IBRAG  = 0                                                          41.80
-      IQCM   = 0                                                          41.90
-      VARWI  = .FALSE.
-      VARFR  = .FALSE.
-      VARWLV = .FALSE.                                                    20.38
-      VARAST = .FALSE.       ! True means spatially variable air-sea t.d. 40.03
-      VARMUD = .FALSE.                                                    40.59
-      VARAICE= .FALSE.                                                    41.75
-      VARHICE= .FALSE.                                                    41.75
-      VARNPL = .FALSE.                                                    40.55
-      VARTUR = .FALSE.                                                    40.35
-      VARHSS = .FALSE.                                                    41.82
-      VARTSS = .FALSE.                                                    41.82
-      VARDSS = .FALSE.                                                    42.06
-      U10    = 0.
-      WDIP   = 0.
-      INRHOG = 0                                                          30.20
-      DEPMIN = 0.05
-      SY0    = 3.3
-      SIGMAG = 0.1
-      XOFFS  = 0.
-      YOFFS  = 0.
-      LXOFFS = .FALSE.
-      DYNDEP = .FALSE.                                                    40.00
-      LWDATE = 0                                                          41.13
-      MXOUTAR = 0
+   IDRAG  = 1
+   IGEN   = 3
+   IQUAD  = 2
+   IWCAP  = 7
+   ISURF  = 1
+   IBOT   = 0
+   ITRIAD = 0
+   IBIPH  = 0
+   IMUD   = 0
+   IVEG   = 0
+   ITURBV = 0
+   IICE   = 0
+   ICEWIND= 0.
+   IBRAG  = 0
+   IQCM   = 0
+   VARWI  = .FALSE.
+   VARFR  = .FALSE.
+   VARWLV = .FALSE.
+   VARAST = .FALSE. ! True means spatially variable air-sea t.d.
+   VARMUD = .FALSE.
+   VARAICE= .FALSE.
+   VARHICE= .FALSE.
+   VARNPL = .FALSE.
+   VARTUR = .FALSE.
+   VARHSS = .FALSE.
+   VARTSS = .FALSE.
+   VARDSS = .FALSE.
+   U10    = 0.
+   WDIP   = 0.
+   INRHOG = 0
+   DEPMIN = 0.05
+   SY0    = 3.3
+   SIGMAG = 0.1
+   XOFFS  = 0.
+   YOFFS  = 0.
+   LXOFFS = .FALSE.
+   DYNDEP = .FALSE.
+   LWDATE = 0
+   MXOUTAR = 0
 !
-      FBS%NBS = -999                                                      40.31
-      LOPS    = .FALSE.                                                   41.79
-      LORQ    = .FALSE.                                                   41.79
+   FBS%NBS = -999
+   LOPS    = .FALSE.
+   LORQ    = .FALSE.
 !
 !     Set the defaults for the MDIA:                                      40.17
 
-      MDIA  = 6                                                           40.17
-      ALLOCATE(LAMBDA(MDIA),CNL4_1(MDIA),CNL4_2(MDIA))                    40.17
-      LAMBDA = (/0.08,0.09,0.11,0.15,0.16,0.29/)                          40.17
-      CNL4_1 = (/8.77,-13.82,10.02,-15.92,14.41,0.65/)                    40.17
-      CNL4_2 = CNL4_1                                                     40.17
-      CNL4_1 = CNL4_1 * ((2.*PI)**9)                                      40.17
-      CNL4_2 = CNL4_2 * ((2.*PI)**9)                                      40.17
+   MDIA  = 6
+   ALLOCATE(LAMBDA(MDIA),CNL4_1(MDIA),CNL4_2(MDIA))
+   LAMBDA = (/0.08,0.09,0.11,0.15,0.16,0.29/)
+   CNL4_1 = (/8.77,-13.82,10.02,-15.92,14.41,0.65/)
+   CNL4_2 = CNL4_1
+   CNL4_1 = CNL4_1 * ((2.*PI)**9)
+   CNL4_2 = CNL4_2 * ((2.*PI)**9)
 !
 !     *** Initial conditions ***
-      ICOND = 0                                                          060697
+   ICOND = 0
 !
-      BNAUT  = .FALSE.                                                    32.01
-      BNDCHK = .TRUE.                                                     32.01
-      BRESCL = .TRUE.                                                     40.00
-      ONED   = .FALSE.                                                    32.02
-      ACUPDA = .TRUE.                                                     40.07
-      OFFSRC = .FALSE.                                                    40.80
-      LADDS  = .FALSE.                                                    40.85
-      LSPNAR = .FALSE.
-      HSRERR = 0.1                                                        32.01
+   BNAUT  = .FALSE.
+   BNDCHK = .TRUE.
+   BRESCL = .TRUE.
+   ONED   = .FALSE.
+   ACUPDA = .TRUE.
+   OFFSRC = .FALSE.
+   LADDS  = .FALSE.
+   LSPNAR = .FALSE.
+   HSRERR = 0.1
 !
 !     higher order propagation and spherical coordinates                  33.08
 !
-      PROJ_METHOD = 0                                                     33.09
-      PROPSS = 2                                                          33.08
-      PROPSN = 3                                                          33.08
-      PROPSC = 1                                                          33.08
-      PROPSL = 1                                                          33.08
-      PROPFL = 0                                                          40.23
-      WAVAGE = 0.                                                         33.08
-      KSPHER = 0                                                          33.09
-      KREPTX = 0                                                          33.09
-      REARTH = 2.E7/PI                                                    33.09
-      LENDEG = 2.E7/180.                                                  33.09
+   PROJ_METHOD = 0
+   PROPSS = 2
+   PROPSN = 3
+   PROPSC = 1
+   PROPSL = 1
+   PROPFL = 0
+   WAVAGE = 0.
+   KSPHER = 0
+   KREPTX = 0
+   REARTH = 2.E7/PI
+   LENDEG = 2.E7/180.
 !
 !     *** setup flag ***                                                  32.02
-      LSETUP = 0                                                          32.02
+   LSETUP = 0
 !
 !     *** flag for setup convergence                                      30.82
 !
-      CSETUP = .TRUE.                                                     30.82
+   CSETUP = .TRUE.
 !
 !     PSETUP(1) is currently unused, but can be used as setup nesting flag
 !     PSETUP(2) is the user defined correction for the level of the setup
 !
-      PSETUP(1) = 0.0                                                     30.82
-      PSETUP(2) = 0.0                                                     30.82
+   PSETUP(1) = 0.0
+   PSETUP(2) = 0.0
 !
 !     flag for frequency dependent surf breaking                          41.06
 !
-      IFRSRF = 0                                                          41.06
+   IFRSRF = 0
 !
 !     flag for wave directionality in surf breaking                       41.47
 !
-      IDISRF = 0                                                          41.47
+   IDISRF = 0
 !
 !     surfbeat model
 !
-      LSRFB = .FALSE.                                                     41.85
-      sflog = .FALSE.                                                     41.85
+   LSRFB = .FALSE.
+   sflog = .FALSE.
 !
 !     *** ACCURACY criterion ***
 !
 !     *** relative error in significant wave height and mean period ***
-      PNUMS(1)  = 0.01                                                    30.82
+   PNUMS(1)  = 0.01
 !     *** absolute error in significant wave heigth (m) ***
-      PNUMS(2)  = -1.
+   PNUMS(2)  = -1.
 !     *** absolute error in mean wave period (s) ***
 !      PNUMS(3)  = 0.3
-      PNUMS(3)  = 1000.
+   PNUMS(3)  = 1000.
 !     *** total number of wet gridpoints were accuracy has ***
 !     *** been reached                                     ***
-      PNUMS(4)  = 99.50
+   PNUMS(4)  = 99.50
 !
 !     *** DIFFUSION schemes ***
 !
 !     *** Numerical diffusion over theta ***
-      PNUMS(6)  = 0.5                                                     20.78
+   PNUMS(6)  = 0.5
 !     *** Numerical diffusion over sigma ***
-      PNUMS(7)  = 0.5                                                     20.78
+   PNUMS(7)  = 0.5
 !     *** Explicit or implicit scheme in frequency space ***
 !     *** default = implicit : PNUMS(8) = 1              ***
-      PNUMS(8) = -999.
+   PNUMS(8) = -999.
 !     *** diffusion coefficient for explicit scheme ***
-      PNUMS(9) = 0.01
+   PNUMS(9) = 0.01
 !
 !     *** parameters for the SIP solver                        ***
 !
@@ -1256,9 +1256,9 @@
 !
 !     *** PNUMS(14) : maximum number of iterations             ***
 !
-      PNUMS(12) = 1.E-4
-      PNUMS(13) = 0.
-      PNUMS(14) = 20.
+   PNUMS(12) = 1.E-4
+   PNUMS(13) = 0.
+   PNUMS(14) = 20.
 !
 !     For the setup calculation, next parameters for the solver are used:
 !
@@ -1266,22 +1266,22 @@
 !     PNUMS(24) : output for the solver (see PNUMS(13) for meanings)
 !     PNUMS(25) : maximum number of iterations
 !
-      PNUMS(23) = 1.E-6                                                   40.41 30.82
-      PNUMS(24) = 0.                                                      30.82
-      PNUMS(25) = 1000.                                                   40.41 30.82
+   PNUMS(23) = 1.E-6
+   PNUMS(24) = 0.
+   PNUMS(25) = 1000.
 !
 !     Maximum growth in spectral bin
 !     The value is the default in the command GEN3 KOM
 !
-      PNUMS(20) = 0.1                                                     30.72
+   PNUMS(20) = 0.1
 !
 !     Added coefficient for use with limiter on action (Qb switch)        40.16
 !
-      PNUMS(28) = 1.                                                      40.23
+   PNUMS(28) = 1.
 !
 !     *** set the values of PNUMS that are not used equal 0. ***
 !
-      PNUMS(5)  = 0.
+   PNUMS(5)  = 0.
 !
 !     The allowed global errors in the iteration procedure:               30.82
 !     PNUMS(15) for Hs and PNUMS(16) for Tm01                             30.82
@@ -1289,2275 +1289,2275 @@
 !      PNUMS(15) = 0.02                                                    30.82
 !      PNUMS(16) = 0.02                                                    30.82
 !     The next two values are meant for STOPC command
-      PNUMS(15) = 0.005
-      PNUMS(16) = 1000.
+   PNUMS(15) = 0.005
+   PNUMS(16) = 1000.
 !
 !     coefficient for limitation of Ctheta                                30.80
 !     default no limitation on refraction                                 40.02
 !
-      PNUMS(17) = -999.                                                   40.02
+   PNUMS(17) = -999.
 !
 !     Limitation on Froude number; current velocity is reduced if greater
 !     than Pnums(18)*Sqrt(grav*depth)
 !
-      PNUMS(18) = 0.8                                                     30.50
+   PNUMS(18) = 0.8
 !
 !     *** CFL criterion for explicit scheme in frequency space ***
 !
-      PNUMS(19) = 0.5 * sqrt (2.)
+   PNUMS(19) = 0.5 * sqrt (2.)
 !
 !     --- coefficient for type stopping criterion                         40.41
 !
-      PNUMS(21) = 1.                                                      40.80 40.41
+   PNUMS(21) = 1.
 !
 !     --- under-relaxation factor
 !
-      PNUMS(30) = 0.00                                                    40.23
+   PNUMS(30) = 0.00
 !
 !     --- parameters for limiting Ctheta
 !
-      PNUMS(26) = 0.2                                                     41.06
-      PNUMS(27) = 2.0                                                     41.06
-      PNUMS(29) = 0.0                                                     41.06
+   PNUMS(26) = 0.2
+   PNUMS(27) = 2.0
+   PNUMS(29) = 0.0
 !
 !     --- computation of Ctheta based on wave number
 !
-      PNUMS(32) = 1.                                                      41.07
+   PNUMS(32) = 1.
 !
 !     --- parameters for limiting Csigma and Ctheta
 !
-      PNUMS(33) = 0.0                                                     41.35
-      PNUMS(34) = 0.9                                                     41.35
-      PNUMS(35) = 0.0                                                     41.35
-      PNUMS(36) = 0.9                                                     41.35
+   PNUMS(33) = 0.0
+   PNUMS(34) = 0.9
+   PNUMS(35) = 0.0
+   PNUMS(36) = 0.9
 !
 !     --- parameter for BKD surf breaking
 !
-      PNUMS(37) = 95.                                                     41.96
+   PNUMS(37) = 95.
 !
 !     *** (1) and (2): Komen et al. (1984) formulation ***
 !
-      PWCAP(1)  = 2.36E-5
-      PWCAP(2)  = 3.02E-3
-      PWCAP(9)  = 2.                                                      34.00
+   PWCAP(1)  = 2.36E-5
+   PWCAP(2)  = 3.02E-3
+   PWCAP(9)  = 2.
 !     note that delta has been set to 1 since version 40.91A              41.41
-      PWCAP(10) = 1.                                                      41.41 34.00
-      PWCAP(11) = 1.                                                      34.00
+   PWCAP(10) = 1.
+   PWCAP(11) = 1.
 !
 !     *** (3): Coefficient for Janssen(1989,1991) formulation ***
 !     ** according to Komen et al. (1994) ***
 !
-      PWCAP(3)  = 4.5
-      PWCAP(4)  = 0.5
+   PWCAP(3)  = 4.5
+   PWCAP(4)  = 0.5
 !
 !     *** (5): Coefficient for Longuet-Higgins ***
 !
-      PWCAP(5) = 1.
+   PWCAP(5) = 1.
 !
 !     *** (6): ALPHA in Battjes/Janssen ***
 !
-      PWCAP(6) = 0.88
-      PWCAP(7) = 1.
-      PWCAP(8) = 0.75
+   PWCAP(6) = 0.88
+   PWCAP(7) = 1.
+   PWCAP(8) = 0.75
 !
 !     *** Alves and Banner formulation ***
 !
-      PWCAP(12) = 1.75E-3
+   PWCAP(12) = 1.75E-3
 !
 !     flag for current-induced wave dissipation                           42.04
 !
-      IWCCUR = 0                                                          42.04
+   IWCCUR = 0
 !
 !     *** (14): coefficient for enhanced current-induced dissipation      42.04
 !
-      PWCAP(14) = 0.8                                                     42.04
+   PWCAP(14) = 0.8
 !
 !       parameters to be used for Babanin physics and swell               40.88
-      A1SDS       = 2.8E-6
-      A2SDS       = 3.5E-5
-      P1SDS       = 4.
-      P2SDS       = 4.
-      UPWARDS     = .TRUE.
-      FESWELL     = 0.
-      CDSV        = 1.2
-      RDCOEF      = 0.
-      WNDSCL      = 32.     ! see notes in SdsBabanin.f90
-      CDFAC       = 1.      ! factor on Cdrag to counter bias in winds
-      B1Z         = 0.00025
-      ! Ref: B1Z=0.0014 was from Young et al. (2013)
-      !      B1Z=0.00025 is from Zieger et al. (2015)
-      ROGERS      = .FALSE.
-      ARDHUIN     = .TRUE.
-      ZIEGER      = .FALSE.
-      FPI         = 1.
+   A1SDS       = 2.8E-6
+   A2SDS       = 3.5E-5
+   P1SDS       = 4.
+   P2SDS       = 4.
+   UPWARDS     = .TRUE.
+   FESWELL     = 0.
+   CDSV        = 1.2
+   RDCOEF      = 0.
+   WNDSCL      = 32. ! see notes in SdsBabanin.f90
+   CDFAC       = 1. ! factor on Cdrag to counter bias in winds
+   B1Z         = 0.00025
+   ! Ref: B1Z=0.0014 was from Young et al. (2013)
+   !      B1Z=0.00025 is from Zieger et al. (2015)
+   ROGERS      = .FALSE.
+   ARDHUIN     = .TRUE.
+   ZIEGER      = .FALSE.
+   FPI         = 1.
 !
-      PBOT(1)   = 0.0                                                     20.68
-      PBOT(2)   = 0.015                                                   20.68
-      PBOT(3)   = 0.038                                                   41.49
-      PBOT(4)   = -0.08
-      PBOT(5)   = 0.05
-      PBOT(6)   = 2.65                                                    41.51
-      PBOT(7)   = 0.0001                                                  41.51
+   PBOT(1)   = 0.0
+   PBOT(2)   = 0.015
+   PBOT(3)   = 0.038
+   PBOT(4)   = -0.08
+   PBOT(5)   = 0.05
+   PBOT(6)   = 2.65
+   PBOT(7)   = 0.0001
 !
-      PSURF(1)  = 1.0
-      PSURF(2)  = 0.73                                                    20.67
+   PSURF(1)  = 1.0
+   PSURF(2)  = 0.73
 !
-      PMUD(1)   = 0.                                                      40.59
-      PMUD(2)   = 1300.                                                   40.59
-      PMUD(3)   = 0.0076                                                  40.59
-      PMUD(4)   = RHO                                                     40.59
-      PMUD(5)   = 1.3E-6                                                  40.59
+   PMUD(1)   = 0.
+   PMUD(2)   = 1300.
+   PMUD(3)   = 0.0076
+   PMUD(4)   = RHO
+   PMUD(5)   = 1.3E-6
 !
 !     parameters for Bragg scattering                                     41.80
-      PBRAG = 0.                                                          41.80
-      PBRAG(2) = 5.                                                       41.80
+   PBRAG = 0.
+   PBRAG(2) = 5.
 !
 !     parameters for QC scattering                                        41.90
-      PSCAT = 0.                                                          41.90
-      PSCAT(1) = 1.                                                       41.90
-      PSCAT(2) = 99999.                                                   41.90
-      PSCAT(7) = 1.                                                       41.90
+   PSCAT = 0.
+   PSCAT(1) = 1.
+   PSCAT(2) = 99999.
+   PSCAT(7) = 1.
 !
 !     work arrays for QC scattering
-      ncoz   = 0                                                          41.90
-      lenwft = 0                                                          41.90
-      lensav = 0                                                          41.90
+   ncoz   = 0
+   lenwft = 0
+   lensav = 0
 !
 !     wave number space is initially void
-      mkxc = -1                                                           41.90
-      mkyc = -1                                                           41.90
+   mkxc = -1
+   mkyc = -1
 !
 !     parameters for dissipation by sea ice: all values (1:8) set to zero
-      PSICE    = 0.                                                       41.81
+   PSICE    = 0.
 !     parameters for uniform ice fields all values (1:2) set to zero
-      PICE    = 0.                                                        41.81
+   PICE    = 0.
 !
 !     triad interactions
-      PTRIAD(1)  = 1.0                                                    42.15 41.97 41.76 41.44 40.61 30.82
-      PTRIAD(2)  = 2.5                                                    40.61 40.56 30.82
-      PTRIAD(3)  = 10.                                                    40.23
-      PTRIAD(4)  = 0.63                                                   41.97 40.13
-      PTRIAD(5)  = 0.1                                                    41.97 40.23
-      PTRIAD(6)  = 0.95                                                   41.46
+   PTRIAD(1)  = 1.0
+   PTRIAD(2)  = 2.5
+   PTRIAD(3)  = 10.
+   PTRIAD(4)  = 0.63
+   PTRIAD(5)  = 0.1
+   PTRIAD(6)  = 0.95
 !     original value of B=-0.75 in SPB appears to be reasonable
 !     for unidirectional laboratory cases
 !     however, this choice may not be appropriate for true
 !     2D cases as it does not scale with the wave field
 !     thus, B = 0 (for now)
 !      PTRIAD(7)  = -0.75                                                  41.46
-      PTRIAD(7)  = 0.                                                     41.46
-      PTRIAD(8)  = 60.                                                    42.01 41.46
-      PTRIAD(10) = -1.                                                    42.15
+   PTRIAD(7)  = 0.
+   PTRIAD(8)  = 60.
+   PTRIAD(10) = -1.
 !
 !     quadruplet interactions
-      PQUAD(1) = 0.25                                                     34.00
-      PQUAD(2) = 3.E7                                                     34.00
-      PQUAD(3) = 5.5                                                      34.00
-      PQUAD(4) = 0.833                                                    34.00
-      PQUAD(5) = -1.25                                                    34.00
+   PQUAD(1) = 0.25
+   PQUAD(2) = 3.E7
+   PQUAD(3) = 5.5
+   PQUAD(4) = 0.833
+   PQUAD(5) = -1.25
 !
-      PWIND(1)  = 188.0
-      PWIND(2)  = 0.59
-      PWIND(3)  = 0.12
-      PWIND(4)  = 250.0
-      PWIND(5)  = 0.0023
-      PWIND(6)  = -0.223
-      PWIND(7)  = 0.
-      PWIND(8)  = -0.56
-      PWIND(10) = 0.0036
-      PWIND(11) = 0.00123
-      PWIND(12) = 1.0
-      PWIND(13) = 0.13
+   PWIND(1)  = 188.0
+   PWIND(2)  = 0.59
+   PWIND(3)  = 0.12
+   PWIND(4)  = 250.0
+   PWIND(5)  = 0.0023
+   PWIND(6)  = -0.223
+   PWIND(7)  = 0.
+   PWIND(8)  = -0.56
+   PWIND(10) = 0.0036
+   PWIND(11) = 0.00123
+   PWIND(12) = 1.0
+   PWIND(13) = 0.13
 !     *** Janssen (1991) wave growth model ***
 !     *** alpha ***
-      PWIND(14) = 0.01
+   PWIND(14) = 0.01
 !      PWIND(14) = 0.0144
 !     *** Charnock: Von Karman constant ***
-      PWIND(15) = 0.41
+   PWIND(15) = 0.41
 !     *** rho air (density) ****
-      PWIND(16) = 1.28
+   PWIND(16) = 1.28
 !     *** rho water (density) ***
-      PWIND(17) = RHO
-      PWIND(9)  = PWIND(16) / RHO
+   PWIND(17) = RHO
+   PWIND(9)  = PWIND(16) / RHO
 !     Coefficient in front of A term in 3d gen. growth term
 !     default is 0; can be made non-zero in command GEN3 or GROWTH
-      PWIND(31) = 0.                                                      7/MAR
+   PWIND(31) = 0.
 !
 !     for DBYB wind input term, decide whether to integrate stress as a
 !     vector (true) or a scalar (false)
-      VECTOR_TAU = .TRUE.                                                 40.88
+   VECTOR_TAU = .TRUE.
 !     also for DBYB wind input term, decide whether to use U10 as given
 !     in DBYB or use 28*ustar as a proxy
-      TRUE_U10 = .FALSE.                                                  40.88
+   TRUE_U10 = .FALSE.
 !
 !     --- coefficients for diffraction approximation                      40.21
 !
-      IDIFFR    = 0                                                       40.21
-      PDIFFR(:) = 0.                                                      40.21
+   IDIFFR    = 0
+   PDIFFR(:) = 0.
 !
 !     pointers in array COMPDA
-      JDISS = 2
-      JUBOT = 3
-      JQB   = 4
-      JSTP  = 5
-      JDHS  = 6
-      JDP1  = 7
-      JDP2  = 8
-      JVX1  = 9
-      JVY1  = 10
-      JVX2  = 11
-      JVY2  = 12
-      JVX3  = 13
-      JVY3  = 14
-      JDP3  = 15
-      JWX2  = 16                                                          40.00
-      JWY2  = 17                                                          40.00
-      JWX3  = 18                                                          40.00
-      JWY3  = 19                                                          40.00
-      JDTM  = 20                                                          40.00
-      JLEAK = 21                                                          40.00
-      JWLV1 = 22                                                          40.00
-      JWLV3 = 23                                                          40.00
-      JWLV2 = 24                                                          40.00
-      JHSIBC = 25                                                         40.00
-      JHS    = 26                                                         40.13
-      JURSEL = 27                                                         40.13
-      JBOTLV = 28                                                         41.38 40.65
-      JBIPH  = 29                                                         41.97
-      MCMVAR = 29                                                         41.38 40.65 40.61 40.51 40.13
+   JDISS = 2
+   JUBOT = 3
+   JQB   = 4
+   JSTP  = 5
+   JDHS  = 6
+   JDP1  = 7
+   JDP2  = 8
+   JVX1  = 9
+   JVY1  = 10
+   JVX2  = 11
+   JVY2  = 12
+   JVX3  = 13
+   JVY3  = 14
+   JDP3  = 15
+   JWX2  = 16
+   JWY2  = 17
+   JWX3  = 18
+   JWY3  = 19
+   JDTM  = 20
+   JLEAK = 21
+   JWLV1 = 22
+   JWLV3 = 23
+   JWLV2 = 24
+   JHSIBC = 25
+   JHS    = 26
+   JURSEL = 27
+   JBOTLV = 28
+   JBIPH  = 29
+   MCMVAR = 29
 !     subarray sequence number 1 is used only for unused subarrays        40.13
-      JFRC2 = 1                                                           40.00
-      JFRC3 = 1                                                           40.00
-      JUSTAR= 1                                                           30.22
-      JZEL  = 1                                                           30.22
-      JTAUW = 1                                                           30.22
-      JCDRAG= 1                                                           30.22
+   JFRC2 = 1
+   JFRC3 = 1
+   JUSTAR= 1
+   JZEL  = 1
+   JTAUW = 1
+   JCDRAG= 1
 !     added for air-sea temp. diff.:
-      JASTD2= 1                                                           40.03
-      JASTD3= 1                                                           40.03
+   JASTD2= 1
+   JASTD3= 1
 !     added for fluid mud layer                                           40.59
-      JMUDL1= 1                                                           40.59
-      JMUDL2= 1                                                           40.59
-      JMUDL3= 1                                                           40.59
+   JMUDL1= 1
+   JMUDL2= 1
+   JMUDL3= 1
 !     added for number of plants per square meter                         40.55
-      JNPLA2= 1                                                           40.55
-      JNPLA3= 1                                                           40.55
+   JNPLA2= 1
+   JNPLA3= 1
 !     added for turbulent viscosity                                       40.35
-      JTURB2= 1                                                           40.35
-      JTURB3= 1                                                           40.35
+   JTURB2= 1
+   JTURB3= 1
 !     added for breaker index                                             41.96
-      JGAMMA= 1                                                           41.38
+   JGAMMA= 1
 !
 !     added for ice input fields                                          41.75
-      JAICE2= 1                                                           41.75
-      JAICE3= 1                                                           41.75
-      JHICE2= 1                                                           41.75
-      JHICE3= 1                                                           41.75
+   JAICE2= 1
+   JAICE3= 1
+   JHICE2= 1
+   JHICE3= 1
 !
 !     *** added for wave setup ***                                        32.01
 !
-      JSETUP = 1                                                          32.02
-      JDPSAV = 1                                                          32.02
+   JSETUP = 1
+   JDPSAV = 1
 !
 !     added for sea-swell wave input fields                               41.82
-      JHSS2= 1                                                            41.82
-      JHSS3= 1                                                            41.82
-      JTSS2= 1                                                            41.82
-      JTSS3= 1                                                            41.82
-      JDSS2= 1                                                            42.06
-      JDSS3= 1                                                            42.06
+   JHSS2= 1
+   JHSS3= 1
+   JTSS2= 1
+   JTSS3= 1
+   JDSS2= 1
+   JDSS3= 1
 !
 !     --- added for output purposes                                       40.65
 !
-      JPBOT  = 1                                                          40.65 40.51
-      JDSXB  = 1                                                          40.65 40.61
-      JDSXS  = 1                                                          40.65 40.61
-      JDSXW  = 1                                                          40.65 40.61
-      JDSXM  = 1                                                          40.65 40.61
-      JDSXV  = 1                                                          40.65 40.61
-      JDSXT  = 1                                                          40.35
-      JDSXI  = 1                                                          41.75
-      JDSXL  = 1                                                          40.88
-      JGENR  = 1                                                          40.85
-      JGSXW  = 1                                                          40.85
-      JREDS  = 1                                                          40.85
-      JRSXQ  = 1                                                          40.85
-      JRSXT  = 1                                                          40.85
-      JRSXB  = 1                                                          41.80
-      JRSXC  = 1                                                          41.90
-      JTRAN  = 1                                                          40.85
-      JTSXG  = 1                                                          40.85
-      JTSXT  = 1                                                          40.85
-      JTSXS  = 1                                                          40.85
-      JRADS  = 1                                                          40.85
+   JPBOT  = 1
+   JDSXB  = 1
+   JDSXS  = 1
+   JDSXW  = 1
+   JDSXM  = 1
+   JDSXV  = 1
+   JDSXT  = 1
+   JDSXI  = 1
+   JDSXL  = 1
+   JGENR  = 1
+   JGSXW  = 1
+   JREDS  = 1
+   JRSXQ  = 1
+   JRSXT  = 1
+   JRSXB  = 1
+   JRSXC  = 1
+   JTRAN  = 1
+   JTSXG  = 1
+   JTSXT  = 1
+   JTSXS  = 1
+   JRADS  = 1
 !
 !     Next pointers are for the plot of the source terms (SWTSDA)         40.31
 !
-      JPWNDS = 1
-      JPWNDD = 2
-      JPWCAP = 3
-      JPBTFR = 4
-      JPWBRK = 5
-      JP4S   = 6
-      JP4D   = 7
-      JPTRI  = 8
-      JPVEGT = 9                                                          40.55
-      JPTURB = 10                                                         40.35
-      JPMUD  = 11                                                         40.59
-      JPICE  = 13                                                         41.75
-      JPBRAG = 14                                                         41.80
-      JPQCS  = 15
-      MTSVAR = 15
-      JPSWEL = 1                                                          40.88
+   JPWNDS = 1
+   JPWNDD = 2
+   JPWCAP = 3
+   JPBTFR = 4
+   JPWBRK = 5
+   JP4S   = 6
+   JP4D   = 7
+   JPTRI  = 8
+   JPVEGT = 9
+   JPTURB = 10
+   JPMUD  = 11
+   JPICE  = 13
+   JPBRAG = 14
+   JPQCS  = 15
+   MTSVAR = 15
+   JPSWEL = 1
 !
 !     ***** test output control *****
-      ITEST  = 1                                                          40.41
-      INTES  = 0                                                          30.50
-      ICOTES = 0                                                          30.50
-      IOUTES = 0                                                          30.50
-      LTRACE = .FALSE.
-      TESTFL = .FALSE.
-      NPTST  = 0
-      NPTSTA = 1
-      LXDMP  = -1
-      LYDMP  = 0
-      NEGMES = 0
-      MAXMES = 200
-      IFPAR = 0                                                           40.00
-      IFS1D = 0                                                           40.00
-      IFS2D = 0                                                           40.00
+   ITEST  = 1
+   INTES  = 0
+   ICOTES = 0
+   IOUTES = 0
+   LTRACE = .FALSE.
+   TESTFL = .FALSE.
+   NPTST  = 0
+   NPTSTA = 1
+   LXDMP  = -1
+   LYDMP  = 0
+   NEGMES = 0
+   MAXMES = 200
+   IFPAR = 0
+   IFS1D = 0
+   IFS2D = 0
 !     number of obstacles initialised at 0                                40.13
-      NUMOBS = 0                                                          40.13
+   NUMOBS = 0
 !     ***** output *****
-      IUBOTR = 0
-      NREOQ  = 0                                                          41.79
-      UPVDF  = 0                                                          41.95
+   IUBOTR = 0
+   NREOQ  = 0
+   UPVDF  = 0
 !     ***** plot output *****
 !
-      DO IVT = 1, NMOVAR
-        OVKEYW(IVT) = 'XXXX'                                              40.00
-      ENDDO
+   DO IVT = 1, NMOVAR
+      OVKEYW(IVT) = 'XXXX'
+   ENDDO
 !
 !     properties of output variables
 !
-      IVTYPE = 1
+   IVTYPE = 1
 !     keyword used in SWAN command
-      OVKEYW(IVTYPE) = 'XP'                                               40.00
+   OVKEYW(IVTYPE) = 'XP'
 !     short name
-      OVSNAM(IVTYPE) = 'Xp'
+   OVSNAM(IVTYPE) = 'Xp'
 !     long name
-      OVLNAM(IVTYPE) = 'X user coordinate'
+   OVLNAM(IVTYPE) = 'X user coordinate'
 !     unit name
-      OVUNIT(IVTYPE) = UL
+   OVUNIT(IVTYPE) = UL
 !     type (scalar/vector etc.)
-      OVSVTY(IVTYPE) = 1
+   OVSVTY(IVTYPE) = 1
 !     lower and upper limit
-      OVLLIM(IVTYPE) = -1.E10
-      OVULIM(IVTYPE) = 1.E10
+   OVLLIM(IVTYPE) = -1.E10
+   OVULIM(IVTYPE) = 1.E10
 !     lowest and highest expected value
-      OVLEXP(IVTYPE) = -1.E10
-      OVHEXP(IVTYPE) = 1.E10
+   OVLEXP(IVTYPE) = -1.E10
+   OVHEXP(IVTYPE) = 1.E10
 !     exception value
-      OVEXCV(IVTYPE) = -1.E10
+   OVEXCV(IVTYPE) = -1.E10
 !
-      IVTYPE = 2
-      OVKEYW(IVTYPE) = 'YP'                                               40.00
-      OVSNAM(IVTYPE) = 'Yp'
-      OVLNAM(IVTYPE) = 'Y user coordinate'
-      OVUNIT(IVTYPE) = UL
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = -1.E10
-      OVULIM(IVTYPE) = 1.E10
-      OVLEXP(IVTYPE) = -1.E10
-      OVHEXP(IVTYPE) = 1.E10
-      OVEXCV(IVTYPE) = -1.E10
+   IVTYPE = 2
+   OVKEYW(IVTYPE) = 'YP'
+   OVSNAM(IVTYPE) = 'Yp'
+   OVLNAM(IVTYPE) = 'Y user coordinate'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = -1.E10
+   OVULIM(IVTYPE) = 1.E10
+   OVLEXP(IVTYPE) = -1.E10
+   OVHEXP(IVTYPE) = 1.E10
+   OVEXCV(IVTYPE) = -1.E10
 !
-      IVTYPE = 3
-      OVKEYW(IVTYPE) = 'DIST'                                             40.00
-      OVSNAM(IVTYPE) = 'Dist'
-      OVLNAM(IVTYPE) = 'distance along output curve'
-      OVUNIT(IVTYPE) = UL
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1.E10
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.E10
-      OVEXCV(IVTYPE) = -99.
+   IVTYPE = 3
+   OVKEYW(IVTYPE) = 'DIST'
+   OVSNAM(IVTYPE) = 'Dist'
+   OVLNAM(IVTYPE) = 'distance along output curve'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.E10
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.E10
+   OVEXCV(IVTYPE) = -99.
 !
-      IVTYPE = 4
-      OVKEYW(IVTYPE) = 'DEP'                                              40.00
-      OVSNAM(IVTYPE) = 'Depth'
-      OVLNAM(IVTYPE) = 'Depth'
-      OVUNIT(IVTYPE) = UH
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = -1.E4
-      OVULIM(IVTYPE) = 1.E4
-      OVLEXP(IVTYPE) = -100.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -99.
+   IVTYPE = 4
+   OVKEYW(IVTYPE) = 'DEP'
+   OVSNAM(IVTYPE) = 'Depth'
+   OVLNAM(IVTYPE) = 'Depth'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = -1.E4
+   OVULIM(IVTYPE) = 1.E4
+   OVLEXP(IVTYPE) = -100.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -99.
 !
-      IVTYPE = 5
-      OVKEYW(IVTYPE) = 'VEL'                                              40.00
-      OVSNAM(IVTYPE) = 'Vel'
-      OVLNAM(IVTYPE) = 'Current velocity'
-      OVUNIT(IVTYPE) = UV
-      OVSVTY(IVTYPE) = 3
-      OVLLIM(IVTYPE) = -100.
-      OVULIM(IVTYPE) = 100.
-      OVLEXP(IVTYPE) = -2.
-      OVHEXP(IVTYPE) = 2.
-      OVEXCV(IVTYPE) = 0.
+   IVTYPE = 5
+   OVKEYW(IVTYPE) = 'VEL'
+   OVSNAM(IVTYPE) = 'Vel'
+   OVLNAM(IVTYPE) = 'Current velocity'
+   OVUNIT(IVTYPE) = UV
+   OVSVTY(IVTYPE) = 3
+   OVLLIM(IVTYPE) = -100.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = -2.
+   OVHEXP(IVTYPE) = 2.
+   OVEXCV(IVTYPE) = 0.
 !
-      IVTYPE = 6
-      OVKEYW(IVTYPE) = 'UBOT'                                             40.00
-      OVSNAM(IVTYPE) = 'Ubot'
-      OVLNAM(IVTYPE)='RMS of maxima of orbital velocity near the bottom'
-      OVUNIT(IVTYPE) = UV
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 10.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.
-      OVEXCV(IVTYPE) = -10.
+   IVTYPE = 6
+   OVKEYW(IVTYPE) = 'UBOT'
+   OVSNAM(IVTYPE) = 'Ubot'
+   OVLNAM(IVTYPE)='RMS of maxima of orbital velocity near the bottom'
+   OVUNIT(IVTYPE) = UV
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 10.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -10.
 !
-      IVTYPE = 7
-      OVKEYW(IVTYPE) = 'DISS'                                             40.00
-      OVSNAM(IVTYPE) = 'Dissip'
-      OVLNAM(IVTYPE) = 'Energy dissipation'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 7
+   OVKEYW(IVTYPE) = 'DISS'
+   OVSNAM(IVTYPE) = 'Dissip'
+   OVLNAM(IVTYPE) = 'Energy dissipation'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 8
-      OVKEYW(IVTYPE) = 'QB'                                               40.00
-      OVSNAM(IVTYPE) = 'Qb'
-      OVLNAM(IVTYPE) = 'Fraction breaking waves'
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.
-      OVEXCV(IVTYPE) = -1.
+   IVTYPE = 8
+   OVKEYW(IVTYPE) = 'QB'
+   OVSNAM(IVTYPE) = 'Qb'
+   OVLNAM(IVTYPE) = 'Fraction breaking waves'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -1.
 !
-      IVTYPE = 9
-      OVKEYW(IVTYPE) = 'LEA'                                              40.00
-      OVSNAM(IVTYPE) = 'Leak'
-      OVLNAM(IVTYPE) = 'Energy leak over spectral boundaries'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 9
+   OVKEYW(IVTYPE) = 'LEA'
+   OVSNAM(IVTYPE) = 'Leak'
+   OVLNAM(IVTYPE) = 'Energy leak over spectral boundaries'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 10
-      OVKEYW(IVTYPE) = 'HS'                                               40.00
-      OVSNAM(IVTYPE) = 'Hsig'
-      OVLNAM(IVTYPE) = 'Significant wave height'
-      OVUNIT(IVTYPE) = UH
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 100.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 10.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 10
+   OVKEYW(IVTYPE) = 'HS'
+   OVSNAM(IVTYPE) = 'Hsig'
+   OVLNAM(IVTYPE) = 'Significant wave height'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
 !                                                                         modified 10.09
-      IVTYPE = 11
-      OVKEYW(IVTYPE) = 'TM01'                                             40.00
-      OVSNAM(IVTYPE) = 'Tm01'                                             20.81
-      OVLNAM(IVTYPE) = 'Average absolute wave period'
-      OVUNIT(IVTYPE) = UT
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 11
+   OVKEYW(IVTYPE) = 'TM01'
+   OVSNAM(IVTYPE) = 'Tm01'
+   OVLNAM(IVTYPE) = 'Average absolute wave period'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 12
-      OVKEYW(IVTYPE) = 'RTP'                                              40.00
-      OVSNAM(IVTYPE) = 'RTpeak'                                           40.41 20.81
-      OVLNAM(IVTYPE) = 'Relative peak period'
-      OVUNIT(IVTYPE) = UT
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 12
+   OVKEYW(IVTYPE) = 'RTP'
+   OVSNAM(IVTYPE) = 'RTpeak'
+   OVLNAM(IVTYPE) = 'Relative peak period'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 13
-      OVKEYW(IVTYPE) = 'DIR'                                              40.00
-      OVSNAM(IVTYPE) = 'Dir'
-      OVLNAM(IVTYPE) = 'Average wave direction'
-      OVUNIT(IVTYPE) = UDI                                                30.72
-      OVSVTY(IVTYPE) = 2
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 360.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 360.
-      OVEXCV(IVTYPE) = -999.
+   IVTYPE = 13
+   OVKEYW(IVTYPE) = 'DIR'
+   OVSNAM(IVTYPE) = 'Dir'
+   OVLNAM(IVTYPE) = 'Average wave direction'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 2
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 360.
+   OVEXCV(IVTYPE) = -999.
 !
-      IVTYPE = 14
-      OVKEYW(IVTYPE) = 'PDI'                                              40.00
-      OVSNAM(IVTYPE) = 'PkDir'
-      OVLNAM(IVTYPE) = 'direction of the peak of the spectrum'
-      OVUNIT(IVTYPE) = UDI                                                30.72
-      OVSVTY(IVTYPE) = 2
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 360.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 360.
-      OVEXCV(IVTYPE) = -999.
+   IVTYPE = 14
+   OVKEYW(IVTYPE) = 'PDI'
+   OVSNAM(IVTYPE) = 'PkDir'
+   OVLNAM(IVTYPE) = 'direction of the peak of the spectrum'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 2
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 360.
+   OVEXCV(IVTYPE) = -999.
 !
-      IVTYPE = 15
-      OVKEYW(IVTYPE) = 'TDI'                                              40.00
-      OVSNAM(IVTYPE) = 'TDir'
-      OVLNAM(IVTYPE) = 'direction of the energy transport'
-      OVUNIT(IVTYPE) = UDI                                                30.72
-      OVSVTY(IVTYPE) = 2
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 360.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 360.
-      OVEXCV(IVTYPE) = -999.
+   IVTYPE = 15
+   OVKEYW(IVTYPE) = 'TDI'
+   OVSNAM(IVTYPE) = 'TDir'
+   OVLNAM(IVTYPE) = 'direction of the energy transport'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 2
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 360.
+   OVEXCV(IVTYPE) = -999.
 !
-      IVTYPE = 16
-      OVKEYW(IVTYPE) = 'DSPR'                                             40.00
-      OVSNAM(IVTYPE) = 'Dspr'
-      OVLNAM(IVTYPE) = 'directional spreading'
-      OVUNIT(IVTYPE) = UDI                                                30.72
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 360.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 60.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 16
+   OVKEYW(IVTYPE) = 'DSPR'
+   OVSNAM(IVTYPE) = 'Dspr'
+   OVLNAM(IVTYPE) = 'directional spreading'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 60.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 17
-      OVKEYW(IVTYPE) = 'WLEN'                                             40.00
-      OVSNAM(IVTYPE) = 'Wlen'
-      OVLNAM(IVTYPE) = 'Average wave length'
-      OVUNIT(IVTYPE) = UL
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 200.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 17
+   OVKEYW(IVTYPE) = 'WLEN'
+   OVSNAM(IVTYPE) = 'Wlen'
+   OVLNAM(IVTYPE) = 'Average wave length'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 200.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 18
-      OVKEYW(IVTYPE) = 'STEE'                                             40.00
-      OVSNAM(IVTYPE) = 'Steepn'
-      OVLNAM(IVTYPE) = 'Wave steepness'
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 18
+   OVKEYW(IVTYPE) = 'STEE'
+   OVSNAM(IVTYPE) = 'Steepn'
+   OVLNAM(IVTYPE) = 'Wave steepness'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 19
-      OVKEYW(IVTYPE) = 'TRA'                                              40.00
-      OVSNAM(IVTYPE) = 'Transp'
-      OVLNAM(IVTYPE) = 'Wave energy transport'
-      OVUNIT(IVTYPE) = 'm3/s'                                             40.00
-      OVSVTY(IVTYPE) = 3
-      OVLLIM(IVTYPE) = -100.
-      OVULIM(IVTYPE) = 100.
-      OVLEXP(IVTYPE) = -10.
-      OVHEXP(IVTYPE) = 10.
-      OVEXCV(IVTYPE) = 0.
+   IVTYPE = 19
+   OVKEYW(IVTYPE) = 'TRA'
+   OVSNAM(IVTYPE) = 'Transp'
+   OVLNAM(IVTYPE) = 'Wave energy transport'
+   OVUNIT(IVTYPE) = 'm3/s'
+   OVSVTY(IVTYPE) = 3
+   OVLLIM(IVTYPE) = -100.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = -10.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = 0.
 !
-      IVTYPE = 20
-      OVKEYW(IVTYPE) = 'FOR'                                              40.00
-      OVSNAM(IVTYPE) = 'WForce'
-      OVLNAM(IVTYPE) = 'Wave driven force per unit surface'
-      OVUNIT(IVTYPE) = UF                                                 30.72
-      OVSVTY(IVTYPE) = 3
-      OVLLIM(IVTYPE) = -1.E5
-      OVULIM(IVTYPE) =  1.E5
-      OVLEXP(IVTYPE) = -10.
-      OVHEXP(IVTYPE) =  10.
-      OVEXCV(IVTYPE) = -9.                                                40.80
+   IVTYPE = 20
+   OVKEYW(IVTYPE) = 'FOR'
+   OVSNAM(IVTYPE) = 'WForce'
+   OVLNAM(IVTYPE) = 'Wave driven force per unit surface'
+   OVUNIT(IVTYPE) = UF
+   OVSVTY(IVTYPE) = 3
+   OVLLIM(IVTYPE) = -1.E5
+   OVULIM(IVTYPE) =  1.E5
+   OVLEXP(IVTYPE) = -10.
+   OVHEXP(IVTYPE) =  10.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 21
-      OVKEYW(IVTYPE) = 'AAAA'                                             40.00
-      OVSNAM(IVTYPE) = 'AcDens'
-      OVLNAM(IVTYPE) = 'spectral action density'
-      OVUNIT(IVTYPE) = 'm2s'
-      OVSVTY(IVTYPE) = 5
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -99.
+   IVTYPE = 21
+   OVKEYW(IVTYPE) = 'AAAA'
+   OVSNAM(IVTYPE) = 'AcDens'
+   OVLNAM(IVTYPE) = 'spectral action density'
+   OVUNIT(IVTYPE) = 'm2s'
+   OVSVTY(IVTYPE) = 5
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -99.
 !
-      IVTYPE = 22
-      OVKEYW(IVTYPE) = 'EEEE'                                             40.00
-      OVSNAM(IVTYPE) = 'EnDens'
-      OVLNAM(IVTYPE) = 'spectral energy density'
-      OVUNIT(IVTYPE) = 'm2'
-      OVSVTY(IVTYPE) = 5
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -99.
+   IVTYPE = 22
+   OVKEYW(IVTYPE) = 'EEEE'
+   OVSNAM(IVTYPE) = 'EnDens'
+   OVLNAM(IVTYPE) = 'spectral energy density'
+   OVUNIT(IVTYPE) = 'm2'
+   OVSVTY(IVTYPE) = 5
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -99.
 !
-      IVTYPE = 23
-      OVKEYW(IVTYPE) = 'AAAA'                                             40.00
-      OVSNAM(IVTYPE) = 'Aux'
-      OVLNAM(IVTYPE) = 'auxiliary variable'
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = -1.E10
-      OVULIM(IVTYPE) = 1.E10
-      OVLEXP(IVTYPE) = -1.E10
-      OVHEXP(IVTYPE) = 1.E10
-      OVEXCV(IVTYPE) = -1.E10
+   IVTYPE = 23
+   OVKEYW(IVTYPE) = 'AAAA'
+   OVSNAM(IVTYPE) = 'Aux'
+   OVLNAM(IVTYPE) = 'auxiliary variable'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = -1.E10
+   OVULIM(IVTYPE) = 1.E10
+   OVLEXP(IVTYPE) = -1.E10
+   OVHEXP(IVTYPE) = 1.E10
+   OVEXCV(IVTYPE) = -1.E10
 !
-      IVTYPE = 24
-      OVKEYW(IVTYPE) = 'XC'                                               40.00
-      OVSNAM(IVTYPE) = 'Xc'
-      OVLNAM(IVTYPE) = 'X computational grid coordinate'
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 24
+   OVKEYW(IVTYPE) = 'XC'
+   OVSNAM(IVTYPE) = 'Xc'
+   OVLNAM(IVTYPE) = 'X computational grid coordinate'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 25
-      OVKEYW(IVTYPE) = 'YC'                                               40.00
-      OVSNAM(IVTYPE) = 'Yc'
-      OVLNAM(IVTYPE) = 'Y computational grid coordinate'
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 25
+   OVKEYW(IVTYPE) = 'YC'
+   OVSNAM(IVTYPE) = 'Yc'
+   OVLNAM(IVTYPE) = 'Y computational grid coordinate'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 26
-      OVKEYW(IVTYPE) = 'WIND'                                             40.00
-      OVSNAM(IVTYPE) = 'Windv'
-      OVLNAM(IVTYPE) = 'Wind velocity at 10 m above sea level'
-      OVUNIT(IVTYPE) = UV                                                 30.72
-      OVSVTY(IVTYPE) = 3
-      OVLLIM(IVTYPE) = -100.
-      OVULIM(IVTYPE) = 100.
-      OVLEXP(IVTYPE) = -50.
-      OVHEXP(IVTYPE) = 50.
-      OVEXCV(IVTYPE) = 0.
+   IVTYPE = 26
+   OVKEYW(IVTYPE) = 'WIND'
+   OVSNAM(IVTYPE) = 'Windv'
+   OVLNAM(IVTYPE) = 'Wind velocity at 10 m above sea level'
+   OVUNIT(IVTYPE) = UV
+   OVSVTY(IVTYPE) = 3
+   OVLLIM(IVTYPE) = -100.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = -50.
+   OVHEXP(IVTYPE) = 50.
+   OVEXCV(IVTYPE) = 0.
 !
-      IVTYPE = 27
-      OVKEYW(IVTYPE) = 'FRC'                                              40.00
-      OVSNAM(IVTYPE) = 'FrCoef'
-      OVLNAM(IVTYPE) = 'Bottom friction coefficient'
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 27
+   OVKEYW(IVTYPE) = 'FRC'
+   OVSNAM(IVTYPE) = 'FrCoef'
+   OVLNAM(IVTYPE) = 'Bottom friction coefficient'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
 !                                                                     new 10.09
-      IVTYPE = 28
-      OVKEYW(IVTYPE) = 'RTM01'                                            40.00
-      OVSNAM(IVTYPE) = 'RTm01'                                            20.81
-      OVLNAM(IVTYPE) = 'Average relative wave period'
-      OVUNIT(IVTYPE) = UT
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 28
+   OVKEYW(IVTYPE) = 'RTM01'
+   OVSNAM(IVTYPE) = 'RTm01'
+   OVLNAM(IVTYPE) = 'Average relative wave period'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 29                                                         20.28
-      OVKEYW(IVTYPE) = 'EEEE'                                             40.00
-      OVSNAM(IVTYPE) = 'EnDens'
-      OVLNAM(IVTYPE) = 'energy density integrated over direction'         20.28
-      OVUNIT(IVTYPE) = 'm2'
-      OVSVTY(IVTYPE) = 5
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -99.
+   IVTYPE = 29
+   OVKEYW(IVTYPE) = 'EEEE'
+   OVSNAM(IVTYPE) = 'EnDens'
+   OVLNAM(IVTYPE) = 'energy density integrated over direction'
+   OVUNIT(IVTYPE) = 'm2'
+   OVSVTY(IVTYPE) = 5
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -99.
 !
-      IVTYPE = 30                                                         20.52
-      OVKEYW(IVTYPE) = 'DHS'                                              40.00
-      OVSNAM(IVTYPE) = 'dHs'
-      OVLNAM(IVTYPE) = 'difference in Hs between iterations'
-      OVUNIT(IVTYPE) = UH
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 100.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 30
+   OVKEYW(IVTYPE) = 'DHS'
+   OVSNAM(IVTYPE) = 'dHs'
+   OVLNAM(IVTYPE) = 'difference in Hs between iterations'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 31                                                         20.52
-      OVKEYW(IVTYPE) = 'DRTM01'                                           40.00
-      OVSNAM(IVTYPE) = 'dTm'
-      OVLNAM(IVTYPE) = 'difference in Tm between iterations'
-      OVUNIT(IVTYPE) = UT
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 100.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 2.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 31
+   OVKEYW(IVTYPE) = 'DRTM01'
+   OVSNAM(IVTYPE) = 'dTm'
+   OVLNAM(IVTYPE) = 'difference in Tm between iterations'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 2.
+   OVEXCV(IVTYPE) = -9.
 !                                                                         20.61
-      IVTYPE = 32
-      OVKEYW(IVTYPE) = 'TM02'                                             40.00
-      OVSNAM(IVTYPE) = 'Tm02'
-      OVLNAM(IVTYPE) = 'Zero-crossing period'
-      OVUNIT(IVTYPE) = UT
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 32
+   OVKEYW(IVTYPE) = 'TM02'
+   OVSNAM(IVTYPE) = 'Tm02'
+   OVLNAM(IVTYPE) = 'Zero-crossing period'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
 !                                                                         20.61
-      IVTYPE = 33
-      OVKEYW(IVTYPE) = 'FSPR'                                             40.00
-      OVSNAM(IVTYPE) = 'FSpr'                                             20.67
-      OVLNAM(IVTYPE) = 'Frequency spectral width (Kappa)'
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 33
+   OVKEYW(IVTYPE) = 'FSPR'
+   OVSNAM(IVTYPE) = 'FSpr'
+   OVLNAM(IVTYPE) = 'Frequency spectral width (Kappa)'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 34                                                         20.67
-      OVKEYW(IVTYPE) = 'URMS'                                             40.00
-      OVSNAM(IVTYPE) = 'Urms'
-      OVLNAM(IVTYPE) = 'RMS of orbital velocity near the bottom'
-      OVUNIT(IVTYPE) = UV
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 10.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 34
+   OVKEYW(IVTYPE) = 'URMS'
+   OVSNAM(IVTYPE) = 'Urms'
+   OVLNAM(IVTYPE) = 'RMS of orbital velocity near the bottom'
+   OVUNIT(IVTYPE) = UV
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 10.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 35                                                         30.22
-      OVKEYW(IVTYPE) = 'UFRI'                                             40.00
-      OVSNAM(IVTYPE) = 'Ufric'
-      OVLNAM(IVTYPE) = 'Friction velocity'
-      OVUNIT(IVTYPE) = UV
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 10.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 35
+   OVKEYW(IVTYPE) = 'UFRI'
+   OVSNAM(IVTYPE) = 'Ufric'
+   OVLNAM(IVTYPE) = 'Friction velocity'
+   OVUNIT(IVTYPE) = UV
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 10.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 36                                                         30.22
-      OVKEYW(IVTYPE) = 'ZLEN'                                             40.00
-      OVSNAM(IVTYPE) = 'Zlen'
-      OVLNAM(IVTYPE) = 'Zero velocity thickness of boundary layer'
-      OVUNIT(IVTYPE) = UL
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 36
+   OVKEYW(IVTYPE) = 'ZLEN'
+   OVSNAM(IVTYPE) = 'Zlen'
+   OVLNAM(IVTYPE) = 'Zero velocity thickness of boundary layer'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 37                                                         30.22
-      OVKEYW(IVTYPE) = 'TAUW'                                             40.00
-      OVSNAM(IVTYPE) = 'TauW'
-      OVLNAM(IVTYPE) = '    '
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 10.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 37
+   OVKEYW(IVTYPE) = 'TAUW'
+   OVSNAM(IVTYPE) = 'TauW'
+   OVLNAM(IVTYPE) = '    '
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 10.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 38                                                         30.22
-      OVKEYW(IVTYPE) = 'CDRAG'                                            40.00
-      OVSNAM(IVTYPE) = 'Cdrag'
-      OVLNAM(IVTYPE) = 'Drag coefficient'
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 38
+   OVKEYW(IVTYPE) = 'CDRAG'
+   OVSNAM(IVTYPE) = 'Cdrag'
+   OVLNAM(IVTYPE) = 'Drag coefficient'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
 !
 !     *** wave-induced setup ***                                          32.02
 !
-      IVTYPE = 39                                                         32.02
-      OVKEYW(IVTYPE) = 'SETUP'                                            40.00
-      OVSNAM(IVTYPE) = 'Setup'                                            32.02
-      OVLNAM(IVTYPE) = 'Setup due to waves'                               32.02
-      OVUNIT(IVTYPE) = 'm'                                                32.02
-      OVSVTY(IVTYPE) = 1                                                  32.02
-      OVLLIM(IVTYPE) = -1.                                                32.02
-      OVULIM(IVTYPE) = 1.                                                 32.02
-      OVLEXP(IVTYPE) = -1.                                                32.02
-      OVHEXP(IVTYPE) = 1.                                                 32.02
-      OVEXCV(IVTYPE) = -9.                                                32.02
+   IVTYPE = 39
+   OVKEYW(IVTYPE) = 'SETUP'
+   OVSNAM(IVTYPE) = 'Setup'
+   OVLNAM(IVTYPE) = 'Setup due to waves'
+   OVUNIT(IVTYPE) = 'm'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = -1.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = -1.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
 !
-      IVTYPE = 40                                                         40.00
-      OVKEYW(IVTYPE) = 'TIME'                                             40.00
-      OVSNAM(IVTYPE) = 'Time'
-      OVLNAM(IVTYPE) = 'Date-time'
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.
-      OVEXCV(IVTYPE) = -99999.
+   IVTYPE = 40
+   OVKEYW(IVTYPE) = 'TIME'
+   OVSNAM(IVTYPE) = 'Time'
+   OVLNAM(IVTYPE) = 'Date-time'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -99999.
 !
-      IVTYPE = 41                                                         40.00
-      OVKEYW(IVTYPE) = 'TSEC'                                             40.00
-      OVSNAM(IVTYPE) = 'Tsec'
-      OVLNAM(IVTYPE) = 'Time in seconds from reference time'
-      OVUNIT(IVTYPE) = 's'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 100000.
-      OVLEXP(IVTYPE) = -100000.
-      OVHEXP(IVTYPE) = 1000000.
-      OVEXCV(IVTYPE) = -99999.
+   IVTYPE = 41
+   OVKEYW(IVTYPE) = 'TSEC'
+   OVSNAM(IVTYPE) = 'Tsec'
+   OVLNAM(IVTYPE) = 'Time in seconds from reference time'
+   OVUNIT(IVTYPE) = 's'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100000.
+   OVLEXP(IVTYPE) = -100000.
+   OVHEXP(IVTYPE) = 1000000.
+   OVEXCV(IVTYPE) = -99999.
 !                                                        new              40.00
-      IVTYPE = 42
-      OVKEYW(IVTYPE) = 'PER'                                              40.00
-      OVSNAM(IVTYPE) = 'Period'                                           40.00
-      OVLNAM(IVTYPE) = 'Average absolute wave period'
-      OVUNIT(IVTYPE) = UT
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -9.
+   IVTYPE = 42
+   OVKEYW(IVTYPE) = 'PER'
+   OVSNAM(IVTYPE) = 'Period'
+   OVLNAM(IVTYPE) = 'Average absolute wave period'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
 !                                                        new              40.00
-      IVTYPE = 43
-      OVKEYW(IVTYPE) = 'RPER'                                             40.00
-      OVSNAM(IVTYPE) = 'RPer'                                             40.41 40.00
-      OVLNAM(IVTYPE) = 'Average relative wave period'
-      OVUNIT(IVTYPE) = UT
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 44                                                         40.00
-      OVKEYW(IVTYPE) = 'HSWE'                                             40.00
-      OVSNAM(IVTYPE) = 'Hswell'
-      OVLNAM(IVTYPE) = 'Wave height of swell part'
-      OVUNIT(IVTYPE) = UH
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 100.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 10.
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 45
-      OVKEYW(IVTYPE) = 'URSELL'                                           40.03
-      OVSNAM(IVTYPE) = 'Ursell'
-      OVLNAM(IVTYPE) = 'Ursell number'
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 46
-      OVKEYW(IVTYPE) = 'ASTD'                                             40.03
-      OVSNAM(IVTYPE) = 'ASTD'
-      OVLNAM(IVTYPE) = 'Air-Sea temperature difference'
-      OVUNIT(IVTYPE) = 'K'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = -50.
-      OVULIM(IVTYPE) =  50.
-      OVLEXP(IVTYPE) = -10.
-      OVHEXP(IVTYPE) =  10.
-      OVEXCV(IVTYPE) = -99.
-!
-      IVTYPE = 47                                                         40.41
-      OVKEYW(IVTYPE) = 'TMM10'
-      OVSNAM(IVTYPE) = 'Tm_10'
-      OVLNAM(IVTYPE) = 'Average absolute wave period'
-      OVUNIT(IVTYPE) = UT
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 48                                                         40.41
-      OVKEYW(IVTYPE) = 'RTMM10'
-      OVSNAM(IVTYPE) = 'RTm_10'
-      OVLNAM(IVTYPE) = 'Average relative wave period'
-      OVUNIT(IVTYPE) = UT
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 49
-      OVKEYW(IVTYPE) = 'DIFPAR'                                           40.21
-      OVSNAM(IVTYPE) = 'DifPar'
-      OVLNAM(IVTYPE) = 'Diffraction parameter'
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = -50.
-      OVULIM(IVTYPE) =  50.
-      OVLEXP(IVTYPE) = -10.
-      OVHEXP(IVTYPE) =  10.
-      OVEXCV(IVTYPE) = -99.
-!
-      IVTYPE = 50                                                         40.51
-      OVKEYW(IVTYPE) = 'TMBOT'
-      OVSNAM(IVTYPE) = 'TmBot'
-      OVLNAM(IVTYPE) = 'Near bottom wave period'
-      OVUNIT(IVTYPE) = UT
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 51                                                         40.51
-      OVKEYW(IVTYPE) = 'WATL'
-      OVSNAM(IVTYPE) = 'Watlev'
-      OVLNAM(IVTYPE) = 'Water level'
-      OVUNIT(IVTYPE) = UH
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = -1.E4
-      OVULIM(IVTYPE) = 1.E4
-      OVLEXP(IVTYPE) = -100.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -99.
-!
-      IVTYPE = 52                                                         40.51
-      OVKEYW(IVTYPE) = 'BOTL'
-      OVSNAM(IVTYPE) = 'Botlev'
-      OVLNAM(IVTYPE) = 'Bottom level'
-      OVUNIT(IVTYPE) = UH
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = -1.E4
-      OVULIM(IVTYPE) = 1.E4
-      OVLEXP(IVTYPE) = -100.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -99.
-!
-      IVTYPE = 53                                                         40.51
-      OVKEYW(IVTYPE) = 'TPS'
-      OVSNAM(IVTYPE) = 'TPsmoo'
-      OVLNAM(IVTYPE) = 'Relative peak period (smooth)'
-      OVUNIT(IVTYPE) = UT
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 54
-      OVKEYW(IVTYPE) = 'DISB'                                             40.61
-      OVSNAM(IVTYPE) = 'Sfric'                                            40.85
-      OVLNAM(IVTYPE) = 'Bottom friction dissipation'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 55
-      OVKEYW(IVTYPE) = 'DISSU'                                            40.61
-      OVSNAM(IVTYPE) = 'Ssurf'                                            40.85
-      OVLNAM(IVTYPE) = 'Surf breaking dissipation'                        40.85
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 56
-      OVKEYW(IVTYPE) = 'DISW'                                             40.61
-      OVSNAM(IVTYPE) = 'Swcap'                                            40.85
-      OVLNAM(IVTYPE) = 'Whitecapping dissipation'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 57
-      OVKEYW(IVTYPE) = 'DISV'                                             40.61
-      OVSNAM(IVTYPE) = 'Sveg'                                             40.85
-      OVLNAM(IVTYPE) = 'Vegetation dissipation'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 58                                                         40.64
-      OVKEYW(IVTYPE) = 'QP'
-      OVSNAM(IVTYPE) = 'Qp'
-      OVLNAM(IVTYPE) = 'Peakedness'
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 59                                                         40.64
-      OVKEYW(IVTYPE) = 'BFI'
-      OVSNAM(IVTYPE) = 'BFI'
-      OVLNAM(IVTYPE) = 'Benjamin-Feir index'
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1000.
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 60
-      OVKEYW(IVTYPE) = 'GENE'                                             40.85
-      OVSNAM(IVTYPE) = 'Genera'
-      OVLNAM(IVTYPE) = 'Energy generation'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 61
-      OVKEYW(IVTYPE) = 'GENW'                                             40.85
-      OVSNAM(IVTYPE) = 'Swind'
-      OVLNAM(IVTYPE) = 'Wind source term'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 62
-      OVKEYW(IVTYPE) = 'REDI'                                             40.85
-      OVSNAM(IVTYPE) = 'Redist'
-      OVLNAM(IVTYPE) = 'Energy redistribution'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 63
-      OVKEYW(IVTYPE) = 'REDQ'                                             40.85
-      OVSNAM(IVTYPE) = 'Snl4'
-      OVLNAM(IVTYPE) = 'Total absolute 4-wave interaction'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 64
-      OVKEYW(IVTYPE) = 'REDT'                                             40.85
-      OVSNAM(IVTYPE) = 'Snl3'
-      OVLNAM(IVTYPE) = 'Total absolute 3-wave interaction'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 65
-      OVKEYW(IVTYPE) = 'PROPA'                                            40.85
-      OVSNAM(IVTYPE) = 'Propag'
-      OVLNAM(IVTYPE) = 'Energy propagation'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 66
-      OVKEYW(IVTYPE) = 'PROPX'                                            40.85
-      OVSNAM(IVTYPE) = 'Propxy'
-      OVLNAM(IVTYPE) = 'xy-propagation'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 67
-      OVKEYW(IVTYPE) = 'PROPT'                                            40.85
-      OVSNAM(IVTYPE) = 'Propth'
-      OVLNAM(IVTYPE) = 'theta-propagation'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 68
-      OVKEYW(IVTYPE) = 'PROPS'                                            40.85
-      OVSNAM(IVTYPE) = 'Propsi'
-      OVLNAM(IVTYPE) = 'sigma-propagation'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 69
-      OVKEYW(IVTYPE) = 'RADS'                                             40.85
-      OVSNAM(IVTYPE) = 'Radstr'
-      OVLNAM(IVTYPE) = 'Radiation stress'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 70
-      OVKEYW(IVTYPE) = 'NPL'                                              41.12
-      OVSNAM(IVTYPE) = 'Nplant'
-      OVLNAM(IVTYPE) = 'Plants per m2'
-      OVUNIT(IVTYPE) = '1/m2'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 71
-      OVKEYW(IVTYPE) = 'LWAVP'                                            41.15
-      OVSNAM(IVTYPE) = 'Lwavp'
-      OVLNAM(IVTYPE) = 'Peak wave length'
-      OVUNIT(IVTYPE) = UL
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 200.
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 72
-      OVKEYW(IVTYPE) = 'DISTU'
-      OVSNAM(IVTYPE) = 'Stur'
-      OVLNAM(IVTYPE) = 'Turbulent dissipation'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 73
-      OVKEYW(IVTYPE) = 'TURB'
-      OVSNAM(IVTYPE) = 'Turb'
-      OVLNAM(IVTYPE) = 'Turbulent viscosity'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 10.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 100.
-      OVEXCV(IVTYPE) = -99.
-!
-      IVTYPE = 74
-      OVKEYW(IVTYPE) = 'DISM'                                             40.61
-      OVSNAM(IVTYPE) = 'Smud'                                             40.85
-      OVLNAM(IVTYPE) = 'Fluid mud dissipation'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 75
-      OVKEYW(IVTYPE) = 'DISSW'                                            40.88
-      OVSNAM(IVTYPE) = 'Sswell'
-      OVLNAM(IVTYPE) = 'Swell dissipation'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 76                                                         41.75
-      OVKEYW(IVTYPE)  = 'DISI'
-      OVSNAM(IVTYPE)  = 'Sice'
-      OVLNAM(IVTYPE)  = 'Sea ice dissipation'
-      OVUNIT(IVTYPE)  = 'm2/s'
-      OVSVTY(IVTYPE)  = 1
-      OVLLIM(IVTYPE)  = 0.
-      OVULIM(IVTYPE)  = 1000.
-      OVLEXP(IVTYPE)  = 0.
-      OVHEXP(IVTYPE)  = 0.1
-      OVEXCV(IVTYPE)  = -9.
-!
-      IVTYPE = 77                                                         41.75
-      OVKEYW(IVTYPE)  = 'AICE'
-      OVSNAM(IVTYPE)  = 'aice'
-      OVLNAM(IVTYPE)  = 'ice concentration (fraction)'
-      OVUNIT(IVTYPE)  = ' '
-      OVSVTY(IVTYPE)  = 1
-      OVLLIM(IVTYPE)  = 0.
-      OVULIM(IVTYPE)  = 1.0
-      OVLEXP(IVTYPE)  = 0.
-      OVHEXP(IVTYPE)  = 1.0
-      OVEXCV(IVTYPE)  = -9.
-!
-      IVTYPE = 78                                                         41.75
-      OVKEYW(IVTYPE)  = 'HICE'
-      OVSNAM(IVTYPE)  = 'hice'
-      OVLNAM(IVTYPE)  = 'ice thickness'
-      OVUNIT(IVTYPE)  = 'm'
-      OVSVTY(IVTYPE)  = 1
-      OVLLIM(IVTYPE)  = 0.
-      OVULIM(IVTYPE)  = 100.
-      OVLEXP(IVTYPE)  = 0.
-      OVHEXP(IVTYPE)  = 10.
-      OVEXCV(IVTYPE)  = -9.
-!
-      IVTYPE = 79
-      OVKEYW(IVTYPE) = 'REDB'                                             41.80
-      OVSNAM(IVTYPE) = 'Sbragg'
-      OVLNAM(IVTYPE) = 'Total absolute Bragg scattering'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 80
-      OVKEYW(IVTYPE) = 'REDC'                                             41.90
-      OVSNAM(IVTYPE) = 'Sqc'
-      OVLNAM(IVTYPE) = 'Total absolute QC scattering'
-      OVUNIT(IVTYPE) = 'm2/s'
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1000.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 0.1
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 81
-      OVKEYW(IVTYPE) = 'HBIG'                                             41.85
-      OVSNAM(IVTYPE) = 'HBig'
-      OVLNAM(IVTYPE) = 'Bound ig wave height'
-      OVUNIT(IVTYPE) = UH
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 100.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 10.
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 82                                                         41.96
-      OVKEYW(IVTYPE) = 'GAMMA'
-      OVSNAM(IVTYPE) = 'Gamma'
-      OVLNAM(IVTYPE) = 'Breaker index'
-      OVUNIT(IVTYPE) = ' '
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 1.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 1.
-      OVEXCV(IVTYPE) = -9.
-!
-      IVTYPE = 83                                                         41.97
-      OVKEYW(IVTYPE) = 'BIPH'
-      OVSNAM(IVTYPE) = 'Biph'
-      OVLNAM(IVTYPE) = 'Biphase'
-      OVUNIT(IVTYPE) = UDI
-      OVSVTY(IVTYPE) = 1
-      OVLLIM(IVTYPE) = 0.
-      OVULIM(IVTYPE) = 360.
-      OVLEXP(IVTYPE) = 0.
-      OVHEXP(IVTYPE) = 60.
-      OVEXCV(IVTYPE) = -999.
-!
-      IVTYPE = 100                                                        41.62
-      OVKEYW(IVTYPE) = 'PTHS'                                             41.62
-      OVSNAM(IVTYPE) = 'HsPT01'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave height of partition 01'                      41.62
-      OVUNIT(IVTYPE) = UH                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 100.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 10.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 101                                                        41.62
-      OVKEYW(IVTYPE) = 'PT02HS'                                           41.62
-      OVSNAM(IVTYPE) = 'HsPT02'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave height of partition 02'                      41.62
-      OVUNIT(IVTYPE) = UH                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 100.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 10.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 102                                                        41.62
-      OVKEYW(IVTYPE) = 'PT03HS'                                           41.62
-      OVSNAM(IVTYPE) = 'HsPT03'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave height of partition 03'                      41.62
-      OVUNIT(IVTYPE) = UH                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 100.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 10.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 103                                                        41.62
-      OVKEYW(IVTYPE) = 'PT04HS'                                           41.62
-      OVSNAM(IVTYPE) = 'HsPT04'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave height of partition 04'                      41.62
-      OVUNIT(IVTYPE) = UH                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 100.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 10.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 104                                                        41.62
-      OVKEYW(IVTYPE) = 'PT05HS'                                           41.62
-      OVSNAM(IVTYPE) = 'HsPT05'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave height of partition 05'                      41.62
-      OVUNIT(IVTYPE) = UH                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 100.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 10.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 105                                                        41.62
-      OVKEYW(IVTYPE) = 'PT06HS'                                           41.62
-      OVSNAM(IVTYPE) = 'HsPT06'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave height of partition 06'                      41.62
-      OVUNIT(IVTYPE) = UH                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 100.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 10.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 106                                                        41.62
-      OVKEYW(IVTYPE) = 'PT07HS'                                           41.62
-      OVSNAM(IVTYPE) = 'HsPT07'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave height of partition 07'                      41.62
-      OVUNIT(IVTYPE) = UH                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 100.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 10.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 107                                                        41.62
-      OVKEYW(IVTYPE) = 'PT08HS'                                           41.62
-      OVSNAM(IVTYPE) = 'HsPT08'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave height of partition 08'                      41.62
-      OVUNIT(IVTYPE) = UH                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 100.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 10.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 108                                                        41.62
-      OVKEYW(IVTYPE) = 'PT09HS'                                           41.62
-      OVSNAM(IVTYPE) = 'HsPT09'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave height of partition 09'                      41.62
-      OVUNIT(IVTYPE) = UH                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 100.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 10.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 109                                                        41.62
-      OVKEYW(IVTYPE) = 'PT10HS'                                           41.62
-      OVSNAM(IVTYPE) = 'HsPT10'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave height of partition 10'                      41.62
-      OVUNIT(IVTYPE) = UH                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 100.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 10.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 110                                                        41.62  !make sure these defs are SWAN-consistent!
-      OVKEYW(IVTYPE) = 'PTRTP'                                            41.62
-      OVSNAM(IVTYPE) = 'TpPT01'                                           41.62
-      OVLNAM(IVTYPE) = 'Relative peak period of partition 01'             41.62
-      OVUNIT(IVTYPE) = UT                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 100.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 111                                                        41.62
-      OVKEYW(IVTYPE) = 'PT02RTP'                                          41.62
-      OVSNAM(IVTYPE) = 'TpPT02'                                           41.62
-      OVLNAM(IVTYPE) = 'Relative peak period of partition 02'             41.62
-      OVUNIT(IVTYPE) = UT                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 100.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 112                                                        41.62
-      OVKEYW(IVTYPE) = 'PT03RTP'                                          41.62
-      OVSNAM(IVTYPE) = 'TpPT03'                                           41.62
-      OVLNAM(IVTYPE) = 'Relative peak period of partition 03'             41.62
-      OVUNIT(IVTYPE) = UT                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 100.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 113                                                        41.62
-      OVKEYW(IVTYPE) = 'PT04RTP'                                          41.62
-      OVSNAM(IVTYPE) = 'TpPT04'                                           41.62
-      OVLNAM(IVTYPE) = 'Relative peak period of partition 04'             41.62
-      OVUNIT(IVTYPE) = UT                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 100.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 114                                                        41.62
-      OVKEYW(IVTYPE) = 'PT05RTP'                                          41.62
-      OVSNAM(IVTYPE) = 'TpPT05'                                           41.62
-      OVLNAM(IVTYPE) = 'Relative peak period of partition 05'             41.62
-      OVUNIT(IVTYPE) = UT                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 100.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 115                                                        41.62
-      OVKEYW(IVTYPE) = 'PT06RTP'                                          41.62
-      OVSNAM(IVTYPE) = 'TpPT06'                                           41.62
-      OVLNAM(IVTYPE) = 'Relative peak period of partition 06'             41.62
-      OVUNIT(IVTYPE) = UT                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 100.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 116                                                        41.62
-      OVKEYW(IVTYPE) = 'PT07RTP'                                          41.62
-      OVSNAM(IVTYPE) = 'TpPT07'                                           41.62
-      OVLNAM(IVTYPE) = 'Relative peak period of partition 07'             41.62
-      OVUNIT(IVTYPE) = UT                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 100.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 117                                                        41.62
-      OVKEYW(IVTYPE) = 'PT08RTP'                                          41.62
-      OVSNAM(IVTYPE) = 'TpPT08'                                           41.62
-      OVLNAM(IVTYPE) = 'Relative peak period of partition 08'             41.62
-      OVUNIT(IVTYPE) = UT                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 100.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 118                                                        41.62
-      OVKEYW(IVTYPE) = 'PT09RTP'                                          41.62
-      OVSNAM(IVTYPE) = 'TpPT09'                                           41.62
-      OVLNAM(IVTYPE) = 'Relative peak period of partition 09'             41.62
-      OVUNIT(IVTYPE) = UT                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 100.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 119                                                        41.62
-      OVKEYW(IVTYPE) = 'PT10RTP'                                          41.62
-      OVSNAM(IVTYPE) = 'TpPT10'                                           41.62
-      OVLNAM(IVTYPE) = 'Relative peak period of partition 10'             41.62
-      OVUNIT(IVTYPE) = UT                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 100.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 120                                                        41.62
-      OVKEYW(IVTYPE) = 'PTWLEN'                                           41.62
-      OVSNAM(IVTYPE) = 'WlPT01'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave length of partition 01'              41.62
-      OVUNIT(IVTYPE) = UL                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 200.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 121                                                        41.62
-      OVKEYW(IVTYPE) = 'PT02WLEN'                                         41.62
-      OVSNAM(IVTYPE) = 'WlPT02'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave length of partition 02'              41.62
-      OVUNIT(IVTYPE) = UL                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 200.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 122                                                        41.62
-      OVKEYW(IVTYPE) = 'PT03WLEN'                                         41.62
-      OVSNAM(IVTYPE) = 'WlPT03'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave length of partition 03'              41.62
-      OVUNIT(IVTYPE) = UL                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 200.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 123                                                        41.62
-      OVKEYW(IVTYPE) = 'PT04WLEN'                                         41.62
-      OVSNAM(IVTYPE) = 'WlPT04'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave length of partition 04'              41.62
-      OVUNIT(IVTYPE) = UL                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 200.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 124                                                        41.62
-      OVKEYW(IVTYPE) = 'PT05WLEN'                                         41.62
-      OVSNAM(IVTYPE) = 'WlPT05'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave length of partition 05'              41.62
-      OVUNIT(IVTYPE) = UL                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 200.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 125                                                        41.62
-      OVKEYW(IVTYPE) = 'PT06WLEN'                                         41.62
-      OVSNAM(IVTYPE) = 'WlPT06'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave length of partition 06'              41.62
-      OVUNIT(IVTYPE) = UL                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 200.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 126                                                        41.62
-      OVKEYW(IVTYPE) = 'PT07WLEN'                                         41.62
-      OVSNAM(IVTYPE) = 'WlPT07'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave length of partition 07'              41.62
-      OVUNIT(IVTYPE) = UL                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 200.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 127                                                        41.62
-      OVKEYW(IVTYPE) = 'PT08WLEN'                                         41.62
-      OVSNAM(IVTYPE) = 'WlPT08'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave length of partition 08'              41.62
-      OVUNIT(IVTYPE) = UL                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 200.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 128                                                        41.62
-      OVKEYW(IVTYPE) = 'PT09WLEN'                                         41.62
-      OVSNAM(IVTYPE) = 'WlPT09'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave length of partition 09'              41.62
-      OVUNIT(IVTYPE) = UL                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 200.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 129                                                        41.62
-      OVKEYW(IVTYPE) = 'PT10WLEN'                                         41.62
-      OVSNAM(IVTYPE) = 'WlPT10'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave length of partition 10'              41.62
-      OVUNIT(IVTYPE) = UL                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1000.                                              41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 200.                                               41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 130                                                        41.62  !make sure these defs are SWAN-consistent!
-      OVKEYW(IVTYPE) = 'PTDIR'                                            41.62
-      OVSNAM(IVTYPE) = 'DrPT01'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave direction of partition 01'           41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 2                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 360.                                               41.62
-      OVEXCV(IVTYPE) = -999.                                              41.62
-!
-      IVTYPE = 131                                                        41.62
-      OVKEYW(IVTYPE) = 'PT02DIR'                                          41.62
-      OVSNAM(IVTYPE) = 'DrPT02'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave direction of partition 02'           41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 2                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 360.                                               41.62
-      OVEXCV(IVTYPE) = -999.                                              41.62
-!
-      IVTYPE = 132                                                        41.62
-      OVKEYW(IVTYPE) = 'PT03DIR'                                          41.62
-      OVSNAM(IVTYPE) = 'DrPT03'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave direction of partition 03'           41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 2                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 360.                                               41.62
-      OVEXCV(IVTYPE) = -999.                                              41.62
-!
-      IVTYPE = 133                                                        41.62
-      OVKEYW(IVTYPE) = 'PT04DIR'                                          41.62
-      OVSNAM(IVTYPE) = 'DrPT04'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave direction of partition 04'           41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 2                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 360.                                               41.62
-      OVEXCV(IVTYPE) = -999.                                              41.62
-!
-      IVTYPE = 134                                                        41.62
-      OVKEYW(IVTYPE) = 'PT05DIR'                                          41.62
-      OVSNAM(IVTYPE) = 'DrPT05'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave direction of partition 05'           41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 2                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 360.                                               41.62
-      OVEXCV(IVTYPE) = -999.                                              41.62
-!
-      IVTYPE = 135                                                        41.62
-      OVKEYW(IVTYPE) = 'PT06DIR'                                          41.62
-      OVSNAM(IVTYPE) = 'DrPT06'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave direction of partition 06'           41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 2                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 360.                                               41.62
-      OVEXCV(IVTYPE) = -999.                                              41.62
-!
-      IVTYPE = 136                                                        41.62
-      OVKEYW(IVTYPE) = 'PT07DIR'                                          41.62
-      OVSNAM(IVTYPE) = 'DrPT07'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave direction of partition 07'           41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 2                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 360.                                               41.62
-      OVEXCV(IVTYPE) = -999.                                              41.62
-!
-      IVTYPE = 137                                                        41.62
-      OVKEYW(IVTYPE) = 'PT08DIR'                                          41.62
-      OVSNAM(IVTYPE) = 'DrPT08'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave direction of partition 08'           41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 2                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 360.                                               41.62
-      OVEXCV(IVTYPE) = -999.                                              41.62
-!
-      IVTYPE = 138                                                        41.62
-      OVKEYW(IVTYPE) = 'PT09DIR'                                          41.62
-      OVSNAM(IVTYPE) = 'DrPT09'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave direction of partition 09'           41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 2                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 360.                                               41.62
-      OVEXCV(IVTYPE) = -999.                                              41.62
-!
-      IVTYPE = 139                                                        41.62
-      OVKEYW(IVTYPE) = 'PT10DIR'                                          41.62
-      OVSNAM(IVTYPE) = 'DrPT10'                                           41.62
-      OVLNAM(IVTYPE) = 'Average wave direction of partition 10'           41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 2                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 360.                                               41.62
-      OVEXCV(IVTYPE) = -999.                                              41.62
-!
-      IVTYPE = 140                                                        41.62  !make sure these defs are SWAN-consistent!
-      OVKEYW(IVTYPE) = 'PTDSPR'                                           41.62
-      OVSNAM(IVTYPE) = 'DsPT01'                                           41.62
-      OVLNAM(IVTYPE) = 'Directional spreading of partition 01'            41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 60.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 141                                                        41.62
-      OVKEYW(IVTYPE) = 'PT02DSPR'                                         41.62
-      OVSNAM(IVTYPE) = 'DsPT02'                                           41.62
-      OVLNAM(IVTYPE) = 'Directional spreading of partition 02'            41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 60.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 142                                                        41.62
-      OVKEYW(IVTYPE) = 'PT03DSPR'                                         41.62
-      OVSNAM(IVTYPE) = 'DsPT03'                                           41.62
-      OVLNAM(IVTYPE) = 'Directional spreading of partition 03'            41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 60.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 143                                                        41.62
-      OVKEYW(IVTYPE) = 'PT04DSPR'                                         41.62
-      OVSNAM(IVTYPE) = 'DsPT04'                                           41.62
-      OVLNAM(IVTYPE) = 'Directional spreading of partition 04'            41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 60.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 144                                                        41.62
-      OVKEYW(IVTYPE) = 'PT05DSPR'                                         41.62
-      OVSNAM(IVTYPE) = 'DsPT05'                                           41.62
-      OVLNAM(IVTYPE) = 'Directional spreading of partition 05'            41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 60.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 145                                                        41.62
-      OVKEYW(IVTYPE) = 'PT06DSPR'                                         41.62
-      OVSNAM(IVTYPE) = 'DsPT06'                                           41.62
-      OVLNAM(IVTYPE) = 'Directional spreading of partition 06'            41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 60.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 146                                                        41.62
-      OVKEYW(IVTYPE) = 'PT07DSPR'                                         41.62
-      OVSNAM(IVTYPE) = 'DsPT07'                                           41.62
-      OVLNAM(IVTYPE) = 'Directional spreading of partition 07'            41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 60.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 147                                                        41.62
-      OVKEYW(IVTYPE) = 'PT08DSPR'                                         41.62
-      OVSNAM(IVTYPE) = 'DsPT08'                                           41.62
-      OVLNAM(IVTYPE) = 'Directional spreading of partition 08'            41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 60.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 148                                                        41.62
-      OVKEYW(IVTYPE) = 'PT09DSPR'                                         41.62
-      OVSNAM(IVTYPE) = 'DsPT09'                                           41.62
-      OVLNAM(IVTYPE) = 'Directional spreading of partition 09'            41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 60.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 149                                                        41.62
-      OVKEYW(IVTYPE) = 'PT10DSPR'                                         41.62
-      OVSNAM(IVTYPE) = 'DsPT10'                                           41.62
-      OVLNAM(IVTYPE) = 'Directional spreading of partition 10'            41.62
-      OVUNIT(IVTYPE) = UDI                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 360.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 60.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 150                                                        41.62
-      OVKEYW(IVTYPE) = 'PTWFRAC'                                          41.62
-      OVSNAM(IVTYPE) = 'WfPT01'                                           41.62
-      OVLNAM(IVTYPE) = 'Wind fraction of partition 01'                    41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 1.                                                 41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 151                                                        41.62
-      OVKEYW(IVTYPE) = 'PT02WFRAC'                                        41.62
-      OVSNAM(IVTYPE) = 'WfPT02'                                           41.62
-      OVLNAM(IVTYPE) = 'Wind fraction of partition 02'                    41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 1.                                                 41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 152                                                        41.62
-      OVKEYW(IVTYPE) = 'PT03WFRAC'                                        41.62
-      OVSNAM(IVTYPE) = 'WfPT03'                                           41.62
-      OVLNAM(IVTYPE) = 'Wind fraction of partition 03'                    41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 1.                                                 41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 153                                                        41.62
-      OVKEYW(IVTYPE) = 'PT04WFRAC'                                        41.62
-      OVSNAM(IVTYPE) = 'WfPT04'                                           41.62
-      OVLNAM(IVTYPE) = 'Wind fraction of partition 04'                    41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 1.                                                 41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 154                                                        41.62
-      OVKEYW(IVTYPE) = 'PT05WFRAC'                                        41.62
-      OVSNAM(IVTYPE) = 'WfPT05'                                           41.62
-      OVLNAM(IVTYPE) = 'Wind fraction of partition 05'                    41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 1.                                                 41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 155                                                        41.62
-      OVKEYW(IVTYPE) = 'PT06WFRAC'                                        41.62
-      OVSNAM(IVTYPE) = 'WfPT06'                                           41.62
-      OVLNAM(IVTYPE) = 'Wind fraction of partition 06'                    41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 1.                                                 41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 156                                                        41.62
-      OVKEYW(IVTYPE) = 'PT07WFRAC'                                        41.62
-      OVSNAM(IVTYPE) = 'WfPT07'                                           41.62
-      OVLNAM(IVTYPE) = 'Wind fraction of partition 07'                    41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 1.                                                 41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 157                                                        41.62
-      OVKEYW(IVTYPE) = 'PT08WFRAC'                                        41.62
-      OVSNAM(IVTYPE) = 'WfPT08'                                           41.62
-      OVLNAM(IVTYPE) = 'Wind fraction of partition 08'                    41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 1.                                                 41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 158                                                        41.62
-      OVKEYW(IVTYPE) = 'PT09WFRAC'                                        41.62
-      OVSNAM(IVTYPE) = 'WfPT09'                                           41.62
-      OVLNAM(IVTYPE) = 'Wind fraction of partition 09'                    41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 1.                                                 41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 159                                                        41.62
-      OVKEYW(IVTYPE) = 'PT10WFRAC'                                        41.62
-      OVSNAM(IVTYPE) = 'WfPT10'                                           41.62
-      OVLNAM(IVTYPE) = 'Wind fraction of partition 10'                    41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 1.                                                 41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 160                                                        41.62
-      OVKEYW(IVTYPE) = 'PTSTEE'                                           41.62
-      OVSNAM(IVTYPE) = 'StPT01'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave steepness of partition 01'                   41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 0.1                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 161                                                        41.62
-      OVKEYW(IVTYPE) = 'PT02STEE'                                         41.62
-      OVSNAM(IVTYPE) = 'StPT02'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave steepness of partition 02'                   41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 0.1                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 162                                                        41.62
-      OVKEYW(IVTYPE) = 'PT03STEE'                                         41.62
-      OVSNAM(IVTYPE) = 'StPT03'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave steepness of partition 03'                   41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 0.1                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 163                                                        41.62
-      OVKEYW(IVTYPE) = 'PT04STEE'                                         41.62
-      OVSNAM(IVTYPE) = 'StPT04'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave steepness of partition 04'                   41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 0.1                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 164                                                        41.62
-      OVKEYW(IVTYPE) = 'PT05STEE'                                         41.62
-      OVSNAM(IVTYPE) = 'StPT05'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave steepness of partition 05'                   41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 0.1                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 165                                                        41.62
-      OVKEYW(IVTYPE) = 'PT06STEE'                                         41.62
-      OVSNAM(IVTYPE) = 'StPT06'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave steepness of partition 06'                   41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 0.1                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 166                                                        41.62
-      OVKEYW(IVTYPE) = 'PT07STEE'                                         41.62
-      OVSNAM(IVTYPE) = 'StPT07'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave steepness of partition 07'                   41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 0.1                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 167                                                        41.62
-      OVKEYW(IVTYPE) = 'PT08STEE'                                         41.62
-      OVSNAM(IVTYPE) = 'StPT08'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave steepness of partition 08'                   41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 0.1                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 168                                                        41.62
-      OVKEYW(IVTYPE) = 'PT09STEE'                                         41.62
-      OVSNAM(IVTYPE) = 'StPT09'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave steepness of partition 09'                   41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 0.1                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 169                                                        41.62
-      OVKEYW(IVTYPE) = 'PT10STEE'                                         41.62
-      OVSNAM(IVTYPE) = 'StPT10'                                           41.62
-      OVLNAM(IVTYPE) = 'Wave steepness of partition 10'                   41.62
-      OVUNIT(IVTYPE) = ' '                                                41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 1.                                                 41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 0.1                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 170                                                        41.62
-      OVKEYW(IVTYPE) = 'PARTIT'                                           41.62
-      OVSNAM(IVTYPE) = 'PARTIT'                                           41.62
-      OVLNAM(IVTYPE) = 'Spectral partions of all parameters'              41.62
-      OVUNIT(IVTYPE) = UH                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 100.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 10.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
-!
-      IVTYPE = 171                                                        41.62
-      OVKEYW(IVTYPE) = 'NPART'                                            41.62
-      OVSNAM(IVTYPE) = 'Npart'                                            41.62
-      OVLNAM(IVTYPE) = 'Number of spectral partions'                      41.62
-      OVUNIT(IVTYPE) = UH                                                 41.62
-      OVSVTY(IVTYPE) = 1                                                  41.62
-      OVLLIM(IVTYPE) = 0.                                                 41.62
-      OVULIM(IVTYPE) = 100.                                               41.62
-      OVLEXP(IVTYPE) = 0.                                                 41.62
-      OVHEXP(IVTYPE) = 10.                                                41.62
-      OVEXCV(IVTYPE) = -9.                                                41.62
+   IVTYPE = 43
+   OVKEYW(IVTYPE) = 'RPER'
+   OVSNAM(IVTYPE) = 'RPer'
+   OVLNAM(IVTYPE) = 'Average relative wave period'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 44
+   OVKEYW(IVTYPE) = 'HSWE'
+   OVSNAM(IVTYPE) = 'Hswell'
+   OVLNAM(IVTYPE) = 'Wave height of swell part'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 45
+   OVKEYW(IVTYPE) = 'URSELL'
+   OVSNAM(IVTYPE) = 'Ursell'
+   OVLNAM(IVTYPE) = 'Ursell number'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 46
+   OVKEYW(IVTYPE) = 'ASTD'
+   OVSNAM(IVTYPE) = 'ASTD'
+   OVLNAM(IVTYPE) = 'Air-Sea temperature difference'
+   OVUNIT(IVTYPE) = 'K'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = -50.
+   OVULIM(IVTYPE) =  50.
+   OVLEXP(IVTYPE) = -10.
+   OVHEXP(IVTYPE) =  10.
+   OVEXCV(IVTYPE) = -99.
+!
+   IVTYPE = 47
+   OVKEYW(IVTYPE) = 'TMM10'
+   OVSNAM(IVTYPE) = 'Tm_10'
+   OVLNAM(IVTYPE) = 'Average absolute wave period'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 48
+   OVKEYW(IVTYPE) = 'RTMM10'
+   OVSNAM(IVTYPE) = 'RTm_10'
+   OVLNAM(IVTYPE) = 'Average relative wave period'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 49
+   OVKEYW(IVTYPE) = 'DIFPAR'
+   OVSNAM(IVTYPE) = 'DifPar'
+   OVLNAM(IVTYPE) = 'Diffraction parameter'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = -50.
+   OVULIM(IVTYPE) =  50.
+   OVLEXP(IVTYPE) = -10.
+   OVHEXP(IVTYPE) =  10.
+   OVEXCV(IVTYPE) = -99.
+!
+   IVTYPE = 50
+   OVKEYW(IVTYPE) = 'TMBOT'
+   OVSNAM(IVTYPE) = 'TmBot'
+   OVLNAM(IVTYPE) = 'Near bottom wave period'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 51
+   OVKEYW(IVTYPE) = 'WATL'
+   OVSNAM(IVTYPE) = 'Watlev'
+   OVLNAM(IVTYPE) = 'Water level'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = -1.E4
+   OVULIM(IVTYPE) = 1.E4
+   OVLEXP(IVTYPE) = -100.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -99.
+!
+   IVTYPE = 52
+   OVKEYW(IVTYPE) = 'BOTL'
+   OVSNAM(IVTYPE) = 'Botlev'
+   OVLNAM(IVTYPE) = 'Bottom level'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = -1.E4
+   OVULIM(IVTYPE) = 1.E4
+   OVLEXP(IVTYPE) = -100.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -99.
+!
+   IVTYPE = 53
+   OVKEYW(IVTYPE) = 'TPS'
+   OVSNAM(IVTYPE) = 'TPsmoo'
+   OVLNAM(IVTYPE) = 'Relative peak period (smooth)'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 54
+   OVKEYW(IVTYPE) = 'DISB'
+   OVSNAM(IVTYPE) = 'Sfric'
+   OVLNAM(IVTYPE) = 'Bottom friction dissipation'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 55
+   OVKEYW(IVTYPE) = 'DISSU'
+   OVSNAM(IVTYPE) = 'Ssurf'
+   OVLNAM(IVTYPE) = 'Surf breaking dissipation'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 56
+   OVKEYW(IVTYPE) = 'DISW'
+   OVSNAM(IVTYPE) = 'Swcap'
+   OVLNAM(IVTYPE) = 'Whitecapping dissipation'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 57
+   OVKEYW(IVTYPE) = 'DISV'
+   OVSNAM(IVTYPE) = 'Sveg'
+   OVLNAM(IVTYPE) = 'Vegetation dissipation'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 58
+   OVKEYW(IVTYPE) = 'QP'
+   OVSNAM(IVTYPE) = 'Qp'
+   OVLNAM(IVTYPE) = 'Peakedness'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 59
+   OVKEYW(IVTYPE) = 'BFI'
+   OVSNAM(IVTYPE) = 'BFI'
+   OVLNAM(IVTYPE) = 'Benjamin-Feir index'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1000.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 60
+   OVKEYW(IVTYPE) = 'GENE'
+   OVSNAM(IVTYPE) = 'Genera'
+   OVLNAM(IVTYPE) = 'Energy generation'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 61
+   OVKEYW(IVTYPE) = 'GENW'
+   OVSNAM(IVTYPE) = 'Swind'
+   OVLNAM(IVTYPE) = 'Wind source term'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 62
+   OVKEYW(IVTYPE) = 'REDI'
+   OVSNAM(IVTYPE) = 'Redist'
+   OVLNAM(IVTYPE) = 'Energy redistribution'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 63
+   OVKEYW(IVTYPE) = 'REDQ'
+   OVSNAM(IVTYPE) = 'Snl4'
+   OVLNAM(IVTYPE) = 'Total absolute 4-wave interaction'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 64
+   OVKEYW(IVTYPE) = 'REDT'
+   OVSNAM(IVTYPE) = 'Snl3'
+   OVLNAM(IVTYPE) = 'Total absolute 3-wave interaction'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 65
+   OVKEYW(IVTYPE) = 'PROPA'
+   OVSNAM(IVTYPE) = 'Propag'
+   OVLNAM(IVTYPE) = 'Energy propagation'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 66
+   OVKEYW(IVTYPE) = 'PROPX'
+   OVSNAM(IVTYPE) = 'Propxy'
+   OVLNAM(IVTYPE) = 'xy-propagation'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 67
+   OVKEYW(IVTYPE) = 'PROPT'
+   OVSNAM(IVTYPE) = 'Propth'
+   OVLNAM(IVTYPE) = 'theta-propagation'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 68
+   OVKEYW(IVTYPE) = 'PROPS'
+   OVSNAM(IVTYPE) = 'Propsi'
+   OVLNAM(IVTYPE) = 'sigma-propagation'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 69
+   OVKEYW(IVTYPE) = 'RADS'
+   OVSNAM(IVTYPE) = 'Radstr'
+   OVLNAM(IVTYPE) = 'Radiation stress'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 70
+   OVKEYW(IVTYPE) = 'NPL'
+   OVSNAM(IVTYPE) = 'Nplant'
+   OVLNAM(IVTYPE) = 'Plants per m2'
+   OVUNIT(IVTYPE) = '1/m2'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 71
+   OVKEYW(IVTYPE) = 'LWAVP'
+   OVSNAM(IVTYPE) = 'Lwavp'
+   OVLNAM(IVTYPE) = 'Peak wave length'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 200.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 72
+   OVKEYW(IVTYPE) = 'DISTU'
+   OVSNAM(IVTYPE) = 'Stur'
+   OVLNAM(IVTYPE) = 'Turbulent dissipation'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 73
+   OVKEYW(IVTYPE) = 'TURB'
+   OVSNAM(IVTYPE) = 'Turb'
+   OVLNAM(IVTYPE) = 'Turbulent viscosity'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 10.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -99.
+!
+   IVTYPE = 74
+   OVKEYW(IVTYPE) = 'DISM'
+   OVSNAM(IVTYPE) = 'Smud'
+   OVLNAM(IVTYPE) = 'Fluid mud dissipation'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 75
+   OVKEYW(IVTYPE) = 'DISSW'
+   OVSNAM(IVTYPE) = 'Sswell'
+   OVLNAM(IVTYPE) = 'Swell dissipation'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 76
+   OVKEYW(IVTYPE)  = 'DISI'
+   OVSNAM(IVTYPE)  = 'Sice'
+   OVLNAM(IVTYPE)  = 'Sea ice dissipation'
+   OVUNIT(IVTYPE)  = 'm2/s'
+   OVSVTY(IVTYPE)  = 1
+   OVLLIM(IVTYPE)  = 0.
+   OVULIM(IVTYPE)  = 1000.
+   OVLEXP(IVTYPE)  = 0.
+   OVHEXP(IVTYPE)  = 0.1
+   OVEXCV(IVTYPE)  = -9.
+!
+   IVTYPE = 77
+   OVKEYW(IVTYPE)  = 'AICE'
+   OVSNAM(IVTYPE)  = 'aice'
+   OVLNAM(IVTYPE)  = 'ice concentration (fraction)'
+   OVUNIT(IVTYPE)  = ' '
+   OVSVTY(IVTYPE)  = 1
+   OVLLIM(IVTYPE)  = 0.
+   OVULIM(IVTYPE)  = 1.0
+   OVLEXP(IVTYPE)  = 0.
+   OVHEXP(IVTYPE)  = 1.0
+   OVEXCV(IVTYPE)  = -9.
+!
+   IVTYPE = 78
+   OVKEYW(IVTYPE)  = 'HICE'
+   OVSNAM(IVTYPE)  = 'hice'
+   OVLNAM(IVTYPE)  = 'ice thickness'
+   OVUNIT(IVTYPE)  = 'm'
+   OVSVTY(IVTYPE)  = 1
+   OVLLIM(IVTYPE)  = 0.
+   OVULIM(IVTYPE)  = 100.
+   OVLEXP(IVTYPE)  = 0.
+   OVHEXP(IVTYPE)  = 10.
+   OVEXCV(IVTYPE)  = -9.
+!
+   IVTYPE = 79
+   OVKEYW(IVTYPE) = 'REDB'
+   OVSNAM(IVTYPE) = 'Sbragg'
+   OVLNAM(IVTYPE) = 'Total absolute Bragg scattering'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 80
+   OVKEYW(IVTYPE) = 'REDC'
+   OVSNAM(IVTYPE) = 'Sqc'
+   OVLNAM(IVTYPE) = 'Total absolute QC scattering'
+   OVUNIT(IVTYPE) = 'm2/s'
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 81
+   OVKEYW(IVTYPE) = 'HBIG'
+   OVSNAM(IVTYPE) = 'HBig'
+   OVLNAM(IVTYPE) = 'Bound ig wave height'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 82
+   OVKEYW(IVTYPE) = 'GAMMA'
+   OVSNAM(IVTYPE) = 'Gamma'
+   OVLNAM(IVTYPE) = 'Breaker index'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 83
+   OVKEYW(IVTYPE) = 'BIPH'
+   OVSNAM(IVTYPE) = 'Biph'
+   OVLNAM(IVTYPE) = 'Biphase'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 60.
+   OVEXCV(IVTYPE) = -999.
+!
+   IVTYPE = 100
+   OVKEYW(IVTYPE) = 'PTHS'
+   OVSNAM(IVTYPE) = 'HsPT01'
+   OVLNAM(IVTYPE) = 'Wave height of partition 01'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 101
+   OVKEYW(IVTYPE) = 'PT02HS'
+   OVSNAM(IVTYPE) = 'HsPT02'
+   OVLNAM(IVTYPE) = 'Wave height of partition 02'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 102
+   OVKEYW(IVTYPE) = 'PT03HS'
+   OVSNAM(IVTYPE) = 'HsPT03'
+   OVLNAM(IVTYPE) = 'Wave height of partition 03'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 103
+   OVKEYW(IVTYPE) = 'PT04HS'
+   OVSNAM(IVTYPE) = 'HsPT04'
+   OVLNAM(IVTYPE) = 'Wave height of partition 04'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 104
+   OVKEYW(IVTYPE) = 'PT05HS'
+   OVSNAM(IVTYPE) = 'HsPT05'
+   OVLNAM(IVTYPE) = 'Wave height of partition 05'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 105
+   OVKEYW(IVTYPE) = 'PT06HS'
+   OVSNAM(IVTYPE) = 'HsPT06'
+   OVLNAM(IVTYPE) = 'Wave height of partition 06'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 106
+   OVKEYW(IVTYPE) = 'PT07HS'
+   OVSNAM(IVTYPE) = 'HsPT07'
+   OVLNAM(IVTYPE) = 'Wave height of partition 07'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 107
+   OVKEYW(IVTYPE) = 'PT08HS'
+   OVSNAM(IVTYPE) = 'HsPT08'
+   OVLNAM(IVTYPE) = 'Wave height of partition 08'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 108
+   OVKEYW(IVTYPE) = 'PT09HS'
+   OVSNAM(IVTYPE) = 'HsPT09'
+   OVLNAM(IVTYPE) = 'Wave height of partition 09'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 109
+   OVKEYW(IVTYPE) = 'PT10HS'
+   OVSNAM(IVTYPE) = 'HsPT10'
+   OVLNAM(IVTYPE) = 'Wave height of partition 10'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 110
+   OVKEYW(IVTYPE) = 'PTRTP'
+   OVSNAM(IVTYPE) = 'TpPT01'
+   OVLNAM(IVTYPE) = 'Relative peak period of partition 01'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 111
+   OVKEYW(IVTYPE) = 'PT02RTP'
+   OVSNAM(IVTYPE) = 'TpPT02'
+   OVLNAM(IVTYPE) = 'Relative peak period of partition 02'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 112
+   OVKEYW(IVTYPE) = 'PT03RTP'
+   OVSNAM(IVTYPE) = 'TpPT03'
+   OVLNAM(IVTYPE) = 'Relative peak period of partition 03'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 113
+   OVKEYW(IVTYPE) = 'PT04RTP'
+   OVSNAM(IVTYPE) = 'TpPT04'
+   OVLNAM(IVTYPE) = 'Relative peak period of partition 04'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 114
+   OVKEYW(IVTYPE) = 'PT05RTP'
+   OVSNAM(IVTYPE) = 'TpPT05'
+   OVLNAM(IVTYPE) = 'Relative peak period of partition 05'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 115
+   OVKEYW(IVTYPE) = 'PT06RTP'
+   OVSNAM(IVTYPE) = 'TpPT06'
+   OVLNAM(IVTYPE) = 'Relative peak period of partition 06'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 116
+   OVKEYW(IVTYPE) = 'PT07RTP'
+   OVSNAM(IVTYPE) = 'TpPT07'
+   OVLNAM(IVTYPE) = 'Relative peak period of partition 07'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 117
+   OVKEYW(IVTYPE) = 'PT08RTP'
+   OVSNAM(IVTYPE) = 'TpPT08'
+   OVLNAM(IVTYPE) = 'Relative peak period of partition 08'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 118
+   OVKEYW(IVTYPE) = 'PT09RTP'
+   OVSNAM(IVTYPE) = 'TpPT09'
+   OVLNAM(IVTYPE) = 'Relative peak period of partition 09'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 119
+   OVKEYW(IVTYPE) = 'PT10RTP'
+   OVSNAM(IVTYPE) = 'TpPT10'
+   OVLNAM(IVTYPE) = 'Relative peak period of partition 10'
+   OVUNIT(IVTYPE) = UT
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 100.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 120
+   OVKEYW(IVTYPE) = 'PTWLEN'
+   OVSNAM(IVTYPE) = 'WlPT01'
+   OVLNAM(IVTYPE) = 'Average wave length of partition 01'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 200.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 121
+   OVKEYW(IVTYPE) = 'PT02WLEN'
+   OVSNAM(IVTYPE) = 'WlPT02'
+   OVLNAM(IVTYPE) = 'Average wave length of partition 02'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 200.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 122
+   OVKEYW(IVTYPE) = 'PT03WLEN'
+   OVSNAM(IVTYPE) = 'WlPT03'
+   OVLNAM(IVTYPE) = 'Average wave length of partition 03'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 200.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 123
+   OVKEYW(IVTYPE) = 'PT04WLEN'
+   OVSNAM(IVTYPE) = 'WlPT04'
+   OVLNAM(IVTYPE) = 'Average wave length of partition 04'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 200.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 124
+   OVKEYW(IVTYPE) = 'PT05WLEN'
+   OVSNAM(IVTYPE) = 'WlPT05'
+   OVLNAM(IVTYPE) = 'Average wave length of partition 05'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 200.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 125
+   OVKEYW(IVTYPE) = 'PT06WLEN'
+   OVSNAM(IVTYPE) = 'WlPT06'
+   OVLNAM(IVTYPE) = 'Average wave length of partition 06'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 200.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 126
+   OVKEYW(IVTYPE) = 'PT07WLEN'
+   OVSNAM(IVTYPE) = 'WlPT07'
+   OVLNAM(IVTYPE) = 'Average wave length of partition 07'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 200.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 127
+   OVKEYW(IVTYPE) = 'PT08WLEN'
+   OVSNAM(IVTYPE) = 'WlPT08'
+   OVLNAM(IVTYPE) = 'Average wave length of partition 08'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 200.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 128
+   OVKEYW(IVTYPE) = 'PT09WLEN'
+   OVSNAM(IVTYPE) = 'WlPT09'
+   OVLNAM(IVTYPE) = 'Average wave length of partition 09'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 200.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 129
+   OVKEYW(IVTYPE) = 'PT10WLEN'
+   OVSNAM(IVTYPE) = 'WlPT10'
+   OVLNAM(IVTYPE) = 'Average wave length of partition 10'
+   OVUNIT(IVTYPE) = UL
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1000.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 200.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 130
+   OVKEYW(IVTYPE) = 'PTDIR'
+   OVSNAM(IVTYPE) = 'DrPT01'
+   OVLNAM(IVTYPE) = 'Average wave direction of partition 01'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 2
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 360.
+   OVEXCV(IVTYPE) = -999.
+!
+   IVTYPE = 131
+   OVKEYW(IVTYPE) = 'PT02DIR'
+   OVSNAM(IVTYPE) = 'DrPT02'
+   OVLNAM(IVTYPE) = 'Average wave direction of partition 02'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 2
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 360.
+   OVEXCV(IVTYPE) = -999.
+!
+   IVTYPE = 132
+   OVKEYW(IVTYPE) = 'PT03DIR'
+   OVSNAM(IVTYPE) = 'DrPT03'
+   OVLNAM(IVTYPE) = 'Average wave direction of partition 03'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 2
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 360.
+   OVEXCV(IVTYPE) = -999.
+!
+   IVTYPE = 133
+   OVKEYW(IVTYPE) = 'PT04DIR'
+   OVSNAM(IVTYPE) = 'DrPT04'
+   OVLNAM(IVTYPE) = 'Average wave direction of partition 04'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 2
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 360.
+   OVEXCV(IVTYPE) = -999.
+!
+   IVTYPE = 134
+   OVKEYW(IVTYPE) = 'PT05DIR'
+   OVSNAM(IVTYPE) = 'DrPT05'
+   OVLNAM(IVTYPE) = 'Average wave direction of partition 05'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 2
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 360.
+   OVEXCV(IVTYPE) = -999.
+!
+   IVTYPE = 135
+   OVKEYW(IVTYPE) = 'PT06DIR'
+   OVSNAM(IVTYPE) = 'DrPT06'
+   OVLNAM(IVTYPE) = 'Average wave direction of partition 06'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 2
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 360.
+   OVEXCV(IVTYPE) = -999.
+!
+   IVTYPE = 136
+   OVKEYW(IVTYPE) = 'PT07DIR'
+   OVSNAM(IVTYPE) = 'DrPT07'
+   OVLNAM(IVTYPE) = 'Average wave direction of partition 07'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 2
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 360.
+   OVEXCV(IVTYPE) = -999.
+!
+   IVTYPE = 137
+   OVKEYW(IVTYPE) = 'PT08DIR'
+   OVSNAM(IVTYPE) = 'DrPT08'
+   OVLNAM(IVTYPE) = 'Average wave direction of partition 08'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 2
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 360.
+   OVEXCV(IVTYPE) = -999.
+!
+   IVTYPE = 138
+   OVKEYW(IVTYPE) = 'PT09DIR'
+   OVSNAM(IVTYPE) = 'DrPT09'
+   OVLNAM(IVTYPE) = 'Average wave direction of partition 09'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 2
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 360.
+   OVEXCV(IVTYPE) = -999.
+!
+   IVTYPE = 139
+   OVKEYW(IVTYPE) = 'PT10DIR'
+   OVSNAM(IVTYPE) = 'DrPT10'
+   OVLNAM(IVTYPE) = 'Average wave direction of partition 10'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 2
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 360.
+   OVEXCV(IVTYPE) = -999.
+!
+   IVTYPE = 140
+   OVKEYW(IVTYPE) = 'PTDSPR'
+   OVSNAM(IVTYPE) = 'DsPT01'
+   OVLNAM(IVTYPE) = 'Directional spreading of partition 01'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 60.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 141
+   OVKEYW(IVTYPE) = 'PT02DSPR'
+   OVSNAM(IVTYPE) = 'DsPT02'
+   OVLNAM(IVTYPE) = 'Directional spreading of partition 02'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 60.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 142
+   OVKEYW(IVTYPE) = 'PT03DSPR'
+   OVSNAM(IVTYPE) = 'DsPT03'
+   OVLNAM(IVTYPE) = 'Directional spreading of partition 03'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 60.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 143
+   OVKEYW(IVTYPE) = 'PT04DSPR'
+   OVSNAM(IVTYPE) = 'DsPT04'
+   OVLNAM(IVTYPE) = 'Directional spreading of partition 04'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 60.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 144
+   OVKEYW(IVTYPE) = 'PT05DSPR'
+   OVSNAM(IVTYPE) = 'DsPT05'
+   OVLNAM(IVTYPE) = 'Directional spreading of partition 05'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 60.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 145
+   OVKEYW(IVTYPE) = 'PT06DSPR'
+   OVSNAM(IVTYPE) = 'DsPT06'
+   OVLNAM(IVTYPE) = 'Directional spreading of partition 06'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 60.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 146
+   OVKEYW(IVTYPE) = 'PT07DSPR'
+   OVSNAM(IVTYPE) = 'DsPT07'
+   OVLNAM(IVTYPE) = 'Directional spreading of partition 07'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 60.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 147
+   OVKEYW(IVTYPE) = 'PT08DSPR'
+   OVSNAM(IVTYPE) = 'DsPT08'
+   OVLNAM(IVTYPE) = 'Directional spreading of partition 08'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 60.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 148
+   OVKEYW(IVTYPE) = 'PT09DSPR'
+   OVSNAM(IVTYPE) = 'DsPT09'
+   OVLNAM(IVTYPE) = 'Directional spreading of partition 09'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 60.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 149
+   OVKEYW(IVTYPE) = 'PT10DSPR'
+   OVSNAM(IVTYPE) = 'DsPT10'
+   OVLNAM(IVTYPE) = 'Directional spreading of partition 10'
+   OVUNIT(IVTYPE) = UDI
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 360.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 60.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 150
+   OVKEYW(IVTYPE) = 'PTWFRAC'
+   OVSNAM(IVTYPE) = 'WfPT01'
+   OVLNAM(IVTYPE) = 'Wind fraction of partition 01'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 151
+   OVKEYW(IVTYPE) = 'PT02WFRAC'
+   OVSNAM(IVTYPE) = 'WfPT02'
+   OVLNAM(IVTYPE) = 'Wind fraction of partition 02'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 152
+   OVKEYW(IVTYPE) = 'PT03WFRAC'
+   OVSNAM(IVTYPE) = 'WfPT03'
+   OVLNAM(IVTYPE) = 'Wind fraction of partition 03'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 153
+   OVKEYW(IVTYPE) = 'PT04WFRAC'
+   OVSNAM(IVTYPE) = 'WfPT04'
+   OVLNAM(IVTYPE) = 'Wind fraction of partition 04'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 154
+   OVKEYW(IVTYPE) = 'PT05WFRAC'
+   OVSNAM(IVTYPE) = 'WfPT05'
+   OVLNAM(IVTYPE) = 'Wind fraction of partition 05'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 155
+   OVKEYW(IVTYPE) = 'PT06WFRAC'
+   OVSNAM(IVTYPE) = 'WfPT06'
+   OVLNAM(IVTYPE) = 'Wind fraction of partition 06'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 156
+   OVKEYW(IVTYPE) = 'PT07WFRAC'
+   OVSNAM(IVTYPE) = 'WfPT07'
+   OVLNAM(IVTYPE) = 'Wind fraction of partition 07'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 157
+   OVKEYW(IVTYPE) = 'PT08WFRAC'
+   OVSNAM(IVTYPE) = 'WfPT08'
+   OVLNAM(IVTYPE) = 'Wind fraction of partition 08'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 158
+   OVKEYW(IVTYPE) = 'PT09WFRAC'
+   OVSNAM(IVTYPE) = 'WfPT09'
+   OVLNAM(IVTYPE) = 'Wind fraction of partition 09'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 159
+   OVKEYW(IVTYPE) = 'PT10WFRAC'
+   OVSNAM(IVTYPE) = 'WfPT10'
+   OVLNAM(IVTYPE) = 'Wind fraction of partition 10'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 1.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 160
+   OVKEYW(IVTYPE) = 'PTSTEE'
+   OVSNAM(IVTYPE) = 'StPT01'
+   OVLNAM(IVTYPE) = 'Wave steepness of partition 01'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 161
+   OVKEYW(IVTYPE) = 'PT02STEE'
+   OVSNAM(IVTYPE) = 'StPT02'
+   OVLNAM(IVTYPE) = 'Wave steepness of partition 02'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 162
+   OVKEYW(IVTYPE) = 'PT03STEE'
+   OVSNAM(IVTYPE) = 'StPT03'
+   OVLNAM(IVTYPE) = 'Wave steepness of partition 03'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 163
+   OVKEYW(IVTYPE) = 'PT04STEE'
+   OVSNAM(IVTYPE) = 'StPT04'
+   OVLNAM(IVTYPE) = 'Wave steepness of partition 04'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 164
+   OVKEYW(IVTYPE) = 'PT05STEE'
+   OVSNAM(IVTYPE) = 'StPT05'
+   OVLNAM(IVTYPE) = 'Wave steepness of partition 05'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 165
+   OVKEYW(IVTYPE) = 'PT06STEE'
+   OVSNAM(IVTYPE) = 'StPT06'
+   OVLNAM(IVTYPE) = 'Wave steepness of partition 06'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 166
+   OVKEYW(IVTYPE) = 'PT07STEE'
+   OVSNAM(IVTYPE) = 'StPT07'
+   OVLNAM(IVTYPE) = 'Wave steepness of partition 07'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 167
+   OVKEYW(IVTYPE) = 'PT08STEE'
+   OVSNAM(IVTYPE) = 'StPT08'
+   OVLNAM(IVTYPE) = 'Wave steepness of partition 08'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 168
+   OVKEYW(IVTYPE) = 'PT09STEE'
+   OVSNAM(IVTYPE) = 'StPT09'
+   OVLNAM(IVTYPE) = 'Wave steepness of partition 09'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 169
+   OVKEYW(IVTYPE) = 'PT10STEE'
+   OVSNAM(IVTYPE) = 'StPT10'
+   OVLNAM(IVTYPE) = 'Wave steepness of partition 10'
+   OVUNIT(IVTYPE) = ' '
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 1.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 0.1
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 170
+   OVKEYW(IVTYPE) = 'PARTIT'
+   OVSNAM(IVTYPE) = 'PARTIT'
+   OVLNAM(IVTYPE) = 'Spectral partions of all parameters'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
+!
+   IVTYPE = 171
+   OVKEYW(IVTYPE) = 'NPART'
+   OVSNAM(IVTYPE) = 'Npart'
+   OVLNAM(IVTYPE) = 'Number of spectral partions'
+   OVUNIT(IVTYPE) = UH
+   OVSVTY(IVTYPE) = 1
+   OVLLIM(IVTYPE) = 0.
+   OVULIM(IVTYPE) = 100.
+   OVLEXP(IVTYPE) = 0.
+   OVHEXP(IVTYPE) = 10.
+   OVEXCV(IVTYPE) = -9.
 !
 !     various parameters for computation of output quantities             40.00
 !
 !     reference time for TSEC
-      OUTPAR(1) = 0.
+   OUTPAR(1) = 0.
 !     power in expression for PER and RPER
 !     previous name: SPCPOW
-      OUTPAR(2) = 1.
+   OUTPAR(2) = 1.
 !     power in expression for WLEN
 !     previous name: AKPOWR
-      OUTPAR(3) = 1.
+   OUTPAR(3) = 1.
 !     indicator for direction
 !     =0: direction always w.r.t. user coordinates; =1: dir w.r.t. frame
-      OUTPAR(4) = 0.
+   OUTPAR(4) = 0.
 !     frequency limit for swell
-      OUTPAR(5) = 0.1
+   OUTPAR(5) = 0.1
 !     number of output partitions
-      OUTPAR(51) = 5.
+   OUTPAR(51) = 5.
 !     0=integration over [0,inf], 1=integration over [fmin,fmax]
-      OUTPAR(6:20) = 0.                                                   40.87
+   OUTPAR(6:20) = 0.
 !     lower bound of integration range for output parameters
-      OUTPAR(21:35) = 0.                                                  40.87
+   OUTPAR(21:35) = 0.
 !     upper bound of integration range for output parameters
-      OUTPAR(36:50) = 1000.                                               40.87
+   OUTPAR(36:50) = 1000.
 !
-      RETURN
+   RETURN
 ! * end of subroutine SWINIT *
-      END
+END
 !
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,        40.31
-     &                    KGRPNT, KGRBND, SPCDIR, SPCSIG )                40.31
+SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
+                    KGRPNT, KGRBND, SPCDIR, SPCSIG )
 !                                                                      *
 !***********************************************************************
 !
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
-      USE M_OBSTA                                                         41.71
-      USE M_SNL3                                                          42.01
-      USE M_BNDSPEC                                                       40.31
-      USE M_PARALL                                                        40.31
-      USE M_DIFFR                                                         40.21
-      USE SwanGriddata                                                    40.80
-      USE SwanCompdata                                                    43.01
-      USE SwanIEM                                                         41.85
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
+   USE M_OBSTA
+   USE M_SNL3
+   USE M_BNDSPEC
+   USE M_PARALL
+   USE M_DIFFR
+   USE SwanGriddata
+   USE SwanCompdata
+   USE SwanIEM
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -3633,13 +3633,13 @@
 !
 !  4. Argument variables
 !
-      INTEGER, INTENT(INOUT) :: KGRBND(*)                                 40.02
+   INTEGER, INTENT(INOUT) :: KGRBND(*)
 !
 !     XCGRID: input  Coordinates of computational grid in x-direction     30.72
 !     YCGRID: input  Coordinates of computational grid in y-direction     30.72
 !
-      REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)                         30.72
-      REAL    SPCDIR(MDC,6)  ,    SPCSIG(MSC)                             40.31
+   REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
+   REAL    SPCDIR(MDC,6)  ,    SPCSIG(MSC)
 !
 !  5. SUBROUTINES CALLING
 !
@@ -3668,607 +3668,607 @@
 !       ----------------------------------------------------------------
 !
 ! 10. SOURCE TEXT
-      PARAMETER  (NUNT=20)                        ! m2/s
-      INTEGER   KGRPNT(MXC,MYC), CROSS(2,MCGRD)
-      INTEGER   BGRIDP(6*NBGRPT)                                          40.31
-      REAL      BSPECS(MDC,MSC,NBSPEC,2)                                  40.31
-      INTEGER, ALLOCATABLE :: CROSSGL(:,:)                                40.31
-      INTEGER   ITMP(1)                                                   43.01
-      INTEGER   IUNT(NUNT)
-      REAL      FDN, FIGF                                                 41.82
-      REAL      MFR, SHP                                                  42.09
+   PARAMETER  (NUNT=20) ! m2/s
+   INTEGER   KGRPNT(MXC,MYC), CROSS(2,MCGRD)
+   INTEGER   BGRIDP(6*NBGRPT)
+   REAL      BSPECS(MDC,MSC,NBSPEC,2)
+   INTEGER, ALLOCATABLE :: CROSSGL(:,:)
+   INTEGER   ITMP(1)
+   INTEGER   IUNT(NUNT)
+   REAL      FDN, FIGF
+   REAL      MFR, SHP
 !
-      INTEGER   ISTAT, IF1, IL1                                           42.01
-      CHARACTER*20 NUMSTR, CHARS(1)                                       42.01
-      CHARACTER(120) :: MSGSTR                                            41.85
+   INTEGER   ISTAT, IF1, IL1
+   CHARACTER*20 NUMSTR, CHARS(1)
+   CHARACTER(120) :: MSGSTR
 !
-      TYPE(BSDAT) , POINTER :: CURRBS                                     40.31
-      TYPE(BGPDAT), POINTER :: CURBGP                                     40.31
-      TYPE(OBSTDAT), POINTER :: COBST                                     41.71
-      SAVE IENT
-      DATA IENT/0/
-      SAVE IUNT
-      DATA IUNT /7, 9, 54, 55, 56, 57, 60, 61, 62, 63,
-     &           64, 65, 66, 67, 68, 69, 72, 73, 74, 75/
-      CALL STRACE (IENT, 'SWPREP')
+   TYPE(BSDAT) , POINTER :: CURRBS
+   TYPE(BGPDAT), POINTER :: CURBGP
+   TYPE(OBSTDAT), POINTER :: COBST
+   SAVE IENT
+   DATA IENT/0/
+   SAVE IUNT
+   DATA IUNT /7, 9, 54, 55, 56, 57, 60, 61, 62, 63, &
+              64, 65, 66, 67, 68, 69, 72, 73, 74, 75/
+   CALL STRACE (IENT, 'SWPREP')
 !
-      IF ( ITEST.GE.100 ) THEN                                            40.31
-         WRITE (PRTEST,*) ' BNAUT after SWREAD = ',BNAUT                  40.31
-      END IF                                                              40.31
+   IF ( ITEST.GE.100 ) THEN
+      WRITE (PRTEST,*) ' BNAUT after SWREAD = ',BNAUT
+   END IF
 !
 !     coefficients for transformation from user coordinates to comp. coord.
 !
-      COSPC = COS(ALPC)
-      SINPC = SIN(ALPC)
-      XCP   = -XPC*COSPC - YPC*SINPC
-      YCP   =  XPC*SINPC - YPC*COSPC
-      ALCP  = -ALPC
+   COSPC = COS(ALPC)
+   SINPC = SIN(ALPC)
+   XCP   = -XPC*COSPC - YPC*SINPC
+   YCP   =  XPC*SINPC - YPC*COSPC
+   ALCP  = -ALPC
 !
 !     wind direction w.r.t. computational grid
 !
 !     ALTMP = (WDIP - ALPC) / PI2              removed 30.50
-      ALTMP = (WDIP) / PI2                                                13/JAN
-      WDIC  = PI2 * (ALTMP - NINT(ALTMP))
+   ALTMP = (WDIP) / PI2
+   WDIC  = PI2 * (ALTMP - NINT(ALTMP))
 !
-      IF (MXC.LE.0 .AND. OPTG.NE.5) CALL MSGERR                           40.80
-     & (3, 'no valid computational grid; check command CGRID')            40.80
-      IF (MCGRD.LE.1 .AND. nverts.LE.0) CALL MSGERR                       40.80
-     & (3, 'no valid comp. grid; check command READ BOT or READ UNSTRU')  40.80 30.50
+   IF (MXC.LE.0 .AND. OPTG.NE.5) CALL MSGERR &
+      (3, 'no valid computational grid; check command CGRID')
+   IF (MCGRD.LE.1 .AND. nverts.LE.0) CALL MSGERR &
+      (3, 'no valid comp. grid; check command READ BOT or READ UNSTRU')
 !
-      IF (LEDS(1).EQ.0) CALL MSGERR (3,'Bottom grid not defined')
-      IF (LEDS(1).EQ.1) CALL MSGERR (3,'No bottom levels read')
-      IF (IUBOTR.EQ.1 .AND. IBOT.EQ.0)
-     &    CALL MSGERR (1,'Bottom friction not on, UBOT not computed')
+   IF (LEDS(1).EQ.0) CALL MSGERR (3,'Bottom grid not defined')
+   IF (LEDS(1).EQ.1) CALL MSGERR (3,'No bottom levels read')
+   IF (IUBOTR.EQ.1 .AND. IBOT.EQ.0) &
+       CALL MSGERR (1,'Bottom friction not on, UBOT not computed')
 !
-      IF (LEDS(2).EQ.2) THEN
-        IF (LEDS(3).NE.2)
-     &  CALL MSGERR (3, 'VY not read, while VX is read')
+   IF (LEDS(2).EQ.2) THEN
+      IF (LEDS(3).NE.2) &
+         CALL MSGERR (3, 'VY not read, while VX is read')
 !       ALBC  = ALPC - ALPG(2)
-        ALBC  = - ALPG(2)
-        COSVC = COS(ALBC)
-        SINVC = SIN(ALBC)
-      ENDIF
+      ALBC  = - ALPG(2)
+      COSVC = COS(ALBC)
+      SINVC = SIN(ALBC)
+   ENDIF
 !
-      IF (LEDS(4).EQ.2) VARFR = .TRUE.
+   IF (LEDS(4).EQ.2) VARFR = .TRUE.
 !
-      IF (VARFR .AND. IBOT.EQ.5) THEN                                     41.51
-         CALL MSGERR (1,
-     &           'Ripples model active, space varying friction ignored')
-         VARFR = .FALSE.
-      ENDIF
+   IF (VARFR .AND. IBOT.EQ.5) THEN
+      CALL MSGERR (1, &
+              'Ripples model active, space varying friction ignored')
+      VARFR = .FALSE.
+   ENDIF
 !
-      IF (LEDS(5).EQ.2) THEN
-        IF (LEDS(6).NE.2)
-     &  CALL MSGERR (3, 'WY not read, while WX is read')
-        VARWI = .TRUE.
+   IF (LEDS(5).EQ.2) THEN
+      IF (LEDS(6).NE.2) &
+         CALL MSGERR (3, 'WY not read, while WX is read')
+      VARWI = .TRUE.
 !       ALBC  = ALPC - ALPG(5)
-        ALBC  = - ALPG(5)
-        COSWC = COS(ALBC)
-        SINWC = SIN(ALBC)
-      ENDIF
+      ALBC  = - ALPG(5)
+      COSWC = COS(ALBC)
+      SINWC = SIN(ALBC)
+   ENDIF
 !
-      IF (LEDS(7).EQ.2) VARWLV = .TRUE.                                   20.38
+   IF (LEDS(7).EQ.2) VARWLV = .TRUE.
 !
-      IF (IFLDYN(1).EQ.1 .OR. IFLDYN(7).EQ.1) DYNDEP = .TRUE.             40.00
+   IF (IFLDYN(1).EQ.1 .OR. IFLDYN(7).EQ.1) DYNDEP = .TRUE.
 !
-      IF (OPTG.EQ.5) BNDCHK = .FALSE.                                     40.80
+   IF (OPTG.EQ.5) BNDCHK = .FALSE.
 !
 !     check number of sweeps meant for unstructured grid
-      IF ( nsweep.EQ.-999 ) THEN                                          41.68
+   IF ( nsweep.EQ.-999 ) THEN
 !        if nsweep = 1, the original crest method is recovered, however   41.68
 !        for stationary runs including refraction and source terms,       41.68
 !        nsweep is set to 3 (CPU time enhanced, but number of             41.68
 !        iterations decreased compared to nsweep = 1)                     41.68
-         nsweep = 3                                                       41.68
+      nsweep = 3
 !        further optimization in case of no refraction/source terms
-         IF ( IREFR == 0 ) nsweep = 4                                     41.68
-         IF ( IQUAD == 0 .AND. IWCAP == 0 .AND. ISURF == 0 ) nsweep = 4   41.68
-         IF ( OFFSRC ) nsweep = 4                                         41.68
-         IF ( IGEN == 4 .OR. IQCM /= 0 ) nsweep = 3                       41.90
-      ENDIF
+      IF ( IREFR == 0 ) nsweep = 4
+      IF ( IQUAD == 0 .AND. IWCAP == 0 .AND. ISURF == 0 ) nsweep = 4
+      IF ( OFFSRC ) nsweep = 4
+      IF ( IGEN == 4 .OR. IQCM /= 0 ) nsweep = 3
+   ENDIF
 !     nsweep = 1 cannot work naturally in case of SECTOR
-      IF ( nsweep.EQ.1 .AND. .NOT.FULCIR ) nsweep = 3
+   IF ( nsweep.EQ.1 .AND. .NOT.FULCIR ) nsweep = 3
 !
 !     adapt units in case of true energy
-      IF ( INRHOG.EQ.1 ) THEN
-         DO J = 1, NUNT
-            IVTYPE = IUNT(J)
-            OVUNIT(IVTYPE) = 'W/m2'
-         ENDDO
-         OVUNIT(19) = 'W/m'
-         OVUNIT(21) = 'Js/m2'
-         OVUNIT(22) = 'J/m2'
-         OVUNIT(29) = 'J/m2'
-      ENDIF
+   IF ( INRHOG.EQ.1 ) THEN
+      DO J = 1, NUNT
+         IVTYPE = IUNT(J)
+         OVUNIT(IVTYPE) = 'W/m2'
+      ENDDO
+      OVUNIT(19) = 'W/m'
+      OVUNIT(21) = 'Js/m2'
+      OVUNIT(22) = 'J/m2'
+      OVUNIT(29) = 'J/m2'
+   ENDIF
 !
 !     check wind drag
-      IF (IWIND.EQ.8) THEN                                                40.88
+   IF (IWIND.EQ.8) THEN
 !        apply Hwang if wrong wind drag
-         IF (IDRAG.LT.4) IDRAG = 4
-      ELSE
+      IF (IDRAG.LT.4) IDRAG = 4
+   ELSE
 !        apply parabolic fit if wrong wind drag
-         IF (IDRAG.GT.3) IDRAG = 2
-      ENDIF
-      IF (IBOT.EQ.5) IDRAG = 1                                            41.51
+      IF (IDRAG.GT.3) IDRAG = 2
+   ENDIF
+   IF (IBOT.EQ.5) IDRAG = 1
 !
 !     initialize reduction factor for wind input term
 !     - this array contains at most 100 frequencies (see module SWCOMM3)
 !     - this factor will be assigned to LFACTOR in SdsBabanin.f90
-      RDFSIN = 0.
+   RDFSIN = 0.
 !
 !     check negative wind input, if appropriate
-      IF ( ZIEGER ) THEN
-         IF ( RDCOEF.LT.0. .OR. RDCOEF.GT.1. ) THEN
-            CALL MSGERR (2,'NEGATINP convention: it should be a '
-     &                     //'positive fraction')
-         END IF
-      ELSE IF ( ROGERS ) THEN
-         IF ( RDCOEF.NE.0. ) THEN
-            CALL MSGERR (1,'NEGATINP and ROGERS are incompatible ')
-            RDCOEF = 0.
-         END IF
-      ELSE IF ( ARDHUIN ) THEN
-         IF ( RDCOEF.NE.0. ) THEN
-            CALL MSGERR (1,'NEGATINP and ARDHUIN are incompatible ')
-            RDCOEF = 0.
-         END IF
+   IF ( ZIEGER ) THEN
+      IF ( RDCOEF.LT.0. .OR. RDCOEF.GT.1. ) THEN
+         CALL MSGERR (2,'NEGATINP convention: it should be a ' &
+                        //'positive fraction')
       END IF
+   ELSE IF ( ROGERS ) THEN
+      IF ( RDCOEF.NE.0. ) THEN
+         CALL MSGERR (1,'NEGATINP and ROGERS are incompatible ')
+         RDCOEF = 0.
+      END IF
+   ELSE IF ( ARDHUIN ) THEN
+      IF ( RDCOEF.NE.0. ) THEN
+         CALL MSGERR (1,'NEGATINP and ARDHUIN are incompatible ')
+         RDCOEF = 0.
+      END IF
+   END IF
 !
-      IF (IWCAP.EQ.8) THEN
-         JPSWEL = 12
-      ENDIF
+   IF (IWCAP.EQ.8) THEN
+      JPSWEL = 12
+   ENDIF
 !
 !     prepare QC model
-      IF (IQCM.NE.0) THEN                                                 41.90
-         ! refraction due to depth variations only is already
-         ! included in the QC scattering
-         IF (IQCM.EQ.1) IREFR = 0
-         ! frequency shift due to mean current is already included
-         ! in the QC scattering
-         ITFRE = 0
-         ! rescaling is unwanted since action density may be negative
-         BRESCL = .FALSE.
-         ! no check on boundary because of coherence effects
-         BNDCHK = .FALSE.
-      ENDIF
+   IF (IQCM.NE.0) THEN
+      ! refraction due to depth variations only is already
+      ! included in the QC scattering
+      IF (IQCM.EQ.1) IREFR = 0
+      ! frequency shift due to mean current is already included
+      ! in the QC scattering
+      ITFRE = 0
+      ! rescaling is unwanted since action density may be negative
+      BRESCL = .FALSE.
+      ! no check on boundary because of coherence effects
+      BNDCHK = .FALSE.
+   ENDIF
 !
 !     close input files containing stationary input fields                40.00
 !
-      DO IFLD = 1, NUMGRD
-        IF (IFLDYN(IFLD).EQ.0 .AND. IFLNDS(IFLD).NE.0) THEN               40.00
-          CLOSE (IFLNDS(IFLD))
-          IFLNDS(IFLD) = 0
-        ENDIF
-      ENDDO
+   DO IFLD = 1, NUMGRD
+      IF (IFLDYN(IFLD).EQ.0 .AND. IFLNDS(IFLD).NE.0) THEN
+         CLOSE (IFLNDS(IFLD))
+         IFLNDS(IFLD) = 0
+      ENDIF
+   ENDDO
 !
 !     computation of tail factors for moments of action spectrum
 !     IP=0: action int. IP=1: energy int. IP=2: first moment of energy etc.
 !
-      DO IP = 0, 3
-        PPTAIL = PWTAIL(1) - REAL(IP)
-        PWTAIL(5+IP) = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))        20.71
-      ENDDO
+   DO IP = 0, 3
+      PPTAIL = PWTAIL(1) - REAL(IP)
+      PWTAIL(5+IP) = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+   ENDDO
 !
 !     check location of output areas
 !
-      CALL SPRCON ( XCGRID, YCGRID, KGRPNT, KGRBND )                      40.31
+   CALL SPRCON ( XCGRID, YCGRID, KGRPNT, KGRBND )
 !
 !     *** find obstacles crossing the points in the stencil  ***
 !     *** in structured grids                                ***          40.80
 !
-      IF (NUMOBS .GT. 0 .AND. OPTG.NE.5 .AND. .NOT.OBSTDONE) THEN         42.05 40.80
-        DO INDX = 1, MCGRD                                               040697
-          CROSS(1,INDX) = 0                                              040697
-          CROSS(2,INDX) = 0                                              040697
-        ENDDO                                                            040697
+   IF (NUMOBS .GT. 0 .AND. OPTG.NE.5 .AND. .NOT.OBSTDONE) THEN
+      DO INDX = 1, MCGRD
+         CROSS(1,INDX) = 0
+         CROSS(2,INDX) = 0
+      ENDDO
 !
-        ITMP1  = MXC                                                      40.31
-        ITMP2  = MYC                                                      40.31
-        ITMP3  = MCGRD                                                    40.31
-        MXC    = MXCGL                                                    40.31
-        MYC    = MYCGL                                                    40.31
-        MCGRD  = MCGRDGL                                                  40.31
-        ALLOCATE(CROSSGL(2,MCGRDGL))                                      40.31
-        CROSSGL = 0                                                       40.31
-        CALL SWOBST (XGRDGL, YGRDGL, KGRPGL, CROSSGL)                     40.31 30.7N
-        MXC    = ITMP1                                                    40.31
-        MYC    = ITMP2                                                    40.31
-        MCGRD  = ITMP3                                                    40.31
+      ITMP1  = MXC
+      ITMP2  = MYC
+      ITMP3  = MCGRD
+      MXC    = MXCGL
+      MYC    = MYCGL
+      MCGRD  = MCGRDGL
+      ALLOCATE(CROSSGL(2,MCGRDGL))
+      CROSSGL = 0
+      CALL SWOBST (XGRDGL, YGRDGL, KGRPGL, CROSSGL)
+      MXC    = ITMP1
+      MYC    = ITMP2
+      MCGRD  = ITMP3
 !
-        II = 1                                                            40.31
-        DO IX = MXF, MXL                                                  40.31
-           DO IY = MYF, MYL                                               40.31
-              INDX = KGRPGL(IX,IY)                                        40.31
-              IF ( INDX.NE.1 ) THEN                                       40.31
-                 II = II + 1                                              40.31
-                 CROSS(1:2,II) = CROSSGL(1:2,INDX)                        40.31
-              END IF                                                      40.31
-           END DO                                                         40.31
-        END DO                                                            40.31
-        DEALLOCATE(CROSSGL)                                               40.31
-        OBSTDONE = .TRUE.                                                 42.05
+      II = 1
+      DO IX = MXF, MXL
+         DO IY = MYF, MYL
+            INDX = KGRPGL(IX,IY)
+            IF ( INDX.NE.1 ) THEN
+               II = II + 1
+               CROSS(1:2,II) = CROSSGL(1:2,INDX)
+            END IF
+         END DO
+      END DO
+      DEALLOCATE(CROSSGL)
+      OBSTDONE = .TRUE.
 !
-        IF (ITEST .GE. 120) THEN                                          060697
-          WRITE(PRINTF,102)
- 102      FORMAT('Links with obstacles crossing',/,
-     &    '     COMP COORD           LINK         VALUE')
-          DO IIYY =2,MYC
+      IF (ITEST .GE. 120) THEN
+         WRITE(PRINTF,102)
+102      FORMAT('Links with obstacles crossing',/, &
+            '     COMP COORD           LINK         VALUE')
+         DO IIYY =2,MYC
             DO IIXX = 2,MXC
-            I1 = KGRPNT(IIXX,IIYY)
-              DO I2 = 1,2
-                IF (CROSS(I2,I1) .NE. 0)
-     &          WRITE(PRINTF,101) IIXX,IIYY,I2,I1,CROSS(I2,I1)
- 101            FORMAT(' POINT(',I4,',',I4,')',
-     &          '  CROSS(',I3,',',I5,')  = ',I5)
-              ENDDO
+               I1 = KGRPNT(IIXX,IIYY)
+               DO I2 = 1,2
+                  IF (CROSS(I2,I1) .NE. 0) &
+                     WRITE(PRINTF,101) IIXX,IIYY,I2,I1,CROSS(I2,I1)
+101               FORMAT(' POINT(',I4,',',I4,')', &
+                     '  CROSS(',I3,',',I5,')  = ',I5)
+               ENDDO
             ENDDO
-          ENDDO
-        ENDIF
+         ENDDO
       ENDIF
+   ENDIF
 !
 !     check freeboard dependent transmission/reflection
 !
-      IF ( NUMOBS.GT.0 ) THEN                                             41.71
-         COBST => FOBSTAC                                                 41.71
-         DO II = 1, NUMOBS                                                41.71
-            IFREE = COBST%FBTYP1                                          41.71
-            ITRAS = COBST%TRTYPE                                          41.71
-            IRFRD = COBST%RFTYP3                                          41.71
-            IF ( IFREE.EQ.1 .AND. (ITRAS.NE.0 .OR. IRFRD.EQ.1) ) THEN     41.71
-               CALL MSGERR(1,'freeboard dependent factors cannot be')     41.71
-               CALL MSGERR(1,'applied to nonconstant transmission or')    41.71
-               CALL MSGERR(1,'reflection coefficients')                   41.71
-               IFREE = 0                                                  41.71
-            ENDIF                                                         41.71
-            COBST%FBTYP1 = IFREE                                          41.71
-            IF (.NOT.ASSOCIATED(COBST%NEXTOBST)) EXIT                     41.71
-            COBST => COBST%NEXTOBST                                       41.71
-         ENDDO                                                            41.71
-      ENDIF                                                               41.71
+   IF ( NUMOBS.GT.0 ) THEN
+      COBST => FOBSTAC
+      DO II = 1, NUMOBS
+         IFREE = COBST%FBTYP1
+         ITRAS = COBST%TRTYPE
+         IRFRD = COBST%RFTYP3
+         IF ( IFREE.EQ.1 .AND. (ITRAS.NE.0 .OR. IRFRD.EQ.1) ) THEN
+            CALL MSGERR(1,'freeboard dependent factors cannot be')
+            CALL MSGERR(1,'applied to nonconstant transmission or')
+            CALL MSGERR(1,'reflection coefficients')
+            IFREE = 0
+         ENDIF
+         COBST%FBTYP1 = IFREE
+         IF (.NOT.ASSOCIATED(COBST%NEXTOBST)) EXIT
+         COBST => COBST%NEXTOBST
+      ENDDO
+   ENDIF
 !
 !     check radiating FIG energy and
 !     determine frequency distribution to FIG source
 !     (see Ardhuin et al., 2014)
 !
-      IF ( NUMOBS.GT.0 ) THEN                                             41.82
-         COBST => FOBSTAC                                                 41.82
-         DO II = 1, NUMOBS                                                41.82
-            IFIG  = COBST%IGTYP                                           41.82
-            ITRA  = COBST%TRTYPE                                          41.82
-            TRCF  = COBST%TRCOEF(1)                                       41.82
-            IFREE = COBST%FBTYP1                                          41.82
-            IF ( IFIG.EQ.1 .AND.                                          41.82
-     &           ( ITRA.NE.0  .OR. TRCF.NE.0. .OR. IFREE.NE.0 ) ) THEN    41.82
-               WRITE(MSGSTR,'(A)')                                        41.82
-     &                           'transmission not allowed in case of'//  41.82
-     &                           ' radiated FIG energy'                   41.82
-               CALL MSGERR( 1, TRIM(MSGSTR) )                             41.82
-               ITRA  = 0                                                  41.82
-               TRCF  = 0.                                                 41.82
-               IFREE = 0                                                  41.82
-            ENDIF                                                         41.82
-            COBST%TRTYPE    = ITRA                                        41.82
-            COBST%TRCOEF(1) = TRCF                                        41.82
-            COBST%FBTYP1    = IFREE                                       41.82
-            IF ( IFIG.EQ.1 ) THEN                                         41.82
-               MFR = COBST%IGCOEF(6)                                      42.09
-               SHP = COBST%IGCOEF(7)                                      42.09
-               ALLOCATE(COBST%IGFRQD(MSC))                                41.82
-               COBST%IGFRQD(:) = 0.                                       41.82
-               FDN = 0.                                                   41.82
-               DO JJ = 1, MSC                                             41.82
-                  FIGF = MIN( 1., 2.*PI * MFR / SPCSIG(JJ) )**SHP         42.09 41.82
-                  COBST%IGFRQD(JJ) = FIGF                                 41.82
-                  FDN = FDN + SPCSIG(JJ) * FIGF                           41.82
-               ENDDO                                                      41.82
-               COBST%IGFRQD = COBST%IGFRQD / FDN / FRINTF                 41.82
-            ENDIF                                                         41.82
-            IF (.NOT.ASSOCIATED(COBST%NEXTOBST)) EXIT                     41.82
-            COBST => COBST%NEXTOBST                                       41.82
-         ENDDO                                                            41.82
-      ENDIF                                                               41.82
+   IF ( NUMOBS.GT.0 ) THEN
+      COBST => FOBSTAC
+      DO II = 1, NUMOBS
+         IFIG  = COBST%IGTYP
+         ITRA  = COBST%TRTYPE
+         TRCF  = COBST%TRCOEF(1)
+         IFREE = COBST%FBTYP1
+         IF ( IFIG.EQ.1 .AND. &
+              ( ITRA.NE.0  .OR. TRCF.NE.0. .OR. IFREE.NE.0 ) ) THEN
+            WRITE(MSGSTR,'(A)') &
+                              'transmission not allowed in case of'// &
+                              ' radiated FIG energy'
+            CALL MSGERR( 1, TRIM(MSGSTR) )
+            ITRA  = 0
+            TRCF  = 0.
+            IFREE = 0
+         ENDIF
+         COBST%TRTYPE    = ITRA
+         COBST%TRCOEF(1) = TRCF
+         COBST%FBTYP1    = IFREE
+         IF ( IFIG.EQ.1 ) THEN
+            MFR = COBST%IGCOEF(6)
+            SHP = COBST%IGCOEF(7)
+            ALLOCATE(COBST%IGFRQD(MSC))
+            COBST%IGFRQD(:) = 0.
+            FDN = 0.
+            DO JJ = 1, MSC
+               FIGF = MIN( 1., 2.*PI * MFR / SPCSIG(JJ) )**SHP
+               COBST%IGFRQD(JJ) = FIGF
+               FDN = FDN + SPCSIG(JJ) * FIGF
+            ENDDO
+            COBST%IGFRQD = COBST%IGFRQD / FDN / FRINTF
+         ENDIF
+         IF (.NOT.ASSOCIATED(COBST%NEXTOBST)) EXIT
+         COBST => COBST%NEXTOBST
+      ENDDO
+   ENDIF
 !
 !     skip below if no boundary conditions have been specified
-      IF (.NOT.ALOBND) GOTO 201
+   IF (.NOT.ALOBND) GOTO 201
 !
-      ATMP = -999.                                                        41.48
-      J    = 0                                                            41.48
+   ATMP = -999.
+   J    = 0
 !
-      CURRBS => FBS                                                       40.31
-      DO                                                                  40.31
-         NBS = CURRBS%NBS                                                 40.31
-         IF (NBS.EQ.-999) EXIT                                            40.31
-         SPPARM(1:4) = CURRBS%SPPARM(1:4)                                 40.31
-         J = J + 1                                                        41.48
-         IF ( J.EQ.1 ) ATMP = 0.                                          41.48
-         ATMP = ATMP + SPPARM(3)                                          41.48
-         FSHAPE      = CURRBS%FSHAPE                                      40.31
-         DSHAPE      = CURRBS%DSHAPE                                      40.31
-         CALL SSHAPE (BSPECS(1,1,NBS,1), SPCSIG, SPCDIR,                  40.31
-     &                FSHAPE, DSHAPE)                                     40.31
-         IF (.NOT.ASSOCIATED(CURRBS%NEXTBS)) EXIT                         40.31
-         CURRBS => CURRBS%NEXTBS                                          40.31
-      END DO                                                              40.31
+   CURRBS => FBS
+   DO
+      NBS = CURRBS%NBS
+      IF (NBS.EQ.-999) EXIT
+      SPPARM(1:4) = CURRBS%SPPARM(1:4)
+      J = J + 1
+      IF ( J.EQ.1 ) ATMP = 0.
+      ATMP = ATMP + SPPARM(3)
+      FSHAPE      = CURRBS%FSHAPE
+      DSHAPE      = CURRBS%DSHAPE
+      CALL SSHAPE (BSPECS(1,1,NBS,1), SPCSIG, SPCDIR, &
+                   FSHAPE, DSHAPE)
+      IF (.NOT.ASSOCIATED(CURRBS%NEXTBS)) EXIT
+      CURRBS => CURRBS%NEXTBS
+   END DO
 
-      IF (J.GT.0) ATMP = ATMP/REAL(J)                                     41.48
+   IF (J.GT.0) ATMP = ATMP/REAL(J)
 !
-      IF ( ATMP.NE.-999. ) THEN                                           41.48
-         ATMP = DEGCNV (ATMP)
-         ALTMP = ATMP / 360.
-         ATMP = PI2 * (ALTMP - NINT(ALTMP))
-      ENDIF
+   IF ( ATMP.NE.-999. ) THEN
+      ATMP = DEGCNV (ATMP)
+      ALTMP = ATMP / 360.
+      ATMP = PI2 * (ALTMP - NINT(ALTMP))
+   ENDIF
 !
 !     set sweep direction based on either incoming wave direction
 !     or wind direction, if user-given direction not specified
-      IF ( .NOT. asort.NE.-999. ) THEN                                    41.48
-         IF ( NSTATM == 0 .OR. NBFILS == 0 ) THEN
-            IF (ATMP.NE.-999. .OR. IWIND.EQ.0 .OR. VARWI) THEN
-               asort = ATMP
-            ELSE
-               asort = WDIP
-            ENDIF
+   IF ( .NOT. asort.NE.-999. ) THEN
+      IF ( NSTATM == 0 .OR. NBFILS == 0 ) THEN
+         IF (ATMP.NE.-999. .OR. IWIND.EQ.0 .OR. VARWI) THEN
+            asort = ATMP
+         ELSE
+            asort = WDIP
          ENDIF
       ENDIF
+   ENDIF
 
-      BGRIDP = 0                                                          40.31
-      IF (OPTG.NE.5) THEN                                                 40.80
-         IF (NBGGL.EQ.0) NBGGL = NBGRPT                                   40.51 40.31
-         NBGRPT = 0                                                       40.31
-         DO IX = MXF, MXL                                                 40.31
-            DO IY = MYF, MYL                                              40.31
-               INDX = KGRPGL(IX,IY)                                       40.31
-               CURBGP => FBGP                                             40.31
-               DO II = 1, NBGGL                                           40.31
-                  INDXGR = CURBGP%BGP(1)                                  40.31
-                  IF ( INDXGR.EQ.INDX ) THEN                              40.31
-                     NBGRPT = NBGRPT + 1                                  40.31
-                     BGRIDP(6*NBGRPT-5) = KGRPNT(IX-MXF+1,IY-MYF+1)       40.31
-                     BGRIDP(6*NBGRPT-4) = CURBGP%BGP(2)                   40.31
-                     BGRIDP(6*NBGRPT-3) = CURBGP%BGP(3)                   40.31
-                     BGRIDP(6*NBGRPT-2) = CURBGP%BGP(4)                   40.31
-                     BGRIDP(6*NBGRPT-1) = CURBGP%BGP(5)                   40.31
-                     BGRIDP(6*NBGRPT  ) = CURBGP%BGP(6)                   40.31
-                  END IF                                                  40.31
-                  IF (.NOT.ASSOCIATED(CURBGP%NEXTBGP)) EXIT               40.31
-                  CURBGP => CURBGP%NEXTBGP                                40.31
-               END DO                                                     40.31
-            END DO                                                        40.31
-         END DO                                                           40.31
-      ELSE                                                                40.80
-         IF (NBGGL.EQ.0) NBGGL = NBGRPT                                   43.01
-         NBGRPT = 0                                                       43.01
-         CURBGP => FBGP                                                   40.80
-         DO II = 1, NBGGL                                                 43.01 40.80
-            INDXGR = CURBGP%BGP(1)                                        43.01
-            ITMP   = MINLOC(ABS(bvertg(:,2)-INDXGR))                      43.01
-            K      = ITMP(1)                                              43.01
-            IF ( bvertg(K,2).EQ.INDXGR ) THEN                             43.01
-               IX = bvertg(K,1)                                           43.01
-               NBGRPT = NBGRPT + 1                                        43.01
-               BGRIDP(6*NBGRPT-5) = IX                                    43.01 40.80
-               BGRIDP(6*NBGRPT-4) = CURBGP%BGP(2)                         43.01 40.80
-               BGRIDP(6*NBGRPT-3) = CURBGP%BGP(3)                         43.01 40.80
-               BGRIDP(6*NBGRPT-2) = CURBGP%BGP(4)                         43.01 40.80
-               BGRIDP(6*NBGRPT-1) = CURBGP%BGP(5)                         43.01 40.80
-               BGRIDP(6*NBGRPT  ) = CURBGP%BGP(6)                         43.01 40.80
-            END IF                                                        43.01
-            IF (.NOT.ASSOCIATED(CURBGP%NEXTBGP)) EXIT                     40.80
-            CURBGP => CURBGP%NEXTBGP                                      40.80
-         ENDDO                                                            40.80
-      ENDIF                                                               40.80
+   BGRIDP = 0
+   IF (OPTG.NE.5) THEN
+      IF (NBGGL.EQ.0) NBGGL = NBGRPT
+      NBGRPT = 0
+      DO IX = MXF, MXL
+         DO IY = MYF, MYL
+            INDX = KGRPGL(IX,IY)
+            CURBGP => FBGP
+            DO II = 1, NBGGL
+               INDXGR = CURBGP%BGP(1)
+               IF ( INDXGR.EQ.INDX ) THEN
+                  NBGRPT = NBGRPT + 1
+                  BGRIDP(6*NBGRPT-5) = KGRPNT(IX-MXF+1,IY-MYF+1)
+                  BGRIDP(6*NBGRPT-4) = CURBGP%BGP(2)
+                  BGRIDP(6*NBGRPT-3) = CURBGP%BGP(3)
+                  BGRIDP(6*NBGRPT-2) = CURBGP%BGP(4)
+                  BGRIDP(6*NBGRPT-1) = CURBGP%BGP(5)
+                  BGRIDP(6*NBGRPT  ) = CURBGP%BGP(6)
+               END IF
+               IF (.NOT.ASSOCIATED(CURBGP%NEXTBGP)) EXIT
+               CURBGP => CURBGP%NEXTBGP
+            END DO
+         END DO
+      END DO
+   ELSE
+      IF (NBGGL.EQ.0) NBGGL = NBGRPT
+      NBGRPT = 0
+      CURBGP => FBGP
+      DO II = 1, NBGGL
+         INDXGR = CURBGP%BGP(1)
+         ITMP   = MINLOC(ABS(bvertg(:,2)-INDXGR))
+         K      = ITMP(1)
+         IF ( bvertg(K,2).EQ.INDXGR ) THEN
+            IX = bvertg(K,1)
+            NBGRPT = NBGRPT + 1
+            BGRIDP(6*NBGRPT-5) = IX
+            BGRIDP(6*NBGRPT-4) = CURBGP%BGP(2)
+            BGRIDP(6*NBGRPT-3) = CURBGP%BGP(3)
+            BGRIDP(6*NBGRPT-2) = CURBGP%BGP(4)
+            BGRIDP(6*NBGRPT-1) = CURBGP%BGP(5)
+            BGRIDP(6*NBGRPT  ) = CURBGP%BGP(6)
+         END IF
+         IF (.NOT.ASSOCIATED(CURBGP%NEXTBGP)) EXIT
+         CURBGP => CURBGP%NEXTBGP
+      ENDDO
+   ENDIF
 !
 !     --- test BGRIDP for unstructured mesh                               43.01
-      IF ( OPTG.NE.5 ) THEN                                               43.01
-         GOTO 201                                                         43.01
-      ELSEIF ( ITEST.GE.50 ) THEN                                         43.01
-         IF ( NBGRPT.GT.0 ) THEN                                          43.01
-           WRITE(PRTEST,*)                                                43.01
-     &     ' number of described boundary points in present subdomain ',  43.01
-     &     NBGRPT                                                         43.01
-           DO IB = 1, NBGRPT                                              43.01
-              IC = BGRIDP(6*IB-5)                                         43.01
-              IF (.NOT.PARLL) THEN                                        43.01
-                 ICG = IC                                                 43.01
-              ELSE                                                        43.01
-                 ICG = ivertg(IC)                                         43.01
-              ENDIF                                                       43.01
-              IF (BGRIDP(6*IB-4).EQ.1)                                    43.01
-     &           WRITE(PRTEST,'(A,I7,2F18.9,I7)')                         43.01
-     &                       ' BGRIDP: INDXGL, XP, YP, bound marker ',    43.01
-     &                       ICG,                                         43.01
-     &                       xcugrd(IC)+XOFFS,                            43.01
-     &                       ycugrd(IC)+YOFFS,                            43.01
-     &                       vmark(IC)                                    43.01
-           ENDDO                                                          43.01
-         ENDIF                                                            43.01
-      ENDIF                                                               43.01
+   IF ( OPTG.NE.5 ) THEN
+      GOTO 201
+   ELSEIF ( ITEST.GE.50 ) THEN
+      IF ( NBGRPT.GT.0 ) THEN
+         WRITE(PRTEST,*) &
+            ' number of described boundary points in present subdomain ', &
+            NBGRPT
+         DO IB = 1, NBGRPT
+            IC = BGRIDP(6*IB-5)
+            IF (.NOT.PARLL) THEN
+               ICG = IC
+            ELSE
+               ICG = ivertg(IC)
+            ENDIF
+            IF (BGRIDP(6*IB-4).EQ.1) &
+               WRITE(PRTEST,'(A,I7,2F18.9,I7)') &
+                           ' BGRIDP: INDXGL, XP, YP, bound marker ', &
+                           ICG, &
+                           xcugrd(IC)+XOFFS, &
+                           ycugrd(IC)+YOFFS, &
+                           vmark(IC)
+         ENDDO
+      ENDIF
+   ENDIF
 !
- 201  CONTINUE
+201 CONTINUE
 !
 !     --- allocate arrays for diffraction and set prop scheme to BSBT     40.41
 !                                                                         40.21
-      IF ( IDIFFR.EQ.1 ) THEN                                             40.21
-         IF (.NOT.ALLOCATED(DIFPARAM)) ALLOCATE(DIFPARAM(1:MCGRD))        40.21
-         IF (.NOT.ALLOCATED(DIFPARDX)) ALLOCATE(DIFPARDX(1:MCGRD))        40.21
-         IF (.NOT.ALLOCATED(DIFPARDY)) ALLOCATE(DIFPARDY(1:MCGRD))        40.21
-         PROPSN = 1                                                       40.41
-         PROPSS = 1                                                       40.41
-      ELSE                                                                40.41
-         IF (.NOT.ALLOCATED(DIFPARAM)) ALLOCATE(DIFPARAM(0))              40.21
-         IF (.NOT.ALLOCATED(DIFPARDX)) ALLOCATE(DIFPARDX(0))              40.21
-         IF (.NOT.ALLOCATED(DIFPARDY)) ALLOCATE(DIFPARDY(0))              40.21
-      END IF                                                              40.21
+   IF ( IDIFFR.EQ.1 ) THEN
+      IF (.NOT.ALLOCATED(DIFPARAM)) ALLOCATE(DIFPARAM(1:MCGRD))
+      IF (.NOT.ALLOCATED(DIFPARDX)) ALLOCATE(DIFPARDX(1:MCGRD))
+      IF (.NOT.ALLOCATED(DIFPARDY)) ALLOCATE(DIFPARDY(1:MCGRD))
+      PROPSN = 1
+      PROPSS = 1
+   ELSE
+      IF (.NOT.ALLOCATED(DIFPARAM)) ALLOCATE(DIFPARAM(0))
+      IF (.NOT.ALLOCATED(DIFPARDX)) ALLOCATE(DIFPARDX(0))
+      IF (.NOT.ALLOCATED(DIFPARDY)) ALLOCATE(DIFPARDY(0))
+   END IF
 !
 !     --- check surfbeat                                                  41.85
 !
-      IF (LSRFB) THEN
-         !
-         ! check problem dimension
-         !
-         IF ( ONED ) THEN
-            CALL MSGERR(3,'surfbeat computation not allowed in 1D mode')
+   IF (LSRFB) THEN
+      !
+      ! check problem dimension
+      !
+      IF ( ONED ) THEN
+         CALL MSGERR(3,'surfbeat computation not allowed in 1D mode')
+      ENDIF
+      !
+      ! check stationarity
+      !
+      IF ( NSTATC.NE.0 .OR. NSTATM.NE.0 ) THEN
+         CALL MSGERR(3, &
+            'surfbeat computation not allowed in non-stationary mode')
+      ELSE
+         IF ( NCOMPT.EQ.1 .AND. ntf.LT.0 ) THEN
+            WRITE(MSGSTR,'(A)') &
+                       'current COMPUTE consists of computation of'// &
+                     ' sea-swell spectrum followed by bound ig waves'
+            CALL MSGERR( 0, TRIM(MSGSTR) )
+         ELSEIF ( NCOMPT.EQ.2 .AND. ntf.GT.0 ) THEN
+            WRITE(MSGSTR,'(A)') &
+                       'current COMPUTE consists of computation of'// &
+                       ' reflected (free) ig waves'
+            CALL MSGERR( 0, TRIM(MSGSTR) )
+         ELSEIF ( NCOMPT.GT.2 ) THEN
+            WRITE(MSGSTR,'(A)') &
+               'command COMPUTE must appear no more than twice in '// &
+               'one simulation'
+            CALL MSGERR( 3, TRIM(MSGSTR) )
          ENDIF
-         !
-         ! check stationarity
-         !
-         IF ( NSTATC.NE.0 .OR. NSTATM.NE.0 ) THEN
-            CALL MSGERR(3,
-     &        'surfbeat computation not allowed in non-stationary mode')
-         ELSE
-            IF ( NCOMPT.EQ.1 .AND. ntf.LT.0 ) THEN
-               WRITE(MSGSTR,'(A)')
-     &                    'current COMPUTE consists of computation of'//
-     &                  ' sea-swell spectrum followed by bound ig waves'
-               CALL MSGERR( 0, TRIM(MSGSTR) )
-            ELSEIF ( NCOMPT.EQ.2 .AND. ntf.GT.0 ) THEN
-               WRITE(MSGSTR,'(A)')
-     &                    'current COMPUTE consists of computation of'//
-     &                    ' reflected (free) ig waves'
-               CALL MSGERR( 0, TRIM(MSGSTR) )
-            ELSEIF ( NCOMPT.GT.2 ) THEN
-               WRITE(MSGSTR,'(A)')
-     &            'command COMPUTE must appear no more than twice in '//
-     &            'one simulation'
-               CALL MSGERR( 3, TRIM(MSGSTR) )
+      ENDIF
+      !
+      ! check grid and orientation
+      !
+      IF ( OPTG.NE.1 ) THEN
+         CALL MSGERR(3, &
+                     'surfbeat only supported for rectilinear grids')
+      ELSE
+         IF ( ALPC.NE.0.) THEN
+            WRITE(MSGSTR,'(A)') &
+                     'grid orientation is restricted to [alpc] = 0'// &
+                     ' in case of surfbeat'
+            CALL MSGERR( 3, TRIM(MSGSTR) )
+         ENDIF
+      ENDIF
+      !
+      ! check FIG energy
+      !
+      IF ( NUMOBS.GT.0 ) THEN
+         COBST => FOBSTAC
+         DO II = 1, NUMOBS
+            IFIG = COBST%IGTYP
+            IF ( IFIG.EQ.1 ) THEN
+               CALL MSGERR(2, &
+                  'radiated FIG energy not allowed in case surfbeat')
+               IFIG = 0
             ENDIF
-         ENDIF
-         !
-         ! check grid and orientation
-         !
-         IF ( OPTG.NE.1 ) THEN
-            CALL MSGERR(3,
-     &                  'surfbeat only supported for rectilinear grids')
+            COBST%IGTYP = IFIG
+            IF (.NOT.ASSOCIATED(COBST%NEXTOBST)) EXIT
+            COBST => COBST%NEXTOBST
+         ENDDO
+      ENDIF
+      !
+      ! check west boundary during first COMPUTE
+      !
+      IF ( ntf.LT.0 ) THEN
+         IF ( NBGRPT.NE.MYC ) THEN
+            CALL MSGERR(3, &
+               'boundary specification is not correct in case of surfbeat')
+            CALL MSGERR(0, &
+                     'please only west boundary should be specified')
          ELSE
-            IF ( ALPC.NE.0.) THEN
-               WRITE(MSGSTR,'(A)')
-     &                  'grid orientation is restricted to [alpc] = 0'//
-     &                  ' in case of surfbeat'
-               CALL MSGERR( 3, TRIM(MSGSTR) )
-            ENDIF
-         ENDIF
-         !
-         ! check FIG energy
-         !
-         IF ( NUMOBS.GT.0 ) THEN
-            COBST => FOBSTAC
-            DO II = 1, NUMOBS
-               IFIG = COBST%IGTYP
-               IF ( IFIG.EQ.1 ) THEN
-                  CALL MSGERR(2,
-     &               'radiated FIG energy not allowed in case surfbeat')
-                  IFIG = 0
+            J = 0
+            DO II = 1, NBGRPT
+               INDXGR = BGRIDP(6*II-5)
+               INDX   = KGRPNT(1,II) ! ix=1: west
+               IF (BGRIDP(6*II-4).EQ.1) THEN
+                  IF (INDXGR.NE.INDX) J=J+1
                ENDIF
-               COBST%IGTYP = IFIG
-               IF (.NOT.ASSOCIATED(COBST%NEXTOBST)) EXIT
-               COBST => COBST%NEXTOBST
             ENDDO
-         ENDIF
-         !
-         ! check west boundary during first COMPUTE
-         !
-         IF ( ntf.LT.0 ) THEN
-            IF ( NBGRPT.NE.MYC ) THEN
-               CALL MSGERR(3,
-     &      'boundary specification is not correct in case of surfbeat')
-               CALL MSGERR(0,
-     &                  'please only west boundary should be specified')
-            ELSE
-               J = 0
-               DO II = 1, NBGRPT
-                  INDXGR = BGRIDP(6*II-5)
-                  INDX   = KGRPNT(1,II)   ! ix=1: west
-                  IF (BGRIDP(6*II-4).EQ.1) THEN
-                     IF (INDXGR.NE.INDX) J=J+1
-                  ENDIF
-               ENDDO
-               IF (J.NE.0) THEN
-                  CALL MSGERR(3,
-     &          'location of boundary must be west in case of surfbeat')
-               ENDIF
+            IF (J.NE.0) THEN
+               CALL MSGERR(3, &
+                  'location of boundary must be west in case of surfbeat')
             ENDIF
          ENDIF
       ENDIF
+   ENDIF
 !
 !     --- preparation for triads                                          42.01
 !
-      IF ( ITRIAD.GT.0 ) THEN
+   IF ( ITRIAD.GT.0 ) THEN
 !        *** allocate frequency- and space-dependent data for triads
-         IF (ITRIAD.EQ.1 .OR. ITRIAD.EQ.11) THEN
-            MSC4D = MSC
-            ISTAT=0
-            IF (.NOT.ALLOCATED(QTRI2))
-     &                           ALLOCATE(QTRI2(MSC,MCGRD,2),STAT=ISTAT)
-            IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(0,0))
-         ELSE IF (ITRIAD.EQ.2 .OR. ITRIAD.EQ.3) THEN
-            MSC4D = MSC*MSC+MSC*(MSC-1)/2
-            IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(MSC4D,2))
-            ISTAT=0
-            IF (.NOT.ALLOCATED(QTRI2))
-     &                         ALLOCATE(QTRI2(MSC4D,MCGRD,4),STAT=ISTAT)
-         ELSE IF (ITRIAD.EQ.5) THEN
-            IF (TCOLL) THEN
-               MSC4D = MSC*(MSC-1)/2
-            ELSE
-               MSC4D = MSC*MSC
-            ENDIF
-            IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(MSC4D,2))
-            ISTAT=0
-            IF (.NOT.ALLOCATED(QTRI2))
-     &                         ALLOCATE(QTRI2(MSC4D,MCGRD,2),STAT=ISTAT)
+      IF (ITRIAD.EQ.1 .OR. ITRIAD.EQ.11) THEN
+         MSC4D = MSC
+         ISTAT=0
+         IF (.NOT.ALLOCATED(QTRI2)) &
+                              ALLOCATE(QTRI2(MSC,MCGRD,2),STAT=ISTAT)
+         IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(0,0))
+      ELSE IF (ITRIAD.EQ.2 .OR. ITRIAD.EQ.3) THEN
+         MSC4D = MSC*MSC+MSC*(MSC-1)/2
+         IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(MSC4D,2))
+         ISTAT=0
+         IF (.NOT.ALLOCATED(QTRI2)) &
+                            ALLOCATE(QTRI2(MSC4D,MCGRD,4),STAT=ISTAT)
+      ELSE IF (ITRIAD.EQ.5) THEN
+         IF (TCOLL) THEN
+            MSC4D = MSC*(MSC-1)/2
+         ELSE
+            MSC4D = MSC*MSC
          ENDIF
-         IF ( ISTAT.NE.0 ) THEN
-            CHARS(1) = NUMSTR(ISTAT,RNAN,'(I6)')
-            CALL TXPBLA(CHARS(1),IF1,IL1)
-            MSGSTR =
-     &         'Allocation problem: array QTRI and return code is '//
-     &         CHARS(1)(IF1:IL1)
-            CALL MSGERR ( 4, MSGSTR )
-            RETURN
-         END IF
-      ELSE
-         IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(0,0  ))
-         IF (.NOT.ALLOCATED(QTRI2)) ALLOCATE(QTRI2(0,0,0))
+         IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(MSC4D,2))
+         ISTAT=0
+         IF (.NOT.ALLOCATED(QTRI2)) &
+                            ALLOCATE(QTRI2(MSC4D,MCGRD,2),STAT=ISTAT)
       ENDIF
+      IF ( ISTAT.NE.0 ) THEN
+         CHARS(1) = NUMSTR(ISTAT,RNAN,'(I6)')
+         CALL TXPBLA(CHARS(1),IF1,IL1)
+         MSGSTR = &
+            'Allocation problem: array QTRI and return code is '// &
+            CHARS(1)(IF1:IL1)
+         CALL MSGERR ( 4, MSGSTR )
+         RETURN
+      END IF
+   ELSE
+      IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(0,0  ))
+      IF (.NOT.ALLOCATED(QTRI2)) ALLOCATE(QTRI2(0,0,0))
+   ENDIF
 !
-      IF (IBIPH.EQ.3) THEN                                                42.01
-         IF (.NOT.ALLOCATED(BPHTMP)) ALLOCATE(BPHTMP(MCGRD))
-         BPHTMP = 0.
-      ENDIF
+   IF (IBIPH.EQ.3) THEN
+      IF (.NOT.ALLOCATED(BPHTMP)) ALLOCATE(BPHTMP(MCGRD))
+      BPHTMP = 0.
+   ENDIF
 !
 !     reset full directional integration parameter for CCA approach       42.01
 !
-      IF ( PTRIAD(8).NE.-1. ) THEN                                        42.01
-         PWDTH = PTRIAD(8) * PI/180.                                      42.01
-         MTH = MDC                                                        42.01
-         IF ( .NOT.FULCIR ) MTH = MDC - 1                                 42.01
-         IF ( .NOT.PWDTH.LT.FLOAT(MTH)*DDIR ) PTRIAD(8) = -1.             42.01
-      ENDIF                                                               42.01
+   IF ( PTRIAD(8).NE.-1. ) THEN
+      PWDTH = PTRIAD(8) * PI/180.
+      MTH = MDC
+      IF ( .NOT.FULCIR ) MTH = MDC - 1
+      IF ( .NOT.PWDTH.LT.FLOAT(MTH)*DDIR ) PTRIAD(8) = -1.
+   ENDIF
 !
 !     check biphase in case no triads                                     41.97
 !
-      IF ( ITRIAD.EQ.0 ) THEN
-         IF ( ISURF.EQ.7 ) THEN
-            IBIPH = 2
-            PTRIAD(9) = 1.
-         ENDIF
+   IF ( ITRIAD.EQ.0 ) THEN
+      IF ( ISURF.EQ.7 ) THEN
+         IBIPH = 2
+         PTRIAD(9) = 1.
       ENDIF
+   ENDIF
 !
-      RETURN
+   RETURN
 ! * end of subroutine SWPREP *
-      END
+END
 !
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)                  40.31 40.00
+SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)
 !                                                                      *
 !***********************************************************************
 !
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE OUTP_DATA                                                       40.31
-      USE SwanGriddata                                                    40.80
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE OUTP_DATA
+   USE SwanGriddata
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -4339,20 +4339,20 @@
 !     XCGRID: input  Coordinates of computational grid in x-direction     30.72
 !     YCGRID: input  Coordinates of computational grid in y-direction     30.72
 !
-      INTEGER :: KGRBND(*)                                                40.02
+   INTEGER :: KGRBND(*)
 !
-      REAL    :: XCGRID(MXC,MYC), YCGRID(MXC,MYC)                         30.72
+   REAL    :: XCGRID(MXC,MYC), YCGRID(MXC,MYC)
 !
 !  6. Local variables
 !
 !     I, J    counters
 !
-      INTEGER I, J
+   INTEGER I, J
 !
 !     XR      x (comp. grid coord.)
 !     YR      y (comp. grid coord.)
 !
-      REAL    XR, YR
+   REAL    XR, YR
 !
 !  8. Subroutines used
 !
@@ -4412,255 +4412,255 @@
 !
 ! 13. Source text
 !
-      INTEGER  KGRPNT(MXC,MYC)                                            40.02
-      LOGICAL  SINBTG
-      CHARACTER STYPE *1
-      TYPE(OPSDAT), POINTER :: CUOPS                                      40.31
-      SAVE IENT
-      DATA IENT /0/
-      CALL STRACE (IENT,'SPRCON')
+   INTEGER  KGRPNT(MXC,MYC)
+   LOGICAL  SINBTG
+   CHARACTER STYPE *1
+   TYPE(OPSDAT), POINTER :: CUOPS
+   SAVE IENT
+   DATA IENT /0/
+   CALL STRACE (IENT,'SPRCON')
 !
 !     ***** test location of computational grid *****
 !
-      IF (ITEST.GE.10) WRITE (PRTEST, '(A)')
-     &                            'Check location of computational grid'
+   IF (ITEST.GE.10) WRITE (PRTEST, '(A)') &
+                               'Check location of computational grid'
 !
-      IF (OPTG .EQ. 1) THEN                                               30.21
+   IF (OPTG .EQ. 1) THEN
 !
 !       regular grid
 !
-        IF (ONED) THEN                                                    32.02
+      IF (ONED) THEN
 !
 !         For 1D-version:
 !         *** Check angles of bottom grid and computational grid ***      32.02
 !
-          IF ( ABS((ALPG(1) - ALPC)) .GT. 0.0017 ) THEN                   32.02
-            CALL MSGERR( 2, ' Difference between angle of bottom grid'//  32.02
-     &                      ' (alpinp) and computational grid (alpc)')    32.02
-            CALL MSGERR( 2, ' greater than 0.1 degrees.')                 32.02
-          ENDIF                                                           32.02
+         IF ( ABS((ALPG(1) - ALPC)) .GT. 0.0017 ) THEN
+            CALL MSGERR( 2, ' Difference between angle of bottom grid'// &
+                            ' (alpinp) and computational grid (alpc)')
+            CALL MSGERR( 2, ' greater than 0.1 degrees.')
+         ENDIF
 !
 !         *** Check location of computational grid ***                    32.02
 !
-          DO  I=0,1                                                       30.72
+         DO  I=0,1
             XR = I*XCLEN
             XP = XPC + XR*COSPC
             YP = YPC + XR*SINPC
             IF (.NOT.SINBTG(XP,YP) ) THEN
-              CALL MSGERR(1,'Corner of comp grid outside bottom grid')
-              WRITE (PRINTF, 6010) XP+XOFFS, YP+YOFFS
-            ENDIF                                                         30.72
-          ENDDO
-        ELSE                                                              32.02
+               CALL MSGERR(1,'Corner of comp grid outside bottom grid')
+               WRITE (PRINTF, 6010) XP+XOFFS, YP+YOFFS
+            ENDIF
+         ENDDO
+      ELSE
 !
 !         two-dimensional case
 !
-          DO 11 I=0,1                                                     30.72
+         DO 11 I=0,1
             DO 10 J=0,1
-              XR = I*XCLEN
-              YR = J*YCLEN
-              XP = XPC + XR*COSPC - YR*SINPC
-              YP = YPC + XR*SINPC + YR*COSPC
-              IF (.NOT.SINBTG(XP,YP) ) THEN
-                CALL MSGERR(1,'Corner of comp grid outside bottom grid')
-                WRITE (PRINTF, 6010) XP+XOFFS, YP+YOFFS
- 6010           FORMAT (' Coordinates :',2F10.2)
-              ENDIF                                                       30.72
-   10       CONTINUE                                                      30.72
-   11     CONTINUE
-        ENDIF
+               XR = I*XCLEN
+               YR = J*YCLEN
+               XP = XPC + XR*COSPC - YR*SINPC
+               YP = YPC + XR*SINPC + YR*COSPC
+               IF (.NOT.SINBTG(XP,YP) ) THEN
+                  CALL MSGERR(1,'Corner of comp grid outside bottom grid')
+                  WRITE (PRINTF, 6010) XP+XOFFS, YP+YOFFS
+6010              FORMAT (' Coordinates :',2F10.2)
+               ENDIF
+10          CONTINUE
+11       CONTINUE
+      ENDIF
 !
-        XR = 0.5*XCLEN
-        YR = 0.5*YCLEN
-        XP = XPC + XR*COSPC - YR*SINPC
-        YP = YPC + XR*SINPC + YR*COSPC
-        IF (.NOT. SINBTG(XP,YP) ) THEN
-          CALL MSGERR (2,' Centre of comp. grid outside bottom grid')
-        ENDIF
-      ELSEIF (OPTG.EQ.5) THEN                                             40.80
+      XR = 0.5*XCLEN
+      YR = 0.5*YCLEN
+      XP = XPC + XR*COSPC - YR*SINPC
+      YP = YPC + XR*SINPC + YR*COSPC
+      IF (.NOT. SINBTG(XP,YP) ) THEN
+         CALL MSGERR (2,' Centre of comp. grid outside bottom grid')
+      ENDIF
+   ELSEIF (OPTG.EQ.5) THEN
 !
 !       --- check location of computational grid                          40.80
 !
-        DO I = 1, nverts                                                  40.80
-           IF ( vmark(I) /= 0 ) THEN                                      40.80
-              XP = xcugrd(I)                                              40.80
-              YP = ycugrd(I)                                              40.80
-              IF (.NOT.SINBTG(XP,YP) ) THEN                               40.80
-                CALL MSGERR(1,'Corner of comp grid outside bottom grid')  40.80
-                WRITE (PRINTF, 6010) XP+XOFFS, YP+YOFFS                   40.80
-              ENDIF                                                       40.80
-           ENDIF                                                          40.80
-        ENDDO                                                             40.80
-      ENDIF                                                               30.21
+      DO I = 1, nverts
+         IF ( vmark(I) /= 0 ) THEN
+            XP = xcugrd(I)
+            YP = ycugrd(I)
+            IF (.NOT.SINBTG(XP,YP) ) THEN
+               CALL MSGERR(1,'Corner of comp grid outside bottom grid')
+               WRITE (PRINTF, 6010) XP+XOFFS, YP+YOFFS
+            ENDIF
+         ENDIF
+      ENDDO
+   ENDIF
 !
 !     ***** test location of output pointsets *****
-      IF (LOPS) THEN                                                      40.31
-        CUOPS => FOPS                                                     40.31
-        DO                                                                40.31
+   IF (LOPS) THEN
+      CUOPS => FOPS
+      DO
 !         --- get name of point set                                       40.31
-          SNAME = CUOPS%PSNAME                                            40.31
-          IF (ITEST.GE.80) WRITE (PRTEST, 12) SNAME                       40.31
-  12      FORMAT (' test SPRCON ', A8)                                    40.31
+         SNAME = CUOPS%PSNAME
+         IF (ITEST.GE.80) WRITE (PRTEST, 12) SNAME
+12       FORMAT (' test SPRCON ', A8)
 !
 !         bottom grid is excluded from the test
-          IF (SNAME.EQ.'BOTTGRID') GOTO 100
+         IF (SNAME.EQ.'BOTTGRID') GOTO 100
 !
 !         computational grid is excluded from the test
-          IF (SNAME.EQ.'COMPGRID') GOTO 100
+         IF (SNAME.EQ.'COMPGRID') GOTO 100
 !
 !         wind grid is excluded from the test
-          IF (SNAME.EQ.'WXGRID' .OR. SNAME.EQ.'WYGRID') GOTO 100
+         IF (SNAME.EQ.'WXGRID' .OR. SNAME.EQ.'WYGRID') GOTO 100
 !
 !         velocity grid is excluded from the test
-          IF (SNAME.EQ.'VXGRID' .OR. SNAME.EQ.'VYGRID') GOTO 100
+         IF (SNAME.EQ.'VXGRID' .OR. SNAME.EQ.'VYGRID') GOTO 100
 !
 !         waterlevel grid is excluded from the test
-          IF (SNAME.EQ.'WLEVGRID') GOTO 100
+         IF (SNAME.EQ.'WLEVGRID') GOTO 100
 !
 !         friction grid is excluded from the test
-          IF (SNAME.EQ.'FRICGRID') GOTO 100
+         IF (SNAME.EQ.'FRICGRID') GOTO 100
 !
-          IF (ITEST.GE.10) WRITE (PRTEST, '(A)')
-     &                 'Check location of output pointset '//TRIM(SNAME)
+         IF (ITEST.GE.10) WRITE (PRTEST, '(A)') &
+                      'Check location of output pointset '//TRIM(SNAME)
 !
-          STYPE = CUOPS%PSTYPE                                            40.31
+         STYPE = CUOPS%PSTYPE
 !                                                                         32.02
 !         *** Check other output locations ***                            32.02
 !                                                                         32.02
-          IF (STYPE.EQ.'F' .AND. OPTG .EQ. 1) THEN
+         IF (STYPE.EQ.'F' .AND. OPTG .EQ. 1) THEN
 !
 !           check the four corners of the frame
 !
-            XQLEN = CUOPS%OPR(3)                                          40.31
-            YQLEN = CUOPS%OPR(4)                                          40.31
-            XPQ   = CUOPS%OPR(1)                                          40.31
-            YPQ   = CUOPS%OPR(2)                                          40.31
-            ALPQ  = CUOPS%OPR(5)                                          40.31
+            XQLEN = CUOPS%OPR(3)
+            YQLEN = CUOPS%OPR(4)
+            XPQ   = CUOPS%OPR(1)
+            YPQ   = CUOPS%OPR(2)
+            ALPQ  = CUOPS%OPR(5)
             COSPQ = COS(ALPQ)
             SINPQ = SIN(ALPQ)
-            IF (ONED) THEN                                                32.02
-              DO  I=0,1                                                   30.72
-                XQ = I*XQLEN
-                XP = XPQ + XQ*COSPQ
-                YP = YPQ + XQ*SINPQ
-                CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT,       30.72
-     &                         KGRBND)                                    40.00
-              ENDDO                                                       30.72
-            ELSE                                                          32.02
-              DO 21 I=0,1                                                 30.72
-                DO 20 J=0,1
+            IF (ONED) THEN
+               DO  I=0,1
                   XQ = I*XQLEN
-                  YQ = J*YQLEN
-                  XP = XPQ + XQ*COSPQ - YQ*SINPQ
-                  YP = YPQ + XQ*SINPQ + YQ*COSPQ
-                  CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT,     30.72
-     &                         KGRBND)                                    40.00
-   20           CONTINUE                                                  30.72
-   21         CONTINUE                                                    30.72
-            ENDIF                                                         32.02
-          ENDIF
+                  XP = XPQ + XQ*COSPQ
+                  YP = YPQ + XQ*SINPQ
+                  CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
+                                 KGRBND)
+               ENDDO
+            ELSE
+               DO 21 I=0,1
+                  DO 20 J=0,1
+                     XQ = I*XQLEN
+                     YQ = J*YQLEN
+                     XP = XPQ + XQ*COSPQ - YQ*SINPQ
+                     YP = YPQ + XQ*SINPQ + YQ*COSPQ
+                     CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
+                                  KGRBND)
+20                CONTINUE
+21             CONTINUE
+            ENDIF
+         ENDIF
 !         --------------------------------------------------------------
-          IF (STYPE .EQ. 'C') THEN
+         IF (STYPE .EQ. 'C') THEN
 !
 !           check first and last point of a curve
 !
-            MXK = CUOPS%MIP                                               40.31
+            MXK = CUOPS%MIP
             IF ( MXK/=0 ) THEN
-              XP = CUOPS%XP(1)                                            40.31
-              YP = CUOPS%YP(1)                                            40.31
-              CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT,         30.72
-     &                     KGRBND)                                        40.00
-              XP = CUOPS%XP(MXK)
-              YP = CUOPS%YP(MXK)
-              CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT,
-     &                     KGRBND)
+               XP = CUOPS%XP(1)
+               YP = CUOPS%YP(1)
+               CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
+                            KGRBND)
+               XP = CUOPS%XP(MXK)
+               YP = CUOPS%YP(MXK)
+               CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
+                            KGRBND)
             ENDIF
-          ENDIF
+         ENDIF
 !         --------------------------------------------------------------
-          IF (STYPE .EQ. 'P' .OR. STYPE .EQ. 'U') THEN                    40.80
+         IF (STYPE .EQ. 'P' .OR. STYPE .EQ. 'U') THEN
 !
 !           check all individual output points
 !
-            MIP = CUOPS%MIP                                               40.31
+            MIP = CUOPS%MIP
             DO 40 IP=1,MIP
-              XP = CUOPS%XP(IP)                                           40.31
-              YP = CUOPS%YP(IP)                                           40.31
-              CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT,         30.72
-     &                     KGRBND)                                        40.00
-   40       CONTINUE
-          ENDIF
+               XP = CUOPS%XP(IP)
+               YP = CUOPS%YP(IP)
+               CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
+                            KGRBND)
+40          CONTINUE
+         ENDIF
 !         --------------------------------------------------------------
-          IF (STYPE .EQ. 'R') THEN
-            MIP = CUOPS%MIP                                               40.31
+         IF (STYPE .EQ. 'R') THEN
+            MIP = CUOPS%MIP
             DO 50 IP=1,MIP, MIP
-              XP = CUOPS%XP(IP)                                           40.31
-              YP = CUOPS%YP(IP)                                           40.31
-              XQ = CUOPS%XQ(IP)                                           40.31
-              YQ = CUOPS%YQ(IP)                                           40.31
-              CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT,         30.72
-     &                     KGRBND)                                        40.00
-              CALL SINUPT (SNAME, XQ, YQ, XCGRID, YCGRID, KGRPNT,         30.72
-     &                     KGRBND)                                        40.00
-   50       CONTINUE
-          ENDIF
+               XP = CUOPS%XP(IP)
+               YP = CUOPS%YP(IP)
+               XQ = CUOPS%XQ(IP)
+               YQ = CUOPS%YQ(IP)
+               CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
+                            KGRBND)
+               CALL SINUPT (SNAME, XQ, YQ, XCGRID, YCGRID, KGRPNT, &
+                            KGRBND)
+50          CONTINUE
+         ENDIF
 !         --------------------------------------------------------------
 !         stype = 'N'     VERSION 20.63
 !
-          IF (STYPE.EQ.'N') THEN
-            MIP   = CUOPS%MIP                                             40.31
-            XQLEN = CUOPS%OPR(1)                                          40.31
-            IF (XQLEN.NE.-999.) THEN                                      40.80
+         IF (STYPE.EQ.'N') THEN
+            MIP   = CUOPS%MIP
+            XQLEN = CUOPS%OPR(1)
+            IF (XQLEN.NE.-999.) THEN
 !              nested grid is regular, check corners
-               YQLEN = CUOPS%OPR(2)                                       40.31
-               XPQ   = CUOPS%OPR(3)                                       40.31
-               YPQ   = CUOPS%OPR(4)                                       40.31
-               ALPQ  = CUOPS%OPR(5)                                       40.31
+               YQLEN = CUOPS%OPR(2)
+               XPQ   = CUOPS%OPR(3)
+               YPQ   = CUOPS%OPR(4)
+               ALPQ  = CUOPS%OPR(5)
                COSPQ = COS(ALPQ)
                SINPQ = SIN(ALPQ)
-               DO I=0,1                                                   40.02
-                 DO J=0,1                                                 40.02
-                   XQ = I*XQLEN
-                   YQ = J*YQLEN
-                   XP = XPQ + XQ*COSPQ - YQ*SINPQ
-                   YP = YPQ + XQ*SINPQ + YQ*COSPQ
-                   CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT,    30.72
-     &                          KGRBND)                                   40.00
-                 ENDDO                                                    40.02
-               ENDDO                                                      40.02
-            ELSE                                                          40.80
+               DO I=0,1
+                  DO J=0,1
+                     XQ = I*XQLEN
+                     YQ = J*YQLEN
+                     XP = XPQ + XQ*COSPQ - YQ*SINPQ
+                     YP = YPQ + XQ*SINPQ + YQ*COSPQ
+                     CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
+                                  KGRBND)
+                  ENDDO
+               ENDDO
+            ELSE
 !              nested grid is unstructured, check whole outline
-               DO IP=1,MIP                                                40.80
-                  XP = CUOPS%XP(IP)                                       40.80
-                  YP = CUOPS%YP(IP)                                       40.80
-                  CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT,     40.80
-     &                         KGRBND)                                    40.80
-               ENDDO                                                      40.80
-            ENDIF                                                         40.80
-          ENDIF
+               DO IP=1,MIP
+                  XP = CUOPS%XP(IP)
+                  YP = CUOPS%YP(IP)
+                  CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
+                               KGRBND)
+               ENDDO
+            ENDIF
+         ENDIF
 !
-  100     IF (.NOT.ASSOCIATED(CUOPS%NEXTOPS)) EXIT                        40.31
-          CUOPS => CUOPS%NEXTOPS                                          40.31
-        END DO                                                            40.31
-      ENDIF
+100      IF (.NOT.ASSOCIATED(CUOPS%NEXTOPS)) EXIT
+         CUOPS => CUOPS%NEXTOPS
+      END DO
+   ENDIF
 !
-      RETURN
+   RETURN
 !   * end of subroutine SPRCON *
-      END
+END
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE SWRBC ( COMPDA )                                         40.31 30.90
+SUBROUTINE SWRBC ( COMPDA )
 !                                                                      *
 !***********************************************************************
 !
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
-      USE M_GENARR
-      USE M_PARALL
-      USE SwanGriddata                                                    40.80
-      USE SwanBraggScat, only: dpmean                                     41.80
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
+   USE M_GENARR
+   USE M_PARALL
+   USE SwanGriddata
+   USE SwanBraggScat, only: dpmean
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -4743,7 +4743,7 @@
 !
 !     COMPDA
 !
-      REAL    COMPDA(MCGRD,MCMVAR)                                        30.21
+   REAL    COMPDA(MCGRD,MCMVAR)
 !
 !  6. Local variables
 !
@@ -4778,543 +4778,543 @@
 !
 ! 13. Source text
 !
-      SAVE IENT
-      DATA IENT/0/
-      CALL STRACE(IENT,'SWRBC')
+   SAVE IENT
+   DATA IENT/0/
+   CALL STRACE(IENT,'SWRBC')
 !
-      IF (ITEST .GE. 100 .OR. INTES .GE. 30) THEN
-        WRITE(PRINTF,*) '  ', ICUR, IGTYPE(2)
-        WRITE(PRINTF,*) '******** In subroutine SWRBC *******'            30.21
-        IF (ICUR .EQ. 1 ) THEN
-          WRITE(PRINTF,51)
-        ELSE
-          WRITE(PRINTF,50)
-        ENDIF
+   IF (ITEST .GE. 100 .OR. INTES .GE. 30) THEN
+      WRITE(PRINTF,*) '  ', ICUR, IGTYPE(2)
+      WRITE(PRINTF,*) '******** In subroutine SWRBC *******'
+      IF (ICUR .EQ. 1 ) THEN
+         WRITE(PRINTF,51)
+      ELSE
+         WRITE(PRINTF,50)
       ENDIF
- 50   FORMAT('P.index',5X,'coord.',14X,'depth')
- 51   FORMAT('P.index',5X,'coord.',14X,'depth',13X,'UX',13X,'UY')
+   ENDIF
+50 FORMAT('P.index',5X,'coord.',14X,'depth')
+51 FORMAT('P.index',5X,'coord.',14X,'depth',13X,'UX',13X,'UY')
 !
 !     *** The arrays start to be filled in the second value ***
 !     *** because in COMPDA(1,"variable"), is the default   ***
 !     *** value for land points    version 30.21            ***
 !
 !     ***  Default values for land point  ***
-      COMPDA(1,JDP2) = -1.                                                40.00
-      IF (JDP1.GT.1) COMPDA(1,JDP1) = -1.                                 40.00
-      IF (JDP3.GT.1) COMPDA(1,JDP3) = -1.                                 40.00
-      IF (VARWLV) THEN
-        COMPDA(1,JWLV2) = 0.                                              40.00
+   COMPDA(1,JDP2) = -1.
+   IF (JDP1.GT.1) COMPDA(1,JDP1) = -1.
+   IF (JDP3.GT.1) COMPDA(1,JDP3) = -1.
+   IF (VARWLV) THEN
+      COMPDA(1,JWLV2) = 0.
 !       next two lines only for nonstat water level
-        IF (JWLV1.GT.1) COMPDA(1,JWLV1) = 0.                              40.00
-        IF (JWLV3.GT.1) COMPDA(1,JWLV3) = 0.                              40.00
-      ENDIF
-      IF (ICUR.GT.0) THEN
-        COMPDA(1,JVX2) = 0.                                               40.00
-        COMPDA(1,JVY2) = 0.                                               40.00
-        IF (JVX1.GT.1) COMPDA(1,JVX1) = 0.                                40.00
-        IF (JVY1.GT.1) COMPDA(1,JVY1) = 0.                                40.00
-        IF (JVX3.GT.1) COMPDA(1,JVX3) = 0.                                40.00
-        IF (JVY3.GT.1) COMPDA(1,JVY3) = 0.                                40.00
-      ENDIF
-      IF (VARFR) THEN
-        COMPDA(1,JFRC2) = 0.                                              40.00
-        COMPDA(1,JFRC3) = 0.                                              40.00
-      ELSEIF (JFRC2.GT.1) THEN                                            41.51
-        COMPDA(1,JFRC2) = 0.                                              41.51
-      ENDIF
-      IF (VARWI) THEN
-        COMPDA(1,JWX2) = 0.                                               40.00
-        COMPDA(1,JWY2) = 0.                                               40.00
-        IF (JWX3.GT.1) COMPDA(1,JWX3) = 0.                                40.00
-        IF (JWY3.GT.1) COMPDA(1,JWY3) = 0.                                40.00
-      ENDIF
-      IF (VARAST) THEN
-        COMPDA(1,JASTD2) = 0.                                             40.03
-        COMPDA(1,JASTD3) = 0.                                             40.03
-      ENDIF
-      IF (VARMUD) THEN                                                    40.59
-        COMPDA(1,JMUDL1) = 0.                                             40.59
-        COMPDA(1,JMUDL2) = 0.                                             40.59
-        COMPDA(1,JMUDL3) = 0.                                             40.59
-      ENDIF
-      IF (VARNPL) THEN                                                    40.55
-        COMPDA(1,JNPLA2) = 0.                                             40.55
-        COMPDA(1,JNPLA3) = 0.                                             40.55
-      ENDIF
-      IF (VARTUR) THEN                                                    40.35
-        COMPDA(1,JTURB2) = 0.                                             40.35
-        COMPDA(1,JTURB3) = 0.                                             40.35
-      ENDIF
-      IF (VARAICE) THEN                                                   41.75
-        COMPDA(1,JAICE2) = 0.                                             41.75
-        COMPDA(1,JAICE3) = 0.                                             41.75
-      ENDIF
-      IF (VARHICE) THEN                                                   41.75
-        COMPDA(1,JHICE2) = 0.                                             41.75
-        COMPDA(1,JHICE3) = 0.                                             41.75
-      ENDIF
-      IF (VARHSS) THEN                                                    41.82
-        COMPDA(1,JHSS2) = 0.                                              41.82
-        COMPDA(1,JHSS3) = 0.                                              41.82
-      ENDIF
-      IF (VARTSS) THEN                                                    41.82
-        COMPDA(1,JTSS2) = 0.                                              41.82
-        COMPDA(1,JTSS3) = 0.                                              41.82
-      ENDIF
-      IF (VARDSS) THEN                                                    42.06
-        COMPDA(1,JDSS2) = 0.                                              42.06
-        COMPDA(1,JDSS3) = 0.                                              42.06
-      ENDIF
-      COMPDA(1,JBOTLV) = 0.                                               40.65
+      IF (JWLV1.GT.1) COMPDA(1,JWLV1) = 0.
+      IF (JWLV3.GT.1) COMPDA(1,JWLV3) = 0.
+   ENDIF
+   IF (ICUR.GT.0) THEN
+      COMPDA(1,JVX2) = 0.
+      COMPDA(1,JVY2) = 0.
+      IF (JVX1.GT.1) COMPDA(1,JVX1) = 0.
+      IF (JVY1.GT.1) COMPDA(1,JVY1) = 0.
+      IF (JVX3.GT.1) COMPDA(1,JVX3) = 0.
+      IF (JVY3.GT.1) COMPDA(1,JVY3) = 0.
+   ENDIF
+   IF (VARFR) THEN
+      COMPDA(1,JFRC2) = 0.
+      COMPDA(1,JFRC3) = 0.
+   ELSEIF (JFRC2.GT.1) THEN
+      COMPDA(1,JFRC2) = 0.
+   ENDIF
+   IF (VARWI) THEN
+      COMPDA(1,JWX2) = 0.
+      COMPDA(1,JWY2) = 0.
+      IF (JWX3.GT.1) COMPDA(1,JWX3) = 0.
+      IF (JWY3.GT.1) COMPDA(1,JWY3) = 0.
+   ENDIF
+   IF (VARAST) THEN
+      COMPDA(1,JASTD2) = 0.
+      COMPDA(1,JASTD3) = 0.
+   ENDIF
+   IF (VARMUD) THEN
+      COMPDA(1,JMUDL1) = 0.
+      COMPDA(1,JMUDL2) = 0.
+      COMPDA(1,JMUDL3) = 0.
+   ENDIF
+   IF (VARNPL) THEN
+      COMPDA(1,JNPLA2) = 0.
+      COMPDA(1,JNPLA3) = 0.
+   ENDIF
+   IF (VARTUR) THEN
+      COMPDA(1,JTURB2) = 0.
+      COMPDA(1,JTURB3) = 0.
+   ENDIF
+   IF (VARAICE) THEN
+      COMPDA(1,JAICE2) = 0.
+      COMPDA(1,JAICE3) = 0.
+   ENDIF
+   IF (VARHICE) THEN
+      COMPDA(1,JHICE2) = 0.
+      COMPDA(1,JHICE3) = 0.
+   ENDIF
+   IF (VARHSS) THEN
+      COMPDA(1,JHSS2) = 0.
+      COMPDA(1,JHSS3) = 0.
+   ENDIF
+   IF (VARTSS) THEN
+      COMPDA(1,JTSS2) = 0.
+      COMPDA(1,JTSS3) = 0.
+   ENDIF
+   IF (VARDSS) THEN
+      COMPDA(1,JDSS2) = 0.
+      COMPDA(1,JDSS3) = 0.
+   ENDIF
+   COMPDA(1,JBOTLV) = 0.
 !
 !     --- structured grid                                                 40.80
 !
-      DO 20 IX = 1, MXC
-        DO 10 IY = 1, MYC
-          INDX = KGRPNT(IX,IY)
-          IF (INDX.LE.0 .OR. INDX.GT.MCGRD) THEN                          30.60
-            CALL MSGERR (3, 'Grid error in subr. SWRBC')                  30.60
-            WRITE (PRINTF, 8) IX, IY, INDX, MCGRD                         30.60
-   8        FORMAT (' IX, IY, INDX, MCGRD: ', 4I7)                        30.60
-            GOTO 10                                                       30.60
-          ENDIF                                                           30.60
-          IF (INDX.EQ.1) GOTO 10                                          30.60
+   DO 20 IX = 1, MXC
+      DO 10 IY = 1, MYC
+         INDX = KGRPNT(IX,IY)
+         IF (INDX.LE.0 .OR. INDX.GT.MCGRD) THEN
+            CALL MSGERR (3, 'Grid error in subr. SWRBC')
+            WRITE (PRINTF, 8) IX, IY, INDX, MCGRD
+8           FORMAT (' IX, IY, INDX, MCGRD: ', 4I7)
+            GOTO 10
+         ENDIF
+         IF (INDX.EQ.1) GOTO 10
 !
-          XP = XCGRID(IX,IY)                                              30.72
-          YP = YCGRID(IX,IY)                                              30.72
+         XP = XCGRID(IX,IY)
+         YP = YCGRID(IX,IY)
 !
 !         ***** compute depth and water level *****
 !
-          IF ( IBRAG.EQ.0 ) THEN                                          41.80
-             DEP = SVALQI (XP, YP, 1, DEPTH, 1, IX, IY)                   40.31 30.90
-          ELSE
-             DEP = dpmean(INDX)                                           41.80
-          ENDIF
-          COMPDA(INDX,JBOTLV) = DEP                                       40.65
+         IF ( IBRAG.EQ.0 ) THEN
+            DEP = SVALQI (XP, YP, 1, DEPTH, 1, IX, IY)
+         ELSE
+            DEP = dpmean(INDX)
+         ENDIF
+         COMPDA(INDX,JBOTLV) = DEP
 !
-          IF (VARWLV) THEN                                                20.38
-            WLVL = SVALQI (XP, YP, 7, WLEVL, 1 ,IX ,IY)                   40.31 30.90
+         IF (VARWLV) THEN
+            WLVL = SVALQI (XP, YP, 7, WLEVL, 1 ,IX ,IY)
             COMPDA(INDX,JWLV2) = WLVL
-            IF (JWLV1.GT.1) COMPDA(INDX,JWLV1) = WLVL                     40.00
-            IF (JWLV3.GT.1) COMPDA(INDX,JWLV3) = WLVL                     40.00
+            IF (JWLV1.GT.1) COMPDA(INDX,JWLV1) = WLVL
+            IF (JWLV3.GT.1) COMPDA(INDX,JWLV3) = WLVL
             DEP = DEP + WLVL
-          ENDIF
+         ENDIF
 !         add constant water level
-          DEPW = DEP + WLEV                                               30.70
-          COMPDA(INDX,JDP2) = DEPW
+         DEPW = DEP + WLEV
+         COMPDA(INDX,JDP2) = DEPW
 !         ***In this step the water level at T+DT is copied to the  ***
 !         ***water level at T (Only for first time computation)     ***
-          IF (JDP1.GT.1) COMPDA(INDX,JDP1) = DEPW                         40.00
-          IF (JDP3.GT.1) COMPDA(INDX,JDP3) = DEPW                         40.00
+         IF (JDP1.GT.1) COMPDA(INDX,JDP1) = DEPW
+         IF (JDP3.GT.1) COMPDA(INDX,JDP3) = DEPW
 !
 !         ***** compute current velocity *****
 !
-          IF (ICUR.EQ.1 .AND. IGTYPE(2) .GE. 1) THEN                      30.82
+         IF (ICUR.EQ.1 .AND. IGTYPE(2) .GE. 1) THEN
             IF (DEPW.GT.0.) THEN
-              UU  = SVALQI (XP, YP, 2, UXB, 0 ,IX ,IY)                    40.31 30.90
-              VV  = SVALQI (XP, YP, 3, UYB, 0 ,IX ,IY)                    40.31 30.90
-              VTOT = SQRT (UU*UU + VV*VV)
-              CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
-              IF (VTOT .GT. CGMAX) THEN
-                CGFACT = CGMAX / VTOT
-                UU = UU * CGFACT
-                VV = VV * CGFACT
-                IF (ERRPTS.GT.0.AND.IAMMASTER) THEN                       40.95 40.30
-                  WRITE (ERRPTS, 211) IX+MXF-1, IY+MYF-1, 1
- 211              FORMAT (I4, 1X, I4, 1X, I2)
-                ENDIF
-              ENDIF
-              COMPDA(INDX,JVX2) =  UU*COSVC + VV*SINVC
-              COMPDA(INDX,JVY2) = -UU*SINVC + VV*COSVC
+               UU  = SVALQI (XP, YP, 2, UXB, 0 ,IX ,IY)
+               VV  = SVALQI (XP, YP, 3, UYB, 0 ,IX ,IY)
+               VTOT = SQRT (UU*UU + VV*VV)
+               CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
+               IF (VTOT .GT. CGMAX) THEN
+                  CGFACT = CGMAX / VTOT
+                  UU = UU * CGFACT
+                  VV = VV * CGFACT
+                  IF (ERRPTS.GT.0.AND.IAMMASTER) THEN
+                     WRITE (ERRPTS, 211) IX+MXF-1, IY+MYF-1, 1
+211                  FORMAT (I4, 1X, I4, 1X, I2)
+                  ENDIF
+               ENDIF
+               COMPDA(INDX,JVX2) =  UU*COSVC + VV*SINVC
+               COMPDA(INDX,JVY2) = -UU*SINVC + VV*COSVC
             ELSE
-              COMPDA(INDX,JVX2) =  0.
-              COMPDA(INDX,JVY2) =  0.
+               COMPDA(INDX,JVX2) =  0.
+               COMPDA(INDX,JVY2) =  0.
             ENDIF
-            IF (JVX1.GT.1) COMPDA(INDX,JVX1) = COMPDA(INDX,JVX2)          40.00
-            IF (JVY1.GT.1) COMPDA(INDX,JVY1) = COMPDA(INDX,JVY2)          40.00
-            IF (JVX3.GT.1) COMPDA(INDX,JVX3) = COMPDA(INDX,JVX2)          40.00
-            IF (JVY3.GT.1) COMPDA(INDX,JVY3) = COMPDA(INDX,JVY2)          40.00
-          ENDIF
+            IF (JVX1.GT.1) COMPDA(INDX,JVX1) = COMPDA(INDX,JVX2)
+            IF (JVY1.GT.1) COMPDA(INDX,JVY1) = COMPDA(INDX,JVY2)
+            IF (JVX3.GT.1) COMPDA(INDX,JVX3) = COMPDA(INDX,JVX2)
+            IF (JVY3.GT.1) COMPDA(INDX,JVY3) = COMPDA(INDX,JVY2)
+         ENDIF
 !
-          IF (ITEST .GE. 100 .OR. INTES .GE. 30) THEN
+         IF (ITEST .GE. 100 .OR. INTES .GE. 30) THEN
             IF (ICUR .EQ. 1 ) THEN
-              WRITE(PRINTF,31)KGRPNT(IX,IY),XP,YP,COMPDA(INDX,JDP2),
-     &        COMPDA(INDX,JVX2),COMPDA(INDX,JVY2)
+               WRITE(PRINTF,31)KGRPNT(IX,IY),XP,YP,COMPDA(INDX,JDP2), &
+                  COMPDA(INDX,JVX2),COMPDA(INDX,JVY2)
             ELSE
-              WRITE(PRINTF,30)KGRPNT(IX,IY),XP,YP,COMPDA(INDX,JDP2)
-            ENDIF
-          ENDIF
- 30       FORMAT(1X,I5,2X,3(E11.4,2X))
- 31       FORMAT(1X,I5,2X,5(E11.4,2X))
-!
-!         ***** compute variable friction coefficient *****
-!
-          IF (VARFR) THEN
-             FRI = SVALQI (XP, YP, 4, FRIC, 1 ,IX ,IY)                    40.31 30.90
-             COMPDA(INDX,JFRC2) = FRI                                     40.00
-             COMPDA(INDX,JFRC3) = FRI                                     40.00
-          ENDIF
-!
-!         ***** compute variable wind velocity *****
-!
-          IF (VARWI) THEN
-             UU  = SVALQI (XP, YP, 5, WXI, 0 ,IX ,IY)                     40.31 30.90
-             VV  = SVALQI (XP, YP, 6, WYI, 0 ,IX ,IY)                     40.31 30.90
-             COMPDA(INDX,JWX2) =  UU*COSWC + VV*SINWC
-             COMPDA(INDX,JWY2) = -UU*SINWC + VV*COSWC
-            IF (JWX3.GT.1) COMPDA(INDX,JWX3) = COMPDA(INDX,JWX2)          40.00
-            IF (JWY3.GT.1) COMPDA(INDX,JWY3) = COMPDA(INDX,JWY2)          40.00
-          ENDIF
-!
-!     ***** compute variable air-sea temperature difference *****         40.03
-!
-          IF (VARAST) THEN
-             ASTD = SVALQI (XP, YP, 10, ASTDF, 1 ,IX ,IY)                 40.31 40.03
-             COMPDA(INDX,JASTD2) = ASTD                                   40.03
-             COMPDA(INDX,JASTD3) = ASTD                                   40.03
-          ENDIF
-!
-!     ***** compute number of plants per square meter *****               40.55
-!
-          IF (VARNPL) THEN
-             XNPL = SVALQI (XP, YP, 11, NPLAF, 1 ,IX ,IY)                 40.55
-             COMPDA(INDX,JNPLA2) = XNPL                                   40.55
-             COMPDA(INDX,JNPLA3) = XNPL                                   40.55
-          ENDIF
-!
-!     ***** compute turbulent viscosity *****                             40.35
-!
-          IF (VARTUR) THEN
-             IF (PTURBV(2).LT.0.) THEN
-                XTUR = SVALQI (XP, YP, 12, TURBF, 0 ,IX ,IY)              40.35
-             ELSE
-                UU = COMPDA(INDX,JVX2)
-                VV = COMPDA(INDX,JVY2)
-                XTUR = PTURBV(2) * SQRT(UU*UU+VV*VV) * COMPDA(INDX,JDP2)  40.35
-             ENDIF
-             COMPDA(INDX,JTURB2) = XTUR                                   40.35
-             COMPDA(INDX,JTURB3) = XTUR                                   40.35
-          ENDIF
-!
-!     ***** compute fluid mud layer *****                                 40.59
-!
-          IF (VARMUD) THEN
-             XMUD = SVALQI (XP, YP, 13, MUDLF, 1 ,IX ,IY)                 40.59
-             COMPDA(INDX,JMUDL1) = XMUD                                   40.59
-             COMPDA(INDX,JMUDL2) = XMUD                                   40.59
-             COMPDA(INDX,JMUDL3) = XMUD                                   40.59
-          ENDIF
-!
-!     ***** compute ice concentration (fraction) *****                    41.75
-!
-          IF (VARAICE) THEN
-             XAICE = SVALQI (XP, YP, 14, AICEF, 1 ,IX ,IY)                41.75
-             COMPDA(INDX,JAICE2) = XAICE                                  41.75
-             COMPDA(INDX,JAICE3) = XAICE                                  41.81
-          ENDIF
-!
-!     ***** compute ice thickness in meters *****                         41.75
-!
-          IF (VARHICE) THEN
-             XHICE = SVALQI (XP, YP, 15, HICEF, 1 ,IX ,IY)                41.75
-             COMPDA(INDX,JHICE2) = XHICE                                  41.75
-             COMPDA(INDX,JHICE3) = XHICE                                  41.81
-          ENDIF
-!
-!     ***** compute sea-swell sig wave height *****                       41.82
-!
-          IF (VARHSS) THEN
-             XHSS = SVALQI (XP, YP, 16, HSSF, 1 ,IX ,IY)                  41.82
-             COMPDA(INDX,JHSS2) = XHSS                                    41.82
-             COMPDA(INDX,JHSS3) = XHSS                                    41.82
-          ENDIF
-!
-!     ***** compute sea-swell mean wave period *****                      41.82
-!
-          IF (VARTSS) THEN
-             XTSS = SVALQI (XP, YP, 17, TSSF, 1 ,IX ,IY)                  41.82
-             COMPDA(INDX,JTSS2) = XTSS                                    41.82
-             COMPDA(INDX,JTSS3) = XTSS                                    41.82
-          ENDIF
-!
-!     ***** compute sea-swell mean wave direction *****                   42.06
-!
-          IF (VARDSS) THEN
-             XDSS = SVALQI (XP, YP, 18, DSSF, 1 ,IX ,IY)                  42.06
-             COMPDA(INDX,JDSS2) = XDSS                                    42.06
-             COMPDA(INDX,JDSS3) = XDSS                                    42.06
-          ENDIF
-!
-   10   CONTINUE
-   20 CONTINUE
-!
-!     --- unstructured grid                                               40.80
-!
-      DO INDX = 1, nverts
-!
-         XP = xcugrd(INDX)                                                40.80
-         YP = ycugrd(INDX)                                                40.80
-!
-         IF ( .NOT.PARLL ) THEN
-            JVERT = INDX
-         ELSE
-            JVERT = ivertg(INDX)
-         ENDIF
-!
-!        ***** compute depth and water level *****
-!
-         IF ( IGTYPE(1).EQ.3 ) THEN
-            DEP = DEPTH(JVERT)
-         ELSE
-            IF ( IBRAG.EQ.0 ) THEN                                        41.80
-               DEP = SVALQI (XP, YP, 1, DEPTH, 1, 0, 0)                   40.80
-            ELSE
-               DEP = dpmean(INDX)                                         41.80
+               WRITE(PRINTF,30)KGRPNT(IX,IY),XP,YP,COMPDA(INDX,JDP2)
             ENDIF
          ENDIF
-         COMPDA(INDX,JBOTLV) = DEP                                        40.80
-!
-         IF (VARWLV) THEN                                                 40.80
-            IF ( IGTYPE(7).EQ.3 ) THEN
-               WLVL = WLEVL(JVERT)
-            ELSE
-               WLVL = SVALQI (XP, YP, 7, WLEVL, 1, 0, 0)                  40.80
-            ENDIF
-            COMPDA(INDX,JWLV2) = WLVL
-            IF (JWLV1.GT.1) COMPDA(INDX,JWLV1) = WLVL                     40.80
-            IF (JWLV3.GT.1) COMPDA(INDX,JWLV3) = WLVL                     40.80
-            DEP = DEP + WLVL
-         ENDIF
-!        add constant water level
-         DEPW = DEP + WLEV                                                40.80
-         COMPDA(INDX,JDP2) = DEPW
-!        ***In this step the water level at T+DT is copied to the  ***
-!        ***water level at T (Only for first time computation)     ***
-         IF (JDP1.GT.1) COMPDA(INDX,JDP1) = DEPW                          40.80
-         IF (JDP3.GT.1) COMPDA(INDX,JDP3) = DEPW                          40.80
-!
-!        ***** compute current velocity *****
-!
-         IF (ICUR.EQ.1 .AND. IGTYPE(2) .GE. 1) THEN                       40.80
-            IF (DEPW.GT.0.) THEN
-              IF ( IGTYPE(2).EQ.3 ) THEN
-                 UU = UXB(JVERT)
-              ELSE
-                 UU = SVALQI (XP, YP, 2, UXB, 0, 0, 0)                    40.80
-              ENDIF
-              IF ( IGTYPE(3).EQ.3 ) THEN
-                 VV = UYB(JVERT)
-              ELSE
-                 VV = SVALQI (XP, YP, 3, UYB, 0, 0, 0)                    40.80
-              ENDIF
-              VTOT = SQRT (UU*UU + VV*VV)
-              CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
-              IF (VTOT .GT. CGMAX) THEN
-                CGFACT = CGMAX / VTOT
-                UU = UU * CGFACT
-                VV = VV * CGFACT
-                IF (ERRPTS.GT.0) THEN
-                   WRITE (ERRPTS, 212) INDX, 1
- 212               FORMAT (I4, 1X, I2)
-                ENDIF
-              ENDIF
-              COMPDA(INDX,JVX2) =  UU*COSVC + VV*SINVC
-              COMPDA(INDX,JVY2) = -UU*SINVC + VV*COSVC
-            ELSE
-              COMPDA(INDX,JVX2) =  0.
-              COMPDA(INDX,JVY2) =  0.
-            ENDIF
-            IF (JVX1.GT.1) COMPDA(INDX,JVX1) = COMPDA(INDX,JVX2)          40.80
-            IF (JVY1.GT.1) COMPDA(INDX,JVY1) = COMPDA(INDX,JVY2)          40.80
-            IF (JVX3.GT.1) COMPDA(INDX,JVX3) = COMPDA(INDX,JVX2)          40.80
-            IF (JVY3.GT.1) COMPDA(INDX,JVY3) = COMPDA(INDX,JVY2)          40.80
-         ENDIF
+30       FORMAT(1X,I5,2X,3(E11.4,2X))
+31       FORMAT(1X,I5,2X,5(E11.4,2X))
 !
 !         ***** compute variable friction coefficient *****
 !
          IF (VARFR) THEN
-            IF ( IGTYPE(4).EQ.3 ) THEN
-               FRI = FRIC(JVERT)
-            ELSE
-               FRI = SVALQI (XP, YP, 4, FRIC, 1, 0, 0)                    40.80
-            ENDIF
-            COMPDA(INDX,JFRC2) = FRI                                      40.80
-            COMPDA(INDX,JFRC3) = FRI                                      40.80
+            FRI = SVALQI (XP, YP, 4, FRIC, 1 ,IX ,IY)
+            COMPDA(INDX,JFRC2) = FRI
+            COMPDA(INDX,JFRC3) = FRI
          ENDIF
 !
-!        ***** compute variable wind velocity *****
+!         ***** compute variable wind velocity *****
 !
          IF (VARWI) THEN
-            IF ( IGTYPE(5).EQ.3 ) THEN
-               UU = WXI(JVERT)
-            ELSE
-               UU = SVALQI (XP, YP, 5, WXI, 0, 0, 0)                      40.80
-            ENDIF
-            IF ( IGTYPE(6).EQ.3 ) THEN
-               VV = WYI(JVERT)
-            ELSE
-               VV = SVALQI (XP, YP, 6, WYI, 0, 0, 0)                      40.80
-            ENDIF
+            UU  = SVALQI (XP, YP, 5, WXI, 0 ,IX ,IY)
+            VV  = SVALQI (XP, YP, 6, WYI, 0 ,IX ,IY)
             COMPDA(INDX,JWX2) =  UU*COSWC + VV*SINWC
             COMPDA(INDX,JWY2) = -UU*SINWC + VV*COSWC
-            IF (JWX3.GT.1) COMPDA(INDX,JWX3) = COMPDA(INDX,JWX2)          40.80
-            IF (JWY3.GT.1) COMPDA(INDX,JWY3) = COMPDA(INDX,JWY2)          40.80
+            IF (JWX3.GT.1) COMPDA(INDX,JWX3) = COMPDA(INDX,JWX2)
+            IF (JWY3.GT.1) COMPDA(INDX,JWY3) = COMPDA(INDX,JWY2)
          ENDIF
 !
-!     ***** compute variable air-sea temperature difference *****         40.80
+!     ***** compute variable air-sea temperature difference *****         40.03
 !
          IF (VARAST) THEN
-            IF ( IGTYPE(10).EQ.3 ) THEN
-               ASTD = ASTDF(JVERT)
-            ELSE
-               ASTD = SVALQI (XP, YP, 10, ASTDF, 1, 0, 0)                 40.80
-            ENDIF
-            COMPDA(INDX,JASTD2) = ASTD                                    40.80
-            COMPDA(INDX,JASTD3) = ASTD                                    40.80
+            ASTD = SVALQI (XP, YP, 10, ASTDF, 1 ,IX ,IY)
+            COMPDA(INDX,JASTD2) = ASTD
+            COMPDA(INDX,JASTD3) = ASTD
          ENDIF
 !
-!     ***** compute number of plants per square meter *****               40.80
+!     ***** compute number of plants per square meter *****               40.55
 !
-          IF (VARNPL) THEN
-             IF ( IGTYPE(11).EQ.3 ) THEN
-                XNPL = NPLAF(JVERT)
-             ELSE
-                XNPL = SVALQI (XP, YP, 11, NPLAF, 1 ,0, 0)                40.80
-             ENDIF
-             COMPDA(INDX,JNPLA2) = XNPL                                   40.80
-             COMPDA(INDX,JNPLA3) = XNPL                                   40.80
-          ENDIF
+         IF (VARNPL) THEN
+            XNPL = SVALQI (XP, YP, 11, NPLAF, 1 ,IX ,IY)
+            COMPDA(INDX,JNPLA2) = XNPL
+            COMPDA(INDX,JNPLA3) = XNPL
+         ENDIF
 !
 !     ***** compute turbulent viscosity *****                             40.35
 !
-          IF (VARTUR) THEN
-             IF (PTURBV(2).LT.0.) THEN
-                IF ( IGTYPE(12).EQ.3 ) THEN
-                   XTUR = TURBF(JVERT)
-                ELSE
-                   XTUR = SVALQI (XP, YP, 12, TURBF, 0 ,0, 0)             40.35
-                ENDIF
-             ELSE
-                UU = COMPDA(INDX,JVX2)
-                VV = COMPDA(INDX,JVY2)
-                XTUR = PTURBV(2) * SQRT(UU*UU+VV*VV) * COMPDA(INDX,JDP2)  40.35
-             ENDIF
-             COMPDA(INDX,JTURB2) = XTUR                                   40.35
-             COMPDA(INDX,JTURB3) = XTUR                                   40.35
-          ENDIF
+         IF (VARTUR) THEN
+            IF (PTURBV(2).LT.0.) THEN
+               XTUR = SVALQI (XP, YP, 12, TURBF, 0 ,IX ,IY)
+            ELSE
+               UU = COMPDA(INDX,JVX2)
+               VV = COMPDA(INDX,JVY2)
+               XTUR = PTURBV(2) * SQRT(UU*UU+VV*VV) * COMPDA(INDX,JDP2)
+            ENDIF
+            COMPDA(INDX,JTURB2) = XTUR
+            COMPDA(INDX,JTURB3) = XTUR
+         ENDIF
+!
+!     ***** compute fluid mud layer *****                                 40.59
+!
+         IF (VARMUD) THEN
+            XMUD = SVALQI (XP, YP, 13, MUDLF, 1 ,IX ,IY)
+            COMPDA(INDX,JMUDL1) = XMUD
+            COMPDA(INDX,JMUDL2) = XMUD
+            COMPDA(INDX,JMUDL3) = XMUD
+         ENDIF
+!
+!     ***** compute ice concentration (fraction) *****                    41.75
+!
+         IF (VARAICE) THEN
+            XAICE = SVALQI (XP, YP, 14, AICEF, 1 ,IX ,IY)
+            COMPDA(INDX,JAICE2) = XAICE
+            COMPDA(INDX,JAICE3) = XAICE
+         ENDIF
+!
+!     ***** compute ice thickness in meters *****                         41.75
+!
+         IF (VARHICE) THEN
+            XHICE = SVALQI (XP, YP, 15, HICEF, 1 ,IX ,IY)
+            COMPDA(INDX,JHICE2) = XHICE
+            COMPDA(INDX,JHICE3) = XHICE
+         ENDIF
+!
+!     ***** compute sea-swell sig wave height *****                       41.82
+!
+         IF (VARHSS) THEN
+            XHSS = SVALQI (XP, YP, 16, HSSF, 1 ,IX ,IY)
+            COMPDA(INDX,JHSS2) = XHSS
+            COMPDA(INDX,JHSS3) = XHSS
+         ENDIF
+!
+!     ***** compute sea-swell mean wave period *****                      41.82
+!
+         IF (VARTSS) THEN
+            XTSS = SVALQI (XP, YP, 17, TSSF, 1 ,IX ,IY)
+            COMPDA(INDX,JTSS2) = XTSS
+            COMPDA(INDX,JTSS3) = XTSS
+         ENDIF
+!
+!     ***** compute sea-swell mean wave direction *****                   42.06
+!
+         IF (VARDSS) THEN
+            XDSS = SVALQI (XP, YP, 18, DSSF, 1 ,IX ,IY)
+            COMPDA(INDX,JDSS2) = XDSS
+            COMPDA(INDX,JDSS3) = XDSS
+         ENDIF
+!
+10    CONTINUE
+20 CONTINUE
+!
+!     --- unstructured grid                                               40.80
+!
+   DO INDX = 1, nverts
+!
+      XP = xcugrd(INDX)
+      YP = ycugrd(INDX)
+!
+      IF ( .NOT.PARLL ) THEN
+         JVERT = INDX
+      ELSE
+         JVERT = ivertg(INDX)
+      ENDIF
+!
+!        ***** compute depth and water level *****
+!
+      IF ( IGTYPE(1).EQ.3 ) THEN
+         DEP = DEPTH(JVERT)
+      ELSE
+         IF ( IBRAG.EQ.0 ) THEN
+            DEP = SVALQI (XP, YP, 1, DEPTH, 1, 0, 0)
+         ELSE
+            DEP = dpmean(INDX)
+         ENDIF
+      ENDIF
+      COMPDA(INDX,JBOTLV) = DEP
+!
+      IF (VARWLV) THEN
+         IF ( IGTYPE(7).EQ.3 ) THEN
+            WLVL = WLEVL(JVERT)
+         ELSE
+            WLVL = SVALQI (XP, YP, 7, WLEVL, 1, 0, 0)
+         ENDIF
+         COMPDA(INDX,JWLV2) = WLVL
+         IF (JWLV1.GT.1) COMPDA(INDX,JWLV1) = WLVL
+         IF (JWLV3.GT.1) COMPDA(INDX,JWLV3) = WLVL
+         DEP = DEP + WLVL
+      ENDIF
+!        add constant water level
+      DEPW = DEP + WLEV
+      COMPDA(INDX,JDP2) = DEPW
+!        ***In this step the water level at T+DT is copied to the  ***
+!        ***water level at T (Only for first time computation)     ***
+      IF (JDP1.GT.1) COMPDA(INDX,JDP1) = DEPW
+      IF (JDP3.GT.1) COMPDA(INDX,JDP3) = DEPW
+!
+!        ***** compute current velocity *****
+!
+      IF (ICUR.EQ.1 .AND. IGTYPE(2) .GE. 1) THEN
+         IF (DEPW.GT.0.) THEN
+            IF ( IGTYPE(2).EQ.3 ) THEN
+               UU = UXB(JVERT)
+            ELSE
+               UU = SVALQI (XP, YP, 2, UXB, 0, 0, 0)
+            ENDIF
+            IF ( IGTYPE(3).EQ.3 ) THEN
+               VV = UYB(JVERT)
+            ELSE
+               VV = SVALQI (XP, YP, 3, UYB, 0, 0, 0)
+            ENDIF
+            VTOT = SQRT (UU*UU + VV*VV)
+            CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
+            IF (VTOT .GT. CGMAX) THEN
+               CGFACT = CGMAX / VTOT
+               UU = UU * CGFACT
+               VV = VV * CGFACT
+               IF (ERRPTS.GT.0) THEN
+                  WRITE (ERRPTS, 212) INDX, 1
+212               FORMAT (I4, 1X, I2)
+               ENDIF
+            ENDIF
+            COMPDA(INDX,JVX2) =  UU*COSVC + VV*SINVC
+            COMPDA(INDX,JVY2) = -UU*SINVC + VV*COSVC
+         ELSE
+            COMPDA(INDX,JVX2) =  0.
+            COMPDA(INDX,JVY2) =  0.
+         ENDIF
+         IF (JVX1.GT.1) COMPDA(INDX,JVX1) = COMPDA(INDX,JVX2)
+         IF (JVY1.GT.1) COMPDA(INDX,JVY1) = COMPDA(INDX,JVY2)
+         IF (JVX3.GT.1) COMPDA(INDX,JVX3) = COMPDA(INDX,JVX2)
+         IF (JVY3.GT.1) COMPDA(INDX,JVY3) = COMPDA(INDX,JVY2)
+      ENDIF
+!
+!         ***** compute variable friction coefficient *****
+!
+      IF (VARFR) THEN
+         IF ( IGTYPE(4).EQ.3 ) THEN
+            FRI = FRIC(JVERT)
+         ELSE
+            FRI = SVALQI (XP, YP, 4, FRIC, 1, 0, 0)
+         ENDIF
+         COMPDA(INDX,JFRC2) = FRI
+         COMPDA(INDX,JFRC3) = FRI
+      ENDIF
+!
+!        ***** compute variable wind velocity *****
+!
+      IF (VARWI) THEN
+         IF ( IGTYPE(5).EQ.3 ) THEN
+            UU = WXI(JVERT)
+         ELSE
+            UU = SVALQI (XP, YP, 5, WXI, 0, 0, 0)
+         ENDIF
+         IF ( IGTYPE(6).EQ.3 ) THEN
+            VV = WYI(JVERT)
+         ELSE
+            VV = SVALQI (XP, YP, 6, WYI, 0, 0, 0)
+         ENDIF
+         COMPDA(INDX,JWX2) =  UU*COSWC + VV*SINWC
+         COMPDA(INDX,JWY2) = -UU*SINWC + VV*COSWC
+         IF (JWX3.GT.1) COMPDA(INDX,JWX3) = COMPDA(INDX,JWX2)
+         IF (JWY3.GT.1) COMPDA(INDX,JWY3) = COMPDA(INDX,JWY2)
+      ENDIF
+!
+!     ***** compute variable air-sea temperature difference *****         40.80
+!
+      IF (VARAST) THEN
+         IF ( IGTYPE(10).EQ.3 ) THEN
+            ASTD = ASTDF(JVERT)
+         ELSE
+            ASTD = SVALQI (XP, YP, 10, ASTDF, 1, 0, 0)
+         ENDIF
+         COMPDA(INDX,JASTD2) = ASTD
+         COMPDA(INDX,JASTD3) = ASTD
+      ENDIF
+!
+!     ***** compute number of plants per square meter *****               40.80
+!
+      IF (VARNPL) THEN
+         IF ( IGTYPE(11).EQ.3 ) THEN
+            XNPL = NPLAF(JVERT)
+         ELSE
+            XNPL = SVALQI (XP, YP, 11, NPLAF, 1 ,0, 0)
+         ENDIF
+         COMPDA(INDX,JNPLA2) = XNPL
+         COMPDA(INDX,JNPLA3) = XNPL
+      ENDIF
+!
+!     ***** compute turbulent viscosity *****                             40.35
+!
+      IF (VARTUR) THEN
+         IF (PTURBV(2).LT.0.) THEN
+            IF ( IGTYPE(12).EQ.3 ) THEN
+               XTUR = TURBF(JVERT)
+            ELSE
+               XTUR = SVALQI (XP, YP, 12, TURBF, 0 ,0, 0)
+            ENDIF
+         ELSE
+            UU = COMPDA(INDX,JVX2)
+            VV = COMPDA(INDX,JVY2)
+            XTUR = PTURBV(2) * SQRT(UU*UU+VV*VV) * COMPDA(INDX,JDP2)
+         ENDIF
+         COMPDA(INDX,JTURB2) = XTUR
+         COMPDA(INDX,JTURB3) = XTUR
+      ENDIF
 !
 !     ***** compute fluid mud layer *****                                 40.80
 !
-          IF (VARMUD) THEN
-             IF ( IGTYPE(13).EQ.3 ) THEN
-                XMUD = MUDLF(JVERT)
-             ELSE
-                XMUD = SVALQI (XP, YP, 13, MUDLF, 1 ,0, 0)                40.80
-             ENDIF
-             COMPDA(INDX,JMUDL1) = XMUD                                   40.80
-             COMPDA(INDX,JMUDL2) = XMUD                                   40.80
-             COMPDA(INDX,JMUDL3) = XMUD                                   40.80
-          ENDIF
+      IF (VARMUD) THEN
+         IF ( IGTYPE(13).EQ.3 ) THEN
+            XMUD = MUDLF(JVERT)
+         ELSE
+            XMUD = SVALQI (XP, YP, 13, MUDLF, 1 ,0, 0)
+         ENDIF
+         COMPDA(INDX,JMUDL1) = XMUD
+         COMPDA(INDX,JMUDL2) = XMUD
+         COMPDA(INDX,JMUDL3) = XMUD
+      ENDIF
 !
 !     ***** compute aice, ice concentration (fraction)  *****             41.75
 !                                                                         41.75
-          IF (VARAICE) THEN                                               41.75
-             IF ( IGTYPE(14).EQ.3 ) THEN                                  41.75
-                XAICE = AICEF(JVERT)                                      41.75
-             ELSE                                                         41.75
-                XAICE = SVALQI (XP, YP, 14, AICEF, 1 ,0, 0)               41.75
-             ENDIF                                                        41.75
-             COMPDA(INDX,JAICE2) = XAICE                                  41.75
-             COMPDA(INDX,JAICE3) = XAICE                                  41.75
-          ENDIF                                                           41.75
+      IF (VARAICE) THEN
+         IF ( IGTYPE(14).EQ.3 ) THEN
+            XAICE = AICEF(JVERT)
+         ELSE
+            XAICE = SVALQI (XP, YP, 14, AICEF, 1 ,0, 0)
+         ENDIF
+         COMPDA(INDX,JAICE2) = XAICE
+         COMPDA(INDX,JAICE3) = XAICE
+      ENDIF
 !
 !     ***** compute hice, ice thickness (m)  *****                        41.75
 !                                                                         41.75
-          IF (VARHICE) THEN                                               41.75
-             IF ( IGTYPE(15).EQ.3 ) THEN                                  41.75
-                XHICE = HICEF(JVERT)                                      41.75
-             ELSE                                                         41.75
-                XHICE = SVALQI (XP, YP, 15, HICEF, 1 ,0, 0)               41.75
-             ENDIF                                                        41.75
-             COMPDA(INDX,JHICE2) = XHICE                                  41.75
-             COMPDA(INDX,JHICE3) = XHICE                                  41.75
-          ENDIF                                                           41.75
+      IF (VARHICE) THEN
+         IF ( IGTYPE(15).EQ.3 ) THEN
+            XHICE = HICEF(JVERT)
+         ELSE
+            XHICE = SVALQI (XP, YP, 15, HICEF, 1 ,0, 0)
+         ENDIF
+         COMPDA(INDX,JHICE2) = XHICE
+         COMPDA(INDX,JHICE3) = XHICE
+      ENDIF
 !
 !
 !     ***** compute sea-swell significant wave height  *****              41.82
 !                                                                         41.82
-          IF (VARHSS) THEN                                                41.82
-             IF ( IGTYPE(16).EQ.3 ) THEN                                  41.82
-                XHSS = HSSF(JVERT)                                        41.82
-             ELSE                                                         41.82
-                XHSS = SVALQI (XP, YP, 16, HSSF, 1 ,0, 0)                 41.82
-             ENDIF                                                        41.82
-             COMPDA(INDX,JHSS2) = XHSS                                    41.82
-             COMPDA(INDX,JHSS3) = XHSS                                    41.82
-          ENDIF                                                           41.82
+      IF (VARHSS) THEN
+         IF ( IGTYPE(16).EQ.3 ) THEN
+            XHSS = HSSF(JVERT)
+         ELSE
+            XHSS = SVALQI (XP, YP, 16, HSSF, 1 ,0, 0)
+         ENDIF
+         COMPDA(INDX,JHSS2) = XHSS
+         COMPDA(INDX,JHSS3) = XHSS
+      ENDIF
 !
 !     ***** compute sea-swell mean wave period  *****                     41.82
 !                                                                         41.82
-          IF (VARTSS) THEN                                                41.82
-             IF ( IGTYPE(17).EQ.3 ) THEN                                  41.82
-                XTSS = TSSF(JVERT)                                        41.82
-             ELSE                                                         41.82
-                XTSS = SVALQI (XP, YP, 17, TSSF, 1 ,0, 0)                 41.82
-             ENDIF                                                        41.82
-             COMPDA(INDX,JTSS2) = XTSS                                    41.82
-             COMPDA(INDX,JTSS3) = XTSS                                    41.82
-          ENDIF                                                           41.82
+      IF (VARTSS) THEN
+         IF ( IGTYPE(17).EQ.3 ) THEN
+            XTSS = TSSF(JVERT)
+         ELSE
+            XTSS = SVALQI (XP, YP, 17, TSSF, 1 ,0, 0)
+         ENDIF
+         COMPDA(INDX,JTSS2) = XTSS
+         COMPDA(INDX,JTSS3) = XTSS
+      ENDIF
 !
 !     ***** compute sea-swell mean wave direction  *****                  42.06
 !                                                                         42.06
-          IF (VARDSS) THEN                                                42.06
-             IF ( IGTYPE(18).EQ.3 ) THEN                                  42.06
-                XDSS = DSSF(JVERT)                                        42.06
-             ELSE                                                         42.06
-                XDSS = SVALQI (XP, YP, 18, DSSF, 1 ,0, 0)                 42.06
-             ENDIF                                                        42.06
-             COMPDA(INDX,JDSS2) = XDSS                                    42.06
-             COMPDA(INDX,JDSS3) = XDSS                                    42.06
-          ENDIF                                                           42.06
-      ENDDO                                                               40.80
+      IF (VARDSS) THEN
+         IF ( IGTYPE(18).EQ.3 ) THEN
+            XDSS = DSSF(JVERT)
+         ELSE
+            XDSS = SVALQI (XP, YP, 18, DSSF, 1 ,0, 0)
+         ENDIF
+         COMPDA(INDX,JDSS2) = XDSS
+         COMPDA(INDX,JDSS3) = XDSS
+      ENDIF
+   ENDDO
 !
 !     *** initialise setup and saved depth ***                            32.02
 !
-      IF (LSETUP.GT.0) THEN                                               32.02
-        DO INDX = 1, MCGRD                                                32.02
-          COMPDA(INDX,JSETUP) =  0.                                       32.02
-          COMPDA(INDX,JDPSAV) = COMPDA(INDX,JDP2)                         32.02
-        ENDDO                                                             32.02
-      ENDIF                                                               32.02
+   IF (LSETUP.GT.0) THEN
+      DO INDX = 1, MCGRD
+         COMPDA(INDX,JSETUP) =  0.
+         COMPDA(INDX,JDPSAV) = COMPDA(INDX,JDP2)
+      ENDDO
+   ENDIF
 !
 !     --- initialize HSIBC                                                40.41
-      COMPDA(:,JHSIBC) = 0.                                               40.41
+   COMPDA(:,JHSIBC) = 0.
 !
 !     --- initialize ZELEN and USTAR                                      40.41
-      COMPDA(:,JZEL  ) = 1.E-4                                            40.41
-      COMPDA(:,JUSTAR) = 1.E-15                                           40.41
+   COMPDA(:,JZEL  ) = 1.E-4
+   COMPDA(:,JUSTAR) = 1.E-15
 !
 !     --- initialize UBOT and TMBOT                                       40.94
-      COMPDA(:,JUBOT) = 0.                                                40.94
-      IF (JPBOT.GT.1) COMPDA(:,JPBOT) = 0.                                40.94
+   COMPDA(:,JUBOT) = 0.
+   IF (JPBOT.GT.1) COMPDA(:,JPBOT) = 0.
 !
 !     --- initialize GAMBR                                                41.97 41.96
-      IF (ISURF.EQ.6.OR.ISURF.EQ.7) COMPDA(:,JGAMMA) = PSURF(2)
+   IF (ISURF.EQ.6.OR.ISURF.EQ.7) COMPDA(:,JGAMMA) = PSURF(2)
 !
-      RETURN
+   RETURN
 ! * end of subroutine SWRBC *
-      END
+END
 !***********************************************************************
 !                                                                      *
-      REAL FUNCTION SVALQI (XP, YP, IGRID, ARRINP, ZERO ,IXC ,IYC)        30.21
+REAL FUNCTION SVALQI (XP, YP, IGRID, ARRINP, ZERO ,IXC ,IYC)
 !                                                                      *
 !***********************************************************************
 
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM2                                                         40.41
-      USE M_PARALL
+   USE OCPCOMM4
+   USE SWCOMM2
+   USE M_PARALL
 
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -5415,14 +5415,14 @@
 !     ZERO     If ZERO=0, then value outside the grid is zero, otherwise
 !              the value is extrapolated
 !
-      INTEGER  IGRID, IXC, IYC, ZERO
+   INTEGER  IGRID, IXC, IYC, ZERO
 !
 !     ARRINP   Array holding the values at the input grid locations
 !     SVALQI   Value of quantity in (XP,YP)
 !     XP       X-coordinate in computational gridpoint
 !     YP       Y-coordinate in computational gridpoint
 !
-      REAL     ARRINP(*), XP, YP
+   REAL     ARRINP(*), XP, YP
 !
 !  5. Parameter variables
 !
@@ -5451,17 +5451,17 @@
 !     WF3      Weight factor of point ARRINP(II+1)                        40.04
 !     WF4      Weight factor of point ARRINP(II+1+MXG(IGRID))             40.04
 !
-      INTEGER  IB1, IENT, II, JB1, IXCGL, IYCGL
-      REAL     IXB, IYB, SXB1, SXB2, SYB1, SYB2
-      REAL     SUMWEXC, SUMWREG, WF1, WF2, WF3, WF4                       40.04
-      LOGICAL  INGRD
+   INTEGER  IB1, IENT, II, JB1, IXCGL, IYCGL
+   REAL     IXB, IYB, SXB1, SXB2, SYB1, SYB2
+   REAL     SUMWEXC, SUMWREG, WF1, WF2, WF3, WF4
+   LOGICAL  INGRD
 !
 !  8. Subroutines used
 !
 !     LOGICAL FUNCTION EQREAL: Checks whether two reals are equal within certain margins
 !     STRACE: Traces the entry into subroutines (test purposes)
 !
-      LOGICAL  EQREAL
+   LOGICAL  EQREAL
 !
 !  9. Subroutines calling
 !
@@ -5504,218 +5504,218 @@
 !
 ! 13. Source text
 !
-      SAVE IENT                                                           30.72
-      DATA IENT/0/
-      CALL STRACE (IENT, 'SVALQI')
+   SAVE IENT
+   DATA IENT/0/
+   CALL STRACE (IENT, 'SVALQI')
 
 !     --- take global indices instead of local ones                       40.30
 
-      IXCGL = IXC + MXF - 1                                               40.30
-      IYCGL = IYC + MYF - 1                                               40.30
+   IXCGL = IXC + MXF - 1
+   IYCGL = IYC + MYF - 1
 !
 !     ***    Two different procedures in funcion of       ***
 !     ***    grid type: regular or curvilinear (staggered)*** ver 30.21
 !
-      IF (IGTYPE(IGRID) .EQ. 1) THEN                                      30.21
+   IF (IGTYPE(IGRID) .EQ. 1) THEN
 !
 !     Regular grid:
 !
-        IXB = ( (XP-XPG(IGRID))*COSPG(IGRID) +
-     &          (YP-YPG(IGRID))*SINPG(IGRID) ) / DXG(IGRID)
+      IXB = ( (XP-XPG(IGRID))*COSPG(IGRID) + &
+              (YP-YPG(IGRID))*SINPG(IGRID) ) / DXG(IGRID)
 !
-        INGRD = .TRUE.
-        IF (IXB .LE. 0.) THEN                                             30.60
-          IB1   = 1
-          SXB2  = 0.
-          IF (IXB.LT.-0.1) INGRD = .FALSE.                                20.3x
-        ELSE IF (IXB .GE. FLOAT(MXG(IGRID)-1)) THEN                       30.60
-          IB1   = MXG(IGRID)-1
-          SXB2  = 1.
-          IF (IXB.GT.FLOAT(MXG(IGRID))-0.9) INGRD = .FALSE.               20.3x
-        ELSE
-          IB1   = INT(IXB)
-          SXB2  = IXB-REAL(IB1)
-          IB1   = IB1+1
-        ENDIF
-        IF (MYG(IGRID).GT.1) THEN                                         32.03
-          IYB = (-(XP-XPG(IGRID))*SINPG(IGRID) +                          30.82
-     &            (YP-YPG(IGRID))*COSPG(IGRID) ) / DYG(IGRID)             30.82
-          IF (IYB .LE. 0.) THEN                                           30.60
+      INGRD = .TRUE.
+      IF (IXB .LE. 0.) THEN
+         IB1   = 1
+         SXB2  = 0.
+         IF (IXB.LT.-0.1) INGRD = .FALSE.
+      ELSE IF (IXB .GE. FLOAT(MXG(IGRID)-1)) THEN
+         IB1   = MXG(IGRID)-1
+         SXB2  = 1.
+         IF (IXB.GT.FLOAT(MXG(IGRID))-0.9) INGRD = .FALSE.
+      ELSE
+         IB1   = INT(IXB)
+         SXB2  = IXB-REAL(IB1)
+         IB1   = IB1+1
+      ENDIF
+      IF (MYG(IGRID).GT.1) THEN
+         IYB = (-(XP-XPG(IGRID))*SINPG(IGRID) + &
+                 (YP-YPG(IGRID))*COSPG(IGRID) ) / DYG(IGRID)
+         IF (IYB .LE. 0.) THEN
             JB1   = 1
             SYB2  = 0.
             IF (IYB.LT.-0.1) INGRD = .FALSE.
-          ELSE IF (IYB .GE. FLOAT(MYG(IGRID)-1)) THEN                     30.60
+         ELSE IF (IYB .GE. FLOAT(MYG(IGRID)-1)) THEN
             JB1   = MYG(IGRID)-1
             SYB2  = 1.
             IF (IYB.GT.FLOAT(MYG(IGRID))-0.9) INGRD = .FALSE.
-          ELSE
+         ELSE
             JB1   = INT(IYB)
             SYB2  = IYB-REAL(JB1)
             JB1   = JB1+1
-          ENDIF
-        ENDIF                                                             32.03
+         ENDIF
+      ENDIF
 !
 !       evaluate SVALQI (2D-mode):
 !
-        IF (.NOT.INGRD .AND. ZERO.EQ.0) THEN
-          SVALQI = 0.
-        ELSE IF (MYG(IGRID).GT.1) THEN                                    32.03
-          SXB1   = 1.- SXB2
-          SYB1   = 1.- SYB2
-          II     = IB1 + (JB1-1) * MXG(IGRID)
-          WF1 = SXB1*SYB1                                                 40.04
-          WF2 = SXB1*SYB2                                                 40.04
-          WF3 = SXB2*SYB1                                                 40.04
-          WF4 = SXB2*SYB2                                                 40.04
-          SUMWEXC = 0.                                                    40.04
-          IF  (EQREAL(ARRINP(II             ),EXCFLD(IGRID))) THEN        40.04
-            SUMWEXC = SUMWEXC + WF1                                       40.04
-            WF1 =0.                                                       40.04
-          ENDIF                                                           40.04
-          IF (EQREAL(ARRINP(II+  MXG(IGRID)),EXCFLD(IGRID))) THEN         40.04
-            SUMWEXC = SUMWEXC + WF2                                       40.04
-            WF2=0.                                                        40.04
-          ENDIF                                                           40.04
-          IF (EQREAL(ARRINP(II+1           ),EXCFLD(IGRID))) THEN         40.04
-            SUMWEXC = SUMWEXC + WF3                                       40.04
-            WF3=0.                                                        40.04
-          ENDIF                                                           40.04
-          IF (EQREAL(ARRINP(II+1+MXG(IGRID)),EXCFLD(IGRID))) THEN         40.04
-            SUMWEXC = SUMWEXC + WF4                                       40.04
-            WF4=0.                                                        40.04
-          ENDIF                                                           40.04
-          SUMWREG = 1. -SUMWEXC                                           40.04
+      IF (.NOT.INGRD .AND. ZERO.EQ.0) THEN
+         SVALQI = 0.
+      ELSE IF (MYG(IGRID).GT.1) THEN
+         SXB1   = 1.- SXB2
+         SYB1   = 1.- SYB2
+         II     = IB1 + (JB1-1) * MXG(IGRID)
+         WF1 = SXB1*SYB1
+         WF2 = SXB1*SYB2
+         WF3 = SXB2*SYB1
+         WF4 = SXB2*SYB2
+         SUMWEXC = 0.
+         IF  (EQREAL(ARRINP(II             ),EXCFLD(IGRID))) THEN
+            SUMWEXC = SUMWEXC + WF1
+            WF1 =0.
+         ENDIF
+         IF (EQREAL(ARRINP(II+  MXG(IGRID)),EXCFLD(IGRID))) THEN
+            SUMWEXC = SUMWEXC + WF2
+            WF2=0.
+         ENDIF
+         IF (EQREAL(ARRINP(II+1           ),EXCFLD(IGRID))) THEN
+            SUMWEXC = SUMWEXC + WF3
+            WF3=0.
+         ENDIF
+         IF (EQREAL(ARRINP(II+1+MXG(IGRID)),EXCFLD(IGRID))) THEN
+            SUMWEXC = SUMWEXC + WF4
+            WF4=0.
+         ENDIF
+         SUMWREG = 1. -SUMWEXC
 !
-          IF (SUMWEXC.GE.SUMWREG)   THEN                                  40.04
-            SVALQI = EXCFLD(IGRID)                                        40.04
-          ELSE                                                            40.04
-            SVALQI = ( WF1*ARRINP(II)   + WF2*ARRINP(II+MXG(IGRID))       40.04
-     &               + WF3*ARRINP(II+1) + WF4*ARRINP(II+1+MXG(IGRID)) )   40.04
-     &               / SUMWREG                                            40.04
-          END IF                                                          40.04
-        ELSE
+         IF (SUMWEXC.GE.SUMWREG)   THEN
+            SVALQI = EXCFLD(IGRID)
+         ELSE
+            SVALQI = ( WF1*ARRINP(II)   + WF2*ARRINP(II+MXG(IGRID)) &
+                     + WF3*ARRINP(II+1) + WF4*ARRINP(II+1+MXG(IGRID)) ) &
+                     / SUMWREG
+         END IF
+      ELSE
 !
 !       evaluate SVALQI (1D-mode):
 !
-          SXB1 = 1. - SXB2                                                32.03
-          IF (EQREAL(ARRINP(IB1  ),EXCFLD(IGRID)).OR.                     30.82
-     &        EQREAL(ARRINP(IB1+1),EXCFLD(IGRID))    ) THEN               30.82
+         SXB1 = 1. - SXB2
+         IF (EQREAL(ARRINP(IB1  ),EXCFLD(IGRID)).OR. &
+             EQREAL(ARRINP(IB1+1),EXCFLD(IGRID))    ) THEN
 !
 !           One of the cornerpoints contains an exception value thus:     30.82
 !
-            SVALQI = EXCFLD(IGRID)                                        30.82
-          ELSE                                                            30.82
-            SVALQI = SXB1*ARRINP(IB1)                                     32.03
-     &             + SXB2*ARRINP(IB1+1)                                   32.03
-          ENDIF                                                           30.82
-        ENDIF
-      ELSEIF ( IGTYPE(IGRID).EQ.3 ) THEN                                  40.80
+            SVALQI = EXCFLD(IGRID)
+         ELSE
+            SVALQI = SXB1*ARRINP(IB1) &
+                   + SXB2*ARRINP(IB1+1)
+         ENDIF
+      ENDIF
+   ELSEIF ( IGTYPE(IGRID).EQ.3 ) THEN
 !
 !     unstructured grid
 !
-        CALL SwanInterpolatePoint(SVALQI, XP, YP, ARRINP, EXCFLD(IGRID))
+      CALL SwanInterpolatePoint(SVALQI, XP, YP, ARRINP, EXCFLD(IGRID))
 !
-      ELSE IF (ABS(STAGX(IGRID)) .LT. 0.01 .AND.                          32.03
-     &         ABS(STAGY(IGRID)) .LT. 0.01) THEN                          32.03
+   ELSE IF (ABS(STAGX(IGRID)) .LT. 0.01 .AND. &
+            ABS(STAGY(IGRID)) .LT. 0.01) THEN
 !
 !     Curvilinear and non-staggered input grid:                           32.03
 !
-        IB1   = IXCGL
-        JB1   = IYCGL
-        II     = IB1 + (JB1-1) * MXG(IGRID)
-        SVALQI = ARRINP(II)
-      ELSE
+      IB1   = IXCGL
+      JB1   = IYCGL
+      II     = IB1 + (JB1-1) * MXG(IGRID)
+      SVALQI = ARRINP(II)
+   ELSE
 !
 !     Curvilinear and staggered input grid:                               32.03
 !
-        INGRD = .TRUE.
-        IF (IXCGL .EQ. 1) THEN
-          IB1   = 1
-          SXB2  = 0.
-          IF (STAGY(IGRID) .GT. 0.) INGRD = .FALSE.
-        ELSE IF (IXCGL .GT. MXG(IGRID)-1) THEN
-          IB1   = MXG(IGRID)-1
-          SXB2  = 1.
-          IF (STAGY(IGRID) .GT. 0.) INGRD = .FALSE.
-        ELSE
-          IB1   = IXCGL + 1
-          SXB2  = 1. - STAGX(IGRID)
-        ENDIF
-        IF (IYCGL .EQ. 1) THEN
-          JB1   = 1
-          SYB2  = 0.
-          IF (STAGX(IGRID) .GT. 0.) INGRD = .FALSE.
-        ELSE IF (IYCGL .GT. MYG(IGRID)-1) THEN
-          JB1   = MYG(IGRID)-1
-          SYB2  = 1.
-          IF (STAGY(IGRID) .GT. 0.) INGRD = .FALSE.
-        ELSE
-          JB1   = IYCGL + 1
-          SYB2  =1. - STAGY(IGRID)
-        ENDIF
+      INGRD = .TRUE.
+      IF (IXCGL .EQ. 1) THEN
+         IB1   = 1
+         SXB2  = 0.
+         IF (STAGY(IGRID) .GT. 0.) INGRD = .FALSE.
+      ELSE IF (IXCGL .GT. MXG(IGRID)-1) THEN
+         IB1   = MXG(IGRID)-1
+         SXB2  = 1.
+         IF (STAGY(IGRID) .GT. 0.) INGRD = .FALSE.
+      ELSE
+         IB1   = IXCGL + 1
+         SXB2  = 1. - STAGX(IGRID)
+      ENDIF
+      IF (IYCGL .EQ. 1) THEN
+         JB1   = 1
+         SYB2  = 0.
+         IF (STAGX(IGRID) .GT. 0.) INGRD = .FALSE.
+      ELSE IF (IYCGL .GT. MYG(IGRID)-1) THEN
+         JB1   = MYG(IGRID)-1
+         SYB2  = 1.
+         IF (STAGY(IGRID) .GT. 0.) INGRD = .FALSE.
+      ELSE
+         JB1   = IYCGL + 1
+         SYB2  =1. - STAGY(IGRID)
+      ENDIF
 !
 !       evaluate SVALQI (2D-mode):
 !
-        IF (.NOT.INGRD .AND. ZERO.EQ.0) THEN
-          SVALQI = 0.
-        ELSE
-          SXB1   = STAGX(IGRID)
-          SYB1   = STAGY(IGRID)
-          II     = IB1 + (JB1-1) * MXG(IGRID)
-          WF1 = SXB1*SYB1                                                 40.04
-          WF2 = SXB1*SYB2                                                 40.04
-          WF3 = SXB2*SYB1                                                 40.04
-          WF4 = SXB2*SYB2                                                 40.04
-          SUMWEXC = 0.                                                    40.04
-          IF (EQREAL(ARRINP(II             ),EXCFLD(IGRID))) THEN         40.04
-            SUMWEXC = SUMWEXC + WF1                                       40.04
-            WF1 =0.                                                       40.04
-          ENDIF                                                           40.04
-          IF (EQREAL(ARRINP(II+  MXG(IGRID)),EXCFLD(IGRID))) THEN         40.04
-            SUMWEXC = SUMWEXC + WF2                                       40.04
-            WF2=0.                                                        40.04
-          ENDIF                                                           40.04
-          IF (EQREAL(ARRINP(II+1           ),EXCFLD(IGRID))) THEN         40.04
-            SUMWEXC = SUMWEXC + WF3                                       40.04
-            WF3=0.                                                        40.04
-          ENDIF                                                           40.04
-          IF (EQREAL(ARRINP(II+1+MXG(IGRID)),EXCFLD(IGRID))) THEN         40.04
-            SUMWEXC = SUMWEXC + WF4                                       40.04
-            WF4=0.                                                        40.04
-          ENDIF                                                           40.04
-          SUMWREG = 1. -SUMWEXC                                           40.04
+      IF (.NOT.INGRD .AND. ZERO.EQ.0) THEN
+         SVALQI = 0.
+      ELSE
+         SXB1   = STAGX(IGRID)
+         SYB1   = STAGY(IGRID)
+         II     = IB1 + (JB1-1) * MXG(IGRID)
+         WF1 = SXB1*SYB1
+         WF2 = SXB1*SYB2
+         WF3 = SXB2*SYB1
+         WF4 = SXB2*SYB2
+         SUMWEXC = 0.
+         IF (EQREAL(ARRINP(II             ),EXCFLD(IGRID))) THEN
+            SUMWEXC = SUMWEXC + WF1
+            WF1 =0.
+         ENDIF
+         IF (EQREAL(ARRINP(II+  MXG(IGRID)),EXCFLD(IGRID))) THEN
+            SUMWEXC = SUMWEXC + WF2
+            WF2=0.
+         ENDIF
+         IF (EQREAL(ARRINP(II+1           ),EXCFLD(IGRID))) THEN
+            SUMWEXC = SUMWEXC + WF3
+            WF3=0.
+         ENDIF
+         IF (EQREAL(ARRINP(II+1+MXG(IGRID)),EXCFLD(IGRID))) THEN
+            SUMWEXC = SUMWEXC + WF4
+            WF4=0.
+         ENDIF
+         SUMWREG = 1. -SUMWEXC
 !
-          IF (SUMWEXC.GE.SUMWREG)   THEN                                  40.04
-            SVALQI = EXCFLD(IGRID)                                        40.04
-          ELSE                                                            40.04
-            SVALQI = ( WF1*ARRINP(II)   + WF2*ARRINP(II+MXG(IGRID))       40.04
-     &               + WF3*ARRINP(II+1) + WF4*ARRINP(II+1+MXG(IGRID)) )   40.04
-     &               / SUMWREG                                            40.04
-          END IF                                                          40.04
-        ENDIF
+         IF (SUMWEXC.GE.SUMWREG)   THEN
+            SVALQI = EXCFLD(IGRID)
+         ELSE
+            SVALQI = ( WF1*ARRINP(II)   + WF2*ARRINP(II+MXG(IGRID)) &
+                     + WF3*ARRINP(II+1) + WF4*ARRINP(II+1+MXG(IGRID)) ) &
+                     / SUMWREG
+         END IF
       ENDIF
+   ENDIF
 !
 !     ***** test *****
-      IF (ITEST .GE. 280)
+   IF (ITEST .GE. 280) &
 !     &   WRITE(PRINTF, 6010) SVALQI,IGRID,XP,YP,IXB,IYB,II,ARRINP(II)
 ! 6010 FORMAT(' SVALQI  IGRID       XP      YP        IXB',
 !     &       '       IYB  II  ARRINP(II)', /
 !     &      ,E10.3,I3,1X,4E10.3,I4,E10.3)
-     &   WRITE(PRINTF, 6010) XP, YP, IXB, IYB, SVALQI
- 6010 FORMAT(' Test SVALQI:',5F10.3)
+      WRITE(PRINTF, 6010) XP, YP, IXB, IYB, SVALQI
+6010 FORMAT(' Test SVALQI:',5F10.3)
 !
-      RETURN
+   RETURN
 !     end of function SVALQI
-      END
+END
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE SINUPT (PSNAME, XP, YP, XCGRID, YCGRID, KGRPNT, KGRBND)  40.00
+SUBROUTINE SINUPT (PSNAME, XP, YP, XCGRID, YCGRID, KGRPNT, KGRBND)
 !                                                                      *
 !***********************************************************************
 !
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
+   USE OCPCOMM4
+   USE SWCOMM2
+   USE SWCOMM3
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -5773,19 +5773,19 @@
 !     KGRPNT: input  Adresses of the computational grid points
 !     KGRBND: input
 !
-      INTEGER KGRPNT(MXC,MYC), KGRBND(*)                                  40.00
+   INTEGER KGRPNT(MXC,MYC), KGRBND(*)
 !
 !     XCGRID: input  Coordinates of computational grid in x-direction     30.72
 !     XP    : input  X-coordinate of the point (problem coordinates)
 !     YCGRID: input  Coordinates of computational grid in y-direction     30.72
 !     YP    : input  Y-coordinate of the point (problem coordinates)
 !
-      REAL    XP, YP
-      REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)                         30.72
+   REAL    XP, YP
+   REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
 !
 !     PSNAME: input  Name of the output pointset (any type)
 !
-      CHARACTER PSNAME *(*)
+   CHARACTER PSNAME *(*)
 !
 !  5. SUBROUTINES CALLING
 !
@@ -5795,7 +5795,7 @@
 !
 !     SINBTG, SINCMP (both SWAN/SER) and MSGERR (Ocean Pack)
 !
-      LOGICAL SINBTG, SINCMP
+   LOGICAL SINBTG, SINCMP
 !
 !  7. ERROR MESSAGES
 !
@@ -5817,32 +5817,32 @@
 ! 10. SOURCE TEXT
 !
 !
-      SAVE IENT
-      DATA IENT/0/
-      CALL STRACE(IENT,'SINUPT')
+   SAVE IENT
+   DATA IENT/0/
+   CALL STRACE(IENT,'SINUPT')
 !
-      IF (.NOT. SINBTG (XP,YP) ) THEN
-         CALL MSGERR(1,'(corner)point outside bottom grid')
-         WRITE (PRINTF, 6010) PSNAME, XP+XOFFS, YP+YOFFS
-      ENDIF
-      IF (.NOT.SINCMP (XP, YP, XCGRID, YCGRID, KGRPNT, KGRBND)) THEN      40.00
-        CALL MSGERR(1,'(corner)point outside comp. grid')
-        WRITE (PRINTF, 6010) PSNAME, XP+XOFFS, YP+YOFFS
-      ENDIF
- 6010 FORMAT('       Set of output locations: ',A8,
-     &       '  coordinates:', 2F12.2)
+   IF (.NOT. SINBTG (XP,YP) ) THEN
+      CALL MSGERR(1,'(corner)point outside bottom grid')
+      WRITE (PRINTF, 6010) PSNAME, XP+XOFFS, YP+YOFFS
+   ENDIF
+   IF (.NOT.SINCMP (XP, YP, XCGRID, YCGRID, KGRPNT, KGRBND)) THEN
+      CALL MSGERR(1,'(corner)point outside comp. grid')
+      WRITE (PRINTF, 6010) PSNAME, XP+XOFFS, YP+YOFFS
+   ENDIF
+6010 FORMAT('       Set of output locations: ',A8, &
+            '  coordinates:', 2F12.2)
 !
-      RETURN
+   RETURN
 !     end of subroutine SINUPT *
-      END
+END
 !
 !***********************************************************************
 !                                                                      *
-      LOGICAL FUNCTION SINBTG (XP, YP)
+LOGICAL FUNCTION SINBTG (XP, YP)
 !                                                                      *
 !***********************************************************************
 !
-      USE SWCOMM2                                                         40.41
+   USE SWCOMM2
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -5906,7 +5906,7 @@
 !     YLENB   length of bottom grid in y-direction (of bottom grid)
 !     BTOL    tolerance length
 !
-      REAL    XB, YB, XLENB, YLENB, BTOL
+   REAL    XB, YB, XLENB, YLENB, BTOL
 !
 !  8. Subroutines used
 !
@@ -5937,39 +5937,39 @@
 !
 ! 13. Source text
 !
-      DATA  IENT /0/
-      CALL  STRACE (IENT,'SINBTG')
+   DATA  IENT /0/
+   CALL  STRACE (IENT,'SINBTG')
 !
-      SINBTG = .TRUE.
-      IF ( IGTYPE(1).NE.1 ) RETURN
+   SINBTG = .TRUE.
+   IF ( IGTYPE(1).NE.1 ) RETURN
 !
-      XLENB = (MXG(1)-1)*DXG(1)
-      YLENB = (MYG(1)-1)*DYG(1)
-      BTOL  = 0.01 * (XLENB+YLENB)
+   XLENB = (MXG(1)-1)*DXG(1)
+   YLENB = (MYG(1)-1)*DYG(1)
+   BTOL  = 0.01 * (XLENB+YLENB)
 !
 !     ***** compute bottom grid coordinates from problem coordinates ****
 !
-      XB =  (XP-XPG(1))*COSPG(1) + (YP-YPG(1))*SINPG(1)
-      YB = -(XP-XPG(1))*SINPG(1) + (YP-YPG(1))*COSPG(1)
+   XB =  (XP-XPG(1))*COSPG(1) + (YP-YPG(1))*SINPG(1)
+   YB = -(XP-XPG(1))*SINPG(1) + (YP-YPG(1))*COSPG(1)
 !
 !     ***** check location of point *****
-      IF (XB .LT. -BTOL) SINBTG = .FALSE.
-      IF (XB .GT. XLENB+BTOL) SINBTG = .FALSE.
-      IF (YB .LT. -BTOL) SINBTG = .FALSE.
-      IF (YB .GT. YLENB+BTOL) SINBTG = .FALSE.
+   IF (XB .LT. -BTOL) SINBTG = .FALSE.
+   IF (XB .GT. XLENB+BTOL) SINBTG = .FALSE.
+   IF (YB .LT. -BTOL) SINBTG = .FALSE.
+   IF (YB .GT. YLENB+BTOL) SINBTG = .FALSE.
 !
-      RETURN
+   RETURN
 !   * end of subroutine SINBTG *
-      END
+END
 !***********************************************************************
 !                                                                      *
-      LOGICAL FUNCTION SINCMP (XP, YP ,XCGRID ,YCGRID ,KGRPNT, KGRBND)    40.00
+LOGICAL FUNCTION SINCMP (XP, YP ,XCGRID ,YCGRID ,KGRPNT, KGRBND)
 !                                                                      *
 !***********************************************************************
 !
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE M_PARALL                                                        40.31
+   USE SWCOMM2
+   USE SWCOMM3
+   USE M_PARALL
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -6033,21 +6033,21 @@
 !     KGRPNT  input  grid point addresses
 !     KGRBND  input  describes computational grid boundary                40.00
 !
-      INTEGER KGRPNT(MXC,MYC), KGRBND(*)                                  40.00
+   INTEGER KGRPNT(MXC,MYC), KGRBND(*)
 !
 !     XCGRID: input  Coordinates of computational grid in x-direction     30.72
 !     XP      REAL   input    X-coordinate (problem grid) of the point
 !     YCGRID: input  Coordinates of computational grid in y-direction     30.72
 !     YP      REAL   input    Y-coordinate (problem grid) of the point
 !
-      REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)                         30.72
-      REAL    XP,     YP
+   REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
+   REAL    XP,     YP
 !
 !  6. Local variables
 !
 !     CTOL    tolerance value (margin around comput. grid)                40.00
 !
-      REAL    CTOL
+   REAL    CTOL
 !
 !  8. Subroutines used
 !
@@ -6076,66 +6076,66 @@
 !
 ! 13. Source text
 !
-      SAVE IENT
-      DATA IENT/0/
-      CALL STRACE(IENT,'SINCMP')
+   SAVE IENT
+   DATA IENT/0/
+   CALL STRACE(IENT,'SINCMP')
 !
 !     *** Different procedure depending on grid type **
-      IF (OPTG .EQ. 1) THEN                                               30.21
+   IF (OPTG .EQ. 1) THEN
 !
 !       regular grid: compute comp. coordinates from problem coordinates
 !
-        XC   =  (XP-XPC)*COSPC+(YP-YPC)*SINPC
-        YC   = -(XP-XPC)*SINPC+(YP-YPC)*COSPC
+      XC   =  (XP-XPC)*COSPC+(YP-YPC)*SINPC
+      YC   = -(XP-XPC)*SINPC+(YP-YPC)*COSPC
 !       XC and YC are in m
 !
 !       ***** check for location *****
-        SINCMP = .TRUE.
-        CTOL   = 0.01 * (XCLEN+YCLEN)                                     40.00
-        IF (XC .LT. -CTOL) SINCMP = .FALSE.                               40.00
-        IF (XC .GT. XCLEN+CTOL) SINCMP = .FALSE.                          40.00
-        IF (YC .LT. -CTOL) SINCMP = .FALSE.                               40.00
-        IF (YC .GT. YCLEN+CTOL) SINCMP = .FALSE.                          40.00
-      ELSE IF (OPTG .EQ. 3) THEN                                          40.80
+      SINCMP = .TRUE.
+      CTOL   = 0.01 * (XCLEN+YCLEN)
+      IF (XC .LT. -CTOL) SINCMP = .FALSE.
+      IF (XC .GT. XCLEN+CTOL) SINCMP = .FALSE.
+      IF (YC .LT. -CTOL) SINCMP = .FALSE.
+      IF (YC .GT. YCLEN+CTOL) SINCMP = .FALSE.
+   ELSE IF (OPTG .EQ. 3) THEN
 !
 !       curvilinear grid
 !
-        CALL CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)      40.00
+      CALL CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
 !       XC and YC are nondimensional; equivalent to grid index
 !
 !       ***** check for location *****
-        SINCMP = .TRUE.
-        IF (XC .LT. -0.01) SINCMP = .FALSE.                               40.00
-        IF (XC .GT. REAL(MXC-1)+0.01) SINCMP = .FALSE.                    40.00
-        IF (YC .LT. -0.01) SINCMP = .FALSE.                               40.00
-        IF (YC .GT. REAL(MYC-1)+0.01) SINCMP = .FALSE.                    40.00
-      ELSE IF (OPTG.EQ.5) THEN                                            40.80
+      SINCMP = .TRUE.
+      IF (XC .LT. -0.01) SINCMP = .FALSE.
+      IF (XC .GT. REAL(MXC-1)+0.01) SINCMP = .FALSE.
+      IF (YC .LT. -0.01) SINCMP = .FALSE.
+      IF (YC .GT. REAL(MYC-1)+0.01) SINCMP = .FALSE.
+   ELSE IF (OPTG.EQ.5) THEN
 !
 !       unstructured grid
 !
-        SINCMP = .TRUE.                                                   40.80
-        CALL SwanFindPoint ( XP, YP, K )                                  40.80
-        IF ( K.LT.0 ) SINCMP = .FALSE.                                    40.80
+      SINCMP = .TRUE.
+      CALL SwanFindPoint ( XP, YP, K )
+      IF ( K.LT.0 ) SINCMP = .FALSE.
 !
-      ENDIF
+   ENDIF
 !
 !     --- check if output location is in global subdomain                 40.31
 !
-      IF ( PARLL .AND. .NOT.SINCMP ) THEN                                 40.31
-         IF ( XP.GE.XCGMIN .AND. XP.LE.XCGMAX .AND.                       40.31
-     &        YP.GE.YCGMIN .AND. YP.LE.YCGMAX ) SINCMP = .TRUE.           40.31
-      END IF                                                              40.31
+   IF ( PARLL .AND. .NOT.SINCMP ) THEN
+      IF ( XP.GE.XCGMIN .AND. XP.LE.XCGMAX .AND. &
+           YP.GE.YCGMIN .AND. YP.LE.YCGMAX ) SINCMP = .TRUE.
+   END IF
 !
-      RETURN
+   RETURN
 !   * end of subroutine SINCMP *
-      END
+END
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE WRTEST (NAME, NA, IARR, RARR)
+SUBROUTINE WRTEST (NAME, NA, IARR, RARR)
 !                                                                      *
 !***********************************************************************
 !
-      USE OCPCOMM4                                                        40.41
+   USE OCPCOMM4
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -6188,9 +6188,9 @@
 !     NAME*(*)
 !     RARR(*)
 !
-      INTEGER   IARR(*), NA                                               30.72
-      REAL      RARR(*)
-      CHARACTER NAME *(*)
+   INTEGER   IARR(*), NA
+   REAL      RARR(*)
+   CHARACTER NAME *(*)
 !
 !  8. Subroutines used
 !
@@ -6214,25 +6214,25 @@
 !
 ! 13. Source text
 !
-      WRITE (PRINTF, 10) NAME, (IARR(II), II=1,NA)
-  10  FORMAT (1X, A, 10(1X, I8))
-      WRITE (PRINTF, 20) (RARR(II), II=1,NA)
-  20  FORMAT (10(1X, E12.4))
-      RETURN
+   WRITE (PRINTF, 10) NAME, (IARR(II), II=1,NA)
+10 FORMAT (1X, A, 10(1X, I8))
+   WRITE (PRINTF, 20) (RARR(II), II=1,NA)
+20 FORMAT (10(1X, E12.4))
+   RETURN
 ! * end of subroutine WRTEST *
-      END
+END
 !********************************************************************
 !
-      SUBROUTINE ERRCHK                                                   40.31 40.00
+SUBROUTINE ERRCHK
 !
 !****************************************************************
 !
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
-      USE M_GENARR                                                        40.41
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
+   USE M_GENARR
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -6318,7 +6318,7 @@
 !
 !     MSGSTR:     string to pass message to call MSGERR
 !
-      CHARACTER*80 MSGSTR
+   CHARACTER*80 MSGSTR
 !
 !  8. Subroutines used
 !
@@ -6344,23 +6344,23 @@
 !
 ! 13. Source text
 !
-      LOGICAL  EQREAL                                                     40.53
-      SAVE IENT
-      DATA IENT/0/
-      IF (LTRACE) CALL STRACE (IENT,'ERRCHK')
+   LOGICAL  EQREAL
+   SAVE IENT
+   DATA IENT/0/
+   IF (LTRACE) CALL STRACE (IENT,'ERRCHK')
 
 !     --- choose scheme for stationary or nonstationary computation
 
-      IF (NSTATC.EQ.1) THEN                                               40.31
-        PROPSC = PROPSN                                                   40.31
-      ELSE                                                                40.31
-        PROPSC = PROPSS                                                   40.31
-      ENDIF                                                               40.31
+   IF (NSTATC.EQ.1) THEN
+      PROPSC = PROPSN
+   ELSE
+      PROPSC = PROPSS
+   ENDIF
 !
 !     --- reset PWIND(9) and PWIND(17) if RHO has a user value            40.96
 !
-      PWIND( 9) = PWIND(16)/RHO                                           40.96
-      PWIND(17) = RHO                                                     40.96
+   PWIND( 9) = PWIND(16)/RHO
+   PWIND(17) = RHO
 !
 !     -----------------------------------------------------------------
 !
@@ -6369,360 +6369,360 @@
 !     -----------------------------------------------------------------
 !
 !     check 4th generation model
-      IF (IGEN.EQ.4) THEN                                                 41.90
-         IF (IWIND.NE.0 .OR. IQUAD.NE.0 .OR. IWCAP.NE.0) THEN
-            CALL MSGERR (0, 'the deep water physics are excluded from')
-            CALL MSGERR (0, 'the fourth-generation mode')
-         ENDIF
-         IWIND = 0
-         IQUAD = 0
-         IWCAP = 0
-         PNUMS(20) = 1.E20
-         IF (PWTAIL(1).LT.1.E8) THEN
-            CALL MSGERR (1, 'the shape of the spectral tail cannot be')
-            CALL MSGERR (1, 'specified as it is not fixed')
-         ENDIF
-         PWTAIL(1)    = 1.E8
-         PWTAIL(2:10) = 0.
-         IF ( KSPHER.GT.0 ) CALL MSGERR (3,
-     &                          'spherical coordinates not supported '//
-     &                          'in case of fourth-generation mode')
-         IF ( LSETUP.GT.0 ) THEN
-            CALL MSGERR (1, 'wave-induced setup has not been tested')
-            CALL MSGERR (1, 'within the fourth-generation mode')
-         ENDIF
-         IF ( IDIFFR.GT.0 ) THEN
-            CALL MSGERR (0, 'the phase-decoupled diffraction cannot be')
-            CALL MSGERR (0, 'applied in case of fourth-generation mode')
-         ENDIF
-         IDIFFR = 0
+   IF (IGEN.EQ.4) THEN
+      IF (IWIND.NE.0 .OR. IQUAD.NE.0 .OR. IWCAP.NE.0) THEN
+         CALL MSGERR (0, 'the deep water physics are excluded from')
+         CALL MSGERR (0, 'the fourth-generation mode')
       ENDIF
+      IWIND = 0
+      IQUAD = 0
+      IWCAP = 0
+      PNUMS(20) = 1.E20
+      IF (PWTAIL(1).LT.1.E8) THEN
+         CALL MSGERR (1, 'the shape of the spectral tail cannot be')
+         CALL MSGERR (1, 'specified as it is not fixed')
+      ENDIF
+      PWTAIL(1)    = 1.E8
+      PWTAIL(2:10) = 0.
+      IF ( KSPHER.GT.0 ) CALL MSGERR (3, &
+                             'spherical coordinates not supported '// &
+                             'in case of fourth-generation mode')
+      IF ( LSETUP.GT.0 ) THEN
+         CALL MSGERR (1, 'wave-induced setup has not been tested')
+         CALL MSGERR (1, 'within the fourth-generation mode')
+      ENDIF
+      IF ( IDIFFR.GT.0 ) THEN
+         CALL MSGERR (0, 'the phase-decoupled diffraction cannot be')
+         CALL MSGERR (0, 'applied in case of fourth-generation mode')
+      ENDIF
+      IDIFFR = 0
+   ENDIF
 !
 !     *** Check formulation for whitecapping ***
 !
-      IF ( IWCAP.GT.8 ) THEN
-         WRITE (MSGSTR, '(A,I2,A)')
-     &               'Unknown method for whitecapping (IWCAP=',IWCAP,')'
-         CALL MSGERR( 1, TRIM(MSGSTR) )
-         CALL MSGERR( 1,
-     &     'Whitecapping according to Komen et al. (1984) will be used')
-         IWCAP     = 1
-         PWCAP(1)  = 2.36E-5
-         PWCAP(2)  = 3.02E-3
-         PWCAP(9)  = 2.
-         PWCAP(10) = 1.                                                   41.41
-         PWCAP(11) = 1.
-      ENDIF
+   IF ( IWCAP.GT.8 ) THEN
+      WRITE (MSGSTR, '(A,I2,A)') &
+                  'Unknown method for whitecapping (IWCAP=',IWCAP,')'
+      CALL MSGERR( 1, TRIM(MSGSTR) )
+      CALL MSGERR( 1, &
+         'Whitecapping according to Komen et al. (1984) will be used')
+      IWCAP     = 1
+      PWCAP(1)  = 2.36E-5
+      PWCAP(2)  = 3.02E-3
+      PWCAP(9)  = 2.
+      PWCAP(10) = 1.
+      PWCAP(11) = 1.
+   ENDIF
 !
 !     *** WAM cycle 3 physics ***
 !
-      IF  ( (IWIND .EQ. 3 .OR. IWIND .EQ. 5) .AND. IWCAP .NE. 1
-     &      .AND. IWCAP.NE.7                                              40.53
-     &    ) THEN
-        CALL MSGERR(1,'Activate whitecapping mechanism according to')
-        CALL MSGERR(1,'Komen et al. (1984) for wind option G3/YAN')       20.74
-      ENDIF
+   IF  ( (IWIND .EQ. 3 .OR. IWIND .EQ. 5) .AND. IWCAP .NE. 1 &
+         .AND. IWCAP.NE.7 &
+       ) THEN
+      CALL MSGERR(1,'Activate whitecapping mechanism according to')
+      CALL MSGERR(1,'Komen et al. (1984) for wind option G3/YAN')
+   ENDIF
 
-      IF  ( IWCAP.EQ.7 .AND. IWIND.NE.5 ) THEN                            40.53
-        CALL MSGERR(1,'Activate wind option Yan (1987) in case of')       40.53
-        CALL MSGERR(1,'Alves & Banner (2003) white-capping method')       40.53
-      END IF                                                              40.53
+   IF  ( IWCAP.EQ.7 .AND. IWIND.NE.5 ) THEN
+      CALL MSGERR(1,'Activate wind option Yan (1987) in case of')
+      CALL MSGERR(1,'Alves & Banner (2003) white-capping method')
+   END IF
 
-      IF  ( IWCAP.EQ.8 .AND. IWIND.NE.8 ) THEN                            40.88
-        CALL MSGERR(1,'Babanin dissipation with non-Babanin input')       40.88
-        CALL MSGERR(1,'has not been tested                       ')       40.88
-      END IF                                                              40.88
-      IF  ( IWIND.EQ.8 .AND. IWCAP.NE.8 ) THEN                            40.88
-        CALL MSGERR(1,'Babanin input with non-Babanin dissipation')       40.88
-        CALL MSGERR(1,'has not been tested                       ')       40.88
-      END IF                                                              40.88
+   IF  ( IWCAP.EQ.8 .AND. IWIND.NE.8 ) THEN
+      CALL MSGERR(1,'Babanin dissipation with non-Babanin input')
+      CALL MSGERR(1,'has not been tested                       ')
+   END IF
+   IF  ( IWIND.EQ.8 .AND. IWCAP.NE.8 ) THEN
+      CALL MSGERR(1,'Babanin input with non-Babanin dissipation')
+      CALL MSGERR(1,'has not been tested                       ')
+   END IF
 !
 !     *** WAM cycle 4 physics ***
 !
-      IF  ( IWIND .EQ. 4 .AND. IWCAP .NE. 2) THEN
-        CALL MSGERR(1,'Activate whitecapping mechanism according to')
-        CALL MSGERR(1,'Janssen (1991) for wind option JANS        ')
-      ENDIF
+   IF  ( IWIND .EQ. 4 .AND. IWCAP .NE. 2) THEN
+      CALL MSGERR(1,'Activate whitecapping mechanism according to')
+      CALL MSGERR(1,'Janssen (1991) for wind option JANS        ')
+   ENDIF
 !
 !     check QC scattering without ambient current
-      IF ( ICUR.EQ.0 .AND. IQCM.GT.1 ) THEN
-         CALL MSGERR(1,'Wave-current interaction is deactivated '//
-     &                 'in case of zero current')
-         IQCM = 1
-      ENDIF
+   IF ( ICUR.EQ.0 .AND. IQCM.GT.1 ) THEN
+      CALL MSGERR(1,'Wave-current interaction is deactivated '// &
+                    'in case of zero current')
+      IQCM = 1
+   ENDIF
 !
-      IF ( IQCM.NE.0 .AND. IDIFFR.GT.0 ) THEN
-         CALL MSGERR (1, 'the phase-decoupled diffraction should not')
-         CALL MSGERR (1, 'be activated in case of QC scattering')
-         IDIFFR = 0
-      ENDIF
+   IF ( IQCM.NE.0 .AND. IDIFFR.GT.0 ) THEN
+      CALL MSGERR (1, 'the phase-decoupled diffraction should not')
+      CALL MSGERR (1, 'be activated in case of QC scattering')
+      IDIFFR = 0
+   ENDIF
 !
 !     check refraction scheme in case of QC scattering
-      IF ( IQCM.EQ.1 .AND. INT(PNUMS(17)).EQ.-1 ) THEN
-         CALL MSGERR (1, 'numerical scheme for refraction should not')
-         CALL MSGERR (1, 'be activated in case of QC scattering')
-         IREFR = 0
-      ENDIF
+   IF ( IQCM.EQ.1 .AND. INT(PNUMS(17)).EQ.-1 ) THEN
+      CALL MSGERR (1, 'numerical scheme for refraction should not')
+      CALL MSGERR (1, 'be activated in case of QC scattering')
+      IREFR = 0
+   ENDIF
 !
 !     check numerical scheme for transport in frequency space
-      IF ( INT(PNUMS(8)).EQ.-999 ) THEN
-         IF ( IQCM.EQ.0 ) THEN
-            PNUMS(8) = 1.
-         ELSE
-            PNUMS(8) = 0.
-         ENDIF
+   IF ( INT(PNUMS(8)).EQ.-999 ) THEN
+      IF ( IQCM.EQ.0 ) THEN
+         PNUMS(8) = 1.
       ELSE
-         IF ( IQCM.NE.0 ) THEN
-            CALL MSGERR
-     &          (1, 'numerical scheme for transport in frequency space')
-            CALL MSGERR
-     &           (1, 'should not be activated in case of QC scattering')
-            PNUMS(8) = 0.
-            ITFRE = 0
-         ENDIF
+         PNUMS(8) = 0.
       ENDIF
+   ELSE
+      IF ( IQCM.NE.0 ) THEN
+         CALL MSGERR &
+             (1, 'numerical scheme for transport in frequency space')
+         CALL MSGERR &
+              (1, 'should not be activated in case of QC scattering')
+         PNUMS(8) = 0.
+         ITFRE = 0
+      ENDIF
+   ENDIF
 !
 !     *** check option numerical scheme in presence of a current ***
 !
-      IF ( ICUR .EQ. 1 .AND. IQCM.EQ.0 ) THEN
-        IF ( PNUMS(6) .EQ. 0. ) THEN
-          CALL MSGERR(1,'In presence of a current it is recommended to')
-          CALL MSGERR(1,'use an implicit upwind scheme in theta space ')
-          CALL MSGERR(1,'-> set CDD = 1.')
-          WRITE(PRINTF,*)
-        ENDIF
-        IF ( PNUMS(7) .EQ. 0. ) THEN
-          CALL MSGERR(1,'In presence of a current it is recommended to')
-          CALL MSGERR(1,'use an implicit upwind scheme in sigma space ')
-          CALL MSGERR(1,'-> set CSS = 1.')
-          WRITE(PRINTF,*)
-        ENDIF
-      END IF
+   IF ( ICUR .EQ. 1 .AND. IQCM.EQ.0 ) THEN
+      IF ( PNUMS(6) .EQ. 0. ) THEN
+         CALL MSGERR(1,'In presence of a current it is recommended to')
+         CALL MSGERR(1,'use an implicit upwind scheme in theta space ')
+         CALL MSGERR(1,'-> set CDD = 1.')
+         WRITE(PRINTF,*)
+      ENDIF
+      IF ( PNUMS(7) .EQ. 0. ) THEN
+         CALL MSGERR(1,'In presence of a current it is recommended to')
+         CALL MSGERR(1,'use an implicit upwind scheme in sigma space ')
+         CALL MSGERR(1,'-> set CSS = 1.')
+         WRITE(PRINTF,*)
+      ENDIF
+   END IF
 !
 !     check absolute stopping criterion
-      IF ( .NOT. PNUMS(2).NE.-1. ) THEN
-         IF ( IQCM.EQ.0 ) THEN
-            IF ( ITRIAD.NE.3 ) THEN
-               PNUMS(2) = 0.005
-            ELSE
-               PNUMS(2) = 0.01
-            ENDIF
+   IF ( .NOT. PNUMS(2).NE.-1. ) THEN
+      IF ( IQCM.EQ.0 ) THEN
+         IF ( ITRIAD.NE.3 ) THEN
+            PNUMS(2) = 0.005
          ELSE
-            PNUMS(2) = 0.05
+            PNUMS(2) = 0.01
          ENDIF
+      ELSE
+         PNUMS(2) = 0.05
       ENDIF
+   ENDIF
 !
 !     check transfer function for triads, if appropriate
 !
-      IF ( ITRIAD.GT.0 ) THEN
-         IF ( .NOT. PTRIAD(10).NE.-1. ) THEN
-            IF (ITRIAD.EQ.2 .OR. ITRIAD.EQ.11) THEN
+   IF ( ITRIAD.GT.0 ) THEN
+      IF ( .NOT. PTRIAD(10).NE.-1. ) THEN
+         IF (ITRIAD.EQ.2 .OR. ITRIAD.EQ.11) THEN
 !              SPB or original LTA: use Madsen and Sorensen (1993)
-               PTRIAD(10) = 2.
-            ELSE
+            PTRIAD(10) = 2.
+         ELSE
 !              otherwise use QuadWave of Akrish et al (2024)
-               PTRIAD(10) = 4.
-            ENDIF
+            PTRIAD(10) = 4.
          ENDIF
       ENDIF
+   ENDIF
 !
 !     *** check vegetation Jacobsen in presence of a current ***
 !
-      IF ( ICUR .EQ. 1 ) THEN                                             41.77
-        IF ( IVEG .EQ. 2 ) THEN                                           41.77
-           CALL MSGERR(1,'Current effects are not included in')           41.77
-           CALL MSGERR(1,'vegetation approach of Jacobsen et al (2019)')  41.77
-        ENDIF                                                             41.77
-      END IF                                                              41.77
-!
-      IF ( LSPNAR .AND. BRESCL ) THEN
-         CALL MSGERR(1,'Rescaling is turned off since the directional')
-         CALL MSGERR(1,'resolution is too coarse to represent energy')
-         CALL MSGERR(1,'distribution properly, which deteriorates')
-         CALL MSGERR(1,'the act of rescaling.')
-         CALL MSGERR(1,'Also full upwind scheme in theta space is set.')
-         BRESCL   = .FALSE.
-         PNUMS(6) = 1.
+   IF ( ICUR .EQ. 1 ) THEN
+      IF ( IVEG .EQ. 2 ) THEN
+         CALL MSGERR(1,'Current effects are not included in')
+         CALL MSGERR(1,'vegetation approach of Jacobsen et al (2019)')
       ENDIF
+   END IF
+!
+   IF ( LSPNAR .AND. BRESCL ) THEN
+      CALL MSGERR(1,'Rescaling is turned off since the directional')
+      CALL MSGERR(1,'resolution is too coarse to represent energy')
+      CALL MSGERR(1,'distribution properly, which deteriorates')
+      CALL MSGERR(1,'the act of rescaling.')
+      CALL MSGERR(1,'Also full upwind scheme in theta space is set.')
+      BRESCL   = .FALSE.
+      PNUMS(6) = 1.
+   ENDIF
 !
 !     check combination of REPeating option and grid type and dimension   33.09
 !
-      IF (KREPTX.GT.0) THEN                                               33.08
+   IF (KREPTX.GT.0) THEN
 !       --- "GE" changed to "EQ" since OPTG.EQ.3 FOR CURVILINEAR          40.08
-        IF (OPTG.EQ.3)                                                    40.08
-     &  CALL MSGERR (3, 'Curvilinear grid cannot be REPeating')
-        IF (OPTG.EQ.5)                                                    40.80
-     &  CALL MSGERR (3, 'Unstructured grid cannot be REPeating')          40.80
-        IF (PROPSC.EQ.1 .AND. MXC.LT.1)
-     &  CALL MSGERR (3, 'MXC must be >=1 for REPeating option')
-        IF (PROPSC.EQ.2 .AND. MXC.LT.2)                                   33.10
-     &  CALL MSGERR (3, 'MXC must be >=2 for REPeating option')           33.10
-        IF (PROPSC.EQ.3 .AND. MXC.LT.3)                                   33.09
-     &  CALL MSGERR (3, 'MXC must be >=3 for REPeating option')           33.09
-      ENDIF
+      IF (OPTG.EQ.3) &
+         CALL MSGERR (3, 'Curvilinear grid cannot be REPeating')
+      IF (OPTG.EQ.5) &
+         CALL MSGERR (3, 'Unstructured grid cannot be REPeating')
+      IF (PROPSC.EQ.1 .AND. MXC.LT.1) &
+         CALL MSGERR (3, 'MXC must be >=1 for REPeating option')
+      IF (PROPSC.EQ.2 .AND. MXC.LT.2) &
+         CALL MSGERR (3, 'MXC must be >=2 for REPeating option')
+      IF (PROPSC.EQ.3 .AND. MXC.LT.3) &
+         CALL MSGERR (3, 'MXC must be >=3 for REPeating option')
+   ENDIF
 !
-      IF (PROPSC.EQ.2 .AND. NSTATC.GT.0) THEN                             33.10
-        CALL MSGERR (3, 'SORDUP scheme only in stationary run')           33.10
-      ENDIF
-      IF (PROPSC.EQ.3 .AND. NSTATC.EQ.0) THEN                             33.08
-        CALL MSGERR (3, 'S&L scheme not in stationary run')               33.08
-      ENDIF
+   IF (PROPSC.EQ.2 .AND. NSTATC.GT.0) THEN
+      CALL MSGERR (3, 'SORDUP scheme only in stationary run')
+   ENDIF
+   IF (PROPSC.EQ.3 .AND. NSTATC.EQ.0) THEN
+      CALL MSGERR (3, 'S&L scheme not in stationary run')
+   ENDIF
 !
 !     --- A warning about curvilinear and S&L scheme                      40.08
-      IF ((PROPSC.EQ.3).AND.(OPTG.EQ.3)) THEN                             40.08
-         CALL MSGERR(1,'the S&L scheme (higher order nonstationary')      40.08
-         CALL MSGERR(1,'IS NOT fully implemented for curvilinear')        40.08
-         CALL MSGERR(1,'coordinates. This may or may not be noticeable')  40.08
-         CALL MSGERR(1,'in simulations. DX and DY are approximated')      40.08
-         CALL MSGERR(1,'with DX and DY of two nearest cells.')            40.08
-         CALL MSGERR(1,'Note that SORDUP (higher order stationary)')      40.08
-         CALL MSGERR(1,'IS fully implemented for curvilinear coord.')     40.08
-         CALL MSGERR(1,'and differences are usually negligible.')         40.08
-      ENDIF                                                               40.08
+   IF ((PROPSC.EQ.3).AND.(OPTG.EQ.3)) THEN
+      CALL MSGERR(1,'the S&L scheme (higher order nonstationary')
+      CALL MSGERR(1,'IS NOT fully implemented for curvilinear')
+      CALL MSGERR(1,'coordinates. This may or may not be noticeable')
+      CALL MSGERR(1,'in simulations. DX and DY are approximated')
+      CALL MSGERR(1,'with DX and DY of two nearest cells.')
+      CALL MSGERR(1,'Note that SORDUP (higher order stationary)')
+      CALL MSGERR(1,'IS fully implemented for curvilinear coord.')
+      CALL MSGERR(1,'and differences are usually negligible.')
+   ENDIF
 !
 !     Here the various problems with quadruplets are checked
 !
-      IF (ICUR.NE.0 .AND. (IQUAD.EQ.1 .OR. IQUAD.EQ.2)) THEN
-         CALL MSGERR(0,'In presence of a current it is recommended to')
-         CALL MSGERR(0,'update quadruplets per iteration instead of')
-         CALL MSGERR(0,'per sweep. This will, however, increase the')
-         CALL MSGERR(0,'amount of internal memory with a factor 2.')
-      ENDIF
+   IF (ICUR.NE.0 .AND. (IQUAD.EQ.1 .OR. IQUAD.EQ.2)) THEN
+      CALL MSGERR(0,'In presence of a current it is recommended to')
+      CALL MSGERR(0,'update quadruplets per iteration instead of')
+      CALL MSGERR(0,'per sweep. This will, however, increase the')
+      CALL MSGERR(0,'amount of internal memory with a factor 2.')
+   ENDIF
 !
-      IF (IWIND.EQ.3 .OR. IWIND.EQ.4
-     &               .OR. IWIND.EQ.8                                      40.88
-     &                              ) THEN                                30.60
-        IF (IQUAD .EQ. 0) THEN
-          CALL MSGERR(2,'Quadruplets should be activated when SWAN  ')    30.60
-          CALL MSGERR(2,'is running in a third generation mode and  ')    30.60
-          CALL MSGERR(2,'wind is present                            ')    30.60
-        ENDIF
+   IF (IWIND.EQ.3 .OR. IWIND.EQ.4 &
+                  .OR. IWIND.EQ.8 &
+                                 ) THEN
+      IF (IQUAD .EQ. 0) THEN
+         CALL MSGERR(2,'Quadruplets should be activated when SWAN  ')
+         CALL MSGERR(2,'is running in a third generation mode and  ')
+         CALL MSGERR(2,'wind is present                            ')
       ENDIF
+   ENDIF
 !
 !     The combination of quadruplets and sectors is an error
 !     in the calculation of quadruplets when the SECTOR option is
 !     used in the CGRID command. This error should be corrected
 !     in the future
 !
-      IF (IQUAD .GE. 1) THEN                                              30.72
+   IF (IQUAD .GE. 1) THEN
 !
-       IF (.NOT. FULCIR) THEN                                             30.72
-        IF ((SPDIR2-SPDIR1) .LT. (PI/12.)) THEN                           30.72
-          CALL MSGERR(2,'A combination of using quadruplets with a'    )  30.72
-          CALL MSGERR(2,'sector of less than 30 degrees should be'     )  30.72
-          CALL MSGERR(2,'avoided at all times, it is likely to produce')  30.72
-          CALL MSGERR(2,'unreliable results and unexpected errors.'    )  30.72
-          CALL MSGERR(2,'Refer to the manual (CGRID) for details'      )  30.72
-        ELSE                                                              30.72
-          CALL MSGERR(1,'It is not recommended to use quadruplets'     )  30.72
-          CALL MSGERR(1,'in combination with calculations on a sector.')  30.72
-          CALL MSGERR(1,'Refer to the manual (CGRID) for details'      )  30.72
-        END IF                                                            30.72
-       END IF                                                             30.72
+      IF (.NOT. FULCIR) THEN
+         IF ((SPDIR2-SPDIR1) .LT. (PI/12.)) THEN
+            CALL MSGERR(2,'A combination of using quadruplets with a'    )
+            CALL MSGERR(2,'sector of less than 30 degrees should be'     )
+            CALL MSGERR(2,'avoided at all times, it is likely to produce')
+            CALL MSGERR(2,'unreliable results and unexpected errors.'    )
+            CALL MSGERR(2,'Refer to the manual (CGRID) for details'      )
+         ELSE
+            CALL MSGERR(1,'It is not recommended to use quadruplets'     )
+            CALL MSGERR(1,'in combination with calculations on a sector.')
+            CALL MSGERR(1,'Refer to the manual (CGRID) for details'      )
+         END IF
+      END IF
 !
-       IF (IWIND.EQ.0) THEN                                               30.72
-         CALL MSGERR(2,'It is not recommended to use quadruplets'     )   30.72
-         CALL MSGERR(2,'in combination with zero wind conditions.'    )   30.72
-       END IF                                                             30.72
+      IF (IWIND.EQ.0) THEN
+         CALL MSGERR(2,'It is not recommended to use quadruplets'     )
+         CALL MSGERR(2,'in combination with zero wind conditions.'    )
+      END IF
 !
-       IF (MSC .EQ. 3 ) THEN
+      IF (MSC .EQ. 3 ) THEN
          CALL MSGERR(4,'Do not activate quadruplets for boundary ')
          CALL MSGERR(4,'option BIN -> use other option           ')
          RETURN
-       END IF
+      END IF
 !
-      END IF                                                              30.72
+   END IF
 !
 !     check parameters for Bragg scattering                               41.80
 !
-      IF ( IBRAG.NE.0 ) THEN
-         IF ( IGTYPE(1).NE.1 ) THEN
-            CALL MSGERR (2,'A regular bottom grid is required')           41.80
-            CALL MSGERR (2,'in case of Bragg scattering'      )           41.80
-         ELSE
-            IF (PBRAG(1).GT.0.5*MAX(MXG(1),MYG(1))) THEN                  41.80
-               CALL MSGERR(2,'region size over which a bottom spectrum')  41.80
-               CALL MSGERR(2,'needs to be computed is too large'       )  41.80
-            ENDIF
+   IF ( IBRAG.NE.0 ) THEN
+      IF ( IGTYPE(1).NE.1 ) THEN
+         CALL MSGERR (2,'A regular bottom grid is required')
+         CALL MSGERR (2,'in case of Bragg scattering'      )
+      ELSE
+         IF (PBRAG(1).GT.0.5*MAX(MXG(1),MYG(1))) THEN
+            CALL MSGERR(2,'region size over which a bottom spectrum')
+            CALL MSGERR(2,'needs to be computed is too large'       )
          ENDIF
       ENDIF
+   ENDIF
 !
 !     check whether limiter should be de-activated
 !
-      IF (IQUAD.EQ.0 .AND. PNUMS(20).LT.100.) THEN                        40.41
-         CALL MSGERR(1,
-     &              'Limiter is de-activated in case of no quadruplets')  40.41
-         PNUMS(20) = 1.E+20
-      END IF
+   IF (IQUAD.EQ.0 .AND. PNUMS(20).LT.100.) THEN
+      CALL MSGERR(1, &
+                 'Limiter is de-activated in case of no quadruplets')
+      PNUMS(20) = 1.E+20
+   END IF
 !
 !     check resolution in frequency-space when DIA is used                40.41
 !
-      IF (IQUAD.GT.0 .AND. IQUAD.LE.3 .OR. IQUAD.EQ.8) THEN               40.41
-         GAMMA = EXP(ALOG(SHIG/SLOW)/REAL(MSC-1))                         40.31
-         IF (ABS(GAMMA-1.1).GT.0.055) THEN                                40.31
-            CALL MSGERR(1,                                                40.31
-     &           'relative frequency resolution (df/f) deviates more')    40.31
-            CALL MSGERR(1,                                                40.31
-     &           'than 5% from 10%-resolution. This may be problematic')  40.31
-            CALL MSGERR(1,                                                40.31
-     &           'when quadruplets are approximated by means of DIA.')    40.31
-         END IF                                                           40.31
-      END IF                                                              40.41
+   IF (IQUAD.GT.0 .AND. IQUAD.LE.3 .OR. IQUAD.EQ.8) THEN
+      GAMMA = EXP(ALOG(SHIG/SLOW)/REAL(MSC-1))
+      IF (ABS(GAMMA-1.1).GT.0.055) THEN
+         CALL MSGERR(1, &
+              'relative frequency resolution (df/f) deviates more')
+         CALL MSGERR(1, &
+              'than 5% from 10%-resolution. This may be problematic')
+         CALL MSGERR(1, &
+              'when quadruplets are approximated by means of DIA.')
+      END IF
+   END IF
 !
 !     When Alves and Banner and XNL are applied change the parameters     40.53
 !
-      IF ( IWCAP.EQ.7 .AND. (IQUAD.EQ.51 .OR. IQUAD.EQ.52 .OR.            40.53
-     &                       IQUAD.EQ.53) ) THEN                          40.53
-         IF (EQREAL(PWCAP( 1), 5.0E-5)) PWCAP( 1) = 5.0E-5                40.53
-         IF (EQREAL(PWCAP(12),1.75E-3)) PWCAP(12) = 1.95E-3               40.53
-      END IF                                                              40.53
+   IF ( IWCAP.EQ.7 .AND. (IQUAD.EQ.51 .OR. IQUAD.EQ.52 .OR. &
+                          IQUAD.EQ.53) ) THEN
+      IF (EQREAL(PWCAP( 1), 5.0E-5)) PWCAP( 1) = 5.0E-5
+      IF (EQREAL(PWCAP(12),1.75E-3)) PWCAP(12) = 1.95E-3
+   END IF
 !
 !     check stopping criterion in case of 4th generation model
-      IF (IGEN.EQ.4) THEN                                                 41.90
-         IF (PNUMS(21).EQ.0.) THEN
-            CALL MSGERR(1,'command NUM ACCUR is obsolete')
-            CALL MSGERR(0,'default stopping criterion is used instead')
-            PNUMS(21) = 1.
-            PNUMS(1)  = 0.01
-            PNUMS(2)  = 0.05
-            PNUMS(4)  = 99.
-         ENDIF
+   IF (IGEN.EQ.4) THEN
+      IF (PNUMS(21).EQ.0.) THEN
+         CALL MSGERR(1,'command NUM ACCUR is obsolete')
+         CALL MSGERR(0,'default stopping criterion is used instead')
+         PNUMS(21) = 1.
+         PNUMS(1)  = 0.01
+         PNUMS(2)  = 0.05
+         PNUMS(4)  = 99.
       ENDIF
+   ENDIF
 !
-      IF ( ITEST .GE. 120 ) THEN
-        WRITE(PRINTF,3000) IWIND ,IQUAD, ICUR, IWCAP, MSC
-3000    FORMAT(' ERRCHK : IWIND QUAD CUR WCAP MSC   : ',5I4)
-        IF (IWIND .GT. 0) THEN                                            24/MAR
-          DO II = 1, MWIND
+   IF ( ITEST .GE. 120 ) THEN
+      WRITE(PRINTF,3000) IWIND ,IQUAD, ICUR, IWCAP, MSC
+3000  FORMAT(' ERRCHK : IWIND QUAD CUR WCAP MSC   : ',5I4)
+      IF (IWIND .GT. 0) THEN
+         DO II = 1, MWIND
             WRITE(PRINTF,30) II,PWIND(II)
- 30         FORMAT(' PWIND(',I2,') = ',E11.4)
-          ENDDO
-        ENDIF
-      END IF
+30          FORMAT(' PWIND(',I2,') = ',E11.4)
+         ENDDO
+      ENDIF
+   END IF
 !
-      RETURN
+   RETURN
 !     end of subroutine ERRCHK
-      END
+END
 !*********************************************************************
 !                                                                    *
-      SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   ,          40.31
-     &                   SPCSIG, SPCDIR, XCGRID, YCGRID, KGRPNT,          40.31
-     &                   XYTST , DEPTH , WLEVL , FRIC  , UXB   ,          40.31
-     &                   UYB   , NPLAF , TURBF , MUDLF , WXI   ,          40.59 40.35 40.55 40.31
-     &                   AICEF , HICEF , HSSF  , TSSF  , DSSF  ,          42.06 41.82 41.75
-     &                   WYI   )
+SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
+                   SPCSIG, SPCDIR, XCGRID, YCGRID, KGRPNT, &
+                   XYTST , DEPTH , WLEVL , FRIC  , UXB   , &
+                   UYB   , NPLAF , TURBF , MUDLF , WXI   , &
+                   AICEF , HICEF , HSSF  , TSSF  , DSSF  , &
+                   WYI   )
 !                                                                    *
 !*********************************************************************
 !
-      USE TIMECOMM                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
-      USE M_BNDSPEC                                                       40.31
-      USE M_PARALL                                                        40.31
-      USE SwanGriddata                                                    40.80
+   USE TIMECOMM
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
+   USE M_BNDSPEC
+   USE M_PARALL
+   USE SwanGriddata
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -6807,7 +6807,7 @@
 ! i   KGRPNT: computational grid point addresses
 ! i   XYTST : test points
 !
-      INTEGER  BGRIDP(*), XYTST(*), KGRPNT(MXC,MYC)
+   INTEGER  BGRIDP(*), XYTST(*), KGRPNT(MXC,MYC)
 !
 ! i   AC1   : action density spectra on old time level
 ! i   AC2   : action density spectra on new time level
@@ -6823,19 +6823,19 @@
 ! i   XCGRID: Coordinates of computational grid in x-direction            30.72
 ! i   YCGRID: Coordinates of computational grid in y-direction            30.72
 !
-      REAL     AC1(MDC,MSC,MCGRD)                                         40.00
-      REAL     AC2(MDC,MSC,MCGRD)                                         30.21
-      REAL     BSPECS(MDC,MSC,NBSPEC,2)                                   40.00
-      REAL     COMPDA(MCGRD,MCMVAR)                                       30.72
-      REAL     SPCDIR(MDC,6)                                              40.00
-      REAL     SPCSIG(MSC)                                                30.01
-      REAL     XCGRID(MXC,MYC), YCGRID(MXC,MYC)                           30.21
-      REAL     DEPTH(*), WLEVL(*), FRIC(*), UXB(*), UYB(*),               40.31
-     &         NPLAF(*), TURBF(*),                                        40.35 40.55
-     &         MUDLF(*),                                                  40.59
-     &         AICEF(*), HICEF(*),                                        41.75
-     &         HSSF(*), TSSF(*), DSSF(*),                                 42.06 41.82
-     &         WXI(*), WYI(*)                                             40.31
+   REAL     AC1(MDC,MSC,MCGRD)
+   REAL     AC2(MDC,MSC,MCGRD)
+   REAL     BSPECS(MDC,MSC,NBSPEC,2)
+   REAL     COMPDA(MCGRD,MCMVAR)
+   REAL     SPCDIR(MDC,6)
+   REAL     SPCSIG(MSC)
+   REAL     XCGRID(MXC,MYC), YCGRID(MXC,MYC)
+   REAL     DEPTH(*), WLEVL(*), FRIC(*), UXB(*), UYB(*), &
+            NPLAF(*), TURBF(*), &
+            MUDLF(*), &
+            AICEF(*), HICEF(*), &
+            HSSF(*), TSSF(*), DSSF(*), &
+            WXI(*), WYI(*)
 !
 !     TIMCO ..... Time (date) of computation
 !     TFINC ..... Final time (date) of computation
@@ -6856,7 +6856,7 @@
 !
 !     SWBROADC
 !
-      LOGICAL STPNOW                                                      34.01
+   LOGICAL STPNOW
 !
 !  9. Subroutines calling
 !
@@ -6877,609 +6877,609 @@
 !
 ! 13. Source text
 !
-      INTEGER     IERR
-      REAL        TSTVAL(10)                                              40.00
-      TYPE(BSPCDAT), POINTER :: CURBFL                                    40.31
-      LOGICAL LPB                                                         40.80
-      SAVE  IENT
-      DATA  IENT/0/
-      IF (LTRACE) CALL STRACE(IENT,'SNEXTI')
+   INTEGER     IERR
+   REAL        TSTVAL(10)
+   TYPE(BSPCDAT), POINTER :: CURBFL
+   LOGICAL LPB
+   SAVE  IENT
+   DATA  IENT/0/
+   IF (LTRACE) CALL STRACE(IENT,'SNEXTI')
 !
 !
 !     **   All action densities are shifted from array T+DT
 !     **   to the array at time T
 !
-      IF (NSTATC.EQ.1) THEN                                               30.70
-        IF (ITERMX.GT.1
-     &       .OR. PROPSC.EQ.3                                             33.09
-     &                                 ) THEN                             30.70
-          DO 50 IXY = 1, MCGRD                                            30.21
+   IF (NSTATC.EQ.1) THEN
+      IF (ITERMX.GT.1 &
+           .OR. PROPSC.EQ.3 &
+                                     ) THEN
+         DO 50 IXY = 1, MCGRD
             DO 55 ISS = 1, MSC
-              DO 60 IDD = 1, MDC
-                AC1(IDD,ISS,IXY) = AC2(IDD,ISS,IXY)                       30.21
- 60           CONTINUE
- 55         CONTINUE
- 50       CONTINUE
-        ENDIF                                                             40.00
+               DO 60 IDD = 1, MDC
+                  AC1(IDD,ISS,IXY) = AC2(IDD,ISS,IXY)
+60             CONTINUE
+55          CONTINUE
+50       CONTINUE
       ENDIF
+   ENDIF
 
 !     --- update boundary conditions
 
-      IF (INODE.EQ.MASTER) THEN                                           40.30
-         IF (ITEST.GE.80) WRITE (PRTEST,*) ' number of boundary files ',
-     &             NBFILS
-         CURBFL => FBNDFIL
-         DO IBFILE = 1, NBFILS
+   IF (INODE.EQ.MASTER) THEN
+      IF (ITEST.GE.80) WRITE (PRTEST,*) ' number of boundary files ', &
+                NBFILS
+      CURBFL => FBNDFIL
+      DO IBFILE = 1, NBFILS
 
 !          --- read values from boundary file, and interpolate in time
 
-           CALL RBFILE ( SPCSIG, SPCDIR,                                  40.31
-     &                   CURBFL%BFILED, CURBFL%BSPLOC,                    40.31
-     &                   CURBFL%BSPDIR, CURBFL%BSPFRQ,                    40.31
-     &                   BSPECS, XYTST )                                  40.31
-           IF (STPNOW()) RETURN                                           34.01
-           IF (.NOT.ASSOCIATED(CURBFL%NEXTBSPC)) EXIT                     40.31
-           CURBFL => CURBFL%NEXTBSPC                                      40.31
+         CALL RBFILE ( SPCSIG, SPCDIR, &
+                       CURBFL%BFILED, CURBFL%BSPLOC, &
+                       CURBFL%BSPDIR, CURBFL%BSPFRQ, &
+                       BSPECS, XYTST )
+         IF (STPNOW()) RETURN
+         IF (.NOT.ASSOCIATED(CURBFL%NEXTBSPC)) EXIT
+         CURBFL => CURBFL%NEXTBSPC
 
-         END DO
-      END IF
+      END DO
+   END IF
 
 !     --- scatter array BSPECS to all nodes
 
-      CALL SWBROADC ( BSPECS, 2*MDC*MSC*NBSPEC, SWREAL )                  40.30
-      IF (STPNOW()) RETURN                                                40.30
+   CALL SWBROADC ( BSPECS, 2*MDC*MSC*NBSPEC, SWREAL )
+   IF (STPNOW()) RETURN
 
 !     --- determine spectra on boundary points of grid
 
-      IF ( NBGRPT.GT.0 ) THEN
-         IF (ITEST.GE.80) WRITE(PRTEST,*) ' number of boundary points ',
-     &             NBGRPT
-         DO IBGRID = 1, NBGRPT
-           INDXGR = BGRIDP(6*IBGRID-5)
-           IF (BGRIDP(6*IBGRID-4).EQ.1) THEN
+   IF ( NBGRPT.GT.0 ) THEN
+      IF (ITEST.GE.80) WRITE(PRTEST,*) ' number of boundary points ', &
+                NBGRPT
+      DO IBGRID = 1, NBGRPT
+         INDXGR = BGRIDP(6*IBGRID-5)
+         IF (BGRIDP(6*IBGRID-4).EQ.1) THEN
 !            obtain spectrum in boundary point from interpolation in space
-             W1 = 0.001 * REAL(BGRIDP(6*IBGRID-3))
-             K1 = BGRIDP(6*IBGRID-2)
-             W2 = 1.-W1
-             K2 = BGRIDP(6*IBGRID)
-             CALL SINTRP (W1, W2, BSPECS(1,1,K1,1), BSPECS(1,1,K2,1),
-     &                    AC2(1,1,INDXGR), SPCDIR, SPCSIG)
+            W1 = 0.001 * REAL(BGRIDP(6*IBGRID-3))
+            K1 = BGRIDP(6*IBGRID-2)
+            W2 = 1.-W1
+            K2 = BGRIDP(6*IBGRID)
+            CALL SINTRP (W1, W2, BSPECS(1,1,K1,1), BSPECS(1,1,K2,1), &
+                         AC2(1,1,INDXGR), SPCDIR, SPCSIG)
 !            --- store Hs from boundary condition in array HSOBND
-             ETOT = 0.
-             DO IS = 1, MSC
+            ETOT = 0.
+            DO IS = 1, MSC
                SIG2 = SPCSIG(IS) ** 2
                DO ID = 1, MDC
-                 ETOT = ETOT + SIG2 * AC2(ID,IS,INDXGR)
+                  ETOT = ETOT + SIG2 * AC2(ID,IS,INDXGR)
                ENDDO
-             ENDDO
-             IF (ETOT.GT.0.) THEN
+            ENDDO
+            IF (ETOT.GT.0.) THEN
                HS = 4. * SQRT(FRINTF*DDIR*ETOT)
-             ELSE
+            ELSE
                HS = 0.
-             ENDIF
-             COMPDA(INDXGR,JHSIBC) = HS
+            ENDIF
+            COMPDA(INDXGR,JHSIBC) = HS
 !
 !            --- test output: parameters in test points on boundary
 !
-             IF (NPTST.GT.0) THEN
+            IF (NPTST.GT.0) THEN
                DO IPTST = 1, NPTST
-                 IF (OPTG.NE.5) THEN                                      40.80
-                    IXP = XYTST(2*IPTST-1)
-                    IYP = XYTST(2*IPTST)
-                    LPB = INDXGR.EQ.KGRPNT(IXP,IYP)                       40.80
-                 ELSE                                                     40.80
-                    IVP = XYTST(IPTST)                                    40.80
-                    LPB = INDXGR.EQ.IVP                                   40.80
-                 ENDIF                                                    40.80
-                 IF ( LPB ) THEN                                          40.80
-                   IF (OPTG.NE.5) THEN                                    40.80
-                      WRITE(PRTEST,72) IBGRID, IXP-1, IYP-1,
-     &                                 W1, K1, W2, K2
-  72                  FORMAT (' boundary point', 3I8, 2(F8.3, I4))
-                   ELSE                                                   40.80
-                      WRITE(PRTEST,73) IBGRID, IVP,                       40.80
-     &                                 W1, K1, W2, K2                     40.80
-  73                  FORMAT (' boundary vertex', 2I8, 2(F8.3, I4))       40.80
-                   ENDIF                                                  40.80
-                   AX = 0.
-                   AY = 0.
-                   ATOT = 0.
-                   ASTOT = 0.
-                   DO ID = 1, MDC
-                     AADD = 0.
-                     ASADD = 0.
-                     DO IS = 1, MSC
-                       SIG = SPCSIG(IS)
-                       AA  = SIG*AC2(ID,IS,INDXGR)
-                       AADD = AADD + AA
-                       ASADD = ASADD + SIG*AA
+                  IF (OPTG.NE.5) THEN
+                     IXP = XYTST(2*IPTST-1)
+                     IYP = XYTST(2*IPTST)
+                     LPB = INDXGR.EQ.KGRPNT(IXP,IYP)
+                  ELSE
+                     IVP = XYTST(IPTST)
+                     LPB = INDXGR.EQ.IVP
+                  ENDIF
+                  IF ( LPB ) THEN
+                     IF (OPTG.NE.5) THEN
+                        WRITE(PRTEST,72) IBGRID, IXP-1, IYP-1, &
+                                         W1, K1, W2, K2
+72                      FORMAT (' boundary point', 3I8, 2(F8.3, I4))
+                     ELSE
+                        WRITE(PRTEST,73) IBGRID, IVP, &
+                                         W1, K1, W2, K2
+73                      FORMAT (' boundary vertex', 2I8, 2(F8.3, I4))
+                     ENDIF
+                     AX = 0.
+                     AY = 0.
+                     ATOT = 0.
+                     ASTOT = 0.
+                     DO ID = 1, MDC
+                        AADD = 0.
+                        ASADD = 0.
+                        DO IS = 1, MSC
+                           SIG = SPCSIG(IS)
+                           AA  = SIG*AC2(ID,IS,INDXGR)
+                           AADD = AADD + AA
+                           ASADD = ASADD + SIG*AA
+                        ENDDO
+                        AX = AX + AADD * SPCDIR(ID,2)
+                        AY = AY + AADD * SPCDIR(ID,3)
+                        ATOT = ATOT + AADD
+                        ASTOT = ASTOT + ASADD
                      ENDDO
-                     AX = AX + AADD * SPCDIR(ID,2)
-                     AY = AY + AADD * SPCDIR(ID,3)
-                     ATOT = ATOT + AADD
-                     ASTOT = ASTOT + ASADD
-                   ENDDO
-                   IF (ASTOT.GT.0.) THEN
-                     HS = 4. * SQRT(FRINTF*DDIR*ASTOT)
-                     APER = PI2 * ATOT / ASTOT
-                     ADEG = 180./PI * ATAN2(AY,AX)
-                   ELSE
-                     HS = 0.
-                     APER = -999.
-                     ADEG = -999.
-                   ENDIF
-                   WRITE (PRTEST, 74) HS, APER, ADEG
-  74               FORMAT (' Hs, Per, Dir: ', 3E12.4)
-                 END IF
+                     IF (ASTOT.GT.0.) THEN
+                        HS = 4. * SQRT(FRINTF*DDIR*ASTOT)
+                        APER = PI2 * ATOT / ASTOT
+                        ADEG = 180./PI * ATAN2(AY,AX)
+                     ELSE
+                        HS = 0.
+                        APER = -999.
+                        ADEG = -999.
+                     ENDIF
+                     WRITE (PRTEST, 74) HS, APER, ADEG
+74                   FORMAT (' Hs, Per, Dir: ', 3E12.4)
+                  END IF
                END DO
-             END IF
-           END IF
-         END DO
-      END IF
+            END IF
+         END IF
+      END DO
+   END IF
 !
 !     --- update input fields (wind, water level etc.)
 !
 !     fields 5 and 6: wind
-      IF (IFLDYN(5) .EQ. 1) THEN
-        CALL FLFILE ( 5, 6, WXI, WYI,                                     40.31
-     &               0, JWX2, JWX3, 0, JWY2, JWY3,
-     &               COSWC, SINWC,                                        40.31 30.90
-     &               COMPDA, XCGRID, YCGRID,
-     &               KGRPNT, IERR)
-        IF (STPNOW()) RETURN                                              34.01
-        IF (NPTST.GT.0) THEN
-          WRITE (PRTEST, '(A)') ' wind from file in test points'
-          IF (OPTG.NE.5) THEN                                             40.80
-             DO IPTST = 1, MIN(10,NPTST)
-                IXP = XYTST(2*IPTST-1)
-                IYP = XYTST(2*IPTST)
-                TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JWX3)
-             ENDDO
-          ELSE                                                            40.80
-             DO IPTST = 1, MIN(10,NPTST)                                  40.80
-                IVP = XYTST(IPTST)                                        40.80
-                TSTVAL(IPTST) = COMPDA(IVP,JWX3)                          40.80
-             ENDDO                                                        40.80
-          ENDIF                                                           40.80
-          WRITE (PRTEST, 122) ' X-comp: ',
-     &          (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
-          IF (OPTG.NE.5) THEN                                             40.80
-             DO IPTST = 1, MIN(10,NPTST)
-                IXP = XYTST(2*IPTST-1)
-                IYP = XYTST(2*IPTST)
-                TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JWY3)
-             ENDDO
-          ELSE                                                            40.80
-             DO IPTST = 1, MIN(10,NPTST)                                  40.80
-                IVP = XYTST(IPTST)                                        40.80
-                TSTVAL(IPTST) = COMPDA(IVP,JWY3)                          40.80
-             ENDDO                                                        40.80
-          ENDIF                                                           40.80
-          WRITE (PRTEST, 122) ' Y-comp: ',
-     &          (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
- 122      FORMAT (A, 10(1X,E11.4))
-        ENDIF
+   IF (IFLDYN(5) .EQ. 1) THEN
+      CALL FLFILE ( 5, 6, WXI, WYI, &
+                   0, JWX2, JWX3, 0, JWY2, JWY3, &
+                   COSWC, SINWC, &
+                   COMPDA, XCGRID, YCGRID, &
+                   KGRPNT, IERR)
+      IF (STPNOW()) RETURN
+      IF (NPTST.GT.0) THEN
+         WRITE (PRTEST, '(A)') ' wind from file in test points'
+         IF (OPTG.NE.5) THEN
+            DO IPTST = 1, MIN(10,NPTST)
+               IXP = XYTST(2*IPTST-1)
+               IYP = XYTST(2*IPTST)
+               TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JWX3)
+            ENDDO
+         ELSE
+            DO IPTST = 1, MIN(10,NPTST)
+               IVP = XYTST(IPTST)
+               TSTVAL(IPTST) = COMPDA(IVP,JWX3)
+            ENDDO
+         ENDIF
+         WRITE (PRTEST, 122) ' X-comp: ', &
+               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         IF (OPTG.NE.5) THEN
+            DO IPTST = 1, MIN(10,NPTST)
+               IXP = XYTST(2*IPTST-1)
+               IYP = XYTST(2*IPTST)
+               TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JWY3)
+            ENDDO
+         ELSE
+            DO IPTST = 1, MIN(10,NPTST)
+               IVP = XYTST(IPTST)
+               TSTVAL(IPTST) = COMPDA(IVP,JWY3)
+            ENDDO
+         ENDIF
+         WRITE (PRTEST, 122) ' Y-comp: ', &
+               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+122      FORMAT (A, 10(1X,E11.4))
       ENDIF
+   ENDIF
 
 !     field 4: friction coeff.
-      IF (IFLDYN(4) .EQ. 1) THEN
-        CALL FLFILE ( 4, 0, FRIC, (/0./),                                 40.31
-     &               0, JFRC2, JFRC3, 0, 0, 0,
-     &               1., 0.,                                              40.31 30.90
-     &               COMPDA, XCGRID, YCGRID,
-     &               KGRPNT, IERR)
-        IF (STPNOW()) RETURN                                              34.01
-        IF (NPTST.GT.0) THEN
-          WRITE (PRTEST, '(A)') ' fric coeff from file in test points'
-          IF (OPTG.NE.5) THEN                                             40.80
-             DO IPTST = 1, MIN(10,NPTST)
-                IXP = XYTST(2*IPTST-1)
-                IYP = XYTST(2*IPTST)
-                TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JFRC3)
-             ENDDO
-          ELSE                                                            40.80
-             DO IPTST = 1, MIN(10,NPTST)                                  40.80
-                IVP = XYTST(IPTST)                                        40.80
-                TSTVAL(IPTST) = COMPDA(IVP,JFRC3)                         40.80
-             ENDDO                                                        40.80
-          ENDIF                                                           40.80
-          WRITE (PRTEST, 122) 'friction: ',
-     &          (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
-        ENDIF
+   IF (IFLDYN(4) .EQ. 1) THEN
+      CALL FLFILE ( 4, 0, FRIC, (/0./), &
+                   0, JFRC2, JFRC3, 0, 0, 0, &
+                   1., 0., &
+                   COMPDA, XCGRID, YCGRID, &
+                   KGRPNT, IERR)
+      IF (STPNOW()) RETURN
+      IF (NPTST.GT.0) THEN
+         WRITE (PRTEST, '(A)') ' fric coeff from file in test points'
+         IF (OPTG.NE.5) THEN
+            DO IPTST = 1, MIN(10,NPTST)
+               IXP = XYTST(2*IPTST-1)
+               IYP = XYTST(2*IPTST)
+               TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JFRC3)
+            ENDDO
+         ELSE
+            DO IPTST = 1, MIN(10,NPTST)
+               IVP = XYTST(IPTST)
+               TSTVAL(IPTST) = COMPDA(IVP,JFRC3)
+            ENDDO
+         ENDIF
+         WRITE (PRTEST, 122) 'friction: ', &
+               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
+   ENDIF
 
 !     field 7: water level
-      IF (IFLDYN(7) .EQ. 1) THEN
-        CALL FLFILE ( 7, 0, WLEVL, (/0./),                                40.31
-     &               JWLV1, JWLV2, JWLV3, 0, 0, 0,
-     &               1., 0.,                                              40.31 30.90
-     &               COMPDA, XCGRID, YCGRID,
-     &               KGRPNT, IERR)
-        IF (STPNOW()) RETURN                                              34.01
+   IF (IFLDYN(7) .EQ. 1) THEN
+      CALL FLFILE ( 7, 0, WLEVL, (/0./), &
+                   JWLV1, JWLV2, JWLV3, 0, 0, 0, &
+                   1., 0., &
+                   COMPDA, XCGRID, YCGRID, &
+                   KGRPNT, IERR)
+      IF (STPNOW()) RETURN
 !       Add bottom level to obtain depth
 !       structured grid                                                   40.80
-        DO 31 IX = 1, MXC
-          DO 41 IY = 1, MYC
+      DO 31 IX = 1, MXC
+         DO 41 IY = 1, MYC
             INDX = KGRPNT(IX,IY)
             IF (INDX.GT.1) THEN
-              XP = XCGRID(IX,IY)
-              YP = YCGRID(IX,IY)
-              DEP = SVALQI (XP, YP, 1, DEPTH, 1 ,IX ,IY)                  40.31 30.90
-              COMPDA(INDX,JDP1) = COMPDA(INDX,JDP2)
-              WLVL = COMPDA(INDX,JWLV2)
-              DEPW = DEP + WLVL + WLEV
-              COMPDA(INDX,JDP2) = DEPW
-              IF (LSETUP.GT.0) THEN                                       40.14
-                COMPDA(INDX,JDPSAV) = COMPDA(INDX,JDP2)                   40.14
-              ENDIF                                                       40.14
+               XP = XCGRID(IX,IY)
+               YP = YCGRID(IX,IY)
+               DEP = SVALQI (XP, YP, 1, DEPTH, 1 ,IX ,IY)
+               COMPDA(INDX,JDP1) = COMPDA(INDX,JDP2)
+               WLVL = COMPDA(INDX,JWLV2)
+               DEPW = DEP + WLVL + WLEV
+               COMPDA(INDX,JDP2) = DEPW
+               IF (LSETUP.GT.0) THEN
+                  COMPDA(INDX,JDPSAV) = COMPDA(INDX,JDP2)
+               ENDIF
             ENDIF
- 41       CONTINUE
- 31     CONTINUE
+41       CONTINUE
+31    CONTINUE
 !       unstructured grid                                                 40.80
-        DO INDX = 1, nverts                                               40.80
-           XP = xcugrd(INDX)
-           YP = ycugrd(INDX)
-           IF (.NOT.PARLL) THEN
-              JVERT = INDX
-           ELSE
-              JVERT = ivertg(INDX)
-           ENDIF
-           IF ( IGTYPE(1).EQ.3 ) THEN
-              DEP = DEPTH(JVERT)
-           ELSE
-              DEP = SVALQI (XP, YP, 1, DEPTH, 1, 0, 0)
-           ENDIF
-           COMPDA(INDX,JDP1) = COMPDA(INDX,JDP2)
-           WLVL = COMPDA(INDX,JWLV2)
-           DEPW = DEP + WLVL + WLEV
-           COMPDA(INDX,JDP2) = DEPW
-           IF (LSETUP.GT.0) THEN
-              COMPDA(INDX,JDPSAV) = COMPDA(INDX,JDP2)
-           ENDIF
-        ENDDO                                                             40.80
-        IF (NPTST.GT.0) THEN
-          WRITE (PRTEST, '(A)') ' water level from file in test points'
-          IF (OPTG.NE.5) THEN                                             40.80
-             DO IPTST = 1, MIN(10,NPTST)
-                IXP = XYTST(2*IPTST-1)
-                IYP = XYTST(2*IPTST)
-                TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JWLV3)
-             ENDDO
-          ELSE                                                            40.80
-             DO IPTST = 1, MIN(10,NPTST)                                  40.80
-                IVP = XYTST(IPTST)                                        40.80
-                TSTVAL(IPTST) = COMPDA(IVP,JWLV3)                         40.80
-             ENDDO                                                        40.80
-          ENDIF                                                           40.80
-          WRITE (PRTEST, 122) ' W-level: ',
-     &          (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
-        ENDIF
+      DO INDX = 1, nverts
+         XP = xcugrd(INDX)
+         YP = ycugrd(INDX)
+         IF (.NOT.PARLL) THEN
+            JVERT = INDX
+         ELSE
+            JVERT = ivertg(INDX)
+         ENDIF
+         IF ( IGTYPE(1).EQ.3 ) THEN
+            DEP = DEPTH(JVERT)
+         ELSE
+            DEP = SVALQI (XP, YP, 1, DEPTH, 1, 0, 0)
+         ENDIF
+         COMPDA(INDX,JDP1) = COMPDA(INDX,JDP2)
+         WLVL = COMPDA(INDX,JWLV2)
+         DEPW = DEP + WLVL + WLEV
+         COMPDA(INDX,JDP2) = DEPW
+         IF (LSETUP.GT.0) THEN
+            COMPDA(INDX,JDPSAV) = COMPDA(INDX,JDP2)
+         ENDIF
+      ENDDO
+      IF (NPTST.GT.0) THEN
+         WRITE (PRTEST, '(A)') ' water level from file in test points'
+         IF (OPTG.NE.5) THEN
+            DO IPTST = 1, MIN(10,NPTST)
+               IXP = XYTST(2*IPTST-1)
+               IYP = XYTST(2*IPTST)
+               TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JWLV3)
+            ENDDO
+         ELSE
+            DO IPTST = 1, MIN(10,NPTST)
+               IVP = XYTST(IPTST)
+               TSTVAL(IPTST) = COMPDA(IVP,JWLV3)
+            ENDDO
+         ENDIF
+         WRITE (PRTEST, 122) ' W-level: ', &
+               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
+   ENDIF
 
 !     field 2 and 3: current velocity
-      IF (IFLDYN(2) .EQ. 1) THEN
-        CALL FLFILE ( 2, 3, UXB, UYB,                                     40.31
-     &               JVX1, JVX2, JVX3, JVY1, JVY2, JVY3,
-     &               COSVC, SINVC,                                        40.31 30.90
-     &               COMPDA, XCGRID, YCGRID,
-     &               KGRPNT, IERR)
-        IF (STPNOW()) RETURN                                              34.01
+   IF (IFLDYN(2) .EQ. 1) THEN
+      CALL FLFILE ( 2, 3, UXB, UYB, &
+                   JVX1, JVX2, JVX3, JVY1, JVY2, JVY3, &
+                   COSVC, SINVC, &
+                   COMPDA, XCGRID, YCGRID, &
+                   KGRPNT, IERR)
+      IF (STPNOW()) RETURN
 !       reduce current velocity if Froude number is larger than PNUMS(18)
 !       structured grid                                                   40.80
-        DO IX = 1, MXC                                                    40.13
-          DO IY = 1, MYC                                                  40.13
-            INDX = KGRPNT(IX,IY)                                          40.13
-            IF (INDX.GT.1) THEN                                           40.13
-              DEPW = COMPDA(INDX,JDP2)
-              IF (DEPW.GT.0.) THEN
-                UU = COMPDA(INDX,JVX2)
-                VV = COMPDA(INDX,JVY2)
-                VTOT = SQRT (UU*UU + VV*VV)
-                CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
-                IF (VTOT .GT. CGMAX) THEN
-                  CGFACT = CGMAX / VTOT
-                  COMPDA(INDX,JVX2) = UU * CGFACT
-                  COMPDA(INDX,JVY2) = VV * CGFACT
+      DO IX = 1, MXC
+         DO IY = 1, MYC
+            INDX = KGRPNT(IX,IY)
+            IF (INDX.GT.1) THEN
+               DEPW = COMPDA(INDX,JDP2)
+               IF (DEPW.GT.0.) THEN
+                  UU = COMPDA(INDX,JVX2)
+                  VV = COMPDA(INDX,JVY2)
+                  VTOT = SQRT (UU*UU + VV*VV)
+                  CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
+                  IF (VTOT .GT. CGMAX) THEN
+                     CGFACT = CGMAX / VTOT
+                     COMPDA(INDX,JVX2) = UU * CGFACT
+                     COMPDA(INDX,JVY2) = VV * CGFACT
 !                 write IX,IY to error points file
-                  IF (ERRPTS.GT.0.AND.IAMMASTER) THEN                     40.95 40.30
-                    WRITE (ERRPTS, 211) IX+MXF-1, IY+MYF-1, 1
- 211                FORMAT (I4, 1X, I4, 1X, I2)
+                     IF (ERRPTS.GT.0.AND.IAMMASTER) THEN
+                        WRITE (ERRPTS, 211) IX+MXF-1, IY+MYF-1, 1
+211                     FORMAT (I4, 1X, I4, 1X, I2)
+                     ENDIF
                   ENDIF
-                ENDIF
-              ENDIF
-            ENDIF                                                         40.13
-          ENDDO                                                           40.13
-        ENDDO                                                             40.13
+               ENDIF
+            ENDIF
+         ENDDO
+      ENDDO
 !       unstructured grid                                                 40.80
-        DO INDX = 1, nverts                                               40.80
-           DEPW = COMPDA(INDX,JDP2)
-           IF (DEPW.GT.0.) THEN
-              UU = COMPDA(INDX,JVX2)
-              VV = COMPDA(INDX,JVY2)
-              VTOT = SQRT (UU*UU + VV*VV)
-              CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
-              IF (VTOT .GT. CGMAX) THEN
-                 CGFACT = CGMAX / VTOT
-                 COMPDA(INDX,JVX2) = UU * CGFACT
-                 COMPDA(INDX,JVY2) = VV * CGFACT
+      DO INDX = 1, nverts
+         DEPW = COMPDA(INDX,JDP2)
+         IF (DEPW.GT.0.) THEN
+            UU = COMPDA(INDX,JVX2)
+            VV = COMPDA(INDX,JVY2)
+            VTOT = SQRT (UU*UU + VV*VV)
+            CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
+            IF (VTOT .GT. CGMAX) THEN
+               CGFACT = CGMAX / VTOT
+               COMPDA(INDX,JVX2) = UU * CGFACT
+               COMPDA(INDX,JVY2) = VV * CGFACT
 !                write INDX to error points file
-                 IF (ERRPTS.GT.0) THEN
-                    WRITE (ERRPTS, 212) INDX, 1
- 212                FORMAT (I4, 1X, I2)
-                 ENDIF
-              ENDIF
-           ENDIF
-        ENDDO                                                             40.80
-        IF (NPTST.GT.0) THEN
-          WRITE (PRTEST, '(A)') ' current vel from file in test points'
-          IF (OPTG.NE.5) THEN                                             40.80
-             DO IPTST = 1, MIN(10,NPTST)
-                IXP = XYTST(2*IPTST-1)
-                IYP = XYTST(2*IPTST)
-                TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JVX3)
-             ENDDO
-          ELSE                                                            40.80
-             DO IPTST = 1, MIN(10,NPTST)                                  40.80
-                IVP = XYTST(IPTST)                                        40.80
-                TSTVAL(IPTST) = COMPDA(IVP,JVX3)                          40.80
-             ENDDO                                                        40.80
-          ENDIF                                                           40.80
-          WRITE (PRTEST, 122) ' X-comp: ',
-     &          (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
-          IF (OPTG.NE.5) THEN                                             40.80
-             DO IPTST = 1, MIN(10,NPTST)
-                IXP = XYTST(2*IPTST-1)
-                IYP = XYTST(2*IPTST)
-                TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JVY3)
-             ENDDO
-          ELSE                                                            40.80
-             DO IPTST = 1, MIN(10,NPTST)                                  40.80
-                IVP = XYTST(IPTST)                                        40.80
-                TSTVAL(IPTST) = COMPDA(IVP,JVY3)                          40.80
-             ENDDO                                                        40.80
-          ENDIF                                                           40.80
-          WRITE (PRTEST, 122) ' Y-comp: ',
-     &          (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
-        ENDIF
+               IF (ERRPTS.GT.0) THEN
+                  WRITE (ERRPTS, 212) INDX, 1
+212               FORMAT (I4, 1X, I2)
+               ENDIF
+            ENDIF
+         ENDIF
+      ENDDO
+      IF (NPTST.GT.0) THEN
+         WRITE (PRTEST, '(A)') ' current vel from file in test points'
+         IF (OPTG.NE.5) THEN
+            DO IPTST = 1, MIN(10,NPTST)
+               IXP = XYTST(2*IPTST-1)
+               IYP = XYTST(2*IPTST)
+               TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JVX3)
+            ENDDO
+         ELSE
+            DO IPTST = 1, MIN(10,NPTST)
+               IVP = XYTST(IPTST)
+               TSTVAL(IPTST) = COMPDA(IVP,JVX3)
+            ENDDO
+         ENDIF
+         WRITE (PRTEST, 122) ' X-comp: ', &
+               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         IF (OPTG.NE.5) THEN
+            DO IPTST = 1, MIN(10,NPTST)
+               IXP = XYTST(2*IPTST-1)
+               IYP = XYTST(2*IPTST)
+               TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JVY3)
+            ENDDO
+         ELSE
+            DO IPTST = 1, MIN(10,NPTST)
+               IVP = XYTST(IPTST)
+               TSTVAL(IPTST) = COMPDA(IVP,JVY3)
+            ENDDO
+         ENDIF
+         WRITE (PRTEST, 122) ' Y-comp: ', &
+               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
+   ENDIF
 
 !     field 11: field containing number of plants per square meter
-      IF (IFLDYN(11) .EQ. 1) THEN
-        CALL FLFILE (11, 0, NPLAF, (/0./),
-     &               0, JNPLA2, JNPLA3, 0, 0, 0,
-     &               1., 0.,
-     &               COMPDA, XCGRID, YCGRID,
-     &               KGRPNT, IERR)
-        IF (STPNOW()) RETURN
-        IF (NPTST.GT.0) THEN
-          WRITE (PRTEST, '(A)') ' # plants/m2 from file in test points'
-          IF (OPTG.NE.5) THEN                                             40.80
-             DO IPTST = 1, MIN(10,NPTST)
+   IF (IFLDYN(11) .EQ. 1) THEN
+      CALL FLFILE (11, 0, NPLAF, (/0./), &
+                   0, JNPLA2, JNPLA3, 0, 0, 0, &
+                   1., 0., &
+                   COMPDA, XCGRID, YCGRID, &
+                   KGRPNT, IERR)
+      IF (STPNOW()) RETURN
+      IF (NPTST.GT.0) THEN
+         WRITE (PRTEST, '(A)') ' # plants/m2 from file in test points'
+         IF (OPTG.NE.5) THEN
+            DO IPTST = 1, MIN(10,NPTST)
                IXP = XYTST(2*IPTST-1)
                IYP = XYTST(2*IPTST)
                TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JNPLA3)
-             ENDDO
-          ELSE                                                            40.80
-             DO IPTST = 1, MIN(10,NPTST)                                  40.80
-                IVP = XYTST(IPTST)                                        40.80
-                TSTVAL(IPTST) = COMPDA(IVP,JNPLA3)                        40.80
-             ENDDO                                                        40.80
-          ENDIF                                                           40.80
-          WRITE (PRTEST, 122) ' veg dens: ',
-     &          (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
-        ENDIF
+            ENDDO
+         ELSE
+            DO IPTST = 1, MIN(10,NPTST)
+               IVP = XYTST(IPTST)
+               TSTVAL(IPTST) = COMPDA(IVP,JNPLA3)
+            ENDDO
+         ENDIF
+         WRITE (PRTEST, 122) ' veg dens: ', &
+               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
+   ENDIF
 
 !     field 12: field containing turbulent viscosity
-      IF (IFLDYN(12) .EQ. 1) THEN
-        CALL FLFILE (12, 0, TURBF, (/0./),
-     &               0, JTURB2, JTURB3, 0, 0, 0,
-     &               1., 0.,
-     &               COMPDA, XCGRID, YCGRID,
-     &               KGRPNT, IERR)
-        IF (STPNOW()) RETURN
-        IF (NPTST.GT.0) THEN
-          WRITE (PRTEST, '(A)') ' turb visc from file in test points'
-          IF (OPTG.NE.5) THEN                                             40.80
-             DO IPTST = 1, MIN(10,NPTST)
+   IF (IFLDYN(12) .EQ. 1) THEN
+      CALL FLFILE (12, 0, TURBF, (/0./), &
+                   0, JTURB2, JTURB3, 0, 0, 0, &
+                   1., 0., &
+                   COMPDA, XCGRID, YCGRID, &
+                   KGRPNT, IERR)
+      IF (STPNOW()) RETURN
+      IF (NPTST.GT.0) THEN
+         WRITE (PRTEST, '(A)') ' turb visc from file in test points'
+         IF (OPTG.NE.5) THEN
+            DO IPTST = 1, MIN(10,NPTST)
                IXP = XYTST(2*IPTST-1)
                IYP = XYTST(2*IPTST)
                TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JTURB3)
-             ENDDO
-          ELSE                                                            40.80
-             DO IPTST = 1, MIN(10,NPTST)                                  40.80
-                IVP = XYTST(IPTST)                                        40.80
-                TSTVAL(IPTST) = COMPDA(IVP,JTURB3)                        40.80
-             ENDDO                                                        40.80
-          ENDIF                                                           40.80
-          WRITE (PRTEST, 122) ' turb visc: ',
-     &          (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
-        ENDIF
+            ENDDO
+         ELSE
+            DO IPTST = 1, MIN(10,NPTST)
+               IVP = XYTST(IPTST)
+               TSTVAL(IPTST) = COMPDA(IVP,JTURB3)
+            ENDDO
+         ENDIF
+         WRITE (PRTEST, 122) ' turb visc: ', &
+               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
+   ENDIF
 
 !     field 13: field containing fluid mud layer
-      IF (IFLDYN(13) .EQ. 1) THEN
-        CALL FLFILE (13, 0, MUDLF, (/0./),
-     &               JMUDL1, JMUDL2, JMUDL3, 0, 0, 0,
-     &               1., 0.,
-     &               COMPDA, XCGRID, YCGRID,
-     &               KGRPNT, IERR)
-        IF (STPNOW()) RETURN
-        IF (NPTST.GT.0) THEN
-          WRITE (PRTEST, '(A)') ' mud layer from file in test points'
-          IF (OPTG.NE.5) THEN                                             40.80
-             DO IPTST = 1, MIN(10,NPTST)
+   IF (IFLDYN(13) .EQ. 1) THEN
+      CALL FLFILE (13, 0, MUDLF, (/0./), &
+                   JMUDL1, JMUDL2, JMUDL3, 0, 0, 0, &
+                   1., 0., &
+                   COMPDA, XCGRID, YCGRID, &
+                   KGRPNT, IERR)
+      IF (STPNOW()) RETURN
+      IF (NPTST.GT.0) THEN
+         WRITE (PRTEST, '(A)') ' mud layer from file in test points'
+         IF (OPTG.NE.5) THEN
+            DO IPTST = 1, MIN(10,NPTST)
                IXP = XYTST(2*IPTST-1)
                IYP = XYTST(2*IPTST)
                TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JMUDL3)
-             ENDDO
-          ELSE                                                            40.80
-             DO IPTST = 1, MIN(10,NPTST)                                  40.80
-                IVP = XYTST(IPTST)                                        40.80
-                TSTVAL(IPTST) = COMPDA(IVP,JMUDL3)                        40.80
-             ENDDO                                                        40.80
-          ENDIF                                                           40.80
-          WRITE (PRTEST, 122) ' mud layer: ',
-     &          (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
-        ENDIF
+            ENDDO
+         ELSE
+            DO IPTST = 1, MIN(10,NPTST)
+               IVP = XYTST(IPTST)
+               TSTVAL(IPTST) = COMPDA(IVP,JMUDL3)
+            ENDDO
+         ENDIF
+         WRITE (PRTEST, 122) ' mud layer: ', &
+               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
+   ENDIF
 
 !     field 14: field containing ice concentration (fraction)
-      IF (IFLDYN(14) .EQ. 1) THEN
-        CALL FLFILE (14, 0, AICEF, (/0./),
-     &               0, JAICE2, JAICE3, 0, 0, 0,
-     &               1., 0.,
-     &               COMPDA, XCGRID, YCGRID,
-     &               KGRPNT, IERR)
-        IF (STPNOW()) RETURN
-        IF (NPTST.GT.0) THEN
-          WRITE (PRTEST, '(A)') ' ice frac. from file in test points'
-          IF (OPTG.NE.5) THEN                                             41.75
-             DO IPTST = 1, MIN(10,NPTST)
+   IF (IFLDYN(14) .EQ. 1) THEN
+      CALL FLFILE (14, 0, AICEF, (/0./), &
+                   0, JAICE2, JAICE3, 0, 0, 0, &
+                   1., 0., &
+                   COMPDA, XCGRID, YCGRID, &
+                   KGRPNT, IERR)
+      IF (STPNOW()) RETURN
+      IF (NPTST.GT.0) THEN
+         WRITE (PRTEST, '(A)') ' ice frac. from file in test points'
+         IF (OPTG.NE.5) THEN
+            DO IPTST = 1, MIN(10,NPTST)
                IXP = XYTST(2*IPTST-1)
                IYP = XYTST(2*IPTST)
                TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JAICE3)
-             ENDDO
-          ELSE                                                            41.75
-             DO IPTST = 1, MIN(10,NPTST)                                  41.75
-                IVP = XYTST(IPTST)                                        41.75
-                TSTVAL(IPTST) = COMPDA(IVP,JAICE3)                        41.75
-             ENDDO                                                        41.75
-          ENDIF                                                           41.75
-          WRITE (PRTEST, 122) ' ice frac.: ',
-     &          (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
-        ENDIF
+            ENDDO
+         ELSE
+            DO IPTST = 1, MIN(10,NPTST)
+               IVP = XYTST(IPTST)
+               TSTVAL(IPTST) = COMPDA(IVP,JAICE3)
+            ENDDO
+         ENDIF
+         WRITE (PRTEST, 122) ' ice frac.: ', &
+               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
+   ENDIF
 
 !     field 15: field containing ice thickness in meters
-      IF (IFLDYN(15) .EQ. 1) THEN
-        CALL FLFILE (15, 0, HICEF, (/0./),
-     &               0, JHICE2, JHICE3, 0, 0, 0,
-     &               1., 0.,
-     &               COMPDA, XCGRID, YCGRID,
-     &               KGRPNT, IERR)
-        IF (STPNOW()) RETURN
-        IF (NPTST.GT.0) THEN
-          WRITE (PRTEST, '(A)') ' ice thick. from file in test points'
-          IF (OPTG.NE.5) THEN                                             41.75
-             DO IPTST = 1, MIN(10,NPTST)
+   IF (IFLDYN(15) .EQ. 1) THEN
+      CALL FLFILE (15, 0, HICEF, (/0./), &
+                   0, JHICE2, JHICE3, 0, 0, 0, &
+                   1., 0., &
+                   COMPDA, XCGRID, YCGRID, &
+                   KGRPNT, IERR)
+      IF (STPNOW()) RETURN
+      IF (NPTST.GT.0) THEN
+         WRITE (PRTEST, '(A)') ' ice thick. from file in test points'
+         IF (OPTG.NE.5) THEN
+            DO IPTST = 1, MIN(10,NPTST)
                IXP = XYTST(2*IPTST-1)
                IYP = XYTST(2*IPTST)
                TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JHICE3)
-             ENDDO
-          ELSE                                                            41.75
-             DO IPTST = 1, MIN(10,NPTST)                                  41.75
-                IVP = XYTST(IPTST)                                        41.75
-                TSTVAL(IPTST) = COMPDA(IVP,JHICE3)                        41.75
-             ENDDO                                                        41.75
-          ENDIF                                                           41.75
-          WRITE (PRTEST, 122) ' ice thick.: ',
-     &          (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
-        ENDIF
+            ENDDO
+         ELSE
+            DO IPTST = 1, MIN(10,NPTST)
+               IVP = XYTST(IPTST)
+               TSTVAL(IPTST) = COMPDA(IVP,JHICE3)
+            ENDDO
+         ENDIF
+         WRITE (PRTEST, 122) ' ice thick.: ', &
+               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
+   ENDIF
 !
 !     field 16: field containing sea-swell significant wave height
-      IF (IFLDYN(16) .EQ. 1) THEN
-        CALL FLFILE (16, 0, HSSF, (/0./),
-     &               0, JHSS2, JHSS3, 0, 0, 0,
-     &               1., 0.,
-     &               COMPDA, XCGRID, YCGRID,
-     &               KGRPNT, IERR)
-        IF (STPNOW()) RETURN
-        IF (NPTST.GT.0) THEN
-          WRITE (PRTEST, '(A)') ' sea-swell Hs from file in test points'
-          IF (OPTG.NE.5) THEN                                             41.82
-             DO IPTST = 1, MIN(10,NPTST)
+   IF (IFLDYN(16) .EQ. 1) THEN
+      CALL FLFILE (16, 0, HSSF, (/0./), &
+                   0, JHSS2, JHSS3, 0, 0, 0, &
+                   1., 0., &
+                   COMPDA, XCGRID, YCGRID, &
+                   KGRPNT, IERR)
+      IF (STPNOW()) RETURN
+      IF (NPTST.GT.0) THEN
+         WRITE (PRTEST, '(A)') ' sea-swell Hs from file in test points'
+         IF (OPTG.NE.5) THEN
+            DO IPTST = 1, MIN(10,NPTST)
                IXP = XYTST(2*IPTST-1)
                IYP = XYTST(2*IPTST)
                TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JHSS3)
-             ENDDO
-          ELSE                                                            41.82
-             DO IPTST = 1, MIN(10,NPTST)                                  41.82
-                IVP = XYTST(IPTST)                                        41.82
-                TSTVAL(IPTST) = COMPDA(IVP,JHSS3)                         41.82
-             ENDDO                                                        41.82
-          ENDIF                                                           41.82
-          WRITE (PRTEST, 122) ' sea-swell Hs: ',
-     &          (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
-        ENDIF
+            ENDDO
+         ELSE
+            DO IPTST = 1, MIN(10,NPTST)
+               IVP = XYTST(IPTST)
+               TSTVAL(IPTST) = COMPDA(IVP,JHSS3)
+            ENDDO
+         ENDIF
+         WRITE (PRTEST, 122) ' sea-swell Hs: ', &
+               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
+   ENDIF
 
 !     field 17: field containing sea-swell mean wave period
-      IF (IFLDYN(17) .EQ. 1) THEN
-        CALL FLFILE (17, 0, TSSF, (/0./),
-     &               0, JTSS2, JTSS3, 0, 0, 0,
-     &               1., 0.,
-     &               COMPDA, XCGRID, YCGRID,
-     &               KGRPNT, IERR)
-        IF (STPNOW()) RETURN
-        IF (NPTST.GT.0) THEN
-          WRITE (PRTEST, '(A)') ' sea-swell Tm from file in test points'
-          IF (OPTG.NE.5) THEN                                             41.82
-             DO IPTST = 1, MIN(10,NPTST)
+   IF (IFLDYN(17) .EQ. 1) THEN
+      CALL FLFILE (17, 0, TSSF, (/0./), &
+                   0, JTSS2, JTSS3, 0, 0, 0, &
+                   1., 0., &
+                   COMPDA, XCGRID, YCGRID, &
+                   KGRPNT, IERR)
+      IF (STPNOW()) RETURN
+      IF (NPTST.GT.0) THEN
+         WRITE (PRTEST, '(A)') ' sea-swell Tm from file in test points'
+         IF (OPTG.NE.5) THEN
+            DO IPTST = 1, MIN(10,NPTST)
                IXP = XYTST(2*IPTST-1)
                IYP = XYTST(2*IPTST)
                TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JTSS3)
-             ENDDO
-          ELSE                                                            41.82
-             DO IPTST = 1, MIN(10,NPTST)                                  41.82
-                IVP = XYTST(IPTST)                                        41.82
-                TSTVAL(IPTST) = COMPDA(IVP,JTSS3)                         41.82
-             ENDDO                                                        41.82
-          ENDIF                                                           41.82
-          WRITE (PRTEST, 122) ' sea-swell Tm: ',
-     &          (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
-        ENDIF
+            ENDDO
+         ELSE
+            DO IPTST = 1, MIN(10,NPTST)
+               IVP = XYTST(IPTST)
+               TSTVAL(IPTST) = COMPDA(IVP,JTSS3)
+            ENDDO
+         ENDIF
+         WRITE (PRTEST, 122) ' sea-swell Tm: ', &
+               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
+   ENDIF
 
 !     field 18: field containing sea-swell mean wave direction
-      IF (IFLDYN(18) .EQ. 1) THEN
-        CALL FLFILE (18, 0, DSSF, (/0./),
-     &               0, JDSS2, JDSS3, 0, 0, 0,
-     &               1., 0.,
-     &               COMPDA, XCGRID, YCGRID,
-     &               KGRPNT, IERR)
-        IF (STPNOW()) RETURN
-        IF (NPTST.GT.0) THEN
-          WRITE (PRTEST,'(A)') ' sea-swell Dir from file in test points'
-          IF (OPTG.NE.5) THEN
-             DO IPTST = 1, MIN(10,NPTST)
+   IF (IFLDYN(18) .EQ. 1) THEN
+      CALL FLFILE (18, 0, DSSF, (/0./), &
+                   0, JDSS2, JDSS3, 0, 0, 0, &
+                   1., 0., &
+                   COMPDA, XCGRID, YCGRID, &
+                   KGRPNT, IERR)
+      IF (STPNOW()) RETURN
+      IF (NPTST.GT.0) THEN
+         WRITE (PRTEST,'(A)') ' sea-swell Dir from file in test points'
+         IF (OPTG.NE.5) THEN
+            DO IPTST = 1, MIN(10,NPTST)
                IXP = XYTST(2*IPTST-1)
                IYP = XYTST(2*IPTST)
                TSTVAL(IPTST) = COMPDA(KGRPNT(IXP,IYP),JDSS3)
-             ENDDO
-          ELSE
-             DO IPTST = 1, MIN(10,NPTST)
-                IVP = XYTST(IPTST)
-                TSTVAL(IPTST) = COMPDA(IVP,JDSS3)
-             ENDDO
-          ENDIF
-          WRITE (PRTEST, 122) ' sea-swell Dir: ',
-     &          (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
-        ENDIF
+            ENDDO
+         ELSE
+            DO IPTST = 1, MIN(10,NPTST)
+               IVP = XYTST(IPTST)
+               TSTVAL(IPTST) = COMPDA(IVP,JDSS3)
+            ENDDO
+         ENDIF
+         WRITE (PRTEST, 122) ' sea-swell Dir: ', &
+               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
+   ENDIF
 !
 !     End of subroutine SNEXTI
 !
-      RETURN
-      END
+   RETURN
+END
 !
 !****************************************************************
 !
-      SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC,
-     &                   BSPDIR, BSPFRQ, BSPECS, XYTST )                  40.31 30.90
+SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC, &
+                   BSPDIR, BSPFRQ, BSPECS, XYTST )
 !
 !****************************************************************
 !
-      USE TIMECOMM                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE M_PARALL, ONLY: IAMMASTER
+   USE TIMECOMM
+   USE OCPCOMM2
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE M_PARALL, ONLY: IAMMASTER
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -7564,23 +7564,23 @@
 !             (*,6); sine^2 of spectral directions                        30.82
 ! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.82
 !
-      REAL,   INTENT(IN)     ::  SPCDIR(MDC,6)                            30.82
-      REAL,   INTENT(IN)     ::  SPCSIG(MSC)                              30.82
-      REAL,   INTENT(INOUT)  ::  BSPECS(MDC,MSC,NBSPEC,2)
+   REAL,   INTENT(IN)     ::  SPCDIR(MDC,6)
+   REAL,   INTENT(IN)     ::  SPCSIG(MSC)
+   REAL,   INTENT(INOUT)  ::  BSPECS(MDC,MSC,NBSPEC,2)
 !
 !     BSPDIR: Spectral directions of input spectrum
 !     BSPFRQ: Spectral frequencies of input spectrum
 !
-      REAL   , INTENT(INOUT)  :: BSPDIR(*)
-      REAL   , INTENT(INOUT)  :: BSPFRQ(*)
+   REAL   , INTENT(INOUT)  :: BSPDIR(*)
+   REAL   , INTENT(INOUT)  :: BSPFRQ(*)
 !
 !     BFILED  data concerning boundary condition files
 !     BSPLOC  place in array BSPECS where to store interpolated spectra
 !     XYTST   test points
 !
-      INTEGER, INTENT(INOUT)  ::  BFILED(*)
-      INTEGER, INTENT(INOUT)  ::  BSPLOC(*)
-      INTEGER, INTENT(IN)     ::  XYTST(*)
+   INTEGER, INTENT(INOUT)  ::  BFILED(*)
+   INTEGER, INTENT(INOUT)  ::  BSPLOC(*)
+   INTEGER, INTENT(IN)     ::  XYTST(*)
 !
 !  5. Parameter variables
 !
@@ -7588,9 +7588,9 @@
 !
 !  6. Local variables
 !
-      INTEGER   DORDER, NDSL, NDSD, IHD, IBOUNC, IBSPEC, IERR
-      INTEGER   ID, IS, JJ, NANG, NFRE, COUNT_IT, IENT, II                40.05
-      INTEGER   WWDATE, WWTIME                                            40.05
+   INTEGER   DORDER, NDSL, NDSD, IHD, IBOUNC, IBSPEC, IERR
+   INTEGER   ID, IS, JJ, NANG, NFRE, COUNT_IT, IENT, II
+   INTEGER   WWDATE, WWTIME
 !
 !     DORDER    if <0, order of reading directions is reversed
 !     NDSL      unit ref num for namelist file
@@ -7607,9 +7607,9 @@
 !
 !     WWDATE, WWTIME       time code in WaveWatch                         40.05
 !
-      REAL      UFAC, W1, BDEPTH, DUM_A, RFAC                             40.05
-      REAL      XLON, XLAT, XDATE, EMEAN, THQ, FMEAN
-      REAL*8    TIMF1, TIMF2
+   REAL      UFAC, W1, BDEPTH, DUM_A, RFAC
+   REAL      XLON, XLAT, XDATE, EMEAN, THQ, FMEAN
+   REAL*8    TIMF1, TIMF2
 !
 !     TIMF1     time of reading old boundary condition
 !     TIMF2     time of reading new boundary condition
@@ -7624,21 +7624,21 @@
 !     DUM_A     dummy local variable (not used in any calculation)
 !     BDEPTH    depth of the boundary points
 !
-      DOUBLE PRECISION DDATE
+   DOUBLE PRECISION DDATE
 !     DDATE     date-time read from WAM file
 !
-      LOGICAL   NSTATF, UNFORM
+   LOGICAL   NSTATF, UNFORM
 !     NSTATF    if True time appears in bound. cond. file
 !     UNFORM    if True reading is done unformatted
 !
-      CHARACTER BTYPE *4, HEDLIN *80, TIMSTR *20,
-     &          DATITM(5) *18, PTNME*10
+   CHARACTER BTYPE *4, HEDLIN *80, TIMSTR *20, &
+             DATITM(5) *18, PTNME*10
 !     BTYPE     type of boundary condition
 !     HEDLIN    heading line
 !     TIMSTR    time string
-      CHARACTER (LEN=14) :: CDATE     ! date-time
+   CHARACTER (LEN=14) :: CDATE ! date-time
 !
-      REAL, ALLOCATABLE :: SPAUX(:,:)
+   REAL, ALLOCATABLE :: SPAUX(:,:)
 !
 !  8. SUBROUTINES USED
 !
@@ -7685,43 +7685,43 @@
 !****************************************************************
 !
 !
-      SAVE COUNT_IT                                                       40.31
-      SAVE      IENT
-      DATA      IENT /0/
-      CALL STRACE (IENT, 'RBFILE')
+   SAVE COUNT_IT
+   SAVE      IENT
+   DATA      IENT /0/
+   CALL STRACE (IENT, 'RBFILE')
 !
 !
 !     if data file is exhausted, return
-      IF (BFILED(1).EQ.-1) GOTO 900
-      NSTATF = (BFILED(1) .GT. 0)
-      IERR   = 0
-      CALL COPYCH (BTYPE, 'F', BFILED(7), 1, IERR)
+   IF (BFILED(1).EQ.-1) GOTO 900
+   NSTATF = (BFILED(1) .GT. 0)
+   IERR   = 0
+   CALL COPYCH (BTYPE, 'F', BFILED(7), 1, IERR)
 !
-      IF (BTYPE.EQ.'WAMW' .OR. BTYPE.EQ.'WAMC'
-     &    .OR. BTYPE.EQ.'WW3U') THEN
-        UNFORM = .TRUE.
-      ELSE
-        UNFORM = .FALSE.
-      ENDIF
+   IF (BTYPE.EQ.'WAMW' .OR. BTYPE.EQ.'WAMC' &
+       .OR. BTYPE.EQ.'WW3U') THEN
+      UNFORM = .TRUE.
+   ELSE
+      UNFORM = .FALSE.
+   ENDIF
 !
-      IF (BFILED(2).LT.0) COUNT_IT = 0                                    40.05
+   IF (BFILED(2).LT.0) COUNT_IT = 0
 !
-      DORDER = BFILED(9)
-      TIMF1 = DBLE(BFILED(2))
-      TIMF2 = DBLE(BFILED(3))
-      IF (ITEST.GE.120) WRITE (PRINTF, 187) BFILED(1), BTYPE,
-     &      TIMF1, TIMF2, TIMCO
- 187  FORMAT (' Boundary', I2, 2X, A, ' times: ', 3F10.1)
+   DORDER = BFILED(9)
+   TIMF1 = DBLE(BFILED(2))
+   TIMF2 = DBLE(BFILED(3))
+   IF (ITEST.GE.120) WRITE (PRINTF, 187) BFILED(1), BTYPE, &
+         TIMF1, TIMF2, TIMCO
+187 FORMAT (' Boundary', I2, 2X, A, ' times: ', 3F10.1)
 !
-      ALLOCATE(SPAUX(MDC,MSC))                                            40.31
+   ALLOCATE(SPAUX(MDC,MSC))
 !
 !     if present time > time of last set of spectra, read new spectra
 !
 !     While Loop named GLOOP
 !
-      GLOOP : DO                                                          40.05
+   GLOOP : DO
 !
-        IF (TIMCO.GT.TIMF2) THEN                                          40.05
+      IF (TIMCO.GT.TIMF2) THEN
 !
 !     then read from boundary nesting files all the information
 !     and the spectral ones
@@ -7730,83 +7730,83 @@
 !     and read spectral - used to calculate NHED (number of heading lines
 !     per time) in WW3F case.
 !
-          COUNT_IT = COUNT_IT+1                                           40.05
-          NDSL = BFILED(4)
-          NDSD = BFILED(5)
+         COUNT_IT = COUNT_IT+1
+         NDSL = BFILED(4)
+         NDSD = BFILED(5)
 !
 !     REWIND statement removed. ER, Dec 21 2016
 !         IF(BTYPE.EQ.'WW3F') REWIND(NDSD)                                40.05
 !
-          TIMF1 = TIMF2
+         TIMF1 = TIMF2
 !
 !         move new spectra to old for all boundary points
-          DO IBOUNC = 1, BFILED(8)
+         DO IBOUNC = 1, BFILED(8)
             IBSPEC = BSPLOC(IBOUNC)
 
             DO ID = 1, MDC
-              DO IS = 1, MSC
-                BSPECS(ID,IS,IBSPEC,1) = BSPECS(ID,IS,IBSPEC,2)
-              ENDDO
+               DO IS = 1, MSC
+                  BSPECS(ID,IS,IBSPEC,1) = BSPECS(ID,IS,IBSPEC,2)
+               ENDDO
             ENDDO
 
-            IF (ITEST.GE.80) WRITE (PRTEST, *) ' spectrum moved ',
-     &         IBSPEC, TIMF1
-          ENDDO
+            IF (ITEST.GE.80) WRITE (PRTEST, *) ' spectrum moved ', &
+               IBSPEC, TIMF1
+         ENDDO
 !
- 210       CONTINUE
+210      CONTINUE
 !
 !     BFILED(15) calculation changed: ER, Dec 21 2016
-          IF (BTYPE.EQ.'WW3F') THEN
-             IF (COUNT_IT.EQ.1)THEN
-                BFILED(15) = BFILED(14)
-             ELSE
-                BFILED(15) = 0
-             ENDIF
-          ENDIF                                                           40.05
+         IF (BTYPE.EQ.'WW3F') THEN
+            IF (COUNT_IT.EQ.1)THEN
+               BFILED(15) = BFILED(14)
+            ELSE
+               BFILED(15) = 0
+            ENDIF
+         ENDIF
 !
 !     read heading lines per time step
 !
 !     HBFL is loop over the number of heading lines per time step
-          HBFL : DO IHD = 1, BFILED(15)                                   40.05
+         HBFL : DO IHD = 1, BFILED(15)
             IF (UNFORM) THEN
-              READ (NDSD, END=380, ERR=920)
-            ELSEIF ((.NOT.UNFORM).AND.(BTYPE.EQ.'WW3F')) THEN             40.05
-              READ (NDSD, '(A)', END=380, ERR=920) HEDLIN
-            ELSE                                                          40.05
-              READ (NDSD, '(A)', END=380, ERR=920) HEDLIN
-              IF (ITEST.GE.90) WRITE (PRINTF, 212) HEDLIN
- 212          FORMAT (' heading line: ', A)
-              IF (BTYPE.EQ.'SWNT') THEN
+               READ (NDSD, END=380, ERR=920)
+            ELSEIF ((.NOT.UNFORM).AND.(BTYPE.EQ.'WW3F')) THEN
+               READ (NDSD, '(A)', END=380, ERR=920) HEDLIN
+            ELSE
+               READ (NDSD, '(A)', END=380, ERR=920) HEDLIN
+               IF (ITEST.GE.90) WRITE (PRINTF, 212) HEDLIN
+212            FORMAT (' heading line: ', A)
+               IF (BTYPE.EQ.'SWNT') THEN
 !               convert time string to time in seconds
-                CALL DTRETI (HEDLIN(1:18), BFILED(6), TIMF2)              40.03
-              ENDIF
+                  CALL DTRETI (HEDLIN(1:18), BFILED(6), TIMF2)
+               ENDIF
             ENDIF
-          ENDDO HBFL
+         ENDDO HBFL
 !
-          IF (.NOT.NSTATF) TIMF2 = 0D0
-          IF (ITEST.GE.60) WRITE (PRINTF, 214)
-     &        TIMF1, TIMF2, TIMCO, BFILED(8), BFILED(15)
- 214      FORMAT (' Boundary times ', 3F12.0, 2X, 4I4)
+         IF (.NOT.NSTATF) TIMF2 = 0D0
+         IF (ITEST.GE.60) WRITE (PRINTF, 214) &
+             TIMF1, TIMF2, TIMCO, BFILED(8), BFILED(15)
+214      FORMAT (' Boundary times ', 3F12.0, 2X, 4I4)
 !
 !         read additional information from the headers and spectrum from
 !         the nesting boundary files (for all the cases)
 !
 !
 !       BP_LOOP loop over the boundary nesting points
-          BP_LOOP : DO  IBOUNC = 1, BFILED(8)                             40.05
+         BP_LOOP : DO  IBOUNC = 1, BFILED(8)
 !
             IBSPEC = BSPLOC(IBOUNC)
 !           division by 2*PI to account for difference in definition of freq.
 !           Hz to rad/s
-            NANG  = BFILED(10)                                            40.00
+            NANG  = BFILED(10)
 !
 !           calculate UFAC for the different nesting cases
             IF (BTYPE(1:3).EQ.'SWN' .AND. NANG.GT.0) THEN
 !           in addition multiply by 180/PI to account for directions in degr
 !           instead of radians (SWAN 2D spectral files)
-              UFAC = 180./ (2.*PI**2)
-            ELSE                                                          40.05
-              UFAC = 1./ (2.*PI)
+               UFAC = 180./ (2.*PI**2)
+            ELSE
+               UFAC = 1./ (2.*PI)
             ENDIF
 !           divide by Rho*Grav if quantity in file is energy density
             IF ((BFILED(17).EQ.1))  UFAC = UFAC / (RHO*GRAV)
@@ -7817,189 +7817,189 @@
 !
             DO IHD = 1, BFILED(16)
 !
-              IF (IBOUNC.EQ.1) THEN                                       40.03
+               IF (IBOUNC.EQ.1) THEN
 !             for the first spectrum (first point), read time from
 !             heading line                                                40.03
-                IF (BTYPE.EQ.'WAMW') THEN                                 40.03
-                  READ(NDSD, END=380, ERR=920) XLON, XLAT,
-     &               CDATE(1:LWDATE),                                     41.13
-     &               EMEAN, THQ, FMEAN
-                  IF (LEN_TRIM(CDATE) == 10 ) THEN
-                     TIMSTR = TRIM(CDATE)
-                  ELSEIF (LEN_TRIM(CDATE) == 12 ) THEN
-                     TIMSTR = CDATE(1:10)
-                  ELSEIF (LEN_TRIM(CDATE) == 14 ) THEN
-                     TIMSTR = CDATE(3:12)
-                  ENDIF
+                  IF (BTYPE.EQ.'WAMW') THEN
+                     READ(NDSD, END=380, ERR=920) XLON, XLAT, &
+                        CDATE(1:LWDATE), &
+                        EMEAN, THQ, FMEAN
+                     IF (LEN_TRIM(CDATE) == 10 ) THEN
+                        TIMSTR = TRIM(CDATE)
+                     ELSEIF (LEN_TRIM(CDATE) == 12 ) THEN
+                        TIMSTR = CDATE(1:10)
+                     ELSEIF (LEN_TRIM(CDATE) == 14 ) THEN
+                        TIMSTR = CDATE(3:12)
+                     ENDIF
 !                 convert time string to time in seconds
-                  CALL DTRETI (TIMSTR, BFILED(6), TIMF2)                  40.03 40.05
-                ELSE IF (BTYPE.EQ.'WAMC') THEN
-                  READ(NDSD, END=380, ERR=920) XLON, XLAT, XDATE,
-     &                EMEAN, THQ, FMEAN
-                  WRITE (TIMSTR,'(F11.0,9X)') XDATE
+                     CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
+                  ELSE IF (BTYPE.EQ.'WAMC') THEN
+                     READ(NDSD, END=380, ERR=920) XLON, XLAT, XDATE, &
+                         EMEAN, THQ, FMEAN
+                     WRITE (TIMSTR,'(F11.0,9X)') XDATE
 !                 convert time string to time in seconds
-                  CALL DTRETI (TIMSTR, BFILED(6), TIMF2)                  40.03 40.05
-                ELSE IF (BTYPE.EQ.'WAMF') THEN
-                  READ(NDSD,*, END=380, ERR=920) XLON, XLAT, DDATE,
-     &              EMEAN, THQ, FMEAN
-                  WRITE (TIMSTR,'(F11.0,9X)') DDATE
+                     CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
+                  ELSE IF (BTYPE.EQ.'WAMF') THEN
+                     READ(NDSD,*, END=380, ERR=920) XLON, XLAT, DDATE, &
+                        EMEAN, THQ, FMEAN
+                     WRITE (TIMSTR,'(F11.0,9X)') DDATE
 !                 convert time string to time in seconds
-                  CALL DTRETI (TIMSTR, BFILED(6), TIMF2)                  40.03 40.05
-                ELSE IF (BTYPE.EQ.'WW3F') THEN                            40.05
+                     CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
+                  ELSE IF (BTYPE.EQ.'WW3F') THEN
 !                  read from heading lines per spectrum , date ,time      40.05
-                  IF(IHD.EQ.1) THEN                                       40.05
-                    READ(NDSD,*, END=380, ERR=920) WWDATE, WWTIME         40.05
-                    IF (SCREEN.NE.PRINTF.AND.IAMMASTER) THEN
-                       WRITE(SCREEN,'(2A,I8.8,A,I6.6)')'Reading WW3'
-     &                 ,' bound. forcing......date and time are '
-     &                 ,WWDATE,'.',WWTIME
-                    ENDIF
-                    WRITE (TIMSTR, 118) WWDATE, WWTIME                    40.05
- 118                FORMAT (I8,'.',I6)                                    40.05
+                     IF(IHD.EQ.1) THEN
+                        READ(NDSD,*, END=380, ERR=920) WWDATE, WWTIME
+                        IF (SCREEN.NE.PRINTF.AND.IAMMASTER) THEN
+                           WRITE(SCREEN,'(2A,I8.8,A,I6.6)')'Reading WW3' &
+                              ,' bound. forcing......date and time are ' &
+                              ,WWDATE,'.',WWTIME
+                        ENDIF
+                        WRITE (TIMSTR, 118) WWDATE, WWTIME
+118                     FORMAT (I8,'.',I6)
 !                    convert time string to time in seconds
-                    CALL DTRETI (TIMSTR, BFILED(6), TIMF2)                40.05
-                  ELSE                                                    40.05
+                        CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
+                     ELSE
 !                   DUM_A dummy local variable used to read formatted     40.05
 !                   files                                                 40.05
 !                   this variable will be not used in any calculation     40.05
-                    READ (NDSD,901) PTNME, DUM_A, DUM_A, BDEPTH,          40.05
-     &                              DUM_A, DUM_A, DUM_A, DUM_A            40.05
-                  ENDIF                                                   40.05
-                ELSE IF (BTYPE.EQ.'WW3U') THEN                            40.05
+                        READ (NDSD,901) PTNME, DUM_A, DUM_A, BDEPTH, &
+                                        DUM_A, DUM_A, DUM_A, DUM_A
+                     ENDIF
+                  ELSE IF (BTYPE.EQ.'WW3U') THEN
 !                 read from heading lines per spectrum , date ,time
-                  READ (NDSD, END=380, ERR=920) WWDATE, WWTIME
-                  WRITE (TIMSTR, 118) WWDATE, WWTIME
+                     READ (NDSD, END=380, ERR=920) WWDATE, WWTIME
+                     WRITE (TIMSTR, 118) WWDATE, WWTIME
 !                 convert time string to time in seconds
-                  CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
-                  READ (NDSD, END=380, ERR=920)
-                ELSE                                                      40.05
+                     CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
+                     READ (NDSD, END=380, ERR=920)
+                  ELSE
 !                 SWAN files                                              40.05
-                  READ (NDSD, '(A)', END=380, ERR=920) HEDLIN             40.05
-                  IF (ITEST.GE.100) WRITE (PRINTF, 212) HEDLIN            40.05
-                ENDIF
-              ELSE
-                IF (UNFORM) THEN
-                  READ (NDSD, END=380, ERR=920)
-                ELSE IF (BTYPE.EQ.'WW3F') THEN                            40.13 40.05
+                     READ (NDSD, '(A)', END=380, ERR=920) HEDLIN
+                     IF (ITEST.GE.100) WRITE (PRINTF, 212) HEDLIN
+                  ENDIF
+               ELSE
+                  IF (UNFORM) THEN
+                     READ (NDSD, END=380, ERR=920)
+                  ELSE IF (BTYPE.EQ.'WW3F') THEN
 !                 read from heading lines per spectrum depth of the       40.05
 !                 boundary point                                          40.05
-                  IF (IHD.GT.1) EXIT                                      40.05
+                     IF (IHD.GT.1) EXIT
 !                 exit is used because the header per spectrum in WW3F    40.05
 !                 for IBOUNC>1 is one line                                40.05
 !                 DUM_A is a dummy local parameter used in formatted read 40.05
-                  READ (NDSD,901) PTNME, DUM_A, DUM_A, BDEPTH,
-     &                            DUM_A, DUM_A, DUM_A, DUM_A              40.05
-                ELSE IF (BTYPE.EQ.'WAMF') THEN
+                     READ (NDSD,901) PTNME, DUM_A, DUM_A, BDEPTH, &
+                                     DUM_A, DUM_A, DUM_A, DUM_A
+                  ELSE IF (BTYPE.EQ.'WAMF') THEN
 !                 read HEDLIN replaced because data are sometimes written 40.13
 !                 on two subsequent lines                                 40.13
-                  READ(NDSD,*, END=380, ERR=920) XLON, XLAT, DDATE,       40.13
-     &              EMEAN, THQ, FMEAN
-                ELSE
-                  READ (NDSD, '(A)', END=380, ERR=920) HEDLIN
-                  IF (ITEST.GE.100) WRITE (PRINTF, 212) HEDLIN
-                ENDIF
-              ENDIF
+                     READ(NDSD,*, END=380, ERR=920) XLON, XLAT, DDATE, &
+                        EMEAN, THQ, FMEAN
+                  ELSE
+                     READ (NDSD, '(A)', END=380, ERR=920) HEDLIN
+                     IF (ITEST.GE.100) WRITE (PRINTF, 212) HEDLIN
+                  ENDIF
+               ENDIF
 !
-              IF (BTYPE(1:3).EQ.'SWN') THEN
+               IF (BTYPE(1:3).EQ.'SWN') THEN
 !             SWAN nesting: take proper action if heading line contains ZERO or NODATA
-                IF (HEDLIN(1:6).EQ.'NODATA' .OR. HEDLIN(1:4).EQ.'ZERO')
-     &               THEN
-                  DO IS = 1, MSC
-                    DO ID = 1, MDC
-                      BSPECS(ID,IS,IBSPEC,2) = 0.
-                    ENDDO
-                  ENDDO
+                  IF (HEDLIN(1:6).EQ.'NODATA' .OR. HEDLIN(1:4).EQ.'ZERO') &
+                       THEN
+                     DO IS = 1, MSC
+                        DO ID = 1, MDC
+                           BSPECS(ID,IS,IBSPEC,2) = 0.
+                        ENDDO
+                     ENDDO
 !                 skip reading of values
-                  CYCLE BP_LOOP                                           40.05
-                ELSE IF (HEDLIN(1:6).EQ.'FACTOR') THEN
-                  READ (NDSD, *) RFAC
-                  UFAC = UFAC * RFAC
+                     CYCLE BP_LOOP
+                  ELSE IF (HEDLIN(1:6).EQ.'FACTOR') THEN
+                     READ (NDSD, *) RFAC
+                     UFAC = UFAC * RFAC
 !                 multiply factor read from file by UFAC (factor following from
 !                 type of file)
-                ELSE
+                  ELSE
 !                 note: in case of 1D spectra heading line can be ignored
-                  IF (NANG.GT.0) THEN                                     40.00
-                    CALL MSGERR (3,
-     &                'incorrect code in b.c. file: '//HEDLIN(1:20))      40.00
-                  ENDIF                                                   40.00
-                ENDIF
-              ENDIF
+                     IF (NANG.GT.0) THEN
+                        CALL MSGERR (3, &
+                           'incorrect code in b.c. file: '//HEDLIN(1:20))
+                     ENDIF
+                  ENDIF
+               ENDIF
 !           end loop over heading lines per spectrum
             ENDDO
 !
 !           test output: which spectrum is processed                      40.00
 !
             IF (ITEST.GE.60) THEN
-              INQUIRE (UNIT=NDSD, NAME=FILENM)                            40.00
-              WRITE (PRTEST, 188) FILENM, CHTIME, IBOUNC, UFAC
- 188          FORMAT
-     &   (' read spectrum ', A, '; time=', A, ' nr=', I3, F9.3)           40.00
+               INQUIRE (UNIT=NDSD, NAME=FILENM)
+               WRITE (PRTEST, 188) FILENM, CHTIME, IBOUNC, UFAC
+188            FORMAT &
+                  (' read spectrum ', A, '; time=', A, ' nr=', I3, F9.3)
             ENDIF
 !
 !       start reading incoming wave data
 !
             IF (BTYPE.EQ.'TPAR') THEN
-              READ (NDSD, 222, END=380) HEDLIN
- 222          FORMAT (A)
-              CALL LSPLIT (HEDLIN, DATITM, 5)
-              CALL DTRETI (DATITM(1), BFILED(6), TIMF2)                   40.03
-              DO II = 1, 4
-                READ (DATITM(II+1), '(G12.0)') SPPARM(II)
-              ENDDO
-              IF (ITEST.GE.60) WRITE (PRTEST, *) ' TPAR boundary ',
-     &              TIMF2, (SPPARM(JJ), JJ=1,4)
-              BFILED(3) = NINT(TIMF2)
-              CALL SSHAPE (BSPECS(1,1,IBSPEC,2), SPCSIG, SPCDIR,
-     &                 FSHAPE, DSHAPE)
+               READ (NDSD, 222, END=380) HEDLIN
+222            FORMAT (A)
+               CALL LSPLIT (HEDLIN, DATITM, 5)
+               CALL DTRETI (DATITM(1), BFILED(6), TIMF2)
+               DO II = 1, 4
+                  READ (DATITM(II+1), '(G12.0)') SPPARM(II)
+               ENDDO
+               IF (ITEST.GE.60) WRITE (PRTEST, *) ' TPAR boundary ', &
+                     TIMF2, (SPPARM(JJ), JJ=1,4)
+               BFILED(3) = NINT(TIMF2)
+               CALL SSHAPE (BSPECS(1,1,IBSPEC,2), SPCSIG, SPCDIR, &
+                        FSHAPE, DSHAPE)
             ELSE
 !         other (spectral) boundary conditions
-              NANG  = BFILED(10)
-              NFRE  = BFILED(12)
+               NANG  = BFILED(10)
+               NFRE  = BFILED(12)
 !
 !         call RESPEC subroutine to read the spectum of the bound. files
 !
-             CALL RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER,            40.00
-     &           SPCSIG, SPCDIR, BSPFRQ, BSPDIR, BSPECS(1,1,IBSPEC,2),    40.31 30.90
-     &           UFAC, IERR)
-             IF (IERR.EQ.9) GOTO 380
+               CALL RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
+                   SPCSIG, SPCDIR, BSPFRQ, BSPDIR, BSPECS(1,1,IBSPEC,2), &
+                   UFAC, IERR)
+               IF (IERR.EQ.9) GOTO 380
             ENDIF
 !
-          END DO BP_LOOP                                                  40.05
+         END DO BP_LOOP
 !
-          IF (NSTATF) WRITE (PRINTF, 287) BTYPE, TIMF2
- 287      FORMAT
-     &         (' Boundary data type ', A, ' processed, time: ', F12.0)
+         IF (NSTATF) WRITE (PRINTF, 287) BTYPE, TIMF2
+287      FORMAT &
+              (' Boundary data type ', A, ' processed, time: ', F12.0)
 !
 !        cycle back to top of loop
-          CYCLE GLOOP                                                     40.05
+         CYCLE GLOOP
 !
 !         if there are no more data on a boundary data file
 !         close this file, and see if there is a next one
 !
- 380      CLOSE(NDSD)
+380      CLOSE(NDSD)
 !         read filename of next boundary file and open them
-          IF (NDSL.GT.0) THEN                                             40.05
+         IF (NDSL.GT.0) THEN
             READ (NDSL, '(A)', END=390, ERR=930) FILENM
             IF (UNFORM) THEN
-              OPEN (NDSD, FILE=FILENM, FORM='UNFORMATTED',
-     &               STATUS='OLD', ERR=930)
+               OPEN (NDSD, FILE=FILENM, FORM='UNFORMATTED', &
+                      STATUS='OLD', ERR=930)
 !              read heading lines
-              DO IHD = 1, BFILED(14)                                      40.03
-                READ (NDSD, END=940, ERR=920)
-              ENDDO
-            ELSEIF ((.NOT.UNFORM).AND.(BTYPE.EQ.'WW3F')) THEN             40.05
+               DO IHD = 1, BFILED(14)
+                  READ (NDSD, END=940, ERR=920)
+               ENDDO
+            ELSEIF ((.NOT.UNFORM).AND.(BTYPE.EQ.'WW3F')) THEN
 !             if it is WW3F open the new file only
-              OPEN (NDSD, FILE=FILENM, FORM='FORMATTED',                  40.05
-     &               STATUS='OLD', ERR=930)                               40.05
-              COUNT_IT = 1                                                40.05
-            ELSE                                                          40.05
-              OPEN (NDSD, FILE=FILENM, FORM='FORMATTED',
-     &               STATUS='OLD', ERR=930)
-              DO IHD = 1, BFILED(14)                                      40.03
+               OPEN (NDSD, FILE=FILENM, FORM='FORMATTED', &
+                      STATUS='OLD', ERR=930)
+               COUNT_IT = 1
+            ELSE
+               OPEN (NDSD, FILE=FILENM, FORM='FORMATTED', &
+                      STATUS='OLD', ERR=930)
+               DO IHD = 1, BFILED(14)
 !               read heading lines
-                READ (NDSD, '(A)', END=940, ERR=920) HEDLIN
-                IF (ITEST.GE.80) WRITE (PRINTF, 212) HEDLIN
-              ENDDO
+                  READ (NDSD, '(A)', END=940, ERR=920) HEDLIN
+                  IF (ITEST.GE.80) WRITE (PRINTF, 212) HEDLIN
+               ENDDO
             ENDIF
 !
 !      go back to statement 210 to start again the procedure of reading
@@ -8007,97 +8007,97 @@
 !
             GOTO 210
 !
-          ELSE
+         ELSE
 !           boundary data are read from a single file
-            GOTO 392                                                      40.13
-          ENDIF                                                           40.05
+            GOTO 392
+         ENDIF
 !         close file containing filenames
- 390      CLOSE (NDSL)
+390      CLOSE (NDSL)
 !
-          BFILED(5) = 0
+         BFILED(5) = 0
 !         write message and close file containing spectra
- 392      CALL MSGERR (1, 'data on boundary file exhausted')
+392      CALL MSGERR (1, 'data on boundary file exhausted')
 !
-          BFILED(4) = 0
-          BFILED(1) = -1
-          TIMF2 = 999999999D0
-          CYCLE GLOOP                                                     40.05
+         BFILED(4) = 0
+         BFILED(1) = -1
+         TIMF2 = 999999999D0
+         CYCLE GLOOP
 !
 !        (if necessary) data have been read from file, now interpolate in time
 !
-        ELSE                                                              40.05
+      ELSE
 !       if present time <= time of last set of spectra then
 !       transform to spectral resolution used in SWAN to
 !       obtain boundary spectra
 !
-          IF (TIMF1.NE.TIMF2) THEN                                        40.41
-             W1 = REAL((TIMF2-TIMCO) / (TIMF2-TIMF1))
-          ELSE
-             W1 = 0.
-          END IF
-          DO IBOUNC = 1, BFILED(8)
+         IF (TIMF1.NE.TIMF2) THEN
+            W1 = REAL((TIMF2-TIMCO) / (TIMF2-TIMF1))
+         ELSE
+            W1 = 0.
+         END IF
+         DO IBOUNC = 1, BFILED(8)
             IBSPEC = BSPLOC(IBOUNC)
-            IF (IBOUNC.EQ.1 .AND. ITEST.GE.80) WRITE (PRTEST, 403)
-     &           TIMCO, W1, TIMF1, TIMF2, IBSPEC
- 403        FORMAT (' interp in time ', F14.1, F8.3, 2F14.1, I4)
+            IF (IBOUNC.EQ.1 .AND. ITEST.GE.80) WRITE (PRTEST, 403) &
+                 TIMCO, W1, TIMF1, TIMF2, IBSPEC
+403         FORMAT (' interp in time ', F14.1, F8.3, 2F14.1, I4)
 !
 !       interpolate spectra in time; result has to be store in BSPECS(..,1)
 !       first interpolate to auxiliary array
 !
-            CALL SINTRP (W1, 1.-W1, BSPECS(1,1,IBSPEC,1),
-     &               BSPECS(1,1,IBSPEC,2), SPAUX,                         40.31 30.90
-     &               SPCDIR, SPCSIG)
+            CALL SINTRP (W1, 1.-W1, BSPECS(1,1,IBSPEC,1), &
+                     BSPECS(1,1,IBSPEC,2), SPAUX, &
+                     SPCDIR, SPCSIG)
 !       use SINTRP to copy contents of aux. array to BSPECS(..,1)
 !
-            CALL SINTRP (1., 0., SPAUX,                                   40.31 30.90
-     &               BSPECS(1,1,IBSPEC,2), BSPECS(1,1,IBSPEC,1),
-     &               SPCDIR, SPCSIG)
-          ENDDO
-          BFILED(2) = NINT(TIMCO)
-          BFILED(3) = NINT(TIMF2)
-          EXIT GLOOP
+            CALL SINTRP (1., 0., SPAUX, &
+                     BSPECS(1,1,IBSPEC,2), BSPECS(1,1,IBSPEC,1), &
+                     SPCDIR, SPCSIG)
+         ENDDO
+         BFILED(2) = NINT(TIMCO)
+         BFILED(3) = NINT(TIMF2)
+         EXIT GLOOP
 !       end of time comparison
-        ENDIF                                                             40.05
+      ENDIF
 
 !     end of while loop
-      END DO GLOOP                                                        40.05
+   END DO GLOOP
 !
 !
- 901  FORMAT (1X,A10,1X,2F7.2,F10.1,2(F7.2,F6.1))
+901 FORMAT (1X,A10,1X,2F7.2,F10.1,2(F7.2,F6.1))
 !
-      DEALLOCATE(SPAUX)                                                   40.31
+   DEALLOCATE(SPAUX)
 !
- 900  RETURN
+900 RETURN
 !
- 920  INQUIRE (UNIT=NDSD, NAME=FILENM)                                    40.00
-      CALL MSGERR (4,
-     &     'error reading data from boundary file '//FILENM)              40.00
-      GOTO 900
- 930  CALL MSGERR (4,
-     &     'error opening boundary file '//FILENM)                        40.00
-      GOTO 900
- 940  INQUIRE (UNIT=NDSD, NAME=FILENM)                                    40.00
-      CALL MSGERR (4,
-     &     'unexpected end of file on boundary file '//FILENM)            40.00
-      GOTO 900
+920 INQUIRE (UNIT=NDSD, NAME=FILENM)
+   CALL MSGERR (4, &
+        'error reading data from boundary file '//FILENM)
+   GOTO 900
+930 CALL MSGERR (4, &
+         'error opening boundary file '//FILENM)
+   GOTO 900
+940 INQUIRE (UNIT=NDSD, NAME=FILENM)
+   CALL MSGERR (4, &
+        'unexpected end of file on boundary file '//FILENM)
+   GOTO 900
 !
 !     End of subroutine RBFILE
 !
-      END
+END
 !****************************************************************
 !
-      SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER,             40.00
-     &                   SPCSIG, SPCDIR, BSPFRQ, BSPDIR, LSPEC, UFAC,
-     &                   IERR)
+SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
+                   SPCSIG, SPCDIR, BSPFRQ, BSPDIR, LSPEC, UFAC, &
+                   IERR)
 !
 !****************************************************************
 !
-      USE TIMECOMM                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM3                                                         40.41
+   USE TIMECOMM
+   USE OCPCOMM2
+   USE OCPCOMM4
+   USE SWCOMM3
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -8162,7 +8162,7 @@
 !
 !  4. Argument variables
 !
-      INTEGER, INTENT(INOUT)  :: BFILED(*)                                40.05
+   INTEGER, INTENT(INOUT)  :: BFILED(*)
 !
 ! i   SPCDIR: (*,1); spectral directions (radians)                        30.82
 !             (*,2); cosine of spectral directions                        30.82
@@ -8172,20 +8172,20 @@
 !             (*,6); sine^2 of spectral directions                        30.82
 ! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.82
 !
-      REAL,    INTENT(IN)     :: SPCDIR(MDC,6)                            30.82
-      REAL,    INTENT(IN)     :: SPCSIG(MSC)                              30.82
-      REAL,    INTENT(IN)     :: BSPDIR(*)
-      REAL,    INTENT(IN)     :: BSPFRQ(*)
-      REAL,    INTENT(INOUT)  :: LSPEC(MDC,MSC)
-      REAL,    INTENT(IN)     :: UFAC                                     40.05
+   REAL,    INTENT(IN)     :: SPCDIR(MDC,6)
+   REAL,    INTENT(IN)     :: SPCSIG(MSC)
+   REAL,    INTENT(IN)     :: BSPDIR(*)
+   REAL,    INTENT(IN)     :: BSPFRQ(*)
+   REAL,    INTENT(INOUT)  :: LSPEC(MDC,MSC)
+   REAL,    INTENT(IN)     :: UFAC
 !
-      INTEGER,  INTENT(IN) ::  NDSD                                       40.00
-      INTEGER,  INTENT(IN) ::  DORDER                                     40.00
-      INTEGER,  INTENT(INOUT) ::  IERR                                    40.00
+   INTEGER,  INTENT(IN) ::  NDSD
+   INTEGER,  INTENT(IN) ::  DORDER
+   INTEGER,  INTENT(INOUT) ::  IERR
 !
-      LOGICAL   UNFORM
+   LOGICAL   UNFORM
 !
-      CHARACTER BTYPE *4
+   CHARACTER BTYPE *4
 !
 !     BTYPE    char  inp   type of input
 !     NDSD     int   inp   unit ref. number of input file
@@ -8210,16 +8210,16 @@
 !     IS        counter of frequencies
 !     ISIGTA    the last frequency which is determined by interpolation
 !
-      INTEGER   IANG, IFRE, ID, IS, ISIGTA,IENT,NFRE,NANG
+   INTEGER   IANG, IFRE, ID, IS, ISIGTA,IENT,NFRE,NANG
 !
-      REAL, ALLOCATABLE :: BAUX0(:,:)                                     40.05
-      REAL, ALLOCATABLE :: BAUX1(:,:)                                     40.31
-      REAL, ALLOCATABLE :: BAUX2(:,:)                                     40.31
-      REAL, ALLOCATABLE :: BAUX3(:)                                       40.31
-      REAL, ALLOCATABLE :: BAUX4(:)                                       40.31
+   REAL, ALLOCATABLE :: BAUX0(:,:)
+   REAL, ALLOCATABLE :: BAUX1(:,:)
+   REAL, ALLOCATABLE :: BAUX2(:,:)
+   REAL, ALLOCATABLE :: BAUX3(:)
+   REAL, ALLOCATABLE :: BAUX4(:)
 
-      REAL      ETOT, ADEG, DD, ADIR, MS, CTOT, ACOS, CDIR
-      REAL      DSUM, DSPR, FAC
+   REAL      ETOT, ADEG, DD, ADIR, MS, CTOT, ACOS, CDIR
+   REAL      DSUM, DSPR, FAC
 !
 !     ETOT      energy integrated over directions
 !     ADEG      average direction in degr
@@ -8240,8 +8240,8 @@
 !  8. Subroutines used
 !
 !       GAMMAF (in SWANSER)
-      REAL :: GAMMAF                                                      40.03
-      LOGICAL EQREAL                                                      40.41
+   REAL :: GAMMAF
+   LOGICAL EQREAL
 !
 !  9. Subroutines calling
 !
@@ -8272,271 +8272,270 @@
 !
 !****************************************************************
 !
-      SAVE      IENT
-      DATA      IENT /0/
-      CALL STRACE (IENT, 'RESPEC')
+   SAVE      IENT
+   DATA      IENT /0/
+   CALL STRACE (IENT, 'RESPEC')
 !
 !     read the values from array BFILED for the number of
 !     direction and frequencies
 !
-      NANG = BFILED(10)                                                   40.05
-      NFRE = BFILED(12)                                                   40.05
-      ALLOCATE (BAUX0(NFRE,NANG))                                         40.02
-      ALLOCATE (BAUX1(NANG,NFRE))                                         40.31
-      ALLOCATE (BAUX2(MDC ,NFRE))                                         40.31
-      ALLOCATE (BAUX3(NFRE))                                              40.31
-      ALLOCATE (BAUX4(MSC))                                               40.31
+   NANG = BFILED(10)
+   NFRE = BFILED(12)
+   ALLOCATE (BAUX0(NFRE,NANG))
+   ALLOCATE (BAUX1(NANG,NFRE))
+   ALLOCATE (BAUX2(MDC ,NFRE))
+   ALLOCATE (BAUX3(NFRE))
+   ALLOCATE (BAUX4(MSC))
 
-      IF (ITEST.GE.60) THEN
-        INQUIRE (UNIT=NDSD, NAME=FILENM)                                  40.00
-        WRITE (PRTEST, 7) FILENM, NANG, NFRE, UFAC, BFILED(18),           40.00
-     &  BFILED(19), UNFORM
-   7    FORMAT (' Entry RESPEC, reading file:', A, /, 6X,
-     &  I3, ' angles ', I3, ' freqs; factor ',
-     &  E12.4, ' dir.def:', I2, ' dir.spr.def:', I2, ' unform:', L2)      40.00
-      ENDIF
+   IF (ITEST.GE.60) THEN
+      INQUIRE (UNIT=NDSD, NAME=FILENM)
+      WRITE (PRTEST, 7) FILENM, NANG, NFRE, UFAC, BFILED(18), &
+         BFILED(19), UNFORM
+7     FORMAT (' Entry RESPEC, reading file:', A, /, 6X, &
+         I3, ' angles ', I3, ' freqs; factor ', &
+         E12.4, ' dir.def:', I2, ' dir.spr.def:', I2, ' unform:', L2)
+   ENDIF
 !
 !     Initialisation
 !
-      ISIGTA = MSC                                                        40.02
+   ISIGTA = MSC
 !
 !     read spectral energy densities from b.c. file
-      IF (NANG.EQ.0) THEN
+   IF (NANG.EQ.0) THEN
 !
 !     1-D spectral input                                                  40.05
 !
-        DO IFRE=1,NFRE                                                    40.05
+      DO IFRE=1,NFRE
 !         1-D spectral input (only function of frequency)
-          IF (IFRE.EQ.1) THEN
+         IF (IFRE.EQ.1) THEN
             READ (NDSD,*,END=940,ERR=920) ETOT, ADEG, DD
-          ELSE
+         ELSE
             READ (NDSD,*,END=930,ERR=920) ETOT, ADEG, DD
-          ENDIF
+         ENDIF
 !
-          IF (EQREAL(ETOT,REAL(BFILED(11)))) THEN                         40.41
+         IF (EQREAL(ETOT,REAL(BFILED(11)))) THEN
 !            in case of exception value, no energy
-             ETOT = 0.
-             ADEG = 0.
-             DD   = 180./PI
-          END IF
+            ETOT = 0.
+            ADEG = 0.
+            DD   = 180./PI
+         END IF
 !
-          IF (BFILED(18).EQ.1) THEN                                       40.00
+         IF (BFILED(18).EQ.1) THEN
 !           conversion from degrees to radians
             ADIR = PI * ADEG / 180.
-          ELSE
+         ELSE
 !           conversion from Nautical to Cartesian conv.
             ADIR = PI * (180.+DNORTH-ADEG) / 180.
-          ENDIF
+         ENDIF
 !
-          IF (BFILED(19).EQ.1) THEN                                       40.00
-            IF (DD.GT.23.) THEN                                           41.99
-               FAC = 1.2                                                  41.99
-            ELSEIF (DD.GT.17.) THEN                                       41.99
-               FAC = 1.096                                                41.99
-            ELSE                                                          41.99
-               FAC = 1.01                                                 41.99
-            ENDIF                                                         41.99
+         IF (BFILED(19).EQ.1) THEN
+            IF (DD.GT.23.) THEN
+               FAC = 1.2
+            ELSEIF (DD.GT.17.) THEN
+               FAC = 1.096
+            ELSE
+               FAC = 1.01
+            ENDIF
 !           DSPR is directional spread in radians
             DSPR = PI * DD / 180.
-            IF (DSPR.NE.0.) THEN                                          40.41
-               MS = MAX (FAC*DSPR**(-2) - 2., 1.)                         41.99
+            IF (DSPR.NE.0.) THEN
+               MS = MAX (FAC*DSPR**(-2) - 2., 1.)
             ELSE
-               MS = 1000.                                                 40.41
+               MS = 1000.
             END IF
-          ELSE
+         ELSE
             MS = DD
-          ENDIF
+         ENDIF
 !
-          IF (ITEST.GE.80) WRITE (PRTEST, 12) IFRE, ETOT,                 40.00
-     &          180.*ADIR/PI, MS
-  12      FORMAT (' read freq ', I3, E10.3, '; Cart dir ',                40.00
-     &          F7.1, '; Cos power ', F7.2)
+         IF (ITEST.GE.80) WRITE (PRTEST, 12) IFRE, ETOT, &
+               180.*ADIR/PI, MS
+12       FORMAT (' read freq ', I3, E10.3, '; Cart dir ', &
+               F7.1, '; Cos power ', F7.2)
 !
 !         generate distribution over directions
 !
 !         equations taken from Jahnke & Emde (chapter Factorial Function)
-          IF (MS.GT.10.) THEN
-            CTOT = SQRT(MS/(2.*PI)) * (1. + 0.25/MS)                      30.81 40.00
-          ELSE
-            CTOT = GAMMAF(0.5*MS+1.) / (SQRT(PI) * GAMMAF(0.5*MS+0.5))    41.99 40.00
-          ENDIF
-          DSUM = 0.
-          DO ID = 1, MDC
-            ACOS = COS(SPCDIR(ID,1) - ADIR)                               30.82
+         IF (MS.GT.10.) THEN
+            CTOT = SQRT(MS/(2.*PI)) * (1. + 0.25/MS)
+         ELSE
+            CTOT = GAMMAF(0.5*MS+1.) / (SQRT(PI) * GAMMAF(0.5*MS+0.5))
+         ENDIF
+         DSUM = 0.
+         DO ID = 1, MDC
+            ACOS = COS(SPCDIR(ID,1) - ADIR)
             IF (ACOS .GT. 0.) THEN
-              CDIR = CTOT * MAX (ACOS**MS, 1.E-10)
+               CDIR = CTOT * MAX (ACOS**MS, 1.E-10)
             ELSE
-              CDIR = 1.E-10
+               CDIR = 1.E-10
             ENDIF
-            IF (ITEST.GE.20) DSUM = DSUM + CDIR * DDIR                    40.00
+            IF (ITEST.GE.20) DSUM = DSUM + CDIR * DDIR
             BAUX2(ID,IFRE) = CDIR * ETOT
-          ENDDO
-          IF (ITEST.GE.20) THEN
-            IF (ABS(DSUM-1.).GT.0.1) WRITE (PRTEST, 138) DSUM, CTOT, MS   40.00
- 138        FORMAT (' integral over directions is ', F9.4,
-     &              ' with CTOT=', F10.3,'; power=', F8.2)                40.00
-          ENDIF
-        END DO                                                            40.05
+         ENDDO
+         IF (ITEST.GE.20) THEN
+            IF (ABS(DSUM-1.).GT.0.1) WRITE (PRTEST, 138) DSUM, CTOT, MS
+138         FORMAT (' integral over directions is ', F9.4, &
+                    ' with CTOT=', F10.3,'; power=', F8.2)
+         ENDIF
+      END DO
 !
-      ELSE
+   ELSE
 !
 !   (2D) fully spectral input
-        IF (UNFORM) THEN
+      IF (UNFORM) THEN
 !          unformatted reading
-          IF (BTYPE.EQ.'WW3U') THEN
-            READ (NDSD,END=930,ERR=920)
-     &        ((BAUX0(IFRE,IANG),IFRE=1,NFRE),IANG=1,NANG)
+         IF (BTYPE.EQ.'WW3U') THEN
+            READ (NDSD,END=930,ERR=920) &
+               ((BAUX0(IFRE,IANG),IFRE=1,NFRE),IANG=1,NANG)
             DO IANG = 1,NANG
-              DO IFRE = 1,NFRE
-                BAUX1(IANG,IFRE) = BAUX0(IFRE,IANG)
-              ENDDO
+               DO IFRE = 1,NFRE
+                  BAUX1(IANG,IFRE) = BAUX0(IFRE,IANG)
+               ENDDO
             ENDDO
-          ELSE
+         ELSE
             IF (DORDER.LT.0) THEN
-              READ (NDSD,END=930,ERR=920)
-     &               ((BAUX1(IANG,IFRE),IANG=NANG,1,-1),IFRE=1,NFRE)
+               READ (NDSD,END=930,ERR=920) &
+                      ((BAUX1(IANG,IFRE),IANG=NANG,1,-1),IFRE=1,NFRE)
             ELSE
-              READ (NDSD,END=930,ERR=920)
-     &               ((BAUX1(IANG,IFRE),IANG=1,NANG),IFRE=1,NFRE)
+               READ (NDSD,END=930,ERR=920) &
+                      ((BAUX1(IANG,IFRE),IANG=1,NANG),IFRE=1,NFRE)
             ENDIF
-          ENDIF
-        ELSEIF ((.NOT.UNFORM).AND.(BTYPE.EQ.'WW3F')) THEN                 40.05
+         ENDIF
+      ELSEIF ((.NOT.UNFORM).AND.(BTYPE.EQ.'WW3F')) THEN
 !
 !         WW3F reading
 !         BAUX0 local array to read the energy spectra from boundary files
 !
-          READ (NDSD,902,END=940,ERR=920)                                 40.15
-     &      ((BAUX0(IFRE,IANG),IFRE=1,NFRE),IANG=1,NANG,1)                40.15
- 902      FORMAT (7E11.3)                                                 40.15
+         READ (NDSD,902,END=940,ERR=920) &
+            ((BAUX0(IFRE,IANG),IFRE=1,NFRE),IANG=1,NANG,1)
+902      FORMAT (7E11.3)
 !
 !         energy (variance) density   from E(FRQ,TH) to  E(TH,FRQ)
 !
-          DO IANG = 1,NANG                                                40.05
-            DO IFRE = 1,NFRE                                              40.05
-              BAUX1(IANG,IFRE) = BAUX0(IFRE,IANG)                         40.05
-            ENDDO                                                         40.05
-          ENDDO                                                           40.05
-        ELSE
+         DO IANG = 1,NANG
+            DO IFRE = 1,NFRE
+               BAUX1(IANG,IFRE) = BAUX0(IFRE,IANG)
+            ENDDO
+         ENDDO
+      ELSE
 !         format reading (except WW3F)
-          IF (DORDER.LT.0) THEN                                           40.31
-            READ (NDSD,*,END=930,ERR=920)                                 40.61
-     &             ((BAUX1(IANG,IFRE),IANG=NANG,1,-1),IFRE=1,NFRE)        40.61
-          ELSE                                                            40.31
-            READ (NDSD,*,END=930,ERR=920)                                 40.61
-     &             ((BAUX1(IANG,IFRE),IANG=1,NANG),IFRE=1,NFRE)           40.61
-          ENDIF                                                           40.31
-        ENDIF
+         IF (DORDER.LT.0) THEN
+            READ (NDSD,*,END=930,ERR=920) &
+                   ((BAUX1(IANG,IFRE),IANG=NANG,1,-1),IFRE=1,NFRE)
+         ELSE
+            READ (NDSD,*,END=930,ERR=920) &
+                   ((BAUX1(IANG,IFRE),IANG=1,NANG),IFRE=1,NFRE)
+         ENDIF
+      ENDIF
 !
-        IF (ITEST.GE.120) THEN
-          WRITE (PRINTF,*)' Spectra from file'
-          DO IFRE = 1, NFRE
+      IF (ITEST.GE.120) THEN
+         WRITE (PRINTF,*)' Spectra from file'
+         DO IFRE = 1, NFRE
             WRITE (PRINTF,*) IFRE, (BAUX1(IANG,IFRE),IANG=1,NANG)
-          ENDDO
-        ENDIF
+         ENDDO
+      ENDIF
 
 !       --- in case of exception value, no energy                         40.41
 
-        DO IANG = 1,NANG
-           DO IFRE = 1,NFRE
-              IF (EQREAL(BAUX1(IANG,IFRE),REAL(BFILED(11)))) THEN
-                 BAUX1(IANG,IFRE) = 0.
-              END IF
-           END DO
-        END DO
+      DO IANG = 1,NANG
+         DO IFRE = 1,NFRE
+            IF (EQREAL(BAUX1(IANG,IFRE),REAL(BFILED(11)))) THEN
+               BAUX1(IANG,IFRE) = 0.
+            END IF
+         END DO
+      END DO
 !
 !       --- transform to spectral directions used in SWAN
 !           results appear in array BAUX2(MDC,NFRE)
 !
-        DO IFRE = 1, NFRE                                                 40.05
-          CALL CHGBAS (BSPDIR, SPCDIR, PI2, BAUX1(1,IFRE),
-     &                 BAUX2(1,IFRE), NANG, MDC, ITEST, PRTEST)
-        END DO                                                            40.05
-      ENDIF
+      DO IFRE = 1, NFRE
+         CALL CHGBAS (BSPDIR, SPCDIR, PI2, BAUX1(1,IFRE), &
+                      BAUX2(1,IFRE), NANG, MDC, ITEST, PRTEST)
+      END DO
+   ENDIF
 !
 !     interpolate energy densities to SWAN frequencies distribution
 !
-      IF (BSPFRQ(NFRE) .LT. SPCSIG(MSC)) THEN
-        DO IS = MSC, 1, -1
-          IF (SPCSIG(IS).LT.BSPFRQ(NFRE)) THEN
+   IF (BSPFRQ(NFRE) .LT. SPCSIG(MSC)) THEN
+      DO IS = MSC, 1, -1
+         IF (SPCSIG(IS).LT.BSPFRQ(NFRE)) THEN
 !           ISIGTA is the last frequency which is determined by interpolation
 !           higher frequencies are determined by tail expression
             ISIGTA = IS
-            EXIT                                                          40.05
-          ENDIF
-        ENDDO
-      ELSE
-        ISIGTA = MSC
-      ENDIF
+            EXIT
+         ENDIF
+      ENDDO
+   ELSE
+      ISIGTA = MSC
+   ENDIF
 !
 !
 !     UFAC is the product of the multiplication factor read from file
 !     and the factor to transform from energy/Hz to energy/(rad/s)
 !     and from energy/degr to energy/rad (latter only for 2d spectra)     40.00
 !
-      DO  ID = 1,MDC                                                      40.05
-        DO  IFRE = 1,NFRE                                                 40.05
-          BAUX3(IFRE) = UFAC * BAUX2(ID,IFRE)
-        ENDDO                                                             40.05
+   DO  ID = 1,MDC
+      DO  IFRE = 1,NFRE
+         BAUX3(IFRE) = UFAC * BAUX2(ID,IFRE)
+      ENDDO
 
 !       interpolate over frequency keeping energy constant, output BAUX4(MSC)
-        CALL CHGBAS (BSPFRQ, SPCSIG, 0., BAUX3, BAUX4, NFRE, MSC,
-     &               ITEST, PRTEST)
-        DO  IS=1,MSC                                                      40.05
-          IF (IS.LE.ISIGTA) THEN
+      CALL CHGBAS (BSPFRQ, SPCSIG, 0., BAUX3, BAUX4, NFRE, MSC, &
+                   ITEST, PRTEST)
+      DO  IS=1,MSC
+         IF (IS.LE.ISIGTA) THEN
 !
 !           to convert energy density to action density
 !
             LSPEC(ID,IS) = BAUX4(IS)/SPCSIG(IS)
-          ELSE
+         ELSE
 !
 !           add a tail when IS > ISIGTA
 !
-            LSPEC(ID,IS) = LSPEC(ID,ISIGTA) *
-     &                 (SPCSIG(ISIGTA)/SPCSIG(IS))**(PWTAIL(1)+1)
-          ENDIF
-          IF (ITEST.GE.140) THEN
+            LSPEC(ID,IS) = LSPEC(ID,ISIGTA) * &
+                       (SPCSIG(ISIGTA)/SPCSIG(IS))**(PWTAIL(1)+1)
+         ENDIF
+         IF (ITEST.GE.140) THEN
             WRITE (PRTEST, *) 'ID,IS,LSPEC(ID,IS)', ID,IS,LSPEC(ID,IS)
-          ENDIF
-        ENDDO                                                             40.05
-      ENDDO                                                               40.05
+         ENDIF
+      ENDDO
+   ENDDO
 !
-      DEALLOCATE (BAUX0,BAUX1,BAUX2,BAUX3,BAUX4)                          40.31 40.02
+   DEALLOCATE (BAUX0,BAUX1,BAUX2,BAUX3,BAUX4)
 
- 900  IERR = 0
-      RETURN
- 920  INQUIRE (UNIT=NDSD, NAME=FILENM)                                    40.00
-      CALL MSGERR (2,
-     &      'read error in boundary condition file '//FILENM)             40.00
+900 IERR = 0
+   RETURN
+920 INQUIRE (UNIT=NDSD, NAME=FILENM)
+   CALL MSGERR (2, &
+         'read error in boundary condition file '//FILENM)
 
+   RETURN
+930 INQUIRE (UNIT=NDSD, NAME=FILENM)
+   CALL MSGERR (2, &
+         'insufficient data in boundary condition file '//FILENM)
 
-      RETURN
- 930  INQUIRE (UNIT=NDSD, NAME=FILENM)                                    40.00
-      CALL MSGERR (2,
-     &      'insufficient data in boundary condition file '//FILENM)      40.00
+940 IERR = 9
 
- 940  IERR = 9
+   RETURN
 
-      RETURN
-
-      END SUBROUTINE RESPEC
+END SUBROUTINE RESPEC
 !**********************************************************************
 !
-      SUBROUTINE FLFILE (IGR1, IGR2,
-     &                   ARR, ARR2, JX1, JX2, JX3, JY1, JY2, JY3,         40.31
-     &                   COSFC, SINFC, COMPDA,                            40.31 30.90
-     &                   XCGRID, YCGRID,
-     &                   KGRPNT, IERR)
+SUBROUTINE FLFILE (IGR1, IGR2, &
+                   ARR, ARR2, JX1, JX2, JX3, JY1, JY2, JY3, &
+                   COSFC, SINFC, COMPDA, &
+                   XCGRID, YCGRID, &
+                   KGRPNT, IERR)
 !
 !**********************************************************************
 
-      USE TIMECOMM                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE M_PARALL                                                        40.31
-      USE SwanGriddata                                                    40.80
+   USE TIMECOMM
+   USE OCPCOMM4
+   USE SWCOMM2
+   USE SWCOMM3
+   USE M_PARALL
+   USE SwanGriddata
 
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -8645,7 +8644,7 @@
 !     STRACE
 !     SWBROADC
 !
-      LOGICAL STPNOW                                                      34.01
+   LOGICAL STPNOW
 !
 !  7. ERROR MESSAGES
 !
@@ -8675,29 +8674,29 @@
 !
 !****************************************************************
 !
-      INTEGER    KGRPNT(MXC,MYC),
-     &           IGR1, IGR2, JX1, JX2, JX3, JY1, JY2, JY3, IERR
+   INTEGER    KGRPNT(MXC,MYC), &
+              IGR1, IGR2, JX1, JX2, JX3, JY1, JY2, JY3, IERR
 !
-      REAL       COMPDA(MCGRD,MCMVAR),
-     &           XCGRID(MXC,MYC), YCGRID(MXC,MYC),
-     &           COSFC, SINFC
-      REAL       ARR(*), ARR2(*)
+   REAL       COMPDA(MCGRD,MCMVAR), &
+              XCGRID(MXC,MYC), YCGRID(MXC,MYC), &
+              COSFC, SINFC
+   REAL       ARR(*), ARR2(*)
 !
 !     local variables
 !
-      INTEGER    IENT, INDX, IX, IY, JVERT
+   INTEGER    IENT, INDX, IX, IY, JVERT
 !     INDX       counter of comp. grid points
 !     IX         index in x-dir of comput grid point
 !     IY         index in y-dir of comput grid point
 !     JVERT      global index of unstructured mesh
 !
-      REAL       SVALQI
+   REAL       SVALQI
 !     SVALQI     real function giving interpolated value of an input array
 !
-      REAL       XP, YP, UU, VV, VTOT, W1, W3,
-     &           SIZE1, SIZE2, SIZE3
-      REAL*8     FAC
-      REAL*8     TIMR1
+   REAL       XP, YP, UU, VV, VTOT, W1, W3, &
+              SIZE1, SIZE2, SIZE3
+   REAL*8     FAC
+   REAL*8     TIMR1
 !     TIMR1      time of one but last input field
 !     XP         x-coord of one comput grid point
 !     YP         y-coord of one comput grid point
@@ -8711,169 +8710,169 @@
 !     SIZE2      length of vector at time TIMCO
 !     SIZE3      length of vector at time TIMR2
 !
-      SAVE IENT
-      DATA IENT /0/
-      CALL STRACE (IENT, 'FLFILE')
+   SAVE IENT
+   DATA IENT /0/
+   CALL STRACE (IENT, 'FLFILE')
 !
-      IERR = 0
+   IERR = 0
 !
-      IF (JX1.GT.1) THEN
-        DO INDX = 1, MCGRD
-          COMPDA(INDX,JX1)=COMPDA(INDX,JX2)
-        ENDDO
-      ENDIF
-      IF (IGR2.GT.0 .AND. JY1.GT.1) THEN
-        DO INDX = 1, MCGRD
-          COMPDA(INDX,JY1)=COMPDA(INDX,JY2)
-        ENDDO
-      ENDIF
-      TIMR1 = TIMCO - DT
+   IF (JX1.GT.1) THEN
+      DO INDX = 1, MCGRD
+         COMPDA(INDX,JX1)=COMPDA(INDX,JX2)
+      ENDDO
+   ENDIF
+   IF (IGR2.GT.0 .AND. JY1.GT.1) THEN
+      DO INDX = 1, MCGRD
+         COMPDA(INDX,JY1)=COMPDA(INDX,JY2)
+      ENDDO
+   ENDIF
+   TIMR1 = TIMCO - DT
 !
- 200  IF (TIMCO.LE.IFLTIM(IGR1)) GOTO 400
-      TIMR1 = IFLTIM(IGR1)
-      IFLTIM(IGR1) = IFLTIM(IGR1) + IFLINT(IGR1)
-      IF (IFLTIM(IGR1) .GT. IFLEND(IGR1)) THEN
-        IFLTIM(IGR1) = 1.E10
-        IF (IGR2.GT.0) IFLTIM(IGR2) = IFLTIM(IGR1)
-        GOTO 400
-      ENDIF
-      IF (IFLNDS(IGR1).GT.0) THEN                                         40.03
-        IF (INODE.EQ.MASTER) THEN
-           CALL INAR2D( ARR, MXG(IGR1), MYG(IGR1),                        40.31 40.02
-     &                  IFLNDF(IGR1),
-     &                  IFLNDS(IGR1), IFLIFM(IGR1), IFLFRM(IGR1),
-     &                  IFLIDL(IGR1), IFLFAC(IGR1),
-     &                  IFLNHD(IGR1), IFLNHF(IGR1))
-           IF (STPNOW()) RETURN                                           34.01
-        END IF
-        CALL SWBROADC(IFLIDL(IGR1),1,SWINT)                               40.30
-        IF (IFLIDL(IGR1).LT.0) THEN
+200 IF (TIMCO.LE.IFLTIM(IGR1)) GOTO 400
+   TIMR1 = IFLTIM(IGR1)
+   IFLTIM(IGR1) = IFLTIM(IGR1) + IFLINT(IGR1)
+   IF (IFLTIM(IGR1) .GT. IFLEND(IGR1)) THEN
+      IFLTIM(IGR1) = 1.E10
+      IF (IGR2.GT.0) IFLTIM(IGR2) = IFLTIM(IGR1)
+      GOTO 400
+   ENDIF
+   IF (IFLNDS(IGR1).GT.0) THEN
+      IF (INODE.EQ.MASTER) THEN
+         CALL INAR2D( ARR, MXG(IGR1), MYG(IGR1), &
+                      IFLNDF(IGR1), &
+                      IFLNDS(IGR1), IFLIFM(IGR1), IFLFRM(IGR1), &
+                      IFLIDL(IGR1), IFLFAC(IGR1), &
+                      IFLNHD(IGR1), IFLNHF(IGR1))
+         IF (STPNOW()) RETURN
+      END IF
+      CALL SWBROADC(IFLIDL(IGR1),1,SWINT)
+      IF (IFLIDL(IGR1).LT.0) THEN
 !         end of file was encountered
-          IFLTIM(IGR1) = 1.E10
-          IF (IGR2.GT.0) IFLTIM(IGR2) = IFLTIM(IGR1)
-          GOTO 400
-        ELSE
-          CALL SWBROADC(ARR,MXG(IGR1)*MYG(IGR1),SWREAL)                   40.31 40.30
-        ENDIF
-      ELSE                                                                40.13
-        IF (ITEST.GE.20) THEN                                             40.13
-          CALL MSGERR (1,
-     &    'no read of input field because unit nr=0')                     40.13
-          WRITE (PRINTF, 208) IGR1
- 208      FORMAT (' field nr.', I2)
-        ENDIF
-      ENDIF                                                               40.03
-      IF (IGR2.GT.0) THEN
-        IFLTIM(IGR2) = IFLTIM(IGR1)
-        IF (IFLNDS(IGR2).GT.0) THEN                                       40.03
-          IF (INODE.EQ.MASTER) THEN                                       40.30
-             CALL INAR2D( ARR2, MXG(IGR2), MYG(IGR2),                     40.31 40.02
-     &                    IFLNDF(IGR2),
-     &                    IFLNDS(IGR2), IFLIFM(IGR2), IFLFRM(IGR2),
-     &                    IFLIDL(IGR2), IFLFAC(IGR2), IFLNHD(IGR2), 0)
-             IF (STPNOW()) RETURN                                         34.01
-          END IF
-          CALL SWBROADC(ARR2,MXG(IGR2)*MYG(IGR2),SWREAL)                  40.31 40.30
-        ENDIF                                                             40.03
+         IFLTIM(IGR1) = 1.E10
+         IF (IGR2.GT.0) IFLTIM(IGR2) = IFLTIM(IGR1)
+         GOTO 400
+      ELSE
+         CALL SWBROADC(ARR,MXG(IGR1)*MYG(IGR1),SWREAL)
       ENDIF
+   ELSE
+      IF (ITEST.GE.20) THEN
+         CALL MSGERR (1, &
+            'no read of input field because unit nr=0')
+         WRITE (PRINTF, 208) IGR1
+208      FORMAT (' field nr.', I2)
+      ENDIF
+   ENDIF
+   IF (IGR2.GT.0) THEN
+      IFLTIM(IGR2) = IFLTIM(IGR1)
+      IF (IFLNDS(IGR2).GT.0) THEN
+         IF (INODE.EQ.MASTER) THEN
+            CALL INAR2D( ARR2, MXG(IGR2), MYG(IGR2), &
+                         IFLNDF(IGR2), &
+                         IFLNDS(IGR2), IFLIFM(IGR2), IFLFRM(IGR2), &
+                         IFLIDL(IGR2), IFLFAC(IGR2), IFLNHD(IGR2), 0)
+            IF (STPNOW()) RETURN
+         END IF
+         CALL SWBROADC(ARR2,MXG(IGR2)*MYG(IGR2),SWREAL)
+      ENDIF
+   ENDIF
 !     Interpolation over the computational grid
 !     structured grid
-      DO 230 IX = 1, MXC
-        DO 240 IY = 1, MYC
-          INDX = KGRPNT(IX,IY)
-          IF (INDX.GT.1) THEN                                             40.00
+   DO 230 IX = 1, MXC
+      DO 240 IY = 1, MYC
+         INDX = KGRPNT(IX,IY)
+         IF (INDX.GT.1) THEN
             XP = XCGRID(IX,IY)
             YP = YCGRID(IX,IY)
-            UU = SVALQI (XP, YP, IGR1, ARR, 0, IX, IY)                    40.31 30.90
+            UU = SVALQI (XP, YP, IGR1, ARR, 0, IX, IY)
             IF (IGR2.EQ.0) THEN
-              COMPDA(INDX,JX3) = UU
+               COMPDA(INDX,JX3) = UU
             ELSE
-              VV = SVALQI (XP, YP, IGR2, ARR2, 0, IX, IY)                 40.31 30.90
-              COMPDA(INDX,JX3) =  UU*COSFC + VV*SINFC
-              COMPDA(INDX,JY3) = -UU*SINFC + VV*COSFC
+               VV = SVALQI (XP, YP, IGR2, ARR2, 0, IX, IY)
+               COMPDA(INDX,JX3) =  UU*COSFC + VV*SINFC
+               COMPDA(INDX,JY3) = -UU*SINFC + VV*COSFC
             ENDIF
-          ENDIF
- 240    CONTINUE
- 230  CONTINUE
+         ENDIF
+240   CONTINUE
+230 CONTINUE
 !     unstructured grid
-      DO INDX = 1, nverts                                                 40.80
-         XP = xcugrd(INDX)
-         YP = ycugrd(INDX)
-         IF (.NOT.PARLL) THEN
-            JVERT=INDX
+   DO INDX = 1, nverts
+      XP = xcugrd(INDX)
+      YP = ycugrd(INDX)
+      IF (.NOT.PARLL) THEN
+         JVERT=INDX
+      ELSE
+         JVERT=ivertg(INDX)
+      ENDIF
+      IF ( IGTYPE(IGR1).EQ.3 ) THEN
+         UU = ARR(JVERT)
+      ELSE
+         UU = SVALQI (XP, YP, IGR1, ARR, 0, 0, 0)
+      ENDIF
+      IF (IGR2.EQ.0) THEN
+         COMPDA(INDX,JX3) = UU
+      ELSE
+         IF ( IGTYPE(IGR2).EQ.3 ) THEN
+            VV = ARR2(JVERT)
          ELSE
-            JVERT=ivertg(INDX)
+            VV = SVALQI (XP, YP, IGR2, ARR2, 0, 0, 0)
          ENDIF
-         IF ( IGTYPE(IGR1).EQ.3 ) THEN
-            UU = ARR(JVERT)
-         ELSE
-            UU = SVALQI (XP, YP, IGR1, ARR, 0, 0, 0)
-         ENDIF
-         IF (IGR2.EQ.0) THEN
-            COMPDA(INDX,JX3) = UU
-         ELSE
-            IF ( IGTYPE(IGR2).EQ.3 ) THEN
-               VV = ARR2(JVERT)
-            ELSE
-               VV = SVALQI (XP, YP, IGR2, ARR2, 0, 0, 0)
-            ENDIF
-            COMPDA(INDX,JX3) =  UU*COSFC + VV*SINFC
-            COMPDA(INDX,JY3) = -UU*SINFC + VV*COSFC
-         ENDIF
-      ENDDO                                                               40.80
-      GOTO 200
+         COMPDA(INDX,JX3) =  UU*COSFC + VV*SINFC
+         COMPDA(INDX,JY3) = -UU*SINFC + VV*COSFC
+      ENDIF
+   ENDDO
+   GOTO 200
 !
 !         Interpolation in time
 !
- 400  FAC = (TIMCO-TIMR1) / (IFLTIM(IGR1)-TIMR1)
-      W3 = REAL(FAC)
-      W1 = 1.-W3
-      IF (ITEST.GE.60) WRITE(PRTEST,402) IGR1,
-     &        TIMCO,IFLTIM(IGR1),W1,W3,JX1,JY1,JX2,JY2,JX3,JY3
- 402  FORMAT (' input field', I2, ' interp at ', 2F9.0, 2F8.3, 6I3)
-      DO 500 INDX = 1, MCGRD
-        UU = W1 * COMPDA(INDX,JX2) + W3 * COMPDA(INDX,JX3)
-        IF (IGR2.LE.0) THEN
-          COMPDA(INDX,JX2) = UU
-        ELSE
-          VV = W1 * COMPDA(INDX,JY2) + W3 * COMPDA(INDX,JY3)
-          VTOT = SQRT (UU*UU + VV*VV)
+400 FAC = (TIMCO-TIMR1) / (IFLTIM(IGR1)-TIMR1)
+   W3 = REAL(FAC)
+   W1 = 1.-W3
+   IF (ITEST.GE.60) WRITE(PRTEST,402) IGR1, &
+           TIMCO,IFLTIM(IGR1),W1,W3,JX1,JY1,JX2,JY2,JX3,JY3
+402 FORMAT (' input field', I2, ' interp at ', 2F9.0, 2F8.3, 6I3)
+   DO 500 INDX = 1, MCGRD
+      UU = W1 * COMPDA(INDX,JX2) + W3 * COMPDA(INDX,JX3)
+      IF (IGR2.LE.0) THEN
+         COMPDA(INDX,JX2) = UU
+      ELSE
+         VV = W1 * COMPDA(INDX,JY2) + W3 * COMPDA(INDX,JY3)
+         VTOT = SQRT (UU*UU + VV*VV)
 !
 !         procedure to prevent loss of magnitude due to interpolation
 !
-          IF (VTOT.GT.0.) THEN
+         IF (VTOT.GT.0.) THEN
             SIZE1 = SQRT(COMPDA(INDX,JX2)**2 + COMPDA(INDX,JY2)**2)
             SIZE3 = SQRT(COMPDA(INDX,JX3)**2 + COMPDA(INDX,JY3)**2)
             SIZE2 = W1*SIZE1 + W3*SIZE3
 !           SIZE2 is to be length of vector
             COMPDA(INDX,JX2) = SIZE2*UU/VTOT
             COMPDA(INDX,JY2) = SIZE2*VV/VTOT
-          ELSE
+         ELSE
             COMPDA(INDX,JX2) = UU
             COMPDA(INDX,JY2) = VV
-          ENDIF
-        ENDIF
- 500  CONTINUE
-      RETURN
+         ENDIF
+      ENDIF
+500 CONTINUE
+   RETURN
 !
 !     End of subroutine FLFILE
-      END
+END
 !
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE SWINCO (AC2    ,COMPDA ,
-     &                   XCGRID ,YCGRID ,                                 30.72
-     &                   KGRPNT ,SPCDIR ,
-     &                   SPCSIG ,XYTST   )                                30.72
+SUBROUTINE SWINCO (AC2    ,COMPDA , &
+                   XCGRID ,YCGRID , &
+                   KGRPNT ,SPCDIR , &
+                   SPCSIG ,XYTST   )
 !                                                                      *
 !***********************************************************************
 !
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
-      USE M_PARALL                                                        40.31
-      USE SwanGriddata                                                    40.80
+   USE OCPCOMM4
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
+   USE M_PARALL
+   USE SwanGriddata
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -8961,9 +8960,9 @@
 ! i   XCGRID: Coordinates of computational grid in x-direction            30.72
 ! i   YCGRID: Coordinates of computational grid in y-direction            30.72
 !
-      REAL    SPCDIR(MDC,6)                                               30.82
-      REAL    SPCSIG(MSC)                                                 30.72
-      REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)                         30.72
+   REAL    SPCDIR(MDC,6)
+   REAL    SPCSIG(MSC)
+   REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
 !
 !     AC2        real  i/o   action density spectra
 !     COMPDA     real  inp   quantities in comp grid points
@@ -8976,7 +8975,7 @@
 !     TPDLSS: Dimensionless peak period
 !     HSDLSS: Dimensionless significant wave height
 !
-      REAL    FDLSS,  TPDLSS, HSDLSS                                      30.80
+   REAL    FDLSS,  TPDLSS, HSDLSS
 !
 !  7. Common blocks used
 !
@@ -8987,138 +8986,79 @@
 !
 ! 10. SOURCE TEXT
 !
-      REAL     COMPDA(MCGRD,MCMVAR)
+   REAL     COMPDA(MCGRD,MCMVAR)
 !
-      REAL     AC2(MDC,MSC,MCGRD)
+   REAL     AC2(MDC,MSC,MCGRD)
 !
-      INTEGER  KGRPNT(MXC,MYC), XYTST(*)                                  30.70
+   INTEGER  KGRPNT(MXC,MYC), XYTST(*)
 !
-      LOGICAL  INTERN
-      SAVE IENT
-      DATA IENT/0/
-      CALL STRACE(IENT,'SWINCO')
+   LOGICAL  INTERN
+   SAVE IENT
+   DATA IENT/0/
+   CALL STRACE(IENT,'SWINCO')
 !
 !     *** Fetch Computation 'the mean delta' ***
-      IF (KSPHER.EQ.0) THEN
-        TLEN  = (XCLEN + YCLEN)/2.
-      ELSE
-        COSYG = COS (DEGRAD * (YOFFS + 0.5*(YCGMIN+YCGMAX)))              33.09
-        TLEN  = LENDEG * (COSYG*XCLEN + YCLEN)/2.
-      ENDIF
-      TDXY  = FLOAT(MXCGL + MYCGL)/2.                                     40.31
-      IF ( nvertsg.NE.0 ) TDXY = FLOAT(nvertsg)                           40.95 40.80
+   IF (KSPHER.EQ.0) THEN
+      TLEN  = (XCLEN + YCLEN)/2.
+   ELSE
+      COSYG = COS (DEGRAD * (YOFFS + 0.5*(YCGMIN+YCGMAX)))
+      TLEN  = LENDEG * (COSYG*XCLEN + YCLEN)/2.
+   ENDIF
+   TDXY  = FLOAT(MXCGL + MYCGL)/2.
+   IF ( nvertsg.NE.0 ) TDXY = FLOAT(nvertsg)
 !
-      FETCH = TLEN/TDXY
-      SY0   = 3.3                                                         30.70
-      IF (ITEST.GE.60 .OR. NPTST.GT.0) WRITE (PRTEST, 62) FETCH           30.70
-  62  FORMAT (' test SWINCO, fetch:', E12.4)                              30.70
+   FETCH = TLEN/TDXY
+   SY0   = 3.3
+   IF (ITEST.GE.60 .OR. NPTST.GT.0) WRITE (PRTEST, 62) FETCH
+62 FORMAT (' test SWINCO, fetch:', E12.4)
 !
 !     --- structured grid
 !
-      IF (ONED) THEN                                                      40.13
-        IY1 = 1                                                           40.13
-        IY2 = 1                                                           40.13
-      ELSE                                                                40.13
-        IY1 = 2                                                           40.13
-        IY2 = MYC-1                                                       40.13
-      ENDIF                                                               40.13
-      DO IX = 2, MXC-1                                                    40.00
-        DO IY = IY1, IY2                                                  40.13
+   IF (ONED) THEN
+      IY1 = 1
+      IY2 = 1
+   ELSE
+      IY1 = 2
+      IY2 = MYC-1
+   ENDIF
+   DO IX = 2, MXC-1
+      DO IY = IY1, IY2
 !         check if the point is a true internal point                     40.00
-          INTERN = .TRUE.
-          INX = KGRPNT(IX-1,IY)                                           40.00
-          IF (INX.LE.1) INTERN = .FALSE.                                  40.00
-          INX = KGRPNT(IX+1,IY)                                           40.00
-          IF (INX.LE.1) INTERN = .FALSE.                                  40.00
-          IF (.NOT.ONED) THEN                                             40.13
-            INX = KGRPNT(IX,IY-1)                                         40.00
-            IF (INX.LE.1) INTERN = .FALSE.                                40.00
-            INX = KGRPNT(IX,IY+1)                                         40.00
-            IF (INX.LE.1) INTERN = .FALSE.                                40.00
-          ENDIF                                                           40.13
-          INX = KGRPNT(IX,IY)                                             30.70
-          IF (INX.LE.1) INTERN = .FALSE.                                  40.00
-          IF (INTERN) THEN                                                40.00
-            TESTFL = .FALSE.                                              30.70
-            DO IPTST = 1, NPTST                                           30.70
-              IF (IX.EQ.XYTST(2*IPTST-1) .AND.                            30.70
-     &            IY.EQ.XYTST(2*IPTST)) TESTFL = .TRUE.                   30.70
-            ENDDO                                                         30.70
-!
-            IF (VARWI) THEN
-              WX  = COMPDA(INX,JWX2)
-              WY  = COMPDA(INX,JWY2)
-!
-!             *** Local wind speed and direction ***
-              WSLOC = SQRT(WX*WX + WY*WY)
-              IF (WX .NE. 0. .OR. WY .NE. 0.) THEN
-                WDLOC = ATAN2(WY,WX)
-              ELSE
-                WDLOC = 0.
-              ENDIF
-            ELSE
-!             uniform wind field
-              WSLOC = U10                                                 30.60
-              WDLOC = WDIP                                                30.60
-            ENDIF
-!
-            IF (WSLOC .GT. 1.E-10) THEN                                   30.60
-!
-! Dimensionless Hs and Tp calculated according to K.K. Kahma & C.J. Calkoen,
-! (JPO, 1992) and Pierson-Moskowitz for limit values.
-!
-!             calculate dimensionless fetch:
-              FDLSS = GRAV * FETCH / (WSLOC*WSLOC)                        30.82
-!
-!             calculate dimensionless significant wave height:
-              HSDLSS = MIN (0.21, 0.00288*FDLSS**0.45)                    40.00
-              SPPARM(1) = HSDLSS * WSLOC**2 / GRAV                        40.00
-!             calculate dimensionless peak period:
-              TPDLSS = MIN (1./0.13, 0.46*FDLSS**0.27)                    40.00
-              SPPARM(2) = WSLOC * TPDLSS / GRAV                           40.00
-              IF (SPPARM(1).LT.0.05) SPPARM(2) = 2.                       40.51
-              SPPARM(3) = 180. * WDLOC / PI
-              SPPARM(4) = 2.
-              IF (TESTFL) WRITE (PRTEST, 65) XCGRID(IX,IY),               30.70
-     &        YCGRID(IX,IY), FDLSS, (SPPARM(JJ), JJ = 1, 3)               30.70
-  65          FORMAT (' test point ',6(1X,E12.4))                         30.70
-            ELSE
-              SPPARM(1) = 0.02
-              SPPARM(2) = 2.                                              40.51
-              SPPARM(3) = 0.
-              SPPARM(4) = 0.
-            ENDIF
-            CALL SSHAPE (AC2(1,1,INX), SPCSIG, SPCDIR, 2, 2)              40.00
-!
-          ENDIF
-        ENDDO
-      ENDDO
-!
-!     --- unstructured grid
-!
-      DO INX = 1, nverts                                                  40.80
-!        internal, exception and ghost vertices only
-         IF ( vmark(INX) == 0 .or. vmark(INX) >= excmark ) THEN           43.01 40.95
+         INTERN = .TRUE.
+         INX = KGRPNT(IX-1,IY)
+         IF (INX.LE.1) INTERN = .FALSE.
+         INX = KGRPNT(IX+1,IY)
+         IF (INX.LE.1) INTERN = .FALSE.
+         IF (.NOT.ONED) THEN
+            INX = KGRPNT(IX,IY-1)
+            IF (INX.LE.1) INTERN = .FALSE.
+            INX = KGRPNT(IX,IY+1)
+            IF (INX.LE.1) INTERN = .FALSE.
+         ENDIF
+         INX = KGRPNT(IX,IY)
+         IF (INX.LE.1) INTERN = .FALSE.
+         IF (INTERN) THEN
             TESTFL = .FALSE.
             DO IPTST = 1, NPTST
-              IF (INX.EQ.XYTST(IPTST)) TESTFL = .TRUE.
+               IF (IX.EQ.XYTST(2*IPTST-1) .AND. &
+                   IY.EQ.XYTST(2*IPTST)) TESTFL = .TRUE.
             ENDDO
 !
             IF (VARWI) THEN
-              WX = COMPDA(INX,JWX2)
-              WY = COMPDA(INX,JWY2)
+               WX  = COMPDA(INX,JWX2)
+               WY  = COMPDA(INX,JWY2)
 !
 !             *** Local wind speed and direction ***
-              WSLOC = SQRT(WX*WX + WY*WY)
-              IF (WX .NE. 0. .OR. WY .NE. 0.) THEN
-                WDLOC = ATAN2(WY,WX)
-              ELSE
-                WDLOC = 0.
-              ENDIF
+               WSLOC = SQRT(WX*WX + WY*WY)
+               IF (WX .NE. 0. .OR. WY .NE. 0.) THEN
+                  WDLOC = ATAN2(WY,WX)
+               ELSE
+                  WDLOC = 0.
+               ENDIF
             ELSE
 !             uniform wind field
-              WSLOC = U10
-              WDLOC = WDIP
+               WSLOC = U10
+               WDLOC = WDIP
             ENDIF
 !
             IF (WSLOC .GT. 1.E-10) THEN
@@ -9127,55 +9067,114 @@
 ! (JPO, 1992) and Pierson-Moskowitz for limit values.
 !
 !             calculate dimensionless fetch:
-              FDLSS = GRAV * FETCH / (WSLOC*WSLOC)
+               FDLSS = GRAV * FETCH / (WSLOC*WSLOC)
 !
 !             calculate dimensionless significant wave height:
-              HSDLSS = MIN (0.21, 0.00288*FDLSS**0.45)
-              SPPARM(1) = HSDLSS * WSLOC**2 / GRAV
+               HSDLSS = MIN (0.21, 0.00288*FDLSS**0.45)
+               SPPARM(1) = HSDLSS * WSLOC**2 / GRAV
 !             calculate dimensionless peak period:
-              TPDLSS = MIN (1./0.13, 0.46*FDLSS**0.27)
-              SPPARM(2) = WSLOC * TPDLSS / GRAV
-              IF (SPPARM(1).LT.0.05) SPPARM(2) = 2.
-              SPPARM(3) = 180. * WDLOC / PI
-              SPPARM(4) = 2.
-              IF (TESTFL) WRITE (PRTEST, 65) xcugrd(INX),
-     &        ycugrd(INX), FDLSS, (SPPARM(JJ), JJ = 1, 3)
+               TPDLSS = MIN (1./0.13, 0.46*FDLSS**0.27)
+               SPPARM(2) = WSLOC * TPDLSS / GRAV
+               IF (SPPARM(1).LT.0.05) SPPARM(2) = 2.
+               SPPARM(3) = 180. * WDLOC / PI
+               SPPARM(4) = 2.
+               IF (TESTFL) WRITE (PRTEST, 65) XCGRID(IX,IY), &
+                  YCGRID(IX,IY), FDLSS, (SPPARM(JJ), JJ = 1, 3)
+65             FORMAT (' test point ',6(1X,E12.4))
             ELSE
-              SPPARM(1) = 0.02
-              SPPARM(2) = 2.
-              SPPARM(3) = 0.
-              SPPARM(4) = 0.
+               SPPARM(1) = 0.02
+               SPPARM(2) = 2.
+               SPPARM(3) = 0.
+               SPPARM(4) = 0.
             ENDIF
             CALL SSHAPE (AC2(1,1,INX), SPCSIG, SPCDIR, 2, 2)
 !
          ENDIF
       ENDDO
+   ENDDO
 !
-      RETURN
+!     --- unstructured grid
+!
+   DO INX = 1, nverts
+!        internal, exception and ghost vertices only
+      IF ( vmark(INX) == 0 .or. vmark(INX) >= excmark ) THEN
+         TESTFL = .FALSE.
+         DO IPTST = 1, NPTST
+            IF (INX.EQ.XYTST(IPTST)) TESTFL = .TRUE.
+         ENDDO
+!
+         IF (VARWI) THEN
+            WX = COMPDA(INX,JWX2)
+            WY = COMPDA(INX,JWY2)
+!
+!             *** Local wind speed and direction ***
+            WSLOC = SQRT(WX*WX + WY*WY)
+            IF (WX .NE. 0. .OR. WY .NE. 0.) THEN
+               WDLOC = ATAN2(WY,WX)
+            ELSE
+               WDLOC = 0.
+            ENDIF
+         ELSE
+!             uniform wind field
+            WSLOC = U10
+            WDLOC = WDIP
+         ENDIF
+!
+         IF (WSLOC .GT. 1.E-10) THEN
+!
+! Dimensionless Hs and Tp calculated according to K.K. Kahma & C.J. Calkoen,
+! (JPO, 1992) and Pierson-Moskowitz for limit values.
+!
+!             calculate dimensionless fetch:
+            FDLSS = GRAV * FETCH / (WSLOC*WSLOC)
+!
+!             calculate dimensionless significant wave height:
+            HSDLSS = MIN (0.21, 0.00288*FDLSS**0.45)
+            SPPARM(1) = HSDLSS * WSLOC**2 / GRAV
+!             calculate dimensionless peak period:
+            TPDLSS = MIN (1./0.13, 0.46*FDLSS**0.27)
+            SPPARM(2) = WSLOC * TPDLSS / GRAV
+            IF (SPPARM(1).LT.0.05) SPPARM(2) = 2.
+            SPPARM(3) = 180. * WDLOC / PI
+            SPPARM(4) = 2.
+            IF (TESTFL) WRITE (PRTEST, 65) xcugrd(INX), &
+               ycugrd(INX), FDLSS, (SPPARM(JJ), JJ = 1, 3)
+         ELSE
+            SPPARM(1) = 0.02
+            SPPARM(2) = 2.
+            SPPARM(3) = 0.
+            SPPARM(4) = 0.
+         ENDIF
+         CALL SSHAPE (AC2(1,1,INX), SPCSIG, SPCDIR, 2, 2)
+!
+      ENDIF
+   ENDDO
+!
+   RETURN
 ! * end of subroutine SWINCO *
-      END
+END
 !****************************************************************
 !
-      SUBROUTINE SWCLME
+SUBROUTINE SWCLME
 !
 !****************************************************************
 !
-      USE M_WCAP
-      USE OUTP_DATA                                                       41.78
-      USE M_SNL4
-      USE M_SNL3                                                          42.01
-      USE M_BNDSPEC                                                       41.78
-      USE M_GENARR
-      USE M_PARALL
-      USE M_DIFFR
-      USE SwanGriddata
-      USE SwanCompdata
-      USE SwanIEM                                                         41.85
-      USE SwanBraggScat                                                   41.80
-      USE SwanQCM                                                         41.90
-!METIS      USE SwanParallel
+   USE M_WCAP
+   USE OUTP_DATA
+   USE M_SNL4
+   USE M_SNL3
+   USE M_BNDSPEC
+   USE M_GENARR
+   USE M_PARALL
+   USE M_DIFFR
+   USE SwanGriddata
+   USE SwanCompdata
+   USE SwanIEM
+   USE SwanBraggScat
+   USE SwanQCM
+!METIS   USE SwanParallel
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -9232,112 +9231,112 @@
 !
 ! 13. Source text
 !
-      IF (ALLOCATED(SIGPOW))   DEALLOCATE(SIGPOW)
-      IF (ALLOCATED(AF11  ))   DEALLOCATE(AF11  )
-      IF (ALLOCATED(CNL4_1))   DEALLOCATE(CNL4_1)
-      IF (ALLOCATED(CNL4_2))   DEALLOCATE(CNL4_2)
-      IF (ALLOCATED(LAMBDA))   DEALLOCATE(LAMBDA)
-      IF (ALLOCATED(KGRPNT))   DEALLOCATE(KGRPNT)
-      IF (ALLOCATED(KGRBND))   DEALLOCATE(KGRBND)
-      IF (ALLOCATED(XYTST ))   DEALLOCATE(XYTST )
-      IF (ALLOCATED(AC2   ))   DEALLOCATE(AC2   )
-      IF (ALLOCATED(XCGRID))   DEALLOCATE(XCGRID)
-      IF (ALLOCATED(YCGRID))   DEALLOCATE(YCGRID)
-      IF (ALLOCATED(SPCSIG))   DEALLOCATE(SPCSIG)
-      IF (ALLOCATED(SPCDIR))   DEALLOCATE(SPCDIR)
-      IF (ALLOCATED(DEPTH ))   DEALLOCATE(DEPTH )
-      IF (ALLOCATED(FRIC  ))   DEALLOCATE(FRIC  )
-      IF (ALLOCATED(UXB   ))   DEALLOCATE(UXB   )
-      IF (ALLOCATED(UYB   ))   DEALLOCATE(UYB   )
-      IF (ALLOCATED(WXI   ))   DEALLOCATE(WXI   )
-      IF (ALLOCATED(WYI   ))   DEALLOCATE(WYI   )
-      IF (ALLOCATED(WLEVL ))   DEALLOCATE(WLEVL )
-      IF (ALLOCATED(ASTDF ))   DEALLOCATE(ASTDF )
-      IF (ALLOCATED(IBLKAD))   DEALLOCATE(IBLKAD)
-      IF (ALLOCATED(XGRDGL))   DEALLOCATE(XGRDGL)
-      IF (ALLOCATED(YGRDGL))   DEALLOCATE(YGRDGL)
-      IF (ALLOCATED(KGRPGL))   DEALLOCATE(KGRPGL)
-      IF (ALLOCATED(KGRBGL))   DEALLOCATE(KGRBGL)
-      IF (ALLOCATED(DIFPARAM)) DEALLOCATE(DIFPARAM)
-      IF (ALLOCATED(DIFPARDX)) DEALLOCATE(DIFPARDX)
-      IF (ALLOCATED(DIFPARDY)) DEALLOCATE(DIFPARDY)
-      IF (ALLOCATED(MUDLF ))   DEALLOCATE(MUDLF )
-      IF (ALLOCATED(AICEF ))   DEALLOCATE(AICEF )
-      IF (ALLOCATED(HICEF ))   DEALLOCATE(HICEF )
-      IF (ALLOCATED(NPLAF ))   DEALLOCATE(NPLAF )
-      IF (ALLOCATED(LAYH  ))   DEALLOCATE(LAYH  )
-      IF (ALLOCATED(VEGDIL))   DEALLOCATE(VEGDIL)
-      IF (ALLOCATED(VEGNSL))   DEALLOCATE(VEGNSL)
-      IF (ALLOCATED(VEGDRL))   DEALLOCATE(VEGDRL)
-      IF (ALLOCATED(TURBF ))   DEALLOCATE(TURBF )
-      IF (ALLOCATED(HSSF  ))   DEALLOCATE(HSSF  )
-      IF (ALLOCATED(TSSF  ))   DEALLOCATE(TSSF  )
-      IF (ALLOCATED(DSSF  ))   DEALLOCATE(DSSF  )
-      IF (ALLOCATED(BPHTMP))   DEALLOCATE(BPHTMP)
-      IF (ALLOCATED(QTRI1 ))   DEALLOCATE(QTRI1 )
-      IF (ALLOCATED(QTRI2 ))   DEALLOCATE(QTRI2 )
+   IF (ALLOCATED(SIGPOW))   DEALLOCATE(SIGPOW)
+   IF (ALLOCATED(AF11  ))   DEALLOCATE(AF11  )
+   IF (ALLOCATED(CNL4_1))   DEALLOCATE(CNL4_1)
+   IF (ALLOCATED(CNL4_2))   DEALLOCATE(CNL4_2)
+   IF (ALLOCATED(LAMBDA))   DEALLOCATE(LAMBDA)
+   IF (ALLOCATED(KGRPNT))   DEALLOCATE(KGRPNT)
+   IF (ALLOCATED(KGRBND))   DEALLOCATE(KGRBND)
+   IF (ALLOCATED(XYTST ))   DEALLOCATE(XYTST )
+   IF (ALLOCATED(AC2   ))   DEALLOCATE(AC2   )
+   IF (ALLOCATED(XCGRID))   DEALLOCATE(XCGRID)
+   IF (ALLOCATED(YCGRID))   DEALLOCATE(YCGRID)
+   IF (ALLOCATED(SPCSIG))   DEALLOCATE(SPCSIG)
+   IF (ALLOCATED(SPCDIR))   DEALLOCATE(SPCDIR)
+   IF (ALLOCATED(DEPTH ))   DEALLOCATE(DEPTH )
+   IF (ALLOCATED(FRIC  ))   DEALLOCATE(FRIC  )
+   IF (ALLOCATED(UXB   ))   DEALLOCATE(UXB   )
+   IF (ALLOCATED(UYB   ))   DEALLOCATE(UYB   )
+   IF (ALLOCATED(WXI   ))   DEALLOCATE(WXI   )
+   IF (ALLOCATED(WYI   ))   DEALLOCATE(WYI   )
+   IF (ALLOCATED(WLEVL ))   DEALLOCATE(WLEVL )
+   IF (ALLOCATED(ASTDF ))   DEALLOCATE(ASTDF )
+   IF (ALLOCATED(IBLKAD))   DEALLOCATE(IBLKAD)
+   IF (ALLOCATED(XGRDGL))   DEALLOCATE(XGRDGL)
+   IF (ALLOCATED(YGRDGL))   DEALLOCATE(YGRDGL)
+   IF (ALLOCATED(KGRPGL))   DEALLOCATE(KGRPGL)
+   IF (ALLOCATED(KGRBGL))   DEALLOCATE(KGRBGL)
+   IF (ALLOCATED(DIFPARAM)) DEALLOCATE(DIFPARAM)
+   IF (ALLOCATED(DIFPARDX)) DEALLOCATE(DIFPARDX)
+   IF (ALLOCATED(DIFPARDY)) DEALLOCATE(DIFPARDY)
+   IF (ALLOCATED(MUDLF ))   DEALLOCATE(MUDLF )
+   IF (ALLOCATED(AICEF ))   DEALLOCATE(AICEF )
+   IF (ALLOCATED(HICEF ))   DEALLOCATE(HICEF )
+   IF (ALLOCATED(NPLAF ))   DEALLOCATE(NPLAF )
+   IF (ALLOCATED(LAYH  ))   DEALLOCATE(LAYH  )
+   IF (ALLOCATED(VEGDIL))   DEALLOCATE(VEGDIL)
+   IF (ALLOCATED(VEGNSL))   DEALLOCATE(VEGNSL)
+   IF (ALLOCATED(VEGDRL))   DEALLOCATE(VEGDRL)
+   IF (ALLOCATED(TURBF ))   DEALLOCATE(TURBF )
+   IF (ALLOCATED(HSSF  ))   DEALLOCATE(HSSF  )
+   IF (ALLOCATED(TSSF  ))   DEALLOCATE(TSSF  )
+   IF (ALLOCATED(DSSF  ))   DEALLOCATE(DSSF  )
+   IF (ALLOCATED(BPHTMP))   DEALLOCATE(BPHTMP)
+   IF (ALLOCATED(QTRI1 ))   DEALLOCATE(QTRI1 )
+   IF (ALLOCATED(QTRI2 ))   DEALLOCATE(QTRI2 )
 !
-      IF (ALLOCATED(xcugrd  )) DEALLOCATE(xcugrd  )
-      IF (ALLOCATED(ycugrd  )) DEALLOCATE(ycugrd  )
-      IF (ALLOCATED(xcugrdgl)) DEALLOCATE(xcugrdgl)
-      IF (ALLOCATED(ycugrdgl)) DEALLOCATE(ycugrdgl)
-      IF (ALLOCATED(ivertg  )) DEALLOCATE(ivertg  )
-      IF (ALLOCATED( vmark  )) DEALLOCATE( vmark  )
-      IF (ALLOCATED( vlist  )) DEALLOCATE( vlist  )
-      IF (ALLOCATED( blist  )) DEALLOCATE( blist  )
-      IF (ALLOCATED(bvertg  )) DEALLOCATE(bvertg  )
-      IF (ALLOCATED( bmark  )) DEALLOCATE( bmark  )
-!GRAPH      IF (ALLOCATED( flist  )) DEALLOCATE( flist  )
-!GRAPH      IF (ALLOCATED(  fptr  )) DEALLOCATE(  fptr  )
-!FXFRO      IF (ALLOCATED(fronts  )) DEALLOCATE(fronts  )
-!FXFRO      IF (ALLOCATED(fronte  )) DEALLOCATE(fronte  )
-!GRAPH      IF (ALLOCATED(nfront  )) DEALLOCATE(nfront  )
+   IF (ALLOCATED(xcugrd  )) DEALLOCATE(xcugrd  )
+   IF (ALLOCATED(ycugrd  )) DEALLOCATE(ycugrd  )
+   IF (ALLOCATED(xcugrdgl)) DEALLOCATE(xcugrdgl)
+   IF (ALLOCATED(ycugrdgl)) DEALLOCATE(ycugrdgl)
+   IF (ALLOCATED(ivertg  )) DEALLOCATE(ivertg  )
+   IF (ALLOCATED( vmark  )) DEALLOCATE( vmark  )
+   IF (ALLOCATED( vlist  )) DEALLOCATE( vlist  )
+   IF (ALLOCATED( blist  )) DEALLOCATE( blist  )
+   IF (ALLOCATED(bvertg  )) DEALLOCATE(bvertg  )
+   IF (ALLOCATED( bmark  )) DEALLOCATE( bmark  )
+!GRAPH   IF (ALLOCATED( flist  )) DEALLOCATE( flist  )
+!GRAPH   IF (ALLOCATED(  fptr  )) DEALLOCATE(  fptr  )
+!FXFRO   IF (ALLOCATED(fronts  )) DEALLOCATE(fronts  )
+!FXFRO   IF (ALLOCATED(fronte  )) DEALLOCATE(fronte  )
+!GRAPH   IF (ALLOCATED(nfront  )) DEALLOCATE(nfront  )
 !
-!METIS      IF (ALLOCATED(ipown   )) DEALLOCATE(ipown   )
-!METIS      IF (ALLOCATED(vres    )) DEALLOCATE(vres    )
-!METIS      IF (ALLOCATED(vsubcm  )) DEALLOCATE(vsubcm  )
-!METIS      IF (ALLOCATED(nvrecv  )) DEALLOCATE(nvrecv  )
-!METIS      IF (ALLOCATED(nvsend  )) DEALLOCATE(nvsend  )
-!METIS      IF (ALLOCATED(ivrecv  )) DEALLOCATE(ivrecv  )
-!METIS      IF (ALLOCATED(ivsend  )) DEALLOCATE(ivsend  )
-!METIS      IF (ALLOCATED(rrqst   )) DEALLOCATE(rrqst   )
-!METIS      IF (ALLOCATED(srqst   )) DEALLOCATE(srqst   )
-!METIS      IF (ALLOCATED(irbuf   )) DEALLOCATE(irbuf   )
-!METIS      IF (ALLOCATED(isbuf   )) DEALLOCATE(isbuf   )
-!METIS      IF (ALLOCATED( rbuf   )) DEALLOCATE( rbuf   )
-!METIS      IF (ALLOCATED( sbuf   )) DEALLOCATE( sbuf   )
+!METIS   IF (ALLOCATED(ipown   )) DEALLOCATE(ipown   )
+!METIS   IF (ALLOCATED(vres    )) DEALLOCATE(vres    )
+!METIS   IF (ALLOCATED(vsubcm  )) DEALLOCATE(vsubcm  )
+!METIS   IF (ALLOCATED(nvrecv  )) DEALLOCATE(nvrecv  )
+!METIS   IF (ALLOCATED(nvsend  )) DEALLOCATE(nvsend  )
+!METIS   IF (ALLOCATED(ivrecv  )) DEALLOCATE(ivrecv  )
+!METIS   IF (ALLOCATED(ivsend  )) DEALLOCATE(ivsend  )
+!METIS   IF (ALLOCATED(rrqst   )) DEALLOCATE(rrqst   )
+!METIS   IF (ALLOCATED(srqst   )) DEALLOCATE(srqst   )
+!METIS   IF (ALLOCATED(irbuf   )) DEALLOCATE(irbuf   )
+!METIS   IF (ALLOCATED(isbuf   )) DEALLOCATE(isbuf   )
+!METIS   IF (ALLOCATED( rbuf   )) DEALLOCATE( rbuf   )
+!METIS   IF (ALLOCATED( sbuf   )) DEALLOCATE( sbuf   )
 !
-      IF (ALLOCATED( fb     )) DEALLOCATE( fb     )
-      IF (ALLOCATED( fbdxy  )) DEALLOCATE( fbdxy  )
+   IF (ALLOCATED( fb     )) DEALLOCATE( fb     )
+   IF (ALLOCATED( fbdxy  )) DEALLOCATE( fbdxy  )
 !
-      IF (ALLOCATED( kx     )) DEALLOCATE( kx     )
-      IF (ALLOCATED( ky     )) DEALLOCATE( ky     )
-      IF (ALLOCATED( xpsc   )) DEALLOCATE( xpsc   )
-      IF (ALLOCATED( xpd    )) DEALLOCATE( xpd    )
-      IF (ALLOCATED( ypd    )) DEALLOCATE( ypd    )
-      IF (ALLOCATED( kxd    )) DEALLOCATE( kxd    )
-      IF (ALLOCATED( kyd    )) DEALLOCATE( kyd    )
-      IF (ALLOCATED( disbk0 )) DEALLOCATE( disbk0 )
-      IF (ALLOCATED( disbk1 )) DEALLOCATE( disbk1 )
+   IF (ALLOCATED( kx     )) DEALLOCATE( kx     )
+   IF (ALLOCATED( ky     )) DEALLOCATE( ky     )
+   IF (ALLOCATED( xpsc   )) DEALLOCATE( xpsc   )
+   IF (ALLOCATED( xpd    )) DEALLOCATE( xpd    )
+   IF (ALLOCATED( ypd    )) DEALLOCATE( ypd    )
+   IF (ALLOCATED( kxd    )) DEALLOCATE( kxd    )
+   IF (ALLOCATED( kyd    )) DEALLOCATE( kyd    )
+   IF (ALLOCATED( disbk0 )) DEALLOCATE( disbk0 )
+   IF (ALLOCATED( disbk1 )) DEALLOCATE( disbk1 )
 !
-      IF (ALLOCATED( iwt    )) DEALLOCATE( iwt    )
-      IF (ALLOCATED( itt    )) DEALLOCATE( itt    )
-      IF (ALLOCATED( iss    )) DEALLOCATE( iss    )
-      IF (ALLOCATED( freq   )) DEALLOCATE( freq   )
-      IF (ALLOCATED( E0     )) DEALLOCATE( E0     )
-      IF (ALLOCATED( Ebig   )) DEALLOCATE( Ebig   )
+   IF (ALLOCATED( iwt    )) DEALLOCATE( iwt    )
+   IF (ALLOCATED( itt    )) DEALLOCATE( itt    )
+   IF (ALLOCATED( iss    )) DEALLOCATE( iss    )
+   IF (ALLOCATED( freq   )) DEALLOCATE( freq   )
+   IF (ALLOCATED( E0     )) DEALLOCATE( E0     )
+   IF (ALLOCATED( Ebig   )) DEALLOCATE( Ebig   )
 !
-      CALL DELETE ( FOPS )
-      NULLIFY( COPS )
-      LOPS = .FALSE.
-      CALL DELETE ( FORQ )
-      LORQ = .FALSE.
-      CALL DELETE ( FBNDFIL )
-      LBFILS = .FALSE.
-      CALL DELETE ( FBS )
-      LBS = .FALSE.
-      CALL DELETE ( FBGP )
-      LBGP = .FALSE.
+   CALL DELETE ( FOPS )
+   NULLIFY( COPS )
+   LOPS = .FALSE.
+   CALL DELETE ( FORQ )
+   LORQ = .FALSE.
+   CALL DELETE ( FBNDFIL )
+   LBFILS = .FALSE.
+   CALL DELETE ( FBS )
+   LBS = .FALSE.
+   CALL DELETE ( FBGP )
+   LBGP = .FALSE.
 !
-      RETURN
-      END
+   RETURN
+END

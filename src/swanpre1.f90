@@ -16,34 +16,34 @@
 !
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE SWREAD (COMPUT)                                          40.31 30.90
+SUBROUTINE SWREAD (COMPUT)
 !                                                                      *
 !***********************************************************************
 
 !     Modules
 
-      USE TIMECOMM                                                        40.41
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
-      USE OUTP_DATA                                                       40.13
-      USE M_SNL4                                                          40.17
-      USE M_SNL3                                                          42.01
-      USE M_GENARR                                                        40.31
-      USE M_OBSTA                                                         40.31
-      USE M_PARALL                                                        40.31
-      USE SwanGriddata                                                    40.80
-      USE SwanIEM, only: nmax, dfiem, e_trsh, sflog                       41.85
-      USE SwanBraggScat, only: mkbx, mkby, dkbx, dkby, botspc             41.80
-      USE SwanQCM, only: mkxc, mkyc                                       41.90
-!METIS      USE SwanParallel                                                    42.10
+   USE TIMECOMM
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
+   USE OUTP_DATA
+   USE M_SNL4
+   USE M_SNL3
+   USE M_GENARR
+   USE M_OBSTA
+   USE M_PARALL
+   USE SwanGriddata
+   USE SwanIEM, only: nmax, dfiem, e_trsh, sflog
+   USE SwanBraggScat, only: mkbx, mkby, dkbx, dkby, botspc
+   USE SwanQCM, only: mkxc, mkyc
+!METIS   USE SwanParallel
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -276,8 +276,8 @@
 !
 !  5. Parameter variables
 !
-      INTEGER, PARAMETER :: MXINCL = 10                                   40.03
-      INTEGER, PARAMETER :: NVOTP  = 15                                   40.87
+   INTEGER, PARAMETER :: MXINCL = 10
+   INTEGER, PARAMETER :: NVOTP  = 15
 !
 !  6. Local variables
 !
@@ -305,78 +305,78 @@
 !     POWN      user defined power of redistribution function             40.18
 !     RLAMBDA   Dummy array containing lambda values for quadruplets      40.17
 !
-      INTEGER           :: MPTST,IPP,NLEN,ITRAS,JJ,IGR2,IGRD,MXS,MYS
-      INTEGER           :: IVAL,NUMCOR,MSS,I,J,NVAR,IVTYPE,IFTMAX
-      REAL              :: TRCF,HGT,SLP,BK,OGAM,OBET,REF0,XP,YP
-      REAL              :: GAMR, GAMT                                     41.71
-      REAL              :: AFIG, HSS, TSS, DSS, MFR, SHP                  42.09 42.06 41.82
-      REAL              :: ALTMP,FRLOW,FRHIG,GAMMA,TMPDIR,VALX,VALY
-      REAL*8            :: DIFF
-      REAL              :: DEGCNV
-      REAL              :: HH, CC, DD
-      INTEGER           :: NN
-      INTEGER           :: NREGB, NDSD, IDLA, IK, JK                      41.80
-      REAL              :: VARB                                           41.80
+   INTEGER           :: MPTST,IPP,NLEN,ITRAS,JJ,IGR2,IGRD,MXS,MYS
+   INTEGER           :: IVAL,NUMCOR,MSS,I,J,NVAR,IVTYPE,IFTMAX
+   REAL              :: TRCF,HGT,SLP,BK,OGAM,OBET,REF0,XP,YP
+   REAL              :: GAMR, GAMT
+   REAL              :: AFIG, HSS, TSS, DSS, MFR, SHP
+   REAL              :: ALTMP,FRLOW,FRHIG,GAMMA,TMPDIR,VALX,VALY
+   REAL*8            :: DIFF
+   REAL              :: DEGCNV
+   REAL              :: HH, CC, DD
+   INTEGER           :: NN
+   INTEGER           :: NREGB, NDSD, IDLA, IK, JK
+   REAL              :: VARB
 !
-      INTEGER, SAVE     :: INCNUM(1:MXINCL) = 0                           40.03
-      INTEGER, SAVE     :: INCLEV = 1                                     40.03
+   INTEGER, SAVE     :: INCNUM(1:MXINCL) = 0
+   INTEGER, SAVE     :: INCLEV = 1
 !
-      INTEGER           :: IOSTAT = 0                                     40.02
-      INTEGER           :: ICNL4, ILAMBDA                                 40.17
-      INTEGER           :: ITMP1, ITMP2, ITMP3, ITMP4                     40.31
+   INTEGER           :: IOSTAT = 0
+   INTEGER           :: ICNL4, ILAMBDA
+   INTEGER           :: ITMP1, ITMP2, ITMP3, ITMP4
 !
-      LOGICAL           :: MORE                                           40.17
-      LOGICAL, SAVE     :: LOBST = .FALSE.                                40.31
-      LOGICAL           :: FILB                                           41.80
+   LOGICAL           :: MORE
+   LOGICAL, SAVE     :: LOBST = .FALSE.
+   LOGICAL           :: FILB
 !
-      LOGICAL CHGALF                                                      41.90
+   LOGICAL CHGALF
 !
-      INTEGER        :: LREF, LREFDIFF, LRFRD, LFREE, LQUAY, LFIG         41.82 41.71 40.31
-      REAL           :: POWN, DUM                                         40.31 40.18
-      REAL           :: FD1, FD2, FD3, FD4                                40.31 40.28
-      REAL, ALLOCATABLE :: RLAMBDA(:)                                     40.17
+   INTEGER        :: LREF, LREFDIFF, LRFRD, LFREE, LQUAY, LFIG
+   REAL           :: POWN, DUM
+   REAL           :: FD1, FD2, FD3, FD4
+   REAL, ALLOCATABLE :: RLAMBDA(:)
 
-      CHARACTER*6  QOVSNM                                                 40.87
-      CHARACTER*40 QOVLNM                                                 40.87
-      REAL         QR(10)                                                 41.72 40.87
-      REAL*8       DVAL                                                   40.87
+   CHARACTER*6  QOVSNM
+   CHARACTER*40 QOVLNM
+   REAL         QR(10)
+   REAL*8       DVAL
 
-      TYPE(OBSTDAT), POINTER :: OBSTMP                                    40.31
-      TYPE(OBSTDAT), SAVE, POINTER :: COBST                               40.31
+   TYPE(OBSTDAT), POINTER :: OBSTMP
+   TYPE(OBSTDAT), SAVE, POINTER :: COBST
 
-      TYPE(OPSDAT), POINTER :: OPSTMP                                     40.31
+   TYPE(OPSDAT), POINTER :: OPSTMP
 
-      TYPE XYPT                                                           40.31
-        REAL                :: X, Y
-        TYPE(XYPT), POINTER :: NEXTXY
-      END TYPE XYPT
+   TYPE XYPT
+      REAL                :: X, Y
+      TYPE(XYPT), POINTER :: NEXTXY
+   END TYPE XYPT
 
-      TYPE(XYPT), TARGET  :: FRST                                         40.31
-      TYPE(XYPT), POINTER :: CURR, TMP                                    40.31
+   TYPE(XYPT), TARGET  :: FRST
+   TYPE(XYPT), POINTER :: CURR, TMP
 
-      TYPE AUXT                                                           40.87
-        INTEGER             :: I                                          40.87
-        TYPE(AUXT), POINTER :: NEXTI                                      40.87
-      END TYPE AUXT                                                       40.87
-      TYPE(AUXT), TARGET  :: FRSTQ                                        40.87
-      TYPE(AUXT), POINTER :: CURRQ, TMPQ                                  40.87
+   TYPE AUXT
+      INTEGER             :: I
+      TYPE(AUXT), POINTER :: NEXTI
+   END TYPE AUXT
+   TYPE(AUXT), TARGET  :: FRSTQ
+   TYPE(AUXT), POINTER :: CURRQ, TMPQ
 
-      TYPE VEGPT                                                          40.55
-        INTEGER              :: N                                         40.55
-        REAL                 :: H, D, C                                   40.55
-        TYPE(VEGPT), POINTER :: NEXTV                                     40.55
-      END TYPE VEGPT                                                      40.55
+   TYPE VEGPT
+      INTEGER              :: N
+      REAL                 :: H, D, C
+      TYPE(VEGPT), POINTER :: NEXTV
+   END TYPE VEGPT
 
-      TYPE(VEGPT), TARGET  :: FRSTV                                       40.55
-      TYPE(VEGPT), POINTER :: CURRV, TMPV                                 40.55
+   TYPE(VEGPT), TARGET  :: FRSTV
+   TYPE(VEGPT), POINTER :: CURRV, TMPV
 
-      TYPE TRCFPT                                                         41.65
-        REAL                  :: C                                        41.65
-        TYPE(TRCFPT), POINTER :: NEXTFT                                   41.65
-      END TYPE TRCFPT                                                     41.65
+   TYPE TRCFPT
+      REAL                  :: C
+      TYPE(TRCFPT), POINTER :: NEXTFT
+   END TYPE TRCFPT
 
-      TYPE(TRCFPT), TARGET  :: FRSTFT                                     41.65
-      TYPE(TRCFPT), POINTER :: CURRFT, TMPFT                              41.65
+   TYPE(TRCFPT), TARGET  :: FRSTFT
+   TYPE(TRCFPT), POINTER :: CURRFT, TMPFT
 !
 !  8. Subroutines used
 !
@@ -399,12 +399,12 @@
 !     INREAL
 !     FOR
 !     KEYWIS
-      LOGICAL :: KEYWIS                                                   40.03
+   LOGICAL :: KEYWIS
 !     COPYCH
-      LOGICAL :: EQREAL                                                   40.00
+   LOGICAL :: EQREAL
 !     (all Ocean Pack)
 !
-      LOGICAL STPNOW                                                      34.01
+   LOGICAL STPNOW
 !
 !  9. Subroutines calling
 !
@@ -432,7 +432,7 @@
 !
 ! 13. Source text
 !
-      LOGICAL :: FOUND                                                    40.03
+   LOGICAL :: FOUND
 !
 !     *** The logical variable LOGCOM has a record about which    ***
 !     *** commands have been given to know if all the information ***
@@ -445,42 +445,42 @@
 !     *** LOGCOM(7): mesh partitioning has been carried out       ***     42.10
 !     *** In the current version, LOGCOM(1) has no meanings       ***     40.80 40.31
 !
-      LOGICAL, SAVE :: LOGCOM(1:7) = .FALSE.                              42.10 40.03
-      INTEGER   TIMARR(6)                                                 40.31 30.00
-      CHARACTER PSNAME *8, PNAME *8, COMPUT *(*), PTYPE *1, DTTIWR *18    40.00
-      INTEGER, SAVE :: IENT = 0       ! number of entries to this subr
-      INTEGER, SAVE :: LWINDR = 0     ! if non-zero, there is wind
-      INTEGER, SAVE :: LWINDM = 5     ! type of wind growth formulation   42.00
-      INTEGER, ALLOCATABLE :: IARR(:)                                     40.31
-      INTEGER IVOTP(NVOTP), INDX(1)                                       40.87
-      DATA IVOTP /10, 11, 13, 15, 16, 17, 18, 19,                         40.87
-     &            28, 32, 33, 42, 43, 47, 48    /                         40.87
-      LOGICAL :: SWELLSET = .FALSE.                                       40.88
-      LOGICAL :: WCAPSET  = .FALSE.                                       40.88
+   LOGICAL, SAVE :: LOGCOM(1:7) = .FALSE.
+   INTEGER   TIMARR(6)
+   CHARACTER PSNAME *8, PNAME *8, COMPUT *(*), PTYPE *1, DTTIWR *18
+   INTEGER, SAVE :: IENT = 0 ! number of entries to this subr
+   INTEGER, SAVE :: LWINDR = 0 ! if non-zero, there is wind
+   INTEGER, SAVE :: LWINDM = 5 ! type of wind growth formulation
+   INTEGER, ALLOCATABLE :: IARR(:)
+   INTEGER IVOTP(NVOTP), INDX(1)
+   DATA IVOTP /10, 11, 13, 15, 16, 17, 18, 19, &
+               28, 32, 33, 42, 43, 47, 48    /
+   LOGICAL :: SWELLSET = .FALSE.
+   LOGICAL :: WCAPSET  = .FALSE.
 
-      CALL STRACE (IENT, 'SWREAD')
+   CALL STRACE (IENT, 'SWREAD')
 !
 !     ***** read command *****
 !
- 100  CALL NWLINE
-      IF (ELTYPE.EQ.'EOF') THEN
+100 CALL NWLINE
+   IF (ELTYPE.EQ.'EOF') THEN
 !       end-of-file encountered in (included) input file                  40.03
 !       return to previous input file
-        CLOSE (INCNUM(INCLEV))                                            40.03
-        INCLEV = INCLEV - 1
-        IF (INCLEV.EQ.0) THEN
-          CALL MSGERR (4, ' unexpected end of command input')             40.03
-          RETURN
-        ENDIF
-        ELTYPE = 'USED'
-        INPUTF = INCNUM(INCLEV)                                           40.03
+      CLOSE (INCNUM(INCLEV))
+      INCLEV = INCLEV - 1
+      IF (INCLEV.EQ.0) THEN
+         CALL MSGERR (4, ' unexpected end of command input')
+         RETURN
       ENDIF
+      ELTYPE = 'USED'
+      INPUTF = INCNUM(INCLEV)
+   ENDIF
 !
-      IF ( ITEST .GE. 200) THEN                                           30.70
-        WRITE (PRTEST,*) ' BNAUT NA LABEL 100 IN SWREAD =', BNAUT         32.01
-      ENDIF                                                               32.01
+   IF ( ITEST .GE. 200) THEN
+      WRITE (PRTEST,*) ' BNAUT NA LABEL 100 IN SWREAD =', BNAUT
+   ENDIF
 !
-      CALL INKEYW ('REQ',' ')
+   CALL INKEYW ('REQ',' ')
 !
 !     ------------------------------------------------------------------
 !                 PROCESSING OF COMMANDS
@@ -494,15 +494,15 @@
 !
 ! ============================================================
 !
-      IF (KEYWIS ('STOP')) THEN
-        IF (RUNMADE) THEN
-          COMPUT = 'STOP'
-        ELSE
-          WRITE (PRINTF,*)' ** No computation requested **'
-          COMPUT = 'NOCO'
-        ENDIF
-        RETURN
+   IF (KEYWIS ('STOP')) THEN
+      IF (RUNMADE) THEN
+         COMPUT = 'STOP'
+      ELSE
+         WRITE (PRINTF,*)' ** No computation requested **'
+         COMPUT = 'NOCO'
       ENDIF
+      RETURN
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -520,39 +520,39 @@
 !
 ! ===============================================================
 !
-      IF (KEYWIS ('PROJ')) THEN
-        CALL INCSTR ('NAME', PROJID, 'UNC', BLANK)
-        CALL INCSTR ('NR', PROJNR, 'REQ', BLANK)
-        CALL NWLINE
-        IF (STPNOW()) RETURN                                              34.01
-        CALL INCSTR ('TITLE1',PROJT1,'UNC',' ')
-        CALL NWLINE
-        IF (STPNOW()) RETURN                                              34.01
-        CALL INCSTR ('TITLE2',PROJT2,'UNC',' ')
-        CALL NWLINE
-        IF (STPNOW()) RETURN                                              34.01
-        CALL INCSTR ('TITLE3',PROJT3,'UNC',' ')
-        GOTO 100
-      ENDIF
+   IF (KEYWIS ('PROJ')) THEN
+      CALL INCSTR ('NAME', PROJID, 'UNC', BLANK)
+      CALL INCSTR ('NR', PROJNR, 'REQ', BLANK)
+      CALL NWLINE
+      IF (STPNOW()) RETURN
+      CALL INCSTR ('TITLE1',PROJT1,'UNC',' ')
+      CALL NWLINE
+      IF (STPNOW()) RETURN
+      CALL INCSTR ('TITLE2',PROJT2,'UNC',' ')
+      CALL NWLINE
+      IF (STPNOW()) RETURN
+      CALL INCSTR ('TITLE3',PROJT3,'UNC',' ')
+      GOTO 100
+   ENDIF
 !
 !     INCLUDE     include another file in command file
 !     ------------------------------------------------------------------
 !     INCLude  'FILE'
 !     ------------------------------------------------------------------
 !
-      IF (KEYWIS ('INCL')) THEN
-        IF (INCLEV.EQ.1) INCNUM(INCLEV) = INPUTF                          40.03
-        CALL INCSTR ('FILE' , FILENM , 'REQ', ' ')
-        INCLEV = INCLEV + 1
-        IF (INCLEV.GT.MXINCL) THEN
-          CALL MSGERR (4, 'too many INCLUDE levels')                      40.03
-          RETURN
-        ENDIF
-        IOSTAT = 0
-        CALL FOR (INCNUM(INCLEV), FILENM, 'OF', IOSTAT)                   40.03
-        INPUTF = INCNUM(INCLEV)
-        GOTO 100
+   IF (KEYWIS ('INCL')) THEN
+      IF (INCLEV.EQ.1) INCNUM(INCLEV) = INPUTF
+      CALL INCSTR ('FILE' , FILENM , 'REQ', ' ')
+      INCLEV = INCLEV + 1
+      IF (INCLEV.GT.MXINCL) THEN
+         CALL MSGERR (4, 'too many INCLUDE levels')
+         RETURN
       ENDIF
+      IOSTAT = 0
+      CALL FOR (INCNUM(INCLEV), FILENM, 'OF', IOSTAT)
+      INPUTF = INCNUM(INCLEV)
+      GOTO 100
+   ENDIF
 !
 ! ===========================================================
 !
@@ -560,10 +560,10 @@
 !
 ! ===========================================================
 !
-      IF (KEYWIS ('POOL')) THEN
-        CALL MSGERR(1,'Keyword POOL is not relevant anymore!')            40.31
-        GOTO 100
-      ENDIF
+   IF (KEYWIS ('POOL')) THEN
+      CALL MSGERR(1,'Keyword POOL is not relevant anymore!')
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !     TEST       parameters for required test output
@@ -578,42 +578,42 @@
 !
 !     ============================================================
 !
-      IF (KEYWIS ('TEST')) THEN
-        CALL ININTG ('ITEST' , ITEST , 'STA', 30)
+   IF (KEYWIS ('TEST')) THEN
+      CALL ININTG ('ITEST' , ITEST , 'STA', 30)
 !       statements restructured:
-        IF (ITEST.GE.30) THEN
-          IF (ERRPTS.EQ.0.AND.IAMMASTER) THEN                             40.95 40.30 40.13
+      IF (ITEST.GE.30) THEN
+         IF (ERRPTS.EQ.0.AND.IAMMASTER) THEN
             ERRPTS = 16
-            OPEN (ERRPTS, FILE='ERRPTS',
-     &            STATUS='UNKNOWN', FORM='FORMATTED')
-          ENDIF                                                           40.13
-        ENDIF
-        CALL ININTG ('ITRACE', ITRACE, 'UNC',  0)
-        IF (ITRACE.GT.0) THEN
-          LTRACE =.TRUE.
-        ELSE
-          LTRACE =.FALSE.
-        ENDIF
-        CALL INKEYW ('STA', ' ')
-        IF (KEYWIS('POI')) THEN
-          NPTST  = 0
-          MPTST  = 50
-          IPP    = 2                                                      40.80
-          IF (OPTG.EQ.5) IPP = 1                                          40.80
-          IF (.NOT.ALLOCATED(IARR)) ALLOCATE(IARR(IPP*MPTST))             40.80 40.31
-!
-          CALL RETSTP (IPP*MPTST, IARR, KGRPNT, KGRBND, XCGRID, YCGRID,   40.80 40.31
-     &                 SPCSIG, SPCDIR)                                    40.31
-          IF (STPNOW()) RETURN                                            34.01
-          NPTSTA = MAX(1,NPTST)                                           40.00
-          IF (.NOT.ALLOCATED(XYTST)) ALLOCATE(XYTST(IPP*NPTSTA))          40.80 40.31
-          CALL SWCOPI (IARR,XYTST,IPP*NPTSTA)                             40.80 40.31
-          DEALLOCATE(IARR)                                                40.31
-        ELSE
-          IF (.NOT.ALLOCATED(XYTST)) ALLOCATE(XYTST(0))
-        ENDIF
-        GOTO 100
+            OPEN (ERRPTS, FILE='ERRPTS', &
+                  STATUS='UNKNOWN', FORM='FORMATTED')
+         ENDIF
       ENDIF
+      CALL ININTG ('ITRACE', ITRACE, 'UNC',  0)
+      IF (ITRACE.GT.0) THEN
+         LTRACE =.TRUE.
+      ELSE
+         LTRACE =.FALSE.
+      ENDIF
+      CALL INKEYW ('STA', ' ')
+      IF (KEYWIS('POI')) THEN
+         NPTST  = 0
+         MPTST  = 50
+         IPP    = 2
+         IF (OPTG.EQ.5) IPP = 1
+         IF (.NOT.ALLOCATED(IARR)) ALLOCATE(IARR(IPP*MPTST))
+!
+         CALL RETSTP (IPP*MPTST, IARR, KGRPNT, KGRBND, XCGRID, YCGRID, &
+                      SPCSIG, SPCDIR)
+         IF (STPNOW()) RETURN
+         NPTSTA = MAX(1,NPTST)
+         IF (.NOT.ALLOCATED(XYTST)) ALLOCATE(XYTST(IPP*NPTSTA))
+         CALL SWCOPI (IARR,XYTST,IPP*NPTSTA)
+         DEALLOCATE(IARR)
+      ELSE
+         IF (.NOT.ALLOCATED(XYTST)) ALLOCATE(XYTST(0))
+      ENDIF
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -625,10 +625,10 @@
 !
 !     ============================================================
 !
-      IF (KEYWIS ('INTE')) THEN
-        CALL ININTG ('INTES' , INTES , 'STA', 30)
-        GO TO 100
-      ENDIF
+   IF (KEYWIS ('INTE')) THEN
+      CALL ININTG ('INTES' , INTES , 'STA', 30)
+      GO TO 100
+   ENDIF
 !     ------------------------------------------------------------------
 !     COTEst       parameters for required test output during computation
 !
@@ -637,10 +637,10 @@
 !     COTE [cotes]         (NOT documented)
 !
 !     ============================================================
-      IF (KEYWIS ('COTE')) THEN
-        CALL ININTG ('COTES' , ICOTES , 'STA', 30)
-        GO TO 100
-      ENDIF
+   IF (KEYWIS ('COTE')) THEN
+      CALL ININTG ('COTES' , ICOTES , 'STA', 30)
+      GO TO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -652,10 +652,10 @@
 !
 !     ============================================================
 !
-      IF (KEYWIS ('OUTE')) THEN
-        CALL ININTG ('ITEST' , IOUTES , 'STA', 30)
-        GO TO 100
-      ENDIF
+   IF (KEYWIS ('OUTE')) THEN
+      CALL ININTG ('ITEST' , IOUTES , 'STA', 30)
+      GO TO 100
+   ENDIF
 
 !     ============================================================
 
@@ -665,48 +665,48 @@
 
 !     ============================================================
 
-      IF (KEYWIS('OUTP')) THEN                                            40.13
-        CALL IGNORE ('OPT')
-        CALL INCSTR ('COMMENT', OUT_COMMENT, 'UNC', ' ')
-        CALL INKEYW ('STA', ' ')
-        IF (KEYWIS('TAB')) THEN
-          CALL ININTG ('FIELD', FLD_TABLE, 'STA', 11)
-          IF (FLD_TABLE.GT.16) CALL MSGERR (2, '[field] is too large')
-          IF (FLD_TABLE.LT.8)  CALL MSGERR (2, '[field] is too small')
-          WRITE (FLT_TABLE, 232) FLD_TABLE, FLD_TABLE-7
- 232      FORMAT ('(E', I2, '.', I1, ')')
-          IF (ITEST.GE.30) WRITE (PRINTF, 234) FLT_TABLE
- 234      FORMAT (' Format floating point table: ', A)
-          CALL INKEYW ('STA', ' ')
-        ENDIF
-        IF (KEYWIS('BLO')) THEN
-          CALL ININTG ('NDEC', DEC_BLOCK, 'STA', 4)
-          IF (DEC_BLOCK.GT.9) CALL MSGERR (2, '[ndec] is too large')
-          CALL ININTG ('LEN', NLEN, 'STA', 200)
-          IF (NLEN.GT.9999) CALL MSGERR (2, '[len] is too large')
-          WRITE (FLT_BLOCK, 242) NLEN, DEC_BLOCK+7, DEC_BLOCK
- 242      FORMAT ('(', I4, '(1X,E', I2, '.', I1, '))')
-          IF (ITEST.GE.30) WRITE (PRINTF, 244) FLT_BLOCK
- 244      FORMAT (' Format floating point block: ', A)
-          CALL INKEYW ('STA', ' ')
-        ENDIF
-        IF (KEYWIS('SPEC')) THEN
-          CALL ININTG ('NDEC', DEC_SPEC, 'STA', 5)
-          IF (DEC_SPEC.GT.9) CALL MSGERR (2, '[ndec] is too large')
-          CALL ININTG ('LEN', NLEN, 'STA', 200)
-          IF (NLEN.GT.9999) CALL MSGERR (2, '[len] is too large')
-          WRITE (FIX_SPEC, 252) NLEN, DEC_SPEC
- 252      FORMAT ('(', I4, '(1X,I', I1, '))')
-          IF (ITEST.GE.30) WRITE (PRINTF, 254) FIX_SPEC
- 254      FORMAT (' Format spectral output: ', A)
-          LENSPO = NLEN*(DEC_SPEC+1)
-        ENDIF
-        IF (KEYWIS('QUA')) THEN
-          CALL MSGERR (3,
-     &    'command OUTP QUANT is obsolete, use QUANTITY')
-        ENDIF
-        GOTO 100
-      ENDIF                                                               40.13
+   IF (KEYWIS('OUTP')) THEN
+      CALL IGNORE ('OPT')
+      CALL INCSTR ('COMMENT', OUT_COMMENT, 'UNC', ' ')
+      CALL INKEYW ('STA', ' ')
+      IF (KEYWIS('TAB')) THEN
+         CALL ININTG ('FIELD', FLD_TABLE, 'STA', 11)
+         IF (FLD_TABLE.GT.16) CALL MSGERR (2, '[field] is too large')
+         IF (FLD_TABLE.LT.8)  CALL MSGERR (2, '[field] is too small')
+         WRITE (FLT_TABLE, 232) FLD_TABLE, FLD_TABLE-7
+232      FORMAT ('(E', I2, '.', I1, ')')
+         IF (ITEST.GE.30) WRITE (PRINTF, 234) FLT_TABLE
+234      FORMAT (' Format floating point table: ', A)
+         CALL INKEYW ('STA', ' ')
+      ENDIF
+      IF (KEYWIS('BLO')) THEN
+         CALL ININTG ('NDEC', DEC_BLOCK, 'STA', 4)
+         IF (DEC_BLOCK.GT.9) CALL MSGERR (2, '[ndec] is too large')
+         CALL ININTG ('LEN', NLEN, 'STA', 200)
+         IF (NLEN.GT.9999) CALL MSGERR (2, '[len] is too large')
+         WRITE (FLT_BLOCK, 242) NLEN, DEC_BLOCK+7, DEC_BLOCK
+242      FORMAT ('(', I4, '(1X,E', I2, '.', I1, '))')
+         IF (ITEST.GE.30) WRITE (PRINTF, 244) FLT_BLOCK
+244      FORMAT (' Format floating point block: ', A)
+         CALL INKEYW ('STA', ' ')
+      ENDIF
+      IF (KEYWIS('SPEC')) THEN
+         CALL ININTG ('NDEC', DEC_SPEC, 'STA', 5)
+         IF (DEC_SPEC.GT.9) CALL MSGERR (2, '[ndec] is too large')
+         CALL ININTG ('LEN', NLEN, 'STA', 200)
+         IF (NLEN.GT.9999) CALL MSGERR (2, '[len] is too large')
+         WRITE (FIX_SPEC, 252) NLEN, DEC_SPEC
+252      FORMAT ('(', I4, '(1X,I', I1, '))')
+         IF (ITEST.GE.30) WRITE (PRINTF, 254) FIX_SPEC
+254      FORMAT (' Format spectral output: ', A)
+         LENSPO = NLEN*(DEC_SPEC+1)
+      ENDIF
+      IF (KEYWIS('QUA')) THEN
+         CALL MSGERR (3, &
+            'command OUTP QUANT is obsolete, use QUANTITY')
+      ENDIF
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -718,10 +718,10 @@
 !
 ! ============================================================
 !
-      IF (KEYWIS ('BOT')) THEN
-        CALL MSGERR (2, 'command BOTTOM is replaced by INP BOT')
-        GOTO 100
-      ENDIF
+   IF (KEYWIS ('BOT')) THEN
+      CALL MSGERR (2, 'command BOTTOM is replaced by INP BOT')
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -735,45 +735,45 @@
 !
 ! ========================================
 !
-      IF (KEYWIS ('MODE')) THEN                                           30.21
-        CALL INKEYW ('STA',' ')
-        IF (KEYWIS('NONST') .OR. KEYWIS ('DYN')) THEN                     30.70
-          IF (NSTATM.EQ.0) CALL MSGERR (2, 'Mode Nonst incorrect here')   40.00
-          NSTATM = 1                                                      40.00
-          NSTATC = 1                                                      40.00
+   IF (KEYWIS ('MODE')) THEN
+      CALL INKEYW ('STA',' ')
+      IF (KEYWIS('NONST') .OR. KEYWIS ('DYN')) THEN
+         IF (NSTATM.EQ.0) CALL MSGERR (2, 'Mode Nonst incorrect here')
+         NSTATM = 1
+         NSTATC = 1
 !
 !         switch on flag for computation of default initial condition     30.75
-          ICOND = 1                                                       30.75
+         ICOND = 1
 !         no relaxation                                                   40.23
-          PNUMS(30) = 0.                                                  40.23
-        ELSEIF (KEYWIS ('STA')) THEN                                      40.00
-          IF (NSTATM.EQ.1) CALL MSGERR (2, 'Mode STAT incorrect here')    40.00
-          NSTATM = 0                                                      40.00
-          CALL INKEYW ('STA',' ')                                         32.02
-        ENDIF                                                             32.02
+         PNUMS(30) = 0.
+      ELSEIF (KEYWIS ('STA')) THEN
+         IF (NSTATM.EQ.1) CALL MSGERR (2, 'Mode STAT incorrect here')
+         NSTATM = 0
+         CALL INKEYW ('STA',' ')
+      ENDIF
 !
 !       *** Logical ONED added for 1d-computations                        32.02
 !
-        CALL INKEYW ('STA', ' ')                                          40.00
-        IF (KEYWIS ('ONED')) THEN                                         40.00
-          ONED = .TRUE.                                                   32.02
-          IF (PARLL) THEN                                                 40.30
-             CALL MSGERR(4,'1D mode is not supported in parallel run')    40.30
-             RETURN                                                       40.30
-          END IF                                                          40.30
-        ELSEIF (KEYWIS ('TWOD')) THEN
-          ONED = .FALSE.                                                  32.02
-        ENDIF
+      CALL INKEYW ('STA', ' ')
+      IF (KEYWIS ('ONED')) THEN
+         ONED = .TRUE.
+         IF (PARLL) THEN
+            CALL MSGERR(4,'1D mode is not supported in parallel run')
+            RETURN
+         END IF
+      ELSEIF (KEYWIS ('TWOD')) THEN
+         ONED = .FALSE.
+      ENDIF
 !
 !       *** Logical ACUPDA added to avoid updating action densities       40.07
 !
-        CALL INKEYW ('STA', ' ')                                          40.07
-        IF (KEYWIS ('NOUPDAT')) THEN                                      40.07
-          ACUPDA = .FALSE.                                                40.07
-        ENDIF
-!
-        GOTO 100
+      CALL INKEYW ('STA', ' ')
+      IF (KEYWIS ('NOUPDAT')) THEN
+         ACUPDA = .FALSE.
       ENDIF
+!
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 ! =======================================================================
@@ -788,24 +788,24 @@
 !
 ! =======================================================================
 !
-      IF (KEYWIS ('PROP')) THEN                                           40.02
-        CALL INKEYW ('STA','    ')                                        40.02
-        IF (KEYWIS ('BSBT') .OR. KEYWIS ('BTBS')) THEN                    40.02
-          PROPSN = 1                                                      40.02
-          PROPSS = 1                                                      40.02
-        ELSE IF (KEYWIS ('GSE')) THEN                                     40.02
-          IF (OPTG.NE.5 .AND. PROPSN.NE.3) THEN                           41.00 40.02
-            CALL MSGERR(2,                                                40.02
-     &      'Anti-GSE only allowed for S&L scheme.')                      40.02
-          ENDIF                                                           40.02
-          CALL ININTV('WAVEAGE', WAVAGE, 'STA', 0.)                       40.02
-        ENDIF                                                             40.02
-        IF (KEYWIS ('FLUXLIM')) THEN                                      40.23
-           PROPFL   = 1                                                   40.23
-           PNUMS(6) = 0.                                                  40.23
-        END IF                                                            40.23
-        GOTO 100                                                          40.02
-      ENDIF                                                               40.02
+   IF (KEYWIS ('PROP')) THEN
+      CALL INKEYW ('STA','    ')
+      IF (KEYWIS ('BSBT') .OR. KEYWIS ('BTBS')) THEN
+         PROPSN = 1
+         PROPSS = 1
+      ELSE IF (KEYWIS ('GSE')) THEN
+         IF (OPTG.NE.5 .AND. PROPSN.NE.3) THEN
+            CALL MSGERR(2, &
+               'Anti-GSE only allowed for S&L scheme.')
+         ENDIF
+         CALL ININTV('WAVEAGE', WAVAGE, 'STA', 0.)
+      ENDIF
+      IF (KEYWIS ('FLUXLIM')) THEN
+         PROPFL   = 1
+         PNUMS(6) = 0.
+      END IF
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -818,44 +818,44 @@
 !
 ! =============================================================
 !
-      IF (KEYWIS ('COORD')) THEN                                          33.09
-        CALL INKEYW ('STA',' ')                                           33.09
-        IF (KEYWIS ('CART')) THEN                                         33.09
-          KSPHER = 0                                                      33.09
-        ELSE IF (KEYWIS ('SPHE')) THEN                                    33.09
-          KSPHER = 1                                                      33.09
-          CALL INREAL ('REARTH', REARTH, 'UNC', 0.)                       33.09
-          LENDEG = REARTH * PI / 180.                                     33.09
+   IF (KEYWIS ('COORD')) THEN
+      CALL INKEYW ('STA',' ')
+      IF (KEYWIS ('CART')) THEN
+         KSPHER = 0
+      ELSE IF (KEYWIS ('SPHE')) THEN
+         KSPHER = 1
+         CALL INREAL ('REARTH', REARTH, 'UNC', 0.)
+         LENDEG = REARTH * PI / 180.
 !         change properties of output quantities Xp and Yp
-          OVUNIT(1) = 'degr'
-          OVLLIM(1) = -200.
-          OVULIM(1) =  400.
-          OVLEXP(1) = -180.
-          OVHEXP(1) =  360.
-          OVEXCV(1) = -999.
-          OVUNIT(2) = 'degr'
-          OVLLIM(2) = -100.
-          OVULIM(2) =  100.
-          OVLEXP(2) = -90.
-          OVHEXP(2) =  90.
-          OVEXCV(2) = -999.
-          CALL INKEYW ('STA','CCM')                                       33.09
-          IF (KEYWIS ('QC')) THEN                                         33.09
+         OVUNIT(1) = 'degr'
+         OVLLIM(1) = -200.
+         OVULIM(1) =  400.
+         OVLEXP(1) = -180.
+         OVHEXP(1) =  360.
+         OVEXCV(1) = -999.
+         OVUNIT(2) = 'degr'
+         OVLLIM(2) = -100.
+         OVULIM(2) =  100.
+         OVLEXP(2) = -90.
+         OVHEXP(2) =  90.
+         OVEXCV(2) = -999.
+         CALL INKEYW ('STA','CCM')
+         IF (KEYWIS ('QC')) THEN
 !           quasi-cartesian projection method
-            PROJ_METHOD = 0                                               33.09
-          ELSE IF (KEYWIS ('CCM')) THEN                                   33.09
+            PROJ_METHOD = 0
+         ELSE IF (KEYWIS ('CCM')) THEN
 !           uniform Mercator projection (default for spherical coordinates)
-            PROJ_METHOD = 1                                               33.09
-          ENDIF                                                           33.09
-        ELSE                                                              33.09
-          CALL WRNKEY
-        ENDIF                                                             33.09
-        CALL INKEYW ('STA',' ')                                           33.09
-        IF (KEYWIS ('REP')) THEN                                          33.09
-          KREPTX = 1                                                      33.09
-        ENDIF                                                             33.09
-        GO TO 100                                                         33.09
-      ENDIF                                                               33.09
+            PROJ_METHOD = 1
+         ENDIF
+      ELSE
+         CALL WRNKEY
+      ENDIF
+      CALL INKEYW ('STA',' ')
+      IF (KEYWIS ('REP')) THEN
+         KREPTX = 1
+      ENDIF
+      GO TO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -872,72 +872,72 @@
 !
 !       ==============================================================
 !
-      IF (KEYWIS ('COMP')) THEN
-        COMPUT = 'COMP'                                                   30.00
-        RUNMADE = .TRUE.                                                  30.00
-        CALL INKEYW ('STA','  ')
-        IF (NSTATM.LE.0 .OR. KEYWIS('STAT')) THEN                         40.00
-          IF (NSTATM.EQ.-1) NSTATM = 0                                    40.00
-          IF (NSTATM.GT.0) CALL INCTIM (ITMOPT,'TIME',TINIC,'REQ',0D0)    40.00
-          IF (TINIC .LT. TIMCO) THEN                                      40.03
-            CALL MSGERR (2, '[time] before current time')                 40.03
-            TINIC = TIMCO                                                 40.03
-          ENDIF                                                           40.03
-          TFINC = TINIC                                                   40.00
-          TIMCO = TINIC                                                   40.00
-          DT = 1.E10                                                      40.00
-          RDTIM = 0.                                                      40.00
-          NSTATC = 0                                                      40.00
-          MTC = 1                                                         40.41
-        ELSE
-          CALL IGNORE ('NONST')
-          IF (TIMCO .LT. -0.9E10) THEN                                    40.00
-            CALL INCTIM (ITMOPT,'TBEGC',TINIC,'REQ',0D0)                  40.03
-          ELSE
-            CALL INCTIM (ITMOPT,'TBEGC',TINIC,'STA',TIMCO)                40.03
-          ENDIF
-          IF (TINIC .LT. TIMCO) THEN                                      40.03
-            CALL MSGERR (2, 'start time [tbegc] before current time')     40.03
-            TINIC = TIMCO                                                 40.03
-          ENDIF                                                           40.03
-          CALL INITVD ('DELTC', DT, 'REQ', 0D0)                           40.03
-          CALL INCTIM (ITMOPT,'TENDC',TFINC,'REQ',0D0)                    40.03
-          NSTATC = 1                                                      40.00
+   IF (KEYWIS ('COMP')) THEN
+      COMPUT = 'COMP'
+      RUNMADE = .TRUE.
+      CALL INKEYW ('STA','  ')
+      IF (NSTATM.LE.0 .OR. KEYWIS('STAT')) THEN
+         IF (NSTATM.EQ.-1) NSTATM = 0
+         IF (NSTATM.GT.0) CALL INCTIM (ITMOPT,'TIME',TINIC,'REQ',0D0)
+         IF (TINIC .LT. TIMCO) THEN
+            CALL MSGERR (2, '[time] before current time')
+            TINIC = TIMCO
+         ENDIF
+         TFINC = TINIC
+         TIMCO = TINIC
+         DT = 1.E10
+         RDTIM = 0.
+         NSTATC = 0
+         MTC = 1
+      ELSE
+         CALL IGNORE ('NONST')
+         IF (TIMCO .LT. -0.9E10) THEN
+            CALL INCTIM (ITMOPT,'TBEGC',TINIC,'REQ',0D0)
+         ELSE
+            CALL INCTIM (ITMOPT,'TBEGC',TINIC,'STA',TIMCO)
+         ENDIF
+         IF (TINIC .LT. TIMCO) THEN
+            CALL MSGERR (2, 'start time [tbegc] before current time')
+            TINIC = TIMCO
+         ENDIF
+         CALL INITVD ('DELTC', DT, 'REQ', 0D0)
+         CALL INCTIM (ITMOPT,'TENDC',TFINC,'REQ',0D0)
+         NSTATC = 1
 !
 !           *** tfinc must be greater than tinic **
-          DIFF = TFINC - TINIC
-          IF (DIFF .LE. 0.) CALL MSGERR (3,
-     &        'start time [tbegc] greater or equal end time [tendc]')
+         DIFF = TFINC - TINIC
+         IF (DIFF .LE. 0.) CALL MSGERR (3, &
+             'start time [tbegc] greater or equal end time [tendc]')
 !
 !           **The number of computational steps is calculated
-          RDTIM = 1./DT
-          MTC = NINT ((TFINC - TINIC)/DT)                                 30.50
-          IF (MOD(TFINC-TINIC,DT).GT.0.01*DT .AND.
-     &            MOD(TFINC-TINIC,DT).LT.0.99*DT)
-     &           CALL MSGERR (1,
-     &           'DT is not a fraction of the computational period')
-          TIMCO = TINIC
-        ENDIF
-        IF (NSTATM.GT.0) CHTIME = DTTIWR(ITMOPT, TIMCO)                   40.00
-        NCOMPT = NCOMPT + 1                                               40.41
-        IF (NCOMPT.GT.300) CALL MSGERR (2,                                40.41
-     &                  'No more than 300 COMPUTE commands are allowed')  40.41
-        RCOMPT(NCOMPT,1) = REAL(NSTATC)                                   40.41
-        RCOMPT(NCOMPT,2) = REAL(MTC)                                      40.41
-        RCOMPT(NCOMPT,3) = TFINC                                          40.41
-        RCOMPT(NCOMPT,4) = TINIC                                          40.41
-        RCOMPT(NCOMPT,5) = DT                                             40.41
+         RDTIM = 1./DT
+         MTC = NINT ((TFINC - TINIC)/DT)
+         IF (MOD(TFINC-TINIC,DT).GT.0.01*DT .AND. &
+                 MOD(TFINC-TINIC,DT).LT.0.99*DT) &
+                CALL MSGERR (1, &
+                'DT is not a fraction of the computational period')
+         TIMCO = TINIC
+      ENDIF
+      IF (NSTATM.GT.0) CHTIME = DTTIWR(ITMOPT, TIMCO)
+      NCOMPT = NCOMPT + 1
+      IF (NCOMPT.GT.300) CALL MSGERR (2, &
+                      'No more than 300 COMPUTE commands are allowed')
+      RCOMPT(NCOMPT,1) = REAL(NSTATC)
+      RCOMPT(NCOMPT,2) = REAL(MTC)
+      RCOMPT(NCOMPT,3) = TFINC
+      RCOMPT(NCOMPT,4) = TINIC
+      RCOMPT(NCOMPT,5) = DT
 !       set ITERMX equal to MXITST in case of stationary computations
 !       and to MXITNS otherwise
-        IF (NSTATC.EQ.0) THEN
-          ITERMX = MXITST                                                 40.03
-        ELSE
-          ITERMX = MXITNS                                                 40.03
-        ENDIF
-!       reset asort
-        asort = usort                                                     41.68
-        RETURN                                                            30.00
+      IF (NSTATC.EQ.0) THEN
+         ITERMX = MXITST
+      ELSE
+         ITERMX = MXITNS
       ENDIF
+!       reset asort
+      asort = usort
+      RETURN
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -965,352 +965,352 @@
 !
 ! ============================================================
 !
-      IF (KEYWIS ('OBST')) THEN
+   IF (KEYWIS ('OBST')) THEN
 !
-        IF ( ONED ) THEN
-           CALL MSGERR(2, 'use of obstacles not allowed in 1D mode')
-        ENDIF
+      IF ( ONED ) THEN
+         CALL MSGERR(2, 'use of obstacles not allowed in 1D mode')
+      ENDIF
 !
-        OBSTDONE = .FALSE.                                                42.05
+      OBSTDONE = .FALSE.
 !
-        ALLOCATE(OBSTMP)                                                  40.31
-        OBSTMP%TRCOEF(1) = 0.                                             40.31
-        OBSTMP%TRCOEF(2) = 0.                                             40.31
-        OBSTMP%TRCOEF(3) = 0.                                             40.31
-        OBSTMP%RFCOEF(1) = 0.                                             40.31
-        OBSTMP%RFCOEF(2) = 0.                                             40.31
-        OBSTMP%RFCOEF(3) = 0.                                             40.31
-        OBSTMP%RFCOEF(4) = 0.                                             40.31
-        OBSTMP%RFCOEF(5) = 0.                                             40.31
-        OBSTMP%RFCOEF(6) = 0.                                             40.31
-        OBSTMP%FBCOEF(1) = 0.                                             41.71
-        OBSTMP%FBCOEF(2) = 0.                                             41.71
-        OBSTMP%FBCOEF(3) = 0.                                             41.71
-        OBSTMP%IGCOEF(1) = 0.                                             41.82
-        OBSTMP%IGCOEF(2) = 0.                                             41.82
-        OBSTMP%IGCOEF(3) = 0.                                             41.82
-        OBSTMP%IGCOEF(4) = 0.                                             42.06
-        OBSTMP%IGCOEF(5) = 0.                                             42.06
-        OBSTMP%IGCOEF(6) = 0.                                             42.09
-        OBSTMP%IGCOEF(7) = 0.                                             42.09
+      ALLOCATE(OBSTMP)
+      OBSTMP%TRCOEF(1) = 0.
+      OBSTMP%TRCOEF(2) = 0.
+      OBSTMP%TRCOEF(3) = 0.
+      OBSTMP%RFCOEF(1) = 0.
+      OBSTMP%RFCOEF(2) = 0.
+      OBSTMP%RFCOEF(3) = 0.
+      OBSTMP%RFCOEF(4) = 0.
+      OBSTMP%RFCOEF(5) = 0.
+      OBSTMP%RFCOEF(6) = 0.
+      OBSTMP%FBCOEF(1) = 0.
+      OBSTMP%FBCOEF(2) = 0.
+      OBSTMP%FBCOEF(3) = 0.
+      OBSTMP%IGCOEF(1) = 0.
+      OBSTMP%IGCOEF(2) = 0.
+      OBSTMP%IGCOEF(3) = 0.
+      OBSTMP%IGCOEF(4) = 0.
+      OBSTMP%IGCOEF(5) = 0.
+      OBSTMP%IGCOEF(6) = 0.
+      OBSTMP%IGCOEF(7) = 0.
 !
 !       data concerning transmission of energy over/through the obstacle
 !
-        CALL INKEYW ('STA', '  ')
-        IF (KEYWIS ('TRANS1') .OR. KEYWIS ('TRFREQ')) THEN                41.65
-          ITRAS    = 11
-          IFTMAX   = 0
-          FRSTFT%C = 0.
-          NULLIFY(FRSTFT%NEXTFT)
-          CURRFT => FRSTFT
- 403      CALL INREAL ('TRCOEF',TRCF,'REP',-1.)
-          IF ( TRCF.NE.-1. ) THEN
-             IF ( TRCF.LT.0. .OR. TRCF.GT.1. ) THEN
-                CALL MSGERR(3,'Transmission coefficient is not allowed')
-                CALL MSGERR(3,'to be greater than 1 or smaller than 0!')
-             END IF
-             IFTMAX = IFTMAX + 1
-             ALLOCATE(TMPFT)
-             TMPFT%C = TRCF
-             NULLIFY(TMPFT%NEXTFT)
-             CURRFT%NEXTFT => TMPFT
-             CURRFT => TMPFT
-             GO TO 403
-          END IF
-          IF ( IFTMAX.EQ.0 ) THEN
+      CALL INKEYW ('STA', '  ')
+      IF (KEYWIS ('TRANS1') .OR. KEYWIS ('TRFREQ')) THEN
+         ITRAS    = 11
+         IFTMAX   = 0
+         FRSTFT%C = 0.
+         NULLIFY(FRSTFT%NEXTFT)
+         CURRFT => FRSTFT
+403      CALL INREAL ('TRCOEF',TRCF,'REP',-1.)
+         IF ( TRCF.NE.-1. ) THEN
+            IF ( TRCF.LT.0. .OR. TRCF.GT.1. ) THEN
+               CALL MSGERR(3,'Transmission coefficient is not allowed')
+               CALL MSGERR(3,'to be greater than 1 or smaller than 0!')
+            END IF
+            IFTMAX = IFTMAX + 1
+            ALLOCATE(TMPFT)
+            TMPFT%C = TRCF
+            NULLIFY(TMPFT%NEXTFT)
+            CURRFT%NEXTFT => TMPFT
+            CURRFT => TMPFT
+            GO TO 403
+         END IF
+         IF ( IFTMAX.EQ.0 ) THEN
             CALL MSGERR(2,'No frequency dep. transmission coeffs found')
-          ELSE IF ( IFTMAX.NE.MSC ) THEN
-             CALL MSGERR(2,'Number of transmission coeffs not equal to')
-             CALL MSGERR(2,'number of frequencies!')
-             CALL MSGERR(2,'When less, then these coeffs are filled up')
-             CALL MSGERR(2,'with 1.')
-             CALL MSGERR(2,'When more, then these coeffs are ignored')
-          END IF
-          ALLOCATE(OBSTMP%TRCF1D(MSC))
-          OBSTMP%TRCF1D(:) = 1.
-          CURRFT => FRSTFT%NEXTFT
-          DO JJ = 1, MIN(MSC,IFTMAX)
-             OBSTMP%TRCF1D(JJ) = CURRFT%C
-             CURRFT => CURRFT%NEXTFT
-          END DO
-          DEALLOCATE(TMPFT)
-        ELSE IF (KEYWIS ('TRANS2')) THEN                                  41.65
-          ITRAS    = 12
-          IFTMAX   = 0
-          FRSTFT%C = 0.
-          NULLIFY(FRSTFT%NEXTFT)
-          CURRFT => FRSTFT
- 404      CALL INREAL ('TRCOEF',TRCF,'REP',-1.)
-          IF ( TRCF.NE.-1. ) THEN
-             IF ( TRCF.LT.0. .OR. TRCF.GT.1. ) THEN
-                CALL MSGERR(3,'Transmission coefficient is not allowed')
-                CALL MSGERR(3,'to be greater than 1 or smaller than 0!')
-             END IF
-             IFTMAX = IFTMAX + 1
-             ALLOCATE(TMPFT)
-             TMPFT%C = TRCF
-             NULLIFY(TMPFT%NEXTFT)
-             CURRFT%NEXTFT => TMPFT
-             CURRFT => TMPFT
-             GO TO 404
-          END IF
-          IF ( IFTMAX.EQ.0 ) THEN
+         ELSE IF ( IFTMAX.NE.MSC ) THEN
+            CALL MSGERR(2,'Number of transmission coeffs not equal to')
+            CALL MSGERR(2,'number of frequencies!')
+            CALL MSGERR(2,'When less, then these coeffs are filled up')
+            CALL MSGERR(2,'with 1.')
+            CALL MSGERR(2,'When more, then these coeffs are ignored')
+         END IF
+         ALLOCATE(OBSTMP%TRCF1D(MSC))
+         OBSTMP%TRCF1D(:) = 1.
+         CURRFT => FRSTFT%NEXTFT
+         DO JJ = 1, MIN(MSC,IFTMAX)
+            OBSTMP%TRCF1D(JJ) = CURRFT%C
+            CURRFT => CURRFT%NEXTFT
+         END DO
+         DEALLOCATE(TMPFT)
+      ELSE IF (KEYWIS ('TRANS2')) THEN
+         ITRAS    = 12
+         IFTMAX   = 0
+         FRSTFT%C = 0.
+         NULLIFY(FRSTFT%NEXTFT)
+         CURRFT => FRSTFT
+404      CALL INREAL ('TRCOEF',TRCF,'REP',-1.)
+         IF ( TRCF.NE.-1. ) THEN
+            IF ( TRCF.LT.0. .OR. TRCF.GT.1. ) THEN
+               CALL MSGERR(3,'Transmission coefficient is not allowed')
+               CALL MSGERR(3,'to be greater than 1 or smaller than 0!')
+            END IF
+            IFTMAX = IFTMAX + 1
+            ALLOCATE(TMPFT)
+            TMPFT%C = TRCF
+            NULLIFY(TMPFT%NEXTFT)
+            CURRFT%NEXTFT => TMPFT
+            CURRFT => TMPFT
+            GO TO 404
+         END IF
+         IF ( IFTMAX.EQ.0 ) THEN
             CALL MSGERR(2,'No spectral dep. transmission coeffs found')
-          ELSE IF ( IFTMAX.NE.MSC*MDC ) THEN
-             CALL MSGERR(2,'Number of transmission coeffs not equal to')
-             CALL MSGERR(2,'number of frequencies multiplied with')
-             CALL MSGERR(2,'number of directions!')
-             CALL MSGERR(2,'When less, then these coeffs are filled up')
-             CALL MSGERR(2,'with 1.')
-             CALL MSGERR(2,'When more, then these coeffs are ignored')
-          END IF
-          ALLOCATE(OBSTMP%TRCF2D(MDC,MSC))
-          OBSTMP%TRCF2D(:,:) = 1.
-          CURRFT => FRSTFT%NEXTFT
-          I = 1
-          J = 0
-          DO JJ = 1, MIN(MSC*MDC,IFTMAX)
-             J = J + 1
-             IF ( J > MSC ) THEN
-                J = 1
-                I = I + 1
-             ENDIF
-             OBSTMP%TRCF2D(I,J) = CURRFT%C
-             CURRFT => CURRFT%NEXTFT
-          END DO
-          DEALLOCATE(TMPFT)
-        ELSE IF (KEYWIS ('TRANS')) THEN
-          ITRAS = 0
-          CALL INREAL ('TRCOEF', TRCF, 'REQ', 0.)
-          IF ((TRCF.LT.0.) .OR. (TRCF.GT.1.)) THEN                        40.14
-             CALL MSGERR(3,'Transmission coefficient is not allowed')     40.14
-             CALL MSGERR(3,'to be greater than 1 or smaller than 0!')     40.14
-          ENDIF                                                           40.14
-          OBSTMP%TRCOEF(1) = TRCF                                         40.31
-        ELSE IF (KEYWIS ('DAM')) THEN
-          CALL INKEYW ('STA', 'GODA')                                     40.66
-          IF (KEYWIS ('DANG')) THEN                                       40.66
-             ITRAS = 2                                                    40.66
-             CALL INREAL ('HGT'  , HGT , 'REQ', 0.)                       40.66
-             CALL INREAL ('SLOPE', SLP , 'REQ', 0.)                       40.66
-             CALL INREAL ('BK'   , BK  , 'REQ', 0.)                       40.66
-             OBSTMP%TRCOEF(1) = HGT                                       40.66
-             OBSTMP%TRCOEF(2) = SLP                                       40.66
-             OBSTMP%TRCOEF(3) = BK                                        40.66
-          ELSE                                                            40.66
-             CALL IGNORE ('GODA')                                         40.66
-             ITRAS = 1
-             CALL INREAL ('HGT'  , HGT , 'REQ', 0.  )                     30.80
-             CALL INREAL ('ALPHA', OGAM, 'STA', 2.6 )                     30.60
-             CALL INREAL ('BETA' , OBET, 'STA', 0.15)                     30.60
-             OBSTMP%TRCOEF(1) = HGT                                       40.31
-             OBSTMP%TRCOEF(2) = OGAM                                      40.31
-             OBSTMP%TRCOEF(3) = OBET                                      40.31
-          END IF                                                          40.66
-        ELSE
+         ELSE IF ( IFTMAX.NE.MSC*MDC ) THEN
+            CALL MSGERR(2,'Number of transmission coeffs not equal to')
+            CALL MSGERR(2,'number of frequencies multiplied with')
+            CALL MSGERR(2,'number of directions!')
+            CALL MSGERR(2,'When less, then these coeffs are filled up')
+            CALL MSGERR(2,'with 1.')
+            CALL MSGERR(2,'When more, then these coeffs are ignored')
+         END IF
+         ALLOCATE(OBSTMP%TRCF2D(MDC,MSC))
+         OBSTMP%TRCF2D(:,:) = 1.
+         CURRFT => FRSTFT%NEXTFT
+         I = 1
+         J = 0
+         DO JJ = 1, MIN(MSC*MDC,IFTMAX)
+            J = J + 1
+            IF ( J > MSC ) THEN
+               J = 1
+               I = I + 1
+            ENDIF
+            OBSTMP%TRCF2D(I,J) = CURRFT%C
+            CURRFT => CURRFT%NEXTFT
+         END DO
+         DEALLOCATE(TMPFT)
+      ELSE IF (KEYWIS ('TRANS')) THEN
+         ITRAS = 0
+         CALL INREAL ('TRCOEF', TRCF, 'REQ', 0.)
+         IF ((TRCF.LT.0.) .OR. (TRCF.GT.1.)) THEN
+            CALL MSGERR(3,'Transmission coefficient is not allowed')
+            CALL MSGERR(3,'to be greater than 1 or smaller than 0!')
+         ENDIF
+         OBSTMP%TRCOEF(1) = TRCF
+      ELSE IF (KEYWIS ('DAM')) THEN
+         CALL INKEYW ('STA', 'GODA')
+         IF (KEYWIS ('DANG')) THEN
+            ITRAS = 2
+            CALL INREAL ('HGT'  , HGT , 'REQ', 0.)
+            CALL INREAL ('SLOPE', SLP , 'REQ', 0.)
+            CALL INREAL ('BK'   , BK  , 'REQ', 0.)
+            OBSTMP%TRCOEF(1) = HGT
+            OBSTMP%TRCOEF(2) = SLP
+            OBSTMP%TRCOEF(3) = BK
+         ELSE
+            CALL IGNORE ('GODA')
+            ITRAS = 1
+            CALL INREAL ('HGT'  , HGT , 'REQ', 0.  )
+            CALL INREAL ('ALPHA', OGAM, 'STA', 2.6 )
+            CALL INREAL ('BETA' , OBET, 'STA', 0.15)
+            OBSTMP%TRCOEF(1) = HGT
+            OBSTMP%TRCOEF(2) = OGAM
+            OBSTMP%TRCOEF(3) = OBET
+         END IF
+      ELSE
 !         if no transmission options are activated, there will be 0 transmission
-          ITRAS = 0
-          TRCF  = 0.                                                      40.41
-          OBSTMP%TRCOEF(1) = TRCF                                         40.51
-        ENDIF
-        OBSTMP%TRTYPE = ITRAS                                             40.31
+         ITRAS = 0
+         TRCF  = 0.
+         OBSTMP%TRCOEF(1) = TRCF
+      ENDIF
+      OBSTMP%TRTYPE = ITRAS
 !
 !       FIG source term                                                   41.82
 !
-        CALL INKEYW ('REQ', '  ')                                         41.82
-        IF (KEYWIS ('FIG') .OR. KEYWIS ('IG')) THEN                       41.82
-           LFIG = 1                                                       41.82
-           IF ( .NOT.FULCIR ) THEN                                        41.82
-             CALL MSGERR(3,'FIG source term will only be included if  ')  41.82
-             CALL MSGERR(3,'if the spectral directions cover the      ')  41.82
-             CALL MSGERR(3,'full circle                               ')  41.82
-           ENDIF                                                          41.82
-           CALL INREAL ('ALPHA1', AFIG, 'REQ', 0.)                        41.93 41.82
-           CALL INREAL ('HSS'   , HSS , 'UNC', 0.)                        41.82
-           CALL INREAL ('TSS'   , TSS , 'UNC', 0.)                        41.82
-           CALL INREAL ('DSS'   , DSS , 'STA', -999.)                     42.06
-           CALL INREAL ('DD'    , DD  , 'STA', 0.)                        42.06
-           CALL INREAL ('MINFR' , MFR , 'STA', 0.015)                     42.09
-           CALL INREAL ('SHAPE' , SHP , 'STA', 1.5)                       42.09
-           OBSTMP%IGCOEF(1) = AFIG
-           OBSTMP%IGCOEF(2) = HSS
-           OBSTMP%IGCOEF(3) = TSS
-           OBSTMP%IGCOEF(4) = DSS
-           OBSTMP%IGCOEF(5) = DD
-           OBSTMP%IGCOEF(6) = MFR
-           OBSTMP%IGCOEF(7) = SHP
-        ELSE
-           LFIG = 0
-        ENDIF
-        OBSTMP%IGTYP = LFIG                                               41.82
+      CALL INKEYW ('REQ', '  ')
+      IF (KEYWIS ('FIG') .OR. KEYWIS ('IG')) THEN
+         LFIG = 1
+         IF ( .NOT.FULCIR ) THEN
+            CALL MSGERR(3,'FIG source term will only be included if  ')
+            CALL MSGERR(3,'if the spectral directions cover the      ')
+            CALL MSGERR(3,'full circle                               ')
+         ENDIF
+         CALL INREAL ('ALPHA1', AFIG, 'REQ', 0.)
+         CALL INREAL ('HSS'   , HSS , 'UNC', 0.)
+         CALL INREAL ('TSS'   , TSS , 'UNC', 0.)
+         CALL INREAL ('DSS'   , DSS , 'STA', -999.)
+         CALL INREAL ('DD'    , DD  , 'STA', 0.)
+         CALL INREAL ('MINFR' , MFR , 'STA', 0.015)
+         CALL INREAL ('SHAPE' , SHP , 'STA', 1.5)
+         OBSTMP%IGCOEF(1) = AFIG
+         OBSTMP%IGCOEF(2) = HSS
+         OBSTMP%IGCOEF(3) = TSS
+         OBSTMP%IGCOEF(4) = DSS
+         OBSTMP%IGCOEF(5) = DD
+         OBSTMP%IGCOEF(6) = MFR
+         OBSTMP%IGCOEF(7) = SHP
+      ELSE
+         LFIG = 0
+      ENDIF
+      OBSTMP%IGTYP = LFIG
 !                                                                         40.09
 !       data on reflection by the obstacle, activated by keyword REFL     40.09
 !
-        CALL INKEYW ('REQ', '  ')                                         40.09
-        IF (KEYWIS ('REFL')) THEN                                         40.09
-          LREF = 1                                                        40.31
-          IF (.NOT.FULCIR) THEN                                           40.09
-            CALL MSGERR(3,'Reflections will only be calculated if     ')  40.09
-            CALL MSGERR(3,'the spectral directions cover the full     ')  40.09
-            CALL MSGERR(3,'circle.                                    ')  40.09
-          ENDIF                                                           40.09
-          CALL INREAL ('REFLC', REF0, 'STA', 1.)                          40.09
-          OBSTMP%RFCOEF(1) = REF0                                         40.31
+      CALL INKEYW ('REQ', '  ')
+      IF (KEYWIS ('REFL')) THEN
+         LREF = 1
+         IF (.NOT.FULCIR) THEN
+            CALL MSGERR(3,'Reflections will only be calculated if     ')
+            CALL MSGERR(3,'the spectral directions cover the full     ')
+            CALL MSGERR(3,'circle.                                    ')
+         ENDIF
+         CALL INREAL ('REFLC', REF0, 'STA', 1.)
+         OBSTMP%RFCOEF(1) = REF0
 !                                                                         40.18
-          CALL INKEYW ('REQ', '  ')                                       40.18
-          IF (KEYWIS('RDIFF')) THEN                                       40.18
-            LREFDIFF = 1                                                  40.31 40.18
-            CALL INREAL ('POWN', POWN, 'REQ', 1.)                         40.18
-            DUM = MOD(POWN,1.)                                            40.18
-            IF (POWN.LT.0.) THEN                                          40.38
-              CALL MSGERR(3,'Power POWN is not a positive number! ')      40.38
-            ENDIF                                                         40.38
-            IF (DUM.NE.0.) THEN                                           40.18
-              CALL MSGERR(3,'Power POWN is not an integer number! ')      40.18
-            ENDIF                                                         40.18
-            OBSTMP%RFCOEF(2) = POWN                                       40.31
+         CALL INKEYW ('REQ', '  ')
+         IF (KEYWIS('RDIFF')) THEN
+            LREFDIFF = 1
+            CALL INREAL ('POWN', POWN, 'REQ', 1.)
+            DUM = MOD(POWN,1.)
+            IF (POWN.LT.0.) THEN
+               CALL MSGERR(3,'Power POWN is not a positive number! ')
+            ENDIF
+            IF (DUM.NE.0.) THEN
+               CALL MSGERR(3,'Power POWN is not an integer number! ')
+            ENDIF
+            OBSTMP%RFCOEF(2) = POWN
 !                                                                         40.18
-          ELSE                                                            40.18
-            CALL IGNORE ('RSPEC')                                         40.18
-            LREFDIFF = 0                                                  40.31 40.18
-          ENDIF                                                           40.18
-          OBSTMP%RFTYP2 = LREFDIFF                                        40.31
+         ELSE
+            CALL IGNORE ('RSPEC')
+            LREFDIFF = 0
+         ENDIF
+         OBSTMP%RFTYP2 = LREFDIFF
 !
-          CALL INKEYW ('REQ', '  ')                                       40.28
-          CALL INKEYW ('STA', 'RFD')                                      40.28
-          IF (KEYWIS('RFD')) THEN                                         40.28
-            LRFRD = 1                                                     40.31 40.28
-            CALL INREAL ('FD1', FD1, 'REQ', 0.565)                        40.28
-            CALL INREAL ('FD2', FD2, 'REQ', 0.75)                         40.28
-            CALL INREAL ('FD3', FD3, 'REQ', -21.)                         40.28
-            CALL INREAL ('FD4', FD4, 'REQ', 0.066)                        40.28
-            IF (FD3.GE.0.) THEN                                           40.28
-              CALL MSGERR(3,'Positive frequency dependency! ')            40.28
-            ENDIF                                                         40.28
-            OBSTMP%RFCOEF(3) = FD1                                        40.31
-            OBSTMP%RFCOEF(4) = FD2                                        40.31
-            OBSTMP%RFCOEF(5) = FD3                                        40.31
-            OBSTMP%RFCOEF(6) = FD4                                        40.31
-          ELSE                                                            40.28
-            LRFRD = 0                                                     40.31 40.28
-          ENDIF                                                           40.28
-          OBSTMP%RFTYP3 = LRFRD                                           40.31
+         CALL INKEYW ('REQ', '  ')
+         CALL INKEYW ('STA', 'RFD')
+         IF (KEYWIS('RFD')) THEN
+            LRFRD = 1
+            CALL INREAL ('FD1', FD1, 'REQ', 0.565)
+            CALL INREAL ('FD2', FD2, 'REQ', 0.75)
+            CALL INREAL ('FD3', FD3, 'REQ', -21.)
+            CALL INREAL ('FD4', FD4, 'REQ', 0.066)
+            IF (FD3.GE.0.) THEN
+               CALL MSGERR(3,'Positive frequency dependency! ')
+            ENDIF
+            OBSTMP%RFCOEF(3) = FD1
+            OBSTMP%RFCOEF(4) = FD2
+            OBSTMP%RFCOEF(5) = FD3
+            OBSTMP%RFCOEF(6) = FD4
+         ELSE
+            LRFRD = 0
+         ENDIF
+         OBSTMP%RFTYP3 = LRFRD
 !                                                                         40.09
-          IF ((REF0.LT.0.) .OR. (REF0.GT.1.)) THEN                        40.09
-            CALL MSGERR(3,'Reflection coeff. [reflc] is not allowed ')    40.09
-            CALL MSGERR(3,'to be greater than 1 or smaller than 0!  ')    40.09
-          ENDIF                                                           40.09
-        ELSE
+         IF ((REF0.LT.0.) .OR. (REF0.GT.1.)) THEN
+            CALL MSGERR(3,'Reflection coeff. [reflc] is not allowed ')
+            CALL MSGERR(3,'to be greater than 1 or smaller than 0!  ')
+         ENDIF
+      ELSE
 !         if there is no keyword REFL, there will be no reflection        40.09
-          LREF = 0
-        ENDIF                                                             40.09
-        OBSTMP%RFTYP1 = LREF                                              40.31
+         LREF = 0
+      ENDIF
+      OBSTMP%RFTYP1 = LREF
 !
 !       freeboard dependent transmission and reflection (optional)        41.71
 !
-        CALL INKEYW ('REQ', '  ')                                         41.71
-        IF (KEYWIS ('FREE')) THEN                                         41.71
-           LFREE = 1                                                      41.71
-           CALL INREAL ('HGT'   , HGT , 'REQ', 0.)                        41.71
-           CALL INREAL ('GAMMAT', GAMT, 'STA', 1.)                        41.71
-           CALL INREAL ('GAMMAR', GAMR, 'STA', 1.)                        41.71
-           IF ( GAMT.LT.0. .OR. GAMR.LT.0. ) THEN                         41.71
-              CALL MSGERR(3,'shape parameter gamma is not allowed')       41.71
-              CALL MSGERR(3,'to be smaller than 0!')                      41.71
-           ELSEIF ( GAMT.LT.0.1 ) THEN                                    41.71
-              CALL MSGERR(1,'gammat may not be smaller than 0.1')         41.71
-              GAMT = 0.1                                                  41.71
-           ELSEIF ( GAMR.LT.0.1 ) THEN                                    41.71
-              CALL MSGERR(1,'gammar may not be smaller than 0.1')         41.71
-              GAMR = 0.1                                                  41.71
-           ENDIF                                                          41.71
-           OBSTMP%FBCOEF(1) = HGT                                         41.71
-           OBSTMP%FBCOEF(2) = GAMT                                        41.71
-           OBSTMP%FBCOEF(3) = GAMR                                        41.71
-           CALL INKEYW ('STA', ' ')                                       41.71
-           IF (KEYWIS('Q')) THEN                                          41.71
-              LQUAY = 1                                                   41.71
-           ELSE                                                           41.71
-              LQUAY = 0                                                   41.71
-           ENDIF                                                          41.71
-        ELSE                                                              41.71
-           LFREE = 0                                                      41.71
-           LQUAY = 0                                                      41.71
-        ENDIF                                                             41.71
-        OBSTMP%FBTYP1 = LFREE                                             41.71
-        OBSTMP%FBTYP2 = LQUAY                                             41.71
+      CALL INKEYW ('REQ', '  ')
+      IF (KEYWIS ('FREE')) THEN
+         LFREE = 1
+         CALL INREAL ('HGT'   , HGT , 'REQ', 0.)
+         CALL INREAL ('GAMMAT', GAMT, 'STA', 1.)
+         CALL INREAL ('GAMMAR', GAMR, 'STA', 1.)
+         IF ( GAMT.LT.0. .OR. GAMR.LT.0. ) THEN
+            CALL MSGERR(3,'shape parameter gamma is not allowed')
+            CALL MSGERR(3,'to be smaller than 0!')
+         ELSEIF ( GAMT.LT.0.1 ) THEN
+            CALL MSGERR(1,'gammat may not be smaller than 0.1')
+            GAMT = 0.1
+         ELSEIF ( GAMR.LT.0.1 ) THEN
+            CALL MSGERR(1,'gammar may not be smaller than 0.1')
+            GAMR = 0.1
+         ENDIF
+         OBSTMP%FBCOEF(1) = HGT
+         OBSTMP%FBCOEF(2) = GAMT
+         OBSTMP%FBCOEF(3) = GAMR
+         CALL INKEYW ('STA', ' ')
+         IF (KEYWIS('Q')) THEN
+            LQUAY = 1
+         ELSE
+            LQUAY = 0
+         ENDIF
+      ELSE
+         LFREE = 0
+         LQUAY = 0
+      ENDIF
+      OBSTMP%FBTYP1 = LFREE
+      OBSTMP%FBTYP2 = LQUAY
 !
 !       check constant transmission/reflection coefficients
 !       in case of energy conservation
 !
-        IF (LFREE.EQ.0 .AND. ITRAS.EQ.0 .AND. LREF.EQ.1) THEN             41.71 40.51 40.14
-           DUM = TRCF*TRCF + REF0*REF0                                    40.51 40.14
-           IF (DUM.GT.1.) CALL MSGERR(3,'Kt^2 + Kr^2 > 1 ')               40.51 40.14
-        ENDIF                                                             40.14
+      IF (LFREE.EQ.0 .AND. ITRAS.EQ.0 .AND. LREF.EQ.1) THEN
+         DUM = TRCF*TRCF + REF0*REF0
+         IF (DUM.GT.1.) CALL MSGERR(3,'Kt^2 + Kr^2 > 1 ')
+      ENDIF
 !
 !       location of obstacles
 !
 !       *** NUMCOR : Number of corners ***
-        NUMCOR = 0
-        CALL INKEYW ('REQ', '  ')
-        IF (KEYWIS ('LIN')) THEN
-          FRST%X = 0.                                                     40.31
-          FRST%Y = 0.                                                     40.31
-          NULLIFY(FRST%NEXTXY)                                            40.31
-          CURR => FRST                                                    40.31
-          DO
+      NUMCOR = 0
+      CALL INKEYW ('REQ', '  ')
+      IF (KEYWIS ('LIN')) THEN
+         FRST%X = 0.
+         FRST%Y = 0.
+         NULLIFY(FRST%NEXTXY)
+         CURR => FRST
+         DO
 !           read coordinates of one corner point of the obstacle
             CALL READXY ('XP', 'YP', XP, YP, 'REP', -1.E10, -1.E10)
             IF (XP.LT.-.9E10) GOTO 101
             NUMCOR = NUMCOR + 1
-            ALLOCATE(TMP)                                                 40.31
-            TMP%X = XP                                                    40.31
-            TMP%Y = YP                                                    40.31
-            NULLIFY(TMP%NEXTXY)                                           40.31
-            CURR%NEXTXY => TMP                                            40.31
-            CURR => TMP                                                   40.31
-          ENDDO
-        ENDIF
- 101    OBSTMP%NCRPTS = NUMCOR                                            40.31
-!       store coordinates for corner points in array of obstacle data     40.31
-        ALLOCATE(OBSTMP%XCRP(NUMCOR))                                     40.31
-        ALLOCATE(OBSTMP%YCRP(NUMCOR))                                     40.31
-        CURR => FRST%NEXTXY                                               40.31
-        DO JJ = 1, NUMCOR                                                 40.31
-            OBSTMP%XCRP(JJ) = CURR%X                                      40.31
-            OBSTMP%YCRP(JJ) = CURR%Y                                      40.31
-            CURR => CURR%NEXTXY                                           40.31
-        END DO                                                            40.31
-        DEALLOCATE(TMP)                                                   40.31
-        NULLIFY(OBSTMP%NEXTOBST)                                          40.31
-        IF (NUMCOR .LE. 1) THEN
-          CALL MSGERR(1,'No corner points for obstacle were found')
-        ELSE
-!         *** NUMOBS : Number of obstacles ***
-          NUMOBS = NUMOBS + 1
-          IF ( .NOT.LOBST ) THEN                                          40.31
-             FOBSTAC = OBSTMP                                             40.31
-             COBST => FOBSTAC                                             40.31
-             LOBST = .TRUE.                                               40.31
-          ELSE                                                            40.31
-             COBST%NEXTOBST => OBSTMP                                     40.31
-             COBST => OBSTMP                                              40.31
-          END IF                                                          40.31
-        ENDIF
-!
-        GO TO 100
+            ALLOCATE(TMP)
+            TMP%X = XP
+            TMP%Y = YP
+            NULLIFY(TMP%NEXTXY)
+            CURR%NEXTXY => TMP
+            CURR => TMP
+         ENDDO
       ENDIF
+101   OBSTMP%NCRPTS = NUMCOR
+!       store coordinates for corner points in array of obstacle data     40.31
+      ALLOCATE(OBSTMP%XCRP(NUMCOR))
+      ALLOCATE(OBSTMP%YCRP(NUMCOR))
+      CURR => FRST%NEXTXY
+      DO JJ = 1, NUMCOR
+         OBSTMP%XCRP(JJ) = CURR%X
+         OBSTMP%YCRP(JJ) = CURR%Y
+         CURR => CURR%NEXTXY
+      END DO
+      DEALLOCATE(TMP)
+      NULLIFY(OBSTMP%NEXTOBST)
+      IF (NUMCOR .LE. 1) THEN
+         CALL MSGERR(1,'No corner points for obstacle were found')
+      ELSE
+!         *** NUMOBS : Number of obstacles ***
+         NUMOBS = NUMOBS + 1
+         IF ( .NOT.LOBST ) THEN
+            FOBSTAC = OBSTMP
+            COBST => FOBSTAC
+            LOBST = .TRUE.
+         ELSE
+            COBST%NEXTOBST => OBSTMP
+            COBST => OBSTMP
+         END IF
+      ENDIF
+!
+      GO TO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
 !     ***'INITial conditions'  Definition of initial conditions  ***
 !     *** for MODE DYNAMIC
 !
-      IF (KEYWIS ('INIT')) THEN                                           30.61
-        CALL INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )                        40.80 40.31
-        IF (STPNOW()) RETURN                                              34.01
-        GO TO 100
-      ENDIF
+   IF (KEYWIS ('INIT')) THEN
+      CALL INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
+      IF (STPNOW()) RETURN
+      GO TO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !     HOTFile    write current wave field to file for future use as
@@ -1322,19 +1322,19 @@
 !
 ! ============================================================================
 !
-      IF (KEYWIS('REST') .OR. KEYWIS ('BACK') .OR. KEYWIS('HOTF')         40.00
-     &    .OR. KEYWIS('SAVE')) THEN                                       40.00
-        IF (MXC.LE.0 .AND. OPTG.NE.5) THEN                                40.80
-          CALL MSGERR (2, 'command CGRID must precede this command')
-        ELSEIF (MCGRD .LE. 1 .AND. nverts .LE. 0) THEN                    40.80
-          CALL MSGERR(2,                                                  40.80
-     &    ' command READ BOT or READ UNSTRUC must precede this command')  40.80
-        ELSE
-          CALL BACKUP( AC2, SPCSIG, SPCDIR, KGRPNT, XCGRID, YCGRID )      40.31 30.90
-          IF (STPNOW()) RETURN                                            34.01
-        ENDIF
-        GO TO 100
+   IF (KEYWIS('REST') .OR. KEYWIS ('BACK') .OR. KEYWIS('HOTF') &
+       .OR. KEYWIS('SAVE')) THEN
+      IF (MXC.LE.0 .AND. OPTG.NE.5) THEN
+         CALL MSGERR (2, 'command CGRID must precede this command')
+      ELSEIF (MCGRD .LE. 1 .AND. nverts .LE. 0) THEN
+         CALL MSGERR(2, &
+            ' command READ BOT or READ UNSTRUC must precede this command')
+      ELSE
+         CALL BACKUP( AC2, SPCSIG, SPCDIR, KGRPNT, XCGRID, YCGRID )
+         IF (STPNOW()) RETURN
       ENDIF
+      GO TO 100
+   ENDIF
 !     ------------------------------------------------------------------
 !
 !     INPUT    definition of input grids
@@ -1351,85 +1351,85 @@
 !
 ! ============================================================================
 !
-      IF (KEYWIS ('INP')) THEN
-        CALL IGNORE ('GRID')
-        CALL INKEYW ('STA', ' ')
-        IGR2 = 0                                                          10.26
-        IF (KEYWIS ('BOT')) THEN
-          IGRD = 1
-          PSNAME = 'BOTTGRID'
-        ELSE IF (KEYWIS ('CUR')) THEN
-          IGRD = 2
-          IGR2 = 3                                                        10.26
-          PSNAME = 'VXGRID  '
-        ELSE IF (KEYWIS ('VX')) THEN
-          IGRD = 2
-          PSNAME = 'VXGRID  '
-        ELSE IF (KEYWIS ('VY')) THEN
-          IGRD = 3
-          PSNAME = 'VYGRID  '
-        ELSE IF (KEYWIS ('FR')) THEN
-          IGRD = 4
-          PSNAME = 'FRICGRID'
-        ELSE IF (KEYWIS ('WI')) THEN
-          IGRD = 5
-          IGR2 = 6                                                        10.26
-          PSNAME = 'WXGRID  '
-        ELSE IF (KEYWIS ('WX')) THEN
-          IGRD = 5
-          PSNAME = 'WXGRID  '
-        ELSE IF (KEYWIS ('WY')) THEN
-          IGRD = 6
-          PSNAME = 'WYGRID  '
-        ELSE IF (KEYWIS ('WLEV')) THEN                                    20.38
-          IGRD = 7
-          PSNAME = 'WLEVGRID'
+   IF (KEYWIS ('INP')) THEN
+      CALL IGNORE ('GRID')
+      CALL INKEYW ('STA', ' ')
+      IGR2 = 0
+      IF (KEYWIS ('BOT')) THEN
+         IGRD = 1
+         PSNAME = 'BOTTGRID'
+      ELSE IF (KEYWIS ('CUR')) THEN
+         IGRD = 2
+         IGR2 = 3
+         PSNAME = 'VXGRID  '
+      ELSE IF (KEYWIS ('VX')) THEN
+         IGRD = 2
+         PSNAME = 'VXGRID  '
+      ELSE IF (KEYWIS ('VY')) THEN
+         IGRD = 3
+         PSNAME = 'VYGRID  '
+      ELSE IF (KEYWIS ('FR')) THEN
+         IGRD = 4
+         PSNAME = 'FRICGRID'
+      ELSE IF (KEYWIS ('WI')) THEN
+         IGRD = 5
+         IGR2 = 6
+         PSNAME = 'WXGRID  '
+      ELSE IF (KEYWIS ('WX')) THEN
+         IGRD = 5
+         PSNAME = 'WXGRID  '
+      ELSE IF (KEYWIS ('WY')) THEN
+         IGRD = 6
+         PSNAME = 'WYGRID  '
+      ELSE IF (KEYWIS ('WLEV')) THEN
+         IGRD = 7
+         PSNAME = 'WLEVGRID'
 !       note: 8 and 9 are for coordinates                                 40.03
-        ELSE IF (KEYWIS ('ASTD')) THEN                                    40.03
+      ELSE IF (KEYWIS ('ASTD')) THEN
 !         air-sea temperature difference                                  40.03
-          IGRD = 10
-          PSNAME = 'ASTDGRID'
-        ELSE IF (KEYWIS ('NPLA')) THEN                                    40.55
+         IGRD = 10
+         PSNAME = 'ASTDGRID'
+      ELSE IF (KEYWIS ('NPLA')) THEN
 !         number of plants per square meter                               40.55
-          IGRD = 11                                                       40.55
-          PSNAME = 'NPLAGRID'                                             40.55
-        ELSE IF (KEYWIS ('TURB')) THEN                                    40.35
+         IGRD = 11
+         PSNAME = 'NPLAGRID'
+      ELSE IF (KEYWIS ('TURB')) THEN
 !         value of turbulent viscosity                                    40.35
-          IGRD = 12                                                       40.35
-          PSNAME = 'TURBGRID'                                             40.35
-        ELSE IF (KEYWIS ('MUDL')) THEN                                    40.59
+         IGRD = 12
+         PSNAME = 'TURBGRID'
+      ELSE IF (KEYWIS ('MUDL')) THEN
 !         fluid mud layer                                                 40.59
-          IGRD = 13                                                       40.59
-          PSNAME = 'MUDLGRID'                                             40.59
-        ELSE IF (KEYWIS ('AICE')) THEN                                    41.75
+         IGRD = 13
+         PSNAME = 'MUDLGRID'
+      ELSE IF (KEYWIS ('AICE')) THEN
 !         ice concentration (as a fraction)                               41.75
-          IGRD = 14                                                       41.75
-          PSNAME = 'AICEGRID'                                             41.75
-        ELSE IF (KEYWIS ('HICE')) THEN                                    41.75
+         IGRD = 14
+         PSNAME = 'AICEGRID'
+      ELSE IF (KEYWIS ('HICE')) THEN
 !         ice thickness (in meters)                                       41.75
-          IGRD = 15                                                       41.75
-          PSNAME = 'HICEGRID'                                             41.75
-        ELSE IF (KEYWIS ('HSS').OR.KEYWIS ('IGHS')) THEN                  41.82
+         IGRD = 15
+         PSNAME = 'HICEGRID'
+      ELSE IF (KEYWIS ('HSS').OR.KEYWIS ('IGHS')) THEN
 !         sea-swell significant wave height                               41.82
-          IGRD = 16                                                       41.82
-          PSNAME = 'HSSGRID'                                              41.82
-        ELSE IF (KEYWIS ('TSS').OR.KEYWIS ('IGTM')) THEN                  41.82
+         IGRD = 16
+         PSNAME = 'HSSGRID'
+      ELSE IF (KEYWIS ('TSS').OR.KEYWIS ('IGTM')) THEN
 !         sea-swell mean wave period                                      41.82
-          IGRD = 17                                                       41.82
-          PSNAME = 'TSSGRID'                                              41.82
-        ELSE IF (KEYWIS ('DSS').OR.KEYWIS ('IGDIR')) THEN                 42.06
+         IGRD = 17
+         PSNAME = 'TSSGRID'
+      ELSE IF (KEYWIS ('DSS').OR.KEYWIS ('IGDIR')) THEN
 !         sea-swell mean wave direction                                   42.06
-          IGRD = 18                                                       42.06
-          PSNAME = 'DSSGRID'                                              42.06
-        ELSE
-          IGRD = 1
-          PSNAME = 'BOTTGRID'
-        ENDIF
-!
-        CALL SINPGR (IGRD, IGR2, PSNAME)                                  40.31
-        IF (STPNOW()) RETURN                                              34.01
-        GOTO 100
+         IGRD = 18
+         PSNAME = 'DSSGRID'
+      ELSE
+         IGRD = 1
+         PSNAME = 'BOTTGRID'
       ENDIF
+!
+      CALL SINPGR (IGRD, IGR2, PSNAME)
+      IF (STPNOW()) RETURN
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !     READ   reading depths, coordinates and/or currents
@@ -1450,145 +1450,145 @@
 !
 !   ============================================================================
 !
-      IF (KEYWIS ('READ')) THEN
+   IF (KEYWIS ('READ')) THEN
 !
 !       --- check whether computational grid has been defined             40.80
 !
-        IF ( .NOT.LOGCOM(2) ) THEN                                        40.80
-           CALL MSGERR (3, '* define computational grid before      *')   40.80
-           CALL MSGERR (3, '* reading coordinates or input grids    *')   40.80
-        ENDIF                                                             40.80
+      IF ( .NOT.LOGCOM(2) ) THEN
+         CALL MSGERR (3, '* define computational grid before      *')
+         CALL MSGERR (3, '* reading coordinates or input grids    *')
+      ENDIF
 !
-        CALL INKEYW ('REQ',' ')
-        IF (KEYWIS ('UNSTRUC')) THEN                                      40.80
+      CALL INKEYW ('REQ',' ')
+      IF (KEYWIS ('UNSTRUC')) THEN
 !
-           IF (OPTG.NE.5) THEN                                            40.80
-              CALL MSGERR (3,                                             40.80
-     &     'define computational grid before reading unstructured grid')  40.80
-           ENDIF                                                          40.80
-           IF (ONED) THEN                                                 40.80
-              CALL MSGERR (4,                                             40.80
-     &            '1D-simulation cannot be done with unstructured grid')  40.80
-              RETURN                                                      40.80
-           ENDIF                                                          40.80
+         IF (OPTG.NE.5) THEN
+            CALL MSGERR (3, &
+               'define computational grid before reading unstructured grid')
+         ENDIF
+         IF (ONED) THEN
+            CALL MSGERR (4, &
+                '1D-simulation cannot be done with unstructured grid')
+            RETURN
+         ENDIF
 !
 !          --- read unstructured grid                                     40.80
 !
-           LOGCOM(5) = .TRUE.                                             40.80
-           CALL INKEYW ('STA', 'ADC')                                     40.80
-           IF (KEYWIS('ADC')) THEN                                        40.80
-              grid_generator = meth_adcirc                                40.80
+         LOGCOM(5) = .TRUE.
+         CALL INKEYW ('STA', 'ADC')
+         IF (KEYWIS('ADC')) THEN
+            grid_generator = meth_adcirc
 !             bottom topography will be taken from fort.14, so            40.80
-              LOGCOM(3) = .TRUE.                                          40.80
-              IGTYPE(1) = 3                                               40.80
-              LEDS(1)   = 2                                               40.80
-           ELSEIF (KEYWIS('TRIA')) THEN                                   40.80
-              grid_generator = meth_triangle                              40.80
-              CALL INCSTR ('FNAME',FILENM,'REQ', ' ')                     40.80
-           ELSEIF (KEYWIS('EASY')) THEN                                   40.80
-              grid_generator = meth_easy                                  40.80
-              CALL INCSTR ('FNAME',FILENM,'REQ', ' ')                     40.80
-           ENDIF                                                          40.80
-           CALL SwanReadGrid ( FILENM, LENFNM )                           40.80
-           IF (STPNOW()) RETURN                                           40.80
-           GOTO 444                                                       40.80
-        ENDIF
+            LOGCOM(3) = .TRUE.
+            IGTYPE(1) = 3
+            LEDS(1)   = 2
+         ELSEIF (KEYWIS('TRIA')) THEN
+            grid_generator = meth_triangle
+            CALL INCSTR ('FNAME',FILENM,'REQ', ' ')
+         ELSEIF (KEYWIS('EASY')) THEN
+            grid_generator = meth_easy
+            CALL INCSTR ('FNAME',FILENM,'REQ', ' ')
+         ENDIF
+         CALL SwanReadGrid ( FILENM, LENFNM )
+         IF (STPNOW()) RETURN
+         GOTO 444
+      ENDIF
 !
-        CALL SREDEP ( LWINDR, LWINDM, LOGCOM )                            40.31 40.02
-        IF (STPNOW()) RETURN                                              34.01
+      CALL SREDEP ( LWINDR, LWINDM, LOGCOM )
+      IF (STPNOW()) RETURN
 !       --- call CGINIT once as soon as both coordinates and bottom       40.31
 !           have been read and AC2 is not allocated                       40.31
- 444    IF (OPTG .EQ. 1) THEN                                             40.80
+444   IF (OPTG .EQ. 1) THEN
 !         regular grid
-          IF (LOGCOM(3) .AND. .NOT. LOGCOM(6)) THEN                       30.90
-            CALL CGINIT(LOGCOM)                                           40.31 30.90
-            IF (STPNOW()) RETURN                                          34.01
-          ENDIF                                                           30.90
-        ELSEIF (OPTG.EQ.3) THEN                                           40.80
+         IF (LOGCOM(3) .AND. .NOT. LOGCOM(6)) THEN
+            CALL CGINIT(LOGCOM)
+            IF (STPNOW()) RETURN
+         ENDIF
+      ELSEIF (OPTG.EQ.3) THEN
 !         cuvilinear grid
-          IF (LOGCOM(3) .AND. .NOT. LOGCOM(4)) THEN
-            CALL MSGERR (3, '** Give CGRID command and               *')  40.00
+         IF (LOGCOM(3) .AND. .NOT. LOGCOM(4)) THEN
+            CALL MSGERR (3, '** Give CGRID command and               *')
             CALL MSGERR (3, '** read curvilinear coordinates         *')
             CALL MSGERR (3, '** before reading the bottom grid       *')
-          ELSE IF (LOGCOM(2) .AND. LOGCOM(3) .AND.
-     &             LOGCOM(4) .AND. .NOT. LOGCOM(6)) THEN
-            CALL CGINIT(LOGCOM)                                           40.31 30.90
-            IF (STPNOW()) RETURN                                          34.01
-          ENDIF
-        ELSEIF (OPTG.EQ.5) THEN                                           40.80
+         ELSE IF (LOGCOM(2) .AND. LOGCOM(3) .AND. &
+                  LOGCOM(4) .AND. .NOT. LOGCOM(6)) THEN
+            CALL CGINIT(LOGCOM)
+            IF (STPNOW()) RETURN
+         ENDIF
+      ELSEIF (OPTG.EQ.5) THEN
 !         unstructured grid
 !
-          IF ( .NOT.LOGCOM(5) ) THEN                                      40.80
-            CALL MSGERR (3, '* read unstructured grid by means of    *')  40.80
-            CALL MSGERR (3, '* SMS/ADCIRC, Triangle or Easymesh      *')  40.80
-            IF ( LOGCOM(4) )                                              40.80
-     &      CALL MSGERR (3, '* instead of curvilinear coordinates    *')  40.80
-          ELSEIF ( LOGCOM(5) .AND. LOGCOM(2) .AND.                        40.80
-     &            .NOT.LOGCOM(4) .AND. .NOT.LOGCOM(6) .AND.               42.10 40.80
-     &            .NOT.LOGCOM(7) ) THEN                                   42.10
-!METIS            CALL SwanDecomposition (LOGCOM)                               42.10
-!METIS            IF (STPNOW()) RETURN                                          42.10
-            IF ( PARLL .AND. .NOT.LOGCOM(7) )                             42.10
-     &         CALL MSGERR (4,                                            42.10
-     &          'to run in parallel the mesh must be partitioned first')  42.10
+         IF ( .NOT.LOGCOM(5) ) THEN
+            CALL MSGERR (3, '* read unstructured grid by means of    *')
+            CALL MSGERR (3, '* SMS/ADCIRC, Triangle or Easymesh      *')
+            IF ( LOGCOM(4) ) &
+               CALL MSGERR (3, '* instead of curvilinear coordinates    *')
+         ELSEIF ( LOGCOM(5) .AND. LOGCOM(2) .AND. &
+                 .NOT.LOGCOM(4) .AND. .NOT.LOGCOM(6) .AND. &
+                 .NOT.LOGCOM(7) ) THEN
+!METIS            CALL SwanDecomposition (LOGCOM)
+!METIS            IF (STPNOW()) RETURN
+            IF ( PARLL .AND. .NOT.LOGCOM(7) ) &
+               CALL MSGERR (4, &
+                'to run in parallel the mesh must be partitioned first')
 !
 !           --- create copies of parts of xcugrd and ycugrd               43.01
 !               for each subdomain                                        43.01
-            IF (.NOT.ALLOCATED(xcugrdgl)) ALLOCATE(xcugrdgl(nvertsg))     43.01
-            IF (.NOT.ALLOCATED(ycugrdgl)) ALLOCATE(ycugrdgl(nvertsg))     43.01
-            xcugrdgl = xcugrd                                             43.01
-            ycugrdgl = ycugrd                                             43.01
-            DEALLOCATE(xcugrd,ycugrd)                                     43.01
-            ALLOCATE(xcugrd(nverts))                                      43.01
-            ALLOCATE(ycugrd(nverts))                                      43.01
+            IF (.NOT.ALLOCATED(xcugrdgl)) ALLOCATE(xcugrdgl(nvertsg))
+            IF (.NOT.ALLOCATED(ycugrdgl)) ALLOCATE(ycugrdgl(nvertsg))
+            xcugrdgl = xcugrd
+            ycugrdgl = ycugrd
+            DEALLOCATE(xcugrd,ycugrd)
+            ALLOCATE(xcugrd(nverts))
+            ALLOCATE(ycugrd(nverts))
 !
-            IF ( .NOT.PARLL ) THEN                                        43.01
-               xcugrd = xcugrdgl                                          43.01
-               ycugrd = ycugrdgl                                          43.01
-            ELSE                                                          43.01
-               DO J = 1, nverts                                           43.01
-                  I = ivertg(J)                                           43.01
-                  xcugrd(J) = xcugrdgl(I)                                 43.01
-                  ycugrd(J) = ycugrdgl(I)                                 43.01
-               ENDDO                                                      43.01
-            ENDIF                                                         43.01
+            IF ( .NOT.PARLL ) THEN
+               xcugrd = xcugrdgl
+               ycugrd = ycugrdgl
+            ELSE
+               DO J = 1, nverts
+                  I = ivertg(J)
+                  xcugrd(J) = xcugrdgl(I)
+                  ycugrd(J) = ycugrdgl(I)
+               ENDDO
+            ENDIF
 !
 !           --- create grid topology
-            CALL SwanCreateEdges                                          40.80
-            IF (STPNOW()) RETURN                                          40.80
-            CALL SwanGridTopology                                         40.80
-            IF (STPNOW()) RETURN                                          40.80
+            CALL SwanCreateEdges
+            IF (STPNOW()) RETURN
+            CALL SwanGridTopology
+            IF (STPNOW()) RETURN
 !
 !           --- initialize arrays for unstructured mesh
-            CALL SwanInitCompGrid (LOGCOM)                                40.80
-            IF (STPNOW()) RETURN                                          40.80
+            CALL SwanInitCompGrid (LOGCOM)
+            IF (STPNOW()) RETURN
 !
 !           --- the computational grid is included in output data         40.80
-            IF ( nverts.GT.0 ) THEN                                       40.80
-               ALLOCATE(OPSTMP)                                           40.80
-               OPSTMP%PSNAME = 'COMPGRID'                                 40.80
-               OPSTMP%PSTYPE = 'U'                                        40.80
-               OPSTMP%MIP    = nverts                                     40.80
-               ALLOCATE(OPSTMP%XP(nverts))                                40.80
-               ALLOCATE(OPSTMP%YP(nverts))                                40.80
-               DO JJ = 1, nverts                                          40.80
-                  OPSTMP%XP(JJ) = xcugrd(JJ)                              40.80
-                  OPSTMP%YP(JJ) = ycugrd(JJ)                              40.80
-               ENDDO                                                      40.80
-               NULLIFY(OPSTMP%NEXTOPS)                                    40.80
-               IF ( .NOT.LOPS ) THEN                                      40.80
-                  FOPS = OPSTMP                                           40.80
-                  COPS => FOPS                                            40.80
-                  LOPS = .TRUE.                                           40.80
-               ELSE                                                       40.80
-                  COPS%NEXTOPS => OPSTMP                                  40.80
-                  COPS => OPSTMP                                          40.80
-               ENDIF                                                      40.80
-            ENDIF                                                         40.80
-          ENDIF                                                           40.80
-        ENDIF
-        GOTO 100
+            IF ( nverts.GT.0 ) THEN
+               ALLOCATE(OPSTMP)
+               OPSTMP%PSNAME = 'COMPGRID'
+               OPSTMP%PSTYPE = 'U'
+               OPSTMP%MIP    = nverts
+               ALLOCATE(OPSTMP%XP(nverts))
+               ALLOCATE(OPSTMP%YP(nverts))
+               DO JJ = 1, nverts
+                  OPSTMP%XP(JJ) = xcugrd(JJ)
+                  OPSTMP%YP(JJ) = ycugrd(JJ)
+               ENDDO
+               NULLIFY(OPSTMP%NEXTOPS)
+               IF ( .NOT.LOPS ) THEN
+                  FOPS = OPSTMP
+                  COPS => FOPS
+                  LOPS = .TRUE.
+               ELSE
+                  COPS%NEXTOPS => OPSTMP
+                  COPS => OPSTMP
+               ENDIF
+            ENDIF
+         ENDIF
       ENDIF
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -1605,7 +1605,7 @@
 !
 ! ===========================================================================
 !
-      IF (KEYWIS('CGRID') .OR. KEYWIS('GRID')) THEN                       30.20
+   IF (KEYWIS('CGRID') .OR. KEYWIS('GRID')) THEN
 !       ver 20.67: command reorganised in view of cycle 2 (parametric &
 !                  curvilinear)
 !       ver 30.20: order of data changed
@@ -1615,278 +1615,278 @@
 !       ver 30.21: CURVILINEAR                                            30.21
 !
 !
-        LOGCOM(2) = .TRUE.                                                30.21
-        CALL INKEYW ('STA', 'REG')                                        30.60
-        IF (KEYWIS('CURV')) THEN                                          30.21
-          OPTG  = 3                                                       30.21
-          XPC   = 0.
-          YPC   = 0.
-          ALPC  = 0.                                                      30.21
-          XCLEN = 0.
-          YCLEN = 0.
-          IF (ITEST.GE.30) THEN                                           40.41
-          CALL MSGERR(1,'there is an unusual issue with the')             41.53 40.08
-          CALL MSGERR(1,'curvilinear mode, so use with caution.')         40.08
-          CALL MSGERR(1,'This issue occurs when the upwind point')        40.08
-          CALL MSGERR(1,'has not been solved for yet, because it')        40.08
-          CALL MSGERR(1,'falls into a different sweep. Normally,')        40.08
-          CALL MSGERR(1,'an upwind point will always fall within')        40.08
-          CALL MSGERR(1,'the same sweep, but this is not necessarily')    40.08
-          CALL MSGERR(1,'the case when using curvilinear coordinates.')   40.08
-          CALL MSGERR(1,'To state the problem another way:')              40.08
-          CALL MSGERR(1,'the axis of the grid bends about the')           40.08
-          CALL MSGERR(1,'direction associated with a particular')         40.08
-          CALL MSGERR(1,'directional bin.')                               40.08
-          CALL MSGERR(1,'You may use command SET CURV or enlarge')        41.53
-          CALL MSGERR(1,'parameter [mxitst].')                            41.53
-          END IF                                                          40.41
-        ELSEIF (KEYWIS('UNSTRUC')) THEN                                   40.80
-          OPTG  = 5                                                       40.80
-          XPC   = 0.                                                      40.80
-          YPC   = 0.                                                      40.80
-          ALPC  = 0.                                                      40.80
-          XCLEN = 0.                                                      40.80
-          YCLEN = 0.                                                      40.80
-        ELSE
-          CALL IGNORE ('REG')                                             20.67
-          OPTG = 1
-          IF (KSPHER.EQ.0) THEN                                           40.13
+      LOGCOM(2) = .TRUE.
+      CALL INKEYW ('STA', 'REG')
+      IF (KEYWIS('CURV')) THEN
+         OPTG  = 3
+         XPC   = 0.
+         YPC   = 0.
+         ALPC  = 0.
+         XCLEN = 0.
+         YCLEN = 0.
+         IF (ITEST.GE.30) THEN
+            CALL MSGERR(1,'there is an unusual issue with the')
+            CALL MSGERR(1,'curvilinear mode, so use with caution.')
+            CALL MSGERR(1,'This issue occurs when the upwind point')
+            CALL MSGERR(1,'has not been solved for yet, because it')
+            CALL MSGERR(1,'falls into a different sweep. Normally,')
+            CALL MSGERR(1,'an upwind point will always fall within')
+            CALL MSGERR(1,'the same sweep, but this is not necessarily')
+            CALL MSGERR(1,'the case when using curvilinear coordinates.')
+            CALL MSGERR(1,'To state the problem another way:')
+            CALL MSGERR(1,'the axis of the grid bends about the')
+            CALL MSGERR(1,'direction associated with a particular')
+            CALL MSGERR(1,'directional bin.')
+            CALL MSGERR(1,'You may use command SET CURV or enlarge')
+            CALL MSGERR(1,'parameter [mxitst].')
+         END IF
+      ELSEIF (KEYWIS('UNSTRUC')) THEN
+         OPTG  = 5
+         XPC   = 0.
+         YPC   = 0.
+         ALPC  = 0.
+         XCLEN = 0.
+         YCLEN = 0.
+      ELSE
+         CALL IGNORE ('REG')
+         OPTG = 1
+         IF (KSPHER.EQ.0) THEN
             CALL READXY ('XPC', 'YPC', XPC, YPC, 'STA', 0., 0.)
             CALL INREAL ('ALPC',ALPC,'UNC',0.)
-          ELSE                                                            40.13
+         ELSE
 !           spherical coordinates; [xpc] and [ypc] are required           40.13
-            CALL READXY ('XPC', 'YPC', XPC, YPC, 'REQ', 0., 0.)           40.13
-            CALL INREAL ('ALPC',ALPC,'STA',0.)                            40.13
-          ENDIF                                                           40.13
-          CALL INREAL('XLENC',XCLEN,'RQI',0.)                             30.20
-          IF (ONED) THEN                                                  32.02
-            CALL INREAL('YLENC',YCLEN,'STA',0.)                           40.13
-            IF (YCLEN .NE. 0) THEN                                        32.02
-              CALL MSGERR (1, '1D-simulation: [ylenc] set to zero !')     32.02
-            ENDIF                                                         32.02
-            YCLEN = 0.                                                    40.00
-          ELSE
-            CALL INREAL('YLENC',YCLEN,'RQI',0.)                           30.20
-          ENDIF
+            CALL READXY ('XPC', 'YPC', XPC, YPC, 'REQ', 0., 0.)
+            CALL INREAL ('ALPC',ALPC,'STA',0.)
+         ENDIF
+         CALL INREAL('XLENC',XCLEN,'RQI',0.)
+         IF (ONED) THEN
+            CALL INREAL('YLENC',YCLEN,'STA',0.)
+            IF (YCLEN .NE. 0) THEN
+               CALL MSGERR (1, '1D-simulation: [ylenc] set to zero !')
+            ENDIF
+            YCLEN = 0.
+         ELSE
+            CALL INREAL('YLENC',YCLEN,'RQI',0.)
+         ENDIF
 !
 !         ALPC is made to be between -PI and PI
 !
-          ALTMP = ALPC / 360.
-          ALPC = PI2 * (ALTMP - NINT(ALTMP))
-          CVLEFT = .TRUE.                                                 40.00
-        ENDIF                                                             30.21
+         ALTMP = ALPC / 360.
+         ALPC = PI2 * (ALTMP - NINT(ALTMP))
+         CVLEFT = .TRUE.
+      ENDIF
 !
-        IF (OPTG.EQ.5) GOTO 555                                           40.80
+      IF (OPTG.EQ.5) GOTO 555
 !
 !       ***** MXC is the number of steps in X direction *****
 !       ***** MYC is the number of steps in Y direction *****
 !
-        CALL ININTG('MXC',MXS,'RQI',0)
+      CALL ININTG('MXC',MXS,'RQI',0)
 !
-        IF (ONED) THEN                                                    32.02
-          CALL ININTG('MYC',MYS,'STA',0)                                  40.13
-          IF (MYS .NE. 0) THEN                                            32.02
-            CALL MSGERR (1, '1D-simulation: [myc] set to zero !')         32.02
-          ENDIF                                                           32.02
-          MYS = 0                                                         32.02
-        ELSE                                                              40.13
-          CALL ININTG('MYC',MYS,'RQI',-1)
-        ENDIF                                                             32.02
+      IF (ONED) THEN
+         CALL ININTG('MYC',MYS,'STA',0)
+         IF (MYS .NE. 0) THEN
+            CALL MSGERR (1, '1D-simulation: [myc] set to zero !')
+         ENDIF
+         MYS = 0
+      ELSE
+         CALL ININTG('MYC',MYS,'RQI',-1)
+      ENDIF
 !
-        IF (KREPTX.EQ.1) THEN                                             33.09
-          MXC = MXS                                                       33.09
-        ELSE
-          MXC = MXS+1
-        ENDIF
-        MYC = MYS+1
-        MMCGR = MXC*MYC
-        DX  = XCLEN/MXS
+      IF (KREPTX.EQ.1) THEN
+         MXC = MXS
+      ELSE
+         MXC = MXS+1
+      ENDIF
+      MYC = MYS+1
+      MMCGR = MXC*MYC
+      DX  = XCLEN/MXS
 !                                                                         32.02
-        IF (ONED) THEN                                                    32.02
-          DY  = DX                                                        32.02
-        ELSE                                                              32.02
-          DY  = YCLEN/MYS
-        ENDIF                                                             32.02
- 555    CONTINUE                                                          40.80
+      IF (ONED) THEN
+         DY  = DX
+      ELSE
+         DY  = YCLEN/MYS
+      ENDIF
+555   CONTINUE
 !
 !       for curvilinear grid, read exception values for grid point coordinates
 !
-        IF (OPTG.EQ.3) THEN                                               30.60
-          CALL INKEYW ('STA', ' ')                                        30.60
-          IF (KEYWIS ('EXC')) THEN                                        30.60
-            CALL INREAL ('EXCVAL', EXCFLD(8), 'REQ', 0.)                  30.60
-            CALL INREAL ('EXCVAL', EXCFLD(9), 'STA', EXCFLD(8))           30.60
-          ENDIF                                                           30.60
-          CALL INREAL ('ALPC',ALPC,'STA',0.)                              41.53
-          ALTMP = ALPC / 360.                                             41.53
-          ALPC = PI2 * (ALTMP - NINT(ALTMP))                              41.53
-        ENDIF                                                             30.60
+      IF (OPTG.EQ.3) THEN
+         CALL INKEYW ('STA', ' ')
+         IF (KEYWIS ('EXC')) THEN
+            CALL INREAL ('EXCVAL', EXCFLD(8), 'REQ', 0.)
+            CALL INREAL ('EXCVAL', EXCFLD(9), 'STA', EXCFLD(8))
+         ENDIF
+         CALL INREAL ('ALPC',ALPC,'STA',0.)
+         ALTMP = ALPC / 360.
+         ALPC = PI2 * (ALTMP - NINT(ALTMP))
+      ENDIF
 !
-        CALL INKEYW ('STA', 'CIR')                                        20.67
-        IF (KEYWIS('SEC')) THEN
-          FULCIR = .FALSE.
-          CALL INREAL ('DIR1', SPDIR1, 'REQ', 0.)                         20.43
-          CALL INREAL ('DIR2', SPDIR2, 'REQ', 0.)                         20.56
-          CALL ININTG('MDC',MDC,'RQI',0)
-        ELSE                                                              20.43
-          CALL IGNORE ('CIR')                                             20.67
-          FULCIR = .TRUE.
-          CALL ININTG('MDC',MDC,'RQI',0)
-        ENDIF
+      CALL INKEYW ('STA', 'CIR')
+      IF (KEYWIS('SEC')) THEN
+         FULCIR = .FALSE.
+         CALL INREAL ('DIR1', SPDIR1, 'REQ', 0.)
+         CALL INREAL ('DIR2', SPDIR2, 'REQ', 0.)
+         CALL ININTG('MDC',MDC,'RQI',0)
+      ELSE
+         CALL IGNORE ('CIR')
+         FULCIR = .TRUE.
+         CALL ININTG('MDC',MDC,'RQI',0)
+      ENDIF
 !
 !       ***** MSC is the number of frequencies in sigma direction (logaritmic)
 !
-        CALL INREAL('FLOW',FRLOW,'STA',-999.)                             40.31
-        CALL INREAL('FHIGH',FRHIG,'STA',-999.)                            40.31
-        CALL ININTG('MSC',MSS,'STA',-999)                                 40.31
-        IVAL = MAX(ABS(MSS*NINT(FRLOW)),ABS(MSS*NINT(FRHIG)),             40.31
-     &             ABS(NINT(FRLOW)*NINT(FRHIG)))                          40.31
-        IF (IVAL.GE.999**2) THEN                                          40.31
-           CALL MSGERR(3,                                                 40.31
-     &                 'At least, FLOW and FHIGH or MSC must be given!')  40.31
-        END IF                                                            40.31
-        IVAL = MAX(ABS(NINT(FRLOW)),ABS(NINT(FRHIG)),ABS(MSS))            40.31
-        IF (IVAL.NE.999) THEN                                             40.31
-           GAMMA = EXP(ALOG(FRHIG/FRLOW)/REAL(MSS)) - 1.                  40.41
-           WRITE (PRINTF,'(A,(F7.4))')                                    40.41
-     &                       ' Resolution in sigma-space: df/f = ',GAMMA  40.41
-        ELSE IF (MSS.EQ.-999) THEN                                        40.31
-           MSS = NINT(ALOG(FRHIG/FRLOW)/ALOG(1.1))                        40.31
-           WRITE (PRINTF,'(A,I3)')                                        40.31
-     &                  ' Number of meshes in sigma-space: MSC-1 = ',MSS  40.41 40.31
-        ELSE IF (FRLOW.EQ.-999.) THEN                                     40.31
-           FRLOW = FRHIG/EXP(ALOG(1.1)*REAL(MSS))                         40.31
-           WRITE (PRINTF,'(A,(F7.4))')                                    40.31
-     &               ' Lowest discrete frequency (in Hz): FLOW = ',FRLOW  40.31
-        ELSE IF (FRHIG.EQ.-999.) THEN                                     40.31
-           FRHIG = FRLOW*EXP(ALOG(1.1)*REAL(MSS))                         40.31
-           WRITE (PRINTF,'(A,(F7.4))')                                    40.31
-     &             ' Highest discrete frequency (in Hz): FHIGH = ',FRHIG  40.31
-        END IF                                                            40.31
-        SLOW = 2.*PI*FRLOW
-        SHIG = 2.*PI*FRHIG
-        MSC  = MSS+1
+      CALL INREAL('FLOW',FRLOW,'STA',-999.)
+      CALL INREAL('FHIGH',FRHIG,'STA',-999.)
+      CALL ININTG('MSC',MSS,'STA',-999)
+      IVAL = MAX(ABS(MSS*NINT(FRLOW)),ABS(MSS*NINT(FRHIG)), &
+                 ABS(NINT(FRLOW)*NINT(FRHIG)))
+      IF (IVAL.GE.999**2) THEN
+         CALL MSGERR(3, &
+                     'At least, FLOW and FHIGH or MSC must be given!')
+      END IF
+      IVAL = MAX(ABS(NINT(FRLOW)),ABS(NINT(FRHIG)),ABS(MSS))
+      IF (IVAL.NE.999) THEN
+         GAMMA = EXP(ALOG(FRHIG/FRLOW)/REAL(MSS)) - 1.
+         WRITE (PRINTF,'(A,(F7.4))') &
+                           ' Resolution in sigma-space: df/f = ',GAMMA
+      ELSE IF (MSS.EQ.-999) THEN
+         MSS = NINT(ALOG(FRHIG/FRLOW)/ALOG(1.1))
+         WRITE (PRINTF,'(A,I3)') &
+                      ' Number of meshes in sigma-space: MSC-1 = ',MSS
+      ELSE IF (FRLOW.EQ.-999.) THEN
+         FRLOW = FRHIG/EXP(ALOG(1.1)*REAL(MSS))
+         WRITE (PRINTF,'(A,(F7.4))') &
+                   ' Lowest discrete frequency (in Hz): FLOW = ',FRLOW
+      ELSE IF (FRHIG.EQ.-999.) THEN
+         FRHIG = FRLOW*EXP(ALOG(1.1)*REAL(MSS))
+         WRITE (PRINTF,'(A,(F7.4))') &
+                 ' Highest discrete frequency (in Hz): FHIGH = ',FRHIG
+      END IF
+      SLOW = 2.*PI*FRLOW
+      SHIG = 2.*PI*FRHIG
+      MSC  = MSS+1
 !
 !       ***** MDC is the number of steps in theta direction as part of a circle
 !
-        IF (FULCIR) THEN
-          DDIR  = PI2 / MDC                                               20.43
+      IF (FULCIR) THEN
+         DDIR  = PI2 / MDC
 !
 !         modification of SPDIR1 first installed with version 30.72, then
 !         reversed and reinstalled with 40.13
 !         purpose: prevent problem with grids under 45 degrees            40.13
-          SPDIR1 = ALPC + 0.5 * DDIR                                      30.72 40.13
-        ELSE
-          IF (BNAUT) THEN                                                 30.70
+         SPDIR1 = ALPC + 0.5 * DDIR
+      ELSE
+         IF (BNAUT) THEN
 !           swap values of SPDIR1 and SPDIR2, and transform               30.70
-            TMPDIR = SPDIR1                                               30.70
-            SPDIR1 = 180. + DNORTH - SPDIR2                               30.70
-            SPDIR2 = 180. + DNORTH - TMPDIR                               30.70
-          ENDIF                                                           30.70
-          SPDIR1 = SPDIR1 * PI / 180.                                     30.50
-          SPDIR2 = SPDIR2 * PI / 180.                                     30.50
-          IF (SPDIR2.LT.SPDIR1) SPDIR2 = SPDIR2 + PI2                     20.56
-          DDIR = (SPDIR2-SPDIR1) / REAL(MDC)                              20.56
-          MDC = MDC + 1                                                   20.56
-        ENDIF
+            TMPDIR = SPDIR1
+            SPDIR1 = 180. + DNORTH - SPDIR2
+            SPDIR2 = 180. + DNORTH - TMPDIR
+         ENDIF
+         SPDIR1 = SPDIR1 * PI / 180.
+         SPDIR2 = SPDIR2 * PI / 180.
+         IF (SPDIR2.LT.SPDIR1) SPDIR2 = SPDIR2 + PI2
+         DDIR = (SPDIR2-SPDIR1) / REAL(MDC)
+         MDC = MDC + 1
+      ENDIF
 !
-        IF(.NOT.ALLOCATED(SPCSIG)) ALLOCATE(SPCSIG(MSC))                  40.31
-        IF(.NOT.ALLOCATED(SPCDIR)) ALLOCATE(SPCDIR(MDC,6))                40.31
-        CALL SSFILL(SPCSIG,SPCDIR)                                        40.31 30.90
+      IF(.NOT.ALLOCATED(SPCSIG)) ALLOCATE(SPCSIG(MSC))
+      IF(.NOT.ALLOCATED(SPCDIR)) ALLOCATE(SPCDIR(MDC,6))
+      CALL SSFILL(SPCSIG,SPCDIR)
 !
-        IF (ITEST.GE. 20) THEN
-          IF(OPTG .EQ. 1)WRITE (PRINTF,6048)                              30.21
-          IF(OPTG .EQ. 3)WRITE (PRINTF,6049)                              30.21
-          IF(OPTG .EQ. 5)WRITE (PRINTF,6050)                              40.80
-          WRITE (PRINTF,6045) SLOW, SHIG, FRINTF
-          IF (OPTG.NE.5) WRITE (PRINTF,6046) MXC,MYC,MDC,MSC
-          IF (OPTG.NE.5) WRITE (PRINTF,6047) DX,DY,DDIR
-          IF (OPTG.EQ.5) WRITE (PRINTF,6051) MDC,MSC,DDIR                 40.80
- 6048     FORMAT ('GRID: REGULAR RECTANGULAR')                            30.21
- 6049     FORMAT ('GRID: CURVILINEAR')                                    30.21
- 6050     FORMAT ('GRID: UNSTRUCTURED')                                   40.80
- 6045     FORMAT (' S-low: ', F6.3,' S-hig: ', F6.3, ' frintf: ', F6.3)
- 6046     FORMAT (' MXC: ',I6,' MYC: ',I6,' MDC: ',I6,' MSC: ',I6)
- 6047     FORMAT (' DX: ',E12.4,' DY: ',E12.4, ' DDIR: ', F6.3)
- 6051     FORMAT (' MDC: ',I6,' MSC: ',I6, ' DDIR: ', F6.3)               40.80
-        ENDIF
+      IF (ITEST.GE. 20) THEN
+         IF(OPTG .EQ. 1)WRITE (PRINTF,6048)
+         IF(OPTG .EQ. 3)WRITE (PRINTF,6049)
+         IF(OPTG .EQ. 5)WRITE (PRINTF,6050)
+         WRITE (PRINTF,6045) SLOW, SHIG, FRINTF
+         IF (OPTG.NE.5) WRITE (PRINTF,6046) MXC,MYC,MDC,MSC
+         IF (OPTG.NE.5) WRITE (PRINTF,6047) DX,DY,DDIR
+         IF (OPTG.EQ.5) WRITE (PRINTF,6051) MDC,MSC,DDIR
+6048     FORMAT ('GRID: REGULAR RECTANGULAR')
+6049     FORMAT ('GRID: CURVILINEAR')
+6050     FORMAT ('GRID: UNSTRUCTURED')
+6045     FORMAT (' S-low: ', F6.3,' S-hig: ', F6.3, ' frintf: ', F6.3)
+6046     FORMAT (' MXC: ',I6,' MYC: ',I6,' MDC: ',I6,' MSC: ',I6)
+6047     FORMAT (' DX: ',E12.4,' DY: ',E12.4, ' DDIR: ', F6.3)
+6051     FORMAT (' MDC: ',I6,' MSC: ',I6, ' DDIR: ', F6.3)
+      ENDIF
 !
-        IF(.NOT.ALLOCATED(XCGRID)) ALLOCATE(XCGRID(MXC,MYC))              40.31
-        IF(.NOT.ALLOCATED(YCGRID)) ALLOCATE(YCGRID(MXC,MYC))              40.31
+      IF(.NOT.ALLOCATED(XCGRID)) ALLOCATE(XCGRID(MXC,MYC))
+      IF(.NOT.ALLOCATED(YCGRID)) ALLOCATE(YCGRID(MXC,MYC))
 !
-        IF (OPTG .EQ. 1) THEN                                             30.60
+      IF (OPTG .EQ. 1) THEN
 !         *** The coordinates of computational points in ***
 !         *** regular grid are computed                  ***
-          COSPC = COS(ALPC)                                               7/JAN
-          SINPC = SIN(ALPC)                                               7/JAN
-          DO 200 J = 1,MYC
+         COSPC = COS(ALPC)
+         SINPC = SIN(ALPC)
+         DO 200 J = 1,MYC
             DO 205 I = 1, MXC
-              VALX = XPC + COSPC*(I-1)*DX - SINPC*(J-1)*DY                7/JAN
-              VALY = YPC + SINPC*(I-1)*DX + COSPC*(J-1)*DY                7/JAN
-              XCGRID(I,J)=VALX                                            40.31
-              YCGRID(I,J)=VALY                                            40.31
- 205        CONTINUE
- 200      CONTINUE
-        ENDIF
+               VALX = XPC + COSPC*(I-1)*DX - SINPC*(J-1)*DY
+               VALY = YPC + SINPC*(I-1)*DX + COSPC*(J-1)*DY
+               XCGRID(I,J)=VALX
+               YCGRID(I,J)=VALY
+205         CONTINUE
+200      CONTINUE
+      ENDIF
 !
 !       *** the computational grid is included in output data  ***        40.31
-        IF ((MXC.GT.0) .AND. (MYC.GT.0) ) THEN                            40.31
-           ALLOCATE(OPSTMP)                                               40.31
-           OPSTMP%PSNAME = 'COMPGRID'                                     40.31
-           IF (OPTG .EQ. 1) THEN                                          40.31
-              OPSTMP%PSTYPE = 'F'                                         40.31
-              OPSTMP%OPR(1) = XPC                                         40.31
-              OPSTMP%OPR(2) = YPC                                         40.31
-              OPSTMP%OPR(3) = XCLEN                                       40.31
-              OPSTMP%OPR(4) = YCLEN                                       40.31
-              OPSTMP%OPR(5) = ALPC                                        40.31
-           ELSE IF (OPTG.EQ.3) THEN                                       40.80 40.31
-              OPSTMP%PSTYPE = 'H'                                         40.31
-              OPSTMP%OPR(1) = FLOAT(MXC-1)                                40.31
-              OPSTMP%OPR(2) = FLOAT(MYC-1)                                40.31
-              OPSTMP%OPR(3) = 0.                                          40.31
-              OPSTMP%OPR(4) = 0.                                          40.31
-              OPSTMP%OPR(5) = ALPC                                        40.31
-           ENDIF                                                          40.31
-           OPSTMP%OPI(1) = MXC                                            40.31
-           OPSTMP%OPI(2) = MYC                                            40.31
-           ALLOCATE(OPSTMP%XP(0))                                         40.31
-           ALLOCATE(OPSTMP%YP(0))                                         40.31
-           NULLIFY(OPSTMP%NEXTOPS)                                        40.31
-           IF ( .NOT.LOPS ) THEN                                          40.31
-              FOPS = OPSTMP                                               40.31
-              COPS => FOPS                                                40.31
-              LOPS = .TRUE.                                               40.31
-           ELSE                                                           40.31
-              COPS%NEXTOPS => OPSTMP                                      40.31
-              COPS => OPSTMP                                              40.31
-           END IF                                                         40.31
-        ENDIF
-!
-        GOTO 100
+      IF ((MXC.GT.0) .AND. (MYC.GT.0) ) THEN
+         ALLOCATE(OPSTMP)
+         OPSTMP%PSNAME = 'COMPGRID'
+         IF (OPTG .EQ. 1) THEN
+            OPSTMP%PSTYPE = 'F'
+            OPSTMP%OPR(1) = XPC
+            OPSTMP%OPR(2) = YPC
+            OPSTMP%OPR(3) = XCLEN
+            OPSTMP%OPR(4) = YCLEN
+            OPSTMP%OPR(5) = ALPC
+         ELSE IF (OPTG.EQ.3) THEN
+            OPSTMP%PSTYPE = 'H'
+            OPSTMP%OPR(1) = FLOAT(MXC-1)
+            OPSTMP%OPR(2) = FLOAT(MYC-1)
+            OPSTMP%OPR(3) = 0.
+            OPSTMP%OPR(4) = 0.
+            OPSTMP%OPR(5) = ALPC
+         ENDIF
+         OPSTMP%OPI(1) = MXC
+         OPSTMP%OPI(2) = MYC
+         ALLOCATE(OPSTMP%XP(0))
+         ALLOCATE(OPSTMP%YP(0))
+         NULLIFY(OPSTMP%NEXTOPS)
+         IF ( .NOT.LOPS ) THEN
+            FOPS = OPSTMP
+            COPS => FOPS
+            LOPS = .TRUE.
+         ELSE
+            COPS%NEXTOPS => OPSTMP
+            COPS => OPSTMP
+         END IF
       ENDIF
+!
+      GOTO 100
+   ENDIF
 !
 !     -----------------------------------------------------------------------
 !
 !     BOUNdary  defining boundary conditions                              20.63
 !
-      IF (KEYWIS ('BOU')) THEN
-        ITMP1  = MXC                                                      40.31
-        ITMP2  = MYC                                                      40.31
-        ITMP3  = MCGRD                                                    40.31
-        ITMP4  = NGRBND                                                   40.31
-        MXC    = MXCGL                                                    40.31
-        MYC    = MYCGL                                                    40.31
-        MCGRD  = MCGRDGL                                                  40.31
-        NGRBND = NGRBGL                                                   40.31
-        CALL SWBOUN ( XGRDGL, YGRDGL, KGRPGL, XYTST, KGRBGL )             40.31
-        IF (STPNOW()) RETURN                                              34.01
-        MXC    = ITMP1                                                    40.31
-        MYC    = ITMP2                                                    40.31
-        MCGRD  = ITMP3                                                    40.31
-        NGRBND = ITMP4                                                    40.31
-        GOTO 100
-      ENDIF
+   IF (KEYWIS ('BOU')) THEN
+      ITMP1  = MXC
+      ITMP2  = MYC
+      ITMP3  = MCGRD
+      ITMP4  = NGRBND
+      MXC    = MXCGL
+      MYC    = MYCGL
+      MCGRD  = MCGRDGL
+      NGRBND = NGRBGL
+      CALL SWBOUN ( XGRDGL, YGRDGL, KGRPGL, XYTST, KGRBGL )
+      IF (STPNOW()) RETURN
+      MXC    = ITMP1
+      MYC    = ITMP2
+      MCGRD  = ITMP3
+      NGRBND = ITMP4
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -1898,11 +1898,11 @@
 !
 ! ============================================================
 !
-      IF (KEYWIS ('LIM')) THEN                                            40.16
-        CALL INREAL('URSELL',PTRIAD(3),'UNC',0.)                          40.16
-        CALL INREAL('QB'    ,PNUMS(28),'UNC',0.)                          40.16
-        GOTO 100                                                          40.16
-      ENDIF                                                               40.16
+   IF (KEYWIS ('LIM')) THEN
+      CALL INREAL('URSELL',PTRIAD(3),'UNC',0.)
+      CALL INREAL('QB'    ,PNUMS(28),'UNC',0.)
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -1936,77 +1936,77 @@
 !
 ! =====================================================================
 !
-      IF (KEYWIS ('NUM')) THEN
-        CALL INKEYW ('REQ','  ')
+   IF (KEYWIS ('NUM')) THEN
+      CALL INKEYW ('REQ','  ')
 !       *** accuracy and criterion to terminate the iteration ***
-        IF (KEYWIS ('STOPC')) THEN                                        40.41
-          PNUMS(21) = 1.                                                  40.41
-          CALL INREAL ('DABS'   , PNUMS(2) , 'UNC', 0.)                   40.41
-          CALL INREAL ('DREL'   , PNUMS(1) , 'UNC', 0.)                   40.41
-          CALL INREAL ('CURVAT' , PNUMS(15), 'UNC', 0.)                   40.41
-          CALL INREAL ('NPNTS'  , PNUMS(4) , 'UNC', 0.)                   40.41
-          CALL INREAL ('DTABS'  , PNUMS(3) , 'STA', 1000.)                40.93
-          CALL INREAL ('CURVT'  , PNUMS(16), 'STA', 1000.)                40.93
-          CALL INKEYW ('STA', 'STAT')                                     40.41
-          IF (KEYWIS ('STAT')) THEN                                       40.41
-            CALL ININTG ('MXITST' , MXITST   , 'STA', 50)                 40.41
-            CALL INREAL ('ALFA'   , PNUMS(30), 'UNC', 0.)                 40.41
-          ELSE IF (KEYWIS ('ITERMX')) THEN                                40.41
-            CALL ININTG ('MXITST' , MXITST   , 'REQ', 0 )                 40.41
-            MXITNS = MXITST                                               40.41
-            CALL MSGERR (1, '[itermx] is replaced; see user manual')      40.41
-          ELSE IF (KEYWIS ('NONST')) THEN                                 40.41
-            CALL ININTG ('MXITNS' , MXITNS   , 'REQ', 0 )                 40.41
-          ENDIF                                                           40.41
-          CALL INREAL ('LIMITER', PNUMS(20), 'UNC', 0.)                   40.41
-        ELSE IF (KEYWIS ('ACCUR')) THEN
-          PNUMS(21) = 0.                                                  40.41
-          CALL INREAL ('DREL'   , PNUMS(1) , 'UNC', 0.)
-          CALL INREAL ('DHOVAL' , PNUMS(15), 'UNC', 0.)                   30.82
-          CALL INREAL ('DTOVAL' , PNUMS(16), 'UNC', 0.)                   30.82
-          CALL INREAL ('NPNTS'  , PNUMS(4) , 'UNC', 0.)
-          CALL INKEYW ('STA', 'STAT')                                     40.03
-          IF (KEYWIS ('STAT')) THEN                                       40.03
-            CALL ININTG ('MXITST' , MXITST   , 'UNC', 0 )                 40.80 40.03
-            CALL INREAL ('ALFA'   , PNUMS(30), 'UNC', 0.)                 40.23
-          ELSE IF (KEYWIS ('ITERMX')) THEN                                40.03
-            CALL ININTG ('MXITST' , MXITST   , 'REQ', 0 )                 40.03
-            MXITNS = MXITST                                               40.03
-            CALL MSGERR (1, '[itermx] is replaced; see user manual')      40.03
-          ELSE IF (KEYWIS ('NONST')) THEN                                 40.03
-            CALL ININTG ('MXITNS' , MXITNS   , 'REQ', 0 )                 40.03
-          ENDIF
-          CALL INREAL ('LIMITER', PNUMS(20), 'UNC', 0.)                   30.70
-        END IF
+      IF (KEYWIS ('STOPC')) THEN
+         PNUMS(21) = 1.
+         CALL INREAL ('DABS'   , PNUMS(2) , 'UNC', 0.)
+         CALL INREAL ('DREL'   , PNUMS(1) , 'UNC', 0.)
+         CALL INREAL ('CURVAT' , PNUMS(15), 'UNC', 0.)
+         CALL INREAL ('NPNTS'  , PNUMS(4) , 'UNC', 0.)
+         CALL INREAL ('DTABS'  , PNUMS(3) , 'STA', 1000.)
+         CALL INREAL ('CURVT'  , PNUMS(16), 'STA', 1000.)
+         CALL INKEYW ('STA', 'STAT')
+         IF (KEYWIS ('STAT')) THEN
+            CALL ININTG ('MXITST' , MXITST   , 'STA', 50)
+            CALL INREAL ('ALFA'   , PNUMS(30), 'UNC', 0.)
+         ELSE IF (KEYWIS ('ITERMX')) THEN
+            CALL ININTG ('MXITST' , MXITST   , 'REQ', 0 )
+            MXITNS = MXITST
+            CALL MSGERR (1, '[itermx] is replaced; see user manual')
+         ELSE IF (KEYWIS ('NONST')) THEN
+            CALL ININTG ('MXITNS' , MXITNS   , 'REQ', 0 )
+         ENDIF
+         CALL INREAL ('LIMITER', PNUMS(20), 'UNC', 0.)
+      ELSE IF (KEYWIS ('ACCUR')) THEN
+         PNUMS(21) = 0.
+         CALL INREAL ('DREL'   , PNUMS(1) , 'UNC', 0.)
+         CALL INREAL ('DHOVAL' , PNUMS(15), 'UNC', 0.)
+         CALL INREAL ('DTOVAL' , PNUMS(16), 'UNC', 0.)
+         CALL INREAL ('NPNTS'  , PNUMS(4) , 'UNC', 0.)
+         CALL INKEYW ('STA', 'STAT')
+         IF (KEYWIS ('STAT')) THEN
+            CALL ININTG ('MXITST' , MXITST   , 'UNC', 0 )
+            CALL INREAL ('ALFA'   , PNUMS(30), 'UNC', 0.)
+         ELSE IF (KEYWIS ('ITERMX')) THEN
+            CALL ININTG ('MXITST' , MXITST   , 'REQ', 0 )
+            MXITNS = MXITST
+            CALL MSGERR (1, '[itermx] is replaced; see user manual')
+         ELSE IF (KEYWIS ('NONST')) THEN
+            CALL ININTG ('MXITNS' , MXITNS   , 'REQ', 0 )
+         ENDIF
+         CALL INREAL ('LIMITER', PNUMS(20), 'UNC', 0.)
+      END IF
 !
 !       *** numerical scheme in directional space (standard  ***
 !       *** option implicit scheme)                          ***
 !
-        CALL INKEYW ('STA','  ')
-        IF (KEYWIS ('DIR')) THEN
-          CALL INREAL ('CDD'    , PNUMS(6) , 'UNC', 0.)
-          CALL INREAL ('CDLIM'  , PNUMS(17), 'STA',-1.)                   30.80
-          IF (PNUMS(17).LT.0.) IREFR = 1                                  30.80
-          IF (EQREAL(PNUMS(17),0.)) THEN                                  30.80
-            IREFR = 0                                                     30.80
-            CALL MSGERR(0, 'Refraction deactivated')                      40.02
-          ENDIF
-          CALL INKEYW ('STA', 'WNUM')                                     41.56
-          IF (KEYWIS('DEP')) THEN
-             PNUMS(32) = 0.                                               41.56
-          ELSE IF (KEYWIS('WNUM')) THEN
-             PNUMS(32) = 1.                                               41.07
-          ENDIF
-        ENDIF
+      CALL INKEYW ('STA','  ')
+      IF (KEYWIS ('DIR')) THEN
+         CALL INREAL ('CDD'    , PNUMS(6) , 'UNC', 0.)
+         CALL INREAL ('CDLIM'  , PNUMS(17), 'STA',-1.)
+         IF (PNUMS(17).LT.0.) IREFR = 1
+         IF (EQREAL(PNUMS(17),0.)) THEN
+            IREFR = 0
+            CALL MSGERR(0, 'Refraction deactivated')
+         ENDIF
+         CALL INKEYW ('STA', 'WNUM')
+         IF (KEYWIS('DEP')) THEN
+            PNUMS(32) = 0.
+         ELSE IF (KEYWIS('WNUM')) THEN
+            PNUMS(32) = 1.
+         ENDIF
+      ENDIF
 !
 !       limit Ctheta if user want so                                      41.06
 !
-        CALL INKEYW ('STA','  ')
-        IF (KEYWIS ('REFRL')) THEN
-          PNUMS(29) = 1.
-          CALL INREAL ('FRLIM', PNUMS(26) ,'UNC', 0.)
-          CALL INREAL ('POWER', PNUMS(27), 'UNC', 0.)
-        ENDIF
+      CALL INKEYW ('STA','  ')
+      IF (KEYWIS ('REFRL')) THEN
+         PNUMS(29) = 1.
+         CALL INREAL ('FRLIM', PNUMS(26) ,'UNC', 0.)
+         CALL INREAL ('POWER', PNUMS(27), 'UNC', 0.)
+      ENDIF
 !
 !       *** numerical scheme in frequency space :                  ***
 !       *** 1) Fully implicit scheme in frequency space (iterative ***
@@ -2019,56 +2019,56 @@
 !       ***    integration. Therefore a filter is applied with a   ***
 !       ***    diffusion coeff.                                    ***
 !
-        CALL INKEYW ('STA','  ')
-        IF (KEYWIS('SIGIM') .OR. KEYWIS ('IMP')) THEN                     30.20
+      CALL INKEYW ('STA','  ')
+      IF (KEYWIS('SIGIM') .OR. KEYWIS ('IMP')) THEN
 !         *** implicit solver ***
 !         ***  This is the default option   PNUMS(8) = 1.  ***
-          PNUMS(8) = 1.
-          CALL INREAL ('CSS'  , PNUMS (7), 'UNC', 0.)
-          CALL INREAL ('EPS1' , PNUMS(11), 'UNC', 0.)
-          CALL INREAL ('EPS2' , PNUMS(12), 'UNC', 0.)
-          CALL INREAL ('OUTP' , PNUMS(13), 'UNC', 0.)
-          CALL INREAL ('NITER', PNUMS(14), 'UNC', 0.)
-        ELSE IF (KEYWIS('SIGEX') .OR. KEYWIS('EXP')) THEN                 30.20
+         PNUMS(8) = 1.
+         CALL INREAL ('CSS'  , PNUMS (7), 'UNC', 0.)
+         CALL INREAL ('EPS1' , PNUMS(11), 'UNC', 0.)
+         CALL INREAL ('EPS2' , PNUMS(12), 'UNC', 0.)
+         CALL INREAL ('OUTP' , PNUMS(13), 'UNC', 0.)
+         CALL INREAL ('NITER', PNUMS(14), 'UNC', 0.)
+      ELSE IF (KEYWIS('SIGEX') .OR. KEYWIS('EXP')) THEN
 !
 !         *** 2) explicit scheme ***
-          PNUMS(8) = 2.
-          CALL INREAL ('CSS'  , PNUMS (7), 'UNC', 0.)                     41.07
-          CALL INREAL ('CFL'  , PNUMS(19), 'UNC', 0.)
+         PNUMS(8) = 2.
+         CALL INREAL ('CSS'  , PNUMS (7), 'UNC', 0.)
+         CALL INREAL ('CFL'  , PNUMS(19), 'UNC', 0.)
 !
-        ELSE IF (KEYWIS ('FIL')) THEN
+      ELSE IF (KEYWIS ('FIL')) THEN
 !         *** 3) explicit scheme -> filter the spectrum  ***
-          PNUMS(8) = 3.
-          CALL INREAL ('DIFFC'  , PNUMS(9), 'UNC', 0.)
+         PNUMS(8) = 3.
+         CALL INREAL ('DIFFC'  , PNUMS(9), 'UNC', 0.)
 !
-        END IF
+      END IF
 !
 !       limit Ctheta if user want so                                      41.35
 !
-        CALL INKEYW ('STA','  ')
-        IF (KEYWIS ('CT')) THEN
-           PNUMS(35) = 1.
-           CALL INREAL ('CFL', PNUMS(36) ,'STA', 0.9)
-        ENDIF
+      CALL INKEYW ('STA','  ')
+      IF (KEYWIS ('CT')) THEN
+         PNUMS(35) = 1.
+         CALL INREAL ('CFL', PNUMS(36) ,'STA', 0.9)
+      ENDIF
 !
 !       limit Csigma if user want so                                      41.35
 !
-        CALL INKEYW ('STA','  ')
-        IF (KEYWIS ('CS')) THEN
-           PNUMS(33) = 1.
-           CALL INREAL ('CFL', PNUMS(34) ,'STA', 0.9)
-        ENDIF
+      CALL INKEYW ('STA','  ')
+      IF (KEYWIS ('CS')) THEN
+         PNUMS(33) = 1.
+         CALL INREAL ('CFL', PNUMS(34) ,'STA', 0.9)
+      ENDIF
 !
-        CALL INKEYW ('STA','  ')                                          30.82
-        IF (KEYWIS('SETUP')) THEN                                         30.82
+      CALL INKEYW ('STA','  ')
+      IF (KEYWIS('SETUP')) THEN
 !         *** iterative solver        ***                                 30.82
 !         *** Settings for the setup  ***                                 30.82
-          CALL INREAL ('EPS2' , PNUMS(23), 'UNC', 0.)                     30.82
-          CALL INREAL ('OUTP' , PNUMS(24), 'UNC', 0.)                     30.82
-          CALL INREAL ('NITER', PNUMS(25), 'UNC', 0.)                     30.82
-        ENDIF                                                             30.82
-        GOTO 100
+         CALL INREAL ('EPS2' , PNUMS(23), 'UNC', 0.)
+         CALL INREAL ('OUTP' , PNUMS(24), 'UNC', 0.)
+         CALL INREAL ('NITER', PNUMS(25), 'UNC', 0.)
       ENDIF
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !     SETUP     include wave-induced set-up in SWAN calculation
@@ -2079,27 +2079,27 @@
 !
 ! ============================================================
 !
-      IF (KEYWIS ('SETUP')) THEN                                          32.02
-        IF (KSPHER.NE.0) CALL MSGERR (2,
-     & 'setup will not be compute correctly with spherical coordinates')  40.13
-        IF (PARLL .AND. .NOT.ONED) THEN                                   40.41
-           CALL MSGERR(4,'setup is not supported in parallel run')
-           RETURN
-        END IF
-        IF (OPTG.EQ.5) THEN                                               40.80
-           CALL MSGERR(2, ' No setup for unstructured grid')              40.80
-           LSETUP = 0                                                     40.80
-           GOTO 100                                                       40.80
-        ENDIF                                                             40.80
-        LSETUP = 1                                                        32.02
-        CALL INREAL ('SUPCOR', PSETUP(2), 'UNC', 0.)                      30.82
+   IF (KEYWIS ('SETUP')) THEN
+      IF (KSPHER.NE.0) CALL MSGERR (2, &
+         'setup will not be compute correctly with spherical coordinates')
+      IF (PARLL .AND. .NOT.ONED) THEN
+         CALL MSGERR(4,'setup is not supported in parallel run')
+         RETURN
+      END IF
+      IF (OPTG.EQ.5) THEN
+         CALL MSGERR(2, ' No setup for unstructured grid')
+         LSETUP = 0
+         GOTO 100
+      ENDIF
+      LSETUP = 1
+      CALL INREAL ('SUPCOR', PSETUP(2), 'UNC', 0.)
 !       *** set pointers for setup and saved depth in array COMPDA ***    32.02
-        JSETUP = MCMVAR + 1                                               32.02
-        JDPSAV = MCMVAR + 2                                               32.02
-        MCMVAR = MCMVAR + 2                                               40.41 32.02
-        ALOCMP = .TRUE.                                                   40.97
-        GOTO 100                                                          32.02
-      ENDIF                                                               32.02
+      JSETUP = MCMVAR + 1
+      JDPSAV = MCMVAR + 2
+      MCMVAR = MCMVAR + 2
+      ALOCMP = .TRUE.
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------  40.21
 !
@@ -2111,13 +2111,13 @@
 !                                                                         40.21
 ! =============================================================           40.21
 !                                                                         40.21
-      IF (KEYWIS ('DIFFR')) THEN                                          40.21
-        CALL ININTG ('IDIFFR', IDIFFR, 'STA', 1)                          40.21
-        CALL INREAL ('SMPAR', PDIFFR(1), 'STA', 0.0)                      40.21
-        CALL INREAL ('SMNUM', PDIFFR(2), 'STA', 0.)                       40.21
-        CALL INREAL ('CGMOD', PDIFFR(3), 'STA', 1.)                       40.21
-        GOTO 100                                                          40.21
-      ENDIF                                                               40.21
+   IF (KEYWIS ('DIFFR')) THEN
+      CALL ININTG ('IDIFFR', IDIFFR, 'STA', 1)
+      CALL INREAL ('SMPAR', PDIFFR(1), 'STA', 0.0)
+      CALL INREAL ('SMNUM', PDIFFR(2), 'STA', 0.)
+      CALL INREAL ('CGMOD', PDIFFR(3), 'STA', 1.)
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -2129,27 +2129,27 @@
 !
 ! ============================================================
 !
-      IF ( KEYWIS ('SURFB') ) THEN
-         IF ( ONED ) THEN
-            CALL MSGERR(2,
-     &           'surfbeat computation not allowed in 1D mode')
-         ENDIF
-         IF ( OPTG.NE.1 ) THEN
-            CALL MSGERR(2,
-     &                  'surfbeat only supported for rectilinear grids')
-            LSRFB = .FALSE.
-            GOTO 100
-         ENDIF
-         LSRFB = .TRUE.
-         CALL INREAL ('DF'  , dfiem , 'STA', 0.01 )
-         CALL ININTG ('NMAX', nmax  , 'STA', 50000)
-         CALL INREAL ('EMIN', e_trsh, 'STA', 0.05 )
-!
-         CALL INKEYW ('STA',' ')
-         IF (KEYWIS ('UNIF')) sflog = .FALSE.
-         IF (KEYWIS ('LOG' )) sflog = .TRUE.
+   IF ( KEYWIS ('SURFB') ) THEN
+      IF ( ONED ) THEN
+         CALL MSGERR(2, &
+              'surfbeat computation not allowed in 1D mode')
+      ENDIF
+      IF ( OPTG.NE.1 ) THEN
+         CALL MSGERR(2, &
+                     'surfbeat only supported for rectilinear grids')
+         LSRFB = .FALSE.
          GOTO 100
       ENDIF
+      LSRFB = .TRUE.
+      CALL INREAL ('DF'  , dfiem , 'STA', 0.01 )
+      CALL ININTG ('NMAX', nmax  , 'STA', 50000)
+      CALL INREAL ('EMIN', e_trsh, 'STA', 0.05 )
+!
+      CALL INKEYW ('STA',' ')
+      IF (KEYWIS ('UNIF')) sflog = .FALSE.
+      IF (KEYWIS ('LOG' )) sflog = .TRUE.
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -2166,51 +2166,51 @@
 !
 ! =============================================================
 !
-      IF (KEYWIS ('SET')) THEN
-         CALL INREAL ('LEVEL',  WLEV,   'UNC', 0.)
-         CALL INREAL ('NOR',    DNORTH, 'UNC', 0.)
-         CALL INREAL ('DEPMIN', DEPMIN, 'UNC', 0.)
-         CALL ININTG ('MAXMES', MAXMES, 'UNC', 0)                         30.70
-         CALL ININTG ('MAXERR', MAXERR, 'UNC', 0)
-         CALL INREAL ('GRAV',   GRAV,   'UNC', 0.)
-         CALL INREAL ('RHO',    RHO,    'UNC', 0.)
-         CALL INREAL ('CDCAP',  CDCAP,  'UNC', 0.)
-         CALL INREAL ('USCAP',  USCAP,  'UNC', 0.)                        40.88
-         CALL ININTG ('INRHOG', INRHOG, 'UNC', 0)
-         CALL INREAL ('HSRERR', HSRERR, 'UNC', 0.)                        32.01
+   IF (KEYWIS ('SET')) THEN
+      CALL INREAL ('LEVEL',  WLEV,   'UNC', 0.)
+      CALL INREAL ('NOR',    DNORTH, 'UNC', 0.)
+      CALL INREAL ('DEPMIN', DEPMIN, 'UNC', 0.)
+      CALL ININTG ('MAXMES', MAXMES, 'UNC', 0)
+      CALL ININTG ('MAXERR', MAXERR, 'UNC', 0)
+      CALL INREAL ('GRAV',   GRAV,   'UNC', 0.)
+      CALL INREAL ('RHO',    RHO,    'UNC', 0.)
+      CALL INREAL ('CDCAP',  CDCAP,  'UNC', 0.)
+      CALL INREAL ('USCAP',  USCAP,  'UNC', 0.)
+      CALL ININTG ('INRHOG', INRHOG, 'UNC', 0)
+      CALL INREAL ('HSRERR', HSRERR, 'UNC', 0.)
 !
-         CALL INKEYW ('STA',' ')                                          32.01
-         IF (KEYWIS ('NAUT')) THEN                                        40.02
-           BNAUT = .TRUE.                                                 32.01
-           OUTPAR(4) = 0.                                                 40.02
-         ENDIF                                                            40.02
-         IF (KEYWIS ('CART')) BNAUT = .FALSE.                             30.70
-         IF ( ITEST .GE. 20 ) THEN                                        32.01
-           WRITE (PRTEST,*) ' Set NAUT command: BNAUT=', BNAUT            32.01
-         ENDIF                                                            32.01
+      CALL INKEYW ('STA',' ')
+      IF (KEYWIS ('NAUT')) THEN
+         BNAUT = .TRUE.
+         OUTPAR(4) = 0.
+      ENDIF
+      IF (KEYWIS ('CART')) BNAUT = .FALSE.
+      IF ( ITEST .GE. 20 ) THEN
+         WRITE (PRTEST,*) ' Set NAUT command: BNAUT=', BNAUT
+      ENDIF
 !
-         CALL INREAL ('PWTAIL', PWTAIL(1), 'UNC', 0.)
-         IF (CHGVAL) THEN
-           IF (PWTAIL(1).LE.1.) CALL MSGERR (3, 'Incorrect PWTAIL')
-           PWTAIL(3) = PWTAIL(1) + 1.
-         ENDIF
-         CALL INREAL ('FROUDMAX', PNUMS(18), 'UNC', 0.)                   30.50
-         CALL INREAL ('ICEWIND' , ICEWIND  , 'UNC', 0.)
-         CALL ININTG ('EXCMARK' , excmark  , 'UNC', 0 )                   43.01
-         CALL INREAL ('SORT'    , usort    , 'UNC', 0.)                   41.68 41.48
-         CALL ININTG ('NSWEEP'  , nsweep   , 'UNC', 0 )                   41.68
-         IF (KEYWIS ('CURV')) CCURV = .TRUE.                              41.53
+      CALL INREAL ('PWTAIL', PWTAIL(1), 'UNC', 0.)
+      IF (CHGVAL) THEN
+         IF (PWTAIL(1).LE.1.) CALL MSGERR (3, 'Incorrect PWTAIL')
+         PWTAIL(3) = PWTAIL(1) + 1.
+      ENDIF
+      CALL INREAL ('FROUDMAX', PNUMS(18), 'UNC', 0.)
+      CALL INREAL ('ICEWIND' , ICEWIND  , 'UNC', 0.)
+      CALL ININTG ('EXCMARK' , excmark  , 'UNC', 0 )
+      CALL INREAL ('SORT'    , usort    , 'UNC', 0.)
+      CALL ININTG ('NSWEEP'  , nsweep   , 'UNC', 0 )
+      IF (KEYWIS ('CURV')) CCURV = .TRUE.
 !        the unit numbers PRINTF and PRTEST should be set in swaninit,
 !        so not documented
-         CALL ININTG ('PRINTF'  , PRINTF   , 'UNC', 0 )
-         CALL ININTG ('PRTEST'  , PRTEST   , 'UNC', 0 )
-         if ( usort.gt.-999. ) then                                       41.68 41.48
-            usort = DEGCNV (usort)
-            ALTMP = usort / 360.
-            usort = PI2 * (ALTMP - NINT(ALTMP))
-         endif
-         GOTO 100
-      ENDIF
+      CALL ININTG ('PRINTF'  , PRINTF   , 'UNC', 0 )
+      CALL ININTG ('PRTEST'  , PRTEST   , 'UNC', 0 )
+      if ( usort.gt.-999. ) then
+         usort = DEGCNV (usort)
+         ALTMP = usort / 360.
+         usort = PI2 * (ALTMP - NINT(ALTMP))
+      endif
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -2229,101 +2229,101 @@
 !
 ! =============================================================
 !
-      IF (KEYWIS('QUANT')) THEN                                           40.13
-         NVAR    = 0                                                      40.87
-         FRSTQ%I = 0                                                      40.87
-         NULLIFY(FRSTQ%NEXTI)                                             40.87
-         CURRQ => FRSTQ                                                   40.87
- 70      CALL SVARTP (IVTYPE)                                             40.87
-         IF (IVTYPE.GE.1 .AND. IVTYPE.LE.NMOVAR) THEN                     40.87
-            NVAR = NVAR+1                                                 40.87
-            ALLOCATE(TMPQ)                                                40.87
-            TMPQ%I = IVTYPE                                               40.87
-            NULLIFY(TMPQ%NEXTI)                                           40.87
-            CURRQ%NEXTI => TMPQ                                           40.87
-            CURRQ => TMPQ                                                 40.87
-            CALL INCSTR ('SHORT', QOVSNM, 'STA', ' ')                     40.87
-            CALL INCSTR ('LONG' , QOVLNM, 'STA', ' ')                     40.87
-            CALL INREAL ('LEXP' , QR(1) , 'STA',  999. )                  40.87
-            CALL INREAL ('HEXP' , QR(2) , 'STA', -999. )                  40.87
-            CALL INREAL ('EXCV' , QR(3) , 'STA',  999. )                  40.87
-            CALL INCTIM (ITMOPT, 'REF', DVAL, 'STA', -9.99D2)             40.87
-            QR(4) = REAL(DVAL)                                            40.87
-            CALL INREAL ('POWER', QR(5) , 'STA', -999.)                   40.87
-            CALL INREAL ('FSWELL', QR(6), 'STA', -999.)                   40.87
-            CALL INREAL ('FMIN' , QR(8) , 'STA',  999. )                  40.87
-            CALL INREAL ('FMAX' , QR(9) , 'STA', -999. )                  40.87
-            CALL INREAL ('NOSWLL', QR(10), 'STA', -999. )                 41.72
-            CALL INKEYW ('STA', ' ')                                      40.87
-            IF (KEYWIS('PROBLEM') .OR. KEYWIS('USER')) THEN               40.87
-               QR(7) = 0.                                                 40.87
-            ELSE IF (KEYWIS('FRAME')) THEN                                40.87
-               QR(7) = 1.                                                 40.87
-            ELSE                                                          40.87
-               QR(7) = -999.                                              40.87
-            ENDIF                                                         40.87
-            GOTO 70                                                       40.87
-         ELSEIF (IVTYPE.NE.999) THEN                                      40.87
-           CALL MSGERR (2, 'unknown quantity ')                           40.03
-         ENDIF                                                            40.87
-!
-         IF (NVAR.GT.0) THEN                                              40.87
-            CURRQ => FRSTQ%NEXTI                                          40.87
-            DO JJ = 1, NVAR                                               40.87
-               IVTYPE = CURRQ%I                                           40.87
-               IF (QOVSNM.NE.' ') OVSNAM(IVTYPE) = QOVSNM                 40.87
-               IF (QOVLNM.NE.' ') OVLNAM(IVTYPE) = QOVLNM                 40.87
-               IF (QR(1).NE. 999.) OVLEXP(IVTYPE) = QR(1)                 40.87
-               IF (QR(2).NE.-999.) OVHEXP(IVTYPE) = QR(2)                 40.87
-               IF (QR(3).NE. 999.) OVEXCV(IVTYPE) = QR(3)                 40.87
-               IF (IVTYPE.EQ.40 .OR. IVTYPE.EQ.41) THEN
-                  IF (NSTATM.EQ.0) CALL MSGERR (2,
-     &                           'Time output asked in stationary mode')
-               ENDIF
-               IF (IVTYPE.EQ.41) THEN
-                  IF (QR(4).NE.-999.) OUTPAR(1) = QR(4)                   40.87
-               ELSE IF (IVTYPE.EQ.42 .OR. IVTYPE.EQ.43) THEN
-                  IF (QR(5).NE.-999.) OUTPAR(2) = QR(5)                   40.87
-               ELSE IF (IVTYPE.EQ.17) THEN
-                  IF (QR(5).NE.-999.) OUTPAR(3) = QR(5)                   40.87
-               ELSE IF (IVTYPE.EQ.44) THEN
-                  IF (QR(6).NE.-999.) OUTPAR(5) = QR(6)                   40.87
-               ELSE IF ((IVTYPE.EQ.100).OR.(IVTYPE.EQ.110).OR.            41.72
-     &                  (IVTYPE.EQ.120).OR.(IVTYPE.EQ.130).OR.            41.72
-     &                  (IVTYPE.EQ.140).OR.(IVTYPE.EQ.150).OR.            41.72
-     &                  (IVTYPE.EQ.160).OR.(IVTYPE.EQ.170) ) THEN         41.72
-                  IF (QR(10).NE.-999.) OUTPAR(51) = QR(10)                41.72
-               ENDIF
-               IF ( ANY( IVTYPE == IVOTP ) ) THEN                         40.87
-                  INDX = MINLOC(IVOTP, IVOTP==IVTYPE)                     40.87
-                  IF (QR(8).NE.999.) THEN                                 40.87
-                     OUTPAR(INDX(1)+ 5) = 1.                              40.87
-                     OUTPAR(INDX(1)+20) = QR(8)                           40.87
-                  ENDIF                                                   40.87
-                  IF (QR(9).NE.-999.) THEN                                40.87
-                     OUTPAR(INDX(1)+ 5) = 1.                              40.87
-                     OUTPAR(INDX(1)+35) = QR(9)                           40.87
-                  ENDIF                                                   40.87
-                  IF ( OUTPAR(INDX(1)+20).GT.OUTPAR(INDX(1)+35) )
-     &               CALL MSGERR (2,'fmin cannot be larger than fmax')    40.87
-               ELSE                                                       40.87
-                  IF (QR(8).NE.999. .OR. QR(9).NE.-999.) CALL MSGERR (1,  40.87
-     &                'Integration range not allowed for this quantity')  40.87
-               ENDIF                                                      40.87
-               IF (OVSVTY(IVTYPE).EQ.2 .OR. OVSVTY(IVTYPE).EQ.3) THEN
-!              direction or vector
-                  IF (QR(7).NE.-999.) THEN
-                     OUTPAR(4) = QR(7)                                    40.87
-                     IF (BNAUT.AND.OVSVTY(IVTYPE).EQ.2) CALL MSGERR (1,
-     &                    'option not allowed with Nautical convention')
-                  ENDIF
-               ENDIF
-               CURRQ => CURRQ%NEXTI                                       40.87
-            END DO
-            DEALLOCATE(TMPQ)                                              40.87
+   IF (KEYWIS('QUANT')) THEN
+      NVAR    = 0
+      FRSTQ%I = 0
+      NULLIFY(FRSTQ%NEXTI)
+      CURRQ => FRSTQ
+70    CALL SVARTP (IVTYPE)
+      IF (IVTYPE.GE.1 .AND. IVTYPE.LE.NMOVAR) THEN
+         NVAR = NVAR+1
+         ALLOCATE(TMPQ)
+         TMPQ%I = IVTYPE
+         NULLIFY(TMPQ%NEXTI)
+         CURRQ%NEXTI => TMPQ
+         CURRQ => TMPQ
+         CALL INCSTR ('SHORT', QOVSNM, 'STA', ' ')
+         CALL INCSTR ('LONG' , QOVLNM, 'STA', ' ')
+         CALL INREAL ('LEXP' , QR(1) , 'STA',  999. )
+         CALL INREAL ('HEXP' , QR(2) , 'STA', -999. )
+         CALL INREAL ('EXCV' , QR(3) , 'STA',  999. )
+         CALL INCTIM (ITMOPT, 'REF', DVAL, 'STA', -9.99D2)
+         QR(4) = REAL(DVAL)
+         CALL INREAL ('POWER', QR(5) , 'STA', -999.)
+         CALL INREAL ('FSWELL', QR(6), 'STA', -999.)
+         CALL INREAL ('FMIN' , QR(8) , 'STA',  999. )
+         CALL INREAL ('FMAX' , QR(9) , 'STA', -999. )
+         CALL INREAL ('NOSWLL', QR(10), 'STA', -999. )
+         CALL INKEYW ('STA', ' ')
+         IF (KEYWIS('PROBLEM') .OR. KEYWIS('USER')) THEN
+            QR(7) = 0.
+         ELSE IF (KEYWIS('FRAME')) THEN
+            QR(7) = 1.
+         ELSE
+            QR(7) = -999.
          ENDIF
-         GOTO 100
+         GOTO 70
+      ELSEIF (IVTYPE.NE.999) THEN
+         CALL MSGERR (2, 'unknown quantity ')
       ENDIF
+!
+      IF (NVAR.GT.0) THEN
+         CURRQ => FRSTQ%NEXTI
+         DO JJ = 1, NVAR
+            IVTYPE = CURRQ%I
+            IF (QOVSNM.NE.' ') OVSNAM(IVTYPE) = QOVSNM
+            IF (QOVLNM.NE.' ') OVLNAM(IVTYPE) = QOVLNM
+            IF (QR(1).NE. 999.) OVLEXP(IVTYPE) = QR(1)
+            IF (QR(2).NE.-999.) OVHEXP(IVTYPE) = QR(2)
+            IF (QR(3).NE. 999.) OVEXCV(IVTYPE) = QR(3)
+            IF (IVTYPE.EQ.40 .OR. IVTYPE.EQ.41) THEN
+               IF (NSTATM.EQ.0) CALL MSGERR (2, &
+                              'Time output asked in stationary mode')
+            ENDIF
+            IF (IVTYPE.EQ.41) THEN
+               IF (QR(4).NE.-999.) OUTPAR(1) = QR(4)
+            ELSE IF (IVTYPE.EQ.42 .OR. IVTYPE.EQ.43) THEN
+               IF (QR(5).NE.-999.) OUTPAR(2) = QR(5)
+            ELSE IF (IVTYPE.EQ.17) THEN
+               IF (QR(5).NE.-999.) OUTPAR(3) = QR(5)
+            ELSE IF (IVTYPE.EQ.44) THEN
+               IF (QR(6).NE.-999.) OUTPAR(5) = QR(6)
+            ELSE IF ((IVTYPE.EQ.100).OR.(IVTYPE.EQ.110).OR. &
+                     (IVTYPE.EQ.120).OR.(IVTYPE.EQ.130).OR. &
+                     (IVTYPE.EQ.140).OR.(IVTYPE.EQ.150).OR. &
+                     (IVTYPE.EQ.160).OR.(IVTYPE.EQ.170) ) THEN
+               IF (QR(10).NE.-999.) OUTPAR(51) = QR(10)
+            ENDIF
+            IF ( ANY( IVTYPE == IVOTP ) ) THEN
+               INDX = MINLOC(IVOTP, IVOTP==IVTYPE)
+               IF (QR(8).NE.999.) THEN
+                  OUTPAR(INDX(1)+ 5) = 1.
+                  OUTPAR(INDX(1)+20) = QR(8)
+               ENDIF
+               IF (QR(9).NE.-999.) THEN
+                  OUTPAR(INDX(1)+ 5) = 1.
+                  OUTPAR(INDX(1)+35) = QR(9)
+               ENDIF
+               IF ( OUTPAR(INDX(1)+20).GT.OUTPAR(INDX(1)+35) ) &
+                  CALL MSGERR (2,'fmin cannot be larger than fmax')
+            ELSE
+               IF (QR(8).NE.999. .OR. QR(9).NE.-999.) CALL MSGERR (1, &
+                   'Integration range not allowed for this quantity')
+            ENDIF
+            IF (OVSVTY(IVTYPE).EQ.2 .OR. OVSVTY(IVTYPE).EQ.3) THEN
+!              direction or vector
+               IF (QR(7).NE.-999.) THEN
+                  OUTPAR(4) = QR(7)
+                  IF (BNAUT.AND.OVSVTY(IVTYPE).EQ.2) CALL MSGERR (1, &
+                       'option not allowed with Nautical convention')
+               ENDIF
+            ENDIF
+            CURRQ => CURRQ%NEXTI
+         END DO
+         DEALLOCATE(TMPQ)
+      ENDIF
+      GOTO 100
+   ENDIF
 !
 !CTGA 111003:  Full SWAN ice implementation, and giving SWAN the ability
 !              to recognize and read in the ice parameters from the
@@ -2339,17 +2339,17 @@
 ! CICE  <
 !
 ! ============================================================
-      IF (KEYWIS('CICE')) THEN
-        IICE=1
-        CALL INKEYW('STA','ADCICE')
-        IF (KEYWIS('ADCICE')) THEN
-          IICE=2
-          CALL INREAL('WBICETH',WBICETH,'STA',70.0)
-        ELSE
-          CALL WRNKEY
-        ENDIF
-        GOTO 100
+   IF (KEYWIS('CICE')) THEN
+      IICE=1
+      CALL INKEYW('STA','ADCICE')
+      IF (KEYWIS('ADCICE')) THEN
+         IICE=2
+         CALL INREAL('WBICETH',WBICETH,'STA',70.0)
+      ELSE
+         CALL WRNKEY
       ENDIF
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -2373,68 +2373,68 @@
 !
 ! ============================================================
 !
-      IF (KEYWIS ('BRE')) THEN
-        CALL INKEYW ('STA', 'CON')
-        IF (KEYWIS('CON')) THEN
-          ISURF = 1
-          CALL INREAL ('ALPHA', PSURF(1), 'STA', 1.0)
-          CALL INREAL ('GAMMA', PSURF(2), 'STA', 0.73)
-        ELSE IF (KEYWIS('VAR') .OR. KEYWIS('NEL')) THEN                   41.03
-          ISURF = 2
-          CALL INREAL ('ALPHA',  PSURF(1), 'STA', 1.5)
-          CALL INREAL ('GAMMIN', PSURF(4), 'STA', 0.55)
-          CALL INREAL ('GAMMAX', PSURF(5), 'STA', 0.81)
-          CALL INREAL ('GAMNEG', PSURF(6), 'STA', 0.73)
-          CALL INREAL ('COEFF1', PSURF(7), 'STA', 0.88)
-          CALL INREAL ('COEFF2', PSURF(8), 'STA', 0.012)
-        ELSE IF (KEYWIS('RUE')) THEN                                      41.03
-          ISURF = 3
-          CALL INREAL ('ALPHA', PSURF(1), 'STA', 1.0)
-          CALL INREAL ('A'    , PSURF(4), 'STA', 0.76)
-          CALL INREAL ('B'    , PSURF(5), 'STA', 0.29)
-        ELSE IF (KEYWIS('TG')) THEN                                       41.03
-          ISURF = 4
-          CALL INREAL ('ALPHA',  PSURF(1), 'STA', 1.0)
-          CALL INREAL ('GAMMA',  PSURF(4), 'STA', 0.42)
-          CALL INREAL ('POWN' ,  PSURF(5), 'STA', 4.0)
-        ELSE IF (KEYWIS('BKD')) THEN                                      41.38
-          ISURF = 6                                                       41.38
-          CALL INREAL ('ALPHA' , PSURF(1) ,'STA', 1.00)                   41.47
-          CALL INREAL ('GAMMA0', PSURF(4) ,'STA', 0.54)                   41.47
-          CALL INREAL ('A1'    , PSURF(5) ,'STA', 7.59)                   41.47
-          CALL INREAL ('A2'    , PSURF(6) ,'STA',-8.06)                   41.47
-          CALL INREAL ('A3'    , PSURF(7) ,'STA', 8.09)                   41.47
+   IF (KEYWIS ('BRE')) THEN
+      CALL INKEYW ('STA', 'CON')
+      IF (KEYWIS('CON')) THEN
+         ISURF = 1
+         CALL INREAL ('ALPHA', PSURF(1), 'STA', 1.0)
+         CALL INREAL ('GAMMA', PSURF(2), 'STA', 0.73)
+      ELSE IF (KEYWIS('VAR') .OR. KEYWIS('NEL')) THEN
+         ISURF = 2
+         CALL INREAL ('ALPHA',  PSURF(1), 'STA', 1.5)
+         CALL INREAL ('GAMMIN', PSURF(4), 'STA', 0.55)
+         CALL INREAL ('GAMMAX', PSURF(5), 'STA', 0.81)
+         CALL INREAL ('GAMNEG', PSURF(6), 'STA', 0.73)
+         CALL INREAL ('COEFF1', PSURF(7), 'STA', 0.88)
+         CALL INREAL ('COEFF2', PSURF(8), 'STA', 0.012)
+      ELSE IF (KEYWIS('RUE')) THEN
+         ISURF = 3
+         CALL INREAL ('ALPHA', PSURF(1), 'STA', 1.0)
+         CALL INREAL ('A'    , PSURF(4), 'STA', 0.76)
+         CALL INREAL ('B'    , PSURF(5), 'STA', 0.29)
+      ELSE IF (KEYWIS('TG')) THEN
+         ISURF = 4
+         CALL INREAL ('ALPHA',  PSURF(1), 'STA', 1.0)
+         CALL INREAL ('GAMMA',  PSURF(4), 'STA', 0.42)
+         CALL INREAL ('POWN' ,  PSURF(5), 'STA', 4.0)
+      ELSE IF (KEYWIS('BKD')) THEN
+         ISURF = 6
+         CALL INREAL ('ALPHA' , PSURF(1) ,'STA', 1.00)
+         CALL INREAL ('GAMMA0', PSURF(4) ,'STA', 0.54)
+         CALL INREAL ('A1'    , PSURF(5) ,'STA', 7.59)
+         CALL INREAL ('A2'    , PSURF(6) ,'STA',-8.06)
+         CALL INREAL ('A3'    , PSURF(7) ,'STA', 8.09)
 !         [npnts] not documented!
-          CALL INREAL ('NPNTS' , PNUMS(37),'STA', 95. )                   41.96
+         CALL INREAL ('NPNTS' , PNUMS(37),'STA', 95. )
 !
-          JGAMMA = MCMVAR+1                                               41.96
-          MCMVAR = MCMVAR+1                                               41.96
-          ALOCMP = .TRUE.                                                 41.96
-        ELSE IF (KEYWIS('ASYM')) THEN                                     41.97
-          ISURF = 7                                                       41.97
-          CALL INREAL ('ALPHA' , PSURF(1) ,'STA', 1.0)                    41.97
-          CALL INREAL ('GAMMA0', PSURF(4) ,'STA', 0.6)                    41.97
-          CALL INREAL ('A'     , PSURF(5) ,'STA', 0.8)                    41.97
-          JGAMMA = MCMVAR+1                                               41.97
-          MCMVAR = MCMVAR+1                                               41.97
-          ALOCMP = .TRUE.                                                 41.97
-        END IF
+         JGAMMA = MCMVAR+1
+         MCMVAR = MCMVAR+1
+         ALOCMP = .TRUE.
+      ELSE IF (KEYWIS('ASYM')) THEN
+         ISURF = 7
+         CALL INREAL ('ALPHA' , PSURF(1) ,'STA', 1.0)
+         CALL INREAL ('GAMMA0', PSURF(4) ,'STA', 0.6)
+         CALL INREAL ('A'     , PSURF(5) ,'STA', 0.8)
+         JGAMMA = MCMVAR+1
+         MCMVAR = MCMVAR+1
+         ALOCMP = .TRUE.
+      END IF
 !
-        CALL INKEYW ('STA', '  ')                                         41.47
-        IF (KEYWIS ('DIR').OR.ISURF.EQ.6) THEN                            41.47
-           IDISRF = 1                                                     41.47
-           CALL INREAL ('SPREAD', PSURF(15), 'STA', 12.5)                 42.03 41.47
-        END IF                                                            41.47
+      CALL INKEYW ('STA', '  ')
+      IF (KEYWIS ('DIR').OR.ISURF.EQ.6) THEN
+         IDISRF = 1
+         CALL INREAL ('SPREAD', PSURF(15), 'STA', 12.5)
+      END IF
 !
-        CALL INKEYW ('STA', '  ')                                         41.06
-        IF (KEYWIS ('FREQD')) THEN                                        41.06
-           IFRSRF = 1                                                     41.06
-           CALL INREAL ('POWER', PSURF(16), 'STA', 2.0)                   41.06
-           CALL INREAL ('FMIN' , PSURF(17), 'STA', 0.0)                   41.06
-           CALL INREAL ('FMAX' , PSURF(18), 'STA', 1000.)                 41.06
-        END IF                                                            41.06
-        GOTO 100
-      ENDIF
+      CALL INKEYW ('STA', '  ')
+      IF (KEYWIS ('FREQD')) THEN
+         IFRSRF = 1
+         CALL INREAL ('POWER', PSURF(16), 'STA', 2.0)
+         CALL INREAL ('FMIN' , PSURF(17), 'STA', 0.0)
+         CALL INREAL ('FMAX' , PSURF(18), 'STA', 1000.)
+      END IF
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -2456,70 +2456,70 @@
 !
 ! =============================================================
 !
-      IF (KEYWIS ('WCAP')) THEN
-        CALL INKEYW ('STA','AB')                                          42.00
-        IF (KEYWIS ('KOM')) THEN
+   IF (KEYWIS ('WCAP')) THEN
+      CALL INKEYW ('STA','AB')
+      IF (KEYWIS ('KOM')) THEN
 !         *** whitecapping according to Komen et al. (1984) ***
 
 !         error checking in case user has already selected Babanin physics
-          IF (WCAPSET) CALL MSGERR (4, 'whitecapping is already set')     40.88
-          IWCAP = 1
-          WCAPSET = .TRUE.                                                40.88
-          CALL INREAL ('CDS2',  PWCAP(1),  'UNC', 0.)                     20.73
-          CALL INREAL ('STPM',  PWCAP(2),  'UNC', 0.)                     20.73
-          CALL INREAL ('POWST', PWCAP(9),  'UNC', 0.)                     34.00
-          CALL INREAL ('DELTA', PWCAP(10), 'UNC', 0.)                     34.00
-          CALL INREAL ('POWK',  PWCAP(11), 'UNC', 0.)                     34.00
-        ELSE IF ( KEYWIS ('JANS')) THEN
+         IF (WCAPSET) CALL MSGERR (4, 'whitecapping is already set')
+         IWCAP = 1
+         WCAPSET = .TRUE.
+         CALL INREAL ('CDS2',  PWCAP(1),  'UNC', 0.)
+         CALL INREAL ('STPM',  PWCAP(2),  'UNC', 0.)
+         CALL INREAL ('POWST', PWCAP(9),  'UNC', 0.)
+         CALL INREAL ('DELTA', PWCAP(10), 'UNC', 0.)
+         CALL INREAL ('POWK',  PWCAP(11), 'UNC', 0.)
+      ELSE IF ( KEYWIS ('JANS')) THEN
 !         *** whitecapping according to Janssen (1989, 1991) ***
-          IWCAP = 2
-          CALL INREAL ('CDS1',  PWCAP(3), 'UNC', 0.)                      20.73
-          CALL INREAL ('DELTA', PWCAP(4), 'UNC', 0.)
+         IWCAP = 2
+         CALL INREAL ('CDS1',  PWCAP(3), 'UNC', 0.)
+         CALL INREAL ('DELTA', PWCAP(4), 'UNC', 0.)
 !
 !         Recalculate coefficients that are actually used in the          40.02
 !         whitecapping routines                                           40.02
-          PWCAP(1)  = PWCAP(3) * (PWCAP(2) ** PWCAP(9))                   40.02
-          PWCAP(10) = PWCAP(4)                                            40.02
-          JUSTAR = MCMVAR+1                                               30.22
-          JZEL   = MCMVAR+2                                               30.22
-          JCDRAG = MCMVAR+3                                               30.22
-          JTAUW  = MCMVAR+4                                               30.22
-          MCMVAR = MCMVAR+4                                               30.22
-          ALOCMP = .TRUE.                                                 40.97
-          CALL INREAL ('PWTAIL', PWTAIL(1), 'STA', 5.)                    30.70
-          IF (PWTAIL(1).LE.1.) CALL MSGERR (3, 'Incorrect PWTAIL')        30.70
-          PWTAIL(3) = PWTAIL(1) + 1.                                      30.70
-        ELSE IF ( KEYWIS ('LHIG')) THEN
+         PWCAP(1)  = PWCAP(3) * (PWCAP(2) ** PWCAP(9))
+         PWCAP(10) = PWCAP(4)
+         JUSTAR = MCMVAR+1
+         JZEL   = MCMVAR+2
+         JCDRAG = MCMVAR+3
+         JTAUW  = MCMVAR+4
+         MCMVAR = MCMVAR+4
+         ALOCMP = .TRUE.
+         CALL INREAL ('PWTAIL', PWTAIL(1), 'STA', 5.)
+         IF (PWTAIL(1).LE.1.) CALL MSGERR (3, 'Incorrect PWTAIL')
+         PWTAIL(3) = PWTAIL(1) + 1.
+      ELSE IF ( KEYWIS ('LHIG')) THEN
 !         *** whitecapping according to Longuett Higgins ***
-          IWCAP = 3
-          CALL INREAL ('CFLHIG', PWCAP(5), 'UNC', 0.)
-        ELSE IF ( KEYWIS ('BJ')) THEN
+         IWCAP = 3
+         CALL INREAL ('CFLHIG', PWCAP(5), 'UNC', 0.)
+      ELSE IF ( KEYWIS ('BJ')) THEN
 !         *** whitecapping according to Battjes/Janssen formulation ***
-          IWCAP = 4
-          CALL INREAL ('BJSTP' , PWCAP(6), 'UNC', 0.)
-          CALL INREAL ('BJALF' , PWCAP(7), 'UNC', 0.)
-        ELSE IF ( KEYWIS ('KBJ')) THEN
+         IWCAP = 4
+         CALL INREAL ('BJSTP' , PWCAP(6), 'UNC', 0.)
+         CALL INREAL ('BJALF' , PWCAP(7), 'UNC', 0.)
+      ELSE IF ( KEYWIS ('KBJ')) THEN
 !         *** whitecapping according to a combination of Komen et al ***
 !         *** and Battjes/Janssen                                    ***
-          IWCAP = 5
-          CALL INREAL ('BJSTP' , PWCAP(6), 'UNC', 0.)
-          CALL INREAL ('BJALF' , PWCAP(7), 'UNC', 0.)
-          CALL INREAL ('KCONV' , PWCAP(8), 'UNC', 0.)
-        ELSE IF ( KEYWIS ('AB')) THEN                                     40.53
+         IWCAP = 5
+         CALL INREAL ('BJSTP' , PWCAP(6), 'UNC', 0.)
+         CALL INREAL ('BJALF' , PWCAP(7), 'UNC', 0.)
+         CALL INREAL ('KCONV' , PWCAP(8), 'UNC', 0.)
+      ELSE IF ( KEYWIS ('AB')) THEN
 !         *** whitecapping according to Alves and Banner (2003) ***       40.53
-          IWCAP = 7                                                       40.53
-          CALL INREAL ('CDS2',  PWCAP(1),  'STA', 5.0E-5)                 40.53
-          CALL INREAL ('BR',    PWCAP(12), 'STA', 1.75E-3)                40.53
-          CALL INKEYW ('STA', '  ')                                       42.04
-          IF (KEYWIS ('CUR')) THEN                                        42.04
-             IWCCUR = 1                                                   42.04
-             CALL INREAL ('CDS3', PWCAP(14), 'STA', 0.8)                  42.04
-          ENDIF                                                           42.04
-        ELSE
-          CALL WRNKEY
-        ENDIF
-        GOTO 100
+         IWCAP = 7
+         CALL INREAL ('CDS2',  PWCAP(1),  'STA', 5.0E-5)
+         CALL INREAL ('BR',    PWCAP(12), 'STA', 1.75E-3)
+         CALL INKEYW ('STA', '  ')
+         IF (KEYWIS ('CUR')) THEN
+            IWCCUR = 1
+            CALL INREAL ('CDS3', PWCAP(14), 'STA', 0.8)
+         ENDIF
+      ELSE
+         CALL WRNKEY
       ENDIF
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -2541,41 +2541,41 @@
 !
 ! ===============================================
 !
-      IF (KEYWIS ('FRIC')) THEN
-        IBOT = 1
-        CALL INKEYW ('STA','JON')
-        IF (KEYWIS('JON')) THEN
-          CALL INKEYW ('STA', 'CON')
-          IF (KEYWIS('VAR')) THEN                                         41.04
+   IF (KEYWIS ('FRIC')) THEN
+      IBOT = 1
+      CALL INKEYW ('STA','JON')
+      IF (KEYWIS('JON')) THEN
+         CALL INKEYW ('STA', 'CON')
+         IF (KEYWIS('VAR')) THEN
             IBOT = 4
             CALL INREAL ('CFJ1', PBOT(6), 'STA', 0.038)
             CALL INREAL ('CFJ2', PBOT(7), 'STA', 0.067)
             CALL INREAL ('DSP1', PBOT(8), 'STA', 10.)
             CALL INREAL ('DSP2', PBOT(9), 'STA', 30.)
-          ELSE
+         ELSE
             CALL IGNORE ('CON')
             IBOT = 1
             CALL INREAL('CFJON',PBOT(3),'UNC',0.)
-          ENDIF
-        ELSE IF (KEYWIS('COLL')) THEN                                     20.68
-          IBOT = 2
-          CALL INREAL('CFW',PBOT(2),'UNC',0.)
-          CALL INREAL('CFC',PBOT(1),'UNC',0.)
-        ELSE IF (KEYWIS('MAD')) THEN
-          IBOT = 3
-          CALL INREAL('KN',PBOT(5),'UNC',0.)
-        ELSE IF (KEYWIS('RIP')) THEN                                      41.51
-          IBOT = 5
-          CALL INREAL('S',PBOT(6),'UNC',0.)
-          CALL INREAL('D',PBOT(7),'UNC',0.)
-          JFRC2  = MCMVAR+1
-          MCMVAR = MCMVAR+1
-          ALOCMP = .TRUE.
-        ELSE
-          CALL WRNKEY
-        ENDIF
-        GOTO 100
+         ENDIF
+      ELSE IF (KEYWIS('COLL')) THEN
+         IBOT = 2
+         CALL INREAL('CFW',PBOT(2),'UNC',0.)
+         CALL INREAL('CFC',PBOT(1),'UNC',0.)
+      ELSE IF (KEYWIS('MAD')) THEN
+         IBOT = 3
+         CALL INREAL('KN',PBOT(5),'UNC',0.)
+      ELSE IF (KEYWIS('RIP')) THEN
+         IBOT = 5
+         CALL INREAL('S',PBOT(6),'UNC',0.)
+         CALL INREAL('D',PBOT(7),'UNC',0.)
+         JFRC2  = MCMVAR+1
+         MCMVAR = MCMVAR+1
+         ALOCMP = .TRUE.
+      ELSE
+         CALL WRNKEY
       ENDIF
+      GOTO 100
+   ENDIF
 !
 ! ==========================================
 !
@@ -2583,15 +2583,15 @@
 !
 ! ==========================================
 !
-      IF (KEYWIS ('MUD')) THEN
-        IMUD = 1
-        CALL INREAL('LAYER',PMUD(1),'UNC',0.)
-        CALL INREAL('RHOM' ,PMUD(2),'UNC',0.)
-        CALL INREAL('VISCM',PMUD(3),'UNC',0.)
-        CALL INREAL('RHOW' ,PMUD(4),'UNC',0.)
-        CALL INREAL('VISCW',PMUD(5),'UNC',0.)
-        GOTO 100
-      ENDIF
+   IF (KEYWIS ('MUD')) THEN
+      IMUD = 1
+      CALL INREAL('LAYER',PMUD(1),'UNC',0.)
+      CALL INREAL('RHOM' ,PMUD(2),'UNC',0.)
+      CALL INREAL('VISCM',PMUD(3),'UNC',0.)
+      CALL INREAL('RHOW' ,PMUD(4),'UNC',0.)
+      CALL INREAL('VISCW',PMUD(5),'UNC',0.)
+      GOTO 100
+   ENDIF
 !
 ! ==========================================
 !
@@ -2602,18 +2602,18 @@
 ! Note that PSICE(1) is unused; this is okay
 ! Note that IC4M2 is deprecated in manual but left intact
 
-      IF (KEYWIS ('IC4M2')) THEN
-        IICE = 3
-        CALL INREAL('AICE',PICE(1) ,'REQ',0.)
-        CALL INREAL('C0'  ,PSICE(2),'REQ',0.)
-        CALL INREAL('C1'  ,PSICE(3),'REQ',0.)
-        CALL INREAL('C2'  ,PSICE(4),'REQ',0.)
-        CALL INREAL('C3'  ,PSICE(5),'REQ',0.)
-        CALL INREAL('C4'  ,PSICE(6),'REQ',0.)
-        CALL INREAL('C5'  ,PSICE(7),'REQ',0.)
-        CALL INREAL('C6'  ,PSICE(8),'REQ',0.)
-        GOTO 100
-      ENDIF
+   IF (KEYWIS ('IC4M2')) THEN
+      IICE = 3
+      CALL INREAL('AICE',PICE(1) ,'REQ',0.)
+      CALL INREAL('C0'  ,PSICE(2),'REQ',0.)
+      CALL INREAL('C1'  ,PSICE(3),'REQ',0.)
+      CALL INREAL('C2'  ,PSICE(4),'REQ',0.)
+      CALL INREAL('C3'  ,PSICE(5),'REQ',0.)
+      CALL INREAL('C4'  ,PSICE(6),'REQ',0.)
+      CALL INREAL('C5'  ,PSICE(7),'REQ',0.)
+      CALL INREAL('C6'  ,PSICE(8),'REQ',0.)
+      GOTO 100
+   ENDIF
 !
 ! ==========================================
 !
@@ -2621,11 +2621,11 @@
 !
 ! ==========================================
 !
-      IF (KEYWIS ('ICE')) THEN
-        CALL INREAL('AICE',PICE(1),'REQ',0.)
-        CALL INREAL('HICE',PICE(2),'REQ',0.)
-        GOTO 100
-      ENDIF
+   IF (KEYWIS ('ICE')) THEN
+      CALL INREAL('AICE',PICE(1),'REQ',0.)
+      CALL INREAL('HICE',PICE(2),'REQ',0.)
+      GOTO 100
+   ENDIF
 !
 ! ==========================================
 !
@@ -2636,32 +2636,32 @@
 !
 ! ==========================================
 !
-      IF (KEYWIS ('SICE')) THEN
-        IICE = 3 ! default: IICE=3 indicates R19
-        CALL INKEYW ('STA','R19')
-        IF (KEYWIS('R19')) THEN
-          CALL INREAL('C0'  ,PSICE(2),'STA',0.)
-          CALL INREAL('C1'  ,PSICE(3),'STA',0.)
-          CALL INREAL('C2'  ,PSICE(4),'STA',1.06e-3)
-          CALL INREAL('C3'  ,PSICE(5),'STA',0.)
-          CALL INREAL('C4'  ,PSICE(6),'STA',2.30e-2)
-          CALL INREAL('C5'  ,PSICE(7),'STA',0.)
-          CALL INREAL('C6'  ,PSICE(8),'STA',0.)
-        ELSE IF (KEYWIS('D15')) THEN
-          IICE = 4 ! IICE=4 indicates D15
-          CALL INREAL('CHF',PSICE(1),'STA',0.1)
-        ELSE IF (KEYWIS('M18')) THEN
-          IICE = 5 ! IICE=5 indicates M18
-          CALL INREAL('CHF',PSICE(1),'STA',0.059)
-        ELSE IF (KEYWIS('R21B')) THEN
-          IICE = 6 ! IICE=6 indicates R21B
-          CALL INREAL('CHF',PSICE(1),'STA',2.9)
-          CALL INREAL('NPF',PSICE(2),'STA',4.5)
-        ELSE
-          CALL WRNKEY
-        ENDIF
-        GOTO 100
+   IF (KEYWIS ('SICE')) THEN
+      IICE = 3 ! default: IICE=3 indicates R19
+      CALL INKEYW ('STA','R19')
+      IF (KEYWIS('R19')) THEN
+         CALL INREAL('C0'  ,PSICE(2),'STA',0.)
+         CALL INREAL('C1'  ,PSICE(3),'STA',0.)
+         CALL INREAL('C2'  ,PSICE(4),'STA',1.06e-3)
+         CALL INREAL('C3'  ,PSICE(5),'STA',0.)
+         CALL INREAL('C4'  ,PSICE(6),'STA',2.30e-2)
+         CALL INREAL('C5'  ,PSICE(7),'STA',0.)
+         CALL INREAL('C6'  ,PSICE(8),'STA',0.)
+      ELSE IF (KEYWIS('D15')) THEN
+         IICE = 4 ! IICE=4 indicates D15
+         CALL INREAL('CHF',PSICE(1),'STA',0.1)
+      ELSE IF (KEYWIS('M18')) THEN
+         IICE = 5 ! IICE=5 indicates M18
+         CALL INREAL('CHF',PSICE(1),'STA',0.059)
+      ELSE IF (KEYWIS('R21B')) THEN
+         IICE = 6 ! IICE=6 indicates R21B
+         CALL INREAL('CHF',PSICE(1),'STA',2.9)
+         CALL INREAL('NPF',PSICE(2),'STA',4.5)
+      ELSE
+         CALL WRNKEY
       ENDIF
+      GOTO 100
+   ENDIF
 !
 ! ==========================================
 !
@@ -2669,67 +2669,67 @@
 !
 ! ==========================================
 !
-      IF (KEYWIS ('VEGE')) THEN
-        CALL ININTG ('IVEG', IVEG, 'STA', 1)                              41.77
-        ILMAX = 0
-        FRSTV%H = 0.
-        FRSTV%D = 0.
-        FRSTV%N = 0
-        FRSTV%C = 0.
-        NULLIFY(FRSTV%NEXTV)
-        CURRV => FRSTV
- 303    CALL INREAL ('HEIGHT',HH,'REP',-1.)
-        IF ( HH.NE.-1. ) THEN
-           IF ( HH.LT.0. ) THEN
-              CALL MSGERR (2,'height is negative')
-              HH = 0.
-           END IF
-           CALL INREAL ('DIAMTR',DD,'REQ', 0.)
-           IF ( DD.LT.0. ) THEN
-              CALL MSGERR (2,'stem diameter is negative')
-              DD = 0.
-           END IF
-           CALL ININTG ('NSTEMS',NN,'REQ', 1 )
-           IF ( NN.LE.0 ) THEN
-              CALL MSGERR (2,'number of stems is negative or zero')
-              NN = 1
-           END IF
-           CALL INREAL ('DRAG'  ,CC,'REQ', 0.)
-           IF ( CC.LT.0. ) THEN
-              CALL MSGERR (2,'drag coefficient is negative')
-              CC = 0.
-           END IF
-           ILMAX = ILMAX+1
-           ALLOCATE(TMPV)
-           TMPV%H = HH
-           TMPV%D = DD
-           TMPV%N = NN
-           TMPV%C = CC
-           NULLIFY(TMPV%NEXTV)
-           CURRV%NEXTV => TMPV
-           CURRV => TMPV
-           GO TO 303
-        END IF
-        IF (ILMAX.EQ.0) CALL MSGERR(2,'No vegetation parameters found')
-        IF (ILMAX.GT.1 .AND. IVEG.NE.1) THEN
-           CALL MSGERR (2,
-     &            'vertical distribution of vegetation is not allowed')
-        END IF
-        IF (.NOT.ALLOCATED(LAYH  )) ALLOCATE(LAYH  (ILMAX))
-        IF (.NOT.ALLOCATED(VEGDIL)) ALLOCATE(VEGDIL(ILMAX))
-        IF (.NOT.ALLOCATED(VEGNSL)) ALLOCATE(VEGNSL(ILMAX))
-        IF (.NOT.ALLOCATED(VEGDRL)) ALLOCATE(VEGDRL(ILMAX))
-        CURRV => FRSTV%NEXTV
-        DO JJ = 1, ILMAX
-           LAYH  (JJ) = CURRV%H
-           VEGDIL(JJ) = CURRV%D
-           VEGNSL(JJ) = REAL(CURRV%N)
-           VEGDRL(JJ) = CURRV%C
-           CURRV => CURRV%NEXTV
-        END DO
-        DEALLOCATE(TMPV)
-        GOTO 100
+   IF (KEYWIS ('VEGE')) THEN
+      CALL ININTG ('IVEG', IVEG, 'STA', 1)
+      ILMAX = 0
+      FRSTV%H = 0.
+      FRSTV%D = 0.
+      FRSTV%N = 0
+      FRSTV%C = 0.
+      NULLIFY(FRSTV%NEXTV)
+      CURRV => FRSTV
+303   CALL INREAL ('HEIGHT',HH,'REP',-1.)
+      IF ( HH.NE.-1. ) THEN
+         IF ( HH.LT.0. ) THEN
+            CALL MSGERR (2,'height is negative')
+            HH = 0.
+         END IF
+         CALL INREAL ('DIAMTR',DD,'REQ', 0.)
+         IF ( DD.LT.0. ) THEN
+            CALL MSGERR (2,'stem diameter is negative')
+            DD = 0.
+         END IF
+         CALL ININTG ('NSTEMS',NN,'REQ', 1 )
+         IF ( NN.LE.0 ) THEN
+            CALL MSGERR (2,'number of stems is negative or zero')
+            NN = 1
+         END IF
+         CALL INREAL ('DRAG'  ,CC,'REQ', 0.)
+         IF ( CC.LT.0. ) THEN
+            CALL MSGERR (2,'drag coefficient is negative')
+            CC = 0.
+         END IF
+         ILMAX = ILMAX+1
+         ALLOCATE(TMPV)
+         TMPV%H = HH
+         TMPV%D = DD
+         TMPV%N = NN
+         TMPV%C = CC
+         NULLIFY(TMPV%NEXTV)
+         CURRV%NEXTV => TMPV
+         CURRV => TMPV
+         GO TO 303
       END IF
+      IF (ILMAX.EQ.0) CALL MSGERR(2,'No vegetation parameters found')
+      IF (ILMAX.GT.1 .AND. IVEG.NE.1) THEN
+         CALL MSGERR (2, &
+                'vertical distribution of vegetation is not allowed')
+      END IF
+      IF (.NOT.ALLOCATED(LAYH  )) ALLOCATE(LAYH  (ILMAX))
+      IF (.NOT.ALLOCATED(VEGDIL)) ALLOCATE(VEGDIL(ILMAX))
+      IF (.NOT.ALLOCATED(VEGNSL)) ALLOCATE(VEGNSL(ILMAX))
+      IF (.NOT.ALLOCATED(VEGDRL)) ALLOCATE(VEGDRL(ILMAX))
+      CURRV => FRSTV%NEXTV
+      DO JJ = 1, ILMAX
+         LAYH  (JJ) = CURRV%H
+         VEGDIL(JJ) = CURRV%D
+         VEGNSL(JJ) = REAL(CURRV%N)
+         VEGDRL(JJ) = CURRV%C
+         CURRV => CURRV%NEXTV
+      END DO
+      DEALLOCATE(TMPV)
+      GOTO 100
+   END IF
 !
 ! =================================================================
 !
@@ -2737,28 +2737,28 @@
 !
 ! =================================================================
 
-      IF (KEYWIS ('TURB')) THEN                                           40.35
-        ITURBV = 1
-        CALL INREAL ('CTB',  PTURBV(1), 'STA', 0.01)                      40.35
-        CALL INKEYW ('STA', ' ')
-        IF (KEYWIS('CUR')) THEN
-          CALL INREAL ('TBCUR', PTURBV(2), 'STA', 0.004)
-          IF (VARTUR) THEN
+   IF (KEYWIS ('TURB')) THEN
+      ITURBV = 1
+      CALL INREAL ('CTB',  PTURBV(1), 'STA', 0.01)
+      CALL INKEYW ('STA', ' ')
+      IF (KEYWIS('CUR')) THEN
+         CALL INREAL ('TBCUR', PTURBV(2), 'STA', 0.004)
+         IF (VARTUR) THEN
             CALL MSGERR (1, 'turbulence is read; option CUR ignored')
             PTURBV(2) = -1.
-          ELSE
-            VARTUR = .TRUE.                                               40.35
+         ELSE
+            VARTUR = .TRUE.
 !           reserve space for storage of turbulence parameter
-            MCMVAR = MCMVAR + 2                                           40.35
-            JTURB2 = MCMVAR - 1                                           40.35
-            JTURB3 = MCMVAR                                               40.35
-            ALOCMP = .TRUE.                                               40.97
-          ENDIF
-        ELSE
-          PTURBV(2) = -1.                                                 40.35
-        ENDIF
-        GOTO 100
+            MCMVAR = MCMVAR + 2
+            JTURB2 = MCMVAR - 1
+            JTURB3 = MCMVAR
+            ALOCMP = .TRUE.
+         ENDIF
+      ELSE
+         PTURBV(2) = -1.
       ENDIF
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -2770,31 +2770,31 @@
 !
 ! ==========================================================
 !
-      IF (KEYWIS ('WIND')) THEN
-        LWINDR = 1                                                        30.10
-        IWIND  = LWINDM                                                   30.10
-        IF (.NOT.VARWI) THEN
-           VARWI = .FALSE.
-           CALL INREAL('VEL',U10,'REQ',0.)
-           CALL INREAL('DIR',WDIP,'REQ',0.)
-           CALL INREAL('ASTD',CASTD,'STA',0.)                             40.03
-        ELSE
-           U10   = 0.
-           WDIP  = 0.
-           CASTD = 0.
-        ENDIF
+   IF (KEYWIS ('WIND')) THEN
+      LWINDR = 1
+      IWIND  = LWINDM
+      IF (.NOT.VARWI) THEN
+         VARWI = .FALSE.
+         CALL INREAL('VEL',U10,'REQ',0.)
+         CALL INREAL('DIR',WDIP,'REQ',0.)
+         CALL INREAL('ASTD',CASTD,'STA',0.)
+      ELSE
+         U10   = 0.
+         WDIP  = 0.
+         CASTD = 0.
+      ENDIF
 !
 !       *** Convert (if necessary) WDIP from nautical degrees ***         32.01
 !       *** to cartesian degrees                              ***         32.01
 !
-        WDIP = DEGCNV (WDIP)                                              32.01
+      WDIP = DEGCNV (WDIP)
 !
-        IF (IWIND.EQ.0) IWIND = 4                                         20.74
-        ALTMP = WDIP / 360.
-        WDIP = PI2 * (ALTMP - NINT(ALTMP))
+      IF (IWIND.EQ.0) IWIND = 4
+      ALTMP = WDIP / 360.
+      WDIP = PI2 * (ALTMP - NINT(ALTMP))
 !
-        GOTO 100
-      ENDIF
+      GOTO 100
+   ENDIF
 !     ------------------------------------------------------------------
 !
 !     GEN1        deep water with 1st generation                          20.86
@@ -2805,30 +2805,30 @@
 !
 ! ==========================================
 !
-      IF (KEYWIS('GEN1')) THEN
+   IF (KEYWIS('GEN1')) THEN
 !       *** initialize first generation model ***
-        IGEN = 1                                                          32.06
-        LWINDM = 1                                                        30.10
-        IF (LWINDR .GT. 0) IWIND = LWINDM                                 30.10
-        IQUAD = 0
-        IWCAP = 0
+      IGEN = 1
+      LWINDM = 1
+      IF (LWINDR .GT. 0) IWIND = LWINDM
+      IQUAD = 0
+      IWCAP = 0
 !       *** set value for the windparameters ***
 !       *** first generation wind model ***
-        CALL INREAL ('CF10', PWIND(1), 'UNC', 0.)
-        CALL INREAL ('CF20', PWIND(2), 'UNC', 0.)
-        CALL INREAL ('CF30', PWIND(3),'UNC',0.)
-        CALL INREAL ('CF40', PWIND(4),'UNC',0.)
-        CALL INREAL ('EDMLPM', PWIND(10), 'UNC', 0.)
-        CALL INREAL ('CDRAG',  PWIND(11), 'UNC', 0.)
-        CALL INREAL ('UMIN', PWIND(12), 'UNC', 0.)
-        CALL INREAL ('CFPM',  PWIND(13), 'UNC', 0.)
+      CALL INREAL ('CF10', PWIND(1), 'UNC', 0.)
+      CALL INREAL ('CF20', PWIND(2), 'UNC', 0.)
+      CALL INREAL ('CF30', PWIND(3),'UNC',0.)
+      CALL INREAL ('CF40', PWIND(4),'UNC',0.)
+      CALL INREAL ('EDMLPM', PWIND(10), 'UNC', 0.)
+      CALL INREAL ('CDRAG',  PWIND(11), 'UNC', 0.)
+      CALL INREAL ('UMIN', PWIND(12), 'UNC', 0.)
+      CALL INREAL ('CFPM',  PWIND(13), 'UNC', 0.)
 !       if [pwtail] is not changed, make it 5
-        IF (EQREAL(PWTAIL(1),4.)) THEN                                    40.00
-          PWTAIL(1) = 5.                                                  40.00
-          PWTAIL(3) = PWTAIL(1) + 1.                                      30.70
-        ENDIF
-        GOTO 100
+      IF (EQREAL(PWTAIL(1),4.)) THEN
+         PWTAIL(1) = 5.
+         PWTAIL(3) = PWTAIL(1) + 1.
       ENDIF
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -2840,31 +2840,31 @@
 !
 ! ==========================================
 !
-      IF (KEYWIS('GEN2')) THEN
+   IF (KEYWIS('GEN2')) THEN
 !       *** initialize second generation model ***
-        IGEN = 2                                                          32.06
-        LWINDM = 2                                                        30.10
-        IF (LWINDR .GT. 0) IWIND = LWINDM                                 30.10
-        IQUAD = 0
-        IWCAP = 0
+      IGEN = 2
+      LWINDM = 2
+      IF (LWINDR .GT. 0) IWIND = LWINDM
+      IQUAD = 0
+      IWCAP = 0
 !       *** set value for the windparameters ***
-        CALL INREAL ('CF10', PWIND(1), 'UNC', 0.)
-        CALL INREAL ('CF20', PWIND(2), 'UNC', 0.)
-        CALL INREAL ('CF30', PWIND(3),'UNC',0.)
-        CALL INREAL ('CF40', PWIND(4),'UNC',0.)
-        CALL INREAL ('CF50', PWIND(5),'UNC',0.)
-        CALL INREAL ('CF60', PWIND(6), 'UNC', 0.)
-        CALL INREAL ('EDMLPM', PWIND(10), 'UNC', 0.)
-        CALL INREAL ('CDRAG',  PWIND(11), 'UNC', 0.)
-        CALL INREAL ('UMIN', PWIND(12), 'UNC', 0.)
-        CALL INREAL ('CFPM',  PWIND(13), 'UNC', 0.)
+      CALL INREAL ('CF10', PWIND(1), 'UNC', 0.)
+      CALL INREAL ('CF20', PWIND(2), 'UNC', 0.)
+      CALL INREAL ('CF30', PWIND(3),'UNC',0.)
+      CALL INREAL ('CF40', PWIND(4),'UNC',0.)
+      CALL INREAL ('CF50', PWIND(5),'UNC',0.)
+      CALL INREAL ('CF60', PWIND(6), 'UNC', 0.)
+      CALL INREAL ('EDMLPM', PWIND(10), 'UNC', 0.)
+      CALL INREAL ('CDRAG',  PWIND(11), 'UNC', 0.)
+      CALL INREAL ('UMIN', PWIND(12), 'UNC', 0.)
+      CALL INREAL ('CFPM',  PWIND(13), 'UNC', 0.)
 !       if [pwtail] is not changed, make it 5
-        IF (EQREAL(PWTAIL(1),4.)) THEN                                    40.00
-          PWTAIL(1) = 5.                                                  40.00
-          PWTAIL(3) = PWTAIL(1) + 1.                                      30.70
-        ENDIF
-        GOTO 100
+      IF (EQREAL(PWTAIL(1),4.)) THEN
+         PWTAIL(1) = 5.
+         PWTAIL(3) = PWTAIL(1) + 1.
       ENDIF
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -2901,173 +2901,173 @@
 !
 ! ======================================================================================
 !
-      IF (KEYWIS('GEN3')) THEN
+   IF (KEYWIS('GEN3')) THEN
 !       *** initialize third generation model ***
-        IGEN = 3                                                          32.06
-        CALL INKEYW ('STA', 'WESTH')                                      42.00
-        IF (KEYWIS('JANS')) THEN                                          970220
-          LWINDM = 4                                                      30.1x
-          IF (LWINDR .GT. 0) IWIND = LWINDM                               30.1x
+      IGEN = 3
+      CALL INKEYW ('STA', 'WESTH')
+      IF (KEYWIS('JANS')) THEN
+         LWINDM = 4
+         IF (LWINDR .GT. 0) IWIND = LWINDM
 !         *** whitecapping according to Janssen (1989, 1991) ***
-          IWCAP = 2
-          CALL INREAL ('CDS1',  PWCAP(3), 'UNC', 0.)                      20.73
-          CALL INREAL ('DELTA', PWCAP(4), 'UNC', 0.)
+         IWCAP = 2
+         CALL INREAL ('CDS1',  PWCAP(3), 'UNC', 0.)
+         CALL INREAL ('DELTA', PWCAP(4), 'UNC', 0.)
 !
 !         Recalculate coefficientes that are actually used in the         40.02
 !         whitecapping routines                                           40.02
-          PWCAP(1)  = PWCAP(3) * (PWCAP(2) ** PWCAP(9))                   40.02
-          PWCAP(10) = PWCAP(4)                                            40.02
-          JUSTAR = MCMVAR+1                                               30.72
-          JZEL   = MCMVAR+2                                               30.72
-          JCDRAG = MCMVAR+3                                               30.72
-          JTAUW  = MCMVAR+4                                               30.72
-          MCMVAR = MCMVAR+4                                               30.72
-          ALOCMP = .TRUE.                                                 40.97
+         PWCAP(1)  = PWCAP(3) * (PWCAP(2) ** PWCAP(9))
+         PWCAP(10) = PWCAP(4)
+         JUSTAR = MCMVAR+1
+         JZEL   = MCMVAR+2
+         JCDRAG = MCMVAR+3
+         JTAUW  = MCMVAR+4
+         MCMVAR = MCMVAR+4
+         ALOCMP = .TRUE.
 !         if [pwtail] is not changed, make it 5
-          IF (EQREAL(PWTAIL(1),4.)) THEN                                  40.00
-            PWTAIL(1) = 5.                                                40.00
-            PWTAIL(3) = PWTAIL(1) + 1.                                    30.70
-          ENDIF
-        ELSE IF (KEYWIS('YAN')) THEN
+         IF (EQREAL(PWTAIL(1),4.)) THEN
+            PWTAIL(1) = 5.
+            PWTAIL(3) = PWTAIL(1) + 1.
+         ENDIF
+      ELSE IF (KEYWIS('YAN')) THEN
 !         option not documented in user manual
-          LWINDM = 5                                                      30.1x
-          IF (LWINDR .GT. 0) IWIND = LWINDM                               30.1x
-        ELSE IF (KEYWIS('WESTH')) THEN                                    40.53
+         LWINDM = 5
+         IF (LWINDR .GT. 0) IWIND = LWINDM
+      ELSE IF (KEYWIS('WESTH')) THEN
 !         *** wind according to (adapted) Yan (1987) ***                  40.53
-          LWINDM = 5                                                      40.53
-          IF (LWINDR .GT. 0) IWIND = LWINDM                               40.53
+         LWINDM = 5
+         IF (LWINDR .GT. 0) IWIND = LWINDM
 !         *** whitecapping according to Alves and Banner (2003) ***       40.53
-          IWCAP = 7                                                       40.53
-          CALL INREAL ('CDS2',  PWCAP(1),  'STA', 5.0E-5)                 40.53
-          CALL INREAL ('BR',    PWCAP(12), 'STA', 1.75E-3)                40.53
-        ELSE IF (KEYWIS('BAB')) THEN                                      40.88
+         IWCAP = 7
+         CALL INREAL ('CDS2',  PWCAP(1),  'STA', 5.0E-5)
+         CALL INREAL ('BR',    PWCAP(12), 'STA', 1.75E-3)
+      ELSE IF (KEYWIS('BAB')) THEN
 !         "BABanin"=legacy mode of input ; "ST6"=new mode of input
 !         *** wind according to Rogers et al. (JTECH 2012) based on work of
 !             Donelan, Babanin, Tsagareli and others
-          LWINDM = 8
-          IF (LWINDR .GT. 0) IWIND = LWINDM
+         LWINDM = 8
+         IF (LWINDR .GT. 0) IWIND = LWINDM
 !         note: command "GEN3 BABANIN" supports Hwang wind drag only
-          IDRAG = 4
+         IDRAG = 4
 !         *** whitecapping according to Rogers et al. (JTECH 2012) based on work of
 !             Babanin, Young, Tsagareli, Ardhuin and others
-          IF (WCAPSET) CALL MSGERR (4, 'whitecapping is already set')
-          WCAPSET = .TRUE.
-          IWCAP = 8
-          CALL INREAL ('A1SDS', A1SDS, 'REQ', 0.)
-          CALL INREAL ('A2SDS', A2SDS, 'REQ', 0.)
-          CALL INREAL ('P1SDS', P1SDS, 'REQ', 0.)
-          CALL INREAL ('P2SDS', P2SDS, 'REQ', 0.)
-          ROGERS = .TRUE. ! legacy swell dissipation
-          IF(SWELLSET) CALL MSGERR(4,'swell dissipation is already set')
-          SWELLSET = .TRUE.
-          CALL INREAL ('CDSV'   , CDSV   , 'REQ', 0.)
-          CALL INREAL ('FESWELL', FESWELL, 'REQ', 0.)
-          CALL INKEYW ('REQ', ' ')
-          IF (KEYWIS ('UP')) THEN
-             UPWARDS = .TRUE.
-          ELSE IF (KEYWIS ('DOWN')) THEN
-             UPWARDS = .FALSE.
-          ELSE
-             CALL WRNKEY
-          ENDIF
-          CALL INKEYW ('STA', ' ')
-          IF (KEYWIS('VECTAU')) THEN
-             VECTOR_TAU = .TRUE.
-          ELSE
-             VECTOR_TAU = .FALSE.
-          ENDIF
-          CALL INKEYW ('STA', ' ')
-          IF (KEYWIS('TRUE10')) THEN
-             TRUE_U10 = .TRUE.
-          ENDIF
-        ELSE IF (KEYWIS('ST6')) THEN                                      40.88
+         IF (WCAPSET) CALL MSGERR (4, 'whitecapping is already set')
+         WCAPSET = .TRUE.
+         IWCAP = 8
+         CALL INREAL ('A1SDS', A1SDS, 'REQ', 0.)
+         CALL INREAL ('A2SDS', A2SDS, 'REQ', 0.)
+         CALL INREAL ('P1SDS', P1SDS, 'REQ', 0.)
+         CALL INREAL ('P2SDS', P2SDS, 'REQ', 0.)
+         ROGERS = .TRUE. ! legacy swell dissipation
+         IF(SWELLSET) CALL MSGERR(4,'swell dissipation is already set')
+         SWELLSET = .TRUE.
+         CALL INREAL ('CDSV'   , CDSV   , 'REQ', 0.)
+         CALL INREAL ('FESWELL', FESWELL, 'REQ', 0.)
+         CALL INKEYW ('REQ', ' ')
+         IF (KEYWIS ('UP')) THEN
+            UPWARDS = .TRUE.
+         ELSE IF (KEYWIS ('DOWN')) THEN
+            UPWARDS = .FALSE.
+         ELSE
+            CALL WRNKEY
+         ENDIF
+         CALL INKEYW ('STA', ' ')
+         IF (KEYWIS('VECTAU')) THEN
+            VECTOR_TAU = .TRUE.
+         ELSE
+            VECTOR_TAU = .FALSE.
+         ENDIF
+         CALL INKEYW ('STA', ' ')
+         IF (KEYWIS('TRUE10')) THEN
+            TRUE_U10 = .TRUE.
+         ENDIF
+      ELSE IF (KEYWIS('ST6')) THEN
 !         "BABanin"=legacy mode of input ; "ST6"=new mode of input
 !         *** wind according to Rogers et al. (JTECH 2012) based on work of
 !             Donelan, Babanin, Tsagareli and others
-          LWINDM = 8
-          IF (LWINDR .GT. 0) IWIND = LWINDM
+         LWINDM = 8
+         IF (LWINDR .GT. 0) IWIND = LWINDM
 !         *** whitecapping according to Rogers et al. (JTECH 2012) based on work of
 !             Babanin, Young, Tsagareli, Ardhuin and others
-          IWCAP = 8
-          CALL INREAL ('A1SDS', A1SDS, 'UNC', 0.)
-          CALL INREAL ('A2SDS', A2SDS, 'UNC', 0.)
-          CALL INREAL ('P1SDS', P1SDS, 'STA', 4.)
-          CALL INREAL ('P2SDS', P2SDS, 'STA', 4.)
-          CALL INKEYW ('STA', 'UP')
-          IF (KEYWIS ('DOWN')) THEN
-             UPWARDS = .FALSE.
-          ELSE
-             CALL IGNORE ('UP')
-             UPWARDS = .TRUE.
-          ENDIF
-          CALL INKEYW ('STA', 'HWANG')
-          IF (KEYWIS('HWANG')) THEN
-             IDRAG = 4
-          ELSE IF (KEYWIS ('FAN')) THEN
-             IDRAG = 5
-          ELSE IF (KEYWIS ('ECMWF')) THEN
-             IDRAG = 6
-          ENDIF
-          CALL INKEYW ('STA', 'VECTAU')
-          IF (KEYWIS('VECTAU')) THEN
-             VECTOR_TAU = .TRUE.
-          ELSE IF (KEYWIS('SCATAU')) THEN
-             VECTOR_TAU = .FALSE.
-          ENDIF
-          CALL INKEYW ('STA', 'U10P')
-          IF (KEYWIS('TRUE10')) THEN
-             TRUE_U10 = .TRUE.
-          ELSEIF (KEYWIS ('U10P')) THEN
+         IWCAP = 8
+         CALL INREAL ('A1SDS', A1SDS, 'UNC', 0.)
+         CALL INREAL ('A2SDS', A2SDS, 'UNC', 0.)
+         CALL INREAL ('P1SDS', P1SDS, 'STA', 4.)
+         CALL INREAL ('P2SDS', P2SDS, 'STA', 4.)
+         CALL INKEYW ('STA', 'UP')
+         IF (KEYWIS ('DOWN')) THEN
+            UPWARDS = .FALSE.
+         ELSE
+            CALL IGNORE ('UP')
+            UPWARDS = .TRUE.
+         ENDIF
+         CALL INKEYW ('STA', 'HWANG')
+         IF (KEYWIS('HWANG')) THEN
+            IDRAG = 4
+         ELSE IF (KEYWIS ('FAN')) THEN
+            IDRAG = 5
+         ELSE IF (KEYWIS ('ECMWF')) THEN
+            IDRAG = 6
+         ENDIF
+         CALL INKEYW ('STA', 'VECTAU')
+         IF (KEYWIS('VECTAU')) THEN
+            VECTOR_TAU = .TRUE.
+         ELSE IF (KEYWIS('SCATAU')) THEN
+            VECTOR_TAU = .FALSE.
+         ENDIF
+         CALL INKEYW ('STA', 'U10P')
+         IF (KEYWIS('TRUE10')) THEN
+            TRUE_U10 = .TRUE.
+         ELSEIF (KEYWIS ('U10P')) THEN
 !            **** see notes for WINDSCALING in SdsBabanin.f90 ****
 !            **** applies only to Babanin DBYB wind input     ****
 !            **** applies only when TRUE10 is not used        ****
-             CALL INREAL ( 'WINDSCALING', WNDSCL, 'UNC', 0. )
-          ENDIF
-          CALL INKEYW ('STA', ' ')
-          IF (KEYWIS ('DEB')) THEN
-             CALL INREAL ( 'CDFAC', CDFAC, 'REQ', 1. )
-          ENDIF
-        ELSE
-          IF ( IWCAP.EQ.8 .OR. IWIND.EQ.8 ) THEN
-             CALL MSGERR(1,' * We prefer that you use GEN3 BABANIN. * ')
-             CALL MSGERR(1,' * Example:                             * ')
-             CALL MSGERR(1,'GEN3 BABANIN 5.7E-7 8.0E-6 4.0 4.0 1.2 0.006
+            CALL INREAL ( 'WINDSCALING', WNDSCL, 'UNC', 0. )
+         ENDIF
+         CALL INKEYW ('STA', ' ')
+         IF (KEYWIS ('DEB')) THEN
+            CALL INREAL ( 'CDFAC', CDFAC, 'REQ', 1. )
+         ENDIF
+      ELSE
+         IF ( IWCAP.EQ.8 .OR. IWIND.EQ.8 ) THEN
+            CALL MSGERR(1,' * We prefer that you use GEN3 BABANIN. * ')
+            CALL MSGERR(1,' * Example:                             * ')
+            CALL MSGERR(1,'GEN3 BABANIN 5.7E-7 8.0E-6 4.0 4.0 1.2 0.006&
      &0 UP AGROW')
-          ELSE IF (KEYWIS('KOM')) THEN                                    42.00
-          LWINDM = 3                                                      30.1x
-          IF (LWINDR .GT. 0) IWIND = LWINDM                               30.1x
+         ELSE IF (KEYWIS('KOM')) THEN
+            LWINDM = 3
+            IF (LWINDR .GT. 0) IWIND = LWINDM
 !         *** whitecapping according to Komen et al. (1984) ***
-          IWCAP = 1
-          CALL INREAL ('CDS2', PWCAP(1), 'UNC', 0.)                       20.73
-          CALL INREAL ('STPM', PWCAP(2), 'UNC', 0.)                       20.73
-          ENDIF
-        ENDIF
-        IF (IWIND.NE.8) THEN
-        CALL INKEYW ('STA','  ')                                          41.33
-        IF ( KEYWIS('DRAG') ) THEN                                        41.33
-          CALL INKEYW ('STA','WU')                                        42.00 41.49 41.33
-          IF (KEYWIS ('WU')) THEN                                         41.33
-             IDRAG = 1                                                    41.33
-          ELSE IF (KEYWIS ('FIT')) THEN                                   41.33
-             IDRAG = 2                                                    41.33
-          ELSE IF (KEYWIS ('SWELL')) THEN                                 41.33
-             IDRAG = 3                                                    41.33
-          ENDIF                                                           41.33
-        ENDIF                                                             41.33
-        ENDIF
-        CALL INKEYW ('STA', ' ')
-        IF (KEYWIS('AGROW')) THEN                                         7/MAR
-          CALL INREAL ('A',PWIND(31),'STA',0.0015)
-        ELSE                                                              30.60
-          IF (NSTATM.EQ.1 .AND. ICOND.EQ.0) ICOND = 1                     30.70
-        ENDIF
-        IF (IWIND.NE.4) THEN
-           JUSTAR = MCMVAR+1
-           MCMVAR = MCMVAR+1
-           ALOCMP = .TRUE.
-        ENDIF
-        GOTO 100
+            IWCAP = 1
+            CALL INREAL ('CDS2', PWCAP(1), 'UNC', 0.)
+            CALL INREAL ('STPM', PWCAP(2), 'UNC', 0.)
+         ENDIF
       ENDIF
+      IF (IWIND.NE.8) THEN
+         CALL INKEYW ('STA','  ')
+         IF ( KEYWIS('DRAG') ) THEN
+            CALL INKEYW ('STA','WU')
+            IF (KEYWIS ('WU')) THEN
+               IDRAG = 1
+            ELSE IF (KEYWIS ('FIT')) THEN
+               IDRAG = 2
+            ELSE IF (KEYWIS ('SWELL')) THEN
+               IDRAG = 3
+            ENDIF
+         ENDIF
+      ENDIF
+      CALL INKEYW ('STA', ' ')
+      IF (KEYWIS('AGROW')) THEN
+         CALL INREAL ('A',PWIND(31),'STA',0.0015)
+      ELSE
+         IF (NSTATM.EQ.1 .AND. ICOND.EQ.0) ICOND = 1
+      ENDIF
+      IF (IWIND.NE.4) THEN
+         JUSTAR = MCMVAR+1
+         MCMVAR = MCMVAR+1
+         ALOCMP = .TRUE.
+      ENDIF
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -3079,68 +3079,68 @@
 !
 ! ==========================================
 !
-      IF ( KEYWIS('GEN4') ) THEN
+   IF ( KEYWIS('GEN4') ) THEN
 !        *** initialize fourth generation model ***
-         IGEN  = 4
-         ! deep water physics not included
-         IWIND = 0
-         IQUAD = 0
-         IWCAP = 0
-         ! activate the QC scattering
-         IQCM  = 1
-         PSCAT(1) = 1.
-         ! other stuff which should not be included
-         IDIFFR = 0
-         LSETUP = 0
-         ! action limiter deactivated
-         PNUMS(20) = 1.E20
-         ! do not include spectral tail in postprocessing
-         PWTAIL(1)    = 1.E8
-         PWTAIL(2:10) = 0.
-         ! spherical coordinates not supported
-         KSPHER = 0
-         ! use suitable stopping criterion
-         PNUMS(21) = 1.
-         ! stopping criterion based on abs/rel changes in Hs only
-         PNUMS(1) = 0.01
-         PNUMS(2) = 0.05
-         PNUMS(4) = 99.
-         GOTO 100
-      ENDIF
+      IGEN  = 4
+      ! deep water physics not included
+      IWIND = 0
+      IQUAD = 0
+      IWCAP = 0
+      ! activate the QC scattering
+      IQCM  = 1
+      PSCAT(1) = 1.
+      ! other stuff which should not be included
+      IDIFFR = 0
+      LSETUP = 0
+      ! action limiter deactivated
+      PNUMS(20) = 1.E20
+      ! do not include spectral tail in postprocessing
+      PWTAIL(1)    = 1.E8
+      PWTAIL(2:10) = 0.
+      ! spherical coordinates not supported
+      KSPHER = 0
+      ! use suitable stopping criterion
+      PNUMS(21) = 1.
+      ! stopping criterion based on abs/rel changes in Hs only
+      PNUMS(1) = 0.01
+      PNUMS(2) = 0.05
+      PNUMS(4) = 99.
+      GOTO 100
+   ENDIF
 !  -------------------------------------------------------------------    40.88
 !           |    ROGers  [cdsv] [feswell]  (NOT DOCUMENTED)               40.88
 !   SSWELL <  -> ARDhuin [cdsv]                                           40.88
 !           |    ZIEger  [b1]                                             40.88
 !  ------------------------------------------------------------------     40.88
-      IF (KEYWIS('SSWELL')) THEN
-         IF (SWELLSET) CALL MSGERR(4,'swell dissipation is already set')
-         SWELLSET = .TRUE.
-         CALL INKEYW ('STA', 'ARD')
-         IF (KEYWIS ('ROG')) THEN
-            ROGERS = .TRUE.
-            CALL INREAL ('CDSV'   , CDSV   , 'STA', 1.2)
-            CALL INREAL ('FESWELL', FESWELL, 'REQ', 0. )
-         ELSE IF (KEYWIS ('ARD')) THEN
-            ARDHUIN = .TRUE.
-            CALL INREAL ('CDSV', CDSV, 'STA', 1.2)
-         ELSE IF (KEYWIS ('ZIE')) THEN
-            ZIEGER = .TRUE.
-            CALL INREAL ('B1', B1Z, 'STA', 0.00025)
-            ! Ref: B1Z=0.0014 was from Young et al. (2013)
-            !      B1Z=0.00025 is from Zieger et al. (2015)
-         ELSE
-            CALL WRNKEY
-         ENDIF
-         GOTO 100
+   IF (KEYWIS('SSWELL')) THEN
+      IF (SWELLSET) CALL MSGERR(4,'swell dissipation is already set')
+      SWELLSET = .TRUE.
+      CALL INKEYW ('STA', 'ARD')
+      IF (KEYWIS ('ROG')) THEN
+         ROGERS = .TRUE.
+         CALL INREAL ('CDSV'   , CDSV   , 'STA', 1.2)
+         CALL INREAL ('FESWELL', FESWELL, 'REQ', 0. )
+      ELSE IF (KEYWIS ('ARD')) THEN
+         ARDHUIN = .TRUE.
+         CALL INREAL ('CDSV', CDSV, 'STA', 1.2)
+      ELSE IF (KEYWIS ('ZIE')) THEN
+         ZIEGER = .TRUE.
+         CALL INREAL ('B1', B1Z, 'STA', 0.00025)
+         ! Ref: B1Z=0.0014 was from Young et al. (2013)
+         !      B1Z=0.00025 is from Zieger et al. (2015)
+      ELSE
+         CALL WRNKEY
       ENDIF
+      GOTO 100
+   ENDIF
 !
 !   ------------------------------------------------------------------    40.88
 !   NEGatinp  [rdcoef]                                                    40.88
 !   ------------------------------------------------------------------    40.88
-      IF (KEYWIS ('NEG')) THEN
-         CALL INREAL('RDCOEF',RDCOEF,'REQ',0.)
-         GOTO 100
-      ENDIF
+   IF (KEYWIS ('NEG')) THEN
+      CALL INREAL('RDCOEF',RDCOEF,'REQ',0.)
+      GOTO 100
+   ENDIF
 !     ----------------------------------------------------------------    40.17
 
 !                               | CNL4 < [cnl4] >               |         40.17
@@ -3149,49 +3149,49 @@
 
 !     ----------------------------------------------------------------    40.17
 
-      IF (KEYWIS('MDIA')) THEN                                            40.17
-        IF (ALLOCATED(LAMBDA)) THEN                                       40.17
-          DEALLOCATE (LAMBDA,CNL4_1,CNL4_2)                               40.17
-        ENDIF                                                             40.17
-        ALLOCATE (RLAMBDA(1000))                                          40.17
-        CALL INKEYW ('STA', '   ')                                        40.17
-        IF (KEYWIS('LAM')) THEN                                           40.17
-          MORE = .TRUE.                                                   40.17
-          ILAMBDA = 0                                                     40.17
-          DO WHILE (MORE)                                                 40.17
-            CALL INREAL('LAMBDA',RLAMBDA(ILAMBDA+1),'STA',-1.)            40.17
-            IF (RLAMBDA(ILAMBDA+1).LT.0.) THEN                            40.17
-              MORE = .FALSE.                                              40.17
-            ELSE                                                          40.17
-              ILAMBDA = ILAMBDA + 1                                       40.17
-            ENDIF                                                         40.17
-          ENDDO                                                           40.17
-          MDIA = ILAMBDA                                                  40.17
-          ALLOCATE (LAMBDA(MDIA))                                         40.17
-          LAMBDA(1:MDIA) = RLAMBDA(1:MDIA)                                40.17
-          DEALLOCATE (RLAMBDA)                                            40.17
-        ELSE                                                              40.17
-          CALL WRNKEY                                                     40.17
-        END IF                                                            40.17
-        CALL INKEYW ('STA', '   ')                                        40.17
-        ALLOCATE (CNL4_1(MDIA),CNL4_2(MDIA))                              40.17
-        IF (KEYWIS('CNL4_12')) THEN                                       40.17
-          DO ICNL4=1,MDIA                                                 40.17
-            CALL INREAL('CNL4_1',CNL4_1(ICNL4),'REQ',0.)                  40.17
-            CALL INREAL('CNL4_2',CNL4_2(ICNL4),'REQ',0.)                  40.17
-          END DO                                                          40.17
-        ELSEIF (KEYWIS('CNL4')) THEN                                      40.17
-          DO ICNL4=1,MDIA                                                 40.17
-            CALL INREAL('CNL4',CNL4_1(ICNL4),'REQ',0.)                    40.17
-          END DO                                                          40.17
-          CNL4_2 = CNL4_1                                                 40.17
-        ELSE                                                              40.17
-          CALL WRNKEY                                                     40.17
-        END IF                                                            40.17
-        CNL4_1 = CNL4_1 * ((2.*PI)**9)                                    40.17
-        CNL4_2 = CNL4_2 * ((2.*PI)**9)                                    40.17
-        GOTO 100                                                          40.17
-      ENDIF                                                               40.17
+   IF (KEYWIS('MDIA')) THEN
+      IF (ALLOCATED(LAMBDA)) THEN
+         DEALLOCATE (LAMBDA,CNL4_1,CNL4_2)
+      ENDIF
+      ALLOCATE (RLAMBDA(1000))
+      CALL INKEYW ('STA', '   ')
+      IF (KEYWIS('LAM')) THEN
+         MORE = .TRUE.
+         ILAMBDA = 0
+         DO WHILE (MORE)
+            CALL INREAL('LAMBDA',RLAMBDA(ILAMBDA+1),'STA',-1.)
+            IF (RLAMBDA(ILAMBDA+1).LT.0.) THEN
+               MORE = .FALSE.
+            ELSE
+               ILAMBDA = ILAMBDA + 1
+            ENDIF
+         ENDDO
+         MDIA = ILAMBDA
+         ALLOCATE (LAMBDA(MDIA))
+         LAMBDA(1:MDIA) = RLAMBDA(1:MDIA)
+         DEALLOCATE (RLAMBDA)
+      ELSE
+         CALL WRNKEY
+      END IF
+      CALL INKEYW ('STA', '   ')
+      ALLOCATE (CNL4_1(MDIA),CNL4_2(MDIA))
+      IF (KEYWIS('CNL4_12')) THEN
+         DO ICNL4=1,MDIA
+            CALL INREAL('CNL4_1',CNL4_1(ICNL4),'REQ',0.)
+            CALL INREAL('CNL4_2',CNL4_2(ICNL4),'REQ',0.)
+         END DO
+      ELSEIF (KEYWIS('CNL4')) THEN
+         DO ICNL4=1,MDIA
+            CALL INREAL('CNL4',CNL4_1(ICNL4),'REQ',0.)
+         END DO
+         CNL4_2 = CNL4_1
+      ELSE
+         CALL WRNKEY
+      END IF
+      CNL4_1 = CNL4_1 * ((2.*PI)**9)
+      CNL4_2 = CNL4_2 * ((2.*PI)**9)
+      GOTO 100
+   ENDIF
 
 !     ------------------------------------------------------------------
 !
@@ -3215,75 +3215,75 @@
 !         |       |    YAN              |                    |
 !
 !
-      IF (KEYWIS('GROWTH') .OR. KEYWIS ('PARW')) THEN                     20.67
+   IF (KEYWIS('GROWTH') .OR. KEYWIS ('PARW')) THEN
 !         *** initialize first generation model ***
-          CALL INKEYW ('STA', 'G3')                                       20.6x
-          IF (KEYWIS('G1') .OR. KEYWIS ('SNY1')) THEN                     20.6x
-            IGEN = 1                                                      32.06
-            LWINDM = 1                                                    40.13
-            IQUAD = 0                                                     20.RR
+      CALL INKEYW ('STA', 'G3')
+      IF (KEYWIS('G1') .OR. KEYWIS ('SNY1')) THEN
+         IGEN = 1
+         LWINDM = 1
+         IQUAD = 0
 !           *** set value for the windparameters ***
 !           *** first generation wind model ***
-            CALL INREAL ('CF10', PWIND(1), 'UNC', 0.)
-            CALL INREAL ('CF20', PWIND(2), 'UNC', 0.)
-            CALL INREAL ('CF30', PWIND(3),'UNC',0.)
-            CALL INREAL ('CF40', PWIND(4),'UNC',0.)
-            CALL INREAL ('CF50', PWIND(5),'UNC',0.)
-            CALL INREAL ('CF60', PWIND(6), 'UNC', 0.)
-            CALL INREAL ('CF70', PWIND(7), 'UNC', 0.)
-            CALL INREAL ('CF80', PWIND(8), 'UNC', 0.)
-            CALL INREAL ('RHOAW', PWIND(9), 'UNC', 0.)
-            CALL INREAL ('EDMLPM', PWIND(10), 'UNC', 0.)
-            CALL INREAL ('CDRAG',  PWIND(11), 'UNC', 0.)
-            CALL INREAL ('UMIN', PWIND(12), 'UNC', 0.)
-            CALL INREAL ('CFPM',  PWIND(13), 'UNC', 0.)
-          ELSE IF (KEYWIS('G2') .OR. KEYWIS('SNY2')) THEN                 20.6x
-            IGEN = 2                                                      32.06
-            LWINDM = 2                                                    40.13
-            IQUAD = 0                                                     20.RR
+         CALL INREAL ('CF10', PWIND(1), 'UNC', 0.)
+         CALL INREAL ('CF20', PWIND(2), 'UNC', 0.)
+         CALL INREAL ('CF30', PWIND(3),'UNC',0.)
+         CALL INREAL ('CF40', PWIND(4),'UNC',0.)
+         CALL INREAL ('CF50', PWIND(5),'UNC',0.)
+         CALL INREAL ('CF60', PWIND(6), 'UNC', 0.)
+         CALL INREAL ('CF70', PWIND(7), 'UNC', 0.)
+         CALL INREAL ('CF80', PWIND(8), 'UNC', 0.)
+         CALL INREAL ('RHOAW', PWIND(9), 'UNC', 0.)
+         CALL INREAL ('EDMLPM', PWIND(10), 'UNC', 0.)
+         CALL INREAL ('CDRAG',  PWIND(11), 'UNC', 0.)
+         CALL INREAL ('UMIN', PWIND(12), 'UNC', 0.)
+         CALL INREAL ('CFPM',  PWIND(13), 'UNC', 0.)
+      ELSE IF (KEYWIS('G2') .OR. KEYWIS('SNY2')) THEN
+         IGEN = 2
+         LWINDM = 2
+         IQUAD = 0
 !           *** second generation wind model ***
-            CALL INREAL ('CF10', PWIND(1), 'UNC', 0.)
-            CALL INREAL ('CF20', PWIND(2), 'UNC', 0.)
-            CALL INREAL ('CF30', PWIND(3),'UNC',0.)
-            CALL INREAL ('CF40', PWIND(4),'UNC',0.)
-            CALL INREAL ('CF50', PWIND(5),'UNC',0.)
-            CALL INREAL ('CF60', PWIND(6), 'UNC', 0.)
-            CALL INREAL ('CF70', PWIND(7), 'UNC', 0.)
-            CALL INREAL ('CF80', PWIND(8), 'UNC', 0.)
-            CALL INREAL ('RHOAW', PWIND(9), 'UNC', 0.)
-            CALL INREAL ('EDMLPM', PWIND(10), 'UNC', 0.)
-            CALL INREAL ('CDRAG',  PWIND(11), 'UNC', 0.)
-            CALL INREAL ('UMIN', PWIND(12), 'UNC', 0.)
-            CALL INREAL ('CFPM',  PWIND(13), 'UNC', 0.)
-          ELSE IF (KEYWIS('G3')) THEN
-            IGEN = 3                                                      32.06
-            CALL INKEYW ('STA', 'KOM')
-            IF (KEYWIS('JANS')) THEN
-              LWINDM = 4                                                  40.13
-              CALL INREAL ('PWTAIL', PWTAIL(1), 'STA', 5.)                30.70
-              IF (PWTAIL(1).LE.1.) CALL MSGERR (3, 'Incorrect PWTAIL')    30.70
-              PWTAIL(3) = PWTAIL(1) + 1.                                  30.70
-            ELSE IF (KEYWIS('YAN')) THEN
-              LWINDM = 5                                                  40.13
-            ELSE
-              CALL IGNORE ('KOM')
-              LWINDM = 3                                                  40.13
-            ENDIF
-            CALL INKEYW ('STA', ' ')
-            IF (KEYWIS('AGROW')) THEN                                     7/MAR
-              CALL INREAL ('A',PWIND(31),'STA',0.0015)
-            ELSE                                                          30.60
-              IF (NSTATM.EQ.1 .AND. ICOND.EQ.0) ICOND = 1                      30.70
-            ENDIF
-          ELSE
-            CALL WRNKEY
-          END IF
-          IF (LWINDR.GT.0) IWIND = LWINDM                                 40.13
-          GOTO 100
-      ENDIF
+         CALL INREAL ('CF10', PWIND(1), 'UNC', 0.)
+         CALL INREAL ('CF20', PWIND(2), 'UNC', 0.)
+         CALL INREAL ('CF30', PWIND(3),'UNC',0.)
+         CALL INREAL ('CF40', PWIND(4),'UNC',0.)
+         CALL INREAL ('CF50', PWIND(5),'UNC',0.)
+         CALL INREAL ('CF60', PWIND(6), 'UNC', 0.)
+         CALL INREAL ('CF70', PWIND(7), 'UNC', 0.)
+         CALL INREAL ('CF80', PWIND(8), 'UNC', 0.)
+         CALL INREAL ('RHOAW', PWIND(9), 'UNC', 0.)
+         CALL INREAL ('EDMLPM', PWIND(10), 'UNC', 0.)
+         CALL INREAL ('CDRAG',  PWIND(11), 'UNC', 0.)
+         CALL INREAL ('UMIN', PWIND(12), 'UNC', 0.)
+         CALL INREAL ('CFPM',  PWIND(13), 'UNC', 0.)
+      ELSE IF (KEYWIS('G3')) THEN
+         IGEN = 3
+         CALL INKEYW ('STA', 'KOM')
+         IF (KEYWIS('JANS')) THEN
+            LWINDM = 4
+            CALL INREAL ('PWTAIL', PWTAIL(1), 'STA', 5.)
+            IF (PWTAIL(1).LE.1.) CALL MSGERR (3, 'Incorrect PWTAIL')
+            PWTAIL(3) = PWTAIL(1) + 1.
+         ELSE IF (KEYWIS('YAN')) THEN
+            LWINDM = 5
+         ELSE
+            CALL IGNORE ('KOM')
+            LWINDM = 3
+         ENDIF
+         CALL INKEYW ('STA', ' ')
+         IF (KEYWIS('AGROW')) THEN
+            CALL INREAL ('A',PWIND(31),'STA',0.0015)
+         ELSE
+            IF (NSTATM.EQ.1 .AND. ICOND.EQ.0) ICOND = 1
+         ENDIF
+      ELSE
+         CALL WRNKEY
+      END IF
+      IF (LWINDR.GT.0) IWIND = LWINDM
+      GOTO 100
+   ENDIF
 !     ------------------------------------------------------------------
 !     ***  parameters nonlinear 4 wave interactions ***
-      IF (KEYWIS ('QUAD')) THEN
+   IF (KEYWIS ('QUAD')) THEN
 !
 ! ===================================================================
 !
@@ -3291,14 +3291,14 @@
 !
 ! ===================================================================
 !
-        CALL ININTG ('IQUAD', IQUAD, 'UNC',  0)
-        CALL INREAL ('LAMBDA', PQUAD(1), 'UNC', 0.0)                      34.00
-        CALL INREAL ('CNL4', PQUAD(2), 'UNC', 0.0)                        34.00
-        CALL INREAL ('CSH1', PQUAD(3), 'UNC', 0.0)                        34.00
-        CALL INREAL ('CSH2', PQUAD(4), 'UNC', 0.0)                        34.00
-        CALL INREAL ('CSH3', PQUAD(5), 'UNC', 0.0)                        34.00
-        GOTO 100
-      ENDIF
+      CALL ININTG ('IQUAD', IQUAD, 'UNC',  0)
+      CALL INREAL ('LAMBDA', PQUAD(1), 'UNC', 0.0)
+      CALL INREAL ('CNL4', PQUAD(2), 'UNC', 0.0)
+      CALL INREAL ('CSH1', PQUAD(3), 'UNC', 0.0)
+      CALL INREAL ('CSH2', PQUAD(4), 'UNC', 0.0)
+      CALL INREAL ('CSH3', PQUAD(5), 'UNC', 0.0)
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -3333,148 +3333,148 @@
 !
 ! ============================================================
 !
+   !
+   IF ( KEYWIS ('TRI') .OR. KEYWIS ('NL3') ) THEN
       !
-      IF ( KEYWIS ('TRI') .OR. KEYWIS ('NL3') ) THEN
+      ITRIAD = 5
+      CALL INKEYW ('REQ',' ')
+      IF ( KEYWIS('LTA') ) THEN
+         !
+         ! ==========================================================================
+         !
+         ! TRIad LTA [trfac] [cutfr] [dint]
+         !
+         ! ==========================================================================
+         !
+         ITRIAD = 1
+         CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 1.0)
+         CALL INREAL ('CUTFR', PTRIAD(2), 'STA', -1.)
+         CALL INREAL ('DINT' , PTRIAD(8), 'STA',60.0)
         !
-        ITRIAD = 5
-        CALL INKEYW ('REQ',' ')
-        IF ( KEYWIS('LTA') ) THEN
-          !
-          ! ==========================================================================
-          !
-          ! TRIad LTA [trfac] [cutfr] [dint]
-          !
-          ! ==========================================================================
-          !
-          ITRIAD = 1
-          CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 1.0)
-          CALL INREAL ('CUTFR', PTRIAD(2), 'STA', -1.)
-          CALL INREAL ('DINT' , PTRIAD(8), 'STA',60.0)
-          !
-        ELSE IF ( KEYWIS('DCTA') ) THEN
-          !
-          ! ==========================================================================
-          !
-          ! TRIad DCTA [trfac] [p]
-          !
-          ! ==========================================================================
-          !
-          ITRIAD = 5
-          CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 4.4 )
-          CALL INREAL ('P'    , PTRIAD(2), 'STA', 4./3.)
-          !
-        ELSE IF ( KEYWIS('SPB') ) THEN
-          !
-          ! ==========================================================================
-          !
-          ! TRIad SPB [trfac] [a] [b] [dint]
-          !
-          ! ==========================================================================
-          !
-          ITRIAD = 2
-          CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 0.90)
-          CALL INREAL ('A'    , PTRIAD(6), 'STA', 0.95)
-          CALL INREAL ('B'    , PTRIAD(7), 'STA', 0.0 )
-          CALL INREAL ('DINT' , PTRIAD(8), 'STA',-1.  )
-          !
-        ELSE IF ( KEYWIS('FTIM') ) THEN
-          !
-          ! ==========================================================================
-          !
-          ! TRIad FTIM [trfac] [dint]
-          !
-          ! ==========================================================================
-          !
-          ITRIAD = 3
-          CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 1.)
-          CALL INREAL ('DINT' , PTRIAD(8), 'STA',-1.)
-          !
-        ELSE
-          !
-          ! ==========================================================================
-          !
-          ! TRIad [itriad] [trfac] [cutfr] [dint] [a] [b] [p] [urcrit] [urslim] [ic]
-          !
-          ! ==========================================================================
-          !
-          CALL ININTG ('ITRIAD', ITRIAD, 'STA', 5)
-          IF (ITRIAD.EQ.1) THEN
-             CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 1.0)                 42.15 41.97 41.76 41.44
-             CALL INREAL ('CUTFR', PTRIAD(2), 'STA', -1.)                 42.11 40.61 40.56 30.82
-             CALL INREAL ('DINT' , PTRIAD(8), 'STA',60.0)                 42.01
-          ELSEIF (ITRIAD.EQ.2) THEN
-             CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 0.90)                41.46
-             CALL INREAL ('A'    , PTRIAD(6), 'STA', 0.95)                41.46
-             CALL INREAL ('B'    , PTRIAD(7), 'STA', 0.0 )                41.46
-             CALL INREAL ('DINT' , PTRIAD(8), 'STA',-1.  )                42.01
-          ELSEIF (ITRIAD.EQ.3) THEN                                       42.15
-             CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 1.)                  42.15
-             CALL INREAL ('DINT' , PTRIAD(8), 'STA',-1.)                  42.15
-          ELSEIF (ITRIAD.EQ.5) THEN
-             CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 4.4 )                42.01 41.45
-             CALL INREAL ('P'    , PTRIAD(2), 'STA', 4./3.)               42.01
-          ELSEIF (ITRIAD.EQ.11) THEN
+      ELSE IF ( KEYWIS('DCTA') ) THEN
+         !
+         ! ==========================================================================
+         !
+         ! TRIad DCTA [trfac] [p]
+         !
+         ! ==========================================================================
+         !
+         ITRIAD = 5
+         CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 4.4 )
+         CALL INREAL ('P'    , PTRIAD(2), 'STA', 4./3.)
+        !
+      ELSE IF ( KEYWIS('SPB') ) THEN
+         !
+         ! ==========================================================================
+         !
+         ! TRIad SPB [trfac] [a] [b] [dint]
+         !
+         ! ==========================================================================
+         !
+         ITRIAD = 2
+         CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 0.90)
+         CALL INREAL ('A'    , PTRIAD(6), 'STA', 0.95)
+         CALL INREAL ('B'    , PTRIAD(7), 'STA', 0.0 )
+         CALL INREAL ('DINT' , PTRIAD(8), 'STA',-1.  )
+        !
+      ELSE IF ( KEYWIS('FTIM') ) THEN
+         !
+         ! ==========================================================================
+         !
+         ! TRIad FTIM [trfac] [dint]
+         !
+         ! ==========================================================================
+         !
+         ITRIAD = 3
+         CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 1.)
+         CALL INREAL ('DINT' , PTRIAD(8), 'STA',-1.)
+        !
+      ELSE
+         !
+         ! ==========================================================================
+         !
+         ! TRIad [itriad] [trfac] [cutfr] [dint] [a] [b] [p] [urcrit] [urslim] [ic]
+         !
+         ! ==========================================================================
+         !
+         CALL ININTG ('ITRIAD', ITRIAD, 'STA', 5)
+         IF (ITRIAD.EQ.1) THEN
+            CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 1.0)
+            CALL INREAL ('CUTFR', PTRIAD(2), 'STA', -1.)
+            CALL INREAL ('DINT' , PTRIAD(8), 'STA',60.0)
+         ELSEIF (ITRIAD.EQ.2) THEN
+            CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 0.90)
+            CALL INREAL ('A'    , PTRIAD(6), 'STA', 0.95)
+            CALL INREAL ('B'    , PTRIAD(7), 'STA', 0.0 )
+            CALL INREAL ('DINT' , PTRIAD(8), 'STA',-1.  )
+         ELSEIF (ITRIAD.EQ.3) THEN
+            CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 1.)
+            CALL INREAL ('DINT' , PTRIAD(8), 'STA',-1.)
+         ELSEIF (ITRIAD.EQ.5) THEN
+            CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 4.4 )
+            CALL INREAL ('P'    , PTRIAD(2), 'STA', 4./3.)
+         ELSEIF (ITRIAD.EQ.11) THEN
 !            original LTA (before version 41.01)
-             CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 0.05)
-             CALL INREAL ('CUTFR', PTRIAD(2), 'STA', 2.5)
-             PTRIAD(8) = 0.
-          ENDIF
-          CALL INREAL ('URCRIT', PTRIAD(4) , 'STA', 0.63)                 41.97 40.13
-          CALL INREAL ('URSLIM', PTRIAD(5) , 'STA', 0.1 )                 41.97 40.41 40.23 40.13
-          CALL INREAL ('IC'    , PTRIAD(10), 'STA', -1. )                 42.15
-          !
-        ENDIF
+            CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 0.05)
+            CALL INREAL ('CUTFR', PTRIAD(2), 'STA', 2.5)
+            PTRIAD(8) = 0.
+         ENDIF
+         CALL INREAL ('URCRIT', PTRIAD(4) , 'STA', 0.63)
+         CALL INREAL ('URSLIM', PTRIAD(5) , 'STA', 0.1 )
+         CALL INREAL ('IC'    , PTRIAD(10), 'STA', -1. )
         !
-        CALL INKEYW ('STA', 'COLL')
-        IF (KEYWIS('NONC')) THEN
-           TCOLL = .FALSE.
-        ELSE
-           CALL IGNORE ('COLL')
-           TCOLL = .TRUE.
-        ENDIF
-        IF (ITRIAD.NE.5) TCOLL = .TRUE.
-        !
-        IBIPH = 1                                                         41.97
-        CALL INKEYW ('REQ',' ')
-        IF (KEYWIS('BIPH')) THEN                                          41.97
-           CALL INKEYW ('STA', 'ELD')
-           IF (KEYWIS('SAPR')) THEN
-              IBIPH = 2
-              CALL INREAL ('A', PTRIAD(9), 'STA', 1.0)
-              IF (.NOT.PTRIAD(9).NE.0.)
-     &                  CALL MSGERR (2, '[A] should not be set to zero')
-           ELSEIF (KEYWIS('WIT') .OR. KEYWIS('DEWIT')) THEN
-              IBIPH = 3
-              CALL INREAL ('LPAR', PTRIAD(9), 'STA', 0.)
-              IF ( OPTG.EQ.5 .AND. PTRIAD(9).NE.0. ) THEN
-                 CALL MSGERR(2,
-     &    ' filtered De Wit biphase not supported in unstructured grid')
-                 PTRIAD(9) = 0.
-              ENDIF
-           ELSE
-              CALL IGNORE ('ELD')
-              IBIPH = 1
-              CALL INREAL ('URCRIT', PTRIAD(4), 'STA', 0.63)
-           ENDIF
-        ENDIF
-        !
-        CALL INKEYW ('REQ',' ')
-        IF (KEYWIS('TRA') .OR. KEYWIS('IC')) THEN
-           CALL INKEYW ('STA', 'QU')
-           IF (KEYWIS('FG')) THEN
-              PTRIAD(10) = 1.
-           ELSEIF (KEYWIS('MS')) THEN
-              PTRIAD(10) = 2.
-           ELSEIF (KEYWIS('BR')) THEN
-              PTRIAD(10) = 3.
-           ELSE
-              CALL IGNORE ('QU')
-              PTRIAD(10) = 4.
-           ENDIF
-        ENDIF
-        !
-        GOTO 100
       ENDIF
+      !
+      CALL INKEYW ('STA', 'COLL')
+      IF (KEYWIS('NONC')) THEN
+         TCOLL = .FALSE.
+      ELSE
+         CALL IGNORE ('COLL')
+         TCOLL = .TRUE.
+      ENDIF
+      IF (ITRIAD.NE.5) TCOLL = .TRUE.
+      !
+      IBIPH = 1
+      CALL INKEYW ('REQ',' ')
+      IF (KEYWIS('BIPH')) THEN
+         CALL INKEYW ('STA', 'ELD')
+         IF (KEYWIS('SAPR')) THEN
+            IBIPH = 2
+            CALL INREAL ('A', PTRIAD(9), 'STA', 1.0)
+            IF (.NOT.PTRIAD(9).NE.0.) &
+                      CALL MSGERR (2, '[A] should not be set to zero')
+         ELSEIF (KEYWIS('WIT') .OR. KEYWIS('DEWIT')) THEN
+            IBIPH = 3
+            CALL INREAL ('LPAR', PTRIAD(9), 'STA', 0.)
+            IF ( OPTG.EQ.5 .AND. PTRIAD(9).NE.0. ) THEN
+               CALL MSGERR(2, &
+                  ' filtered De Wit biphase not supported in unstructured grid')
+               PTRIAD(9) = 0.
+            ENDIF
+         ELSE
+            CALL IGNORE ('ELD')
+            IBIPH = 1
+            CALL INREAL ('URCRIT', PTRIAD(4), 'STA', 0.63)
+         ENDIF
+      ENDIF
+      !
+      CALL INKEYW ('REQ',' ')
+      IF (KEYWIS('TRA') .OR. KEYWIS('IC')) THEN
+         CALL INKEYW ('STA', 'QU')
+         IF (KEYWIS('FG')) THEN
+            PTRIAD(10) = 1.
+         ELSEIF (KEYWIS('MS')) THEN
+            PTRIAD(10) = 2.
+         ELSEIF (KEYWIS('BR')) THEN
+            PTRIAD(10) = 3.
+         ELSE
+            CALL IGNORE ('QU')
+            PTRIAD(10) = 4.
+         ENDIF
+      ENDIF
+      !
+      GOTO 100
+   ENDIF
 !
 ! ============================================================
 !
@@ -3486,93 +3486,93 @@
 !
 ! ============================================================
 !
-      IF (KEYWIS ('BRAG')) THEN
-         CALL ININTG ('IBRAG' , IBRAG   , 'STA', 1 )
-         CALL ININTG ('NREG'  , NREGB   , 'UNC', 0 )
-         IF (NREGB.LT.1) NREGB = 1
-         PBRAG(1) = REAL(NREGB)
-         CALL INREAL ('CUTOFF', PBRAG(2), 'STA', 5.)
-         CALL INKEYW ('STA', 'FT')
-         IF ( KEYWIS('FILE') ) THEN
-            FILB = .TRUE.
-            CALL INCSTR ('FNAME', FILENM, 'REQ', ' ')
-            NDSD   = 0
-            IOSTAT = 0
-            CALL FOR (NDSD, FILENM, 'OF', IOSTAT)
-            IF (STPNOW()) RETURN
-            CALL INKEYW ('STA', ' ')
-            CALL ININTG ('IDLA', IDLA, 'UNC', 1   )
-            CALL ININTG ('MKX' , mkbx, 'REQ', 0   )
-            CALL ININTG ('MKY' , mkby, 'STA', mkbx)
-            CALL INREAL ('DKX' , dkbx, 'REQ', 0.  )
-            CALL INREAL ('DKY' , dkby, 'STA', dkbx)
-         ELSE
-            CALL IGNORE ('FT')
-            FILB = .FALSE.
-            mkbx = NREGB
-            mkby = NREGB
-         ENDIF
-         IF ( FILB ) THEN
-            !
-            mkbx = mkbx + 1
-            mkby = mkby + 1
-            !
-            ! allocate bottom spectrum
-            !
-            IF ( .NOT.ALLOCATED(botspc) ) ALLOCATE( botspc(mkbx,mkby) )
-            !
-            ! read bottom spectrum
-            !
-            SELECT CASE(IDLA)
-            CASE(1)
-              DO JK = mkby, 1, -1
-                 READ(NDSD,*,END=950,ERR=910) (botspc(IK,JK), IK=1,mkbx)
-              ENDDO
-            CASE(2)
-              READ(NDSD,*,END=950,ERR=910)
-     &                        ((botspc(IK,JK), IK=1,mkbx), JK=mkby,1,-1)
-            CASE(3)
-              DO JK = 1, mkby
-                 READ(NDSD,*,END=950,ERR=910) (botspc(IK,JK), IK=1,mkbx)
-              ENDDO
-            CASE(4)
-              READ(NDSD,*,END=950,ERR=910)
-     &                           ((botspc(IK,JK), IK=1,mkbx), JK=1,mkby)
-            CASE(5)
-              DO IK = 1, mkbx
-                 READ(NDSD,*,END=950,ERR=910) (botspc(IK,JK), JK=1,mkby)
-              ENDDO
-            CASE(6)
-              READ(NDSD,*,END=950,ERR=910)
-     &                           ((botspc(IK,JK), JK=1,mkby), IK=1,mkbx)
-            END SELECT
-            !
-            ! close file
-            !
-            CLOSE(NDSD)
-            !
-            VARB = 0.
-            DO JK = 1, mkby
-               DO IK = 1, mkbx
-                  VARB = VARB + botspc(IK,JK) * dkbx * dkby
-               ENDDO
+   IF (KEYWIS ('BRAG')) THEN
+      CALL ININTG ('IBRAG' , IBRAG   , 'STA', 1 )
+      CALL ININTG ('NREG'  , NREGB   , 'UNC', 0 )
+      IF (NREGB.LT.1) NREGB = 1
+      PBRAG(1) = REAL(NREGB)
+      CALL INREAL ('CUTOFF', PBRAG(2), 'STA', 5.)
+      CALL INKEYW ('STA', 'FT')
+      IF ( KEYWIS('FILE') ) THEN
+         FILB = .TRUE.
+         CALL INCSTR ('FNAME', FILENM, 'REQ', ' ')
+         NDSD   = 0
+         IOSTAT = 0
+         CALL FOR (NDSD, FILENM, 'OF', IOSTAT)
+         IF (STPNOW()) RETURN
+         CALL INKEYW ('STA', ' ')
+         CALL ININTG ('IDLA', IDLA, 'UNC', 1   )
+         CALL ININTG ('MKX' , mkbx, 'REQ', 0   )
+         CALL ININTG ('MKY' , mkby, 'STA', mkbx)
+         CALL INREAL ('DKX' , dkbx, 'REQ', 0.  )
+         CALL INREAL ('DKY' , dkby, 'STA', dkbx)
+      ELSE
+         CALL IGNORE ('FT')
+         FILB = .FALSE.
+         mkbx = NREGB
+         mkby = NREGB
+      ENDIF
+      IF ( FILB ) THEN
+         !
+         mkbx = mkbx + 1
+         mkby = mkby + 1
+         !
+         ! allocate bottom spectrum
+         !
+         IF ( .NOT.ALLOCATED(botspc) ) ALLOCATE( botspc(mkbx,mkby) )
+         !
+         ! read bottom spectrum
+         !
+         SELECT CASE(IDLA)
+         CASE(1)
+            DO JK = mkby, 1, -1
+               READ(NDSD,*,END=950,ERR=910) (botspc(IK,JK), IK=1,mkbx)
             ENDDO
-            WRITE (PRINTF,'(A,(F12.5))') ' bottom variance = ',VARB
-            !
-         ENDIF
+         CASE(2)
+            READ(NDSD,*,END=950,ERR=910) &
+                            ((botspc(IK,JK), IK=1,mkbx), JK=mkby,1,-1)
+         CASE(3)
+            DO JK = 1, mkby
+               READ(NDSD,*,END=950,ERR=910) (botspc(IK,JK), IK=1,mkbx)
+            ENDDO
+         CASE(4)
+            READ(NDSD,*,END=950,ERR=910) &
+                               ((botspc(IK,JK), IK=1,mkbx), JK=1,mkby)
+         CASE(5)
+            DO IK = 1, mkbx
+               READ(NDSD,*,END=950,ERR=910) (botspc(IK,JK), JK=1,mkby)
+            ENDDO
+         CASE(6)
+            READ(NDSD,*,END=950,ERR=910) &
+                               ((botspc(IK,JK), JK=1,mkby), IK=1,mkbx)
+         END SELECT
          !
-         GOTO 100
+         ! close file
          !
- 910     INQUIRE (UNIT=NDSD, NAME=FILENM)
-         CALL MSGERR
-     &     (4, 'error reading data from bottom spectrum file '//FILENM )
-         RETURN
- 950     INQUIRE (UNIT=NDSD, NAME=FILENM)
-         CALL MSGERR
-     &   (4, 'unexpected end of file in bottom spectrum file '//FILENM )
-         RETURN
+         CLOSE(NDSD)
+         !
+         VARB = 0.
+         DO JK = 1, mkby
+            DO IK = 1, mkbx
+               VARB = VARB + botspc(IK,JK) * dkbx * dkby
+            ENDDO
+         ENDDO
+         WRITE (PRINTF,'(A,(F12.5))') ' bottom variance = ',VARB
          !
       ENDIF
+      !
+      GOTO 100
+      !
+910   INQUIRE (UNIT=NDSD, NAME=FILENM)
+      CALL MSGERR &
+         (4, 'error reading data from bottom spectrum file '//FILENM )
+      RETURN
+950   INQUIRE (UNIT=NDSD, NAME=FILENM)
+      CALL MSGERR &
+         (4, 'unexpected end of file in bottom spectrum file '//FILENM )
+      RETURN
+      !
+   ENDIF
 !
 ! ============================================================
 !
@@ -3586,36 +3586,36 @@
 !
 ! ============================================================
 !
-      IF ( KEYWIS('SCAT') .OR. KEYWIS('QC') ) THEN
-         CALL ININTG ('IQCM', IQCM, 'STA', 1 )
-         CALL INKEYW ('STA','  ')
-         IF (KEYWIS('GRI')) THEN
-            CALL INKEYW ('STA', 'WID')
-            IF ( KEYWIS('K') .OR. KEYWIS('WNUM') ) THEN
-               CALL INREAL ('KXLOW', PSCAT(3), 'REQ', 0.)
-               CALL INREAL ('KYLOW', PSCAT(4), 'REQ', 0.)
-               CALL INREAL ('KXLEN', PSCAT(5), 'REQ', 0.)
-               CALL INREAL ('KYLEN', PSCAT(6), 'REQ', 0.)
-               CALL ININTG ('MKXC' , mkxc    , 'STA', -1)
-               CALL ININTG ('MKYC' , mkyc    , 'STA', -1)
-            ELSE
-               CALL IGNORE ('WID')
-               CALL INREAL ('RFAC', PSCAT(7), 'STA', 1.)
-               IF ( PSCAT(7).LT.1. )
-     &            CALL MSGERR (3, '[rfac] must be larger or equal 1')
-            ENDIF
-         ENDIF
-         CALL INKEYW ('STA', 'TRU')
-         IF ( KEYWIS('TRU') ) THEN
-            CALL INREAL ('ALPHA', PSCAT(1), 'STA', 1.)
-            CHGALF = CHGVAL
-            CALL INREAL ('QMAX ', PSCAT(2), 'UNC', 0.)
-            IF (CHGVAL .AND. .NOT.CHGALF) PSCAT(1) = 99999.
+   IF ( KEYWIS('SCAT') .OR. KEYWIS('QC') ) THEN
+      CALL ININTG ('IQCM', IQCM, 'STA', 1 )
+      CALL INKEYW ('STA','  ')
+      IF (KEYWIS('GRI')) THEN
+         CALL INKEYW ('STA', 'WID')
+         IF ( KEYWIS('K') .OR. KEYWIS('WNUM') ) THEN
+            CALL INREAL ('KXLOW', PSCAT(3), 'REQ', 0.)
+            CALL INREAL ('KYLOW', PSCAT(4), 'REQ', 0.)
+            CALL INREAL ('KXLEN', PSCAT(5), 'REQ', 0.)
+            CALL INREAL ('KYLEN', PSCAT(6), 'REQ', 0.)
+            CALL ININTG ('MKXC' , mkxc    , 'STA', -1)
+            CALL ININTG ('MKYC' , mkyc    , 'STA', -1)
          ELSE
-            CALL WRNKEY
+            CALL IGNORE ('WID')
+            CALL INREAL ('RFAC', PSCAT(7), 'STA', 1.)
+            IF ( PSCAT(7).LT.1. ) &
+               CALL MSGERR (3, '[rfac] must be larger or equal 1')
          ENDIF
-         GOTO 100
       ENDIF
+      CALL INKEYW ('STA', 'TRU')
+      IF ( KEYWIS('TRU') ) THEN
+         CALL INREAL ('ALPHA', PSCAT(1), 'STA', 1.)
+         CHGALF = CHGVAL
+         CALL INREAL ('QMAX ', PSCAT(2), 'UNC', 0.)
+         IF (CHGVAL .AND. .NOT.CHGALF) PSCAT(1) = 99999.
+      ELSE
+         CALL WRNKEY
+      ENDIF
+      GOTO 100
+   ENDIF
 !
 !     ------------------------------------------------------------------
 !
@@ -3643,73 +3643,73 @@
 !
 ! ============================================================
 !
-      IF (KEYWIS ('OFF')) THEN
-        CALL INKEYW ('REQ', ' ')
-        IF (KEYWIS ('REF')) THEN
-          IREFR = 0
-        ELSE IF (KEYWIS ('FSH')) THEN                                     30.20
-          ITFRE = 0
-        ELSE IF (KEYWIS ('BRE')) THEN
-          ISURF = 0
-        ELSE IF (KEYWIS ('WCAP')) THEN
-          IWCAP = 0
-        ELSE IF (KEYWIS ('QUAD')) THEN                                    20.86
-          IQUAD = 0                                                       20.86
-        ELSE IF (KEYWIS ('WINDG')) THEN                                   30.70
-          IWIND = 0                                                       30.70
-        ELSE IF (KEYWIS ('BNDCHK')) THEN
+   IF (KEYWIS ('OFF')) THEN
+      CALL INKEYW ('REQ', ' ')
+      IF (KEYWIS ('REF')) THEN
+         IREFR = 0
+      ELSE IF (KEYWIS ('FSH')) THEN
+         ITFRE = 0
+      ELSE IF (KEYWIS ('BRE')) THEN
+         ISURF = 0
+      ELSE IF (KEYWIS ('WCAP')) THEN
+         IWCAP = 0
+      ELSE IF (KEYWIS ('QUAD')) THEN
+         IQUAD = 0
+      ELSE IF (KEYWIS ('WINDG')) THEN
+         IWIND = 0
+      ELSE IF (KEYWIS ('BNDCHK')) THEN
 !         switch off checking of Hs on boundary                           40.00
-          BNDCHK = .FALSE.                                                40.00
-        ELSE IF (KEYWIS ('RESCALE')) THEN                                 40.00
+         BNDCHK = .FALSE.
+      ELSE IF (KEYWIS ('RESCALE')) THEN
 !         switch off rescaling solution                                   40.00
-          BRESCL = .FALSE.                                                40.00
-        ELSE IF (KEYWIS ('SOURCES')) THEN                                 40.80
-          OFFSRC = .TRUE.                                                 40.80
-          IWIND  = 0                                                      40.80
-          IQUAD  = 0                                                      40.80
-          IWCAP  = 0                                                      40.80
-          ISURF  = 0                                                      40.80
-          ITRIAD = 0                                                      40.80
-          IBOT   = 0                                                      40.80
-        ELSE
-          CALL WRNKEY                                                     30.60
-        ENDIF
-        GOTO 100
+         BRESCL = .FALSE.
+      ELSE IF (KEYWIS ('SOURCES')) THEN
+         OFFSRC = .TRUE.
+         IWIND  = 0
+         IQUAD  = 0
+         IWCAP  = 0
+         ISURF  = 0
+         ITRIAD = 0
+         IBOT   = 0
+      ELSE
+         CALL WRNKEY
       ENDIF
+      GOTO 100
+   ENDIF
 !     ------------------------------------------------------------------
 !
 !     In case of an empty line in the command file proceed to next line
 !
-      IF (KEYWRD .EQ. '    ') GOTO 100                                    40.00
+   IF (KEYWRD .EQ. '    ') GOTO 100
 !
 !     process output requests                                             40.00
 !
-      CALL SPROUT(FOUND, DEPTH, WLEVL)                                    40.31
-      IF (STPNOW()) RETURN                                                34.01
-      IF (.NOT.FOUND) THEN
-        LEVERR = MAX(LEVERR,3)
-        CALL WRNKEY
-      ENDIF
-      GOTO 100
+   CALL SPROUT(FOUND, DEPTH, WLEVL)
+   IF (STPNOW()) RETURN
+   IF (.NOT.FOUND) THEN
+      LEVERR = MAX(LEVERR,3)
+      CALL WRNKEY
+   ENDIF
+   GOTO 100
 !
 !   * end of subroutine SWREAD *
-      END
+END
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)                          40.31
+SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
 !                                                                      *
 !***********************************************************************
 !
-      USE TIMECOMM                                                        40.41
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
-      USE OUTP_DATA                                                       40.31
-      USE SwanGriddata                                                    40.80
+   USE TIMECOMM
+   USE OCPCOMM1
+   USE OCPCOMM3
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
+   USE OUTP_DATA
+   USE SwanGriddata
 !
 !
 !
@@ -3804,7 +3804,7 @@
 !
 !  8. Subroutines used
 !
-      LOGICAL STPNOW                                                      34.01
+   LOGICAL STPNOW
 !
 ! 10. Error messages
 !
@@ -3821,13 +3821,13 @@
 !
 ! 13. SOURCE TEXT
 !
-      INTEGER   IGRID1, IGRID2
-      CHARACTER SNAMEG *8
-      LOGICAL   KEYWIS                                                    30.00
-      TYPE(OPSDAT), POINTER :: OPSTMP                                     40.31
-      SAVE IENT
-      DATA IENT/0/
-      CALL STRACE(IENT,'SINPGR')
+   INTEGER   IGRID1, IGRID2
+   CHARACTER SNAMEG *8
+   LOGICAL   KEYWIS
+   TYPE(OPSDAT), POINTER :: OPSTMP
+   SAVE IENT
+   DATA IENT/0/
+   CALL STRACE(IENT,'SINPGR')
 !
 !     *** user gives coord. corner point input grid               ***
 !     *** Regular or curvilinear grid option  for version 30.21   ***
@@ -3893,249 +3893,249 @@
 !
 ! =========================================================================
 !
-      CALL INKEYW ('STA', 'REG')                                          30.21
-      IF (KEYWIS('CURV')) THEN
+   CALL INKEYW ('STA', 'REG')
+   IF (KEYWIS('CURV')) THEN
 !
-        IF (ONED) THEN                                                    32.02
-          CALL MSGERR (4,                                                 32.02
-     &       'Impossible option: 1D-simulation with curvilinear grid')    32.02
-          RETURN
-        ENDIF                                                             32.02
-        IF (OPTG.EQ.5) THEN                                               40.80
-           CALL MSGERR (4,                                                40.80
-     &   'Curvilinear input grid cannot be used with unstructured grid')  40.80
-           RETURN                                                         40.80
-        ENDIF                                                             40.80
+      IF (ONED) THEN
+         CALL MSGERR (4, &
+            'Impossible option: 1D-simulation with curvilinear grid')
+         RETURN
+      ENDIF
+      IF (OPTG.EQ.5) THEN
+         CALL MSGERR (4, &
+            'Curvilinear input grid cannot be used with unstructured grid')
+         RETURN
+      ENDIF
 !
-        IGTYPE(IGRID1) = 2                                                30.21
+      IGTYPE(IGRID1) = 2
 !       default values changed                                            30.60
-        CALL INREAL ('STAGRX',STAGRX,'STA', 0.)                           30.60
-        CALL INREAL ('STAGRY',STAGRY,'STA', 0.)                           30.60
-        STAGX(IGRID1) = STAGRX                                            30.21
-        STAGY(IGRID1) = STAGRY                                            30.21
-        MXG(IGRID1) = MXG(IGRID1) - 1
-        MYG(IGRID1) = MYG(IGRID1) - 1
+      CALL INREAL ('STAGRX',STAGRX,'STA', 0.)
+      CALL INREAL ('STAGRY',STAGRY,'STA', 0.)
+      STAGX(IGRID1) = STAGRX
+      STAGY(IGRID1) = STAGRY
+      MXG(IGRID1) = MXG(IGRID1) - 1
+      MYG(IGRID1) = MYG(IGRID1) - 1
 !       default values changed                                            30.60
-        CALL ININTG ('MXINP', MXG(IGRID1),'STA', MXC-1)                   30.60
-        MXG(IGRID1) = MXG(IGRID1) + 1
-        IF (ONED) THEN                                                    32.02
-          CALL ININTG ('MYINP', MYG(IGRID1),'STA',0)                      30.70
-          IF (MYG(IGRID1) .NE. 0) THEN                                    30.70
-            CALL MSGERR (1, '1D-simulation: [myinp] set to zero !')       32.02
-          ENDIF                                                           32.02
-          MYG(IGRID1) = 0                                                 30.70
-        ELSE
-          CALL ININTG ('MYINP', MYG(IGRID1),'STA',MYC-1)                  30.80
-        ENDIF                                                             32.02
-        MYG(IGRID1) = MYG(IGRID1) + 1
-      ELSEIF (KEYWIS('UNSTRUC')) THEN                                     40.80
-!
-        IF (ONED) THEN                                                    40.80
-           CALL MSGERR (4,                                                40.80
-     &            '1D-simulation cannot be done with unstructured grid')  40.80
-           RETURN                                                         40.80
-        ENDIF                                                             40.80
-        IF (OPTG.EQ.3) THEN                                               40.80
-           CALL MSGERR (4,                                                40.80
-     &   'Unstructured input grid cannot be used with curvilinear grid')  40.80
-           RETURN                                                         40.80
-        ENDIF                                                             40.80
-!
-        IGTYPE(IGRID1) = 3                                                40.80
-        MXG(IGRID1)    = nvertsg                                          40.80
-        MYG(IGRID1)    = 1                                                40.80
-        IF (IGRID2.GT.0) THEN
-           IGTYPE(IGRID2) = 3                                             40.80
-           MXG(IGRID2)    = nvertsg                                       40.80
-           MYG(IGRID2)    = 1                                             40.80
-        ENDIF
+      CALL ININTG ('MXINP', MXG(IGRID1),'STA', MXC-1)
+      MXG(IGRID1) = MXG(IGRID1) + 1
+      IF (ONED) THEN
+         CALL ININTG ('MYINP', MYG(IGRID1),'STA',0)
+         IF (MYG(IGRID1) .NE. 0) THEN
+            CALL MSGERR (1, '1D-simulation: [myinp] set to zero !')
+         ENDIF
+         MYG(IGRID1) = 0
       ELSE
-        CALL IGNORE('REG')
-        IGTYPE(IGRID1) = 1                                                30.21
-        IF (KSPHER .EQ. 0) THEN                                           40.13
-          CALL READXY ('XPINP', 'YPINP', XPG(IGRID1), YPG(IGRID1),
-     &                 'UNC', 0., 0.)                                     30.20
-          CALL INREAL ('ALPINP',ALPG(IGRID1),'UNC',0.)                    30.20
-        ELSE                                                              40.13
+         CALL ININTG ('MYINP', MYG(IGRID1),'STA',MYC-1)
+      ENDIF
+      MYG(IGRID1) = MYG(IGRID1) + 1
+   ELSEIF (KEYWIS('UNSTRUC')) THEN
+!
+      IF (ONED) THEN
+         CALL MSGERR (4, &
+                '1D-simulation cannot be done with unstructured grid')
+         RETURN
+      ENDIF
+      IF (OPTG.EQ.3) THEN
+         CALL MSGERR (4, &
+            'Unstructured input grid cannot be used with curvilinear grid')
+         RETURN
+      ENDIF
+!
+      IGTYPE(IGRID1) = 3
+      MXG(IGRID1)    = nvertsg
+      MYG(IGRID1)    = 1
+      IF (IGRID2.GT.0) THEN
+         IGTYPE(IGRID2) = 3
+         MXG(IGRID2)    = nvertsg
+         MYG(IGRID2)    = 1
+      ENDIF
+   ELSE
+      CALL IGNORE('REG')
+      IGTYPE(IGRID1) = 1
+      IF (KSPHER .EQ. 0) THEN
+         CALL READXY ('XPINP', 'YPINP', XPG(IGRID1), YPG(IGRID1), &
+                      'UNC', 0., 0.)
+         CALL INREAL ('ALPINP',ALPG(IGRID1),'UNC',0.)
+      ELSE
 !         [xpinp] and [ypinp] are required in case of spherical coordinates
-          CALL READXY ('XPINP', 'YPINP', XPG(IGRID1), YPG(IGRID1),
-     &                 'REQ', 0., 0.)                                     40.13
-          CALL INREAL ('ALPINP',ALPG(IGRID1),'STA',0.)                    40.13
-        ENDIF                                                             40.13
+         CALL READXY ('XPINP', 'YPINP', XPG(IGRID1), YPG(IGRID1), &
+                      'REQ', 0., 0.)
+         CALL INREAL ('ALPINP',ALPG(IGRID1),'STA',0.)
+      ENDIF
 !       ---------  ALPG(IGRID1) is always between -PI and PI   ---------
-        ALTMP = ALPG(IGRID1)/360.
-        ALPG(IGRID1)  = PI2 * (ALTMP - NINT(ALTMP))
-        COSPG(IGRID1) = COS(ALPG(IGRID1))
-        SINPG(IGRID1) = SIN(ALPG(IGRID1))
+      ALTMP = ALPG(IGRID1)/360.
+      ALPG(IGRID1)  = PI2 * (ALTMP - NINT(ALTMP))
+      COSPG(IGRID1) = COS(ALPG(IGRID1))
+      SINPG(IGRID1) = SIN(ALPG(IGRID1))
 !       *** the user gives number of meshes in X resp. Y direction ***
 !       *** the program uses the number of grid points             ***
-        MXG(IGRID1) = MXG(IGRID1) - 1
-        MYG(IGRID1) = MYG(IGRID1) - 1
-        CALL ININTG ('MXINP', MXG(IGRID1),'RQI',-1)                       30.20
-        IF (ONED) THEN                                                    32.02
-          CALL ININTG ('MYINP', MYG(IGRID1),'STA',0)                      30.70
-          IF (MYG(IGRID1) .NE. 0) THEN                                    32.02
-            CALL MSGERR (1, '1D-simulation: [myinp] set to zero !')       32.02
-            MYG(IGRID1) = 0                                               32.02
-          ENDIF                                                           32.02
-        ELSE
-          CALL ININTG ('MYINP', MYG(IGRID1),'RQI',-1)                     30.20
-        ENDIF                                                             32.02
-        MXG(IGRID1) = MXG(IGRID1) + 1
-        MYG(IGRID1) = MYG(IGRID1) + 1
-!
-        CALL INREAL ('DXINP',DXG(IGRID1),'RQI',0.)                        30.20
-        CALL INREAL ('DYINP',DYG(IGRID1),'STA',DXG(IGRID1))               30.20
-!
+      MXG(IGRID1) = MXG(IGRID1) - 1
+      MYG(IGRID1) = MYG(IGRID1) - 1
+      CALL ININTG ('MXINP', MXG(IGRID1),'RQI',-1)
+      IF (ONED) THEN
+         CALL ININTG ('MYINP', MYG(IGRID1),'STA',0)
+         IF (MYG(IGRID1) .NE. 0) THEN
+            CALL MSGERR (1, '1D-simulation: [myinp] set to zero !')
+            MYG(IGRID1) = 0
+         ENDIF
+      ELSE
+         CALL ININTG ('MYINP', MYG(IGRID1),'RQI',-1)
       ENDIF
+      MXG(IGRID1) = MXG(IGRID1) + 1
+      MYG(IGRID1) = MYG(IGRID1) + 1
+!
+      CALL INREAL ('DXINP',DXG(IGRID1),'RQI',0.)
+      CALL INREAL ('DYINP',DYG(IGRID1),'STA',DXG(IGRID1))
+!
+   ENDIF
 !
 !     exception values for input variables                                30.60
 !
-      CALL INKEYW ('STA', ' ')                                            30.60
-      IF (KEYWIS ('EXC')) THEN                                            30.60
-        CALL INREAL ('EXCVAL', EXCFLD(IGRID1), 'REQ', 0.)                 30.60
-        IF (IGRID2.GT.0) EXCFLD(IGRID2) = EXCFLD(IGRID1)                  40.80
-      ENDIF                                                               30.60
+   CALL INKEYW ('STA', ' ')
+   IF (KEYWIS ('EXC')) THEN
+      CALL INREAL ('EXCVAL', EXCFLD(IGRID1), 'REQ', 0.)
+      IF (IGRID2.GT.0) EXCFLD(IGRID2) = EXCFLD(IGRID1)
+   ENDIF
 !
-      LEDS(IGRID1) = 1
-      IF (IGRID2.GT.0) LEDS(IGRID2) = 1                                   40.80
+   LEDS(IGRID1) = 1
+   IF (IGRID2.GT.0) LEDS(IGRID2) = 1
 !     next lines to process the option NONSTAT for wind, currents         30.70
 !     and waterlevel                                                VER.  30.00
 !     SUBR. INCTIM reads a time string  and gives a time from given
 !     reference day
-      CALL INKEYW ('STA', ' ')
-      IF (KEYWIS ('NONSTAT')) THEN
-        IF (NSTATM.EQ.0) CALL MSGERR (3,
-     &  'keyword NONSTAT not allowed in stationary mode')
-        NSTATM = 1
-        IF (IGRID1.EQ.1 .OR. IGRID1.EQ.8) CALL MSGERR (2,
-     &        'nonstationary input field not allowed in this case')
-        CALL INCTIM (ITMOPT,'TBEGINP',IFLBEG(IGRID1),'REQ',0D0)           40.00
-        CALL INITVD ('DELTINP', IFLINT(IGRID1), 'REQ', 0D0)               40.00
-        CALL INCTIM (ITMOPT,'TENDINP',IFLEND(IGRID1),'STA',1.D20)         40.00
-        IFLDYN(IGRID1) = 1                                                40.00
-        IFLTIM(IGRID1) = IFLBEG(IGRID1)                                   40.00
-        IF (IGRID2 .GT. 0) THEN
-          IFLBEG(IGRID2) = IFLBEG(IGRID1)                                 40.00
-          IFLINT(IGRID2) = IFLINT(IGRID1)                                 40.00
-          IFLEND(IGRID2) = IFLEND(IGRID1)                                 40.00
-          IFLDYN(IGRID2) = IFLDYN(IGRID1)                                 40.00
-          IFLTIM(IGRID2) = IFLTIM(IGRID1)                                 40.00
-        ENDIF
-        IF (IFLEND(IGRID1).LT.0.9E20) THEN
-           IF ( MOD(IFLEND(IGRID1)-IFLBEG(IGRID1),IFLINT(IGRID1)) >
-     &                                         0.01*IFLINT(IGRID1) .AND.
-     &          MOD(IFLEND(IGRID1)-IFLBEG(IGRID1),IFLINT(IGRID1)) <
-     &                                         0.99*IFLINT(IGRID1) )
-     &        CALL MSGERR (1,
-     &             '[deltinp] is not a fraction of the period')
-        ENDIF
+   CALL INKEYW ('STA', ' ')
+   IF (KEYWIS ('NONSTAT')) THEN
+      IF (NSTATM.EQ.0) CALL MSGERR (3, &
+         'keyword NONSTAT not allowed in stationary mode')
+      NSTATM = 1
+      IF (IGRID1.EQ.1 .OR. IGRID1.EQ.8) CALL MSGERR (2, &
+            'nonstationary input field not allowed in this case')
+      CALL INCTIM (ITMOPT,'TBEGINP',IFLBEG(IGRID1),'REQ',0D0)
+      CALL INITVD ('DELTINP', IFLINT(IGRID1), 'REQ', 0D0)
+      CALL INCTIM (ITMOPT,'TENDINP',IFLEND(IGRID1),'STA',1.D20)
+      IFLDYN(IGRID1) = 1
+      IFLTIM(IGRID1) = IFLBEG(IGRID1)
+      IF (IGRID2 .GT. 0) THEN
+         IFLBEG(IGRID2) = IFLBEG(IGRID1)
+         IFLINT(IGRID2) = IFLINT(IGRID1)
+         IFLEND(IGRID2) = IFLEND(IGRID1)
+         IFLDYN(IGRID2) = IFLDYN(IGRID1)
+         IFLTIM(IGRID2) = IFLTIM(IGRID1)
       ENDIF
-      IF ((MXG(IGRID1).EQ.0).OR.(MYG(IGRID1).EQ.0)) GOTO 100
-      IF (IGTYPE(IGRID1).EQ.3) GOTO 100                                   40.80
+      IF (IFLEND(IGRID1).LT.0.9E20) THEN
+         IF ( MOD(IFLEND(IGRID1)-IFLBEG(IGRID1),IFLINT(IGRID1)) > &
+                                             0.01*IFLINT(IGRID1) .AND. &
+              MOD(IFLEND(IGRID1)-IFLBEG(IGRID1),IFLINT(IGRID1)) < &
+                                             0.99*IFLINT(IGRID1) ) &
+            CALL MSGERR (1, &
+                 '[deltinp] is not a fraction of the period')
+      ENDIF
+   ENDIF
+   IF ((MXG(IGRID1).EQ.0).OR.(MYG(IGRID1).EQ.0)) GOTO 100
+   IF (IGTYPE(IGRID1).EQ.3) GOTO 100
 !
 !     ***** input grid is included in output data                 *****
 !     ***** reference point coincides with origin of output frame *****
-      ALLOCATE(OPSTMP)                                                    40.31
-      OPSTMP%PSNAME = SNAMEG                                              40.31
-      ALLOCATE(OPSTMP%XP(0))                                              40.31
-      ALLOCATE(OPSTMP%YP(0))                                              40.31
+   ALLOCATE(OPSTMP)
+   OPSTMP%PSNAME = SNAMEG
+   ALLOCATE(OPSTMP%XP(0))
+   ALLOCATE(OPSTMP%YP(0))
 !
-      IF (IGTYPE(IGRID1) .EQ. 1) THEN                                     30.21
-        OPSTMP%PSTYPE = 'F'                                               40.31
-        XQLEN          = (MXG(IGRID1)-1)*DXG(IGRID1)
-        OPSTMP%OPR(3) = XQLEN                                             40.31
+   IF (IGTYPE(IGRID1) .EQ. 1) THEN
+      OPSTMP%PSTYPE = 'F'
+      XQLEN          = (MXG(IGRID1)-1)*DXG(IGRID1)
+      OPSTMP%OPR(3) = XQLEN
 !
-        IF (ONED) THEN                                                    32.02
-          YQLEN          = XQLEN                                          32.02
-        ELSE                                                              32.02
-          YQLEN          = (MYG(IGRID1)-1)*DYG(IGRID1)
-        ENDIF                                                             32.02
-!
-        OPSTMP%OPR(4) = YQLEN                                             40.31
-        OPSTMP%OPR(1) = XPG(IGRID1)                                       40.31
-        OPSTMP%OPR(2) = YPG(IGRID1)                                       40.31
-        OPSTMP%OPR(5) = ALPG(IGRID1)                                      40.31
-        OPSTMP%OPI(1) = MXG(IGRID1)                                       40.31
-        OPSTMP%OPI(2) = MYG(IGRID1)                                       40.31
+      IF (ONED) THEN
+         YQLEN          = XQLEN
       ELSE
-        OPSTMP%PSTYPE = 'H'                                               40.31
-        OPSTMP%OPR(1) = FLOAT(MXG(IGRID1)-1)                              40.31
-        OPSTMP%OPR(2) = FLOAT(MYG(IGRID1)-1)                              40.31
-        OPSTMP%OPR(3) = 0.                                                40.31
-        OPSTMP%OPR(4) = 0.                                                40.31
-        OPSTMP%OPR(5) = 0.                                                40.31
-        OPSTMP%OPI(1) = MXG(IGRID1)                                       40.31
-        OPSTMP%OPI(2) = MYG(IGRID1)                                       40.31
+         YQLEN          = (MYG(IGRID1)-1)*DYG(IGRID1)
+      ENDIF
+!
+      OPSTMP%OPR(4) = YQLEN
+      OPSTMP%OPR(1) = XPG(IGRID1)
+      OPSTMP%OPR(2) = YPG(IGRID1)
+      OPSTMP%OPR(5) = ALPG(IGRID1)
+      OPSTMP%OPI(1) = MXG(IGRID1)
+      OPSTMP%OPI(2) = MYG(IGRID1)
+   ELSE
+      OPSTMP%PSTYPE = 'H'
+      OPSTMP%OPR(1) = FLOAT(MXG(IGRID1)-1)
+      OPSTMP%OPR(2) = FLOAT(MYG(IGRID1)-1)
+      OPSTMP%OPR(3) = 0.
+      OPSTMP%OPR(4) = 0.
+      OPSTMP%OPR(5) = 0.
+      OPSTMP%OPI(1) = MXG(IGRID1)
+      OPSTMP%OPI(2) = MYG(IGRID1)
 !       *** Because the input grid is staggered should have    ***
 !       *** same length in X and Y than the computational grid ***
-        IF (MCGRD.GT.1) THEN
-          XQLEN = XCGMAX - XCGMIN                                         40.00
-          YQLEN = YCGMAX - YCGMIN
-        ENDIF
+      IF (MCGRD.GT.1) THEN
+         XQLEN = XCGMAX - XCGMIN
+         YQLEN = YCGMAX - YCGMIN
       ENDIF
-      IF (ITEST .GE. 50 .OR. INTES .GE. 5) THEN
-        IF (OPSTMP%PSTYPE .EQ. 'F') THEN
-          WRITE(PRINTF,6021)IGRID1,'F',XQLEN,YQLEN,
-     &    XPG(IGRID1),YPG(IGRID1),ALPG(IGRID1),MXG(IGRID1),MYG(IGRID1)
-        ELSE
-          WRITE(PRINTF,6022)IGRID1,OPSTMP%PSTYPE,MXG(IGRID1)-1,
-     &    MYG(IGRID1)-1,0,0,0.,MXG(IGRID1),MYG(IGRID1)
-        ENDIF
- 6021   FORMAT (' INP GRID PARAMETERS: ',/,
-     &          'IGRID , FRAMTYPE,XLENFR ,YLENFR  XPFR  YPFR    ALPFR',
-     &          '    MXFR MYFR',/,I2,1X,A,4X,
-     &           2(1X,E8.3), 2(1X,E10.3), F7.3, 2(1X,I4))                 40.31 30.60
- 6022   FORMAT (' INP GRID PARAMETERS: ',/,
-     &          'IGRID, FRAMTYPE ,XMAXFR ,YMAXFR XMINFR YMINFR  ALPFR',
-     &          '    MXFR MYFR',/,
-     &          I3,8X,A,1X,4(3X,I4),5X,E8.3,2(1X,I4))
-      ENDIF                                                               30.21
-      NULLIFY(OPSTMP%NEXTOPS)                                             40.31
-      IF ( .NOT.LOPS ) THEN                                               40.31
-         FOPS = OPSTMP                                                    40.31
-         COPS => FOPS                                                     40.31
-         LOPS = .TRUE.                                                    40.31
-      ELSE                                                                40.31
-         COPS%NEXTOPS => OPSTMP                                           40.31
-         COPS => OPSTMP                                                   40.31
-      END IF                                                              40.31
+   ENDIF
+   IF (ITEST .GE. 50 .OR. INTES .GE. 5) THEN
+      IF (OPSTMP%PSTYPE .EQ. 'F') THEN
+         WRITE(PRINTF,6021)IGRID1,'F',XQLEN,YQLEN, &
+            XPG(IGRID1),YPG(IGRID1),ALPG(IGRID1),MXG(IGRID1),MYG(IGRID1)
+      ELSE
+         WRITE(PRINTF,6022)IGRID1,OPSTMP%PSTYPE,MXG(IGRID1)-1, &
+            MYG(IGRID1)-1,0,0,0.,MXG(IGRID1),MYG(IGRID1)
+      ENDIF
+6021  FORMAT (' INP GRID PARAMETERS: ',/, &
+              'IGRID , FRAMTYPE,XLENFR ,YLENFR  XPFR  YPFR    ALPFR', &
+              '    MXFR MYFR',/,I2,1X,A,4X, &
+               2(1X,E8.3), 2(1X,E10.3), F7.3, 2(1X,I4))
+6022  FORMAT (' INP GRID PARAMETERS: ',/, &
+              'IGRID, FRAMTYPE ,XMAXFR ,YMAXFR XMINFR YMINFR  ALPFR', &
+              '    MXFR MYFR',/, &
+              I3,8X,A,1X,4(3X,I4),5X,E8.3,2(1X,I4))
+   ENDIF
+   NULLIFY(OPSTMP%NEXTOPS)
+   IF ( .NOT.LOPS ) THEN
+      FOPS = OPSTMP
+      COPS => FOPS
+      LOPS = .TRUE.
+   ELSE
+      COPS%NEXTOPS => OPSTMP
+      COPS => OPSTMP
+   END IF
 !
-      IF (IGRID2.GT.0) THEN                                               10.26
-        XPG(IGRID2)   = XPG(IGRID1)
-        YPG(IGRID2)   = YPG(IGRID1)
-        ALPG(IGRID2)  = ALPG(IGRID1)
-        COSPG(IGRID2) = COSPG(IGRID1)
-        SINPG(IGRID2) = SINPG(IGRID1)
-        DXG(IGRID2)   = DXG(IGRID1)
-        DYG(IGRID2)   = DYG(IGRID1)
-        MXG(IGRID2)   = MXG(IGRID1)
-        MYG(IGRID2)   = MYG(IGRID1)
-        STAGX(IGRID2) = STAGX(IGRID1)                                     40.80
-        STAGY(IGRID2) = STAGY(IGRID1)                                     40.80
-        IGTYPE(IGRID2)= IGTYPE(IGRID1)                                    30.51
-      ENDIF                                                               10.26
+   IF (IGRID2.GT.0) THEN
+      XPG(IGRID2)   = XPG(IGRID1)
+      YPG(IGRID2)   = YPG(IGRID1)
+      ALPG(IGRID2)  = ALPG(IGRID1)
+      COSPG(IGRID2) = COSPG(IGRID1)
+      SINPG(IGRID2) = SINPG(IGRID1)
+      DXG(IGRID2)   = DXG(IGRID1)
+      DYG(IGRID2)   = DYG(IGRID1)
+      MXG(IGRID2)   = MXG(IGRID1)
+      MYG(IGRID2)   = MYG(IGRID1)
+      STAGX(IGRID2) = STAGX(IGRID1)
+      STAGY(IGRID2) = STAGY(IGRID1)
+      IGTYPE(IGRID2)= IGTYPE(IGRID1)
+   ENDIF
 !
- 100  RETURN
+100 RETURN
 !     end of subroutine SINPGR
-      END
+END
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )                        40.31 40.02
+SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
 !                                                                      *
 !***********************************************************************
 !
-      USE TIMECOMM                                                        40.41
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
-      USE M_GENARR                                                        40.31
-      USE SwanGriddata                                                    40.80
+   USE TIMECOMM
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
+   USE M_GENARR
+   USE SwanGriddata
 !
 !
 !
@@ -4222,7 +4222,7 @@
 !     OTAR2D
 !     REPARM (all Ocean Pack)
 !
-      LOGICAL STPNOW                                                      34.01
+   LOGICAL STPNOW
 !
 !  9. Subroutines calling
 !
@@ -4275,12 +4275,12 @@
 !
 ! 13. Source text
 !
-      REAL, ALLOCATABLE :: TARR(:)                                        40.31
-      LOGICAL    KEYWIS, VECTOR                                           30.00
-      LOGICAL    LOGCOM(7)                                                42.10 30.21
-      SAVE  IENT
-      DATA  IENT/0/
-      CALL STRACE (IENT,'SREDEP')
+   REAL, ALLOCATABLE :: TARR(:)
+   LOGICAL    KEYWIS, VECTOR
+   LOGICAL    LOGCOM(7)
+   SAVE  IENT
+   DATA  IENT/0/
+   CALL STRACE (IENT,'SREDEP')
 !
 !     ***** read instructions of the user *****
 !
@@ -4294,289 +4294,289 @@
 !
 !   ============================================================================
 !
-      CALL INKEYW ('REQ',' ')
-      IGR2 = 0
-      IF (KEYWIS ('BOT')) THEN
-        IGR1      = 1
-        LOGCOM(3) = .TRUE.                                                30.21
-      ELSE IF (KEYWIS ('CUR')) THEN
-        IGR1 = 2
-        IGR2 = 3
-        ICUR = 1
-      ELSE IF (KEYWIS ('FR')) THEN
-        IGR1   = 4
-        VARFR  = .TRUE.
-        MCMVAR = MCMVAR + 2                                               40.00
-        JFRC2  = MCMVAR - 1                                               40.00
-        JFRC3  = MCMVAR                                                   40.00
-        ALOCMP = .TRUE.                                                   40.97
-      ELSE IF (KEYWIS ('WI')) THEN
-        LWINDR = 2                                                        30.10
-        IWIND  = LWINDM                                                   30.10
-        IGR1   = 5
-        IGR2   = 6
-        VARWI  = .TRUE.
-      ELSE IF (KEYWIS ('WL')) THEN                                        20.38
-        IGR1   = 7
-        VARWLV = .TRUE.                                                   20.38
-      ELSE IF (KEYWIS ('COOR')) THEN                                      30.21
-        IGR1   = 8                                                        30.21
-        IGR2   = 9                                                        30.21
-        LOGCOM(4) = .TRUE.                                                30.21
+   CALL INKEYW ('REQ',' ')
+   IGR2 = 0
+   IF (KEYWIS ('BOT')) THEN
+      IGR1      = 1
+      LOGCOM(3) = .TRUE.
+   ELSE IF (KEYWIS ('CUR')) THEN
+      IGR1 = 2
+      IGR2 = 3
+      ICUR = 1
+   ELSE IF (KEYWIS ('FR')) THEN
+      IGR1   = 4
+      VARFR  = .TRUE.
+      MCMVAR = MCMVAR + 2
+      JFRC2  = MCMVAR - 1
+      JFRC3  = MCMVAR
+      ALOCMP = .TRUE.
+   ELSE IF (KEYWIS ('WI')) THEN
+      LWINDR = 2
+      IWIND  = LWINDM
+      IGR1   = 5
+      IGR2   = 6
+      VARWI  = .TRUE.
+   ELSE IF (KEYWIS ('WL')) THEN
+      IGR1   = 7
+      VARWLV = .TRUE.
+   ELSE IF (KEYWIS ('COOR')) THEN
+      IGR1   = 8
+      IGR2   = 9
+      LOGCOM(4) = .TRUE.
 !       *** Next lines because there is no information for READ COORD  ***
 !       *** command INPGRID was not used to read coordinates           ***
-        MXG(IGR1) = MXC
-        MYG(IGR1) = MYC
-        MXG(IGR2) = MXC
-        MYG(IGR2) = MYC
-      ELSE IF (KEYWIS ('ASTD')) THEN                                      40.03
+      MXG(IGR1) = MXC
+      MYG(IGR1) = MYC
+      MXG(IGR2) = MXC
+      MYG(IGR2) = MYC
+   ELSE IF (KEYWIS ('ASTD')) THEN
 !       air-sea temperature difference
-        IGR1   = 10
-        VARAST = .TRUE.                                                   40.03
-        IF (JASTD2.LE.1) THEN                                             40.03
-          MCMVAR = MCMVAR + 2                                             40.03
-          JASTD2 = MCMVAR - 1                                             40.03
-          JASTD3 = MCMVAR                                                 40.03
-          ALOCMP = .TRUE.                                                 40.97
-        ENDIF                                                             40.03
-      ELSE IF (KEYWIS ('NPLA')) THEN                                      40.55
-!       number of plants per square meter
-        IGR1   = 11
-        VARNPL = .TRUE.                                                   40.55
-        IF (JNPLA2.LE.1) THEN                                             40.55
-          MCMVAR = MCMVAR + 2                                             40.55
-          JNPLA2 = MCMVAR - 1                                             40.55
-          JNPLA3 = MCMVAR                                                 40.55
-          ALOCMP = .TRUE.                                                 40.97
-        ENDIF                                                             40.55
-      ELSE IF (KEYWIS ('TURB')) THEN                                      40.35
-!       turbulent viscosity                                               40.35
-        IGR1   = 12                                                       40.35
-        VARTUR = .TRUE.                                                   40.35
-        IF (JTURB2.LE.1) THEN                                             40.35
-          MCMVAR = MCMVAR + 2                                             40.35
-          JTURB2 = MCMVAR - 1                                             40.35
-          JTURB3 = MCMVAR                                                 40.35
-          ALOCMP = .TRUE.                                                 40.97
-        ENDIF                                                             40.35
-      ELSE IF (KEYWIS ('MUDL')) THEN                                      40.59
-!       fluid mud layer
-        IGR1   = 13
-        VARMUD = .TRUE.                                                   40.59
-        IMUD   = 1                                                        40.59
-        IF (JMUDL2.LE.1) THEN                                             40.59
-          MCMVAR = MCMVAR + 3                                             40.59
-          JMUDL1 = MCMVAR - 2                                             40.59
-          JMUDL2 = MCMVAR - 1                                             40.59
-          JMUDL3 = MCMVAR                                                 40.59
-          ALOCMP = .TRUE.                                                 40.97
-        ENDIF                                                             40.59
-      ELSE IF (KEYWIS ('AICE')) THEN                                      41.75
-!       ice concentration (fraction)                                      41.75
-        IGR1   = 14                                                       41.75
-        VARAICE = .TRUE.                                                  41.75
-        IF (JAICE2.LE.1) THEN                                             41.75
-          MCMVAR = MCMVAR + 2                                             41.75
-          JAICE2 = MCMVAR - 1                                             41.75
-          JAICE3 = MCMVAR                                                 41.75
-          ALOCMP = .TRUE.                                                 41.75
-        ENDIF                                                             41.75
-      ELSE IF (KEYWIS ('HICE')) THEN                                      41.75
-!       ice thickness (in meters)                                         41.75
-        IGR1   = 15                                                       41.75
-        VARHICE = .TRUE.                                                  41.75
-        IF (JHICE2.LE.1) THEN                                             41.75
-          MCMVAR = MCMVAR + 2                                             41.75
-          JHICE2 = MCMVAR - 1                                             41.75
-          JHICE3 = MCMVAR                                                 41.75
-          ALOCMP = .TRUE.                                                 41.75
-        ENDIF                                                             41.75
-      ELSE IF (KEYWIS ('HSS').OR.KEYWIS ('IGHS')) THEN                    41.82
-!       sea-swell significant wave height                                 41.82
-        IGR1   = 16                                                       41.82
-        VARHSS = .TRUE.                                                   41.82
-        IF (JHSS2.LE.1) THEN                                              41.82
-          MCMVAR = MCMVAR + 2                                             41.82
-          JHSS2 = MCMVAR - 1                                              41.82
-          JHSS3 = MCMVAR                                                  41.82
-          ALOCMP = .TRUE.                                                 41.82
-        ENDIF                                                             41.82
-      ELSE IF (KEYWIS ('TSS').OR.KEYWIS ('IGTM')) THEN                    41.82
-!       sea-swell mean wave period                                        41.82
-        IGR1   = 17                                                       41.82
-        VARTSS = .TRUE.                                                   41.82
-        IF (JTSS2.LE.1) THEN                                              41.82
-          MCMVAR = MCMVAR + 2                                             41.82
-          JTSS2 = MCMVAR - 1                                              41.82
-          JTSS3 = MCMVAR                                                  41.82
-          ALOCMP = .TRUE.                                                 41.82
-        ENDIF                                                             41.82
-      ELSE IF (KEYWIS ('DSS').OR.KEYWIS ('IGDIR')) THEN                   42.06
-!       sea-swell mean wave direction                                     42.06
-        IGR1   = 18                                                       42.06
-        VARDSS = .TRUE.                                                   42.06
-        IF (JDSS2.LE.1) THEN                                              42.06
-          MCMVAR = MCMVAR + 2                                             42.06
-          JDSS2 = MCMVAR - 1                                              42.06
-          JDSS3 = MCMVAR                                                  42.06
-          ALOCMP = .TRUE.                                                 42.06
-        ENDIF                                                             42.06
-      ELSE
-        CALL  WRNKEY
+      IGR1   = 10
+      VARAST = .TRUE.
+      IF (JASTD2.LE.1) THEN
+         MCMVAR = MCMVAR + 2
+         JASTD2 = MCMVAR - 1
+         JASTD3 = MCMVAR
+         ALOCMP = .TRUE.
       ENDIF
+   ELSE IF (KEYWIS ('NPLA')) THEN
+!       number of plants per square meter
+      IGR1   = 11
+      VARNPL = .TRUE.
+      IF (JNPLA2.LE.1) THEN
+         MCMVAR = MCMVAR + 2
+         JNPLA2 = MCMVAR - 1
+         JNPLA3 = MCMVAR
+         ALOCMP = .TRUE.
+      ENDIF
+   ELSE IF (KEYWIS ('TURB')) THEN
+!       turbulent viscosity                                               40.35
+      IGR1   = 12
+      VARTUR = .TRUE.
+      IF (JTURB2.LE.1) THEN
+         MCMVAR = MCMVAR + 2
+         JTURB2 = MCMVAR - 1
+         JTURB3 = MCMVAR
+         ALOCMP = .TRUE.
+      ENDIF
+   ELSE IF (KEYWIS ('MUDL')) THEN
+!       fluid mud layer
+      IGR1   = 13
+      VARMUD = .TRUE.
+      IMUD   = 1
+      IF (JMUDL2.LE.1) THEN
+         MCMVAR = MCMVAR + 3
+         JMUDL1 = MCMVAR - 2
+         JMUDL2 = MCMVAR - 1
+         JMUDL3 = MCMVAR
+         ALOCMP = .TRUE.
+      ENDIF
+   ELSE IF (KEYWIS ('AICE')) THEN
+!       ice concentration (fraction)                                      41.75
+      IGR1   = 14
+      VARAICE = .TRUE.
+      IF (JAICE2.LE.1) THEN
+         MCMVAR = MCMVAR + 2
+         JAICE2 = MCMVAR - 1
+         JAICE3 = MCMVAR
+         ALOCMP = .TRUE.
+      ENDIF
+   ELSE IF (KEYWIS ('HICE')) THEN
+!       ice thickness (in meters)                                         41.75
+      IGR1   = 15
+      VARHICE = .TRUE.
+      IF (JHICE2.LE.1) THEN
+         MCMVAR = MCMVAR + 2
+         JHICE2 = MCMVAR - 1
+         JHICE3 = MCMVAR
+         ALOCMP = .TRUE.
+      ENDIF
+   ELSE IF (KEYWIS ('HSS').OR.KEYWIS ('IGHS')) THEN
+!       sea-swell significant wave height                                 41.82
+      IGR1   = 16
+      VARHSS = .TRUE.
+      IF (JHSS2.LE.1) THEN
+         MCMVAR = MCMVAR + 2
+         JHSS2 = MCMVAR - 1
+         JHSS3 = MCMVAR
+         ALOCMP = .TRUE.
+      ENDIF
+   ELSE IF (KEYWIS ('TSS').OR.KEYWIS ('IGTM')) THEN
+!       sea-swell mean wave period                                        41.82
+      IGR1   = 17
+      VARTSS = .TRUE.
+      IF (JTSS2.LE.1) THEN
+         MCMVAR = MCMVAR + 2
+         JTSS2 = MCMVAR - 1
+         JTSS3 = MCMVAR
+         ALOCMP = .TRUE.
+      ENDIF
+   ELSE IF (KEYWIS ('DSS').OR.KEYWIS ('IGDIR')) THEN
+!       sea-swell mean wave direction                                     42.06
+      IGR1   = 18
+      VARDSS = .TRUE.
+      IF (JDSS2.LE.1) THEN
+         MCMVAR = MCMVAR + 2
+         JDSS2 = MCMVAR - 1
+         JDSS3 = MCMVAR
+         ALOCMP = .TRUE.
+      ENDIF
+   ELSE
+      CALL  WRNKEY
+   ENDIF
 !
 !     read multiplication factor
 !
-      CALL INREAL ('FAC', IFLFAC(IGR1), 'STA', 1.)
+   CALL INREAL ('FAC', IFLFAC(IGR1), 'STA', 1.)
 !
-      IF (IGR2.GT.0) THEN
-        VECTOR = .TRUE.
-        IFLFAC(IGR2) = IFLFAC(IGR1)
-      ELSE
-        VECTOR = .FALSE.
-      ENDIF
+   IF (IGR2.GT.0) THEN
+      VECTOR = .TRUE.
+      IFLFAC(IGR2) = IFLFAC(IGR1)
+   ELSE
+      VECTOR = .FALSE.
+   ENDIF
 !
-      CALL REPARM (IFLNDF(IGR1), IFLNDS(IGR1), IFLIDL(IGR1),              40.00
-     &             IFLIFM(IGR1), IFLFRM(IGR1), IFLNHF(IGR1),              40.00
-     &             IFLDYN(IGR1), IFLNHD(IGR1), VECTOR, NHEDC)             40.00
-      IF (STPNOW()) RETURN                                                34.01
+   CALL REPARM (IFLNDF(IGR1), IFLNDS(IGR1), IFLIDL(IGR1), &
+                IFLIFM(IGR1), IFLFRM(IGR1), IFLNHF(IGR1), &
+                IFLDYN(IGR1), IFLNHD(IGR1), VECTOR, NHEDC)
+   IF (STPNOW()) RETURN
 !
-      IF (ITEST.GE.60) WRITE (PRTEST, 35) IGR1, IFLNDF(IGR1),
-     &    IFLNDS(IGR1), IFLIDL(IGR1), IFLIFM(IGR1), IFLFRM(IGR1),         40.00
-     &    IFLNHF(IGR1), IFLDYN(IGR1), IFLNHD(IGR1), VECTOR, NHEDC
-  35  FORMAT (' Reading parameters: ', 5I4, A, /, 12X,I5,I5,I5,L2,I5)     40.00
+   IF (ITEST.GE.60) WRITE (PRTEST, 35) IGR1, IFLNDF(IGR1), &
+       IFLNDS(IGR1), IFLIDL(IGR1), IFLIFM(IGR1), IFLFRM(IGR1), &
+       IFLNHF(IGR1), IFLDYN(IGR1), IFLNHD(IGR1), VECTOR, NHEDC
+35 FORMAT (' Reading parameters: ', 5I4, A, /, 12X,I5,I5,I5,L2,I5)
 !
-      IFLNHD(IGR1) = IFLNHD(IGR1) + NHEDC
-      IF (IGR2.GT.0) THEN
-        IFLNDF(IGR2) = IFLNDF(IGR1)
-        IFLNDS(IGR2) = IFLNDS(IGR1)
-        IFLIDL(IGR2) = IFLIDL(IGR1)
-        IFLIFM(IGR2) = IFLIFM(IGR1)
-        IFLFRM(IGR2) = IFLFRM(IGR1)
-        IFLNHF(IGR2) = IFLNHF(IGR1)
-        IFLNHD(IGR2) = NHEDC
-      ENDIF
+   IFLNHD(IGR1) = IFLNHD(IGR1) + NHEDC
+   IF (IGR2.GT.0) THEN
+      IFLNDF(IGR2) = IFLNDF(IGR1)
+      IFLNDS(IGR2) = IFLNDS(IGR1)
+      IFLIDL(IGR2) = IFLIDL(IGR1)
+      IFLIFM(IGR2) = IFLIFM(IGR1)
+      IFLFRM(IGR2) = IFLFRM(IGR1)
+      IFLNHF(IGR2) = IFLNHF(IGR1)
+      IFLNHD(IGR2) = NHEDC
+   ENDIF
 !
-      IF (LEDS(IGR1).EQ.0 .AND. IGR1 .NE. 8) THEN                         30.21
-         CALL MSGERR (2, 'Input grid not given')
-         RETURN
-      ENDIF
-
-      IF ( IGR1.EQ.1 .AND. grid_generator.EQ.meth_adcirc ) THEN           40.80
-!        bottom topography will be taken from fort.14
-         CALL MSGERR(1,'depth will be taken from grid file fort.14 ')
-         IGTYPE(1) = 3
-         LEDS(1)   = 2
-         RETURN
-      ENDIF
-
-      IF (.NOT.ALLOCATED(TARR)) THEN                                      40.41
-         ALLOCATE( TARR(MXG(IGR1)*MYG(IGR1)) )                            40.41
-         TARR = 0.                                                        40.41
-      END IF                                                              40.41
-      CALL INAR2D( TARR        , MXG(IGR1), MYG(IGR1), IFLNDF(IGR1),      40.31 40.02
-     &             IFLNDS(IGR1), IFLIFM(IGR1), IFLFRM(IGR1),
-     &             IFLIDL(IGR1), IFLFAC(IGR1),
-     &             IFLNHD(IGR1), IFLNHF(IGR1))
-      IF (STPNOW()) RETURN                                                34.01
-  55  CONTINUE                                                            41.20
-      IF (IGR1.EQ.1) THEN                                                 40.31
-         IF (.NOT.ALLOCATED(DEPTH)) ALLOCATE(DEPTH(MXG(IGR1)*MYG(IGR1)))  40.31
-         CALL SWCOPR( TARR, DEPTH, MXG(IGR1)*MYG(IGR1) )                  40.31
-      ELSE IF (IGR1.EQ.2) THEN                                            40.31
-         IF (.NOT.ALLOCATED(UXB)) ALLOCATE(UXB(MXG(IGR1)*MYG(IGR1)))      40.31
-         CALL SWCOPR( TARR, UXB, MXG(IGR1)*MYG(IGR1) )                    40.31
-      ELSE IF (IGR1.EQ.4) THEN                                            40.31
-         IF (.NOT.ALLOCATED(FRIC)) ALLOCATE(FRIC(MXG(IGR1)*MYG(IGR1)))    40.31
-         CALL SWCOPR( TARR, FRIC, MXG(IGR1)*MYG(IGR1) )                   40.31
-      ELSE IF (IGR1.EQ.5) THEN                                            40.31
-         IF (.NOT.ALLOCATED(WXI)) ALLOCATE(WXI(MXG(IGR1)*MYG(IGR1)))      40.31
-         CALL SWCOPR( TARR, WXI, MXG(IGR1)*MYG(IGR1) )                    40.31
-      ELSE IF (IGR1.EQ.7) THEN                                            40.31
-         IF (.NOT.ALLOCATED(WLEVL)) ALLOCATE(WLEVL(MXG(IGR1)*MYG(IGR1)))  40.31
-         CALL SWCOPR( TARR, WLEVL, MXG(IGR1)*MYG(IGR1) )                  40.31
-      ELSE IF (IGR1.EQ.8) THEN                                            40.31
-         CALL SWCOPR( TARR, XCGRID, MXG(IGR1)*MYG(IGR1) )                 40.31
-      ELSE IF (IGR1.EQ.10) THEN                                           40.31
-         IF (.NOT.ALLOCATED(ASTDF)) ALLOCATE(ASTDF(MXG(IGR1)*MYG(IGR1)))  40.31
-         CALL SWCOPR( TARR, ASTDF, MXG(IGR1)*MYG(IGR1) )                  40.31
-      ELSE IF (IGR1.EQ.11) THEN                                           40.55
-         IF (.NOT.ALLOCATED(NPLAF)) ALLOCATE(NPLAF(MXG(IGR1)*MYG(IGR1)))  40.55
-         CALL SWCOPR( TARR, NPLAF, MXG(IGR1)*MYG(IGR1) )                  40.55
-      ELSE IF (IGR1.EQ.12) THEN                                           40.35
-         IF (.NOT.ALLOCATED(TURBF)) ALLOCATE(TURBF(MXG(IGR1)*MYG(IGR1)))  40.35
-         CALL SWCOPR( TARR, TURBF, MXG(IGR1)*MYG(IGR1) )                  40.35
-      ELSE IF (IGR1.EQ.13) THEN                                           40.59
-         IF (.NOT.ALLOCATED(MUDLF)) ALLOCATE(MUDLF(MXG(IGR1)*MYG(IGR1)))  40.59
-         CALL SWCOPR( TARR, MUDLF, MXG(IGR1)*MYG(IGR1) )                  40.59
-      ELSE IF (IGR1.EQ.14) THEN                                           41.75
-         IF (.NOT.ALLOCATED(AICEF)) ALLOCATE(AICEF(MXG(IGR1)*MYG(IGR1)))  41.75
-         CALL SWCOPR( TARR, AICEF, MXG(IGR1)*MYG(IGR1) )                  41.75
-      ELSE IF (IGR1.EQ.15) THEN                                           41.75
-         IF (.NOT.ALLOCATED(HICEF)) ALLOCATE(HICEF(MXG(IGR1)*MYG(IGR1)))  41.75
-         CALL SWCOPR( TARR, HICEF, MXG(IGR1)*MYG(IGR1) )                  41.75
-      ELSE IF (IGR1.EQ.16) THEN                                           41.82
-         IF (.NOT.ALLOCATED(HSSF)) ALLOCATE(HSSF(MXG(IGR1)*MYG(IGR1)))    41.82
-         CALL SWCOPR( TARR, HSSF, MXG(IGR1)*MYG(IGR1) )                   41.82
-      ELSE IF (IGR1.EQ.17) THEN                                           41.82
-         IF (.NOT.ALLOCATED(TSSF)) ALLOCATE(TSSF(MXG(IGR1)*MYG(IGR1)))    41.82
-         CALL SWCOPR( TARR, TSSF, MXG(IGR1)*MYG(IGR1) )                   41.82
-      ELSE IF (IGR1.EQ.18) THEN                                           42.06
-         IF (.NOT.ALLOCATED(DSSF)) ALLOCATE(DSSF(MXG(IGR1)*MYG(IGR1)))    42.06
-         CALL SWCOPR( TARR, DSSF, MXG(IGR1)*MYG(IGR1) )                   42.06
-      END IF                                                              40.31
-      DEALLOCATE(TARR)                                                    40.31
-      IF (IGR2.GT.0) THEN
-
-        IF (.NOT.ALLOCATED(TARR)) THEN                                    40.41
-           ALLOCATE( TARR(MXG(IGR2)*MYG(IGR2)) )                          40.41
-           TARR = 0.                                                      40.41
-        END IF                                                            40.41
-        CALL INAR2D( TARR        , MXG(IGR2), MYG(IGR2), IFLNDF(IGR2),    40.31 40.02
-     &               IFLNDS(IGR2), IFLIFM(IGR2), IFLFRM(IGR2),
-     &               IFLIDL(IGR2), IFLFAC(IGR2),
-     &               IFLNHD(IGR2), 0)
-        IF (STPNOW()) RETURN                                              34.01
-        IF (IGR2.EQ.3) THEN                                               40.31
-           IF (.NOT.ALLOCATED(UYB)) ALLOCATE(UYB(MXG(IGR2)*MYG(IGR2)))    40.31
-           CALL SWCOPR( TARR, UYB, MXG(IGR2)*MYG(IGR2) )                  40.31
-        ELSE IF (IGR2.EQ.6) THEN                                          40.31
-           IF (.NOT.ALLOCATED(WYI)) ALLOCATE(WYI(MXG(IGR2)*MYG(IGR2)))    40.31
-           CALL SWCOPR( TARR, WYI, MXG(IGR2)*MYG(IGR2) )                  40.31
-        ELSE IF (IGR2.EQ.9) THEN                                          40.31
-           CALL SWCOPR( TARR, YCGRID, MXG(IGR2)*MYG(IGR2) )               40.31
-        END IF                                                            40.31
-        DEALLOCATE(TARR)                                                  40.31
-      ENDIF
-!     set time of reading
-      IF (IFLDYN(IGR1) .EQ. 1) THEN
-        IF (NSTATM.EQ.0) CALL MSGERR (2,                                  40.00
-     &        'nonstationary input field requires MODE NONSTAT')          40.00
-        IFLTIM(IGR1) = IFLBEG(IGR1)
-        IF (IGR2.GT.0) IFLTIM(IGR2) = IFLTIM(IGR1)
-      ENDIF
-!
-      LEDS(IGR1) = 2
-      IF (VECTOR) LEDS(IGR2) = 2
-!
+   IF (LEDS(IGR1).EQ.0 .AND. IGR1 .NE. 8) THEN
+      CALL MSGERR (2, 'Input grid not given')
       RETURN
+   ENDIF
+
+   IF ( IGR1.EQ.1 .AND. grid_generator.EQ.meth_adcirc ) THEN
+!        bottom topography will be taken from fort.14
+      CALL MSGERR(1,'depth will be taken from grid file fort.14 ')
+      IGTYPE(1) = 3
+      LEDS(1)   = 2
+      RETURN
+   ENDIF
+
+   IF (.NOT.ALLOCATED(TARR)) THEN
+      ALLOCATE( TARR(MXG(IGR1)*MYG(IGR1)) )
+      TARR = 0.
+   END IF
+   CALL INAR2D( TARR        , MXG(IGR1), MYG(IGR1), IFLNDF(IGR1), &
+                IFLNDS(IGR1), IFLIFM(IGR1), IFLFRM(IGR1), &
+                IFLIDL(IGR1), IFLFAC(IGR1), &
+                IFLNHD(IGR1), IFLNHF(IGR1))
+   IF (STPNOW()) RETURN
+55 CONTINUE
+   IF (IGR1.EQ.1) THEN
+      IF (.NOT.ALLOCATED(DEPTH)) ALLOCATE(DEPTH(MXG(IGR1)*MYG(IGR1)))
+      CALL SWCOPR( TARR, DEPTH, MXG(IGR1)*MYG(IGR1) )
+   ELSE IF (IGR1.EQ.2) THEN
+      IF (.NOT.ALLOCATED(UXB)) ALLOCATE(UXB(MXG(IGR1)*MYG(IGR1)))
+      CALL SWCOPR( TARR, UXB, MXG(IGR1)*MYG(IGR1) )
+   ELSE IF (IGR1.EQ.4) THEN
+      IF (.NOT.ALLOCATED(FRIC)) ALLOCATE(FRIC(MXG(IGR1)*MYG(IGR1)))
+      CALL SWCOPR( TARR, FRIC, MXG(IGR1)*MYG(IGR1) )
+   ELSE IF (IGR1.EQ.5) THEN
+      IF (.NOT.ALLOCATED(WXI)) ALLOCATE(WXI(MXG(IGR1)*MYG(IGR1)))
+      CALL SWCOPR( TARR, WXI, MXG(IGR1)*MYG(IGR1) )
+   ELSE IF (IGR1.EQ.7) THEN
+      IF (.NOT.ALLOCATED(WLEVL)) ALLOCATE(WLEVL(MXG(IGR1)*MYG(IGR1)))
+      CALL SWCOPR( TARR, WLEVL, MXG(IGR1)*MYG(IGR1) )
+   ELSE IF (IGR1.EQ.8) THEN
+      CALL SWCOPR( TARR, XCGRID, MXG(IGR1)*MYG(IGR1) )
+   ELSE IF (IGR1.EQ.10) THEN
+      IF (.NOT.ALLOCATED(ASTDF)) ALLOCATE(ASTDF(MXG(IGR1)*MYG(IGR1)))
+      CALL SWCOPR( TARR, ASTDF, MXG(IGR1)*MYG(IGR1) )
+   ELSE IF (IGR1.EQ.11) THEN
+      IF (.NOT.ALLOCATED(NPLAF)) ALLOCATE(NPLAF(MXG(IGR1)*MYG(IGR1)))
+      CALL SWCOPR( TARR, NPLAF, MXG(IGR1)*MYG(IGR1) )
+   ELSE IF (IGR1.EQ.12) THEN
+      IF (.NOT.ALLOCATED(TURBF)) ALLOCATE(TURBF(MXG(IGR1)*MYG(IGR1)))
+      CALL SWCOPR( TARR, TURBF, MXG(IGR1)*MYG(IGR1) )
+   ELSE IF (IGR1.EQ.13) THEN
+      IF (.NOT.ALLOCATED(MUDLF)) ALLOCATE(MUDLF(MXG(IGR1)*MYG(IGR1)))
+      CALL SWCOPR( TARR, MUDLF, MXG(IGR1)*MYG(IGR1) )
+   ELSE IF (IGR1.EQ.14) THEN
+      IF (.NOT.ALLOCATED(AICEF)) ALLOCATE(AICEF(MXG(IGR1)*MYG(IGR1)))
+      CALL SWCOPR( TARR, AICEF, MXG(IGR1)*MYG(IGR1) )
+   ELSE IF (IGR1.EQ.15) THEN
+      IF (.NOT.ALLOCATED(HICEF)) ALLOCATE(HICEF(MXG(IGR1)*MYG(IGR1)))
+      CALL SWCOPR( TARR, HICEF, MXG(IGR1)*MYG(IGR1) )
+   ELSE IF (IGR1.EQ.16) THEN
+      IF (.NOT.ALLOCATED(HSSF)) ALLOCATE(HSSF(MXG(IGR1)*MYG(IGR1)))
+      CALL SWCOPR( TARR, HSSF, MXG(IGR1)*MYG(IGR1) )
+   ELSE IF (IGR1.EQ.17) THEN
+      IF (.NOT.ALLOCATED(TSSF)) ALLOCATE(TSSF(MXG(IGR1)*MYG(IGR1)))
+      CALL SWCOPR( TARR, TSSF, MXG(IGR1)*MYG(IGR1) )
+   ELSE IF (IGR1.EQ.18) THEN
+      IF (.NOT.ALLOCATED(DSSF)) ALLOCATE(DSSF(MXG(IGR1)*MYG(IGR1)))
+      CALL SWCOPR( TARR, DSSF, MXG(IGR1)*MYG(IGR1) )
+   END IF
+   DEALLOCATE(TARR)
+   IF (IGR2.GT.0) THEN
+
+      IF (.NOT.ALLOCATED(TARR)) THEN
+         ALLOCATE( TARR(MXG(IGR2)*MYG(IGR2)) )
+         TARR = 0.
+      END IF
+      CALL INAR2D( TARR        , MXG(IGR2), MYG(IGR2), IFLNDF(IGR2), &
+                   IFLNDS(IGR2), IFLIFM(IGR2), IFLFRM(IGR2), &
+                   IFLIDL(IGR2), IFLFAC(IGR2), &
+                   IFLNHD(IGR2), 0)
+      IF (STPNOW()) RETURN
+      IF (IGR2.EQ.3) THEN
+         IF (.NOT.ALLOCATED(UYB)) ALLOCATE(UYB(MXG(IGR2)*MYG(IGR2)))
+         CALL SWCOPR( TARR, UYB, MXG(IGR2)*MYG(IGR2) )
+      ELSE IF (IGR2.EQ.6) THEN
+         IF (.NOT.ALLOCATED(WYI)) ALLOCATE(WYI(MXG(IGR2)*MYG(IGR2)))
+         CALL SWCOPR( TARR, WYI, MXG(IGR2)*MYG(IGR2) )
+      ELSE IF (IGR2.EQ.9) THEN
+         CALL SWCOPR( TARR, YCGRID, MXG(IGR2)*MYG(IGR2) )
+      END IF
+      DEALLOCATE(TARR)
+   ENDIF
+!     set time of reading
+   IF (IFLDYN(IGR1) .EQ. 1) THEN
+      IF (NSTATM.EQ.0) CALL MSGERR (2, &
+            'nonstationary input field requires MODE NONSTAT')
+      IFLTIM(IGR1) = IFLBEG(IGR1)
+      IF (IGR2.GT.0) IFLTIM(IGR2) = IFLTIM(IGR1)
+   ENDIF
+!
+   LEDS(IGR1) = 2
+   IF (VECTOR) LEDS(IGR2) = 2
+!
+   RETURN
 ! * end of subroutine SREDEP *
-      END
+END
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE SSFILL (SPCSIG, SPCDIR)                                  30.72
+SUBROUTINE SSFILL (SPCSIG, SPCDIR)
 !                                                                      *
 !***********************************************************************
 !
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
-      USE M_WCAP                                                          40.02
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
+   USE M_WCAP
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -4644,8 +4644,8 @@
 !             (*,6); sine^2 of spectral directions                        30.82
 !   o SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
 !
-      REAL    SPCDIR(MDC,6)                                               30.82
-      REAL    SPCSIG(MSC)                                                 30.72
+   REAL    SPCDIR(MDC,6)
+   REAL    SPCSIG(MSC)
 !
 !
 !  5. SUBROUTINES CALLING
@@ -4670,78 +4670,78 @@
 !
 ! 10. SOURCE TEXT
 !
-      SAVE IENT
-      DATA IENT/0/
-      CALL STRACE(IENT,'SSFILL')
+   SAVE IENT
+   DATA IENT/0/
+   CALL STRACE(IENT,'SSFILL')
 !
 !     Allocate arrays in module M_WCAP                                    40.02
 !
-      IF (.NOT.ALLOCATED(SIGPOW)) ALLOCATE (SIGPOW(MSC,6))                40.02
+   IF (.NOT.ALLOCATED(SIGPOW)) ALLOCATE (SIGPOW(MSC,6))
 !
 !
 !     distribution of spectral frequencies
 !
 !     FRINTF is the frequency integration factor (=df/f)                  20.35
-      FRINTF = ALOG(SHIG/SLOW) / FLOAT(MSC-1)                             20.35
-      SFAC   = EXP(FRINTF)                                                20.35
-      FRINTH = SQRT(SFAC)
+   FRINTF = ALOG(SHIG/SLOW) / FLOAT(MSC-1)
+   SFAC   = EXP(FRINTF)
+   FRINTH = SQRT(SFAC)
 !     determine spectral frequencies (logarithmic distribution)
-      SPCSIG(1) = SLOW                                                    30.72
-      DO 10 IS = 2, MSC
-         SPCSIG(IS) = SPCSIG(IS-1) * SFAC                                 30.72
-  10  CONTINUE
+   SPCSIG(1) = SLOW
+   DO 10 IS = 2, MSC
+      SPCSIG(IS) = SPCSIG(IS-1) * SFAC
+10 CONTINUE
 !
 !     Calculate powers of sigma and store in global array
 !
-      SIGPOW(:,1) = SPCSIG                                                40.02
-      SIGPOW(:,2) = SPCSIG**2                                             40.02
-      SIGPOW(:,3) = SPCSIG * SIGPOW(:,2)                                  40.02
-      SIGPOW(:,4) = SPCSIG * SIGPOW(:,3)                                  40.02
-      SIGPOW(:,5) = SPCSIG * SIGPOW(:,4)                                  40.02
-      SIGPOW(:,6) = SPCSIG * SIGPOW(:,5)                                  40.02
+   SIGPOW(:,1) = SPCSIG
+   SIGPOW(:,2) = SPCSIG**2
+   SIGPOW(:,3) = SPCSIG * SIGPOW(:,2)
+   SIGPOW(:,4) = SPCSIG * SIGPOW(:,3)
+   SIGPOW(:,5) = SPCSIG * SIGPOW(:,4)
+   SIGPOW(:,6) = SPCSIG * SIGPOW(:,5)
 !
 !     distribution of spectral directions
 !
-      DO 20 ID = 1, MDC
-         SPCDIR(ID,1) = SPDIR1 + FLOAT(ID-1)*DDIR                         20.43
+   DO 20 ID = 1, MDC
+      SPCDIR(ID,1) = SPDIR1 + FLOAT(ID-1)*DDIR
 !        if a direction coincides with a direction of the (regular)       40.00
 !        computational grid it is slightly changed
-         IF (OPTG.EQ.1) THEN                                              40.00
-           IF (ABS(MODULO(SPCDIR(ID,1)-ALPC+0.25*PI ,0.5*PI)-0.25*PI)     40.03
-     &         .LT. 1.E-6) THEN
-             OLDDIR = SPCDIR(ID,1)
-             SPCDIR(ID,1) = OLDDIR + 2.E-6                                40.03
-             IF (ITEST.GE.50) WRITE (PRINTF, 24) ID,
-     &                      OLDDIR*180./PI, SPCDIR(ID,1)*180./PI          40.03
-  24         FORMAT (' Modified spectral direction', I4, 2(2X,F10.5))     40.03
-           ENDIF
-         ENDIF                                                            40.00
-         SPCDIR(ID,2) = COS(SPCDIR(ID,1))                                 20.43
-         SPCDIR(ID,3) = SIN(SPCDIR(ID,1))                                 20.43
-         SPCDIR(ID,4) = SPCDIR(ID,2) **2                                  20.43
-         SPCDIR(ID,5) = SPCDIR(ID,2) * SPCDIR(ID,3)                       20.43
-         SPCDIR(ID,6) = SPCDIR(ID,3) **2                                  20.43
-  20  CONTINUE
+      IF (OPTG.EQ.1) THEN
+         IF (ABS(MODULO(SPCDIR(ID,1)-ALPC+0.25*PI ,0.5*PI)-0.25*PI) &
+             .LT. 1.E-6) THEN
+            OLDDIR = SPCDIR(ID,1)
+            SPCDIR(ID,1) = OLDDIR + 2.E-6
+            IF (ITEST.GE.50) WRITE (PRINTF, 24) ID, &
+                           OLDDIR*180./PI, SPCDIR(ID,1)*180./PI
+24          FORMAT (' Modified spectral direction', I4, 2(2X,F10.5))
+         ENDIF
+      ENDIF
+      SPCDIR(ID,2) = COS(SPCDIR(ID,1))
+      SPCDIR(ID,3) = SIN(SPCDIR(ID,1))
+      SPCDIR(ID,4) = SPCDIR(ID,2) **2
+      SPCDIR(ID,5) = SPCDIR(ID,2) * SPCDIR(ID,3)
+      SPCDIR(ID,6) = SPCDIR(ID,3) **2
+20 CONTINUE
 !
-      RETURN
+   RETURN
 ! * end of function SSFILL *
-      END
+END
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE CGINIT (LOGCOM)                                          40.31 30.90
+SUBROUTINE CGINIT (LOGCOM)
 !                                                                      *
 !***********************************************************************
 !
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
-      USE M_GENARR                                                        40.31
-      USE M_PARALL                                                        40.31
-      USE SwanGriddata                                                    40.80
+   USE OCPCOMM1
+   USE OCPCOMM3
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
+   USE M_GENARR
+   USE M_PARALL
+   USE SwanGriddata
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -4810,7 +4810,7 @@
 !
 !     LOGCOM:
 !
-      LOGICAL LOGCOM(7)
+   LOGICAL LOGCOM(7)
 !
 !  6. Local variables
 !
@@ -4825,12 +4825,12 @@
 !JAC!                 of subdomains (.TRUE.) or not (.FALSE.)                 40.31
 !     MSGSTR:     string to pass message to call MSGERR                   40.41
 !
-      INTEGER IENT, INDX, IX, IY, MCGRDL                                  40.31
-      INTEGER ISTAT, IF1, IL1                                             40.41
-      INTEGER, ALLOCATABLE :: IARR(:)                                     40.31
-!JAC      LOGICAL   MCOLR                                                     40.31
-      CHARACTER*20 NUMSTR, CHARS(1)                                       40.41
-      CHARACTER*80 MSGSTR                                                 40.41
+   INTEGER IENT, INDX, IX, IY, MCGRDL
+   INTEGER ISTAT, IF1, IL1
+   INTEGER, ALLOCATABLE :: IARR(:)
+!JAC   LOGICAL   MCOLR
+   CHARACTER*20 NUMSTR, CHARS(1)
+   CHARACTER*80 MSGSTR
 !
 !  8. SUBROUTINES CALLING
 !
@@ -4849,7 +4849,7 @@
 !TIMG!     SWTSTO                                                              40.31
 !     TXPBLA : Removes leading and trailing blanks in string              40.41
 !
-      LOGICAL STPNOW                                                      34.01
+   LOGICAL STPNOW
 !
 ! 10. ERROR MESSAGES
 !
@@ -4863,131 +4863,131 @@
 !
 ! 13. SOURCE TEXT
 !
-      SAVE IENT
-      DATA IENT/0/
-      CALL STRACE(IENT,'CGINIT')
+   SAVE IENT
+   DATA IENT/0/
+   CALL STRACE(IENT,'CGINIT')
 !
 !     --- Calculation of computational grid dimension ***
 !
-      IF(.NOT.ALLOCATED(KGRPGL)) ALLOCATE(KGRPGL(MXC,MYC))                40.31
+   IF(.NOT.ALLOCATED(KGRPGL)) ALLOCATE(KGRPGL(MXC,MYC))
 !
-      CALL SWDIM ( KGRPGL, DEPTH, XCGRID, YCGRID )                        40.31 30.60
+   CALL SWDIM ( KGRPGL, DEPTH, XCGRID, YCGRID )
 !
 !     --- call CGBOUN to determine computational grid outline
 !
-      IF (ONED) THEN                                                      30.81
-        IF(.NOT.ALLOCATED(KGRBGL)) ALLOCATE(KGRBGL(4))                    40.31
-!JAC        IF(.NOT.ALLOCATED(IARR)) ALLOCATE(IARR(4))                        40.31
-        CALL CGBOUN ( KGRPGL, KGRBGL )                                    40.31 40.04
-      ELSE                                                                30.81
-        IF(.NOT.ALLOCATED(IARR)) ALLOCATE(IARR(2*MCGRD))                  40.31
-        CALL CGBOUN ( KGRPGL, IARR )                                      40.31 40.04
-        IF ( NGRBND.GT.0 ) THEN                                           40.31
-           IF(.NOT.ALLOCATED(KGRBGL)) ALLOCATE(KGRBGL(2*NGRBND))          40.31
-           CALL SWCOPI(IARR,KGRBGL,2*NGRBND)                              40.31
-        ELSE                                                              40.31
-           IF(.NOT.ALLOCATED(KGRBGL)) ALLOCATE(KGRBGL(0))                 40.31
-        END IF                                                            40.31
-      END IF                                                              30.81
-      NGRBGL = NGRBND                                                     40.30
+   IF (ONED) THEN
+      IF(.NOT.ALLOCATED(KGRBGL)) ALLOCATE(KGRBGL(4))
+!JAC      IF(.NOT.ALLOCATED(IARR)) ALLOCATE(IARR(4))
+      CALL CGBOUN ( KGRPGL, KGRBGL )
+   ELSE
+      IF(.NOT.ALLOCATED(IARR)) ALLOCATE(IARR(2*MCGRD))
+      CALL CGBOUN ( KGRPGL, IARR )
+      IF ( NGRBND.GT.0 ) THEN
+         IF(.NOT.ALLOCATED(KGRBGL)) ALLOCATE(KGRBGL(2*NGRBND))
+         CALL SWCOPI(IARR,KGRBGL,2*NGRBND)
+      ELSE
+         IF(.NOT.ALLOCATED(KGRBGL)) ALLOCATE(KGRBGL(0))
+      END IF
+   END IF
+   NGRBGL = NGRBND
 !
 !     --- Carry out domain decomposition meant for                        40.31
 !         distributed-memory approach                                     40.31
 
-!TIMG      CALL SWTSTA(211)                                                    40.31
-      CALL SWDECOMP                                                       40.31
-!TIMG      CALL SWTSTO(211)                                                    40.31
-      IF (STPNOW()) RETURN                                                40.31
+!TIMG   CALL SWTSTA(211)
+   CALL SWDECOMP
+!TIMG   CALL SWTSTO(211)
+   IF (STPNOW()) RETURN
 
-!TIMG      CALL SWTSTA(212)                                                    40.31
+!TIMG   CALL SWTSTA(212)
 
 !     --- Create copy of parts of KGRPGL for each subdomain -> KGRPNT     40.31
 
-      IF(.NOT.ALLOCATED(KGRPNT)) ALLOCATE(KGRPNT(MXC,MYC))                40.31
-      KGRPNT = 1                                                          40.31
-      MCGRDL = 1                                                          40.31
-      DO IX = MXF, MXL                                                    40.31
-         DO IY = MYF, MYL                                                 40.31
-            INDX = KGRPGL(IX,IY)                                          40.31
-            IF ( INDX.NE.1 ) THEN                                         40.31
-               MCGRDL = MCGRDL + 1                                        40.31
-               KGRPNT(IX-MXF+1,IY-MYF+1) = MCGRDL                         40.31
-            END IF                                                        40.31
-         END DO                                                           40.31
-      END DO                                                              40.31
+   IF(.NOT.ALLOCATED(KGRPNT)) ALLOCATE(KGRPNT(MXC,MYC))
+   KGRPNT = 1
+   MCGRDL = 1
+   DO IX = MXF, MXL
+      DO IY = MYF, MYL
+         INDX = KGRPGL(IX,IY)
+         IF ( INDX.NE.1 ) THEN
+            MCGRDL = MCGRDL + 1
+            KGRPNT(IX-MXF+1,IY-MYF+1) = MCGRDL
+         END IF
+      END DO
+   END DO
 
 !     --- Create copies of parts of XCGRID, YCGRID for each subdomain     40.31
 
-      IF (.NOT.ALLOCATED(XGRDGL)) ALLOCATE(XGRDGL(MXCGL,MYCGL))           40.31
-      IF (.NOT.ALLOCATED(YGRDGL)) ALLOCATE(YGRDGL(MXCGL,MYCGL))           40.31
-      XGRDGL = XCGRID                                                     40.31
-      YGRDGL = YCGRID                                                     40.31
-      DEALLOCATE(XCGRID,YCGRID)                                           40.31
-      ALLOCATE(XCGRID(MXC,MYC))                                           40.31
-      ALLOCATE(YCGRID(MXC,MYC))                                           40.31
-      DO IX = MXF, MXL                                                    40.31
-         DO IY = MYF, MYL                                                 40.31
-            XCGRID(IX-MXF+1,IY-MYF+1) = XGRDGL(IX,IY)                     40.31
-            YCGRID(IX-MXF+1,IY-MYF+1) = YGRDGL(IX,IY)                     40.31
-         END DO                                                           40.31
-      END DO                                                              40.31
+   IF (.NOT.ALLOCATED(XGRDGL)) ALLOCATE(XGRDGL(MXCGL,MYCGL))
+   IF (.NOT.ALLOCATED(YGRDGL)) ALLOCATE(YGRDGL(MXCGL,MYCGL))
+   XGRDGL = XCGRID
+   YGRDGL = YCGRID
+   DEALLOCATE(XCGRID,YCGRID)
+   ALLOCATE(XCGRID(MXC,MYC))
+   ALLOCATE(YCGRID(MXC,MYC))
+   DO IX = MXF, MXL
+      DO IY = MYF, MYL
+         XCGRID(IX-MXF+1,IY-MYF+1) = XGRDGL(IX,IY)
+         YCGRID(IX-MXF+1,IY-MYF+1) = YGRDGL(IX,IY)
+      END DO
+   END DO
 
 !     --- Computation of XCLMIN, XCLMAX, YCLMIN, YCLMAX                   40.41
 
-      XCLMIN =  1.E09
-      YCLMIN =  1.E09
-      XCLMAX = -1.E09
-      YCLMAX = -1.E09
-      DO IX = 1, MXC
-         DO IY = 1, MYC
-            IF (KGRPNT(IX,IY).GT.1) THEN
-               IF (XCGRID(IX,IY).LT.XCLMIN) XCLMIN = XCGRID(IX,IY)
-               IF (YCGRID(IX,IY).LT.YCLMIN) YCLMIN = YCGRID(IX,IY)
-               IF (XCGRID(IX,IY).GT.XCLMAX) XCLMAX = XCGRID(IX,IY)
-               IF (YCGRID(IX,IY).GT.YCLMAX) YCLMAX = YCGRID(IX,IY)
-            END IF
-         END DO
+   XCLMIN =  1.E09
+   YCLMIN =  1.E09
+   XCLMAX = -1.E09
+   YCLMAX = -1.E09
+   DO IX = 1, MXC
+      DO IY = 1, MYC
+         IF (KGRPNT(IX,IY).GT.1) THEN
+            IF (XCGRID(IX,IY).LT.XCLMIN) XCLMIN = XCGRID(IX,IY)
+            IF (YCGRID(IX,IY).LT.YCLMIN) YCLMIN = YCGRID(IX,IY)
+            IF (XCGRID(IX,IY).GT.XCLMAX) XCLMAX = XCGRID(IX,IY)
+            IF (YCGRID(IX,IY).GT.YCLMAX) YCLMAX = YCGRID(IX,IY)
+         END IF
       END DO
+   END DO
 
 !     --- Create copy of parts of KGRBGL for each subdomain -> KGRBND     40.31
 
-      IF ( NGRBND.GT.0 ) THEN                                             40.31
-         IF (PARLL) THEN
-            IARR = 0                                                      40.31
-            CALL CGBOUN ( KGRPNT, IARR )                                  40.31
-            IF(.NOT.ALLOCATED(KGRBND)) ALLOCATE(KGRBND(2*NGRBND))         40.31
-            IF (NGRBND.GT.0) CALL SWCOPI(IARR,KGRBND,2*NGRBND)            40.31
-         ELSE                                                             40.31
-            IF(.NOT.ALLOCATED(KGRBND)) ALLOCATE(KGRBND(2*NGRBND))         40.31
-            KGRBND = KGRBGL                                               40.31
-         END IF                                                           40.31
-      ELSE                                                                40.31
-         IF(.NOT.ALLOCATED(KGRBND)) ALLOCATE(KGRBND(0))                   40.31
-      END IF                                                              40.31
-      IF(ALLOCATED(IARR)) DEALLOCATE(IARR)                                40.31
+   IF ( NGRBND.GT.0 ) THEN
+      IF (PARLL) THEN
+         IARR = 0
+         CALL CGBOUN ( KGRPNT, IARR )
+         IF(.NOT.ALLOCATED(KGRBND)) ALLOCATE(KGRBND(2*NGRBND))
+         IF (NGRBND.GT.0) CALL SWCOPI(IARR,KGRBND,2*NGRBND)
+      ELSE
+         IF(.NOT.ALLOCATED(KGRBND)) ALLOCATE(KGRBND(2*NGRBND))
+         KGRBND = KGRBGL
+      END IF
+   ELSE
+      IF(.NOT.ALLOCATED(KGRBND)) ALLOCATE(KGRBND(0))
+   END IF
+   IF(ALLOCATED(IARR)) DEALLOCATE(IARR)
 
-!TIMG      CALL SWTSTO(212)                                                    40.31
-!JAC
+!TIMG   CALL SWTSTO(212)
+
 !JAC!     --- Colour subdomains with red, yellow, green and black             40.31
-!JAC
-!JAC      MCOLR = .FALSE.                                                     40.31
-!JAC!TIMG      CALL SWTSTA(215)                                                    40.31
-!JAC      CALL SWBLKCOL ( MCOLR, KGRPNT )                                     40.31
-!JAC!TIMG      CALL SWTSTO(215)                                                    40.31
-!JAC      IF (STPNOW()) RETURN                                                40.31
 
-      ISTAT = 0
-      IF(.NOT.ALLOCATED(AC2)) ALLOCATE(AC2(MDC,MSC,MCGRD),STAT=ISTAT)     40.41 40.31
-      IF ( ISTAT.NE.0 ) THEN                                              40.41
-         CHARS(1) = NUMSTR(ISTAT,RNAN,'(I6)')                             40.41
-         CALL TXPBLA(CHARS(1),IF1,IL1)                                    40.41
-         MSGSTR = 'Allocation problem: array AC2 and return code is '//   40.41
-     &            CHARS(1)(IF1:IL1)                                       40.41
-         CALL MSGERR ( 4, MSGSTR )                                        40.41
-         RETURN                                                           40.41
-      END IF                                                              40.41
-      AC2 = 0.                                                            40.31
-      LOGCOM(6) = .TRUE.
+!JAC   MCOLR = .FALSE.
+!JAC!TIMG   CALL SWTSTA(215)
+!JAC   CALL SWBLKCOL ( MCOLR, KGRPNT )
+!JAC!TIMG   CALL SWTSTO(215)
+!JAC   IF (STPNOW()) RETURN
+
+   ISTAT = 0
+   IF(.NOT.ALLOCATED(AC2)) ALLOCATE(AC2(MDC,MSC,MCGRD),STAT=ISTAT)
+   IF ( ISTAT.NE.0 ) THEN
+      CHARS(1) = NUMSTR(ISTAT,RNAN,'(I6)')
+      CALL TXPBLA(CHARS(1),IF1,IL1)
+      MSGSTR = 'Allocation problem: array AC2 and return code is '// &
+               CHARS(1)(IF1:IL1)
+      CALL MSGERR ( 4, MSGSTR )
+      RETURN
+   END IF
+   AC2 = 0.
+   LOGCOM(6) = .TRUE.
 !
 !     Note: piece of code w.r.t. defining COMPGRID has been               40.31
 !           moved to command CGRID in routine SWREAD!                     40.31
@@ -4995,27 +4995,27 @@
 !     --- the following arrays for unstructured grids are allocated       40.80
 !         as empty ones                                                   40.80
 !
-      IF ( .NOT.ALLOCATED(xcugrd) ) ALLOCATE(xcugrd(0))                   40.80
-      IF ( .NOT.ALLOCATED(ycugrd) ) ALLOCATE(ycugrd(0))                   40.80
-      IF ( .NOT.ALLOCATED( vmark) ) ALLOCATE( vmark(0))                   40.80
+   IF ( .NOT.ALLOCATED(xcugrd) ) ALLOCATE(xcugrd(0))
+   IF ( .NOT.ALLOCATED(ycugrd) ) ALLOCATE(ycugrd(0))
+   IF ( .NOT.ALLOCATED( vmark) ) ALLOCATE( vmark(0))
 !
-      RETURN
+   RETURN
 !     end of subroutine CGINIT
-      END
+END
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )                  40.31
+SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
 !                                                                      *
 !***********************************************************************
 !
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -5076,7 +5076,7 @@
 !     XCGRID: input  Coordinates of computational grid in x-direction     30.72
 !     YCGRID: input  Coordinates of computational grid in y-direction     30.72
 !
-      REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)                         30.72
+   REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
 !
 !  5. SUBROUTINES CALLING
 !
@@ -5113,17 +5113,17 @@
 !
 ! 10. SOURCE TEXT
 !
-      INTEGER     KGRPNT(MXC,MYC)
-      REAL        DEPTH(*)                                                40.00
-      LOGICAL     EQREAL                                                  40.00
-      SAVE IENT
-      DATA IENT/0/
-      CALL STRACE(IENT,'SWDIM')
+   INTEGER     KGRPNT(MXC,MYC)
+   REAL        DEPTH(*)
+   LOGICAL     EQREAL
+   SAVE IENT
+   DATA IENT/0/
+   CALL STRACE(IENT,'SWDIM')
 !
-      DO 62 IX = 1, MXC                                                   30.72
-        DO 61 IY = 1, MYC
+   DO 62 IX = 1, MXC
+      DO 61 IY = 1, MYC
 !         at start make each grid point invalid
-          KGRPNT(IX,IY) = 1
+         KGRPNT(IX,IY) = 1
 !
 !         If coordinates are valid (excluding exception values)           30.60
 !         Then If grid offset is not yet defined (LXOFFS = False)
@@ -5131,104 +5131,104 @@
 !                   Make LXOFFS = True
 !              Else Subtract offset from coordinates
 !
-          IF (EQREAL(XCGRID(IX,IY), EXCFLD(8))) THEN                      40.00
-            IF (.NOT. EQREAL(YCGRID(IX,IY), EXCFLD(9))) THEN              40.00
-              CALL MSGERR (2, 'incorrect grid coordinates')
-              WRITE (PRINTF, 811) XCGRID(IX,IY), YCGRID(IX,IY)            30.72
- 811          FORMAT (' X= ', E12.4, '  Y= ', E12.4)
+         IF (EQREAL(XCGRID(IX,IY), EXCFLD(8))) THEN
+            IF (.NOT. EQREAL(YCGRID(IX,IY), EXCFLD(9))) THEN
+               CALL MSGERR (2, 'incorrect grid coordinates')
+               WRITE (PRINTF, 811) XCGRID(IX,IY), YCGRID(IX,IY)
+811            FORMAT (' X= ', E12.4, '  Y= ', E12.4)
             ENDIF
-          ELSE
-            IF (EQREAL(YCGRID(IX,IY), EXCFLD(9))) THEN                    40.00
-              CALL MSGERR (2, 'incorrect grid coordinates')
-              WRITE (PRINTF, 811) XCGRID(IX,IY), YCGRID(IX,IY)            30.72
+         ELSE
+            IF (EQREAL(YCGRID(IX,IY), EXCFLD(9))) THEN
+               CALL MSGERR (2, 'incorrect grid coordinates')
+               WRITE (PRINTF, 811) XCGRID(IX,IY), YCGRID(IX,IY)
             ELSE
-              IF (OPTG.EQ.3) THEN                                         30.60
-                IF (.NOT. LXOFFS) THEN
-                  XOFFS  = XCGRID(IX,IY)                                  30.72
-                  YOFFS  = YCGRID(IX,IY)                                  30.72
-                  LXOFFS = .TRUE.
-                  XCGRID(IX,IY) = 0.
-                  YCGRID(IX,IY) = 0.
-                ELSE
-                  XCGRID(IX,IY) = REAL(XCGRID(IX,IY) - DBLE(XOFFS))       30.72
-                  YCGRID(IX,IY) = REAL(YCGRID(IX,IY) - DBLE(YOFFS))       30.72
-                ENDIF
-              ENDIF
-              XP = XCGRID(IX,IY)                                          30.72
-              YP = YCGRID(IX,IY)                                          30.72
+               IF (OPTG.EQ.3) THEN
+                  IF (.NOT. LXOFFS) THEN
+                     XOFFS  = XCGRID(IX,IY)
+                     YOFFS  = YCGRID(IX,IY)
+                     LXOFFS = .TRUE.
+                     XCGRID(IX,IY) = 0.
+                     YCGRID(IX,IY) = 0.
+                  ELSE
+                     XCGRID(IX,IY) = REAL(XCGRID(IX,IY) - DBLE(XOFFS))
+                     YCGRID(IX,IY) = REAL(YCGRID(IX,IY) - DBLE(YOFFS))
+                  ENDIF
+               ENDIF
+               XP = XCGRID(IX,IY)
+               YP = YCGRID(IX,IY)
 !               ***** compute bottom level *****
 !
-              DEP = SVALQI (XP, YP, 1, DEPTH, 1 ,IX ,IY)                  40.00
+               DEP = SVALQI (XP, YP, 1, DEPTH, 1 ,IX ,IY)
 !
 !             If bottom level is not an exception value
 !             Then assign a valid grid address to this grid point
 !                  increase MCGRD by 1
-              IF (.NOT. EQREAL(DEP, EXCFLD(1))) THEN                      40.00
-                MCGRD = MCGRD + 1                                         30.60
-                KGRPNT(IX,IY) = MCGRD                                     30.60
-              ENDIF
-              IF (ITEST .GE. 250 .OR. INTES .GE. 30)                      40.31 30.60
-     &          WRITE (PRINTF,30) IX, IY, XP, YP,
-     &                    DEP, KGRPNT(IX,IY)                              30.60
-  30          FORMAT(2(I3,1X),1X,3(F10.1,1X),5X,I5)
+               IF (.NOT. EQREAL(DEP, EXCFLD(1))) THEN
+                  MCGRD = MCGRD + 1
+                  KGRPNT(IX,IY) = MCGRD
+               ENDIF
+               IF (ITEST .GE. 250 .OR. INTES .GE. 30) &
+                  WRITE (PRINTF,30) IX, IY, XP, YP, &
+                           DEP, KGRPNT(IX,IY)
+30             FORMAT(2(I3,1X),1X,3(F10.1,1X),5X,I5)
             ENDIF
-          ENDIF                                                           30.60
-  61    CONTINUE                                                          30.72
-  62  CONTINUE                                                            30.72
+         ENDIF
+61    CONTINUE
+62 CONTINUE
 !
-      EXCFLD(8) = REAL(EXCFLD(8) - DBLE(XOFFS))
-      EXCFLD(9) = REAL(EXCFLD(9) - DBLE(YOFFS))
+   EXCFLD(8) = REAL(EXCFLD(8) - DBLE(XOFFS))
+   EXCFLD(9) = REAL(EXCFLD(9) - DBLE(YOFFS))
 !
-      IF (MCGRD.LE.1) CALL MSGERR (3, 'No valid grid points found')       30.60
-      IF (ITEST.GE.60) WRITE(PRINTF,*)
-     &    ' Offset values in SWDIM:', XOFFS, YOFFS,                       30.60
-     &    ' ; ', MCGRD-1, ' grid points'                                  30.60
+   IF (MCGRD.LE.1) CALL MSGERR (3, 'No valid grid points found')
+   IF (ITEST.GE.60) WRITE(PRINTF,*) &
+       ' Offset values in SWDIM:', XOFFS, YOFFS, &
+       ' ; ', MCGRD-1, ' grid points'
 !
 !     check geometric validity of the grid (all meshes must have same
 !     orientation when going around the mesh)
-      CALL CVCHEK (KGRPNT, XCGRID, YCGRID)                                30.72
+   CALL CVCHEK (KGRPNT, XCGRID, YCGRID)
 !
 !     *** Computation of XCGMIN, XCGMAX, YCGMIN, YCGMAX ***               40.03
-      XCGMIN =  1.E09                                                     40.00
-      YCGMIN =  1.E09
-      XCGMAX = -1.E09
-      YCGMAX = -1.E09
-      DO 60 IX = 1, MXC
-        DO 59 IY = 1, MYC                                                 30.72
-          IF (KGRPNT(IX,IY) .GT. 1) THEN
-            IF (XCGRID(IX,IY) .LT. XCGMIN) XCGMIN = XCGRID(IX,IY)         40.00
+   XCGMIN =  1.E09
+   YCGMIN =  1.E09
+   XCGMAX = -1.E09
+   YCGMAX = -1.E09
+   DO 60 IX = 1, MXC
+      DO 59 IY = 1, MYC
+         IF (KGRPNT(IX,IY) .GT. 1) THEN
+            IF (XCGRID(IX,IY) .LT. XCGMIN) XCGMIN = XCGRID(IX,IY)
             IF (YCGRID(IX,IY) .LT. YCGMIN) YCGMIN = YCGRID(IX,IY)
             IF (XCGRID(IX,IY) .GT. XCGMAX) XCGMAX = XCGRID(IX,IY)
             IF (YCGRID(IX,IY) .GT. YCGMAX) YCGMAX = YCGRID(IX,IY)
-          ENDIF
- 59     CONTINUE                                                          30.72
- 60   CONTINUE                                                            30.72
+         ENDIF
+59    CONTINUE
+60 CONTINUE
 !     *** Computation of xclen and yclen in a curvilinear grid case ***
-      IF (OPTG .EQ. 3) THEN                                               40.80 40.03
-        XCLEN = XCGMAX - XCGMIN
-        YCLEN = YCGMAX - YCGMIN
-      ENDIF
-      IF (ITEST .GE. 100) THEN
-        WRITE (PRINTF,*)' Min and Max X and Y from subr SWDIM',
-     &         XCGMIN+XOFFS, XCGMAX+XOFFS, YCGMIN+YOFFS, YCGMAX+YOFFS     40.00
-        WRITE (PRINTF,*)' Size in X and Y from subr SWDIM',
-     &         XCLEN, YCLEN
-      ENDIF
+   IF (OPTG .EQ. 3) THEN
+      XCLEN = XCGMAX - XCGMIN
+      YCLEN = YCGMAX - YCGMIN
+   ENDIF
+   IF (ITEST .GE. 100) THEN
+      WRITE (PRINTF,*)' Min and Max X and Y from subr SWDIM', &
+             XCGMIN+XOFFS, XCGMAX+XOFFS, YCGMIN+YOFFS, YCGMAX+YOFFS
+      WRITE (PRINTF,*)' Size in X and Y from subr SWDIM', &
+             XCLEN, YCLEN
+   ENDIF
 !
-      RETURN
+   RETURN
 ! * end of subroutine SWDIM *
-      END
+END
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE CGBOUN (KGRPNT, KGRBND)                                  40.04
+SUBROUTINE CGBOUN (KGRPNT, KGRBND)
 !                                                                      *
 !***********************************************************************
 
-      USE SWCOMM3                                                         40.41
-      USE OCPCOMM4                                                        40.41
-      USE M_PARALL                                                        40.31
+   USE SWCOMM3
+   USE OCPCOMM4
+   USE M_PARALL
 
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -5305,7 +5305,7 @@
 !                             (+ 2 extra zeros as area separator
 !                             for all separated areas)
 !
-      INTEGER KGRPNT(MXC,MYC), KGRBND(*)
+   INTEGER KGRPNT(MXC,MYC), KGRBND(*)
 !
 !  5. Parameter variables
 !
@@ -5331,10 +5331,10 @@
 !     SCANND        Array containing information whether point is scanned
 !
 !
-      INTEGER  ICGRD, IDIR, IENT, IXC, IXNEW, IXOLD
-      INTEGER  IYC, IYNEW, IYOLD
-      INTEGER  MCGRDNEW, MCGRDOLD, WNP
-      INTEGER, ALLOCATABLE :: KGRPNTNEW(:,:), SCANND(:)
+   INTEGER  ICGRD, IDIR, IENT, IXC, IXNEW, IXOLD
+   INTEGER  IYC, IYNEW, IYOLD
+   INTEGER  MCGRDNEW, MCGRDOLD, WNP
+   INTEGER, ALLOCATABLE :: KGRPNTNEW(:,:), SCANND(:)
 !
 !  8. Subroutines used
 !
@@ -5344,7 +5344,7 @@
 !     SEPARAREA
 !     MSGERR
 !
-      LOGICAL   PVALID, VALIDBP
+   LOGICAL   PVALID, VALIDBP
 !
 !  9. Subroutines calling
 !
@@ -5433,165 +5433,165 @@
 !
 ! 13. Source text
 !
-      SAVE      IENT
-      DATA      IENT /0/
-      CALL STRACE (IENT,'CGBOUN')
+   SAVE      IENT
+   DATA      IENT /0/
+   CALL STRACE (IENT,'CGBOUN')
 !
-      IF (ONED) THEN                                                      30.81
-        KGRBND(1) = -1                                                    40.13 30.81
-        KGRBND(2) = 1                                                     40.13 30.81
-        DO IXC = 1, MXC                                                   30.81
-          IF (KGRPNT(IXC,1).GT.1) THEN                                    30.81
-            KGRBND(1) = IXC                                               30.81
-            CYCLE                                                         30.81
-          END IF                                                          30.81
-        ENDDO                                                             30.81
-        IF (KGRBND(1) .LT. 0) THEN                                        40.13 30.81
-          CALL MSGERR(3,'No valid gridpoint defined')                     40.13 30.81
-        END IF                                                            40.13 30.81
-        KGRBND(3) = -1                                                    40.13 30.81
-        KGRBND(4) = 1                                                     40.13 30.81
-        DO IXC = MXC, 1, -1                                               30.81
-          IF (KGRPNT(IXC,1).GT.1) THEN                                    30.81
-            KGRBND(3) = IXC                                               30.81
-            CYCLE                                                         30.81
-          END IF                                                          30.81
-        ENDDO                                                             30.81
-        NGRBND = 2                                                        30.81
-      ELSE                                                                30.81
-        ALLOCATE(KGRPNTNEW(MXC,MYC))
-        ALLOCATE(SCANND(MCGRD))
-        NGRBND = 0
-        DO ICGRD = 1, MCGRD
-          SCANND(ICGRD) = 0
-        ENDDO
-        MCGRDOLD = MCGRD                                                  40.04
-        DO 90 IXC = 1, MXC
-          DO 80 IYC = 1, MYC
+   IF (ONED) THEN
+      KGRBND(1) = -1
+      KGRBND(2) = 1
+      DO IXC = 1, MXC
+         IF (KGRPNT(IXC,1).GT.1) THEN
+            KGRBND(1) = IXC
+            CYCLE
+         END IF
+      ENDDO
+      IF (KGRBND(1) .LT. 0) THEN
+         CALL MSGERR(3,'No valid gridpoint defined')
+      END IF
+      KGRBND(3) = -1
+      KGRBND(4) = 1
+      DO IXC = MXC, 1, -1
+         IF (KGRPNT(IXC,1).GT.1) THEN
+            KGRBND(3) = IXC
+            CYCLE
+         END IF
+      ENDDO
+      NGRBND = 2
+   ELSE
+      ALLOCATE(KGRPNTNEW(MXC,MYC))
+      ALLOCATE(SCANND(MCGRD))
+      NGRBND = 0
+      DO ICGRD = 1, MCGRD
+         SCANND(ICGRD) = 0
+      ENDDO
+      MCGRDOLD = MCGRD
+      DO 90 IXC = 1, MXC
+         DO 80 IYC = 1, MYC
             ICGRD = KGRPNT(IXC,IYC)
             IF (ICGRD.GT.1) THEN
 !             point with four wet neighbouring points which are all       40.04
 !             no valid boundary points is eliminated.                     40.04
-              IF ( NGRBGL.EQ.0 ) THEN                                     40.30
-                IF ((.NOT. VALIDBP(IXC,IYC,KGRPNT,WNP)).OR.               40.04
-     &             ((.NOT. VALIDBP(IXC-1,IYC,KGRPNT,WNP)).AND.            40.04
-     &              (.NOT. VALIDBP(IXC+1,IYC,KGRPNT,WNP)).AND.            40.04
-     &              (.NOT. VALIDBP(IXC,IYC-1,KGRPNT,WNP)).AND.            40.04
-     &              (.NOT. VALIDBP(IXC,IYC+1,KGRPNT,WNP)))) THEN          40.04
-                   KGRPNT(IXC,IYC) = 1                                    40.04
-                   MCGRD = MCGRD - 1                                      40.04
-                   SCANND(ICGRD) = 1                                      40.04
-                   CALL MSGERR (1,                                        40.04
-     &                          'Point removed from computational grid')  40.04
-                   WRITE(PRINTF,17)  IXC, IYC                             40.04
-  17               FORMAT ('Point with index (', I6, ',', I6,') was ',    40.04
-     &                     'removed from computational grid, because ',   40.04
-     &                     'it is part of a 1D configuration or 1D ',     40.04
-     &                     'connection.')                                 40.04
-                ENDIF                                                     40.04
-              END IF                                                      40.30
-              IF (SCANND(ICGRD).EQ.0) THEN
-                IF (.NOT. PVALID(IXC-1,IYC,KGRPNT).AND.                   40.04
-     &               VALIDBP(IXC,IYC,KGRPNT,WNP)) THEN                    40.04
-                  IXOLD = IXC
-                  IYOLD = IYC
-                  NGRBND = NGRBND + 1
-                  KGRBND(2*NGRBND-1) = IXOLD
-                  KGRBND(2*NGRBND)   = IYOLD
-                  SCANND(KGRPNT(IXOLD,IYOLD)) = 1
-                  IDIR = 4                                                40.04
-                  IF (WNP.EQ.3) THEN                                      40.04
-                    CALL SEPARAREA(IXNEW, IYNEW, KGRPNT,IDIR)             40.04
-                  ENDIF                                                   40.04
-                  DO
-                    IF (IDIR.EQ.1) THEN                                   40.04
-                      IXNEW = IXOLD + 1                                   40.04
-                      IYNEW = IYOLD                                       40.04
-                    ELSE IF (IDIR.EQ.2) THEN                              40.04
-                      IXNEW = IXOLD                                       40.04
-                      IYNEW = IYOLD + 1                                   40.04
-                    ELSE IF (IDIR.EQ.3) THEN                              40.04
-                      IXNEW = IXOLD - 1                                   40.04
-                      IYNEW = IYOLD                                       40.04
-                    ELSE IF (IDIR.EQ.4) THEN                              40.04
-                      IXNEW = IXOLD                                       40.04
-                      IYNEW = IYOLD - 1                                   40.04
-                    ENDIF                                                 40.04
-                    IF (PVALID(IXNEW,IYNEW,KGRPNT) .AND.                  40.04
-     &                  VALIDBP(IXNEW,IYNEW,KGRPNT,WNP) ) THEN            40.04
-                      IF (SCANND(KGRPNT(IXNEW,IYNEW)) .GE. 1) GOTO 70
-                      NGRBND = NGRBND + 1                                 40.04
-                      KGRBND(2*NGRBND-1) = IXNEW                          40.04
-                      KGRBND(2*NGRBND)   = IYNEW                          40.04
-                      SCANND(KGRPNT(IXNEW,IYNEW)) = 1
-                      IXOLD = IXNEW
-                      IYOLD = IYNEW
-                      IDIR  = IDIR - 1
-                      IF (WNP.EQ.3) THEN                                  40.04
-                        CALL SEPARAREA(IXNEW, IYNEW, KGRPNT,IDIR)         40.04
-                      ENDIF                                               40.04
-                      IF (IDIR.EQ.0) IDIR = 4                             40.04
-                    ELSE
-                      IDIR  = IDIR + 1
-                      IF (.NOT. VALIDBP(IXNEW,IYNEW,KGRPNT,WNP).AND.      40.04
-     &                    PVALID(IXNEW,IYNEW,KGRPNT) .AND.                40.30 40.04
-     &                    NGRBGL.EQ.0 ) THEN                              40.30 40.04
-                        KGRPNT(IXNEW,IYNEW) = 1                           40.04
-                        MCGRD = MCGRD - 1                                 40.04
-                        CALL MSGERR (1,                                   40.04
-     &                          'Point removed from computational grid')  40.04
-                        WRITE(PRINTF,18) IXNEW, IYNEW                     40.04
-  18                    FORMAT ('Point with index (', I6 ,',',  I6,') ',  40.04
-     &                          'was removed from computational grid ',   40.04
-     &                          'because it is an isolated wet point ',   40.04
-     &                          'or is part of a 1D configuration or ',   40.04
-     &                          '1D connection.')                         40.04
-                        SCANND(KGRPNT(IXNEW,IYNEW)) = 1                   40.04
-                      END IF                                              40.04
-                      IF (IDIR.EQ.5) IDIR = 1                             40.04
-                    ENDIF
-                  ENDDO
+               IF ( NGRBGL.EQ.0 ) THEN
+                  IF ((.NOT. VALIDBP(IXC,IYC,KGRPNT,WNP)).OR. &
+                     ((.NOT. VALIDBP(IXC-1,IYC,KGRPNT,WNP)).AND. &
+                      (.NOT. VALIDBP(IXC+1,IYC,KGRPNT,WNP)).AND. &
+                      (.NOT. VALIDBP(IXC,IYC-1,KGRPNT,WNP)).AND. &
+                      (.NOT. VALIDBP(IXC,IYC+1,KGRPNT,WNP)))) THEN
+                     KGRPNT(IXC,IYC) = 1
+                     MCGRD = MCGRD - 1
+                     SCANND(ICGRD) = 1
+                     CALL MSGERR (1, &
+                                  'Point removed from computational grid')
+                     WRITE(PRINTF,17)  IXC, IYC
+17                   FORMAT ('Point with index (', I6, ',', I6,') was ', &
+                             'removed from computational grid, because ', &
+                             'it is part of a 1D configuration or 1D ', &
+                             'connection.')
+                  ENDIF
+               END IF
+               IF (SCANND(ICGRD).EQ.0) THEN
+                  IF (.NOT. PVALID(IXC-1,IYC,KGRPNT).AND. &
+                       VALIDBP(IXC,IYC,KGRPNT,WNP)) THEN
+                     IXOLD = IXC
+                     IYOLD = IYC
+                     NGRBND = NGRBND + 1
+                     KGRBND(2*NGRBND-1) = IXOLD
+                     KGRBND(2*NGRBND)   = IYOLD
+                     SCANND(KGRPNT(IXOLD,IYOLD)) = 1
+                     IDIR = 4
+                     IF (WNP.EQ.3) THEN
+                        CALL SEPARAREA(IXNEW, IYNEW, KGRPNT,IDIR)
+                     ENDIF
+                     DO
+                        IF (IDIR.EQ.1) THEN
+                           IXNEW = IXOLD + 1
+                           IYNEW = IYOLD
+                        ELSE IF (IDIR.EQ.2) THEN
+                           IXNEW = IXOLD
+                           IYNEW = IYOLD + 1
+                        ELSE IF (IDIR.EQ.3) THEN
+                           IXNEW = IXOLD - 1
+                           IYNEW = IYOLD
+                        ELSE IF (IDIR.EQ.4) THEN
+                           IXNEW = IXOLD
+                           IYNEW = IYOLD - 1
+                        ENDIF
+                        IF (PVALID(IXNEW,IYNEW,KGRPNT) .AND. &
+                            VALIDBP(IXNEW,IYNEW,KGRPNT,WNP) ) THEN
+                           IF (SCANND(KGRPNT(IXNEW,IYNEW)) .GE. 1) GOTO 70
+                           NGRBND = NGRBND + 1
+                           KGRBND(2*NGRBND-1) = IXNEW
+                           KGRBND(2*NGRBND)   = IYNEW
+                           SCANND(KGRPNT(IXNEW,IYNEW)) = 1
+                           IXOLD = IXNEW
+                           IYOLD = IYNEW
+                           IDIR  = IDIR - 1
+                           IF (WNP.EQ.3) THEN
+                              CALL SEPARAREA(IXNEW, IYNEW, KGRPNT,IDIR)
+                           ENDIF
+                           IF (IDIR.EQ.0) IDIR = 4
+                        ELSE
+                           IDIR  = IDIR + 1
+                           IF (.NOT. VALIDBP(IXNEW,IYNEW,KGRPNT,WNP).AND. &
+                               PVALID(IXNEW,IYNEW,KGRPNT) .AND. &
+                               NGRBGL.EQ.0 ) THEN
+                              KGRPNT(IXNEW,IYNEW) = 1
+                              MCGRD = MCGRD - 1
+                              CALL MSGERR (1, &
+                                      'Point removed from computational grid')
+                              WRITE(PRINTF,18) IXNEW, IYNEW
+18                            FORMAT ('Point with index (', I6 ,',',  I6,') ', &
+                                      'was removed from computational grid ', &
+                                      'because it is an isolated wet point ', &
+                                      'or is part of a 1D configuration or ', &
+                                      '1D connection.')
+                              SCANND(KGRPNT(IXNEW,IYNEW)) = 1
+                           END IF
+                           IF (IDIR.EQ.5) IDIR = 1
+                        ENDIF
+                     ENDDO
 !                 the following indicates that curve is closed            40.04
-  70              NGRBND = NGRBND + 1
-                  KGRBND(2*NGRBND-1) = 0
-                  KGRBND(2*NGRBND)   = 0
-                ENDIF
-              ENDIF
+70                   NGRBND = NGRBND + 1
+                     KGRBND(2*NGRBND-1) = 0
+                     KGRBND(2*NGRBND)   = 0
+                  ENDIF
+               ENDIF
             ENDIF
-  80      ENDDO
-  90    ENDDO
-        IF (MCGRD.NE.MCGRDOLD) THEN                                       40.04
-          MCGRDNEW = 1                                                    40.04
-          DO IXC = 1, MXC                                                 40.04
-            DO IYC = 1, MYC                                               40.04
-              IF (KGRPNT(IXC,IYC).NE.1) THEN                              40.04
-                MCGRDNEW = MCGRDNEW + 1                                   40.04
-                KGRPNTNEW(IXC,IYC) = MCGRDNEW                             40.04
-              ELSE                                                        40.04
-                KGRPNTNEW(IXC,IYC) = 1                                    40.04
-              END IF                                                      40.04
-            END DO                                                        40.04
-          END DO                                                          40.04
-          MCGRD = MCGRDNEW                                                40.04
-          DO IXC = 1, MXC                                                 40.04
-            DO IYC = 1, MYC                                               40.04
-              KGRPNT(IXC,IYC) = KGRPNTNEW(IXC,IYC)                        40.04
-            END DO                                                        40.04
-          END DO                                                          40.04
-        ENDIF                                                             40.04
-        DEALLOCATE(KGRPNTNEW,SCANND)
-      END IF                                                              30.81
-      RETURN
-      END
+80       ENDDO
+90    ENDDO
+      IF (MCGRD.NE.MCGRDOLD) THEN
+         MCGRDNEW = 1
+         DO IXC = 1, MXC
+            DO IYC = 1, MYC
+               IF (KGRPNT(IXC,IYC).NE.1) THEN
+                  MCGRDNEW = MCGRDNEW + 1
+                  KGRPNTNEW(IXC,IYC) = MCGRDNEW
+               ELSE
+                  KGRPNTNEW(IXC,IYC) = 1
+               END IF
+            END DO
+         END DO
+         MCGRD = MCGRDNEW
+         DO IXC = 1, MXC
+            DO IYC = 1, MYC
+               KGRPNT(IXC,IYC) = KGRPNTNEW(IXC,IYC)
+            END DO
+         END DO
+      ENDIF
+      DEALLOCATE(KGRPNTNEW,SCANND)
+   END IF
+   RETURN
+END
 !***********************************************************************
 !                                                                      *
-      LOGICAL FUNCTION PVALID (IX, IY, KGRPNT)
+LOGICAL FUNCTION PVALID (IX, IY, KGRPNT)
 !                                                                      *
 !***********************************************************************
 
-      USE SWCOMM3                                                         40.41
+   USE SWCOMM3
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -5642,7 +5642,7 @@
 !     IX, IY    input    x- and y-index of point under consideration
 !     KGRPNT    input    indirect addresses for grid points
 !
-      INTEGER IX, IY, KGRPNT(MXC,MYC)
+   INTEGER IX, IY, KGRPNT(MXC,MYC)
 !
 !  5. Parameter variables
 !
@@ -5650,7 +5650,7 @@
 !
 !     IENT    number of entries of this subroutine
 !
-      INTEGER ICGRD, IENT
+   INTEGER ICGRD, IENT
 !
 !  8. Subroutines used
 !
@@ -5674,32 +5674,32 @@
 ! 13. Source text
 !************************************************************************
 !
-      SAVE       IENT
-      DATA       IENT /0/
-      CALL STRACE (IENT, 'PVALID')
+   SAVE       IENT
+   DATA       IENT /0/
+   CALL STRACE (IENT, 'PVALID')
 !
-      PVALID = .TRUE.
-      IF (IX.LT.1)   PVALID = .FALSE.
-      IF (IY.LT.1)   PVALID = .FALSE.
-      IF (IX.GT.MXC) PVALID = .FALSE.
-      IF (IY.GT.MYC) PVALID = .FALSE.
-      IF (PVALID) THEN
-        ICGRD = KGRPNT(IX,IY)
-        IF (ICGRD.LE.1) PVALID = .FALSE.
-      ENDIF
-      RETURN
-      END
+   PVALID = .TRUE.
+   IF (IX.LT.1)   PVALID = .FALSE.
+   IF (IY.LT.1)   PVALID = .FALSE.
+   IF (IX.GT.MXC) PVALID = .FALSE.
+   IF (IY.GT.MYC) PVALID = .FALSE.
+   IF (PVALID) THEN
+      ICGRD = KGRPNT(IX,IY)
+      IF (ICGRD.LE.1) PVALID = .FALSE.
+   ENDIF
+   RETURN
+END
 !
 !***********************************************************************
 !                                                                      *
-      LOGICAL FUNCTION VALIDBP (IX, IY, KGRPNT,WNP)
+LOGICAL FUNCTION VALIDBP (IX, IY, KGRPNT,WNP)
 !                                                                      *
 !***********************************************************************
 !
-      USE SWCOMM3                                                         40.41
-      USE OCPCOMM4                                                        40.41
+   USE SWCOMM3
+   USE OCPCOMM4
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -5755,7 +5755,7 @@
 !     KGRPNT    input    indirect addresses for grid points
 !     WNP       output   number of wet neighbouring points
 !
-      INTEGER IX, IY, KGRPNT(MXC,MYC), WNP
+   INTEGER IX, IY, KGRPNT(MXC,MYC), WNP
 !
 !  5. Parameter variables
 !
@@ -5763,13 +5763,13 @@
 !
 !     IENT    number of entries of this subroutine
 !
-      INTEGER IENT
+   INTEGER IENT
 !
 !  8. Subroutines used
 !
 !     Function PVALID
 !
-      LOGICAL PVALID
+   LOGICAL PVALID
 !
 !  9. Subroutines calling
 !
@@ -5811,65 +5811,65 @@
 !
 !***********************************************************************
 !
-      SAVE       IENT
-      DATA       IENT /0/
-      CALL STRACE (IENT, 'VALIDBP')
+   SAVE       IENT
+   DATA       IENT /0/
+   CALL STRACE (IENT, 'VALIDBP')
 !
-      VALIDBP = .TRUE.
+   VALIDBP = .TRUE.
 !      IF (PVALID(IX,IY,KGRPNT)) THEN
-        WNP = 0
-        IF (PVALID(IX-1,IY,KGRPNT)) WNP = WNP +1
-        IF (PVALID(IX,IY-1,KGRPNT)) WNP = WNP +1
-        IF (PVALID(IX+1,IY,KGRPNT)) WNP = WNP +1
-        IF (PVALID(IX,IY+1,KGRPNT)) WNP = WNP +1
+   WNP = 0
+   IF (PVALID(IX-1,IY,KGRPNT)) WNP = WNP +1
+   IF (PVALID(IX,IY-1,KGRPNT)) WNP = WNP +1
+   IF (PVALID(IX+1,IY,KGRPNT)) WNP = WNP +1
+   IF (PVALID(IX,IY+1,KGRPNT)) WNP = WNP +1
 !         isolated point
-        IF (WNP.EQ.0) VALIDBP = .FALSE.
+   IF (WNP.EQ.0) VALIDBP = .FALSE.
 !         point with one valid (wet) neighbouring grid point
-        IF (WNP.EQ.1) VALIDBP = .FALSE.
+   IF (WNP.EQ.1) VALIDBP = .FALSE.
 !
 !         neighbouring points on straight line (i.e. in fact 1D)
-        IF ((WNP.EQ.2) .AND.(
-     &      (PVALID(IX,IY-1,KGRPNT).AND.PVALID(IX,IY+1,KGRPNT)) .OR.
-     &      (PVALID(IX-1,IY,KGRPNT).AND.PVALID(IX+1,IY,KGRPNT)) .OR.
+   IF ((WNP.EQ.2) .AND.( &
+       (PVALID(IX,IY-1,KGRPNT).AND.PVALID(IX,IY+1,KGRPNT)) .OR. &
+       (PVALID(IX-1,IY,KGRPNT).AND.PVALID(IX+1,IY,KGRPNT)) .OR. &
 !         neighbouring points make angle but no wet point 'between' them
-     &      (PVALID(IX-1,IY,KGRPNT).AND.PVALID(IX,IY+1,KGRPNT) .AND.
-     &       .NOT. PVALID(IX-1,IY+1,KGRPNT)) .OR.
-     &      (PVALID(IX-1,IY,KGRPNT).AND.PVALID(IX,IY-1,KGRPNT) .AND.
-     &       .NOT. PVALID(IX-1,IY-1,KGRPNT)) .OR.
-     &      (PVALID(IX+1,IY,KGRPNT).AND.PVALID(IX,IY-1,KGRPNT) .AND.
-     &       .NOT. PVALID(IX+1,IY-1,KGRPNT)) .OR.
-     &      (PVALID(IX+1,IY,KGRPNT).AND.PVALID(IX,IY+1,KGRPNT) .AND.
-     &       .NOT. PVALID(IX+1,IY+1,KGRPNT)) )  )  VALIDBP = .FALSE.
+       (PVALID(IX-1,IY,KGRPNT).AND.PVALID(IX,IY+1,KGRPNT) .AND. &
+        .NOT. PVALID(IX-1,IY+1,KGRPNT)) .OR. &
+       (PVALID(IX-1,IY,KGRPNT).AND.PVALID(IX,IY-1,KGRPNT) .AND. &
+        .NOT. PVALID(IX-1,IY-1,KGRPNT)) .OR. &
+       (PVALID(IX+1,IY,KGRPNT).AND.PVALID(IX,IY-1,KGRPNT) .AND. &
+        .NOT. PVALID(IX+1,IY-1,KGRPNT)) .OR. &
+       (PVALID(IX+1,IY,KGRPNT).AND.PVALID(IX,IY+1,KGRPNT) .AND. &
+        .NOT. PVALID(IX+1,IY+1,KGRPNT)) )  )  VALIDBP = .FALSE.
 !
 !        point (IX,IY) is 1D connection between areas or isolated
 !        centre point of 'half plus'
-        IF ((WNP.EQ.3) .AND.(
-     &       (.NOT.PVALID(IX-1,IY,KGRPNT) .AND.
-     &        .NOT.PVALID(IX+1,IY-1,KGRPNT).AND.
-     &        .NOT.PVALID(IX+1,IY+1,KGRPNT)).OR.
-     &       (.NOT.PVALID(IX+1,IY,KGRPNT) .AND.
-     &        .NOT.PVALID(IX-1,IY-1,KGRPNT).AND.
-     &        .NOT.PVALID(IX-1,IY+1,KGRPNT)).OR.
-     &       (.NOT.PVALID(IX,IY-1,KGRPNT) .AND.
-     &        .NOT.PVALID(IX-1,IY+1,KGRPNT).AND.
-     &        .NOT.PVALID(IX+1,IY+1,KGRPNT)).OR.
-     &       (.NOT.PVALID(IX,IY+1,KGRPNT) .AND.
-     &        .NOT.PVALID(IX-1,IY-1,KGRPNT).AND.
-     &        .NOT.PVALID(IX+1,IY-1,KGRPNT)) )  )  VALIDBP = .FALSE.
+   IF ((WNP.EQ.3) .AND.( &
+        (.NOT.PVALID(IX-1,IY,KGRPNT) .AND. &
+         .NOT.PVALID(IX+1,IY-1,KGRPNT).AND. &
+         .NOT.PVALID(IX+1,IY+1,KGRPNT)).OR. &
+        (.NOT.PVALID(IX+1,IY,KGRPNT) .AND. &
+         .NOT.PVALID(IX-1,IY-1,KGRPNT).AND. &
+         .NOT.PVALID(IX-1,IY+1,KGRPNT)).OR. &
+        (.NOT.PVALID(IX,IY-1,KGRPNT) .AND. &
+         .NOT.PVALID(IX-1,IY+1,KGRPNT).AND. &
+         .NOT.PVALID(IX+1,IY+1,KGRPNT)).OR. &
+        (.NOT.PVALID(IX,IY+1,KGRPNT) .AND. &
+         .NOT.PVALID(IX-1,IY-1,KGRPNT).AND. &
+         .NOT.PVALID(IX+1,IY-1,KGRPNT)) )  )  VALIDBP = .FALSE.
 !
-      RETURN
-      END
+   RETURN
+END
 !
 !*******************************************************************
 !                                                                  *
-      SUBROUTINE SEPARAREA(IX, IY, KGRPNT,IDIR)
+SUBROUTINE SEPARAREA(IX, IY, KGRPNT,IDIR)
 !                                                                  *
 !*******************************************************************
 !
-      USE SWCOMM3                                                         40.41
-      USE OCPCOMM4                                                        40.41
+   USE SWCOMM3
+   USE OCPCOMM4
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -5932,7 +5932,7 @@
 !     KGRPNT    input          indirect addresses for grid points
 !     IDIR      input/output   index for direction (see subroutine CGBOUN)
 !
-      INTEGER IX, IY, KGRPNT(MXC,MYC), IDIR
+   INTEGER IX, IY, KGRPNT(MXC,MYC), IDIR
 !
 !  5. Parameter variables
 !
@@ -5940,13 +5940,13 @@
 !
 !     IENT    number of entries of this subroutine
 !
-      INTEGER IENT
+   INTEGER IENT
 !
 !  8. Subroutines used
 !
 !     Function PVALID
 !
-      LOGICAL PVALID
+   LOGICAL PVALID
 !
 !  9. Subroutines calling
 !
@@ -5994,50 +5994,50 @@
 !
 !***********************************************************************
 !
-      DATA      IENT /0/
-      CALL STRACE (IENT,'SEPARAREA')
+   DATA      IENT /0/
+   CALL STRACE (IENT,'SEPARAREA')
 !
 !     In case there are 3 wet neighbouring points and validbp(ix,iy,.)
 !
-      IF(.NOT.PVALID(IX-1,IY+1,KGRPNT) .AND.
-     &    .NOT.PVALID(IX,IY-1,KGRPNT)) IDIR = 1
-      IF(.NOT.PVALID(IX-1,IY-1,KGRPNT) .AND.
-     &    .NOT.PVALID(IX+1,IY,KGRPNT)) IDIR = 2
-      IF(.NOT.PVALID(IX+1,IY-1,KGRPNT) .AND.
-     &    .NOT.PVALID(IX,IY+1,KGRPNT)) IDIR = 3
-      IF(.NOT.PVALID(IX+1,IY+1,KGRPNT) .AND.
-     &    .NOT.PVALID(IX-1,IY,KGRPNT)) IDIR = 4
+   IF(.NOT.PVALID(IX-1,IY+1,KGRPNT) .AND. &
+       .NOT.PVALID(IX,IY-1,KGRPNT)) IDIR = 1
+   IF(.NOT.PVALID(IX-1,IY-1,KGRPNT) .AND. &
+       .NOT.PVALID(IX+1,IY,KGRPNT)) IDIR = 2
+   IF(.NOT.PVALID(IX+1,IY-1,KGRPNT) .AND. &
+       .NOT.PVALID(IX,IY+1,KGRPNT)) IDIR = 3
+   IF(.NOT.PVALID(IX+1,IY+1,KGRPNT) .AND. &
+       .NOT.PVALID(IX-1,IY,KGRPNT)) IDIR = 4
 !
 !     mirrored situation
-      IF(.NOT.PVALID(IX-1,IY-1,KGRPNT) .AND.
-     &    .NOT.PVALID(IX,IY+1,KGRPNT)) IDIR = 4
-      IF(.NOT.PVALID(IX+1,IY-1,KGRPNT) .AND.
-     &    .NOT.PVALID(IX-1,IY,KGRPNT)) IDIR = 1
-      IF(.NOT.PVALID(IX+1,IY+1,KGRPNT) .AND.
-     &    .NOT.PVALID(IX,IY-1,KGRPNT)) IDIR = 2
-      IF(.NOT.PVALID(IX-1,IY+1,KGRPNT) .AND.
-     &    .NOT.PVALID(IX+1,IY,KGRPNT)) IDIR = 3
+   IF(.NOT.PVALID(IX-1,IY-1,KGRPNT) .AND. &
+       .NOT.PVALID(IX,IY+1,KGRPNT)) IDIR = 4
+   IF(.NOT.PVALID(IX+1,IY-1,KGRPNT) .AND. &
+       .NOT.PVALID(IX-1,IY,KGRPNT)) IDIR = 1
+   IF(.NOT.PVALID(IX+1,IY+1,KGRPNT) .AND. &
+       .NOT.PVALID(IX,IY-1,KGRPNT)) IDIR = 2
+   IF(.NOT.PVALID(IX-1,IY+1,KGRPNT) .AND. &
+       .NOT.PVALID(IX+1,IY,KGRPNT)) IDIR = 3
 !
-      RETURN
-      END
+   RETURN
+END
 !
 !*******************************************************************
 !                                                                  *
-      SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )                    40.80 40.31
+SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
 !                                                                  *
 !*******************************************************************
 !
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
-      USE TIMECOMM                                                        40.41
-      USE M_PARALL                                                        40.31
-      USE SwanGriddata                                                    40.80
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
+   USE TIMECOMM
+   USE M_PARALL
+   USE SwanGriddata
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -6119,30 +6119,30 @@
 !             (*,6); sine^2 of spectral directions                        30.82
 ! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
 !
-      REAL    SPCDIR(MDC,6)                                               30.82
-      REAL    SPCSIG(MSC)                                                 30.72
+   REAL    SPCDIR(MDC,6)
+   REAL    SPCSIG(MSC)
 !
 !  8. Subroutines used
 !
-      LOGICAL :: STPNOW, EQCSTR                                           40.03
+   LOGICAL :: STPNOW, EQCSTR
 !
 ! 13. Source text
 !
 !
-      INTEGER    KGRPNT(MXC,MYC)                                          40.00
-      INTEGER JXMAX, JYMAX, NPTOT                                         40.80 40.62
-      REAL       AC2(MDC,MSC,MCGRD)                                       40.31
-      LOGICAL SINGLEHOT, PTNSUBGRD                                        40.62
-      LOGICAL    KEYWIS, LERR                                             40.31 40.00
-      CHARACTER  RLINE *80                                                40.00
-      CHARACTER  RPROJID*16, RPROJNR*4, RVERTXT*20, RCHTIME*20            41.42
-      INTEGER IID, IUNITAC                                                40.41
-      REAL    ACTMP(MDC), DIRTMP(MDC), ACLOC(MDC,MSC)                     41.42 40.41
-      LOGICAL EQREAL                                                      40.41
+   INTEGER    KGRPNT(MXC,MYC)
+   INTEGER JXMAX, JYMAX, NPTOT
+   REAL       AC2(MDC,MSC,MCGRD)
+   LOGICAL SINGLEHOT, PTNSUBGRD
+   LOGICAL    KEYWIS, LERR
+   CHARACTER  RLINE *80
+   CHARACTER  RPROJID*16, RPROJNR*4, RVERTXT*20, RCHTIME*20
+   INTEGER IID, IUNITAC
+   REAL    ACTMP(MDC), DIRTMP(MDC), ACLOC(MDC,MSC)
+   LOGICAL EQREAL
 !
-      SAVE       IENT
-      DATA       IENT /0/
-      CALL STRACE (IENT, 'INITVA')                                        40.00
+   SAVE       IENT
+   DATA       IENT /0/
+   CALL STRACE (IENT, 'INITVA')
 !
 !     ------------------------------------------------------------------
 !
@@ -6163,475 +6163,475 @@
 !
 ! ============================================================
 !
-      CALL IGNORE ('COND')
-      LERR =  .FALSE.                                                     40.00
+   CALL IGNORE ('COND')
+   LERR =  .FALSE.
 !     error message removed because MODE is not required any more,        40.13
 !     and INIT can be useful also in stationary mode                      40.13
-      CALL INKEYW ('STA', 'DEF')
-      IF (KEYWIS('PAR')) THEN
+   CALL INKEYW ('STA', 'DEF')
+   IF (KEYWIS('PAR')) THEN
 !       initial state defined by wave parameters
-        IF (MXC.LE.0 .AND. OPTG.NE.5) THEN                                40.80
-          CALL MSGERR (2,
-     &        'command INIT should follow CGRID')                         40.80
-          LERR = .TRUE.
-        ENDIF
-        IF (MCGRD .LE. 1 .AND. nverts.LE.0) THEN                          40.80
-          CALL MSGERR (2,
-     &        'command INIT should follow READ BOT or READ UNSTRUC')      40.80
-          LERR = .TRUE.
-        ENDIF
-        ICOND = 2
-        CALL INREAL ('HSIG', SPPARM(1), 'REQ', 0.)
-        CALL INKEYW ('STA', '    ')                                       40.00
-        IF (KEYWIS('MEAN')) THEN
-          IF (FSHAPE.GT.0) FSHAPE=-FSHAPE
-        ELSE IF (KEYWIS('PEAK')) THEN                                     40.00
-          IF (FSHAPE.LT.0) FSHAPE=-FSHAPE                                 40.00
-        ENDIF
-        CALL INREAL('PER', SPPARM(2), 'REQ', 0.)
-        IF (SPPARM(2).LE.0.) CALL MSGERR (2, 'Period must be >0')
-        IF (SPPARM(2).GT.PI2/SPCSIG(1)) THEN
-          CALL MSGERR (2,
-     &          'Inc. freq. lower than lowest spectral freq.')
-          WRITE(PRINTF,11) 1./SPPARM(2),' < ',SPCSIG(1)/PI2,
-     &                     ' lowest'
-        ENDIF
-        IF (SPPARM(2).LT.PI2/SPCSIG(MSC)) THEN
-          CALL MSGERR (2,
-     &          'Inc. freq. higher than highest spectral freq.')
-          WRITE(PRINTF,11) 1./SPPARM(2),' > ',SPCSIG(MSC)/PI2,
-     &                     'highest'
-        ENDIF
- 11     FORMAT(' Inc. freq. = ',F9.5, A3, F9.5, '=',A7,' freq')
-        CALL INREAL('DIR',  SPPARM(3), 'REQ', 0.)
-        IF (DSHAPE.EQ.1) THEN
-          CALL INREAL('DD', SPPARM(4), 'STA', 30.)
-        ELSE
-          CALL INREAL('DD', SPPARM(4), 'STA', 2.)
-        ENDIF
+      IF (MXC.LE.0 .AND. OPTG.NE.5) THEN
+         CALL MSGERR (2, &
+             'command INIT should follow CGRID')
+         LERR = .TRUE.
+      ENDIF
+      IF (MCGRD .LE. 1 .AND. nverts.LE.0) THEN
+         CALL MSGERR (2, &
+             'command INIT should follow READ BOT or READ UNSTRUC')
+         LERR = .TRUE.
+      ENDIF
+      ICOND = 2
+      CALL INREAL ('HSIG', SPPARM(1), 'REQ', 0.)
+      CALL INKEYW ('STA', '    ')
+      IF (KEYWIS('MEAN')) THEN
+         IF (FSHAPE.GT.0) FSHAPE=-FSHAPE
+      ELSE IF (KEYWIS('PEAK')) THEN
+         IF (FSHAPE.LT.0) FSHAPE=-FSHAPE
+      ENDIF
+      CALL INREAL('PER', SPPARM(2), 'REQ', 0.)
+      IF (SPPARM(2).LE.0.) CALL MSGERR (2, 'Period must be >0')
+      IF (SPPARM(2).GT.PI2/SPCSIG(1)) THEN
+         CALL MSGERR (2, &
+               'Inc. freq. lower than lowest spectral freq.')
+         WRITE(PRINTF,11) 1./SPPARM(2),' < ',SPCSIG(1)/PI2, &
+                          ' lowest'
+      ENDIF
+      IF (SPPARM(2).LT.PI2/SPCSIG(MSC)) THEN
+         CALL MSGERR (2, &
+               'Inc. freq. higher than highest spectral freq.')
+         WRITE(PRINTF,11) 1./SPPARM(2),' > ',SPCSIG(MSC)/PI2, &
+                          'highest'
+      ENDIF
+11    FORMAT(' Inc. freq. = ',F9.5, A3, F9.5, '=',A7,' freq')
+      CALL INREAL('DIR',  SPPARM(3), 'REQ', 0.)
+      IF (DSHAPE.EQ.1) THEN
+         CALL INREAL('DD', SPPARM(4), 'STA', 30.)
+      ELSE
+         CALL INREAL('DD', SPPARM(4), 'STA', 2.)
+      ENDIF
 !       give boundaries of region where the initial condition applies     40.03
-        IF (OPTG.NE.5) THEN                                               40.80
-           CALL ININTG ('IX1', IX1, 'STA', 0)                             40.03
-           CALL ININTG ('IX2', IX2, 'STA', MXC-1)                         40.03
-           CALL ININTG ('IY1', IY1, 'STA', 0)                             40.03
-           CALL ININTG ('IY2', IY2, 'STA', MYC-1)                         40.03
-        ENDIF                                                             40.80
-        IF (.NOT.LERR) THEN
-          CALL SSHAPE (AC2(1,1,1), SPCSIG, SPCDIR, FSHAPE, DSHAPE)
+      IF (OPTG.NE.5) THEN
+         CALL ININTG ('IX1', IX1, 'STA', 0)
+         CALL ININTG ('IX2', IX2, 'STA', MXC-1)
+         CALL ININTG ('IY1', IY1, 'STA', 0)
+         CALL ININTG ('IY2', IY2, 'STA', MYC-1)
+      ENDIF
+      IF (.NOT.LERR) THEN
+         CALL SSHAPE (AC2(1,1,1), SPCSIG, SPCDIR, FSHAPE, DSHAPE)
 !         copy computed spectrum to all internal grid points
-          IF (OPTG.NE.5) THEN                                             40.80
+         IF (OPTG.NE.5) THEN
 !            --- structured grid                                          40.80
-             DO IX = IX1+1, IX2+1                                         40.03
-               DO IY = IY1+1, IY2+1                                       40.03
-                 INDX = KGRPNT(IX,IY)
-                 IF (INDX.GT.1)
-     &           CALL SINTRP (1., 0., AC2(1,1,1), AC2(1,1,1),
-     &                          AC2(1,1,INDX),SPCDIR,SPCSIG)              30.82
-               ENDDO                                                      40.03
-             ENDDO                                                        40.00
-!            reset action density AC2(*,*,1) to 0
-             DO ID = 1, MDC
-               DO IS = 1, MSC
-                 AC2(ID,IS,1) = 0.
+            DO IX = IX1+1, IX2+1
+               DO IY = IY1+1, IY2+1
+                  INDX = KGRPNT(IX,IY)
+                  IF (INDX.GT.1) &
+                     CALL SINTRP (1., 0., AC2(1,1,1), AC2(1,1,1), &
+                                 AC2(1,1,INDX),SPCDIR,SPCSIG)
                ENDDO
-             ENDDO
-          ELSE                                                            40.80
+            ENDDO
+!            reset action density AC2(*,*,1) to 0
+            DO ID = 1, MDC
+               DO IS = 1, MSC
+                  AC2(ID,IS,1) = 0.
+               ENDDO
+            ENDDO
+         ELSE
 !            --- unstructured grid                                        40.80
-             DO K = 2, nverts                                             40.80
-                CALL SINTRP (1., 0., AC2(1,1,1), AC2(1,1,1),              40.80
-     &                       AC2(1,1,K),SPCDIR,SPCSIG)                    40.80
-             ENDDO                                                        40.80
-          ENDIF                                                           40.80
-        ENDIF
-      ELSE IF (KEYWIS('ZERO')) THEN
+            DO K = 2, nverts
+               CALL SINTRP (1., 0., AC2(1,1,1), AC2(1,1,1), &
+                            AC2(1,1,K),SPCDIR,SPCSIG)
+            ENDDO
+         ENDIF
+      ENDIF
+   ELSE IF (KEYWIS('ZERO')) THEN
 !
 !       zero initial state
 !
 !       the statements below work also for unstructured grids             40.80
 !       since, MCGRD = nverts (see SwanInitCompGrid)                      40.80
-        DO INDX = 1, MCGRD                                                40.00
-          DO ID = 1, MDC
+      DO INDX = 1, MCGRD
+         DO ID = 1, MDC
             DO IS = 1, MSC
-              AC2(ID,IS,INDX) = 0.
+               AC2(ID,IS,INDX) = 0.
             ENDDO
-          ENDDO
-        ENDDO
-        ICOND = 3
-      ELSE IF (KEYWIS('HOTS') .OR. KEYWIS('REST')) THEN                   40.00
-        IID       = 0                                                     40.41
-        IUNITAC   = 0                                                     40.41
-        ACTMP     = 0.                                                    40.41
-        DIRTMP(:) = SPCDIR(:,1)                                           40.41
+         ENDDO
+      ENDDO
+      ICOND = 3
+   ELSE IF (KEYWIS('HOTS') .OR. KEYWIS('REST')) THEN
+      IID       = 0
+      IUNITAC   = 0
+      ACTMP     = 0.
+      DIRTMP(:) = SPCDIR(:,1)
 !       initialize using spectra from a HOTFILE                           40.00
-        IF (MXC.LE.0 .AND. OPTG.NE.5) CALL MSGERR (2,                     40.80
-     &        'command INIT should follow CGRID')                         40.80
-        IF (MCGRD.LE.1 .AND. nverts.LE.0) CALL MSGERR (2,                 40.80
-     &        'command INIT should follow READ BOT or READ UNSTRUC')      40.80
-        ICOND = 4
-        CALL INKEYW ('STA', 'MULT')                                       40.62
-        IF (KEYWIS ('SING')) THEN                                         40.62
-          SINGLEHOT = .TRUE.                                              40.62
-          JXMAX = MXCGL                                                   40.62
-          JYMAX = MYCGL                                                   40.62
-          CALL IGNORE ('SING')                                            40.62
-        ELSEIF (KEYWIS ('MULT')) THEN                                     40.62
-          SINGLEHOT = .FALSE.                                             40.62
-          JXMAX = MXC                                                     40.62
-          JYMAX = MYC                                                     40.62
-          CALL IGNORE ('MULT')                                            40.62
-        END IF                                                            40.62
-        NPTOT = JXMAX*JYMAX                                               40.80
-        IF (OPTG.EQ.5) NPTOT = nverts                                     40.80
-        CALL INCSTR ('FNAME', FILENM, 'REQ', ' ')
+      IF (MXC.LE.0 .AND. OPTG.NE.5) CALL MSGERR (2, &
+            'command INIT should follow CGRID')
+      IF (MCGRD.LE.1 .AND. nverts.LE.0) CALL MSGERR (2, &
+            'command INIT should follow READ BOT or READ UNSTRUC')
+      ICOND = 4
+      CALL INKEYW ('STA', 'MULT')
+      IF (KEYWIS ('SING')) THEN
+         SINGLEHOT = .TRUE.
+         JXMAX = MXCGL
+         JYMAX = MYCGL
+         CALL IGNORE ('SING')
+      ELSEIF (KEYWIS ('MULT')) THEN
+         SINGLEHOT = .FALSE.
+         JXMAX = MXC
+         JYMAX = MYC
+         CALL IGNORE ('MULT')
+      END IF
+      NPTOT = JXMAX*JYMAX
+      IF (OPTG.EQ.5) NPTOT = nverts
+      CALL INCSTR ('FNAME', FILENM, 'REQ', ' ')
 !       --- append node number to FILENM in case of parallel computing    40.31
-        IF ( PARLL .AND. .NOT.SINGLEHOT ) THEN                            40.62 40.31
-           ILPOS = INDEX ( FILENM, ' ' )-1                                40.31
-           WRITE(FILENM(ILPOS+1:ILPOS+4),33) INODE                        40.31
-  33       FORMAT('-',I3.3)                                               40.31
-        END IF                                                            40.31
-        NREF   = 0
-        IOSTAT = 0
-        CALL INKEYW ('STA', 'FREE')                                       41.42
-        IF (KEYWIS ('UNF') .OR. KEYWIS('BIN')) THEN                       41.42
+      IF ( PARLL .AND. .NOT.SINGLEHOT ) THEN
+         ILPOS = INDEX ( FILENM, ' ' )-1
+         WRITE(FILENM(ILPOS+1:ILPOS+4),33) INODE
+33       FORMAT('-',I3.3)
+      END IF
+      NREF   = 0
+      IOSTAT = 0
+      CALL INKEYW ('STA', 'FREE')
+      IF (KEYWIS ('UNF') .OR. KEYWIS('BIN')) THEN
          CALL FOR (NREF, FILENM, 'OU', IOSTAT)
          IF (STPNOW()) RETURN
          READ (NREF) RVERTXT
          READ (NREF) RPROJID, RPROJNR
          READ (NREF) ISTAT
          IF (ISTAT.EQ.1) THEN
-           READ (NREF) IIOPT
-           IF (ITEST.GE.50) WRITE (PRTEST, 122) IIOPT
+            READ (NREF) IIOPT
+            IF (ITEST.GE.50) WRITE (PRTEST, 122) IIOPT
 !          in stationary mode, warning
-           IF (NSTATM.EQ.0) CALL MSGERR (1,
-     &                  'Time info in hotfile ignored')
+            IF (NSTATM.EQ.0) CALL MSGERR (1, &
+                         'Time info in hotfile ignored')
          ELSE
-           IIOPT = -1
-           IF (NSTATM.EQ.1) CALL MSGERR (1,
-     &                  'No time info in hotfile')
+            IIOPT = -1
+            IF (NSTATM.EQ.1) CALL MSGERR (1, &
+                         'No time info in hotfile')
          ENDIF
          READ (NREF) IOPTG
          IF (IOPTG.NE.OPTG) THEN
-           CALL MSGERR (2,
-     &     'grid on hotstart file differs from one in CGRID command')
-           WRITE (PRINTF, 55) OPTG, IOPTG
-  55       FORMAT (1X, 'gridtype = ',I1, ' gridtype on file = ',I1)
+            CALL MSGERR (2, &
+               'grid on hotstart file differs from one in CGRID command')
+            WRITE (PRINTF, 55) OPTG, IOPTG
+55          FORMAT (1X, 'gridtype = ',I1, ' gridtype on file = ',I1)
          ENDIF
          READ (NREF) NUMPTS
          IF (NUMPTS.NE.NPTOT) THEN
-           CALL MSGERR (2,
-     &     'grid on hotstart file differs from one in CGRID command')
-           WRITE (PRINTF, 123) NPTOT, NUMPTS
+            CALL MSGERR (2, &
+               'grid on hotstart file differs from one in CGRID command')
+            WRITE (PRINTF, 123) NPTOT, NUMPTS
          ENDIF
          IF (ITEST.GE.50) WRITE (PRTEST, 124) NUMPTS
          DO IP = 1, NUMPTS
-           READ (NREF) XX, YY
+            READ (NREF) XX, YY
          ENDDO
          READ (NREF) NUMFRE
-         IF (NUMFRE.NE.MSC) CALL MSGERR (2,
-     &     'grid on hotstart file differs from one in CGRID command')
+         IF (NUMFRE.NE.MSC) CALL MSGERR (2, &
+            'grid on hotstart file differs from one in CGRID command')
          IF (ITEST.GE.50) WRITE (PRTEST, 126) NUMFRE
          DO IP = 1, NUMFRE
-           READ (NREF) FF
+            READ (NREF) FF
          ENDDO
          READ (NREF) NUMDIR
-         IF (NUMDIR.NE.MDC) CALL MSGERR (2,
-     &     'grid on hotstart file differs from one in CGRID command')
+         IF (NUMDIR.NE.MDC) CALL MSGERR (2, &
+            'grid on hotstart file differs from one in CGRID command')
          IF (ITEST.GE.50) WRITE (PRTEST, 128) NUMDIR
          DO IP = 1, NUMDIR
-           READ (NREF) DIRTMP(IP)
+            READ (NREF) DIRTMP(IP)
          ENDDO
-         IF (ABS(DIRTMP(1)*PI/180.-SPCDIR(1,1)).GT.0.5*DDIR)
-     &      IID = NINT(REAL(MDC)*(DIRTMP(1)-ALPC)/360.)
+         IF (ABS(DIRTMP(1)*PI/180.-SPCDIR(1,1)).GT.0.5*DDIR) &
+            IID = NINT(REAL(MDC)*(DIRTMP(1)-ALPC)/360.)
 !
 !        reading of heading is completed, read time if nonstationary
 !
          IF (IIOPT.GE.0) THEN
-           READ (NREF) RCHTIME
-           CALL DTRETI (RCHTIME, IIOPT, TIMCO)
-           WRITE (PRINTF, 210) RCHTIME
+            READ (NREF) RCHTIME
+            CALL DTRETI (RCHTIME, IIOPT, TIMCO)
+            WRITE (PRINTF, 210) RCHTIME
          ENDIF
 !
          IF (OPTG.NE.5) THEN
 !
 !        --- structured grid
 !
-          DO JX = 1, JXMAX
-            IF (SINGLEHOT) THEN
-               IX = JX-MXF+1
-            ELSE
-               IX = JX
-            ENDIF
-            DO JY = 1, JYMAX
-              IF (SINGLEHOT) THEN
-                 IY = JY-MYF+1
-              ELSE
-                 IY = JY
-              ENDIF
-              PTNSUBGRD = .TRUE.
-              IF ( SINGLEHOT .AND.
-     &          (MXF.GT.JX .OR. MXL.LT.JX .OR.MYF.GT.JY .OR. MYL.LT.JY))
-     &           PTNSUBGRD = .FALSE.
-!
-              IF (SINGLEHOT) THEN
-                 IF (IAMMASTER) READ (NREF) IINDX
-                 CALL SWBROADC (IINDX,1,SWINT)
-              ELSE
-                 READ (NREF) IINDX
-              ENDIF
-              INDX = KGRPNT(IX,IY)
-              IF (INDX.EQ.1 .AND. PTNSUBGRD) THEN
-                IF (IINDX.NE.1) THEN
-                   CALL MSGERR (2,
-     &                'valid spectrum for non-existing grid point')
-                   WRITE (PRINTF, *) IX-1, IY-1
-                ENDIF
-              ELSE
-                IF (IINDX.EQ.1) THEN
-                  IF (PTNSUBGRD) THEN
-                     DO IS = 1, MSC
-                       DO ID = 1, MDC
-                          AC2(ID,IS,INDX) = 0.
-                       ENDDO
-                     ENDDO
-                     IF (ITEST.GE.150) WRITE (PRTEST, 222) IX-1, IY-1
-                  ENDIF
-                ELSE
+            DO JX = 1, JXMAX
+               IF (SINGLEHOT) THEN
+                  IX = JX-MXF+1
+               ELSE
+                  IX = JX
+               ENDIF
+               DO JY = 1, JYMAX
                   IF (SINGLEHOT) THEN
-                     IF (IAMMASTER) READ (NREF) ACLOC(:,:)
-                     CALL SWBROADC (ACLOC,MDC*MSC,SWREAL)
-                     IF (PTNSUBGRD) AC2(:,:,INDX) = ACLOC(:,:)
+                     IY = JY-MYF+1
                   ELSE
-                     READ (NREF) AC2(:,:,INDX)
+                     IY = JY
                   ENDIF
-                ENDIF
-              ENDIF
+                  PTNSUBGRD = .TRUE.
+                  IF ( SINGLEHOT .AND. &
+                     (MXF.GT.JX .OR. MXL.LT.JX .OR.MYF.GT.JY .OR. MYL.LT.JY)) &
+                     PTNSUBGRD = .FALSE.
+!
+                  IF (SINGLEHOT) THEN
+                     IF (IAMMASTER) READ (NREF) IINDX
+                     CALL SWBROADC (IINDX,1,SWINT)
+                  ELSE
+                     READ (NREF) IINDX
+                  ENDIF
+                  INDX = KGRPNT(IX,IY)
+                  IF (INDX.EQ.1 .AND. PTNSUBGRD) THEN
+                     IF (IINDX.NE.1) THEN
+                        CALL MSGERR (2, &
+                           'valid spectrum for non-existing grid point')
+                        WRITE (PRINTF, *) IX-1, IY-1
+                     ENDIF
+                  ELSE
+                     IF (IINDX.EQ.1) THEN
+                        IF (PTNSUBGRD) THEN
+                           DO IS = 1, MSC
+                              DO ID = 1, MDC
+                                 AC2(ID,IS,INDX) = 0.
+                              ENDDO
+                           ENDDO
+                           IF (ITEST.GE.150) WRITE (PRTEST, 222) IX-1, IY-1
+                        ENDIF
+                     ELSE
+                        IF (SINGLEHOT) THEN
+                           IF (IAMMASTER) READ (NREF) ACLOC(:,:)
+                           CALL SWBROADC (ACLOC,MDC*MSC,SWREAL)
+                           IF (PTNSUBGRD) AC2(:,:,INDX) = ACLOC(:,:)
+                        ELSE
+                           READ (NREF) AC2(:,:,INDX)
+                        ENDIF
+                     ENDIF
+                  ENDIF
+               ENDDO
             ENDDO
-          ENDDO
          ELSE
 !
 !        --- unstructured grids
 !
-           DO K = 1, nverts
-              READ (NREF) AC2(:,:,K)
-           ENDDO
+            DO K = 1, nverts
+               READ (NREF) AC2(:,:,K)
+            ENDDO
          ENDIF
-        ELSE                                                              41.42
-         CALL IGNORE ('FREE')                                             41.42
+      ELSE
+         CALL IGNORE ('FREE')
          CALL FOR (NREF, FILENM, 'OF', IOSTAT)
-         IF (STPNOW()) RETURN                                             34.01
+         IF (STPNOW()) RETURN
          READ (NREF, 102) RLINE
- 102     FORMAT (A)                                                       40.00
-         IF (RLINE(1:4).NE.'SWAN') CALL MSGERR (3, FILENM//
-     &        ' is not a correct hotstart file')
- 110     READ (NREF, 102) RLINE
-         IF (RLINE(1:1).EQ.COMID .OR. RLINE(1:1).EQ.'!') GOTO 110         40.13
+102      FORMAT (A)
+         IF (RLINE(1:4).NE.'SWAN') CALL MSGERR (3, FILENM// &
+              ' is not a correct hotstart file')
+110      READ (NREF, 102) RLINE
+         IF (RLINE(1:1).EQ.COMID .OR. RLINE(1:1).EQ.'!') GOTO 110
          IF (EQCSTR(RLINE,'TIME')) THEN
-           READ (NREF, *) IIOPT
-           IF (ITEST.GE.50) WRITE (PRTEST, 122) IIOPT                     40.03
- 122       FORMAT (' time coding option:', I2)
-           READ (NREF, 102) RLINE
+            READ (NREF, *) IIOPT
+            IF (ITEST.GE.50) WRITE (PRTEST, 122) IIOPT
+122         FORMAT (' time coding option:', I2)
+            READ (NREF, 102) RLINE
 !          in stationary mode, warning
-           IF (NSTATM.EQ.0) CALL MSGERR (1,
-     &                  'Time info in hotfile ignored')                   40.03
+            IF (NSTATM.EQ.0) CALL MSGERR (1, &
+                         'Time info in hotfile ignored')
          ELSE
-           IIOPT = -1
-           IF (NSTATM.EQ.1) CALL MSGERR (1,
-     &                  'No time info in hotfile')                        40.03
+            IIOPT = -1
+            IF (NSTATM.EQ.1) CALL MSGERR (1, &
+                         'No time info in hotfile')
          ENDIF
-         IF (EQCSTR(RLINE,'LOCA') .OR. EQCSTR(RLINE,'LONLAT')) THEN       40.13
-           READ (NREF, *) NUMPTS
-           IF (NUMPTS.NE.NPTOT) THEN                                      40.80 40.62
-             CALL MSGERR (2,
-     &       'grid on hotstart file differs from one in CGRID command')   40.00
-             WRITE (PRINTF, 123) NPTOT, NUMPTS                            40.80 40.62
- 123         FORMAT (1X, I8, ' points in comp.grid; on file:', I8)        40.03
-           ENDIF
-           IF (ITEST.GE.50) WRITE (PRTEST, 124) NUMPTS                    40.03
- 124       FORMAT (1X, I8, '  output locations')
-           DO IP = 1, NUMPTS
-             READ (NREF, *)
-           ENDDO
-           READ (NREF, 102) RLINE
+         IF (EQCSTR(RLINE,'LOCA') .OR. EQCSTR(RLINE,'LONLAT')) THEN
+            READ (NREF, *) NUMPTS
+            IF (NUMPTS.NE.NPTOT) THEN
+               CALL MSGERR (2, &
+                  'grid on hotstart file differs from one in CGRID command')
+               WRITE (PRINTF, 123) NPTOT, NUMPTS
+123            FORMAT (1X, I8, ' points in comp.grid; on file:', I8)
+            ENDIF
+            IF (ITEST.GE.50) WRITE (PRTEST, 124) NUMPTS
+124         FORMAT (1X, I8, '  output locations')
+            DO IP = 1, NUMPTS
+               READ (NREF, *)
+            ENDDO
+            READ (NREF, 102) RLINE
          ENDIF
-         IF (EQCSTR(RLINE(2:5),'FREQ')) THEN                              40.03
-           READ (NREF, *) NUMFRE
-           IF (NUMFRE.NE.MSC) CALL MSGERR (2,
-     &     'grid on hotstart file differs from one in CGRID command')     40.00
-           IF (ITEST.GE.50) WRITE (PRTEST, 126) NUMFRE                    40.03
- 126       FORMAT (1X, I6, '  frequencies')
-           DO IP = 1, NUMFRE
-             READ (NREF, *)
-           ENDDO
-           READ (NREF, 102) RLINE
+         IF (EQCSTR(RLINE(2:5),'FREQ')) THEN
+            READ (NREF, *) NUMFRE
+            IF (NUMFRE.NE.MSC) CALL MSGERR (2, &
+               'grid on hotstart file differs from one in CGRID command')
+            IF (ITEST.GE.50) WRITE (PRTEST, 126) NUMFRE
+126         FORMAT (1X, I6, '  frequencies')
+            DO IP = 1, NUMFRE
+               READ (NREF, *)
+            ENDDO
+            READ (NREF, 102) RLINE
          ENDIF
-         IF (EQCSTR(RLINE(2:4),'DIR')) THEN                               40.03
-           READ (NREF, *) NUMDIR
-           IF (NUMDIR.NE.MDC) CALL MSGERR (2,
-     &     'grid on hotstart file differs from one in CGRID command')     40.00
-           IF (ITEST.GE.50) WRITE (PRTEST, 128) NUMDIR                    40.03
- 128       FORMAT (1X, I6, '  directions')
-           DO IP = 1, NUMDIR
-             READ (NREF, *) DIRTMP(IP)                                    40.41
-           ENDDO
-           IF (ABS(DIRTMP(1)*PI/180.-SPCDIR(1,1)).GT.0.5*DDIR)            40.41
-     &        IID = NINT(REAL(MDC)*(DIRTMP(1)-ALPC)/360.)                 40.41
-           READ (NREF, 102) RLINE
+         IF (EQCSTR(RLINE(2:4),'DIR')) THEN
+            READ (NREF, *) NUMDIR
+            IF (NUMDIR.NE.MDC) CALL MSGERR (2, &
+               'grid on hotstart file differs from one in CGRID command')
+            IF (ITEST.GE.50) WRITE (PRTEST, 128) NUMDIR
+128         FORMAT (1X, I6, '  directions')
+            DO IP = 1, NUMDIR
+               READ (NREF, *) DIRTMP(IP)
+            ENDDO
+            IF (ABS(DIRTMP(1)*PI/180.-SPCDIR(1,1)).GT.0.5*DDIR) &
+               IID = NINT(REAL(MDC)*(DIRTMP(1)-ALPC)/360.)
+            READ (NREF, 102) RLINE
          ENDIF
          READ (NREF, *) NQUA
-         IF (NQUA.NE.1) CALL MSGERR(2,'NQUA>1: incorrect hotstart file')  40.00
+         IF (NQUA.NE.1) CALL MSGERR(2,'NQUA>1: incorrect hotstart file')
          READ (NREF, 102) RLINE
-         IF (ITEST.GE.50) WRITE (PRTEST, 130) RLINE                       40.03
- 130     FORMAT (1X, 'quantity: ', A)
-         READ (NREF, 102) RLINE                                           40.00
-         IF (EQCSTR(RLINE(3:3),'S')) IUNITAC = 1                          40.41
-         READ (NREF, 102) RLINE                                           40.00
+         IF (ITEST.GE.50) WRITE (PRTEST, 130) RLINE
+130      FORMAT (1X, 'quantity: ', A)
+         READ (NREF, 102) RLINE
+         IF (EQCSTR(RLINE(3:3),'S')) IUNITAC = 1
+         READ (NREF, 102) RLINE
 !
 !        reading of heading is completed, read time if nonstationary
 !
          IF (IIOPT.GE.0) THEN
-           READ (NREF, 102) RLINE                                         40.00
-           CALL DTRETI (RLINE(1:18), IIOPT, TIMCO)                        40.00
-           WRITE (PRINTF, 210) RLINE(1:18)
- 210       FORMAT (' initial condition read for time: ', A)
+            READ (NREF, 102) RLINE
+            CALL DTRETI (RLINE(1:18), IIOPT, TIMCO)
+            WRITE (PRINTF, 210) RLINE(1:18)
+210         FORMAT (' initial condition read for time: ', A)
          ENDIF
 !
-         IF (OPTG.NE.5) THEN                                              40.80
+         IF (OPTG.NE.5) THEN
 !
 !        --- structured grid                                              40.80
 !
-          DO 290 JX = 1, JXMAX                                            40.62
-            IF (SINGLEHOT) THEN                                           40.62
-               IX = JX-MXF+1
-            ELSE
-               IX = JX
-            ENDIF
-            DO 280 JY = 1, JYMAX                                          40.62
-              IF (SINGLEHOT) THEN                                         40.62
-                 IY = JY-MYF+1
-              ELSE
-                 IY = JY
-              ENDIF
-              PTNSUBGRD = .TRUE.                                          40.62
-              IF ( SINGLEHOT .AND.                                        40.62
-     &          (MXF.GT.JX .OR. MXL.LT.JX .OR.MYF.GT.JY .OR. MYL.LT.JY))  40.62
-     &           PTNSUBGRD = .FALSE.                                      40.62
-!
-              READ (NREF, 102) RLINE
-              INDX = KGRPNT(IX,IY)
-              IF (INDX.EQ.1 .AND. PTNSUBGRD) THEN                         40.62
-                IF (RLINE(1:6).NE.'NODATA') THEN
-                   CALL MSGERR (2,
-     &                'valid spectrum for non-existing grid point')
-                   WRITE (PRINTF, *) IX-1, IY-1
-                ENDIF
-              ELSE
-                IF (EQCSTR(RLINE,'NODATA').OR.EQCSTR(RLINE,'ZERO')) THEN
-                  IF (PTNSUBGRD) THEN                                     40.62
-                     DO IS = 1, MSC
-                       DO ID = 1, MDC
-                          AC2(ID,IS,INDX) = 0.
-                       ENDDO
-                     ENDDO
-                     IF (ITEST.GE.150) WRITE (PRTEST, 222) IX-1, IY-1     40.03
+            DO 290 JX = 1, JXMAX
+               IF (SINGLEHOT) THEN
+                  IX = JX-MXF+1
+               ELSE
+                  IX = JX
+               ENDIF
+               DO 280 JY = 1, JYMAX
+                  IF (SINGLEHOT) THEN
+                     IY = JY-MYF+1
+                  ELSE
+                     IY = JY
                   ENDIF
- 222              FORMAT (' zero spectrum or no data for point:', 2I4)    40.03
-                ELSE
+                  PTNSUBGRD = .TRUE.
+                  IF ( SINGLEHOT .AND. &
+                     (MXF.GT.JX .OR. MXL.LT.JX .OR.MYF.GT.JY .OR. MYL.LT.JY)) &
+                     PTNSUBGRD = .FALSE.
+!
+                  READ (NREF, 102) RLINE
+                  INDX = KGRPNT(IX,IY)
+                  IF (INDX.EQ.1 .AND. PTNSUBGRD) THEN
+                     IF (RLINE(1:6).NE.'NODATA') THEN
+                        CALL MSGERR (2, &
+                           'valid spectrum for non-existing grid point')
+                        WRITE (PRINTF, *) IX-1, IY-1
+                     ENDIF
+                  ELSE
+                     IF (EQCSTR(RLINE,'NODATA').OR.EQCSTR(RLINE,'ZERO')) THEN
+                        IF (PTNSUBGRD) THEN
+                           DO IS = 1, MSC
+                              DO ID = 1, MDC
+                                 AC2(ID,IS,INDX) = 0.
+                              ENDDO
+                           ENDDO
+                           IF (ITEST.GE.150) WRITE (PRTEST, 222) IX-1, IY-1
+                        ENDIF
+222                     FORMAT (' zero spectrum or no data for point:', 2I4)
+                     ELSE
 !                 first determine factor
-                  READ (NREF, *) AFAC
+                        READ (NREF, *) AFAC
 !                 multiply with factor to account for transition from     40.00
 !                 energy/Hz/degr to energy/(2*pi rad/s)/rad
-                  AFAC = AFAC * 90. / (PI**2)
-                  DO IS = 1, MSC
-                    AFAC1 = AFAC/SPCSIG(IS)                               40.41
+                        AFAC = AFAC * 90. / (PI**2)
+                        DO IS = 1, MSC
+                           AFAC1 = AFAC/SPCSIG(IS)
 !                   Read spectral energy densities from file
-                    READ (NREF, *) (ACTMP(ID), ID=1,MDC)                  40.41
-                    IF (.NOT.PTNSUBGRD) CYCLE                             40.62
-                    IF (IUNITAC.EQ.1) THEN                                40.41
-                       DO ID = 1, MDC
-                         J = MODULO ( IID - 1 + ID , MDC ) + 1            40.69 40.41
-                         AC2(J,IS,INDX) = AFAC * ACTMP(ID)                40.41
-                       ENDDO
-                    ELSE
-                       DO ID = 1, MDC
-                         J = MODULO ( IID - 1 + ID , MDC ) + 1            40.69 40.41
-                         AC2(J,IS,INDX) = AFAC1 * ACTMP(ID)               40.41
-                       ENDDO
-                    END IF
-                  ENDDO
-                  IF (ITEST.GE.150) WRITE (PRTEST, 224) IX-1, IY-1, AFAC  40.03
- 224              FORMAT (' spectrum in point:', 2I4,'  factor=', E12.4)  40.03
-                ENDIF
-              ENDIF
- 280        CONTINUE
- 290      CONTINUE
-         ELSE                                                             40.80
+                           READ (NREF, *) (ACTMP(ID), ID=1,MDC)
+                           IF (.NOT.PTNSUBGRD) CYCLE
+                           IF (IUNITAC.EQ.1) THEN
+                              DO ID = 1, MDC
+                                 J = MODULO ( IID - 1 + ID , MDC ) + 1
+                                 AC2(J,IS,INDX) = AFAC * ACTMP(ID)
+                              ENDDO
+                           ELSE
+                              DO ID = 1, MDC
+                                 J = MODULO ( IID - 1 + ID , MDC ) + 1
+                                 AC2(J,IS,INDX) = AFAC1 * ACTMP(ID)
+                              ENDDO
+                           END IF
+                        ENDDO
+                        IF (ITEST.GE.150) WRITE (PRTEST, 224) IX-1, IY-1, AFAC
+224                     FORMAT (' spectrum in point:', 2I4,'  factor=', E12.4)
+                     ENDIF
+                  ENDIF
+280            CONTINUE
+290         CONTINUE
+         ELSE
 !
 !        --- unstructured grids                                           40.80
 !
-           DO K = 1, nverts
-              READ (NREF, 102) RLINE
-              IF (EQCSTR(RLINE,'NODATA') .OR. EQCSTR(RLINE,'ZERO')) THEN
-                 DO IS = 1, MSC
-                    DO ID = 1, MDC
-                       AC2(ID,IS,K) = 0.
-                    ENDDO
-                 ENDDO
-                 IF (ITEST.GE.150) WRITE (PRTEST, 223) K
- 223             FORMAT (' zero spectrum or no data for vertex:', I6)
-              ELSE
+            DO K = 1, nverts
+               READ (NREF, 102) RLINE
+               IF (EQCSTR(RLINE,'NODATA') .OR. EQCSTR(RLINE,'ZERO')) THEN
+                  DO IS = 1, MSC
+                     DO ID = 1, MDC
+                        AC2(ID,IS,K) = 0.
+                     ENDDO
+                  ENDDO
+                  IF (ITEST.GE.150) WRITE (PRTEST, 223) K
+223               FORMAT (' zero spectrum or no data for vertex:', I6)
+               ELSE
 !                first determine factor
-                 READ (NREF, *) AFAC
+                  READ (NREF, *) AFAC
 !                multiply with factor to account for transition from
 !                energy/Hz/degr to energy/(rad/s)/rad
-                 AFAC = AFAC * 90. / (PI**2)
-                 DO IS = 1, MSC
-                    AFAC1 = AFAC/SPCSIG(IS)
+                  AFAC = AFAC * 90. / (PI**2)
+                  DO IS = 1, MSC
+                     AFAC1 = AFAC/SPCSIG(IS)
 !                   Read spectral energy densities from file
-                    READ (NREF, *) (ACTMP(ID), ID=1,MDC)
-                    IF (IUNITAC.EQ.1) THEN
-                       DO ID = 1, MDC
-                         J = MOD ( IID - 1 + ID , MDC ) + 1
-                         AC2(J,IS,K) = AFAC * ACTMP(ID)
-                       ENDDO
-                    ELSE
-                       DO ID = 1, MDC
-                         J = MOD ( IID - 1 + ID , MDC ) + 1
-                         AC2(J,IS,K) = AFAC1 * ACTMP(ID)
-                       ENDDO
-                    END IF
-                 ENDDO
-                 IF (ITEST.GE.150) WRITE (PRTEST, 225) K, AFAC
- 225             FORMAT (' spectrum in vertex:', I6, '  factor=', E12.4)
-              ENDIF
-           ENDDO
-         ENDIF                                                            40.80
-        ENDIF                                                             41.42
-        CLOSE (NREF)
-      ELSE
-!       default initial wave state, will be computed later by subr SWINCO
-        CALL IGNORE ('DEF')
-        ICOND = 1
+                     READ (NREF, *) (ACTMP(ID), ID=1,MDC)
+                     IF (IUNITAC.EQ.1) THEN
+                        DO ID = 1, MDC
+                           J = MOD ( IID - 1 + ID , MDC ) + 1
+                           AC2(J,IS,K) = AFAC * ACTMP(ID)
+                        ENDDO
+                     ELSE
+                        DO ID = 1, MDC
+                           J = MOD ( IID - 1 + ID , MDC ) + 1
+                           AC2(J,IS,K) = AFAC1 * ACTMP(ID)
+                        ENDDO
+                     END IF
+                  ENDDO
+                  IF (ITEST.GE.150) WRITE (PRTEST, 225) K, AFAC
+225               FORMAT (' spectrum in vertex:', I6, '  factor=', E12.4)
+               ENDIF
+            ENDDO
+         ENDIF
       ENDIF
-      RETURN
+      CLOSE (NREF)
+   ELSE
+!       default initial wave state, will be computed later by subr SWINCO
+      CALL IGNORE ('DEF')
+      ICOND = 1
+   ENDIF
+   RETURN
 !     end of subr INITVA
-      END
+END
 !*******************************************************************
 !                                                                  *
-      SUBROUTINE BACKUP (AC2, SPCSIG, SPCDIR, KGRPNT,
-     &                   XCGRID, YCGRID)
+SUBROUTINE BACKUP (AC2, SPCSIG, SPCDIR, KGRPNT, &
+                   XCGRID, YCGRID)
 !                                                                  *
 !*******************************************************************
 !
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE SWCOMM1                                                         40.41
-      USE SWCOMM2                                                         40.41
-      USE SWCOMM3                                                         40.41
-      USE SWCOMM4                                                         40.41
-      USE M_PARALL                                                        40.31
-      USE SwanGriddata                                                    40.80
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
+   USE SWCOMM1
+   USE SWCOMM2
+   USE SWCOMM3
+   USE SWCOMM4
+   USE M_PARALL
+   USE SwanGriddata
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -6704,24 +6704,24 @@
 ! i   XCGRID: Coordinates of computational grid in x-direction            30.82
 ! i   YCGRID: Coordinates of computational grid in y-direction            30.82
 !
-      REAL    SPCDIR(MDC,6)                                               30.82
-      REAL    SPCSIG(MSC)                                                 30.82
-      REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)                         30.82
+   REAL    SPCDIR(MDC,6)
+   REAL    SPCSIG(MSC)
+   REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
 !
 !  8. Subroutines used
 !
-      LOGICAL STPNOW                                                      34.01
+   LOGICAL STPNOW
 !
 ! 13. Source text
 !
-      REAL     AC2(MDC,MSC,MCGRD)
-      INTEGER  KGRPNT(MXC,MYC)
-      CHARACTER (LEN=8) :: CRFORM = '(2F14.4)'                            40.41
-      LOGICAL  EQREAL                                                     40.41
-      LOGICAL  KEYWIS                                                     41.42
-      SAVE     IENT
-      DATA     IENT /0/
-      CALL STRACE (IENT, 'BACKUP')
+   REAL     AC2(MDC,MSC,MCGRD)
+   INTEGER  KGRPNT(MXC,MYC)
+   CHARACTER (LEN=8) :: CRFORM = '(2F14.4)'
+   LOGICAL  EQREAL
+   LOGICAL  KEYWIS
+   SAVE     IENT
+   DATA     IENT /0/
+   CALL STRACE (IENT, 'BACKUP')
 !
 !     ==================================================================
 !
@@ -6731,56 +6731,56 @@
 !
 !     ==================================================================
 !
-      CALL INCSTR ('FNAME', FILENM, 'REQ', ' ')
+   CALL INCSTR ('FNAME', FILENM, 'REQ', ' ')
 !     --- append node number to FILENM in case of parallel computing      40.31
-      IF ( PARLL ) THEN                                                   40.31
-         ILPOS = INDEX ( FILENM, ' ' )-1                                  40.31
-         WRITE(FILENM(ILPOS+1:ILPOS+4),33) INODE                          40.31
-  33     FORMAT('-',I3.3)                                                 40.31
-      END IF                                                              40.31
-      NREF   = 0
-      IOSTAT = 0
-      CALL INKEYW ('STA', 'FREE')                                         41.42
-      IF (KEYWIS ('UNF') .OR. KEYWIS('BIN')) THEN                         41.42
-       CALL FOR (NREF, FILENM, 'UU', IOSTAT)
-       IF (STPNOW()) RETURN
-       WRITE (NREF) VERTXT
-       WRITE (NREF) PROJID, PROJNR
-       WRITE (NREF) NSTATM
-       IF (NSTATM.EQ.1) WRITE (NREF) ITMOPT
-       WRITE (NREF) OPTG
-       IF (OPTG.NE.5) THEN
+   IF ( PARLL ) THEN
+      ILPOS = INDEX ( FILENM, ' ' )-1
+      WRITE(FILENM(ILPOS+1:ILPOS+4),33) INODE
+33    FORMAT('-',I3.3)
+   END IF
+   NREF   = 0
+   IOSTAT = 0
+   CALL INKEYW ('STA', 'FREE')
+   IF (KEYWIS ('UNF') .OR. KEYWIS('BIN')) THEN
+      CALL FOR (NREF, FILENM, 'UU', IOSTAT)
+      IF (STPNOW()) RETURN
+      WRITE (NREF) VERTXT
+      WRITE (NREF) PROJID, PROJNR
+      WRITE (NREF) NSTATM
+      IF (NSTATM.EQ.1) WRITE (NREF) ITMOPT
+      WRITE (NREF) OPTG
+      IF (OPTG.NE.5) THEN
          WRITE (NREF) MXC*MYC, MXC, MYC
          DO IX = 1, MXC
             DO IY = 1, MYC
-               IF ( EQREAL(XCGRID(IX,IY), EXCFLD(8)) .AND.
-     &              EQREAL(YCGRID(IX,IY), EXCFLD(9)) ) THEN
+               IF ( EQREAL(XCGRID(IX,IY), EXCFLD(8)) .AND. &
+                    EQREAL(YCGRID(IX,IY), EXCFLD(9)) ) THEN
                   WRITE (NREF) EXCFLD(8)+XOFFS, EXCFLD(9)+YOFFS
                ELSE
                   WRITE (NREF) XCGRID(IX,IY)+XOFFS, YCGRID(IX,IY)+YOFFS
                ENDIF
             ENDDO
          ENDDO
-       ELSE
+      ELSE
          WRITE (NREF) nverts
          DO K = 1, nverts
             WRITE (NREF) xcugrd(K)+XOFFS, ycugrd(K)+YOFFS
          ENDDO
-       ENDIF
-       WRITE (NREF) MSC
-       DO IS = 1, MSC
+      ENDIF
+      WRITE (NREF) MSC
+      DO IS = 1, MSC
          WRITE (NREF) SPCSIG(IS)/PI2
-       ENDDO
-       WRITE (NREF) MDC
-       DO ID = 1, MDC
+      ENDDO
+      WRITE (NREF) MDC
+      DO ID = 1, MDC
          WRITE (NREF) SPCDIR(ID,1)*180./PI
-       ENDDO
+      ENDDO
 !
 !      writing of heading is completed, write time if nonstationary
 !
-       IF (NSTATM.EQ.1) WRITE (NREF) CHTIME
+      IF (NSTATM.EQ.1) WRITE (NREF) CHTIME
 !
-       IF (OPTG.NE.5) THEN
+      IF (OPTG.NE.5) THEN
          DO IX = 1, MXC
             DO IY = 1, MYC
                INDX = KGRPNT(IX,IY)
@@ -6788,96 +6788,96 @@
                IF (INDX.NE.1) WRITE (NREF) AC2(:,:,INDX)
             ENDDO
          ENDDO
-       ELSE
+      ELSE
          DO K = 1, nverts
             WRITE(NREF) AC2(:,:,K)
          ENDDO
-       ENDIF
-      ELSE                                                                41.42
-       CALL IGNORE ('FREE')                                               41.42
-       CALL FOR (NREF, FILENM, 'UF', IOSTAT)
-       IF (STPNOW()) RETURN                                               34.01
-       WRITE (NREF, 102) 'SWAN   1', 'Swan standard file, version'
-       IF (NSTATM.EQ.1) THEN
+      ENDIF
+   ELSE
+      CALL IGNORE ('FREE')
+      CALL FOR (NREF, FILENM, 'UF', IOSTAT)
+      IF (STPNOW()) RETURN
+      WRITE (NREF, 102) 'SWAN   1', 'Swan standard file, version'
+      IF (NSTATM.EQ.1) THEN
          WRITE (NREF, 102) 'TIME', 'time-dependent data'
- 102     FORMAT (A, T41, A)                                               40.00
-         WRITE (NREF, 103) ITMOPT, 'time coding option'                   40.03
- 103     FORMAT (I6, T41, A)                                              40.00
-       ENDIF
-       IF (KSPHER.EQ.0) THEN                                              40.13
+102      FORMAT (A, T41, A)
+         WRITE (NREF, 103) ITMOPT, 'time coding option'
+103      FORMAT (I6, T41, A)
+      ENDIF
+      IF (KSPHER.EQ.0) THEN
          WRITE (NREF, 102) 'LOCATIONS', 'locations in x-y-space'
-         CRFORM = '(2F14.4)'                                              40.41
-       ELSE                                                               40.13
-         WRITE (NREF, 102) 'LONLAT', 'locations on the globe'             40.13
-         CRFORM = '(2F12.6)'                                              40.41
-       ENDIF                                                              40.13
-       IF (OPTG.NE.5) THEN                                                40.80
+         CRFORM = '(2F14.4)'
+      ELSE
+         WRITE (NREF, 102) 'LONLAT', 'locations on the globe'
+         CRFORM = '(2F12.6)'
+      ENDIF
+      IF (OPTG.NE.5) THEN
          WRITE (NREF, 104) MXC*MYC, MXC, MYC, 'number of locations'
- 104     FORMAT (I8, 2I6, T41, A)
+104      FORMAT (I8, 2I6, T41, A)
          DO IX = 1, MXC
-           DO IY = 1, MYC
-             IF ( EQREAL(XCGRID(IX,IY), EXCFLD(8)) .AND.                  40.41
-     &            EQREAL(YCGRID(IX,IY), EXCFLD(9)) ) THEN                 40.41
-               WRITE (NREF, FMT=CRFORM) DBLE(EXCFLD(8)) + DBLE(XOFFS),
-     &                                  DBLE(EXCFLD(9)) + DBLE(YOFFS)
-             ELSE
-             WRITE (NREF, FMT=CRFORM) DBLE(XCGRID(IX,IY)) + DBLE(XOFFS),
-     &                                DBLE(YCGRID(IX,IY)) + DBLE(YOFFS)   40.00
-             ENDIF                                                        40.41
-           ENDDO
+            DO IY = 1, MYC
+               IF ( EQREAL(XCGRID(IX,IY), EXCFLD(8)) .AND. &
+                    EQREAL(YCGRID(IX,IY), EXCFLD(9)) ) THEN
+                  WRITE (NREF, FMT=CRFORM) DBLE(EXCFLD(8)) + DBLE(XOFFS), &
+                                           DBLE(EXCFLD(9)) + DBLE(YOFFS)
+               ELSE
+                  WRITE (NREF, FMT=CRFORM) DBLE(XCGRID(IX,IY)) + DBLE(XOFFS), &
+                                           DBLE(YCGRID(IX,IY)) + DBLE(YOFFS)
+               ENDIF
+            ENDDO
          ENDDO
-       ELSE                                                               40.80
-         WRITE (NREF, 105) nverts, 'number of locations'                  40.80
- 105     FORMAT (I8, T41, A)
-         DO K = 1, nverts                                                 40.80
-            WRITE (NREF, FMT=CRFORM) DBLE(xcugrd(K)) + DBLE(XOFFS),       40.80
-     &                               DBLE(ycugrd(K)) + DBLE(YOFFS)        40.80
-         ENDDO                                                            40.80
-       ENDIF                                                              40.80
-       WRITE (NREF, 102) 'RFREQ', 'relative frequencies in Hz'            40.00
-       WRITE (NREF, 103) MSC, 'number of frequencies'                     40.00
-       DO 120 IS = 1, MSC
+      ELSE
+         WRITE (NREF, 105) nverts, 'number of locations'
+105      FORMAT (I8, T41, A)
+         DO K = 1, nverts
+            WRITE (NREF, FMT=CRFORM) DBLE(xcugrd(K)) + DBLE(XOFFS), &
+                                     DBLE(ycugrd(K)) + DBLE(YOFFS)
+         ENDDO
+      ENDIF
+      WRITE (NREF, 102) 'RFREQ', 'relative frequencies in Hz'
+      WRITE (NREF, 103) MSC, 'number of frequencies'
+      DO 120 IS = 1, MSC
          WRITE (NREF, 114) SPCSIG(IS)/PI2
- 114     FORMAT (F10.4)
- 120   CONTINUE
-       WRITE (NREF, 102) 'CDIR', 'spectral Cartesian directions in degr'  40.00
-       WRITE (NREF, 103) MDC, 'number of directions'
-       DO 130 ID = 1, MDC
-         WRITE (NREF, 124) SPCDIR(ID,1)*180./PI                           30.82
- 124     FORMAT (F10.4)
- 130   CONTINUE
-       WRITE (NREF, 132) 1
- 132   FORMAT ('QUANT', /, I6, T41, 'number of quantities in table')      40.00
-       WRITE (NREF, 102) 'AcDens', 'action densities'
-       WRITE (NREF, 102) 'm2s/Hz/deg', 'unit'                             40.31 40.00
-       WRITE (NREF, 102) '0.',     'exception value'                      40.00
+114      FORMAT (F10.4)
+120   CONTINUE
+      WRITE (NREF, 102) 'CDIR', 'spectral Cartesian directions in degr'
+      WRITE (NREF, 103) MDC, 'number of directions'
+      DO 130 ID = 1, MDC
+         WRITE (NREF, 124) SPCDIR(ID,1)*180./PI
+124      FORMAT (F10.4)
+130   CONTINUE
+      WRITE (NREF, 132) 1
+132   FORMAT ('QUANT', /, I6, T41, 'number of quantities in table')
+      WRITE (NREF, 102) 'AcDens', 'action densities'
+      WRITE (NREF, 102) 'm2s/Hz/deg', 'unit'
+      WRITE (NREF, 102) '0.',     'exception value'
 !
 !      writing of heading is completed, write time if nonstationary
 !
-       IF (NSTATM.EQ.1) THEN
-         WRITE (NREF, 202) CHTIME                                         40.00
- 202     FORMAT (A18, T41, 'date and time')
-       ENDIF
+      IF (NSTATM.EQ.1) THEN
+         WRITE (NREF, 202) CHTIME
+202      FORMAT (A18, T41, 'date and time')
+      ENDIF
 !
-       IF (OPTG.NE.5) THEN                                                40.80
+      IF (OPTG.NE.5) THEN
          DO 290 IX = 1, MXC
-           DO 280 IY = 1, MYC
-             INDX = KGRPNT(IX,IY)
-             IF (INDX.EQ.1) THEN
-               WRITE (NREF,220) 'NODATA'                                  40.08
-             ELSE
-               CALL WRSPEC (NREF, AC2(1,1,INDX))                          40.00
-             ENDIF
- 280       CONTINUE
- 290     CONTINUE
-       ELSE                                                               40.80
-         DO K = 1, nverts                                                 40.80
-            CALL WRSPEC (NREF, AC2(1,1,K))                                40.80
-         ENDDO                                                            40.80
-       ENDIF                                                              40.80
- 220   FORMAT (A6)                                                        40.08
-      ENDIF                                                               41.42
-      CLOSE (NREF)
-      RETURN
+            DO 280 IY = 1, MYC
+               INDX = KGRPNT(IX,IY)
+               IF (INDX.EQ.1) THEN
+                  WRITE (NREF,220) 'NODATA'
+               ELSE
+                  CALL WRSPEC (NREF, AC2(1,1,INDX))
+               ENDIF
+280         CONTINUE
+290      CONTINUE
+      ELSE
+         DO K = 1, nverts
+            CALL WRSPEC (NREF, AC2(1,1,K))
+         ENDDO
+      ENDIF
+220   FORMAT (A6)
+   ENDIF
+   CLOSE (NREF)
+   RETURN
 !     end of subr BACKUP
-      END
+END

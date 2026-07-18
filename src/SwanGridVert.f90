@@ -45,26 +45,26 @@ subroutine SwanGridVert ( nverts, xcugrd, ycugrd, vmark )
 !
 !   Modules used
 !
-    use ocpcomm4
-    use SwanGridobjects
+   use ocpcomm4
+   use SwanGridobjects
 !
-    implicit none
+   implicit none
 !
 !   Argument variables
 !
-    integer, intent(in)                       :: nverts  ! number of vertices in grid
-    !
-    integer, dimension(nverts), intent(in)    :: vmark   ! boundary marker for vertices
-    !
-    real, dimension(nverts), intent(in)       :: xcugrd  ! the x-coordinates of the grid vertices
-    real, dimension(nverts), intent(in)       :: ycugrd  ! the y-coordinates of the grid vertices
+   integer, intent(in)                       :: nverts ! number of vertices in grid
+   !
+   integer, dimension(nverts), intent(in)    :: vmark ! boundary marker for vertices
+   !
+   real, dimension(nverts), intent(in)       :: xcugrd ! the x-coordinates of the grid vertices
+   real, dimension(nverts), intent(in)       :: ycugrd ! the y-coordinates of the grid vertices
 !
 !   Local variables
 !
-    integer, save                         :: ient = 0 ! number of entries in this subroutine
-    integer                               :: ivert    ! loop counter over vertices
-    !
-    type(verttype), dimension(:), pointer :: vert     ! datastructure for vertices with their attributes
+   integer, save                         :: ient = 0 ! number of entries in this subroutine
+   integer                               :: ivert ! loop counter over vertices
+   !
+   type(verttype), dimension(:), pointer :: vert ! datastructure for vertices with their attributes
 !
 !   Structure
 !
@@ -72,37 +72,37 @@ subroutine SwanGridVert ( nverts, xcugrd, ycugrd, vmark )
 !
 !   Source text
 !
-    if (ltrace) call strace (ient,'SwanGridVert')
-    !
-    ! point to vertex object
-    !
-    vert => gridobject%vert_grid
-    !
-    ! loop over all vertices
-    !
-    do ivert = 1, nverts
-       !
-       ! identification number
-       !
-       vert(ivert)%atti(VERTID) = ivert
-       !
-       ! marks boundary vertex
-       !
-       vert(ivert)%atti(VMARKER) = min(1,vmark(ivert))
-       !
-       ! initially, this vertex is no boundary condition point
-       !
-       vert(ivert)%atti(VBC) = 0
-       !
-       ! initially, this vertex is active
-       !
-       vert(ivert)%active = .true.
-       !
-       ! store coordinates
-       !
-       vert(ivert)%attr(VERTX) = xcugrd(ivert)
-       vert(ivert)%attr(VERTY) = ycugrd(ivert)
-       !
-    enddo
+   if (ltrace) call strace (ient,'SwanGridVert')
+   !
+   ! point to vertex object
+   !
+   vert => gridobject%vert_grid
+   !
+   ! loop over all vertices
+   !
+   do ivert = 1, nverts
+      !
+      ! identification number
+      !
+      vert(ivert)%atti(VERTID) = ivert
+      !
+      ! marks boundary vertex
+      !
+      vert(ivert)%atti(VMARKER) = min(1,vmark(ivert))
+      !
+      ! initially, this vertex is no boundary condition point
+      !
+      vert(ivert)%atti(VBC) = 0
+      !
+      ! initially, this vertex is active
+      !
+      vert(ivert)%active = .true.
+      !
+      ! store coordinates
+      !
+      vert(ivert)%attr(VERTX) = xcugrd(ivert)
+      vert(ivert)%attr(VERTY) = ycugrd(ivert)
+      !
+   enddo
 
 end subroutine SwanGridVert

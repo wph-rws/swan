@@ -41,25 +41,25 @@ subroutine SwanPrepComp ( cross )
 !
 !   Modules used
 !
-    use ocpcomm4
-    use swcomm3
-    use m_obsta, only: OBSTDONE
-    use SwanGriddata
-    use SwanGridobjects
+   use ocpcomm4
+   use swcomm3
+   use m_obsta, only: OBSTDONE
+   use SwanGriddata
+   use SwanGridobjects
 !
-    implicit none
+   implicit none
 !
 !   Argument variables
 !
-    integer, dimension(nfaces), intent(out) :: cross ! contains sequence number of obstacles for each face
-                                                     ! where they crossing or zero if no crossing
+   integer, dimension(nfaces), intent(out) :: cross ! contains sequence number of obstacles for each face
+                                                    ! where they crossing or zero if no crossing
 !
 !   Local variables
 !
-    integer, save                         :: ient = 0 ! number of entries in this subroutine
-    integer                               :: ivert    ! loop counter over vertices
-    !
-    type(verttype), dimension(:), pointer :: vert     ! datastructure for vertices with their attributes
+   integer, save                         :: ient = 0 ! number of entries in this subroutine
+   integer                               :: ivert ! loop counter over vertices
+   !
+   type(verttype), dimension(:), pointer :: vert ! datastructure for vertices with their attributes
 !
 !   Structure
 !
@@ -67,28 +67,28 @@ subroutine SwanPrepComp ( cross )
 !
 !   Source text
 !
-    if (ltrace) call strace (ient,'SwanPrepComp')
-    !
-    ! point to vertex object
-    !
-    vert => gridobject%vert_grid
-    !
-    ! deallocate arrays kvertc and kvertf (we don't use them anymore!)
-    !
-    if (allocated(kvertc)) deallocate(kvertc)
-    if (allocated(kvertf)) deallocate(kvertf)
-    !
-    ! ghost and exception vertices are regarded as vertices with boundary condition
-    !
-    do ivert = 1, nverts
-       if ( vmark(ivert) >= excmark ) vert(ivert)%atti(VBC) = 1
-    enddo
-    !
-    ! find obstacles in computational grid, if present
-    !
-    if ( NUMOBS > 0 .and. .not.OBSTDONE ) then
-       call SwanFindObstacles ( cross )
-       OBSTDONE = .true.
-    endif
+   if (ltrace) call strace (ient,'SwanPrepComp')
+   !
+   ! point to vertex object
+   !
+   vert => gridobject%vert_grid
+   !
+   ! deallocate arrays kvertc and kvertf (we don't use them anymore!)
+   !
+   if (allocated(kvertc)) deallocate(kvertc)
+   if (allocated(kvertf)) deallocate(kvertf)
+   !
+   ! ghost and exception vertices are regarded as vertices with boundary condition
+   !
+   do ivert = 1, nverts
+      if ( vmark(ivert) >= excmark ) vert(ivert)%atti(VBC) = 1
+   enddo
+   !
+   ! find obstacles in computational grid, if present
+   !
+   if ( NUMOBS > 0 .and. .not.OBSTDONE ) then
+      call SwanFindObstacles ( cross )
+      OBSTDONE = .true.
+   endif
     !
 end subroutine SwanPrepComp

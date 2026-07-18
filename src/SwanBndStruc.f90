@@ -47,42 +47,42 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
 !
 !   Modules used
 !
-    use ocpcomm4
-    use SWCOMM1
-    use SWCOMM2
-    use SWCOMM3
-    use OUTP_DATA
+   use ocpcomm4
+   use SWCOMM1
+   use SWCOMM2
+   use SWCOMM3
+   use OUTP_DATA
 !
-    implicit none
+   implicit none
 !
 !   Argument variables
 !
-    real, dimension(MXC,MYC), intent(in) :: xcgrid   ! x-coordinate of computational grid
-    real, dimension(MXC,MYC), intent(in) :: ycgrid   ! y-coordinate of computational grid
+   real, dimension(MXC,MYC), intent(in) :: xcgrid ! x-coordinate of computational grid
+   real, dimension(MXC,MYC), intent(in) :: ycgrid ! y-coordinate of computational grid
 !
 !   Local variables
 !
-    integer                              :: ix, iy   ! point index
-    integer                              :: ibnd     ! number of valid points along boundary
-    integer                              :: iside    ! side counter (1..4)
-    integer                              :: lside    ! number of points on one side
-    integer                              :: ispt     ! number of valid points on one side
-    integer                              :: mip      ! number of output points
-    integer                              :: xstep, ystep
-    integer                              :: ix0, ix1, iy0, iy1
-    integer                              :: ii, jj   ! counters
-    integer, save                        :: ient = 0 ! number of entries in this subroutine
-    !
-    logical                              :: EQREAL   ! function
-    !
-    real                                 :: xp, yp       ! one boundary point
-    real, allocatable, dimension (:)     :: xbnd, ybnd   ! points of whole boundary
-    real, allocatable, dimension (:)     :: xsid, ysid   ! points of one side
-    !
-    character(80)                        :: msgstr   ! string to pass message
-    character(len=8)                     :: psname   ! name assigned to output curve
-    !
-    TYPE(OPSDAT), POINTER :: OPSTMP, ROPS
+   integer                              :: ix, iy ! point index
+   integer                              :: ibnd ! number of valid points along boundary
+   integer                              :: iside ! side counter (1..4)
+   integer                              :: lside ! number of points on one side
+   integer                              :: ispt ! number of valid points on one side
+   integer                              :: mip ! number of output points
+   integer                              :: xstep, ystep
+   integer                              :: ix0, ix1, iy0, iy1
+   integer                              :: ii, jj ! counters
+   integer, save                        :: ient = 0 ! number of entries in this subroutine
+   !
+   logical                              :: EQREAL ! function
+   !
+   real                                 :: xp, yp ! one boundary point
+   real, allocatable, dimension (:)     :: xbnd, ybnd ! points of whole boundary
+   real, allocatable, dimension (:)     :: xsid, ysid ! points of one side
+   !
+   character(80)                        :: msgstr ! string to pass message
+   character(len=8)                     :: psname ! name assigned to output curve
+   !
+   TYPE(OPSDAT), POINTER :: OPSTMP, ROPS
 !
 !   Structure
 !
@@ -90,12 +90,12 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
 !
 !   Source text
 !
-    if (ltrace) call strace (ient,'SwanBndStruc')
-    !
-    if (.not.allocated(xbnd)) allocate (xbnd(1:2*(mxc+myc-2)))
-    if (.not.allocated(ybnd)) allocate (ybnd(1:2*(mxc+myc-2)))
-    ibnd = 0
-    do iside = 1, 4
+   if (ltrace) call strace (ient,'SwanBndStruc')
+   !
+   if (.not.allocated(xbnd)) allocate (xbnd(1:2*(mxc+myc-2)))
+   if (.not.allocated(ybnd)) allocate (ybnd(1:2*(mxc+myc-2)))
+   ibnd = 0
+   do iside = 1, 4
       if (iside==1) then
          ix0 = 1
          ix1 = mxc
@@ -137,63 +137,63 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
       ispt = 0
       !
       do ii = 1, lside
-        !
-        ! loop over points of one side of the grid
-        !
-        xp = xcgrid(ix,iy)
-        yp = ycgrid(ix,iy)
-        if (.not.(EQREAL(xp,OVEXCV(1)).or.EQREAL(yp,OVEXCV(2)))) then
-          ! point has valid coordinates
-          ispt = ispt + 1
-          xsid(ispt) = xp
-          ysid(ispt) = yp
-          if (ii<lside) then
-            ! corner point appears only once in curve BOUNDARY
-            ibnd = ibnd + 1
-            xbnd(ibnd) = xp
-            ybnd(ibnd) = yp
-          endif
-        endif
-        if (ystep==0) then
-          ix = ix + xstep
-        else
-          iy = iy + ystep
-        endif
+         !
+         ! loop over points of one side of the grid
+         !
+         xp = xcgrid(ix,iy)
+         yp = ycgrid(ix,iy)
+         if (.not.(EQREAL(xp,OVEXCV(1)).or.EQREAL(yp,OVEXCV(2)))) then
+            ! point has valid coordinates
+            ispt = ispt + 1
+            xsid(ispt) = xp
+            ysid(ispt) = yp
+            if (ii<lside) then
+               ! corner point appears only once in curve BOUNDARY
+               ibnd = ibnd + 1
+               xbnd(ibnd) = xp
+               ybnd(ibnd) = yp
+            endif
+         endif
+         if (ystep==0) then
+            ix = ix + xstep
+         else
+            iy = iy + ystep
+         endif
       enddo
       !
       write (psname, '(A6, I2.2)') 'BOUND_', iside
       mip = ispt
       if (mip>0) then
-        allocate(OPSTMP)
-        OPSTMP%PSNAME = psname
-        OPSTMP%PSTYPE = 'C'
-        OPSTMP%MIP = mip
-        allocate(OPSTMP%XP(mip))
-        allocate(OPSTMP%YP(mip))
-        do jj = 1, mip
-           OPSTMP%XP(jj) = xsid(jj)
-           OPSTMP%YP(jj) = ysid(jj)
-        enddo
-        deallocate (xsid, ysid)
-        nullify (OPSTMP%NEXTOPS)
-        if ( .not.LOPS ) then
-           FOPS = OPSTMP
-           COPS => FOPS
-           LOPS = .TRUE.
-        else
-           COPS%NEXTOPS => OPSTMP
-           COPS => OPSTMP
-        endif
-        if (ITEST>=10) write (PRTEST, *) 'Output curve ', psname,    &
-                       ' with ', mip, ' points is generated'
+         allocate(OPSTMP)
+         OPSTMP%PSNAME = psname
+         OPSTMP%PSTYPE = 'C'
+         OPSTMP%MIP = mip
+         allocate(OPSTMP%XP(mip))
+         allocate(OPSTMP%YP(mip))
+         do jj = 1, mip
+            OPSTMP%XP(jj) = xsid(jj)
+            OPSTMP%YP(jj) = ysid(jj)
+         enddo
+         deallocate (xsid, ysid)
+         nullify (OPSTMP%NEXTOPS)
+         if ( .not.LOPS ) then
+            FOPS = OPSTMP
+            COPS => FOPS
+            LOPS = .TRUE.
+         else
+            COPS%NEXTOPS => OPSTMP
+            COPS => OPSTMP
+         endif
+         if (ITEST>=10) write (PRTEST, *) 'Output curve ', psname, &
+                        ' with ', mip, ' points is generated'
       else
-        call MSGERR(1,'No output points found in '//psname)
+         call MSGERR(1,'No output points found in '//psname)
       endif
-    enddo
-    !
-    psname = 'BOUNDARY'
-    mip = ibnd
-    if (mip>0) then
+   enddo
+   !
+   psname = 'BOUNDARY'
+   mip = ibnd
+   if (mip>0) then
       allocate(OPSTMP)
       OPSTMP%PSNAME = psname
       OPSTMP%PSTYPE = 'C'
@@ -214,10 +214,10 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
          COPS%NEXTOPS => OPSTMP
          COPS => OPSTMP
       endif
-      if (ITEST>=10) write (PRTEST, *) 'Output curve ', psname,    &
+      if (ITEST>=10) write (PRTEST, *) 'Output curve ', psname, &
                      ' with ', mip, ' points is generated'
-    else
+   else
       call MSGERR(1,'No output points found in '//psname)
-    endif
+   endif
     !
 end subroutine SwanBndStruc

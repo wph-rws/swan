@@ -19,16 +19,16 @@
 !
 !*******************************************************************
 !                                                                  *
-      REAL FUNCTION DTTIME (INTTIM)
+REAL FUNCTION DTTIME (INTTIM)
 !                                                                  *
 !*******************************************************************
 !
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -89,7 +89,7 @@
 !           (5): minute
 !           (6): second
 !
-      INTEGER INTTIM(6)                                                   30.74
+   INTEGER INTTIM(6)
 !
 !  5. PARAMETER VARIABLES
 !
@@ -102,12 +102,12 @@
 !     I      : ??
 !     II     : ??
 !
-      INTEGER IDYMON(12), IYEAR, IYRM1, IDNOW, I, II
+   INTEGER IDYMON(12), IYEAR, IYRM1, IDNOW, I, II
 !
 !     LEAPYR : Whether year in INTTIM(1) is a leapyear
 !     LOGREF : ??
 !
-      LOGICAL LEAPYR, LOGREF
+   LOGICAL LEAPYR, LOGREF
 !
 !     REFDAY  day number of the reference day; the reference time is 0:00
 !            of the reference day; the first day entered is used as
@@ -126,47 +126,47 @@
 !
 ! 13. SOURCE TEXT
 !
-      SAVE LOGREF, IDYMON
-      DATA IDYMON /31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31/
-      DATA LOGREF /.FALSE./
+   SAVE LOGREF, IDYMON
+   DATA IDYMON /31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31/
+   DATA LOGREF /.FALSE./
 !
-      IYEAR = INTTIM(1)
-      IYRM1 = IYEAR-1
-      LEAPYR=(MOD(IYEAR,4).EQ.0.AND.MOD(IYEAR,100).NE.0).OR.
-     &        MOD(IYEAR,400).EQ.0
-      IDNOW=0
-      IF (INTTIM(2).GT.12) THEN                                           9705
-        WRITE (PRINTF, 8) INTTIM(2), (INTTIM(II), II=1,6)                 9705
-   8    FORMAT (' erroneous month ', I2, ' in date/time ', 6I4)           9705
-      ELSE IF (INTTIM(2).GT.1) THEN                                       9705
-        DO 10 I = 1,INTTIM(2)-1
-          IDNOW=IDNOW+IDYMON(I)
-  10    CONTINUE
-      ENDIF                                                               9705
-      IDNOW=IDNOW+INTTIM(3)
-      IF (LEAPYR.AND.INTTIM(2).GT.2) IDNOW=IDNOW+1
-      IDNOW = IDNOW + IYEAR*365 + IYRM1/4 - IYRM1/100 + IYRM1/400 + 1
-      IF (IYEAR.EQ.0) IDNOW=IDNOW-1
-      IF (.NOT.LOGREF) THEN
-        REFDAY = IDNOW
-        LOGREF = .TRUE.
-        DTTIME = 0.
-      ELSE
-        DTTIME = REAL(IDNOW-REFDAY) * 24.*3600.
-      ENDIF
-      DTTIME = DTTIME + 3600.*REAL(INTTIM(4)) + 60.*REAL(INTTIM(5)) +
-     &                  REAL(INTTIM(6))
-      RETURN
-      END
+   IYEAR = INTTIM(1)
+   IYRM1 = IYEAR-1
+   LEAPYR=(MOD(IYEAR,4).EQ.0.AND.MOD(IYEAR,100).NE.0).OR. &
+           MOD(IYEAR,400).EQ.0
+   IDNOW=0
+   IF (INTTIM(2).GT.12) THEN
+      WRITE (PRINTF, 8) INTTIM(2), (INTTIM(II), II=1,6)
+8     FORMAT (' erroneous month ', I2, ' in date/time ', 6I4)
+   ELSE IF (INTTIM(2).GT.1) THEN
+      DO 10 I = 1,INTTIM(2)-1
+         IDNOW=IDNOW+IDYMON(I)
+10    CONTINUE
+   ENDIF
+   IDNOW=IDNOW+INTTIM(3)
+   IF (LEAPYR.AND.INTTIM(2).GT.2) IDNOW=IDNOW+1
+   IDNOW = IDNOW + IYEAR*365 + IYRM1/4 - IYRM1/100 + IYRM1/400 + 1
+   IF (IYEAR.EQ.0) IDNOW=IDNOW-1
+   IF (.NOT.LOGREF) THEN
+      REFDAY = IDNOW
+      LOGREF = .TRUE.
+      DTTIME = 0.
+   ELSE
+      DTTIME = REAL(IDNOW-REFDAY) * 24.*3600.
+   ENDIF
+   DTTIME = DTTIME + 3600.*REAL(INTTIM(4)) + 60.*REAL(INTTIM(5)) + &
+                     REAL(INTTIM(6))
+   RETURN
+END
 !*******************************************************************
 !                                                                  *
-      SUBROUTINE DTINTI (TIMESC, INTTIM)
+SUBROUTINE DTINTI (TIMESC, INTTIM)
 !                                                                  *
 !*******************************************************************
 !
-      USE OCPCOMM1                                                        40.41
+   USE OCPCOMM1
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -227,11 +227,11 @@
 !           (5): minute
 !           (6): second
 !
-      INTEGER INTTIM(6)
+   INTEGER INTTIM(6)
 !
 !     TIMESC : input  time in seconds from given reference day REFDAY
 !
-      REAL*8 TIMESC
+   REAL*8 TIMESC
 !
 !  5. PARAMETER VARIABLES
 !
@@ -240,12 +240,12 @@
 !     IDYCEN : number of days in a century (not leapyear)
 !     IDYMIL : number of days in 4 centuries (leapyear)
 !
-      INTEGER IDAYYR, IDYCEN, IDYMIL, IFOUR
+   INTEGER IDAYYR, IDYCEN, IDYMIL, IFOUR
 !
-      PARAMETER (IDAYYR = 365)
-      PARAMETER (IFOUR  = 4*IDAYYR+1)
-      PARAMETER (IDYCEN = 25*IFOUR-1)
-      PARAMETER (IDYMIL = 4*IDYCEN+1)
+   PARAMETER (IDAYYR = 365)
+   PARAMETER (IFOUR  = 4*IDAYYR+1)
+   PARAMETER (IDYCEN = 25*IFOUR-1)
+   PARAMETER (IDYMIL = 4*IDYCEN+1)
 !
 !  6. LOCAL VARIABLES
 !
@@ -263,16 +263,16 @@
 !     NDAY   : number of days since reference day
 !     NOWDAY : reference day
 !
-      INTEGER I4, ICEN, ICNT, IDYMN, IDYMON(12), IDYNOW, IMIL, IMN, IYR
-     &, IYEAR, NDAY, NOWDAY
+   INTEGER I4, ICEN, ICNT, IDYMN, IDYMON(12), IDYNOW, IMIL, IMN, IYR &
+      , IYEAR, NDAY, NOWDAY
 !
 !     TT     : time in seconds since begin of the same day
 !
-      REAL*8  TT
+   REAL*8  TT
 !
 !     LEAPYR : logical for yes or no leap-year
 !
-      LOGICAL LEAPYR
+   LOGICAL LEAPYR
 !
 !  8. SUBROUTINE USED
 !
@@ -286,84 +286,84 @@
 !
 ! 13. SOURCE TEXT
 !
-      SAVE IDYMON
-      DATA IDYMON /31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31/
+   SAVE IDYMON
+   DATA IDYMON /31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31/
 !
-      NDAY = INT((TIMESC+0.4)/(24*3600))                                  30.70
-  10  TT   = TIMESC - DBLE(NDAY)*24.*3600.
-      IF (TT.LT.-0.4) THEN                                                30.70
-        NDAY = NDAY - 1
-        GOTO 10
-      ENDIF
-      NOWDAY = REFDAY + NDAY
+   NDAY = INT((TIMESC+0.4)/(24*3600))
+10 TT   = TIMESC - DBLE(NDAY)*24.*3600.
+   IF (TT.LT.-0.4) THEN
+      NDAY = NDAY - 1
+      GOTO 10
+   ENDIF
+   NOWDAY = REFDAY + NDAY
 !
 !        get year
 !
-      ICNT   = 0
-      IDYNOW = NOWDAY-1
+   ICNT   = 0
+   IDYNOW = NOWDAY-1
 !
-      IMIL   = IDYNOW/IDYMIL
-      IDYNOW = IDYNOW-IMIL*IDYMIL
-      IF (IDYNOW.EQ.0) ICNT = ICNT + 1
+   IMIL   = IDYNOW/IDYMIL
+   IDYNOW = IDYNOW-IMIL*IDYMIL
+   IF (IDYNOW.EQ.0) ICNT = ICNT + 1
 !
-      ICEN   = IDYNOW/IDYCEN
-      IDYNOW = IDYNOW-ICEN*IDYCEN
-      IF (IDYNOW.EQ.0) ICNT = ICNT + 1
+   ICEN   = IDYNOW/IDYCEN
+   IDYNOW = IDYNOW-ICEN*IDYCEN
+   IF (IDYNOW.EQ.0) ICNT = ICNT + 1
 !
-      I4     = IDYNOW/IFOUR
-      IDYNOW = IDYNOW-I4*IFOUR
-      IF (IDYNOW.EQ.0) ICNT = ICNT + 1
+   I4     = IDYNOW/IFOUR
+   IDYNOW = IDYNOW-I4*IFOUR
+   IF (IDYNOW.EQ.0) ICNT = ICNT + 1
 !
-      IF (IDYNOW.GE.366) THEN
-         IDYNOW = IDYNOW-366
-         IYR    = IDYNOW/IDAYYR
-         IDYNOW = IDYNOW-IYR*IDAYYR
-         IYR    = IYR+1
-      ELSE
-         IYR = 0
-      ENDIF
+   IF (IDYNOW.GE.366) THEN
+      IDYNOW = IDYNOW-366
+      IYR    = IDYNOW/IDAYYR
+      IDYNOW = IDYNOW-IYR*IDAYYR
+      IYR    = IYR+1
+   ELSE
+      IYR = 0
+   ENDIF
 !
-      IYEAR = 400*IMIL + 100*ICEN + 4*I4 + IYR
+   IYEAR = 400*IMIL + 100*ICEN + 4*I4 + IYR
 !
-      IF (MOD(IYEAR,100).NE.0.OR.MOD(IYEAR,400).EQ.0) IDYNOW = IDYNOW+1
+   IF (MOD(IYEAR,100).NE.0.OR.MOD(IYEAR,400).EQ.0) IDYNOW = IDYNOW+1
 !
 !        get month and day
 !
-      LEAPYR = (MOD(IYEAR,4).EQ.0.AND.MOD(IYEAR,100).NE.0).OR.
-     &          MOD(IYEAR,400).EQ.0
+   LEAPYR = (MOD(IYEAR,4).EQ.0.AND.MOD(IYEAR,100).NE.0).OR. &
+             MOD(IYEAR,400).EQ.0
 !
-      DO 30 IMN = 1, 12
-        IDYMN=IDYMON(IMN)
-        IF(LEAPYR.AND.IMN.EQ.2) IDYMN=IDYMN+1
-        IF(IDYNOW.LE.IDYMN) GOTO 40
-        IDYNOW=IDYNOW-IDYMN
-  30  CONTINUE
-  40  IF (ICNT==2) THEN
-          IYEAR=IYEAR-1
-          IMN=12
-          IDYNOW=31
-      ENDIF
+   DO 30 IMN = 1, 12
+      IDYMN=IDYMON(IMN)
+      IF(LEAPYR.AND.IMN.EQ.2) IDYMN=IDYMN+1
+      IF(IDYNOW.LE.IDYMN) GOTO 40
+      IDYNOW=IDYNOW-IDYMN
+30 CONTINUE
+40 IF (ICNT==2) THEN
+      IYEAR=IYEAR-1
+      IMN=12
+      IDYNOW=31
+   ENDIF
 !
-      INTTIM(2) = IMN
-      INTTIM(3) = IDYNOW
-      INTTIM(1) = IYEAR
+   INTTIM(2) = IMN
+   INTTIM(3) = IDYNOW
+   INTTIM(1) = IYEAR
 !
 !        get time of day
 !
-      INTTIM(4) = INT(TT/3600.)
-      TT        = TT - 3600.*DBLE(INTTIM(4))
-      INTTIM(5) = INT(TT/60.)
-      TT        = TT - 60.*DBLE(INTTIM(5))
-      INTTIM(6) = INT(TT)
-      RETURN
-      END
+   INTTIM(4) = INT(TT/3600.)
+   TT        = TT - 3600.*DBLE(INTTIM(4))
+   INTTIM(5) = INT(TT/60.)
+   TT        = TT - 60.*DBLE(INTTIM(5))
+   INTTIM(6) = INT(TT)
+   RETURN
+END
 !*****************************************************************
 !                                                                *
-      SUBROUTINE DTRETI (TSTRNG, IOPT, TIMESC)
+SUBROUTINE DTRETI (TSTRNG, IOPT, TIMESC)
 !                                                                *
 !*****************************************************************
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -405,15 +405,15 @@
 !
 !     IOPT   : input    option number
 !
-      INTEGER IOPT
+   INTEGER IOPT
 !
 !     TIMESC : output   time in seconds from given reference day REFDAY
 !
-      REAL*8  TIMESC
+   REAL*8  TIMESC
 !
 !     TSTRNG : input    time string
 !
-      CHARACTER  TSTRNG *(*)
+   CHARACTER  TSTRNG *(*)
 !
 !  5. PARAMETER VARIABLES
 !
@@ -421,14 +421,14 @@
 !
 !     ITIME  : ??
 !
-      INTEGER ITIME(6)
+   INTEGER ITIME(6)
 !
-      REAL    RTMP
+   REAL    RTMP
 !
 !     DTTIME : Gives time in seconds from a reference day it also initialises the
 !              reference day
 !
-      REAL    DTTIME
+   REAL    DTTIME
 !
 !  8. SUBROUTINE USED
 !
@@ -444,18 +444,18 @@
 !
 ! 13. SOURCE TEXT
 !
-      CALL DTSTTI (IOPT, TSTRNG, ITIME)
-      RTMP   = DTTIME (ITIME)
-      TIMESC = DBLE(RTMP)
-      RETURN
-      END
+   CALL DTSTTI (IOPT, TSTRNG, ITIME)
+   RTMP   = DTTIME (ITIME)
+   TIMESC = DBLE(RTMP)
+   RETURN
+END
 !*****************************************************************
 !                                                                *
-      CHARACTER *18 FUNCTION DTTIWR (IOPT, TIMESC)                        30.00
+CHARACTER *18 FUNCTION DTTIWR (IOPT, TIMESC)
 !                                                                *
 !*****************************************************************
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -502,21 +502,21 @@
 !
 !     IOPT   : input    time coding option number
 !
-      INTEGER    IOPT
+   INTEGER    IOPT
 !
 !     TIMESC : output   time in seconds from given reference day REFDAY
 !
-      REAL*8     TIMESC
+   REAL*8     TIMESC
 !
 !     TSTRNG : input    time string
 !
-      CHARACTER (LEN=24) :: TSTRNG                                        40.02
+   CHARACTER (LEN=24) :: TSTRNG
 !
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
 !
-      INTEGER    ITIME(6)
+   INTEGER    ITIME(6)
 !
 !  8. SUBROUTINE USED
 !
@@ -533,24 +533,24 @@
 !
 ! 13. SOURCE TEXT
 !                                                                         30.00
-      CALL DTINTI (TIMESC, ITIME)
-      CALL DTTIST (IOPT, TSTRNG, ITIME)
-      DTTIWR = TSTRNG(1:18)                                               40.02
-      RETURN
-      END
+   CALL DTINTI (TIMESC, ITIME)
+   CALL DTTIST (IOPT, TSTRNG, ITIME)
+   DTTIWR = TSTRNG(1:18)
+   RETURN
+END
 !*****************************************************************
 !                                                                *
-      SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,                   40.00
-     &                   NHEDF, IDYN, NHEDT, LOGC, NHEDC)                 40.00
+SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM, &
+                   NHEDF, IDYN, NHEDT, LOGC, NHEDC)
 !                                                                *
 !*****************************************************************
 !
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -623,15 +623,15 @@
 !     NHEDC  : output   number of heading lines in the file before each array
 !                       or vector component
 !
-      INTEGER   IDFM, IDLA,  NDSL, NDSD, NHEDF, NHEDT, NHEDC, IDYN
+   INTEGER   IDFM, IDLA,  NDSL, NDSD, NHEDF, NHEDT, NHEDC, IDYN
 !
 !     LOGC   : input    if True more than one component is read from file
 !
-      LOGICAL   LOGC
+   LOGICAL   LOGC
 !
 !     RFORM  : output   reading format
 !
-      CHARACTER RFORM *(*)
+   CHARACTER RFORM *(*)
 !
 !  5. PARAMETER VARIABLES
 !
@@ -645,20 +645,20 @@
 !                      -2: No messages printed
 !              output  error indicator
 !
-      INTEGER   IENT, IH, IOSTAT
+   INTEGER   IENT, IH, IOSTAT
 !
 !     HEDLIN : Content of a header line
 !     KEYWIS : ??
 !
-      LOGICAL   KEYWIS, BNEW
+   LOGICAL   KEYWIS, BNEW
 !
 !     OLDFIL : ??
 !
-      CHARACTER HEDLIN*80, OLDFIL *36
+   CHARACTER HEDLIN*80, OLDFIL *36
 !                                                                         30.82
 !  8. SUBROUTINE USED
 !
-      LOGICAL   STPNOW                                                    34.01
+   LOGICAL   STPNOW
 !
 !  9. SUBROUTINES CALLING
 !
@@ -670,116 +670,116 @@
 !
 ! 13. SOURCE TEXT
 !
-      SAVE  IENT, OLDFIL
-      DATA  IENT /0/
-      DATA  OLDFIL /'                                    '/
-      CALL STRACE (IENT, 'REPARM')
+   SAVE  IENT, OLDFIL
+   DATA  IENT /0/
+   DATA  OLDFIL /'                                    '/
+   CALL STRACE (IENT, 'REPARM')
 !
-      CALL INKEYW ('STA', '   ')
-      IF (KEYWIS('SERI')) THEN
-        CALL INCSTR ('FNAME', FILENM, 'REQ', ' ')
+   CALL INKEYW ('STA', '   ')
+   IF (KEYWIS('SERI')) THEN
+      CALL INCSTR ('FNAME', FILENM, 'REQ', ' ')
 !       open namelist file and read first datafile name
-        CALL FOR (NDSL, FILENM, 'OF', IOSTAT)                             40.00
-        IF (STPNOW()) RETURN                                              34.01
-        READ(NDSL, '(A36)') FILENM
-      ELSE
-        CALL INCSTR ('FNAME', FILENM, 'REQ', ' ')                         40.00
-      ENDIF
+      CALL FOR (NDSL, FILENM, 'OF', IOSTAT)
+      IF (STPNOW()) RETURN
+      READ(NDSL, '(A36)') FILENM
+   ELSE
+      CALL INCSTR ('FNAME', FILENM, 'REQ', ' ')
+   ENDIF
 !
-      IF (FILENM.NE.OLDFIL) THEN
-        BNEW = .TRUE.
-        NDSD = 0
-        IDLA = 1
-        IDFM = 0
-        RFORM = ' '
-        NHEDF = 0
-        OLDFIL = FILENM
-      ELSE
-        BNEW = .FALSE.
-      ENDIF
+   IF (FILENM.NE.OLDFIL) THEN
+      BNEW = .TRUE.
+      NDSD = 0
+      IDLA = 1
+      IDFM = 0
+      RFORM = ' '
+      NHEDF = 0
+      OLDFIL = FILENM
+   ELSE
+      BNEW = .FALSE.
+   ENDIF
 !
-      CALL INKEYW ('STA', ' ')
-      IF (BNEW) THEN
+   CALL INKEYW ('STA', ' ')
+   IF (BNEW) THEN
 !       read lay-out indicator
-        CALL ININTG ('IDLA', IDLA, 'UNC', 1)
+      CALL ININTG ('IDLA', IDLA, 'UNC', 1)
 !       names changed and order changed, ver 30.20 (Swan)
-        CALL ININTG ('NHEDF', NHEDF, 'UNC', 0)                            30.20
-        NHEDT = 0                                                         30.80
-        IF (IDYN.GT.0) THEN
-          CALL ININTG ('NHEDT', NHEDT, 'UNC', 0)                          30.21
-        ENDIF
-        NHEDC = 0                                                         30.80
-        IF (LOGC) THEN
-          CALL ININTG ('NHEDVEC', NHEDC, 'UNC', 0)                        30.20
-        ENDIF
-        CALL INKEYW ('STA', 'FREE')                                       30.06
-        IDFM = 2
-        IF (KEYWIS('FRE')) THEN
-          IDFM = 0
-        ELSE IF (KEYWIS('UNF')) THEN
-          IDFM = -1
-        ELSE IF (KEYWIS('FOR')) THEN
+      CALL ININTG ('NHEDF', NHEDF, 'UNC', 0)
+      NHEDT = 0
+      IF (IDYN.GT.0) THEN
+         CALL ININTG ('NHEDT', NHEDT, 'UNC', 0)
+      ENDIF
+      NHEDC = 0
+      IF (LOGC) THEN
+         CALL ININTG ('NHEDVEC', NHEDC, 'UNC', 0)
+      ENDIF
+      CALL INKEYW ('STA', 'FREE')
+      IDFM = 2
+      IF (KEYWIS('FRE')) THEN
+         IDFM = 0
+      ELSE IF (KEYWIS('UNF')) THEN
+         IDFM = -1
+      ELSE IF (KEYWIS('FOR')) THEN
 !         formatted read
-          CALL ININTG ('IDFM', IDFM, 'NSKP', 2)
-          SELECT CASE(IDFM)                                               40.02
-          CASE(1)                                                         40.02
-            RFORM = '(10X,12F5.0)'                                        40.02
-          CASE(2)                                                         40.02
-            CALL INCSTR ('FORM', RFORM, 'REQ', ' ')                       40.02
-          CASE(5)                                                         40.02
-            RFORM = '(16F5.0)'                                            40.02
-          CASE(6)                                                         40.02
-            RFORM = '(12F6.0)'                                            40.02
-          CASE(8)                                                         40.02
-            RFORM = '(10F8.0)'                                            40.02
-          CASE DEFAULT                                                    40.02
-            CALL MSGERR (2, 'illegal format number')                      40.02
-            WRITE (PRINTF, 50) IDFM                                       40.02
-  50        FORMAT (' -> ', I6)                                           40.02
-          END SELECT                                                      40.02
-        ELSE
-          CALL WRNKEY                                                     30.06
-          IDFM = 0
-        ENDIF
+         CALL ININTG ('IDFM', IDFM, 'NSKP', 2)
+         SELECT CASE(IDFM)
+         CASE(1)
+            RFORM = '(10X,12F5.0)'
+         CASE(2)
+            CALL INCSTR ('FORM', RFORM, 'REQ', ' ')
+         CASE(5)
+            RFORM = '(16F5.0)'
+         CASE(6)
+            RFORM = '(12F6.0)'
+         CASE(8)
+            RFORM = '(10F8.0)'
+         CASE DEFAULT
+            CALL MSGERR (2, 'illegal format number')
+            WRITE (PRINTF, 50) IDFM
+50          FORMAT (' -> ', I6)
+         END SELECT
+      ELSE
+         CALL WRNKEY
+         IDFM = 0
+      ENDIF
 !       --------------------------------------------------------
 !                          open the file
 !       --------------------------------------------------------
-        IF (IDFM.NE.-1) THEN
-          IOSTAT = 0
-          CALL FOR (NDSD, FILENM, 'OF', IOSTAT)                           40.00
-          IF (STPNOW()) RETURN                                            34.01
-          IF (NHEDF.GT.0) THEN                                            40.00
-            WRITE (PRINTF, '(A,A,A)') ' **  Heading lines file ',
-     &      TRIM(FILENM), ' **'                                           40.03
+      IF (IDFM.NE.-1) THEN
+         IOSTAT = 0
+         CALL FOR (NDSD, FILENM, 'OF', IOSTAT)
+         IF (STPNOW()) RETURN
+         IF (NHEDF.GT.0) THEN
+            WRITE (PRINTF, '(A,A,A)') ' **  Heading lines file ', &
+               TRIM(FILENM), ' **'
             DO IH=1, NHEDF
-              READ (NDSD, '(A80)') HEDLIN
-              WRITE (PRINTF, '(A4,A80)') ' -> ', HEDLIN                   40.00
+               READ (NDSD, '(A80)') HEDLIN
+               WRITE (PRINTF, '(A4,A80)') ' -> ', HEDLIN
             ENDDO
-          ENDIF
-        ELSE
-          IOSTAT = 0
-          CALL FOR (NDSD, FILENM, 'OU', IOSTAT)                           40.00
-          IF (STPNOW()) RETURN                                            34.01
-          DO IH=1, NHEDF
-            READ (NDSD)                                                   40.00
-          ENDDO
-        ENDIF
+         ENDIF
+      ELSE
+         IOSTAT = 0
+         CALL FOR (NDSD, FILENM, 'OU', IOSTAT)
+         IF (STPNOW()) RETURN
+         DO IH=1, NHEDF
+            READ (NDSD)
+         ENDDO
       ENDIF
-      RETURN
-      END
+   ENDIF
+   RETURN
+END
 !*****************************************************************
 !                                                                *
-      SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM,          40.00
-     &  IDLA, VFAC, NHED, NHEDF)                                          40.00
+SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM, &
+   IDLA, VFAC, NHED, NHEDF)
 !                                                                *
 !*****************************************************************
 !
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -868,15 +868,15 @@
 !     NHEDL  : input    number of heading lines in the file
 !                       before each array
 !
-      INTEGER   IDFM, IDLA, MXA, MYA, NDSD, NDSL, NHED, NHEDF
+   INTEGER   IDFM, IDLA, MXA, MYA, NDSD, NDSL, NHED, NHEDF
 !
 !     ARR    : input    results appear in this array
 !     RFORM  : input    format used in reading data (char. string)
 !     VFAC   : input    factor by which data must be multiplied.
 !
-      REAL      ARR(MXA,MYA), VFAC
+   REAL      ARR(MXA,MYA), VFAC
 !
-      CHARACTER RFORM *(*)
+   CHARACTER RFORM *(*)
 !
 !  5. PARAMETER VARIABLES
 !
@@ -893,15 +893,15 @@
 !     IY     : ??
 !     NUMFIL : ??
 !
-      INTEGER   IERR, IENT, IOERR, IH, IX, IY, NUMFIL                     40.02
+   INTEGER   IERR, IENT, IOERR, IH, IX, IY, NUMFIL
 !
 !     HEDLIN : Content of a header line
 !
-      CHARACTER HEDLIN *80
+   CHARACTER HEDLIN *80
 !
 !  8. SUBROUTINE USED
 !
-      LOGICAL STPNOW                                                      34.01
+   LOGICAL STPNOW
 !
 !  9. SUBROUTINES CALLING
 !
@@ -913,241 +913,241 @@
 !
 ! 13. SOURCE TEXT
 !
-      SAVE IENT
-      DATA IENT /0/
-      CALL STRACE (IENT, 'INAR2D')
+   SAVE IENT
+   DATA IENT /0/
+   CALL STRACE (IENT, 'INAR2D')
 !
- 999  IF (NDSD.LT.0) RETURN                                               40.00
+999 IF (NDSD.LT.0) RETURN
 !     no reading from file due to open error
 !
 !     *** NUMFIL is the number of files that is open in one time step  **
-      NUMFIL = 0                                                          30.00
-      IF (ITEST.GE.100) THEN
-        WRITE (PRINTF, 12) MXA, MYA, NDSD, IDFM, RFORM,                   40.00
-     &  IDLA, VFAC, NHED
-  12    FORMAT (' * TEST INAR2D *', 4I4, 1X, A16, I3, 1X, E12.4, I3)
-      ENDIF
+   NUMFIL = 0
+   IF (ITEST.GE.100) THEN
+      WRITE (PRINTF, 12) MXA, MYA, NDSD, IDFM, RFORM, &
+         IDLA, VFAC, NHED
+12    FORMAT (' * TEST INAR2D *', 4I4, 1X, A16, I3, 1X, E12.4, I3)
+   ENDIF
 !
 !     Read heading lines, and print the same:
 !
-  11  IF (NHED.GT.0) THEN
-        IF (IDFM.LT.0) THEN                                               40.00
-          IF (ITEST.GE.30)
-     &             WRITE (PRINTF, '(I3,A)') NHED, ' Heading lines'        40.00
-          DO 28 IH=1, NHED
-            READ (NDSD, END=910)                                          40.03
-  28      CONTINUE
-        ELSE
-          DO 30 IH=1, NHED
-            READ (NDSD, '(A80)', end=910) HEDLIN                          40.03
+11 IF (NHED.GT.0) THEN
+      IF (IDFM.LT.0) THEN
+         IF (ITEST.GE.30) &
+                  WRITE (PRINTF, '(I3,A)') NHED, ' Heading lines'
+         DO 28 IH=1, NHED
+            READ (NDSD, END=910)
+28       CONTINUE
+      ELSE
+         DO 30 IH=1, NHED
+            READ (NDSD, '(A80)', end=910) HEDLIN
             IF (IH.EQ.1) WRITE (PRINTF, '(A)') ' **  Heading lines  **'
             WRITE (PRINTF, '(A4,A80)') ' -> ', HEDLIN
-  30      CONTINUE
-        ENDIF
+30       CONTINUE
       ENDIF
+   ENDIF
 !
 !     divide existing values in the array by VFAC
 !
-      DO 39 IY = 1, MYA                                                   30.72
-        DO 38 IX = 1, MXA
-          ARR(IX,IY) = ARR(IX,IY) / VFAC
-  38    CONTINUE                                                          30.72
-  39  CONTINUE                                                            30.72
+   DO 39 IY = 1, MYA
+      DO 38 IX = 1, MXA
+         ARR(IX,IY) = ARR(IX,IY) / VFAC
+38    CONTINUE
+39 CONTINUE
 !
 !     start reading of 2D-array
 !
-      IF (IDFM.EQ.0) THEN
+   IF (IDFM.EQ.0) THEN
 !       free format read
-        SELECT CASE(IDLA)                                                 40.02
-        CASE(1)                                                           40.02
-          DO IY=MYA, 1, -1                                                40.02
-            READ (NDSD, *, END=910, ERR=920, IOSTAT=IERR)                 40.02
-     &      (ARR(IX,IY), IX=1,MXA)                                        40.02
-          ENDDO                                                           40.02
-        CASE(2)                                                           40.02
-          READ (NDSD, *, END=910, ERR=920, IOSTAT=IERR)                   40.02
-     &               ((ARR(IX,IY), IX=1,MXA), IY=MYA,1,-1)                40.02
-        CASE(3)                                                           40.02
-          DO IY=1, MYA                                                    40.02
-            READ (NDSD, *, END=910, ERR=920, IOSTAT=IERR)                 40.02
-     &               (ARR(IX,IY), IX=1,MXA)                               40.02
-          ENDDO                                                           40.02
-        CASE(4)                                                           40.02
-          READ (NDSD, *, END=910, ERR=920, IOSTAT=IERR)                   40.02
-     &              ((ARR(IX,IY), IX=1,MXA), IY=1,MYA)                    40.02
-        CASE(5)                                                           40.02
-          DO IX=1, MXA                                                    40.02
-            READ (NDSD, *, END=910, ERR=920, IOSTAT=IERR)                 40.02
-     &               (ARR(IX,IY), IY=1,MYA)                               40.02
-          ENDDO                                                           40.02
-        CASE(6)                                                           40.02
-          READ (NDSD, *, END=910, ERR=920, IOSTAT=IERR)                   40.02
-     &               ((ARR(IX,IY), IY=1,MYA), IX=1,MXA)                   40.02
-        END SELECT                                                        40.02
-      ELSE IF (IDFM.GT.0) THEN
+      SELECT CASE(IDLA)
+      CASE(1)
+         DO IY=MYA, 1, -1
+            READ (NDSD, *, END=910, ERR=920, IOSTAT=IERR) &
+               (ARR(IX,IY), IX=1,MXA)
+         ENDDO
+      CASE(2)
+         READ (NDSD, *, END=910, ERR=920, IOSTAT=IERR) &
+                    ((ARR(IX,IY), IX=1,MXA), IY=MYA,1,-1)
+      CASE(3)
+         DO IY=1, MYA
+            READ (NDSD, *, END=910, ERR=920, IOSTAT=IERR) &
+                     (ARR(IX,IY), IX=1,MXA)
+         ENDDO
+      CASE(4)
+         READ (NDSD, *, END=910, ERR=920, IOSTAT=IERR) &
+                   ((ARR(IX,IY), IX=1,MXA), IY=1,MYA)
+      CASE(5)
+         DO IX=1, MXA
+            READ (NDSD, *, END=910, ERR=920, IOSTAT=IERR) &
+                     (ARR(IX,IY), IY=1,MYA)
+         ENDDO
+      CASE(6)
+         READ (NDSD, *, END=910, ERR=920, IOSTAT=IERR) &
+                    ((ARR(IX,IY), IY=1,MYA), IX=1,MXA)
+      END SELECT
+   ELSE IF (IDFM.GT.0) THEN
 !       read with fixed format
-        SELECT CASE (IDLA)                                                40.02
-        CASE(1)                                                           40.02
-          DO IY=MYA, 1, -1                                                40.02
-            READ (NDSD, RFORM, END=910, ERR=920, IOSTAT=IERR)             40.02
-     &      (ARR(IX,IY), IX=1,MXA)                                        40.02
-          ENDDO                                                           40.02
-        CASE(2)                                                           40.02
-          READ (NDSD, RFORM, END=910, ERR=920, IOSTAT=IERR)               40.02
-     &    ((ARR(IX,IY), IX=1,MXA), IY=MYA,1,-1)                           40.02
-        CASE(3)                                                           40.02
-          DO IY=1, MYA                                                    40.02
-            READ (NDSD, RFORM, END=910, ERR=920, IOSTAT=IERR)             40.02
-     &      (ARR(IX,IY), IX=1,MXA)                                        40.02
-          ENDDO                                                           40.02
-        CASE(4)                                                           40.02
-          READ (NDSD, RFORM, END=910, ERR=920, IOSTAT=IERR)               40.02
-     &    ((ARR(IX,IY), IX=1,MXA), IY=1,MYA)                              40.02
-        CASE(5)                                                           40.02
-          DO IX=1, MXA                                                    40.02
-            READ (NDSD, RFORM, END=910, ERR=920, IOSTAT=IERR)             40.02
-     &      (ARR(IX,IY), IY=1,MYA)                                        40.02
-          ENDDO                                                           40.02
-        CASE(6)                                                           40.02
-          READ (NDSD, RFORM, END=910, ERR=920, IOSTAT=IERR)               40.02
-     &    ((ARR(IX,IY), IY=1,MYA), IX=1,MXA)                              40.02
-        END SELECT                                                        40.02
-      ELSE
+      SELECT CASE (IDLA)
+      CASE(1)
+         DO IY=MYA, 1, -1
+            READ (NDSD, RFORM, END=910, ERR=920, IOSTAT=IERR) &
+               (ARR(IX,IY), IX=1,MXA)
+         ENDDO
+      CASE(2)
+         READ (NDSD, RFORM, END=910, ERR=920, IOSTAT=IERR) &
+            ((ARR(IX,IY), IX=1,MXA), IY=MYA,1,-1)
+      CASE(3)
+         DO IY=1, MYA
+            READ (NDSD, RFORM, END=910, ERR=920, IOSTAT=IERR) &
+               (ARR(IX,IY), IX=1,MXA)
+         ENDDO
+      CASE(4)
+         READ (NDSD, RFORM, END=910, ERR=920, IOSTAT=IERR) &
+            ((ARR(IX,IY), IX=1,MXA), IY=1,MYA)
+      CASE(5)
+         DO IX=1, MXA
+            READ (NDSD, RFORM, END=910, ERR=920, IOSTAT=IERR) &
+               (ARR(IX,IY), IY=1,MYA)
+         ENDDO
+      CASE(6)
+         READ (NDSD, RFORM, END=910, ERR=920, IOSTAT=IERR) &
+            ((ARR(IX,IY), IY=1,MYA), IX=1,MXA)
+      END SELECT
+   ELSE
 !       unformatted read
-        SELECT CASE(IDLA)
-        CASE(1)
-          DO IY=MYA, 1, -1                                                40.02
-            READ (NDSD, END=910, ERR=920, IOSTAT=IERR)                    40.02
-     &      (ARR(IX,IY), IX=1,MXA)                                        40.02
-          ENDDO                                                           40.02
-        CASE(2)                                                           40.02
-          READ (NDSD, END=910, ERR=920, IOSTAT=IERR)                      40.02
-     &    ((ARR(IX,IY), IX=1,MXA), IY=MYA,1,-1)                           40.02
-        CASE(3)                                                           40.02
-          DO IY=1, MYA                                                    40.02
-            READ (NDSD, END=910, ERR=920, IOSTAT=IERR)                    40.02
-     &      (ARR(IX,IY), IX=1,MXA)                                        40.02
-          ENDDO                                                           40.02
-        CASE(4)                                                           40.02
-          READ (NDSD, END=910, ERR=920, IOSTAT=IERR)                      40.02
-     &    ((ARR(IX,IY), IX=1,MXA), IY=1,MYA)                              40.02
-        CASE(5)                                                           40.02
-          DO IX=1, MXA                                                    40.02
-            READ (NDSD, END=910, ERR=920, IOSTAT=IERR)                    40.02
-     &      (ARR(IX,IY), IY=1,MYA)                                        40.02
-          ENDDO                                                           40.02
-        CASE(6)                                                           40.02
-          READ (NDSD, END=910, ERR=920, IOSTAT=IERR)                      40.02
-     &    ((ARR(IX,IY), IY=1,MYA), IX=1,MXA)                              40.02
-        END SELECT                                                        40.02
-      ENDIF
-      GOTO 900                                                            40.02
+      SELECT CASE(IDLA)
+      CASE(1)
+         DO IY=MYA, 1, -1
+            READ (NDSD, END=910, ERR=920, IOSTAT=IERR) &
+               (ARR(IX,IY), IX=1,MXA)
+         ENDDO
+      CASE(2)
+         READ (NDSD, END=910, ERR=920, IOSTAT=IERR) &
+            ((ARR(IX,IY), IX=1,MXA), IY=MYA,1,-1)
+      CASE(3)
+         DO IY=1, MYA
+            READ (NDSD, END=910, ERR=920, IOSTAT=IERR) &
+               (ARR(IX,IY), IX=1,MXA)
+         ENDDO
+      CASE(4)
+         READ (NDSD, END=910, ERR=920, IOSTAT=IERR) &
+            ((ARR(IX,IY), IX=1,MXA), IY=1,MYA)
+      CASE(5)
+         DO IX=1, MXA
+            READ (NDSD, END=910, ERR=920, IOSTAT=IERR) &
+               (ARR(IX,IY), IY=1,MYA)
+         ENDDO
+      CASE(6)
+         READ (NDSD, END=910, ERR=920, IOSTAT=IERR) &
+            ((ARR(IX,IY), IY=1,MYA), IX=1,MXA)
+      END SELECT
+   ENDIF
+   GOTO 900
 !
 !     *** End of data file, in case SERIES next file is opened
 !     *** unit = NDSD is closed before the next one is opened
 !
- 910  CONTINUE
-      CLOSE(NDSD)
-      NUMFIL = NUMFIL + 1
-      IF (NUMFIL .GE. 2) GO TO 911
-      IF (NDSL.GT.0) THEN
-        READ (NDSL, '(A)', END=930) FILENM                                40.13
-        IF (IDFM.NE.-1) THEN
-          IOERR = 0
-          CALL FOR (NDSD, FILENM, 'OF', IOERR)                            40.02
-          IF (STPNOW()) RETURN                                            34.01
-        ELSE
-          IOERR = 0
-          CALL FOR (NDSD, FILENM, 'OU', IOERR)                            40.02
-          IF (STPNOW()) RETURN                                            34.01
-        ENDIF
+910 CONTINUE
+   CLOSE(NDSD)
+   NUMFIL = NUMFIL + 1
+   IF (NUMFIL .GE. 2) GO TO 911
+   IF (NDSL.GT.0) THEN
+      READ (NDSL, '(A)', END=930) FILENM
+      IF (IDFM.NE.-1) THEN
+         IOERR = 0
+         CALL FOR (NDSD, FILENM, 'OF', IOERR)
+         IF (STPNOW()) RETURN
+      ELSE
+         IOERR = 0
+         CALL FOR (NDSD, FILENM, 'OU', IOERR)
+         IF (STPNOW()) RETURN
+      ENDIF
 !
 !       Read heading lines, and print these:
 !                                                                         30.72
-  2     IF (NHEDF.GT.0) THEN                                              30.72
-          IF (IDFM.LT.0) THEN                                             40.00
-            IF (ITEST.GE.30) WRITE (PRINTF, '(I3,A,A)') NHEDF,
-     &            ' Heading lines at begin of file ', TRIM(FILENM)        40.03
-            DO 828 IH=1, NHEDF                                            40.00
-              READ (NDSD)                                                 40.00
- 828        CONTINUE
-          ELSE                                                            40.00
-            WRITE (PRINTF, '(A,A,A)') ' **  Heading lines file ',
-     &      TRIM(FILENM), ' **'                                           40.03
-            DO 830 IH=1, NHEDF                                            30.72
-              READ (NDSD, '(A80)') HEDLIN                                 30.72
-              WRITE (PRINTF, '(A4,A80)') ' -> ', HEDLIN                   30.72
- 830        CONTINUE                                                      30.72
-          ENDIF                                                           40.00
-        ENDIF                                                             30.72
-        GO TO 11
+2     IF (NHEDF.GT.0) THEN
+         IF (IDFM.LT.0) THEN
+            IF (ITEST.GE.30) WRITE (PRINTF, '(I3,A,A)') NHEDF, &
+                  ' Heading lines at begin of file ', TRIM(FILENM)
+            DO 828 IH=1, NHEDF
+               READ (NDSD)
+828         CONTINUE
+         ELSE
+            WRITE (PRINTF, '(A,A,A)') ' **  Heading lines file ', &
+               TRIM(FILENM), ' **'
+            DO 830 IH=1, NHEDF
+               READ (NDSD, '(A80)') HEDLIN
+               WRITE (PRINTF, '(A4,A80)') ' -> ', HEDLIN
+830         CONTINUE
+         ENDIF
       ENDIF
+      GO TO 11
+   ENDIF
 !
 !     error message when end of file is encountered
 !
 !     --- initialize FILENM so that previous value is not used            40.08
 !         in case unit NDSD does not exist                                40.08
- 911  FILENM='UNKNOWN_FILE'
+911 FILENM='UNKNOWN_FILE'
 !     --------------------------------------------------------------------40.08
 !     THIS INQUIRE STATEMENT IS PROBLEMATIC, SINCE (AT LEAST              40.08
 !     SOMETIMES) NDSD HAS ALREADY BEEN CLOSED, SO THE INQUIRE             40.08
 !     STATEMENT SHOULD NOT WORK.                                          40.08
 !     --------------------------------------------------------------------40.08
-      INQUIRE (UNIT=NDSD, NAME=FILENM)
-      CALL MSGERR (2, 'Unexpected end of file while reading '//
-     &                 TRIM(FILENM))                                      40.13
-      NDSD = 0                                                            40.00
-      IDLA = -1
+   INQUIRE (UNIT=NDSD, NAME=FILENM)
+   CALL MSGERR (2, 'Unexpected end of file while reading '// &
+                    TRIM(FILENM))
+   NDSD = 0
+   IDLA = -1
 !     Value of IDLA=-1 signals end of file to calling program
 !
-      GOTO 900
+   GOTO 900
 !
 !     --- initialize FILENM                                               40.08
- 920  FILENM='UNKNOWN_FILE'                                               40.08
-      INQUIRE (UNIT=NDSD, NAME=FILENM)                                    30.82 40.08
-      CALL MSGERR (2, 'Error while reading file '//TRIM(FILENM))          40.13
-      WRITE (PRINTF, 922) IERR                                            40.02
- 922  FORMAT (' i/o status ', I6)                                         40.00
-      IDLA = -2                                                           40.00
+920 FILENM='UNKNOWN_FILE'
+   INQUIRE (UNIT=NDSD, NAME=FILENM)
+   CALL MSGERR (2, 'Error while reading file '//TRIM(FILENM))
+   WRITE (PRINTF, 922) IERR
+922 FORMAT (' i/o status ', I6)
+   IDLA = -2
 !     Value of IDLA=-2 signals read error to calling program
 !
 !     Multiply all values in the array by VFAC
 !
- 900  DO 909 IY = 1, MYA                                                  30.72
-        DO 908 IX = 1, MXA
-          ARR(IX,IY) = ARR(IX,IY) * VFAC
- 908    CONTINUE                                                          30.72
- 909  CONTINUE                                                            30.72
+900 DO 909 IY = 1, MYA
+      DO 908 IX = 1, MXA
+         ARR(IX,IY) = ARR(IX,IY) * VFAC
+908   CONTINUE
+909 CONTINUE
 !
- 990  IF (ITEST.GE.100 .OR. IDLA.LT.0) THEN
-        DO 996 IY=MYA, 1, -1
-          WRITE (PRINTF, 994) (ARR(IX,IY), IX=1,MXA)
- 994      FORMAT ((1X, 10E12.4))
- 996    CONTINUE
-      ENDIF
-      RETURN
+990 IF (ITEST.GE.100 .OR. IDLA.LT.0) THEN
+      DO 996 IY=MYA, 1, -1
+         WRITE (PRINTF, 994) (ARR(IX,IY), IX=1,MXA)
+994      FORMAT ((1X, 10E12.4))
+996   CONTINUE
+   ENDIF
+   RETURN
 
 !     No more files in NDSL:
 !     --- initialize FILENM                                               40.08
- 930  FILENM='UNKNOWN_FILE'                                               40.08
-      INQUIRE (UNIT=NDSL, NAME=FILENM)                                    40.13 40.08
-      CALL MSGERR (2, 'Series of input files ended in '//TRIM(FILENM))    40.13
-      RETURN                                                              40.13
+930 FILENM='UNKNOWN_FILE'
+   INQUIRE (UNIT=NDSL, NAME=FILENM)
+   CALL MSGERR (2, 'Series of input files ended in '//TRIM(FILENM))
+   RETURN
 
-      END subroutine INAR2D
+END subroutine INAR2D
 !*****************************************************************
 !                                                                *
-      SUBROUTINE STRACE (IENT, SUBNAM)
+SUBROUTINE STRACE (IENT, SUBNAM)
 !                                                                *
 !*****************************************************************
 !
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE M_PARALL                                                        40.31
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
+   USE M_PARALL
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -1203,17 +1203,17 @@
 !
 !     IENT   :  i/o    Number of entries into the calling subroutine
 !
-      INTEGER IENT
+   INTEGER IENT
 !
 !     SUBNAM :  inp    name of the calling subroutine.
 !
-      CHARACTER SUBNAM *(*)
+   CHARACTER SUBNAM *(*)
 !
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
 !                                                                         40.31
-!$    LOGICAL,EXTERNAL :: OMP_IN_PARALLEL                                 40.31
+   !$ LOGICAL,EXTERNAL :: OMP_IN_PARALLEL
 !
 !  8. SUBROUTINE USED
 !
@@ -1227,37 +1227,37 @@
 !
 ! 13. SOURCE TEXT
 !
-      IF (ITRACE.EQ.0) RETURN
-      IF (IENT.GT.ITRACE) RETURN
-!$    IF (OMP_IN_PARALLEL()) THEN                                         40.31
-!$OMP MASTER                                                              40.31
-!$       IENT=IENT+1                                                      40.31
-!$       WRITE (PRTEST, 10) SUBNAM                                        40.31
-!$       IF (SCREEN.NE.PRINTF) WRITE (SCREEN, 10) SUBNAM                  40.31
-!$OMP END MASTER                                                          40.31
-!$    ELSE                                                                40.31
-         IENT=IENT+1
-         WRITE (PRTEST, 10) SUBNAM
-         IF ( SCREEN.NE.PRINTF .AND. IAMMASTER )                          40.95 40.30
-     &                                         WRITE (SCREEN, 10) SUBNAM  40.30
-!$    ENDIF                                                               40.31
-  10  FORMAT (' ++ trace subr: ',A)
-      RETURN
+   IF (ITRACE.EQ.0) RETURN
+   IF (IENT.GT.ITRACE) RETURN
+   !$ IF (OMP_IN_PARALLEL()) THEN
+      !$OMP MASTER
+      !$ IENT=IENT+1
+      !$ WRITE (PRTEST, 10) SUBNAM
+      !$ IF (SCREEN.NE.PRINTF) WRITE (SCREEN, 10) SUBNAM
+      !$OMP END MASTER
+   !$ ELSE
+      IENT=IENT+1
+      WRITE (PRTEST, 10) SUBNAM
+      IF ( SCREEN.NE.PRINTF .AND. IAMMASTER ) &
+                                            WRITE (SCREEN, 10) SUBNAM
+   !$ ENDIF
+10 FORMAT (' ++ trace subr: ',A)
+   RETURN
 !  *  END OF SUBR. STRACE  *
-      END
+END
 !*****************************************************************
 !                                                                *
-      SUBROUTINE MSGERR (LEV,STRING)
+SUBROUTINE MSGERR (LEV,STRING)
 !                                                                *
 !*****************************************************************
 !
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
-      USE M_PARALL                                                        40.31
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
+   USE M_PARALL
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -1317,9 +1317,9 @@
 !     LEV    : indicates how severe the present error is
 !     STRING : contents of the present error message
 !
-      INTEGER   LEV
+   INTEGER   LEV
 !
-      CHARACTER STRING*(*)
+   CHARACTER STRING*(*)
 !
 !  5. PARAMETER VARIABLES
 !
@@ -1329,16 +1329,16 @@
 !     IERRF  : unit reference number of the error message file
 !     ILPOS  : actual length of error message filename
 !
-      INTEGER, SAVE :: IERR=0, IERRF=0                                    40.03
-      INTEGER ILPOS                                                       40.30
+   INTEGER, SAVE :: IERR=0, IERRF=0
+   INTEGER ILPOS
 !
 !     ERRM   : error message prefix
 !
-      CHARACTER (LEN=17) :: ERRM                                          40.03
+   CHARACTER (LEN=17) :: ERRM
 !
 !     ERRFNM : name of error message file
 !
-      CHARACTER (LEN=LENFNM), SAVE :: ERRFNM = 'Errfile'                  40.31 40.03
+   CHARACTER (LEN=LENFNM), SAVE :: ERRFNM = 'Errfile'
 !
 !  8. SUBROUTINE USED
 !
@@ -1355,53 +1355,53 @@
 ! 13. SOURCE TEXT
 !
 !
-      IF (LEV.GT.LEVERR) LEVERR=LEV
-      IF (LEV.EQ.0) THEN
-        ERRM = 'Message          '
-      ELSE IF (LEV.EQ.1) THEN
-        ERRM = 'Warning          '
-      ELSE IF (LEV.EQ.2) THEN
-        ERRM = 'Error            '
-      ELSE IF (LEV.EQ.3) THEN
-        ERRM = 'Severe error     '
-      ELSE
-        ERRM = 'Terminating error'
-      ENDIF
-      WRITE (PRINTF,12) ERRM, STRING
-  12  FORMAT (' ** ', A, ': ',A)
-      IF (LEV.GT.MAXERR) THEN
-        IF (IERRF.EQ.0) THEN
-          IF (IERR.NE.0) RETURN
+   IF (LEV.GT.LEVERR) LEVERR=LEV
+   IF (LEV.EQ.0) THEN
+      ERRM = 'Message          '
+   ELSE IF (LEV.EQ.1) THEN
+      ERRM = 'Warning          '
+   ELSE IF (LEV.EQ.2) THEN
+      ERRM = 'Error            '
+   ELSE IF (LEV.EQ.3) THEN
+      ERRM = 'Severe error     '
+   ELSE
+      ERRM = 'Terminating error'
+   ENDIF
+   WRITE (PRINTF,12) ERRM, STRING
+12 FORMAT (' ** ', A, ': ',A)
+   IF (LEV.GT.MAXERR) THEN
+      IF (IERRF.EQ.0) THEN
+         IF (IERR.NE.0) RETURN
 !
 !         append node number to ERRFNM in case of                         40.30
 !         parallel computing                                              40.30
 !
-          IF (PARLL) THEN                                                 40.30
-             ILPOS = INDEX ( ERRFNM, ' ' )-1                              40.30
-             WRITE(ERRFNM(ILPOS+1:ILPOS+4),13) INODE                      40.30
-  13         FORMAT('-',I3.3)                                             40.30
-          END IF                                                          40.30
+         IF (PARLL) THEN
+            ILPOS = INDEX ( ERRFNM, ' ' )-1
+            WRITE(ERRFNM(ILPOS+1:ILPOS+4),13) INODE
+13          FORMAT('-',I3.3)
+         END IF
 !
-          IERRF = 17                                                      40.13
-          OPEN (UNIT=IERRF, FILE=ERRFNM, FORM='FORMATTED')                40.13
-        ENDIF
-        WRITE (IERRF,14) ERRM, STRING
-  14    FORMAT (A, ': ',A)
+         IERRF = 17
+         OPEN (UNIT=IERRF, FILE=ERRFNM, FORM='FORMATTED')
       ENDIF
+      WRITE (IERRF,14) ERRM, STRING
+14    FORMAT (A, ': ',A)
+   ENDIF
 !
-      RETURN
+   RETURN
 !
-      END SUBROUTINE MSGERR
+END SUBROUTINE MSGERR
 !
 !*****************************************************************
 !                                                                *
-      LOGICAL FUNCTION STPNOW()                                           30.82
+LOGICAL FUNCTION STPNOW()
 !                                                                *
 !*****************************************************************
 !
-      USE OCPCOMM4                                                        40.41
+   USE OCPCOMM4
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -1459,11 +1459,11 @@
 !
 !     IENT  : Number of entries into this subroutine
 !
-      INTEGER IENT
+   INTEGER IENT
 !
 !  8. SUBROUTINE USED
 !
-!$    LOGICAL,EXTERNAL :: OMP_IN_PARALLEL
+   !$ LOGICAL,EXTERNAL :: OMP_IN_PARALLEL
 !
 !  9. SUBROUTINES CALLING
 !
@@ -1475,32 +1475,32 @@
 !
 ! 13. SOURCE TEXT
 !
-      SAVE  IENT
-      DATA  IENT /0/
-      CALL  STRACE (IENT,'STPNOW')
+   SAVE  IENT
+   DATA  IENT /0/
+   CALL  STRACE (IENT,'STPNOW')
 !
-      IF (LEVERR .GE. 4) THEN
-        STPNOW = .TRUE.
-      ELSE
-        STPNOW = .FALSE.
-      END IF
-      IF (MAXERR.EQ.-1) STPNOW = .FALSE.
-!$    IF (OMP_IN_PARALLEL()) STPNOW = .FALSE.
+   IF (LEVERR .GE. 4) THEN
+      STPNOW = .TRUE.
+   ELSE
+      STPNOW = .FALSE.
+   END IF
+   IF (MAXERR.EQ.-1) STPNOW = .FALSE.
+   !$ IF (OMP_IN_PARALLEL()) STPNOW = .FALSE.
 !
-      RETURN
-      END
+   RETURN
+END
 !*****************************************************************
 !                                                                *
-      SUBROUTINE TABHED (PROGNM, LPR)
+SUBROUTINE TABHED (PROGNM, LPR)
 !                                                                *
 !*****************************************************************
 !
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -1553,11 +1553,11 @@
 !
 !     LPR    : input    unit ref. nr. for output
 !
-      INTEGER LPR
+   INTEGER LPR
 !
 !     PROGNM : input    program name
 !
-      CHARACTER PROGNM *(*)
+   CHARACTER PROGNM *(*)
 !
 !  5. PARAMETER VARIABLES
 !
@@ -1575,29 +1575,29 @@
 !
 ! 13. SOURCE TEXT
 !
-      WRITE (LPR, 10) PROJT1, INST
-      WRITE (LPR, 20) PROJT2, PROGNM, VERTXT                              40.13
-      WRITE (LPR, 30) PROJT3, PROJID, PROJNR
-      WRITE (LPR, 40)
-  10  FORMAT ('1', A72, ' | ', A40)
-  20  FORMAT (1X,  A72, ' | ', A, '  version: ', A)                       40.13
-  30  FORMAT (1X,  A72, ' | ', A16, 1X, A4)
-  40  FORMAT (' --------------------------------------------------',
-     &  '---------------------------------------------------------')
-      RETURN
-      END
+   WRITE (LPR, 10) PROJT1, INST
+   WRITE (LPR, 20) PROJT2, PROGNM, VERTXT
+   WRITE (LPR, 30) PROJT3, PROJID, PROJNR
+   WRITE (LPR, 40)
+10 FORMAT ('1', A72, ' | ', A40)
+20 FORMAT (1X,  A72, ' | ', A, '  version: ', A)
+30 FORMAT (1X,  A72, ' | ', A16, 1X, A4)
+40 FORMAT (' --------------------------------------------------', &
+      '---------------------------------------------------------')
+   RETURN
+END
 !*****************************************************************
 !                                                                *
-      SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
+SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
 !                                                                *
 !*****************************************************************
 !
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -1674,8 +1674,8 @@
 !                               -2: No messages printed
 !                       output  error indicator
 !
-      INTEGER   IUNIT, IOSTAT
-      CHARACTER DDNAME*(LENFNM), SF*2                                     40.03
+   INTEGER   IUNIT, IOSTAT
+   CHARACTER DDNAME*(LENFNM), SF*2
 !
 !  5. PARAMETER VAR. (CONSTANTS)
 !
@@ -1693,16 +1693,16 @@
 !       IOSTAT = IENSCR Named scratch file
 !       IOSTAT = IENSIO No specified I/O error
 !
-      INTEGER  IESUCC, IENUNF, IEUNBD, IENODD,
-     &         IEDDNM, IEEXST, IEOPEN, IESTAT, IENSCR
-      PARAMETER (IESUCC=  0,IENUNF= -1,IEUNBD= -2,IENODD= -3,
-     &           IEDDNM= -4,IEEXST= -5,IEOPEN= -6,IESTAT= -7,
-     &           IENSCR=-12)
+   INTEGER  IESUCC, IENUNF, IEUNBD, IENODD, &
+            IEDDNM, IEEXST, IEOPEN, IESTAT, IENSCR
+   PARAMETER (IESUCC=  0,IENUNF= -1,IEUNBD= -2,IENODD= -3, &
+              IEDDNM= -4,IEEXST= -5,IEOPEN= -6,IESTAT= -7, &
+              IENSCR=-12)
 !
 !     EMPTY    blank string
 !
-      CHARACTER  EMPTY*(*)
-      PARAMETER (EMPTY= '        ')
+   CHARACTER  EMPTY*(*)
+   PARAMETER (EMPTY= '        ')
 !
 !  6. LOCAL VARIABLES
 !
@@ -1714,12 +1714,12 @@
 !     IS        file status index
 !     IUTTM     aux. unit number
 !
-      INTEGER   IENT, IFO, IFUN, II, IOSTTM, IS, IUTTM
+   INTEGER   IENT, IFO, IFUN, II, IOSTTM, IS, IUTTM
 !
 !     EXIST     if true, file exists
 !     OPENED    if true, file is opened
 !
-      LOGICAL   EXIST, OPENED
+   LOGICAL   EXIST, OPENED
 !
 !     S
 !     F
@@ -1728,8 +1728,8 @@
 !     FORM     formatting, values: FORMATTED, UNFORMATTED
 !     DDNAME_L local copy of DDNAME                                       40.03
 !
-      CHARACTER S, F, FILTTM *(LENFNM), DDNAME_L *(LENFNM)                40.03
-      CHARACTER *11 FISTAT(4),FORM(2)
+   CHARACTER S, F, FILTTM *(LENFNM), DDNAME_L *(LENFNM)
+   CHARACTER *11 FISTAT(4),FORM(2)
 !
 !  4. SUBROUTINES USED
 !
@@ -1772,182 +1772,182 @@
 !
 !  8. SOURCE TEXT
 !
-      SAVE      IENT, IFUN
+   SAVE      IENT, IFUN
 !
-      DATA FISTAT(1),FISTAT(2) / 'OLD','NEW'/
-     &     FISTAT(3),FISTAT(4) / 'SCRATCH','UNKNOWN'/
-     &     FORM(1),FORM(2) / 'FORMATTED','UNFORMATTED'/
+   DATA FISTAT(1),FISTAT(2) / 'OLD','NEW'/ &
+        FISTAT(3),FISTAT(4) / 'SCRATCH','UNKNOWN'/ &
+        FORM(1),FORM(2) / 'FORMATTED','UNFORMATTED'/
 !
-      DATA IENT /0/, IFUN /0/
-      CALL STRACE (IENT, 'FOR')
+   DATA IENT /0/, IFUN /0/
+   CALL STRACE (IENT, 'FOR')
 !
-      IF (ITEST.GE.80) WRITE (PRTEST, 2) IUNIT, DDNAME, SF, IOSTAT
-   2  FORMAT (' Entry FOR: ', I3, 1X, A36, A2, I7)
-      DDNAME_L = DDNAME                                                   40.03
+   IF (ITEST.GE.80) WRITE (PRTEST, 2) IUNIT, DDNAME, SF, IOSTAT
+2  FORMAT (' Entry FOR: ', I3, 1X, A36, A2, I7)
+   DDNAME_L = DDNAME
 !
 !     check file qualifiers
 !
-      IF ((IUNIT.NE.0) .AND.
-     &   ((IUNIT .LT. IUNMIN) .OR. (IUNIT .GT. IUNMAX))) THEN
-        IF (IOSTAT.GT.-2) CALL MSGERR (3, 'Unit number out of range')
-        IOSTAT= IEUNBD
-        RETURN
-      END IF
+   IF ((IUNIT.NE.0) .AND. &
+      ((IUNIT .LT. IUNMIN) .OR. (IUNIT .GT. IUNMAX))) THEN
+      IF (IOSTAT.GT.-2) CALL MSGERR (3, 'Unit number out of range')
+      IOSTAT= IEUNBD
+      RETURN
+   END IF
 !
-      S   = SF(1:1)
-      F   = SF(2:2)
-      IS  = INDEX('ONSU',S)
-      IFO = INDEX('FU',F)
-      IF ((IS .EQ. 0) .OR. (IFO .EQ. 0)) THEN
-        IF (IOSTAT.GT.-2) CALL MSGERR (3,'Error in file qualifiers')
-        IOSTAT= IESTAT
-        RETURN
-      END IF
+   S   = SF(1:1)
+   F   = SF(2:2)
+   IS  = INDEX('ONSU',S)
+   IFO = INDEX('FU',F)
+   IF ((IS .EQ. 0) .OR. (IFO .EQ. 0)) THEN
+      IF (IOSTAT.GT.-2) CALL MSGERR (3,'Error in file qualifiers')
+      IOSTAT= IESTAT
+      RETURN
+   END IF
 !
-      IF ((S.EQ.'S').AND.(DDNAME.NE.EMPTY)) THEN
-        IF (IOSTAT.GT.-2) CALL MSGERR (3, 'Named scratch file')
-        IOSTAT= IENSCR
-        RETURN
-      END IF
+   IF ((S.EQ.'S').AND.(DDNAME.NE.EMPTY)) THEN
+      IF (IOSTAT.GT.-2) CALL MSGERR (3, 'Named scratch file')
+      IOSTAT= IENSCR
+      RETURN
+   END IF
 !
-      IF (DDNAME.NE.EMPTY) THEN                                           40.00
+   IF (DDNAME.NE.EMPTY) THEN
 !       directory separation character is replaced in filenames           40.00
-        DO II = 1, LEN(DDNAME)
-          IF (DDNAME(II:II).EQ.DIRCH1) DDNAME(II:II) = DIRCH2             40.00
-        ENDDO
-      ENDIF
+      DO II = 1, LEN(DDNAME)
+         IF (DDNAME(II:II).EQ.DIRCH1) DDNAME(II:II) = DIRCH2
+      ENDDO
+   ENDIF
 !
-      IF (IUNIT .EQ. 0) THEN
-         IF (DDNAME.EQ.EMPTY) THEN
-            IF (IOSTAT.GT.-1) CALL MSGERR (3, 'No filename given')
-            IOSTAT= IENODD
-            RETURN
-         ELSE
-!           Was the file opened already ?
-            INQUIRE (FILE=DDNAME, IOSTAT=IOSTTM, EXIST=EXIST,
-     &      OPENED=OPENED, NUMBER=IUTTM)
-            IF (IOSTTM .NE. IESUCC) THEN
-               IF (IOSTAT.GT.-1) CALL MSGERR (2,
-     &               'Inquire failed, filename: '//DDNAME_L)              40.03
-               IOSTAT = IOSTTM
-               RETURN
-            ENDIF
-!           If file does not exist, print term. error
-            IF (IS.EQ.1 .AND. .NOT. EXIST) THEN                           30.70
-               CALL MSGERR (4,
-     &         'File cannot be opened/does not exist: '//DDNAME_L)        40.03
-               IOSTAT = IEEXST
-               RETURN
-            END IF
-            IF (OPENED) THEN
-               IF (IOSTAT.GT.-1)
-     &         CALL MSGERR (2, 'File is already opened: '//DDNAME_L)      40.03
-               IOSTAT = IEOPEN
-               IUNIT = IUTTM
-               RETURN
-            ENDIF
-  60        CONTINUE
-!           Assign free unit number
-            IF (IFUN.EQ.0) THEN
-               IFUN = FUNLO
-            ELSE
-               IFUN = IFUN + 1
-            ENDIF
-!Casey 160728: Merging the changes from Jason in an earlier version of SWAN.
-            SELECT CASE(IFUN)                                             40.88
-            CASE(411:417)                                                 40.88
-               GOTO 60                                                    40.88
-            CASE DEFAULT                                                  40.88
-               CONTINUE                                                   40.88
-            END SELECT                                                    40.88
-            IUNIT = IFUN
-            IF (IUNIT .GT. FUNHI) THEN
-               IF (IOSTAT.GT.-2) CALL MSGERR (3, 'All free units used')
-               IOSTAT= IENUNF
-            ENDIF
-         END IF
-         OPEN (UNIT=IUNIT,ERR=999,IOSTAT=IOSTTM,FILE=DDNAME,              30.82
-!/Cray     &         RECL=1000,                                                 30.82
-!/SGI     &         RECL=1000,                                                 30.82
-!CVIS     &         SHARED,                                                    40.41
-     &         STATUS=FISTAT(IS),ACCESS='SEQUENTIAL',FORM=FORM(IFO))      30.82
+   IF (IUNIT .EQ. 0) THEN
+      IF (DDNAME.EQ.EMPTY) THEN
+         IF (IOSTAT.GT.-1) CALL MSGERR (3, 'No filename given')
+         IOSTAT= IENODD
+         RETURN
       ELSE
-         INQUIRE (UNIT=IUNIT, NAME=FILTTM, IOSTAT=IOSTTM,
-     &            EXIST=EXIST, OPENED=OPENED)
+!           Was the file opened already ?
+         INQUIRE (FILE=DDNAME, IOSTAT=IOSTTM, EXIST=EXIST, &
+            OPENED=OPENED, NUMBER=IUTTM)
          IF (IOSTTM .NE. IESUCC) THEN
-            IF (IOSTAT.GT.-1) CALL MSGERR (2,
-     &            'Inquire failed, filename: '//FILTTM)
+            IF (IOSTAT.GT.-1) CALL MSGERR (2, &
+                  'Inquire failed, filename: '//DDNAME_L)
             IOSTAT = IOSTTM
             RETURN
          ENDIF
-         IF (OPENED) THEN
-            IF (IOSTAT.GT.-1) THEN
-              CALL MSGERR (1,
-     &                   'File is already opened, filename: '//FILTTM)
-            ENDIF
-            IF (FILTTM.NE.DDNAME .AND. FILTTM.NE.EMPTY) THEN
-              IF (IOSTAT.GT.-2) THEN
-                WRITE (PRINTF, '(A, I4, 6A)') ' unit', IUNIT,
-     &                 ' filenames: ', FILTTM, ' and: ', DDNAME
-                CALL MSGERR (2, 'filename and unit number inconsistent')
-              ENDIF
-              IOSTAT = IEDDNM
-!             close old file and open new one with given filename
-              CLOSE (IUNIT)
-              OPEN (UNIT=IUNIT,ERR=999,IOSTAT=IOSTTM,STATUS=FISTAT(IS),
-!/Cray     &         RECL=1000,                                                 30.82
-!/SGI     &         RECL=1000,                                                 30.82
-!CVIS     &         SHARED,                                                    40.41
-     &              FILE=DDNAME,ACCESS='SEQUENTIAL',FORM=FORM(IFO))
-              IF (IOSTTM.NE.IESUCC) IOSTAT = IOSTTM
-              GOTO 80
-            ENDIF
-            IOSTAT = IEOPEN
+!           If file does not exist, print term. error
+         IF (IS.EQ.1 .AND. .NOT. EXIST) THEN
+            CALL MSGERR (4, &
+               'File cannot be opened/does not exist: '//DDNAME_L)
+            IOSTAT = IEEXST
             RETURN
          END IF
-         IF (DDNAME.NE.EMPTY) THEN
-            OPEN (UNIT=IUNIT,ERR=999,IOSTAT=IOSTTM,STATUS=FISTAT(IS),
-!/Cray     &         RECL=1000,                                                 30.82
-!/SGI     &         RECL=1000,                                                 30.82
-!CVIS     &         SHARED,                                                    40.41
-     &      FILE=DDNAME,ACCESS='SEQUENTIAL',FORM=FORM(IFO))
+         IF (OPENED) THEN
+            IF (IOSTAT.GT.-1) &
+               CALL MSGERR (2, 'File is already opened: '//DDNAME_L)
+            IOSTAT = IEOPEN
+            IUNIT = IUTTM
+            RETURN
+         ENDIF
+60       CONTINUE
+!           Assign free unit number
+         IF (IFUN.EQ.0) THEN
+            IFUN = FUNLO
          ELSE
-            OPEN (UNIT=IUNIT,ERR=999,IOSTAT=IOSTTM,STATUS=FISTAT(IS),
-!/Cray     &         RECL=1000,                                                 30.82
-!/SGI     &         RECL=1000,                                                 30.82
-!CVIS     &         SHARED,                                                    40.41
-     &      ACCESS='SEQUENTIAL',FORM=FORM(IFO))
-         END IF
+            IFUN = IFUN + 1
+         ENDIF
+!Casey 160728: Merging the changes from Jason in an earlier version of SWAN.
+         SELECT CASE(IFUN)
+         CASE(411:417)
+            GOTO 60
+         CASE DEFAULT
+            CONTINUE
+         END SELECT
+         IUNIT = IFUN
+         IF (IUNIT .GT. FUNHI) THEN
+            IF (IOSTAT.GT.-2) CALL MSGERR (3, 'All free units used')
+            IOSTAT= IENUNF
+         ENDIF
       END IF
-      HIOPEN = IFUN
-  80  IF (ITEST.GE.30) WRITE (PRINTF, 82) IUNIT, DDNAME, SF
-  82  FORMAT (' File opened: ', I6, 2X, A36, 2X, A2)
-      RETURN
+      OPEN (UNIT=IUNIT,ERR=999,IOSTAT=IOSTTM,FILE=DDNAME, &
+!/Cray            RECL=1000, &
+!/SGI            RECL=1000, &
+!CVIS            SHARED, &
+            STATUS=FISTAT(IS),ACCESS='SEQUENTIAL',FORM=FORM(IFO))
+   ELSE
+      INQUIRE (UNIT=IUNIT, NAME=FILTTM, IOSTAT=IOSTTM, &
+               EXIST=EXIST, OPENED=OPENED)
+      IF (IOSTTM .NE. IESUCC) THEN
+         IF (IOSTAT.GT.-1) CALL MSGERR (2, &
+               'Inquire failed, filename: '//FILTTM)
+         IOSTAT = IOSTTM
+         RETURN
+      ENDIF
+      IF (OPENED) THEN
+         IF (IOSTAT.GT.-1) THEN
+            CALL MSGERR (1, &
+                       'File is already opened, filename: '//FILTTM)
+         ENDIF
+         IF (FILTTM.NE.DDNAME .AND. FILTTM.NE.EMPTY) THEN
+            IF (IOSTAT.GT.-2) THEN
+               WRITE (PRINTF, '(A, I4, 6A)') ' unit', IUNIT, &
+                      ' filenames: ', FILTTM, ' and: ', DDNAME
+               CALL MSGERR (2, 'filename and unit number inconsistent')
+            ENDIF
+            IOSTAT = IEDDNM
+!             close old file and open new one with given filename
+            CLOSE (IUNIT)
+            OPEN (UNIT=IUNIT,ERR=999,IOSTAT=IOSTTM,STATUS=FISTAT(IS), &
+!/Cray               RECL=1000, &
+!/SGI               RECL=1000, &
+!CVIS               SHARED, &
+                  FILE=DDNAME,ACCESS='SEQUENTIAL',FORM=FORM(IFO))
+            IF (IOSTTM.NE.IESUCC) IOSTAT = IOSTTM
+            GOTO 80
+         ENDIF
+         IOSTAT = IEOPEN
+         RETURN
+      END IF
+      IF (DDNAME.NE.EMPTY) THEN
+         OPEN (UNIT=IUNIT,ERR=999,IOSTAT=IOSTTM,STATUS=FISTAT(IS), &
+!/Cray            RECL=1000, &
+!/SGI            RECL=1000, &
+!CVIS            SHARED, &
+            FILE=DDNAME,ACCESS='SEQUENTIAL',FORM=FORM(IFO))
+      ELSE
+         OPEN (UNIT=IUNIT,ERR=999,IOSTAT=IOSTTM,STATUS=FISTAT(IS), &
+!/Cray            RECL=1000, &
+!/SGI            RECL=1000, &
+!CVIS            SHARED, &
+            ACCESS='SEQUENTIAL',FORM=FORM(IFO))
+      END IF
+   END IF
+   HIOPEN = IFUN
+80 IF (ITEST.GE.30) WRITE (PRINTF, 82) IUNIT, DDNAME, SF
+82 FORMAT (' File opened: ', I6, 2X, A36, 2X, A2)
+   RETURN
 !
 !     in case file cannot be opened:
 !
- 999  IF (IOSTAT.GT.-2) THEN
-        CALL MSGERR (3, 'File open failed, filename: '//DDNAME_L)         40.03
-        WRITE (PRINTF,15) DDNAME, IOSTTM, SF
-  15    FORMAT (' File -> ', A36, 2X, ' IOSTAT=', I6, 4X, A2)
-      ENDIF
-      IUNIT = -1
-      IOSTAT= IOSTTM
-      RETURN
+999 IF (IOSTAT.GT.-2) THEN
+      CALL MSGERR (3, 'File open failed, filename: '//DDNAME_L)
+      WRITE (PRINTF,15) DDNAME, IOSTTM, SF
+15    FORMAT (' File -> ', A36, 2X, ' IOSTAT=', I6, 4X, A2)
+   ENDIF
+   IUNIT = -1
+   IOSTAT= IOSTTM
+   RETURN
 !  *  end of subroutine  FOR  *
-      END
+END
 !***********************************************************************
 !                                                                      *
-      LOGICAL FUNCTION EQREAL (REAL1, REAL2 )                             30.72
+LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
 !                                                                      *
 !***********************************************************************
 !
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -2007,7 +2007,7 @@
 !     REAL1  : input    value that is to be tested
 !     REAL2  : input    given exception value
 !
-      REAL      REAL1, REAL2
+   REAL      REAL1, REAL2
 !
 !  5. Parameter variables
 !
@@ -2016,8 +2016,8 @@
 !     EPS    : Small number (related to REAL1 and its difference with REAL2)
 !     IENT   : Number of entries into this subroutine
 !
-      REAL      EPS
-      INTEGER   IENT
+   REAL      EPS
+   INTEGER   IENT
 !
 !  8. Subroutines used
 !
@@ -2046,30 +2046,30 @@
 !
 ! 13. Source text
 !
-      SAVE IENT
-      DATA IENT/0/
-      CALL STRACE(IENT,'EQREAL')
-      EQREAL = .FALSE.
+   SAVE IENT
+   DATA IENT/0/
+   CALL STRACE(IENT,'EQREAL')
+   EQREAL = .FALSE.
 !
-      EPS = EPSILON(REAL1)*ABS(REAL1-REAL2)                               40.04
-      IF (EPS ==0) EPS = TINY(REAL1)                                      40.04
-      IF (ABS(REAL1-REAL2) .GT. TINY(REAL1)) THEN                         40.04
-        IF (ABS(REAL1-REAL2) .LT. EPS) EQREAL = .TRUE.                    40.04
-      ELSE                                                                40.04
-        EQREAL = .TRUE.                                                   40.04
-      ENDIF                                                               40.04
-      RETURN
+   EPS = EPSILON(REAL1)*ABS(REAL1-REAL2)
+   IF (EPS ==0) EPS = TINY(REAL1)
+   IF (ABS(REAL1-REAL2) .GT. TINY(REAL1)) THEN
+      IF (ABS(REAL1-REAL2) .LT. EPS) EQREAL = .TRUE.
+   ELSE
+      EQREAL = .TRUE.
+   ENDIF
+   RETURN
 !     end of subroutine EQREAL
-      END
+END
 !***********************************************************************
 !                                                                      *
-      LOGICAL FUNCTION EQDBLE (DBLE1, DBLE2)
+LOGICAL FUNCTION EQDBLE (DBLE1, DBLE2)
 !                                                                      *
 !***********************************************************************
 !
-      USE OCPCOMM4
+   USE OCPCOMM4
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -2116,7 +2116,7 @@
 !     DBLE1  : input    value that is to be tested
 !     DBLE2  : input    given exception value
 !
-      REAL*8    DBLE1, DBLE2
+   REAL*8    DBLE1, DBLE2
 !
 !  5. Parameter variables
 !
@@ -2124,7 +2124,7 @@
 !
 !     IENT   : Number of entries into this subroutine
 !
-      INTEGER   IENT
+   INTEGER   IENT
 !
 !  8. Subroutines used
 !
@@ -2138,27 +2138,27 @@
 !
 ! 13. Source text
 !
-      SAVE IENT
-      DATA IENT/0/
-      CALL STRACE(IENT,'EQDBLE')
-      EQDBLE = .FALSE.
+   SAVE IENT
+   DATA IENT/0/
+   CALL STRACE(IENT,'EQDBLE')
+   EQDBLE = .FALSE.
 !
-      IF ( .NOT. DBLE1 /= DBLE2 ) EQDBLE = .TRUE.
-      RETURN
+   IF ( .NOT. DBLE1 /= DBLE2 ) EQDBLE = .TRUE.
+   RETURN
 !     end of subroutine EQDBLE
-      END
+END
 !*******************************************************************
 !                                                                  *
-      SUBROUTINE LSPLIT(RELINE, DATITM, NUMITM)
+SUBROUTINE LSPLIT(RELINE, DATITM, NUMITM)
 !                                                                  *
 !*******************************************************************
 !
-      USE OCPCOMM1                                                        40.41
-      USE OCPCOMM2                                                        40.41
-      USE OCPCOMM3                                                        40.41
-      USE OCPCOMM4                                                        40.41
+   USE OCPCOMM1
+   USE OCPCOMM2
+   USE OCPCOMM3
+   USE OCPCOMM4
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -2211,13 +2211,13 @@
 !
 !     NUMITM : input    max number of data items in array
 !
-      INTEGER, INTENT(IN) :: NUMITM                                       40.03
+   INTEGER, INTENT(IN) :: NUMITM
 !
 !     DATITM : output   array of data items
 !     RELINE : input    string (read from an input file)
 !
-      CHARACTER (LEN=*), INTENT(OUT) :: DATITM(NUMITM)                    40.03
-      CHARACTER (LEN=*), INTENT(IN) ::  RELINE                            40.03
+   CHARACTER (LEN=*), INTENT(OUT) :: DATITM(NUMITM)
+   CHARACTER (LEN=*), INTENT(IN) ::  RELINE
 !
 !  5. PARAMETER VARIABLES
 !
@@ -2226,7 +2226,7 @@
 !     CRL    : a character of the input line RELINE
 !     QUOTE  : ' i.e. string delimiter
 !
-      CHARACTER QUOTE *1, CRL *1
+   CHARACTER QUOTE *1, CRL *1
 !
 !     ICR1   : ??
 !     IENT   : Number of entries into this subroutine
@@ -2236,11 +2236,11 @@
 !     RITM   : type of data, 0: empty string, 2: string enclosed
 !              in quotes, 1: other
 !
-      INTEGER   ICR1, IENT, ILL, IITM, LENLIN, RITM
+   INTEGER   ICR1, IENT, ILL, IITM, LENLIN, RITM
 !
 !     LCHSTR : if True, program is reading a string (enclosed in quotes)
 !
-      LOGICAL   LCHSTR
+   LOGICAL   LCHSTR
 !
 !  8. SUBROUTINE USED
 !
@@ -2260,97 +2260,97 @@
 !
 ! 13. SOURCE TEXT
 !
-      SAVE      IENT, QUOTE
-      DATA      IENT /0/, QUOTE /''''/
-      CALL STRACE (IENT, 'LSPLIT')
+   SAVE      IENT, QUOTE
+   DATA      IENT /0/, QUOTE /''''/
+   CALL STRACE (IENT, 'LSPLIT')
 !
-      LENLIN = LEN(RELINE)
-      LCHSTR = .FALSE.
-      RITM   = 1
-      ICR1   = 1
-      DO IITM = 1, NUMITM
-        DATITM(IITM) = '    '
-      ENDDO
-      IF (ITEST.GE.150) WRITE (PRTEST,*) ' test LSPLIT ', RELINE
+   LENLIN = LEN(RELINE)
+   LCHSTR = .FALSE.
+   RITM   = 1
+   ICR1   = 1
+   DO IITM = 1, NUMITM
+      DATITM(IITM) = '    '
+   ENDDO
+   IF (ITEST.GE.150) WRITE (PRTEST,*) ' test LSPLIT ', RELINE
 !
 !     free format: separate the line into data items
 !     blanks and commas serve as separation between data items
 !     DATITM is string containing one data item
 !
-      IITM = 1
-      DO 170 ILL = 1, LENLIN
-         CRL = RELINE(ILL:ILL)
-         IF (LCHSTR) THEN
+   IITM = 1
+   DO 170 ILL = 1, LENLIN
+      CRL = RELINE(ILL:ILL)
+      IF (LCHSTR) THEN
 !           reading a character string enclosed in quotes
-            IF (CRL.EQ.QUOTE) THEN
+         IF (CRL.EQ.QUOTE) THEN
 !              closing quote
-               LCHSTR = .FALSE.
-               RITM   = 2
+            LCHSTR = .FALSE.
+            RITM   = 2
+            IF (IITM.GT.NUMITM) THEN
+               CALL MSGERR (2, 'too many items on input line')
+               WRITE (PRINTF, *) ' -> ', TRIM(RELINE)
+            ENDIF
+            DATITM(IITM) = RELINE (ICR1:ILL-1)
+         ENDIF
+      ELSE
+         IF (CRL.EQ.',') THEN
+            IF (RITM.EQ.0) THEN
+!                 empty item
+               IITM = IITM + 1
                IF (IITM.GT.NUMITM) THEN
-                 CALL MSGERR (2, 'too many items on input line')
-                 WRITE (PRINTF, *) ' -> ', TRIM(RELINE)
+                  CALL MSGERR (2, 'too many items on input line')
+                  WRITE (PRINTF, *) ' -> ', TRIM(RELINE)
                ENDIF
-               DATITM(IITM) = RELINE (ICR1:ILL-1)
+               DATITM(IITM) = '    '
+            ELSE
+               IF (RITM.EQ.1) DATITM(IITM) = RELINE(ICR1:ILL)
+               RITM = 0
+            ENDIF
+         ELSE IF (CRL.EQ.' ' .OR. CRL.EQ.TABC) THEN
+            IF (RITM.EQ.1) THEN
+               IF (IITM.GT.NUMITM) THEN
+                  CALL MSGERR (2, 'too many items on input line')
+                  WRITE (PRINTF, *) ' -> ', TRIM(RELINE)
+               ENDIF
+               DATITM(IITM) = RELINE(ICR1:ILL)
+               RITM = 2
             ENDIF
          ELSE
-            IF (CRL.EQ.',') THEN
-               IF (RITM.EQ.0) THEN
-!                 empty item
-                  IITM = IITM + 1
-                  IF (IITM.GT.NUMITM) THEN
-                    CALL MSGERR (2, 'too many items on input line')
-                    WRITE (PRINTF, *) ' -> ', TRIM(RELINE)                40.03
-                  ENDIF
-                  DATITM(IITM) = '    '
+            IF (RITM.NE.1) THEN
+               IITM = IITM + 1
+               IF (IITM.GT.NUMITM) THEN
+                  CALL MSGERR (2, 'too many items on input line')
+                  WRITE (PRINTF, *) ' -> ', TRIM(RELINE)
+               ENDIF
+               IF (CRL.EQ.QUOTE) THEN
+                  ICR1 = ILL+1
+                  LCHSTR = .TRUE.
                ELSE
-                  IF (RITM.EQ.1) DATITM(IITM) = RELINE(ICR1:ILL)
-                  RITM = 0
-               ENDIF
-            ELSE IF (CRL.EQ.' ' .OR. CRL.EQ.TABC) THEN
-               IF (RITM.EQ.1) THEN
-                  IF (IITM.GT.NUMITM) THEN
-                    CALL MSGERR (2, 'too many items on input line')
-                    WRITE (PRINTF, *) ' -> ', TRIM(RELINE)                40.03
-                  ENDIF
-                  DATITM(IITM) = RELINE(ICR1:ILL)
-                  RITM = 2
-               ENDIF
-            ELSE
-               IF (RITM.NE.1) THEN
-                  IITM = IITM + 1
-                  IF (IITM.GT.NUMITM) THEN
-                    CALL MSGERR (2, 'too many items on input line')
-                    WRITE (PRINTF, *) ' -> ', TRIM(RELINE)                40.03
-                  ENDIF
-                  IF (CRL.EQ.QUOTE) THEN
-                     ICR1 = ILL+1
-                     LCHSTR = .TRUE.
-                  ELSE
-                     ICR1 = ILL
-                     RITM = 1
-                  ENDIF
+                  ICR1 = ILL
+                  RITM = 1
                ENDIF
             ENDIF
          ENDIF
-         IF (ITEST.GE.250) WRITE (PRTEST, 165) CRL, RITM,
-     &                IITM, ICR1
- 165     FORMAT (' test LSPLIT ', A1, 3I3, 2X, A20)
- 170  CONTINUE
-      IF (ITEST.GE.130) THEN                                              40.03
-        DO IITM = 1, NUMITM
-          WRITE (PRTEST, 810) IITM, DATITM(IITM)
- 810      FORMAT (' LSPLIT data item ', I2, ' is: ', A)
-        ENDDO
       ENDIF
-      RETURN
-      END
+      IF (ITEST.GE.250) WRITE (PRTEST, 165) CRL, RITM, &
+                   IITM, ICR1
+165   FORMAT (' test LSPLIT ', A1, 3I3, 2X, A20)
+170 CONTINUE
+   IF (ITEST.GE.130) THEN
+      DO IITM = 1, NUMITM
+         WRITE (PRTEST, 810) IITM, DATITM(IITM)
+810      FORMAT (' LSPLIT data item ', I2, ' is: ', A)
+      ENDDO
+   ENDIF
+   RETURN
+END
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE BUGFIX (FIXABC)
+SUBROUTINE BUGFIX (FIXABC)
 !                                                                      *
 !***********************************************************************
 !
-      USE OCPCOMM2                                                        40.41
+   USE OCPCOMM2
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -2399,7 +2399,7 @@
 !
 !       FIXABC  char   input    character indicating a bugfix
 
-      CHARACTER (LEN=1), INTENT(IN) :: FIXABC
+   CHARACTER (LEN=1), INTENT(IN) :: FIXABC
 !
 !  5. Parameter variables
 !
@@ -2407,7 +2407,7 @@
 !
 !       IC      counter of characters
 !
-      INTEGER   IC
+   INTEGER   IC
 !
 !  8. Subroutines used
 !
@@ -2427,24 +2427,24 @@
 !
 ! 13. Source text
 !
-      DO IC = LEN(VERTXT), 1, -1
-        IF (VERTXT(IC:IC) .NE. ' ') THEN
-          VERTXT(IC+1:IC+1) = FIXABC
-          GOTO 80
-        ENDIF
-      ENDDO
-  80  RETURN
+   DO IC = LEN(VERTXT), 1, -1
+      IF (VERTXT(IC:IC) .NE. ' ') THEN
+         VERTXT(IC+1:IC+1) = FIXABC
+         GOTO 80
+      ENDIF
+   ENDDO
+80 RETURN
 !     end of subroutine BUGFIX
-      END
+END
 !***********************************************************************
 !                                                                      *
-      SUBROUTINE COPYCH (STRING, MOVE, IARRAY, LENARR, IERR)              30.81
+SUBROUTINE COPYCH (STRING, MOVE, IARRAY, LENARR, IERR)
 !                                                                      *
 !***********************************************************************
 !
-      USE OCPCOMM4                                                        40.41
+   USE OCPCOMM4
 !
-      IMPLICIT NONE
+   IMPLICIT NONE
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -2507,23 +2507,23 @@
 !     LENARR : input    length of array IARRAY
 !     IERR   : output   error status: 0=no error, 9=end-of-file           30.81
 !
-      INTEGER   IARRAY(*), LENARR, IENT,                                  30.72
-     &          IERR                                                      30.81
+   INTEGER   IARRAY(*), LENARR, IENT, &
+             IERR
 !
 !     STRING : i/o      a character string
 !     MOVE   : input    if MOVE=TO_, STRING is copied to IARRAY           30.81
 !                       if MOVE=FROM_, STRING is copied from IARRAY       30.81
 !
-      CHARACTER MOVE *1, STRING *(*)
+   CHARACTER MOVE *1, STRING *(*)
 !
 !  5. PARAMETER VARIABLES
 !
 !     OPMLFC : largest allowed integer character (ASCII) code + 1
 !     OPMNLI : number of characters that can be stored in one integer number
 !
-      INTEGER   OPMLFC, OPMNLI                                            30.72
+   INTEGER   OPMLFC, OPMNLI
 !
-      PARAMETER (OPMNLI=4, OPMLFC=128)
+   PARAMETER (OPMNLI=4, OPMLFC=128)
 !
 !  6. LOCAL VARIABLES
 !
@@ -2538,14 +2538,14 @@
 !     MM     : aux. number
 !     NSL    : position of character in string
 !
-      INTEGER   IC, II, LENS1, LENS2, LL, MC1, MCHAR, MM, NSL
+   INTEGER   IC, II, LENS1, LENS2, LL, MC1, MCHAR, MM, NSL
 !
 !     CC     : a single character
 !     CHAR   : intrinsic character function, translates integer to character
 !     FROM_  : 'F'
 !     TO_    : 'T'
 !
-      CHARACTER CC, TO_, FROM_                                            30.81
+   CHARACTER CC, TO_, FROM_
 !
 !  8. SUBROUTINE USED
 !
@@ -2570,89 +2570,89 @@
 !
 ! 13. SOURCE TEXT
 !
-      SAVE        IENT, TO_, FROM_                                        30.81
-      DATA        IENT /0/, TO_ /'T'/, FROM_ /'F'/                        30.81
-      CALL STRACE (IENT,'COPYCH')
+   SAVE        IENT, TO_, FROM_
+   DATA        IENT /0/, TO_ /'T'/, FROM_ /'F'/
+   CALL STRACE (IENT,'COPYCH')
 !
-      LENS1 = LEN(STRING)
-      IF (LENARR.GT.360) THEN
-        CALL MSGERR (2, 'extremely long string in COPYCH')
-        WRITE (PRTEST, *) ' test COPYCH  ',
-     &          MOVE, LENARR, LENS1, ' ', STRING(1:80)                    40.03
-        LENARR = 360
-      ENDIF
-      LENS2 = LENARR*OPMNLI
+   LENS1 = LEN(STRING)
+   IF (LENARR.GT.360) THEN
+      CALL MSGERR (2, 'extremely long string in COPYCH')
+      WRITE (PRTEST, *) ' test COPYCH  ', &
+              MOVE, LENARR, LENS1, ' ', STRING(1:80)
+      LENARR = 360
+   ENDIF
+   LENS2 = LENARR*OPMNLI
 !
-      IF (MOVE .EQ. TO_) THEN                                             30.81
-        NSL = 0
-        DO 60 II = 1, LENARR
-          MCHAR = 0
-          DO 40 IC = 1, OPMNLI
+   IF (MOVE .EQ. TO_) THEN
+      NSL = 0
+      DO 60 II = 1, LENARR
+         MCHAR = 0
+         DO 40 IC = 1, OPMNLI
             NSL = NSL + 1
             IF (NSL .LE. LENS1) THEN
-              CC = STRING(NSL:NSL)
+               CC = STRING(NSL:NSL)
             ELSE
-              CC = ' '
+               CC = ' '
             ENDIF
             LL = ICHAR(CC)
             IF (LL.GE.OPMLFC) THEN
-              IERR = 803                                                  30.81
-              WRITE (PRTEST, 33) CC
-  33          FORMAT (' character cannot be copied: ', A1)
-              LL = ICHAR ('?')
+               IERR = 803
+               WRITE (PRTEST, 33) CC
+33             FORMAT (' character cannot be copied: ', A1)
+               LL = ICHAR ('?')
             ENDIF
             MCHAR = OPMLFC*MCHAR + LL
 !            IF (ITEST.GE.250) WRITE (PRTEST, *) NSL, CC, LL
-  40      CONTINUE
-          IARRAY(II) = MCHAR
-  60    CONTINUE
-        IF (LENS1.GT.LENS2) THEN
-          DO 70 II = LENS1+1, LENS2
+40       CONTINUE
+         IARRAY(II) = MCHAR
+60    CONTINUE
+      IF (LENS1.GT.LENS2) THEN
+         DO 70 II = LENS1+1, LENS2
             IF (STRING(II:II) .NE. ' ') THEN
-              IERR = 801                                                  30.81
-              CALL MSGERR(1, 'string longer than capacity of array')
-              IF (ITEST.GE.50) WRITE (PRTEST, *) ' test COPYCH  ',
-     &               MOVE, LENARR, LENS1, LENS2, ' ', STRING(1:80)
-              GOTO 165
+               IERR = 801
+               CALL MSGERR(1, 'string longer than capacity of array')
+               IF (ITEST.GE.50) WRITE (PRTEST, *) ' test COPYCH  ', &
+                      MOVE, LENARR, LENS1, LENS2, ' ', STRING(1:80)
+               GOTO 165
             ENDIF
-  70      CONTINUE
-        ENDIF
-      ELSE IF (MOVE .EQ. FROM_) THEN                                      30.81
+70       CONTINUE
+      ENDIF
+   ELSE IF (MOVE .EQ. FROM_) THEN
 !
 !       character string copied from an array
 !
 !       first the string is filled with blanks
-        STRING = '    '
-        NSL = 0
-        DO 160 II = 1, LENARR
-          MC1 = IARRAY(II)
-          DO 140 IC = 1, OPMNLI
+      STRING = '    '
+      NSL = 0
+      DO 160 II = 1, LENARR
+         MC1 = IARRAY(II)
+         DO 140 IC = 1, OPMNLI
             MM  = OPMLFC ** (OPMNLI-IC)
             LL  = MC1 / MM
             NSL = NSL + 1
             IF (NSL .LE. LENS1) THEN
-              STRING(NSL:NSL) = CHAR(LL)
+               STRING(NSL:NSL) = CHAR(LL)
             ELSE
-              IF (CHAR(LL) .NE. ' ') THEN
-                IF (IERR.NE.802)                                          30.81
-     &          CALL MSGERR(1, 'string shorter than capacity of array')
-                IF (ITEST.GE.50) WRITE (PRTEST, *) ' test COPYCH  ',
-     &               MOVE, LENARR, LENS1, LENS2, ' ', STRING
-                IERR = 802                                                30.81
-                GOTO 165
-              ENDIF
+               IF (CHAR(LL) .NE. ' ') THEN
+                  IF (IERR.NE.802) &
+                     CALL MSGERR(1, 'string shorter than capacity of array')
+                  IF (ITEST.GE.50) WRITE (PRTEST, *) ' test COPYCH  ', &
+                       MOVE, LENARR, LENS1, LENS2, ' ', STRING
+                  IERR = 802
+                  GOTO 165
+               ENDIF
             ENDIF
             MC1 = MC1 - LL * MM
 !           IF (ITEST.GE.250) WRITE (PRTEST, *) NSL, LL, STRING(NSL:NSL)
- 140      CONTINUE
-          IF (MC1.NE.0) WRITE (PRINTF, *) ' Error COPYCH'
- 160    CONTINUE
-      ELSE
-        CALL MSGERR (2, 'error COPYCH, argument MOVE')
-      ENDIF
- 165  IF (ITEST.GE.230) WRITE (PRTEST, 167) LENS1, STRING, MOVE,
-     &         (IARRAY(II), II=1,LENARR)
- 167  FORMAT (' exit COPYCH ', I3, 1X, A20, 1X, A1, 4(1X,I12))
-      RETURN
+140      CONTINUE
+         IF (MC1.NE.0) WRITE (PRINTF, *) ' Error COPYCH'
+160   CONTINUE
+   ELSE
+      CALL MSGERR (2, 'error COPYCH, argument MOVE')
+   ENDIF
+165 IF (ITEST.GE.230) WRITE (PRTEST, 167) LENS1, STRING, MOVE, &
+             (IARRAY(II), II=1,LENARR)
+167 FORMAT (' exit COPYCH ', I3, 1X, A20, 1X, A1, 4(1X,I12))
+   RETURN
 !*    end of subroutine COPYCH   **
-      END
+END
