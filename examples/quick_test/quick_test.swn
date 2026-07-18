@@ -1,0 +1,35 @@
+$ ----------------------------------------------------------------------
+$ Small stationary SWAN smoke test
+$ Domain: 2 km x 1 km, constant depth, waves and wind from the west
+$ ----------------------------------------------------------------------
+
+PROJECT 'QUICK' '001'
+SET NAUTICAL
+MODE STATIONARY TWODIMENSIONAL
+COORDINATES CARTESIAN
+
+$ Computational grid: 20 x 10 meshes (21 x 11 points).
+$ Spectral grid: 24 directions and 16 frequencies from 0.05 to 1.0 Hz.
+CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 20 10 CIRCLE 24 0.05 1.0 16
+
+$ A 2 x 2 input grid is sufficient for the spatially constant 20 m depth.
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0
+READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE
+
+$ Uniform 8 m/s wind and a 1 m, 6 s JONSWAP spectrum enter from the west.
+WIND 8.0 270.0
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 1.0 6.0 270.0 20.0
+
+$ Keep the physics explicit so changes to defaults do not alter the smoke test.
+GEN3 KOMEN
+BREAKING CONSTANT 1.0 0.73
+FRICTION JONSWAP CONSTANT 0.038
+
+$ A compact full-grid map plus an easy-to-inspect value at the domain centre.
+BLOCK 'COMPGRID' NOHEADER 'quick_test_hs.blk' LAYOUT 3 HSIGN
+POINTS 'CENTER' 1000.0 500.0
+TABLE 'CENTER' HEADER 'quick_test_center.tbl' XP YP DEPTH HSIGN TM01 DIR
+
+COMPUTE
+STOP

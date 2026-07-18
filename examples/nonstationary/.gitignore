@@ -1,0 +1,11 @@
+__pycache__/
+**/INPUT
+**/PRINT
+**/Errfile
+**/ERRPTS
+**/norm_end
+**/swaninit
+**/*.prt
+**/*.erf
+**/*_hs.blk
+**/*_center.tbl

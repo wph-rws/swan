@@ -1,0 +1,42 @@
+$ ----------------------------------------------------------------------
+$ Small nonstationary SWAN example on an unstructured triangular grid
+$ Uses the same domain, forcing and output times as the regular example
+$ ----------------------------------------------------------------------
+
+PROJECT 'NSTUNSTR' '001'
+SET NAUTICAL
+MODE NONSTATIONARY TWODIMENSIONAL
+COORDINATES CARTESIAN
+
+$ Included Triangle mesh: 15 vertices and 16 counterclockwise triangles.
+CGRID UNSTRUCTURED CIRCLE 24 0.05 1.0 32
+READGRID UNSTRUCTURED TRIANGLE 'nonstationary_unstructured'
+
+$ Regular input grids may be combined with an unstructured computation.
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0
+READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE
+
+INPGRID WIND REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0 &
+        NONSTATIONARY 20260101.000000 30 MIN 20260101.010000
+READINP WIND 1.0 'wind.wnd' 3 0 1 0 FREE
+
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+$ Boundary marker 1 identifies the complete western side in the .node file.
+BOUNDSPEC SIDE 1 CONSTANT PAR 1.0 6.0 270.0 20.0
+INITIAL PAR 0.5 5.0 270.0 25.0
+
+GEN3 KOMEN
+BREAKING CONSTANT 1.0 0.73
+FRICTION JONSWAP CONSTANT 0.038
+
+$ Interpolate each unstructured result to the regular comparison frame.
+FRAME 'MAP' 0.0 0.0 0.0 2000.0 1000.0 20 10
+BLOCK 'MAP' NOHEADER 'nonstationary_unstructured_hs.blk' LAYOUT 3 HSIGN &
+      OUTPUT 20260101.000000 10 MIN
+POINTS 'CENTER' 1000.0 500.0
+TABLE 'CENTER' HEADER 'nonstationary_unstructured_center.tbl' &
+      TIME TSEC XP YP WIND HSIGN TM01 DIR &
+      OUTPUT 20260101.000000 10 MIN
+
+COMPUTE NONSTATIONARY 20260101.000000 10 MIN 20260101.010000
+STOP

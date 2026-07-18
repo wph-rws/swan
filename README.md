@@ -49,18 +49,26 @@ There are installers available for Windows, Linux and macOS. See the
 The way it works is very similar to GNU make (or NMAKE for Windows); for example, it does not rebuild things that are already up to date.
 Ninja can be downloaded from its [git repository](https://github.com/ninja-build/ninja/releases).
 
-In addition to the build tools, a Perl package must be available on your local computer.
-Usually, it is available for macOS, Linux and a UNIX-like operating system. Check it by typing `perl -v`.
-You can download Perl for MS Windows from [Strawberry Perl](https://strawberryperl.com).
-The Perl version should be at least 5.0.0 or higher.
+In addition to the build tools, Python 3 and the double-precision FFTW3
+development library must be available on your local computer. On Ubuntu and
+Debian, FFTW can be installed with:
 
-Finally, SWAN also requires a Fortran90 compiler to be present in your environment.
+```bash
+sudo apt install libfftw3-dev
+```
+
+Check it by typing `python3 --version` on Linux or macOS, or `python --version`
+on Windows. CMake uses Python to set the compile-time switches in the Fortran
+source templates.
+
+Finally, SWAN also requires a Fortran compiler with Fortran 2018 support to be present in your environment.
 Popular Fortran compilers are [gfortran](https://gcc.gnu.org/fortran/) and
 [Intel<sup>&reg;</sup> Fortran Compiler Classic](https://www.intel.com/content/www/us/en/developer/articles/tool/oneapi-standalone-components.html#fortran)
 (as part of the Intel<sup>&reg;</sup> oneAPI HPC Toolkit) and both support the OpenMP standard.
 Please check this [page](https://fortran-lang.org/learn/os_setup/install_gfortran) for the installation of gfortran on your platform.
 
-Due to the use of ANSI standard Fortran90 the SWAN source code can be ported to various architectures (e.g., Windows, Linux, macOS and Unix-like systems).
+Because the source code uses standard Fortran 2018, SWAN can be ported to
+various architectures (e.g., Windows, Linux, macOS and Unix-like systems).
 Currently, the build scripts support the following Fortran compilers:
 
 1. GNU
@@ -166,11 +174,29 @@ where `<value>` is a string or a boolean, depending on the specified option. The
 | `CMAKE_INSTALL_PREFIX`   | string     | user-defined installation path            | `../wavemodels/swan`    |
 | `CMAKE_PREFIX_PATH`      | string     | semicolon-separated list of library paths | empty                   |
 | `CMAKE_Fortran_COMPILER` | string     | full path to the Fortran compiler         | determined by CMake     |
+| `CMAKE_BUILD_TYPE`       | string     | build configuration                       | `Release`               |
 | `MPI`                    | boolean    | enable build with MPI                     | `OFF`                   |
 | `OPENMP`                 | boolean    | enable build with OpenMP                  | `OFF`                   |
 | `METIS`                  | boolean    | enable build with Metis                   | `OFF`                   |
 | `NETCDF`                 | boolean    | enable build with netCDF                  | `OFF`                   |
+| `TIMG`                   | boolean    | enable internal timing instrumentation    | `OFF`                   |
+| `MATL4`                  | boolean    | enable MATLAB version 4 output            | `OFF`                   |
+| `SWAN_NATIVE`            | boolean    | optimize for the CPU performing the build | `OFF`                   |
+| `SWAN_LTO`               | boolean    | enable link-time optimization             | `OFF`                   |
 | `CMAKE_VERBOSE_MAKEFILE` | boolean    | provide verbose output of the build       | `OFF`                   |
+
+For an optimized, portable OpenMP build, use:
+
+```bash
+cmake .. -GNinja -DOPENMP=ON
+cmake --build . --parallel
+```
+
+`SWAN_NATIVE` and `SWAN_LTO` are optional, toolchain-dependent optimizations
+that should be benchmarked on representative cases before use. `SWAN_NATIVE`
+may produce an executable that does not run on older or different CPU models.
+Leave it disabled when distributing binaries. Neither option enables unsafe
+floating-point transformations such as `-ffast-math`.
 
 For example, the following commands
 
@@ -272,6 +298,23 @@ The above procedure can be done automatically using the script `/bin/swanrun` (o
 environment variable `PATH` has been adapted by including the path of the `/bin` directory.
 
 For more details, consult the [Implementation manual](https://swanmodel.sourceforge.io/online_doc/swanimp/node12.html).
+
+#### quick smoke test
+
+A small stationary example is available in [`examples/quick_test`](examples/quick_test).
+It exercises the regular grid, bathymetry input, boundary waves, wind and output
+pipeline, and is sized to finish well within three minutes on typical hardware.
+See the example README for Windows and Unix run instructions.
+
+Two compact nonstationary examples are available in
+[`examples/nonstationary`](examples/nonstationary). They apply a time-varying
+wind to comparable regular and unstructured grids, with time-dependent block
+and point output.
+
+A substantially larger, geographically realistic example is available in
+[`examples/voordelta`](examples/voordelta). It covers a 65 x 70 km domain on
+public Rijkswaterstaat bathymetry and documents the source data and model
+limitations.
 
 ## documentation
 
