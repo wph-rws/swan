@@ -1,5 +1,5 @@
 module SwanGridobjects
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -48,17 +48,17 @@ module SwanGridobjects
 !   Modules used
 !
 !   none
-!
+
     implicit none
-!
+
 !   Module parameters
 !
 !
 !   parameters for vertices
-!
+
     integer, parameter :: MINVERTCELL = 4   ! mininum number of cells around a vertex
     integer, parameter :: MAXVERTCELL = 10  ! maximum number of cells around a vertex
-    !
+
     integer, parameter :: MAXVERTATTI = 6   ! maximum number of attributes of type integer
                                             ! in data structure of vertices
     integer, parameter :: VERTID  = 1       ! identification number
@@ -71,19 +71,19 @@ module SwanGridobjects
     integer, parameter :: VERTF1  = 4       ! first face connecting to present vertex
     integer, parameter :: VERTF2  = 5       ! second face connecting to present vertex
     integer, parameter :: BPOL    = 6       ! sequence number of boundary polygons
-    !
+
     integer, parameter :: MAXVERTATTR = 2   ! maximum number of attributes of type real
                                             ! in data structure of vertices
     integer, parameter :: VERTX = 1         ! x-component of vertex
     integer, parameter :: VERTY = 2         ! y-component of vertex
-!
+
 !   parameters for cells
-!
+
     integer, parameter :: MINCELLVERT = 3   ! mininum number of vertices in a cell
     integer, parameter :: MAXCELLVERT = 5   ! maximum number of vertices in a cell
     integer, parameter :: MINCELLFACE = 3   ! mininum number of faces in a cell
     integer, parameter :: MAXCELLFACE = 5   ! maximum number of faces in a cell
-    !
+
     integer, parameter :: MAXCELLATTI = 7   ! maximum number of attributes of type integer
                                             ! in data structure of cells
     integer, parameter :: CELLID   = 1      ! identification number
@@ -95,7 +95,7 @@ module SwanGridobjects
     integer, parameter :: CELLV1   = 5      ! first vertex number of present cell
     integer, parameter :: CELLV2   = 6      ! second vertex number of present cell
     integer, parameter :: CELLV3   = 7      ! third vertex number of present cell
-    !
+
     integer, parameter :: MAXCELLATTR = 5   ! maximum number of attributes of type real
                                             ! in data structure of cells
     integer, parameter :: CELLAREA = 1      ! area of cell
@@ -103,9 +103,9 @@ module SwanGridobjects
     integer, parameter :: CELLCY   = 3      ! y-component of cell centroid
     integer, parameter :: CELLCCX  = 4      ! x-component of cell circumcenter
     integer, parameter :: CELLCCY  = 5      ! y-component of cell circumcenter
-    !
+
     ! parameters for faces
-    !
+
     integer, parameter :: MAXFACEATTI = 9   ! maximum number of attributes of type integer
                                             ! in data structure of faces
     integer, parameter :: FACEID  = 1       ! identification number
@@ -126,7 +126,7 @@ module SwanGridobjects
                                             ! - the ordering is such that the normal to face is
                                             !   always pointing from left to right
     integer, parameter :: FBTYPE  = 9       ! boundary type given at boundary face
-    !
+
     integer, parameter :: MAXFACEATTR = 8   ! maximum number of attributes of type real
                                             ! in data structure of faces
     integer, parameter :: FACELEN   = 1     ! length of face
@@ -148,7 +148,7 @@ module SwanGridobjects
 !   ---
 !
 !   Source text
-!
+
     type geomtype
       real :: det                               ! determinant
       real :: dx1 , dx2                         ! two components of covariant base vector a_(1)

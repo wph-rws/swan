@@ -1,5 +1,5 @@
 subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -45,27 +45,27 @@ subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
 !   Note: we restrict ourselves to triangles only!
 !
 !   Modules used
-!
+
     use ocpcomm4
     use swcomm2
     use swcomm3
     use SwanGridobjects
-!
+
     implicit none
-!
+
 !   Argument variables
-!
+
     integer, intent(in)                       :: ncells  ! number of cells in grid
     integer, intent(in)                       :: nverts  ! number of vertices in grid
-    !
+
     integer, dimension(3, ncells), intent(in) :: kvertc  ! vertices of the cell
                                                          ! (must be filled by a gridgenerator!)
-    !
+
     real, dimension(nverts), intent(in)       :: xcugrd  ! the x-coordinates of the grid vertices
     real, dimension(nverts), intent(in)       :: ycugrd  ! the y-coordinates of the grid vertices
-!
+
 !   Local variables
-!
+
     integer                               :: icell    ! loop counter over cells / index of present cell
     integer, save                         :: ient = 0 ! number of entries in this subroutine
     integer                               :: ivert    ! loop counter over vertices / index of present vertex
@@ -79,9 +79,9 @@ subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
     integer                               :: vc       ! considered vertex
     integer                               :: vn       ! first upwave vertex of next cell
     integer                               :: vp       ! last upwave vertex of present cell
-    !
+
     integer, dimension(:), allocatable    :: ivlist   ! list of index vertices
-    !
+
     real                                  :: carea    ! area of the present cell (triangles only)
     real                                  :: dx1      ! first component of covariant base vector a_(1)
     real                                  :: dx2      ! second component of covariant base vector a_(1)
@@ -102,73 +102,73 @@ subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
     real                                  :: y2       ! y-coordinate of second vertex of present cell
     real                                  :: y3       ! y-coordinate of third vertex of present cell
     real                                  :: yc       ! y-coordinate of the cell centroid / circumcenter
-    !
+
     logical                               :: nxtcell  ! indicate whether there is next cell in counterclockwise direction
-    !
+
     type(verttype), dimension(:), pointer :: vert     ! datastructure for vertices with their attributes
     type(celltype), dimension(:), pointer :: cell     ! datastructure for cells with their attributes
-!
+
 !   Structure
 !
 !   Description of the pseudo code
 !
 !   Source text
-!
+
     if (ltrace) call strace (ient,'SwanGridCell')
-    !
+
     ! point to vertex and cell objects
-    !
+
     vert => gridobject%vert_grid
     cell => gridobject%cell_grid
-    !
+
     ! loop over all cells
-    !
+
     do icell = 1, ncells
-       !
+
        ! determine number of vertices and faces (triangles only!)
-       !
+
        cell(icell)%nov = nov
        cell(icell)%nof = nov
-       !
+
        ! identification number
-       !
+
        cell(icell)%atti(CELLID) = icell
-       !
+
        ! cell is triangle and initiatively active
-       !
+
        cell(icell)%atti(CELLRECT) = 0
        cell(icell)%active         = .true.
-       !
+
        ! store vertices of the cell
-       !
+
        v(1) = kvertc(1,icell)
        v(2) = kvertc(2,icell)
        v(3) = kvertc(3,icell)
        cell(icell)%atti(CELLV1) = v(1)
        cell(icell)%atti(CELLV2) = v(2)
        cell(icell)%atti(CELLV3) = v(3)
-       !
+
        ! store area of the cell in carea
-       !
+
        vec12(1) = xcugrd(v(2)) - xcugrd(v(1))
        vec12(2) = ycugrd(v(2)) - ycugrd(v(1))
        vec13(1) = xcugrd(v(3)) - xcugrd(v(1))
        vec13(2) = ycugrd(v(3)) - ycugrd(v(1))
        carea = 0.5*abs(vec12(1)*vec13(2) - vec13(1)*vec12(2))
        cell(icell)%attr(CELLAREA) = carea
-       !
+
        ! store local covariant and contravariant base vectors at each vertex
        ! next, store directions of faces pointing to present vertex
-       !
+
        dx1 = -vec12(1)
        dy1 = -vec12(2)
        dx2 = -vec13(1)
        dy2 = -vec13(2)
-       !
+
        do j = 1, nov
-          !
+
           rdet = 1./(dy2*dx1 - dy1*dx2)
-          !
+
           cell(icell)%geom(j)%det  =  dy2*dx1 - dy1*dx2
           cell(icell)%geom(j)%dx1  =  dx1
           cell(icell)%geom(j)%dy1  =  dy1
@@ -178,41 +178,41 @@ subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
           cell(icell)%geom(j)%rdy1 = -dx2*rdet
           cell(icell)%geom(j)%rdx2 = -dy1*rdet
           cell(icell)%geom(j)%rdy2 =  dx1*rdet
-          !
+
           th1 = atan2(dy1,dx1)
           th2 = atan2(dy2,dx2)
-          !
+
           thdiff = th1 - th2
           do
              if ( abs(thdiff) <= PI ) exit
              th1 = th1 - sign (2., thdiff) * PI
              thdiff = th1 - th2
           enddo
-          !
+
           cell(icell)%geom(j)%th1 = th1
           cell(icell)%geom(j)%th2 = th2
-          !
+
           dx1 = dx2 - dx1
           dy1 = dy2 - dy1
           dx2 = dx1 - dx2
           dy2 = dy1 - dy2
-          !
+
        enddo
-       !
+
        ! determine orientation of the mesh
-       !
+
        if ( icell == 1 ) then
-          !
+
           if ( dy2*dx1 > dy1*dx2 ) then
              CVLEFT = .false.             ! right-handed
           else
              CVLEFT = .true.              ! left-handed
           endif
-          !
+
        endif
-       !
+
        ! store coordinates of centroid
-       !
+
        xc = 0.
        yc = 0.
        do j = 1, nov
@@ -221,12 +221,12 @@ subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
        enddo
        xc = xc / real(nov)
        yc = yc / real(nov)
-       !
+
        cell(icell)%attr(CELLCX) = xc
        cell(icell)%attr(CELLCY) = yc
-       !
+
        ! store coordinates of circumcenter
-       !
+
        x1 = xcugrd(kvertc(1,icell))
        y1 = ycugrd(kvertc(1,icell))
        x2 = xcugrd(kvertc(2,icell))
@@ -236,121 +236,121 @@ subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
        fac = ( (x2-x3)*(x3-x1)+(y2-y3)*(y3-y1) )/( (x1-x2)*(y3-y1)-(y1-y2)*(x3-x1) )
        xc = 0.5 * ( fac*(y1-y2) + x1+x2 )
        yc = 0.5 * ( fac*(x2-x1) + y1+y2 )
-       !
+
        cell(icell)%attr(CELLCCX) = xc
        cell(icell)%attr(CELLCCY) = yc
-       !
+
        ! store vertices of each face of the cell
-       !
+
        do j = 1, nov
           k = mod(j,nov)+1
           cell(icell)%face(j)%atti(FACEV1) = kvertc(j,icell)
           cell(icell)%face(j)%atti(FACEV2) = kvertc(k,icell)
        enddo
-       !
+
     enddo
-    !
+
     allocate(ivlist(nverts))
-    !
+
     ! loop over all vertices
-    !
+
     do ivert = 1, nverts
-       !
+
        ! identify the considered vertex and store index
-       !
+
        vc = vert(ivert)%atti(VERTID)
        ivlist(vc) = ivert
-       !
+
        ! initialize number of cells around vertex
-       !
+
        vert(ivert)%noc = 0
-       !
+
     enddo
-    !
+
     do icell = 1, ncells
-       !
+
        v(1) = cell(icell)%atti(CELLV1)
        v(2) = cell(icell)%atti(CELLV2)
        v(3) = cell(icell)%atti(CELLV3)
-       !
+
        ! add present cell to each of these vertices
-       !
+
        do j = 1, nov
-          !
+
           ivert = ivlist(v(j))
           noc   = vert(ivert)%noc +1
-          !
+
           vert(ivert)%noc = noc
           vert(ivert)%cell(noc)%atti(CELLID) = icell
-          !
+
        enddo
-       !
+
     enddo
-    !
+
     deallocate(ivlist)
-    !
+
     do ivert = 1, nverts
-       !
+
        noc = vert(ivert)%noc
-       !
+
        ! loop over cells around considered vertex
-       !
+
        do j = 1, noc
-          !
+
           ! get cell and its vertices
-          !
+
           icell = vert(ivert)%cell(j)%atti(CELLID)
-          !
+
           v(1) = cell(icell)%atti(CELLV1)
           v(2) = cell(icell)%atti(CELLV2)
           v(3) = cell(icell)%atti(CELLV3)
-          !
+
           ! pick up last upwave vertex (counterclockwise counting of vertices is assumed)
-          !
+
           do k = 1, nov
              if ( v(k) == ivert ) then
                 vp = v(mod(k+1,nov)+1)
                 exit
              endif
           enddo
-          !
+
           ! search for next cell in counterclockwise direction
-          !
+
           nxtcell = .false.
-          !
+
           do l = 1, noc
-             !
+
              ! get a cell and its vertices
-             !
+
              jcell = vert(ivert)%cell(l)%atti(CELLID)
-             !
+
              v(1) = cell(jcell)%atti(CELLV1)
              v(2) = cell(jcell)%atti(CELLV2)
              v(3) = cell(jcell)%atti(CELLV3)
-             !
+
              ! pick up first upwave vertex (counterclockwise counting of vertices is assumed)
-             !
+
              do k = 1, nov
                 if ( v(k) == ivert ) then
                    vn = v(mod(k,nov)+1)
                    exit
                 endif
              enddo
-             !
+
              ! check whether first upwave vertex of next cell equals last upwave vertex of present cell
-             !
+
              if ( vn == vp ) then
                 nxtcell = .true.
                 exit
              endif
-             !
+
           enddo
-          !
+
           if ( .not.nxtcell ) jcell = 0
           vert(ivert)%cell(j)%atti(NEXTCELL) = jcell
-          !
+
        enddo
-       !
+
     enddo
 
 end subroutine SwanGridCell

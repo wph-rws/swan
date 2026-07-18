@@ -1,5 +1,5 @@
 subroutine SwanInitCompGrid ( logcom )
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -41,36 +41,36 @@ subroutine SwanInitCompGrid ( logcom )
 !   in case of unstructured grid
 !
 !   Modules used
-!
+
     use ocpcomm4
     use swcomm3
     use m_genarr
     use m_parall
     use SwanGriddata
-!
+
     implicit none
-!
+
 !   Argument variables
-!
+
     logical, dimension(7), intent(inout) :: logcom ! give status of which command has been given
-!
+
 !   Local variables
-!
+
     integer, save :: ient = 0 ! number of entries in this subroutine
     integer       :: istat    ! indicate status of allocation
-!
+
 !   Structure
 !
 !   Description of the pseudo code
 !
 !   Source text
-!
+
     if (ltrace) call strace (ient,'SwanInitCompGrid')
-    !
+
     ! check the grid
-    !
+
     call SwanCheckGrid
-    !
+
     istat = 0
     if(.not.allocated(ac2)) allocate(ac2(MDC,MSC,nverts), stat = istat)
     if ( istat /= 0 ) then
@@ -79,25 +79,25 @@ subroutine SwanInitCompGrid ( logcom )
     endif
     ac2 = 0.
     logcom(6) = .true.
-    !
+
     ! set number of vertices and cells in global domain in case of serial run
-    !
+
     if ( .not.logcom(7) ) then
        nvertsg = nverts
        ncellsg = ncells
     endif
-    !
+
     ! the following arrays for structured grids (regular and curvilinear)
     ! are allocated as empty ones
-    !
+
     if ( .not.allocated(KGRPNT) ) allocate(KGRPNT(0,0))
     if ( .not.allocated(KGRBND) ) allocate(KGRBND(0)  )
-    !
+
     ! for sake of convenience, set MCGRD to nverts (for allocating AC1 and COMPDA)
-    !
+
     MCGRD   = nverts
     MCGRDGL = nvertsg
     MXCGL   = nvertsg
     MYCGL   = 1
-    !
+
 end subroutine SwanInitCompGrid

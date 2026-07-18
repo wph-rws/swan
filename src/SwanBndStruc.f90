@@ -1,5 +1,5 @@
 subroutine SwanBndStruc ( xcgrid, ycgrid )
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -46,22 +46,22 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
 !   around the grid in counterclockwise order.
 !
 !   Modules used
-!
+
     use ocpcomm4
     use SWCOMM1
     use SWCOMM2
     use SWCOMM3
     use OUTP_DATA
-!
+
     implicit none
-!
+
 !   Argument variables
-!
+
     real, dimension(MXC,MYC), intent(in) :: xcgrid   ! x-coordinate of computational grid
     real, dimension(MXC,MYC), intent(in) :: ycgrid   ! y-coordinate of computational grid
-!
+
 !   Local variables
-!
+
     integer                              :: ix, iy   ! point index
     integer                              :: ibnd     ! number of valid points along boundary
     integer                              :: iside    ! side counter (1..4)
@@ -72,26 +72,26 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
     integer                              :: ix0, ix1, iy0, iy1
     integer                              :: ii, jj   ! counters
     integer, save                        :: ient = 0 ! number of entries in this subroutine
-    !
+
     logical                              :: EQREAL   ! function
-    !
+
     real                                 :: xp, yp       ! one boundary point
     real, allocatable, dimension (:)     :: xbnd, ybnd   ! points of whole boundary
     real, allocatable, dimension (:)     :: xsid, ysid   ! points of one side
-    !
+
     character(80)                        :: msgstr   ! string to pass message
     character(len=8)                     :: psname   ! name assigned to output curve
-    !
+
     TYPE(OPSDAT), POINTER :: OPSTMP, ROPS
-!
+
 !   Structure
 !
 !   Description of the pseudo code
 !
 !   Source text
-!
+
     if (ltrace) call strace (ient,'SwanBndStruc')
-    !
+
     if (.not.allocated(xbnd)) allocate (xbnd(1:2*(mxc+myc-2)))
     if (.not.allocated(ybnd)) allocate (ybnd(1:2*(mxc+myc-2)))
     ibnd = 0
@@ -129,17 +129,17 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
          ystep = -1
          lside = myc
       endif
-      !
+
       if (.not.allocated(xsid)) allocate (xsid(1:lside))
       if (.not.allocated(ysid)) allocate (ysid(1:lside))
       ix = ix0
       iy = iy0
       ispt = 0
-      !
+
       do ii = 1, lside
-        !
+
         ! loop over points of one side of the grid
-        !
+
         xp = xcgrid(ix,iy)
         yp = ycgrid(ix,iy)
         if (.not.(EQREAL(xp,OVEXCV(1)).or.EQREAL(yp,OVEXCV(2)))) then
@@ -160,7 +160,7 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
           iy = iy + ystep
         endif
       enddo
-      !
+
       write (psname, '(A6, I2.2)') 'BOUND_', iside
       mip = ispt
       if (mip>0) then
@@ -190,7 +190,7 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
         call MSGERR(1,'No output points found in '//psname)
       endif
     enddo
-    !
+
     psname = 'BOUNDARY'
     mip = ibnd
     if (mip>0) then
@@ -219,5 +219,5 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
     else
       call MSGERR(1,'No output points found in '//psname)
     endif
-    !
+
 end subroutine SwanBndStruc

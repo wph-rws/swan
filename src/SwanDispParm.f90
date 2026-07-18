@@ -1,5 +1,5 @@
 subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig )
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -43,69 +43,69 @@ subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig )
 !   in vertices of computational stencil
 !
 !   Modules used
-!
+
     use ocpcomm4
     use swcomm2
     use swcomm3
     use SwanGriddata
     use SwanCompdata
-!
+
     implicit none
-!
+
 !   Argument variables
-!
+
     real, dimension(MSC,ICMAX), intent(out) :: cgo    ! group velocity
     real, dimension(nverts), intent(in)     :: dep2   ! water depth at current time level
     real, dimension(MSC,ICMAX), intent(out) :: dmw    ! mud dissipation rate
     real, dimension(MSC,ICMAX), intent(out) :: kwave  ! wave number
     real, dimension(nverts), intent(in)     :: mudl2  ! mud thickness at current time level
     real, dimension(MSC), intent(in)        :: spcsig ! relative frequency bins
-!
+
 !   Local variables
-!
+
     integer              :: ic       ! loop counter over stencil
     integer, save        :: ient = 0 ! number of entries in this subroutine
     integer              :: is       ! loop counter over frequency bins
     integer              :: ivert    ! vertex index
-    !
+
     real                 :: deploc   ! local depth
     real                 :: dm       ! local mud layer
     real, dimension(MSC) :: n        ! ratio of group and phase velocity
     real, dimension(MSC) :: nd       ! derivative of N with respect to depth
-!
+
 !   Structure
 !
 !   Description of the pseudo code
 !
 !   Source text
-!
+
     if (ltrace) call strace (ient,'SwanDispParm')
 
     do ic = 1, ICMAX
-       !
+
        ivert  = vs(ic)      ! points in computational stencil
        deploc = dep2(ivert)
-       !
+
        if (VARMUD) then
           dm = mudl2(ivert)
        else
           dm = PMUD(1)
        endif
-       !
+
        if ( deploc > DEPMIN ) then
-          !
+
           call KSCIP1 (MSC, spcsig, deploc, kwave(1,ic), cgo(1,ic), n, nd)
           if ( IMUD == 1 ) call KSCIP2 (MSC, spcsig, deploc, kwave(1,ic), cgo(1,ic), n, nd, dmw(1,ic), dm)
-          !
+
        else
-          !
+
           do is = 1, MSC
              kwave(is,ic) = -1.
              cgo  (is,ic) =  0.
              dmw  (is,ic) =  0.
           enddo
-          !
+
        endif
     enddo
-    !
+
 end subroutine SwanDispParm

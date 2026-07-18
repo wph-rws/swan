@@ -1,0 +1,22 @@
+# Build directories (CMake out-of-source builds)
+build/
+build-*/
+
+# Fortran build artifacts
+*.mod
+*.o
+*.a
+
+# SWAN runtime output
+Errfile*
+PRINT*
+norm_end
+swaninit
+
+# Python
+__pycache__/
+*.pyc
+
+# Editors
+*.swp
+.vscode/
