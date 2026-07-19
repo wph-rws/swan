@@ -1,7 +1,16 @@
 {
-  "date": "2026-07-18",
+  "date": "2026-07-19",
   "revisions": {
-    "current": "build van 2026-07-18",
+    "current_base": "build van 2026-07-19",
+    "current_worktree_changes": [
+      "src/swancom4.f90",
+      "src/fftw_compat.f90"
+    ],
+    "measured_source_sha256": {
+      "src/swancom4.f90": "52d29c992bf806ab12f5d88faa8ff35f15dbf5aa2b70aee8d2af65abccd69f23",
+      "src/fftw_compat.f90": "8883217497ffd82a18d653a20091680fcc7a01b02b7a687abdefc063754cb875"
+    },
+    "previous_current": "build van 2026-07-18",
     "upstream": "43e9bbb"
   },
   "host": {
@@ -16,6 +25,7 @@
     "mpi": false,
     "swan_native": false,
     "lto": false,
+    "swan_debug_invariants": false,
     "environment": {
       "OMP_NUM_THREADS": "1",
       "OMP_DYNAMIC": "FALSE"
@@ -27,18 +37,19 @@
       "seconds": {
         "upstream_O1": [43.4137971470, 44.1662986790, 43.4566215390],
         "upstream_O3": [29.1794319650, 28.5074251880, 29.3101981400],
-        "current_O1": [41.9241631840, 41.5774706730, 40.9245817640],
-        "current_O3": [
-          23.4788356310,
-          23.5852642030,
-          23.6313434740,
-          23.1864763170,
-          23.6702777110,
-          23.2824029180,
-          23.5429384660,
-          23.2478054910
+        "current_O1": [
+          36.9460720920,
+          35.9403745710,
+          36.7535804490
         ],
-        "current_O3_FFTPACK": [
+        "current_O3": [
+          22.8134812450,
+          22.7829178920,
+          22.2517477500,
+          22.4556603600,
+          21.6762046690
+        ],
+        "revision_3849373_O3_FFTPACK": [
           24.1032857050,
           23.9393843300,
           23.4262517650,
@@ -60,15 +71,19 @@
       "seconds": {
         "upstream_O1": [67.7107665000, 66.4149302240, 66.7821725060],
         "upstream_O3": [43.2830535050, 42.2650523860, 42.1085376730],
-        "current_O1": [60.8135638350, 61.0600393790, 61.2580913300],
-        "current_O3": [
-          35.8250348270,
-          35.2320214620,
-          35.6338674690,
-          35.6071564030,
-          34.6602655650
+        "current_O1": [
+          56.4689227250,
+          57.1676990820,
+          55.7947004030
         ],
-        "current_O3_FFTPACK": [
+        "current_O3": [
+          33.7356390120,
+          33.1898591790,
+          33.0287218500,
+          33.0292347900,
+          33.3915440820
+        ],
+        "revision_3849373_O3_FFTPACK": [
           35.8873257960,
           35.2300245350,
           34.9637523390,
@@ -85,46 +100,57 @@
   },
   "fft_kernel": {
     "measurement": "forward/backward transform pair, plans initialized before timing",
+    "benchmark": "benchmarks/benchmark_fft.f90",
+    "current_fftw_planning": "FFTW_MEASURE for matching alignment; FFTW_ESTIMATE | FFTW_UNALIGNED fallback",
+    "previous_fftw_planning": "FFTW_ESTIMATE | FFTW_UNALIGNED",
     "trials_per_backend_and_size": 5,
     "sizes": {
       "2": {
         "repetitions": 2000000,
-        "fftw_seconds": [0.096, 0.093, 0.094, 0.100, 0.097],
+        "previous_fftw_seconds": [0.096, 0.093, 0.094, 0.100, 0.097],
+        "current_fftw_seconds": [0.108682235, 0.115657267, 0.119099789, 0.114658987, 0.119839596],
         "fftpack_seconds": [0.189, 0.171, 0.169, 0.179, 0.176]
       },
       "4": {
         "repetitions": 1000000,
-        "fftw_seconds": [0.085, 0.084, 0.083, 0.084, 0.086],
+        "previous_fftw_seconds": [0.085, 0.084, 0.083, 0.084, 0.086],
+        "current_fftw_seconds": [0.074509324, 0.071337511, 0.076242299, 0.078648627, 0.076665703],
         "fftpack_seconds": [0.142, 0.143, 0.142, 0.143, 0.142]
       },
       "8": {
         "repetitions": 400000,
-        "fftw_seconds": [0.132, 0.132, 0.129, 0.136, 0.133],
+        "previous_fftw_seconds": [0.132, 0.132, 0.129, 0.136, 0.133],
+        "current_fftw_seconds": [0.063417939, 0.071607422, 0.067419047, 0.070240856, 0.082633409],
         "fftpack_seconds": [0.169, 0.173, 0.179, 0.170, 0.171]
       },
       "16": {
         "repetitions": 150000,
-        "fftw_seconds": [0.218, 0.210, 0.208, 0.219, 0.216],
+        "previous_fftw_seconds": [0.218, 0.210, 0.208, 0.219, 0.216],
+        "current_fftw_seconds": [0.082521889, 0.094402138, 0.099483754, 0.084508773, 0.085118530],
         "fftpack_seconds": [0.210, 0.202, 0.206, 0.212, 0.213]
       },
       "32": {
         "repetitions": 40000,
-        "fftw_seconds": [0.328, 0.310, 0.303, 0.303, 0.314],
+        "previous_fftw_seconds": [0.328, 0.310, 0.303, 0.303, 0.314],
+        "current_fftw_seconds": [0.115182081, 0.111062809, 0.107698662, 0.113474389, 0.104433164],
         "fftpack_seconds": [0.270, 0.269, 0.261, 0.273, 0.253]
       },
       "64": {
         "repetitions": 10000,
-        "fftw_seconds": [0.479, 0.495, 0.474, 0.467, 0.462],
+        "previous_fftw_seconds": [0.479, 0.495, 0.474, 0.467, 0.462],
+        "current_fftw_seconds": [0.155342621, 0.157316171, 0.169000898, 0.156384929, 0.173916611],
         "fftpack_seconds": [0.416, 0.421, 0.409, 0.417, 0.429]
       },
       "128": {
         "repetitions": 2500,
-        "fftw_seconds": [0.638, 0.634, 0.641, 0.607, 0.594],
+        "previous_fftw_seconds": [0.638, 0.634, 0.641, 0.607, 0.594],
+        "current_fftw_seconds": [0.186035150, 0.197666847, 0.194411974, 0.206254765, 0.206122332],
         "fftpack_seconds": [0.707, 0.717, 0.708, 0.684, 0.657]
       },
       "256": {
         "repetitions": 600,
-        "fftw_seconds": [0.404, 0.411, 0.420, 0.436, 0.438],
+        "previous_fftw_seconds": [0.404, 0.411, 0.420, 0.436, 0.438],
+        "current_fftw_seconds": [0.258355935, 0.266477172, 0.269985980, 0.256148579, 0.255333536],
         "fftpack_seconds": [0.832, 0.833, 0.871, 0.876, 0.870]
       }
     }

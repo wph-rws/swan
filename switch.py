@@ -27,6 +27,7 @@ SWITCHES = {
     "-metis": "met",
     "-netcdf": "ncf",
     "-matl4": "mv4",
+    "-debug-invariants": "dinv",
 }
 
 
@@ -104,6 +105,7 @@ def transform(line: str, enabled: set[str]) -> str:
         ("!NNCF", "ncf" not in enabled),
         ("!MatL4", "mv4" in enabled),
         ("!MatL5", "mv4" not in enabled),
+        ("!DINV", "dinv" in enabled),
     ]
     for marker, active in replacements:
         if active and line.startswith(marker):

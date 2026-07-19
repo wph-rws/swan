@@ -9,13 +9,24 @@ module swan_fftw_compat
   type :: fftw_plan_pair
     integer :: l = 0
     integer :: m = 0
-    type(c_ptr) :: forward = c_null_ptr
-    type(c_ptr) :: backward = c_null_ptr
+    integer(c_int) :: alignment = -1_c_int
+    type(c_ptr) :: aligned_forward = c_null_ptr
+    type(c_ptr) :: aligned_backward = c_null_ptr
+    type(c_ptr) :: unaligned_forward = c_null_ptr
+    type(c_ptr) :: unaligned_backward = c_null_ptr
   end type fftw_plan_pair
 
   type(fftw_plan_pair), save :: plan_cache(max_cached_plans)
 
 contains
+
+  integer(c_int) function array_alignment(values) result(alignment)
+    complex(c_double_complex), contiguous, intent(inout), target :: values(:,:)
+    real(c_double), pointer :: storage(:)
+
+    call c_f_pointer(c_loc(values(1,1)), storage, [2*size(values)])
+    alignment = fftw_alignment_of(storage)
+  end function array_alignment
 
   integer function cached_plan_index(l, m) result(index)
     integer, intent(in) :: l, m
@@ -34,10 +45,11 @@ contains
     integer, intent(in) :: l, m
     integer, intent(out) :: ier
 
-    complex(c_double_complex), allocatable :: scratch(:,:)
+    complex(c_double_complex), allocatable, target :: scratch(:,:)
     integer :: i, slot
-    integer(c_int) :: flags
-    type(c_ptr) :: backward_plan, forward_plan
+    integer(c_int) :: alignment
+    type(c_ptr) :: aligned_backward, aligned_forward, &
+                   unaligned_backward, unaligned_forward
 
     ier = 0
     if (l < 1 .or. m < 1) then
@@ -59,25 +71,38 @@ contains
         ier = 20
       else
         allocate(scratch(l,m))
-        flags = ior(FFTW_ESTIMATE, FFTW_UNALIGNED)
+        alignment = array_alignment(scratch)
 
         ! FFTW uses C row-major dimensions. Reversing M and L maps the
         ! contiguous Fortran array C(L,M) to the same two-dimensional data.
-        forward_plan = fftw_plan_dft_2d(int(m,c_int), int(l,c_int), &
-                                        scratch, scratch, FFTW_FORWARD, flags)
-        backward_plan = fftw_plan_dft_2d(int(m,c_int), int(l,c_int), &
-                                         scratch, scratch, FFTW_BACKWARD, flags)
+        aligned_forward = fftw_plan_dft_2d(int(m,c_int), int(l,c_int), &
+                                           scratch, scratch, FFTW_FORWARD, FFTW_MEASURE)
+        aligned_backward = fftw_plan_dft_2d(int(m,c_int), int(l,c_int), &
+                                            scratch, scratch, FFTW_BACKWARD, FFTW_MEASURE)
+        unaligned_forward = fftw_plan_dft_2d(int(m,c_int), int(l,c_int), &
+                                             scratch, scratch, FFTW_FORWARD, &
+                                             ior(FFTW_ESTIMATE, FFTW_UNALIGNED))
+        unaligned_backward = fftw_plan_dft_2d(int(m,c_int), int(l,c_int), &
+                                              scratch, scratch, FFTW_BACKWARD, &
+                                              ior(FFTW_ESTIMATE, FFTW_UNALIGNED))
 
-        if (.not. c_associated(forward_plan) .or. &
-            .not. c_associated(backward_plan)) then
-          if (c_associated(forward_plan)) call fftw_destroy_plan(forward_plan)
-          if (c_associated(backward_plan)) call fftw_destroy_plan(backward_plan)
+        if (.not. c_associated(aligned_forward) .or. &
+            .not. c_associated(aligned_backward) .or. &
+            .not. c_associated(unaligned_forward) .or. &
+            .not. c_associated(unaligned_backward)) then
+          if (c_associated(aligned_forward)) call fftw_destroy_plan(aligned_forward)
+          if (c_associated(aligned_backward)) call fftw_destroy_plan(aligned_backward)
+          if (c_associated(unaligned_forward)) call fftw_destroy_plan(unaligned_forward)
+          if (c_associated(unaligned_backward)) call fftw_destroy_plan(unaligned_backward)
           ier = 20
         else
           plan_cache(slot)%l = l
           plan_cache(slot)%m = m
-          plan_cache(slot)%forward = forward_plan
-          plan_cache(slot)%backward = backward_plan
+          plan_cache(slot)%alignment = alignment
+          plan_cache(slot)%aligned_forward = aligned_forward
+          plan_cache(slot)%aligned_backward = aligned_backward
+          plan_cache(slot)%unaligned_forward = unaligned_forward
+          plan_cache(slot)%unaligned_backward = unaligned_backward
         end if
 
         deallocate(scratch)
@@ -86,34 +111,52 @@ contains
 !$omp end critical(swan_fftw_planner)
   end subroutine ensure_plans
 
+  subroutine get_plan(l, m, forward, alignment, plan, ier)
+    integer, intent(in) :: l, m
+    logical, intent(in) :: forward
+    integer(c_int), intent(in) :: alignment
+    type(c_ptr), intent(out) :: plan
+    integer, intent(out) :: ier
+    integer :: index
+
+    ier = 0
+!$omp critical(swan_fftw_planner)
+    index = cached_plan_index(l, m)
+    if (index == 0) then
+      ier = 20
+      plan = c_null_ptr
+    elseif (alignment == plan_cache(index)%alignment) then
+      if (forward) then
+        plan = plan_cache(index)%aligned_forward
+      else
+        plan = plan_cache(index)%aligned_backward
+      end if
+    elseif (forward) then
+      plan = plan_cache(index)%unaligned_forward
+    else
+      plan = plan_cache(index)%unaligned_backward
+    end if
+!$omp end critical(swan_fftw_planner)
+  end subroutine get_plan
+
   subroutine execute_transform(ldim, l, m, c, forward, ier)
     integer, intent(in) :: ldim, l, m
-    complex(c_double_complex), intent(inout) :: c(ldim,m)
+    complex(c_double_complex), intent(inout), target :: c(ldim,m)
     logical, intent(in) :: forward
     integer, intent(out) :: ier
 
-    complex(c_double_complex), allocatable :: packed(:,:)
-    integer :: index
+    complex(c_double_complex), allocatable, target :: packed(:,:)
+    integer(c_int) :: alignment
     real(c_double) :: scale
     type(c_ptr) :: plan
 
     call ensure_plans(l, m, ier)
     if (ier /= 0) return
 
-!$omp critical(swan_fftw_planner)
-    index = cached_plan_index(l, m)
-    if (index == 0) then
-      ier = 20
-      plan = c_null_ptr
-    elseif (forward) then
-      plan = plan_cache(index)%forward
-    else
-      plan = plan_cache(index)%backward
-    end if
-!$omp end critical(swan_fftw_planner)
-    if (ier /= 0) return
-
     if (ldim == l) then
+      alignment = array_alignment(c)
+      call get_plan(l, m, forward, alignment, plan, ier)
+      if (ier /= 0) return
       call fftw_execute_dft(plan, c, c)
       if (forward) then
         scale = 1.0_c_double / real(l*m, c_double)
@@ -122,6 +165,12 @@ contains
     else
       allocate(packed(l,m))
       packed = c(1:l,:)
+      alignment = array_alignment(packed)
+      call get_plan(l, m, forward, alignment, plan, ier)
+      if (ier /= 0) then
+        deallocate(packed)
+        return
+      end if
       call fftw_execute_dft(plan, packed, packed)
       if (forward) then
         scale = 1.0_c_double / real(l*m, c_double)

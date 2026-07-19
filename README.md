@@ -183,6 +183,7 @@ where `<value>` is a string or a boolean, depending on the specified option. The
 | `MATL4`                  | boolean    | enable MATLAB version 4 output            | `OFF`                   |
 | `SWAN_NATIVE`            | boolean    | optimize for the CPU performing the build | `OFF`                   |
 | `SWAN_LTO`               | boolean    | enable link-time optimization             | `OFF`                   |
+| `SWAN_DEBUG_INVARIANTS`  | boolean    | enable diagnostic runtime invariant checks | `OFF`                   |
 | `CMAKE_VERBOSE_MAKEFILE` | boolean    | provide verbose output of the build       | `OFF`                   |
 
 For an optimized, portable OpenMP build, use:
@@ -197,6 +198,10 @@ that should be benchmarked on representative cases before use. `SWAN_NATIVE`
 may produce an executable that does not run on older or different CPU models.
 Leave it disabled when distributing binaries. Neither option enables unsafe
 floating-point transformations such as `-ffast-math`.
+
+`SWAN_DEBUG_INVARIANTS` enables additional internal consistency checks for
+development and validation builds. Leave it disabled for production runs,
+because the checks can alter compiler optimization and reduce performance.
 
 For example, the following commands
 

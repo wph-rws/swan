@@ -54,6 +54,7 @@ option( TIMG "Enable internal timing instrumentation" OFF )
 option( MATL4 "Enable MATLAB version 4 output" OFF )
 option( SWAN_NATIVE "Optimize for the CPU that performs the build" OFF )
 option( SWAN_LTO "Enable interprocedural/link-time optimization" OFF )
+option( SWAN_DEBUG_INVARIANTS "Enable diagnostic runtime invariant checks" OFF )
 
 # Compiler compatibility options are target-specific so CMake's build-type
 # flags and user-provided CMAKE_Fortran_FLAGS remain effective.

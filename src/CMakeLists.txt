@@ -45,6 +45,10 @@ endif()
 if( MATL4 )
   list( APPEND SWITCHES -matl4 )
 endif()
+#
+if( SWAN_DEBUG_INVARIANTS )
+  list( APPEND SWITCHES -debug-invariants )
+endif()
 
 # Generate configured Fortran sources in the build tree.  The .f90 files in
 # the source tree remain the only editable sources; configured variants never

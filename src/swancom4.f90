@@ -1126,24 +1126,6 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
    SWG7 = WWSWG(7)
    SWG8 = WWSWG(8)
 
-!     *** Initialize auxiliary arrays per gridpoint ***
-
-   DO ID = MDC4MI, MDC4MA
-      DO IS = MSC4MI, MSC4MA
-         UE(IS,ID)   = 0.
-         SA1(IS,ID)  = 0.
-         SA2(IS,ID)  = 0.
-         SFNL(IS,ID) = 0.
-         DA1C(IS,ID) = 0.
-         DA1P(IS,ID) = 0.
-         DA1M(IS,ID) = 0.
-         DA2C(IS,ID) = 0.
-         DA2P(IS,ID) = 0.
-         DA2M(IS,ID) = 0.
-         DSNL(IS,ID) = 0.
-      ENDDO
-   ENDDO
-
 !     *** Calculate factor R(X) to calculate the NL wave-wave ***
 !     *** interaction for shallow water                       ***
 !     *** SNLC1 = 1/GRAV**4                                   ***
@@ -1173,6 +1155,28 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
       IDCLOW = IDLOW
       IDCHGH = IDHGH
    ENDIF
+
+!     Only low-frequency rows are read without first being assigned.
+!     SFNL and DSNL are assigned before use; the interaction and diagonal
+!     arrays are assigned over ISCLW:ISCHG below.
+
+   DO IDDUM = IDLOW - IIID, IDHGH + IIID
+      DO IS = MSC4MI, 0
+         UE(IS,IDDUM) = 0.
+      ENDDO
+   ENDDO
+   DO ID = IDLOW, IDHGH
+      DO IS = MSC4MI, 0
+         SA1(IS,ID)  = 0.
+         SA2(IS,ID)  = 0.
+         DA1C(IS,ID) = 0.
+         DA1P(IS,ID) = 0.
+         DA1M(IS,ID) = 0.
+         DA2C(IS,ID) = 0.
+         DA2P(IS,ID) = 0.
+         DA2M(IS,ID) = 0.
+      ENDDO
+   ENDDO
 
 !     *** Prepare auxiliary spectrum               ***
 !     *** set action original spectrum in array UE ***
@@ -1588,6 +1592,26 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
       IDCLOW = IDLOW
       IDCHGH = IDHGH
    ENDIF
+
+!DINV!     Validate the bounds on which the limited initialization below relies.
+!DINV
+!DINV   IF (LTSTFL) THEN
+!DINV      IF (ISCLW.GT.1 .OR. ISCLW+ISM1.LT.MSC4MI .OR.&
+!DINV      &ISCHG+ISP1.GT.ISHGH .OR. ISHGH.GT.MSC4MA) &
+!DINV      &ERROR STOP 'SWSNL2 frequency-range invariant violated'
+!DINV      IF (IDLOW-IIID.LT.MDC4MI .OR. IDHGH+IIID.GT.MDC4MA) &
+!DINV      &ERROR STOP 'SWSNL2 UE direction range exceeds workspace'
+!DINV      IF (IDCLOW-MAX(IDP1,IDM1).LT.IDLOW-IIID .OR.&
+!DINV      &IDCHGH+MAX(IDP1,IDM1).GT.IDHGH+IIID) &
+!DINV      &ERROR STOP 'SWSNL2 interaction direction hull is uninitialized'
+!DINV      IF (ISSTOP.GT.0) THEN
+!DINV         IF (1-ISP1.LT.MSC4MI .OR. ISSTOP-ISM1.GT.ISCHG) &
+!DINV         &ERROR STOP 'SWSNL2 source stencil frequency range is invalid'
+!DINV         IF (MINVAL(IDCMIN(1:ISSTOP))-MAX(IDP1,IDM1).LT.MDC4MI .OR.&
+!DINV         &MAXVAL(IDCMAX(1:ISSTOP))+MAX(IDP1,IDM1).GT.MDC4MA) &
+!DINV         &ERROR STOP 'SWSNL2 source stencil direction range is invalid'
+!DINV      END IF
+!DINV   END IF
 
 !     *** Zero only the array parts that are read below without being ***
 !     *** assigned first: the frequency rows below the lowest         ***
@@ -2009,17 +2033,6 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
    AWG7 = WWAWG(7)
    AWG8 = WWAWG(8)
 
-!     *** Initialize auxiliary arrays per gridpoint ***
-
-   DO ID = MDC4MI, MDC4MA
-      DO IS = MSC4MI, MSC4MA
-         UE(IS,ID)   = 0.
-         SA1(IS,ID)  = 0.
-         SA2(IS,ID)  = 0.
-         SFNL(IS,ID) = 0.
-      ENDDO
-   ENDDO
-
 !     *** Calculate prop. constant.                           ***
 !     *** Calculate factor R(X) to calculate the NL wave-wave ***
 !     *** interaction for shallow water                       ***
@@ -2032,6 +2045,18 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
    X2     = MAX ( -1.E15, SNLCS3*X)
    CONS   = SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
    JACOBI = 2. * PI
+
+!     Only the low-frequency rows can be read before assignment.
+!     UE is assigned for rows 1:ISHGH and SA1/SA2 for 1:ISCHG;
+!     SFNL is assigned directly by the source stencil.
+
+   DO ID = IDLOW, IDHGH
+      DO IS = MSC4MI, 0
+         UE(IS,ID)  = 0.
+         SA1(IS,ID) = 0.
+         SA2(IS,ID) = 0.
+      ENDDO
+   ENDDO
 
 !     *** extend the area with action density at periodic boundaries ***
 
