@@ -1,0 +1,14 @@
+/results/
+/**/INPUT
+/**/PRINT
+/**/Errfile
+/**/ERRPTS
+/**/norm_end
+/**/swaninit
+/**/COMPGRID
+/**/*.prt
+/**/*.erf
+/**/*.tbl
+/**/*.spc
+/**/*.bqf
+/**/xnl4v5.log

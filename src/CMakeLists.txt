@@ -1,6 +1,13 @@
 # define switches
 if( WIN32 )
-  set( SWITCHES -dos -cvis )
+  set( SWITCHES -dos )
+  # The CVIS switch enables the nonstandard SHARED specifier in OPEN
+  # statements. GNU Fortran rejects that DEC extension in the required
+  # standard-conforming mode, and Windows file sharing already works without
+  # it for the GNU runtime.
+  if( NOT CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
+    list( APPEND SWITCHES -cvis )
+  endif()
 elseif( UNIX )
   set( SWITCHES -unix )
 endif()

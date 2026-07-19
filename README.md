@@ -292,7 +292,7 @@ For faster simulation on a cluster, replace the run command by
 mpirun -np <n> swan.exe
 ```
 
-with `<n>` the number of desired nodes.
+with `<n>` the number of desired MPI processes.
 
 The above procedure can be done automatically using the script `/bin/swanrun` (or `\bin\swanrun.bat` in case of Windows), provided that the
 environment variable `PATH` has been adapted by including the path of the `/bin` directory.
@@ -314,7 +314,15 @@ and point output.
 A substantially larger, geographically realistic example is available in
 [`examples/voordelta`](examples/voordelta). It covers a 65 x 70 km domain on
 public Rijkswaterstaat bathymetry and documents the source data and model
-limitations.
+limitations. Its `run_mpi.py` runner builds on the same case to demonstrate and
+verify execution with multiple MPI processes.
+
+Focused nonlinear-interaction examples are available in
+[`examples/nonlinear_interactions`](examples/nonlinear_interactions). They
+compare DIA and exact XNL quadruplets, DCTA and FTIM triads over a submerged
+bar, and a combined ocean-to-nearshore run in which both source terms are
+active. The runner validates spectra and source terms and creates comparison
+figures.
 
 ## documentation
 

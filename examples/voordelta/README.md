@@ -67,6 +67,40 @@ connections. SWAN reports `Point removed from computational grid` warnings for
 these cells and excludes them from its two-dimensional computational domain;
 this is expected for this demonstration grid.
 
+## Run on multiple processors with MPI
+
+The Voordelta grid is also the repository's MPI example. It was selected as a
+compact counterpart to the realistic Dutch coastal grids used in published
+SWAN parallel-performance studies. In particular, the published Wadden Sea
+benchmark has more than two million grid points and needs about 6 GB of memory;
+that makes it useful for HPC scaling, but too large for a practical example in
+this repository. The 18,471-point Voordelta grid still gives SWAN enough work
+and grid lines to demonstrate its MPI strip decomposition on a workstation.
+
+Configure a separate MPI-enabled build and run the case on four processes:
+
+```sh
+cmake -S . -B build-mpi -GNinja -DCMAKE_Fortran_COMPILER=gfortran -DMPI=ON
+cmake --build build-mpi --parallel
+python3 examples/voordelta/run_mpi.py --processes 4
+```
+
+The runner requires `mpiexec`, refuses a single-process run, works in an
+isolated temporary directory, and verifies that SWAN wrote one `PRINT` file per
+requested process. Numerical output, plots and the renamed per-process reports
+are placed in `examples/voordelta/results_mpi/`; serial results in `results/`
+are not changed. Use `--launcher mpirun` for an installation that exposes only
+that launcher. Additional launcher options can be repeated, for example
+`--launcher-argument=--oversubscribe` on a machine with fewer available slots.
+
+This choice is based on the
+[published SWAN MPI/OpenMP benchmark cases](https://pmc.ncbi.nlm.nih.gov/articles/PMC7304017/)
+and the official [MPI run instructions](https://swanmodel.sourceforge.io/online_doc/swanimp/node20.html).
+As with the serial example, this demonstrates the software workflow rather
+than constituting a calibrated operational model. A small case can run more
+slowly under MPI because process start-up and communication add overhead; use a
+representative production model when measuring parallel speed-up.
+
 ## Performance benchmark
 
 The benchmark runner executes each OpenMP configuration in an isolated
