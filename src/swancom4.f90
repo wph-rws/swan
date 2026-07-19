@@ -1558,17 +1558,6 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
    AWG7 = WWAWG(7)
    AWG8 = WWAWG(8)
 
-!     *** Initialize auxiliary arrays per gridpoint ***
-
-   DO ID = MDC4MI, MDC4MA
-      DO IS = MSC4MI, MSC4MA
-         UE(IS,ID)   = 0.
-         SA1(IS,ID)  = 0.
-         SA2(IS,ID)  = 0.
-         SFNL(IS,ID) = 0.
-      ENDDO
-   ENDDO
-
 !     *** Calculate prop. constant.                           ***
 !     *** Calculate factor R(X) to calculate the NL wave-wave ***
 !     *** interaction for shallow water                       ***
@@ -1599,6 +1588,25 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
       IDCLOW = IDLOW
       IDCHGH = IDHGH
    ENDIF
+
+!     *** Zero only the array parts that are read below without being ***
+!     *** assigned first: the frequency rows below the lowest         ***
+!     *** discrete bin (IS <= 0). UE is assigned for rows 1:ISHGH     ***
+!     *** over IDLOW-IIID:IDHGH+IIID, SA1/SA2 for rows 1:ISCHG over   ***
+!     *** IDLOW:IDHGH and reads stay within those column ranges;      ***
+!     *** SFNL is assigned before it is read                          ***
+
+   DO IDDUM = IDLOW - IIID, IDHGH + IIID
+      DO IS = MSC4MI, 0
+         UE(IS,IDDUM) = 0.
+      ENDDO
+   ENDDO
+   DO ID = IDLOW, IDHGH
+      DO IS = MSC4MI, 0
+         SA1(IS,ID) = 0.
+         SA2(IS,ID) = 0.
+      ENDDO
+   ENDDO
 
 !     *** Prepare auxiliary spectrum               ***
 !     *** set action original spectrum in array UE ***
@@ -1710,11 +1718,11 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
       ENDDO
    ENDIF
 
-!     ***  Put source term together (To save space I=IS and J=ID ***
-!     ***  is used)                                              ***
+!     *** Put source term together. Keep this arithmetic stencil ***
+!     *** separate from the sign-dependent Patankar update below ***
+!     *** so the compiler can optimize both loops independently.  ***
 
    DO I = 1, ISSTOP
-      SIGPI = SPCSIG(I) * JACOBI
       DO J = IDCMIN(I), IDCMAX(I)
          ID = MOD ( J - 1 + MDC , MDC ) + 1
          SFNL(I,ID) =   - 2. * ( SA1(I,J) + SA2(I,J) )&
@@ -1726,11 +1734,16 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
          &+ AWG6 * ( SA1(I-ISM1,J+IDM ) + SA2(I-ISM1,J-IDM ) )&
          &+ AWG7 * ( SA1(I-ISM ,J+IDM1) + SA2(I-ISM ,J-IDM1) )&
          &+ AWG8 * ( SA1(I-ISM ,J+IDM ) + SA2(I-ISM ,J-IDM ) )
+      ENDDO
+   ENDDO
 
-!         *** store results in rhv ***
-!         *** store results in rhs and main diagonal according ***
-!         *** to Patankar-rules                                ***
+!     *** Store results in rhs and main diagonal according to ***
+!     *** Patankar rules.                                      ***
 
+   DO I = 1, ISSTOP
+      SIGPI = SPCSIG(I) * JACOBI
+      DO J = IDCMIN(I), IDCMAX(I)
+         ID = MOD ( J - 1 + MDC , MDC ) + 1
          IF(TESTFL) PLNL4S(ID,I,IPTST) =  SFNL(I,ID) / SIGPI
          IF (SFNL(I,ID).GT.0.) THEN
             IMATRA(ID,I) = IMATRA(ID,I) + SFNL(I,ID) / SIGPI
@@ -1741,7 +1754,6 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
             REDC1(ID,I,1)= REDC1(ID,I,1)+ SFNL(I,ID) /&
             &MAX(1.E-18,AC2(ID,I,KCGRD(1))*SIGPI)
          END IF
-
       ENDDO
    ENDDO
 

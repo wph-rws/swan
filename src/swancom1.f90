@@ -7808,7 +7808,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     ID    : Counter for directional (theta) space
 !     IS    : Counter for frequency (sigma) space
 
-                  INTEGER ID,IS
+                  INTEGER ID,IS,NLIMIT
 
 !     DAC2MX: Maximum deviation of action density AC2 between iterations
 
@@ -7820,23 +7820,31 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      DO IS=1,MSC
                         DAC2MX=ABS((PNUMS(20)*0.0081)/&
                         &(2.*SPCSIG(IS)*(KWAVE(IS,1)**3)*CGO(IS,1)))
-                        DO ID=1,MDC
-                           IF (ANYBIN(ID,IS) .AND.&
-                           &AC2(ID,IS,KCGRD(1)).GT.AC2OLD(ID,IS)+DAC2MX) THEN
-                              AC2(ID,IS,KCGRD(1))=AC2OLD(ID,IS)+DAC2MX
-                              NFLIM(KCGRD(1)) = NFLIM(KCGRD(1)) + 1
-                              ISLMIN(KCGRD(1)) = MIN(IS,ISLMIN(KCGRD(1)))
-                           END IF
-                        END DO
+                        NLIMIT=0
                         IF (QB_LOC.LT.PNUMS(28)) THEN
                            DO ID=1,MDC
-                              IF (ANYBIN(ID,IS) .AND.&
-                              &AC2(ID,IS,KCGRD(1)).LT.AC2OLD(ID,IS)-DAC2MX) THEN
-                                 AC2(ID,IS,KCGRD(1))=AC2OLD(ID,IS)-DAC2MX
-                                 NFLIM(KCGRD(1)) = NFLIM(KCGRD(1)) + 1
-                                 ISLMIN(KCGRD(1)) = MIN(IS,ISLMIN(KCGRD(1)))
+                              IF (ANYBIN(ID,IS)) THEN
+                                 IF (AC2(ID,IS,KCGRD(1)).GT.AC2OLD(ID,IS)+DAC2MX) THEN
+                                    AC2(ID,IS,KCGRD(1))=AC2OLD(ID,IS)+DAC2MX
+                                    NLIMIT=NLIMIT+1
+                                 ELSE IF (AC2(ID,IS,KCGRD(1)).LT.AC2OLD(ID,IS)-DAC2MX) THEN
+                                    AC2(ID,IS,KCGRD(1))=AC2OLD(ID,IS)-DAC2MX
+                                    NLIMIT=NLIMIT+1
+                                 END IF
                               END IF
                            END DO
+                        ELSE
+                           DO ID=1,MDC
+                              IF (ANYBIN(ID,IS) .AND.&
+                              &AC2(ID,IS,KCGRD(1)).GT.AC2OLD(ID,IS)+DAC2MX) THEN
+                                 AC2(ID,IS,KCGRD(1))=AC2OLD(ID,IS)+DAC2MX
+                                 NLIMIT=NLIMIT+1
+                              END IF
+                           END DO
+                        END IF
+                        IF (NLIMIT.GT.0) THEN
+                           NFLIM(KCGRD(1)) = NFLIM(KCGRD(1)) + NLIMIT
+                           ISLMIN(KCGRD(1)) = MIN(IS,ISLMIN(KCGRD(1)))
                         END IF
                      END DO
                   END IF

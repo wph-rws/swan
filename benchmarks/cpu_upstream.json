@@ -1,0 +1,155 @@
+{
+  "date": "2026-07-18",
+  "revisions": {
+    "current": "build van 2026-07-18",
+    "upstream": "43e9bbb"
+  },
+  "host": {
+    "cpu": "Intel(R) Core(TM) Ultra 9 185H",
+    "logical_cpus": 22,
+    "pinned_logical_cpu": 0,
+    "compiler": "GNU Fortran 13.3.0"
+  },
+  "configuration": {
+    "serial": true,
+    "openmp": false,
+    "mpi": false,
+    "swan_native": false,
+    "lto": false,
+    "environment": {
+      "OMP_NUM_THREADS": "1",
+      "OMP_DYNAMIC": "FALSE"
+    }
+  },
+  "full_cases": {
+    "regular_voordelta": {
+      "points": 18471,
+      "seconds": {
+        "upstream_O1": [43.4137971470, 44.1662986790, 43.4566215390],
+        "upstream_O3": [29.1794319650, 28.5074251880, 29.3101981400],
+        "current_O1": [41.9241631840, 41.5774706730, 40.9245817640],
+        "current_O3": [
+          23.4788356310,
+          23.5852642030,
+          23.6313434740,
+          23.1864763170,
+          23.6702777110,
+          23.2824029180,
+          23.5429384660,
+          23.2478054910
+        ],
+        "current_O3_FFTPACK": [
+          24.1032857050,
+          23.9393843300,
+          23.4262517650,
+          23.1604916780,
+          23.3313329990,
+          24.1055052190,
+          22.7329553960,
+          23.7040995120
+        ]
+      },
+      "sha256": {
+        "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+        "voordelta_hs.blk": "5be8866878be656df14de7f2527f72cf436a03ddc4f93678843bc965947e5e9c"
+      }
+    },
+    "unstructured_voordelta_500m": {
+      "vertices": 18471,
+      "triangles": 36400,
+      "seconds": {
+        "upstream_O1": [67.7107665000, 66.4149302240, 66.7821725060],
+        "upstream_O3": [43.2830535050, 42.2650523860, 42.1085376730],
+        "current_O1": [60.8135638350, 61.0600393790, 61.2580913300],
+        "current_O3": [
+          35.8250348270,
+          35.2320214620,
+          35.6338674690,
+          35.6071564030,
+          34.6602655650
+        ],
+        "current_O3_FFTPACK": [
+          35.8873257960,
+          35.2300245350,
+          34.9637523390,
+          35.3705209230,
+          34.8324514450,
+          34.5732525780
+        ]
+      },
+      "sha256": {
+        "voordelta_depth.blk": "3fff16d46d447d80145e13e33ecb06e16fe27f0a928738497ca190b5000b4d4f",
+        "voordelta_hs.blk": "f33fa60a5c2dced63c38e667373b21b3018f27982718bb7a2e779e664e6d625e"
+      }
+    }
+  },
+  "fft_kernel": {
+    "measurement": "forward/backward transform pair, plans initialized before timing",
+    "trials_per_backend_and_size": 5,
+    "sizes": {
+      "2": {
+        "repetitions": 2000000,
+        "fftw_seconds": [0.096, 0.093, 0.094, 0.100, 0.097],
+        "fftpack_seconds": [0.189, 0.171, 0.169, 0.179, 0.176]
+      },
+      "4": {
+        "repetitions": 1000000,
+        "fftw_seconds": [0.085, 0.084, 0.083, 0.084, 0.086],
+        "fftpack_seconds": [0.142, 0.143, 0.142, 0.143, 0.142]
+      },
+      "8": {
+        "repetitions": 400000,
+        "fftw_seconds": [0.132, 0.132, 0.129, 0.136, 0.133],
+        "fftpack_seconds": [0.169, 0.173, 0.179, 0.170, 0.171]
+      },
+      "16": {
+        "repetitions": 150000,
+        "fftw_seconds": [0.218, 0.210, 0.208, 0.219, 0.216],
+        "fftpack_seconds": [0.210, 0.202, 0.206, 0.212, 0.213]
+      },
+      "32": {
+        "repetitions": 40000,
+        "fftw_seconds": [0.328, 0.310, 0.303, 0.303, 0.314],
+        "fftpack_seconds": [0.270, 0.269, 0.261, 0.273, 0.253]
+      },
+      "64": {
+        "repetitions": 10000,
+        "fftw_seconds": [0.479, 0.495, 0.474, 0.467, 0.462],
+        "fftpack_seconds": [0.416, 0.421, 0.409, 0.417, 0.429]
+      },
+      "128": {
+        "repetitions": 2500,
+        "fftw_seconds": [0.638, 0.634, 0.641, 0.607, 0.594],
+        "fftpack_seconds": [0.707, 0.717, 0.708, 0.684, 0.657]
+      },
+      "256": {
+        "repetitions": 600,
+        "fftw_seconds": [0.404, 0.411, 0.420, 0.436, 0.438],
+        "fftpack_seconds": [0.832, 0.833, 0.871, 0.876, 0.870]
+      }
+    }
+  },
+  "unstructured_hotspots_200m": {
+    "vertices": 114426,
+    "vertex_sort": {
+      "former_seconds": 22.089663,
+      "current_seconds": 0.050149,
+      "speedup": 440.482,
+      "identical_order": true
+    },
+    "nearest_vertex": {
+      "queries": 343278,
+      "former_seconds": 39.055878,
+      "current_seconds": 0.016619,
+      "speedup": 2350.053,
+      "mismatches": 0,
+      "same_count_reset_mismatches": 0
+    }
+  },
+  "validation": {
+    "depth_and_wave_height_outputs_byte_identical": true,
+    "site_table_numerical_data_identical": true,
+    "site_table_difference": "one additional space in an upstream header line",
+    "fftw_compat_test": "passed"
+  }
+}
