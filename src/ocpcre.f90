@@ -1,5 +1,6 @@
 module swan_input_parser
    use swan_kinds, only: swan_double
+   use swan_io_context, only: io_context_t
    implicit none
    private
 
@@ -19,6 +20,12 @@ module swan_input_parser
       integer :: LENCST = 0
       real(swan_double) :: ELREAL = 0.0_swan_double
       logical :: CHGVAL = .false.
+      ! Optional owned input stream. When io_bound is .true. the reader reads
+      ! command lines from io%INPUTF instead of the shared OCPCOMM4 INPUTF, so
+      ! two readers can consume two different input files. This is
+      ! configuration, not parse state, so reset() leaves it untouched.
+      type(io_context_t) :: io
+      logical :: io_bound = .false.
    contains
       procedure :: reset => reset_command_reader
    end type command_reader_t
@@ -306,7 +313,7 @@ SUBROUTINE NWLINE_CTX (STATE)
    STATE%ELTYPE='USED'
    END DO
    IF (STATE%ELTYPE.EQ.'EOF' .AND. ITEST.GE.10) THEN
-      INQUIRE (UNIT=INPUTF, NAME=FILENM)
+      INQUIRE (UNIT=MERGE(STATE%io%INPUTF, INPUTF, STATE%io_bound), NAME=FILENM)
       WRITE (PRINTF, *) ' end of input file '//FILENM
    ENDIF
 end subroutine NWLINE_CTX
@@ -2077,6 +2084,7 @@ SUBROUTINE GETKAR_CTX (STATE)
 
    INTEGER, SAVE :: IENT = 0
    INTEGER   IO_STATUS
+   INTEGER   IUNIT
 
 !  8. SUBROUTINE USED
 !
@@ -2092,7 +2100,9 @@ SUBROUTINE GETKAR_CTX (STATE)
 
    CALL STRACE (IENT, 'GETKAR')
    IF (STATE%KARNR.EQ.0) THEN
-      READ (INPUTF, "(A)", IOSTAT=IO_STATUS) STATE%KAART
+      IUNIT = INPUTF
+      IF (STATE%io_bound) IUNIT = STATE%io%INPUTF
+      READ (IUNIT, "(A)", IOSTAT=IO_STATUS) STATE%KAART
       IF (IO_STATUS /= 0) THEN
          STATE%ELTYPE = 'EOF'
          STATE%KAR = '@'

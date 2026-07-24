@@ -257,7 +257,7 @@ end subroutine REPARM
 !                                                                *
 !*****************************************************************
 !                                                                *
-SUBROUTINE STRACE (IENT, SUBNAM)
+SUBROUTINE STRACE (IENT, SUBNAM, DIAG, IO)
 !                                                                *
 !*****************************************************************
 
@@ -265,6 +265,7 @@ SUBROUTINE STRACE (IENT, SUBNAM)
    USE OCPCOMM3
    USE OCPCOMM4
    USE M_PARALL
+   USE swan_io_context, ONLY: diagnostics_context_t, io_context_t
 
    IMPLICIT NONE
 
@@ -328,11 +329,21 @@ SUBROUTINE STRACE (IENT, SUBNAM)
 
    CHARACTER(LEN=*), INTENT(IN) :: SUBNAM
 
+!     DIAG   :  inp    optional trace context; supplies ITRACE instead of the
+!                      OCPCOMM4 global when present.
+!     IO     :  inp    optional stream context; supplies the trace output units
+!                      instead of the OCPCOMM4 globals when present.
+
+   TYPE(diagnostics_context_t), OPTIONAL, INTENT(IN) :: DIAG
+   TYPE(io_context_t), OPTIONAL, INTENT(IN) :: IO
+
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
 !
 !$ LOGICAL,EXTERNAL :: OMP_IN_PARALLEL
+
+   INTEGER :: CUR_ITRACE, CUR_PRTEST, CUR_SCREEN, CUR_PRINTF
 !
 !  8. SUBROUTINE USED
 !
@@ -346,26 +357,37 @@ SUBROUTINE STRACE (IENT, SUBNAM)
 !
 ! 13. SOURCE TEXT
 
-   IF (ITRACE.EQ.0) RETURN
-   IF (IENT.GT.ITRACE) RETURN
+   CUR_ITRACE = ITRACE
+   CUR_PRTEST = PRTEST
+   CUR_SCREEN = SCREEN
+   CUR_PRINTF = PRINTF
+   IF (PRESENT(DIAG)) CUR_ITRACE = DIAG%ITRACE
+   IF (PRESENT(IO)) THEN
+      CUR_PRTEST = IO%PRTEST
+      CUR_SCREEN = IO%SCREEN
+      CUR_PRINTF = IO%PRINTF
+   END IF
+
+   IF (CUR_ITRACE.EQ.0) RETURN
+   IF (IENT.GT.CUR_ITRACE) RETURN
 !$ IF (OMP_IN_PARALLEL()) THEN
 !$OMP MASTER
 !$    IENT=IENT+1
-!$    WRITE (PRTEST, "(' ++ trace subr: ',A)") SUBNAM
-!$    IF (SCREEN.NE.PRINTF) WRITE (SCREEN, "(' ++ trace subr: ',A)") SUBNAM
+!$    WRITE (CUR_PRTEST, "(' ++ trace subr: ',A)") SUBNAM
+!$    IF (CUR_SCREEN.NE.CUR_PRINTF) WRITE (CUR_SCREEN, "(' ++ trace subr: ',A)") SUBNAM
 !$OMP END MASTER
 !$ ELSE
       IENT=IENT+1
-      WRITE (PRTEST, "(' ++ trace subr: ',A)") SUBNAM
-      IF ( SCREEN.NE.PRINTF .AND. IAMMASTER )&
-      &WRITE (SCREEN, "(' ++ trace subr: ',A)") SUBNAM
+      WRITE (CUR_PRTEST, "(' ++ trace subr: ',A)") SUBNAM
+      IF ( CUR_SCREEN.NE.CUR_PRINTF .AND. IAMMASTER )&
+      &WRITE (CUR_SCREEN, "(' ++ trace subr: ',A)") SUBNAM
 !$ ENDIF
    RETURN
 !  *  END OF SUBR. STRACE  *
 end subroutine STRACE
 !*****************************************************************
 !                                                                *
-SUBROUTINE MSGERR (LEV,STRING)
+SUBROUTINE MSGERR (LEV,STRING,DIAG,IO)
 !                                                                *
 !*****************************************************************
 
@@ -373,6 +395,7 @@ SUBROUTINE MSGERR (LEV,STRING)
    USE OCPCOMM3
    USE OCPCOMM4
    USE M_PARALL
+   USE swan_io_context, ONLY: diagnostics_context_t, io_context_t
 
    IMPLICIT NONE
 
@@ -438,6 +461,15 @@ SUBROUTINE MSGERR (LEV,STRING)
 
    CHARACTER(LEN=*), INTENT(IN) :: STRING
 
+!     DIAG   : optional error context; when present its LEVERR is raised and its
+!              MAXERR sets the terminating-error threshold, instead of the
+!              OCPCOMM4 globals.
+!     IO     : optional stream context; when present the message echo goes to
+!              its PRINTF instead of the global.
+
+   TYPE(diagnostics_context_t), OPTIONAL, INTENT(INOUT) :: DIAG
+   TYPE(io_context_t), OPTIONAL, INTENT(IN) :: IO
+
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
@@ -448,6 +480,7 @@ SUBROUTINE MSGERR (LEV,STRING)
 
    INTEGER, SAVE :: IERR=0, IERRF=0
    INTEGER ILPOS
+   INTEGER CUR_MAXERR, CUR_PRINTF
 
 !     ERRM   : error message prefix
 
@@ -472,7 +505,15 @@ SUBROUTINE MSGERR (LEV,STRING)
 ! 13. SOURCE TEXT
 
 
-   IF (LEV.GT.LEVERR) LEVERR=LEV
+   IF (PRESENT(DIAG)) THEN
+      IF (LEV.GT.DIAG%LEVERR) DIAG%LEVERR=LEV
+      CUR_MAXERR = DIAG%MAXERR
+   ELSE
+      IF (LEV.GT.LEVERR) LEVERR=LEV
+      CUR_MAXERR = MAXERR
+   END IF
+   CUR_PRINTF = PRINTF
+   IF (PRESENT(IO)) CUR_PRINTF = IO%PRINTF
    IF (LEV.EQ.0) THEN
       ERRM = 'Message          '
    ELSE IF (LEV.EQ.1) THEN
@@ -484,8 +525,8 @@ SUBROUTINE MSGERR (LEV,STRING)
    ELSE
       ERRM = 'Terminating error'
    ENDIF
-   WRITE (PRINTF,"(' ** ', A, ': ',A)") ERRM, STRING
-   IF (LEV.GT.MAXERR) THEN
+   WRITE (CUR_PRINTF,"(' ** ', A, ': ',A)") ERRM, STRING
+   IF (LEV.GT.CUR_MAXERR) THEN
       IF (IERRF.EQ.0) THEN
          IF (IERR.NE.0) RETURN
 
@@ -509,14 +550,20 @@ end subroutine MSGERR
 
 !*****************************************************************
 !                                                                *
-LOGICAL FUNCTION STPNOW()
+LOGICAL FUNCTION STPNOW(DIAG)
    USE swan_service_interfaces, ONLY: STRACE
+   USE swan_io_context, ONLY: diagnostics_context_t
 !                                                                *
 !*****************************************************************
 
    USE OCPCOMM4
 
    IMPLICIT NONE
+
+!     DIAG : optional error/trace context. When present its error status is
+!            used instead of the OCPCOMM4 globals, so an isolated run can be
+!            asked whether it must stop without consulting the shared state.
+   TYPE(diagnostics_context_t), OPTIONAL, INTENT(IN) :: DIAG
 
 
 !   --|-----------------------------------------------------------|--
@@ -575,6 +622,7 @@ LOGICAL FUNCTION STPNOW()
 !     IENT  : Number of entries into this subroutine
 
    INTEGER, SAVE :: IENT = 0
+   INTEGER :: CUR_LEVERR, CUR_MAXERR
 
 !  8. SUBROUTINE USED
 !
@@ -592,12 +640,20 @@ LOGICAL FUNCTION STPNOW()
 
    CALL  STRACE (IENT,'STPNOW')
 
-   IF (LEVERR .GE. 4) THEN
+   IF (PRESENT(DIAG)) THEN
+      CUR_LEVERR = DIAG%LEVERR
+      CUR_MAXERR = DIAG%MAXERR
+   ELSE
+      CUR_LEVERR = LEVERR
+      CUR_MAXERR = MAXERR
+   END IF
+
+   IF (CUR_LEVERR .GE. 4) THEN
       STPNOW = .TRUE.
    ELSE
       STPNOW = .FALSE.
    END IF
-   IF (MAXERR.EQ.-1) STPNOW = .FALSE.
+   IF (CUR_MAXERR.EQ.-1) STPNOW = .FALSE.
 !$ IF (OMP_IN_PARALLEL()) STPNOW = .FALSE.
 
    RETURN
