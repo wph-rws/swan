@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -18,7 +19,6 @@ MODEL_OUTPUTS = (
     "voordelta_sites.tbl",
 )
 RUN_OUTPUTS = (*MODEL_OUTPUTS, "norm_end", "swaninit")
-FIGURE_NAMES = ("voordelta_depth.png", "voordelta_hs.png")
 
 
 def find_executable(case_directory: Path, requested: str | None) -> Path:
@@ -54,18 +54,11 @@ def find_launcher(requested: str) -> Path:
 
 
 def clean_results(results_directory: Path) -> None:
-    names = (
-        *RUN_OUTPUTS,
-        *FIGURE_NAMES,
-        "voordelta_mpi.prt",
-        "voordelta_mpi.erf",
-    )
-    for name in names:
-        (results_directory / name).unlink(missing_ok=True)
-    for pattern in ("voordelta_mpi.prt-*", "voordelta_mpi.erf-*"):
-        for path in results_directory.glob(pattern):
-            if path.is_file() or path.is_symlink():
-                path.unlink()
+    for path in results_directory.iterdir():
+        if path.is_dir() and not path.is_symlink():
+            shutil.rmtree(path)
+        else:
+            path.unlink()
 
 
 def preserve_run(work_directory: Path, results_directory: Path) -> int:
@@ -121,7 +114,14 @@ def run(
             *launcher_arguments,
             str(executable),
         ]
-        result = subprocess.run(command, cwd=work_directory, check=False)
+        environment = os.environ.copy()
+        environment["OMP_NUM_THREADS"] = "1"
+        result = subprocess.run(
+            command,
+            cwd=work_directory,
+            env=environment,
+            check=False,
+        )
         report_count = preserve_run(work_directory, results_directory)
 
     elapsed = time.monotonic() - started

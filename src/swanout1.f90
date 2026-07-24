@@ -14,7 +14,7 @@
 !
 !     main output routine and computation of output quantities
 !
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWOUTP (AC2             ,&
 &SPCSIG          ,SPCDIR  ,&
@@ -22,7 +22,7 @@ SUBROUTINE SWOUTP (AC2             ,&
 &KGRPNT          ,XCGRID  ,&
 &YCGRID          ,OURQT   )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE TIMECOMM
    USE OCPCOMM4
@@ -49,7 +49,7 @@ SUBROUTINE SWOUTP (AC2             ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -60,7 +60,7 @@ SUBROUTINE SWOUTP (AC2             ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -86,24 +86,24 @@ SUBROUTINE SWOUTP (AC2             ,&
 !
 !     10.10, Aug. 94: computation of force is added (subr. SWOEXF)
 !                     arrays NE and NED added
-!     30.72, Oct. 97: changed floating point comparison to avoid equalit
+!     30.72, Oct. 97: changed floating point comparison to avoid equality
 !                     comparisons
 !     30.74, Nov. 97: Prepared for version with INCLUDE statements
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.00, June 98: argument KGRBND added, call SWPLOT and SWOEXC
 !                     modified
 !     30.90, Oct. 98: Introduced EQUIVALENCE POOL-arrays
 !     30.82, Oct. 98: Updated description of several variables
-!     30.81, Jan. 99: Replaced variable STATUS by IERR (because STATUS i
+!     30.81, Jan. 99: Replaced variable STATUS by IERR (because STATUS is a
 !                     reserved word)
 !     40.00, Jan. 99: argument RTYPE added in call SWODDC
 !     34.01, Feb. 99: Introducing STPNOW
 !     40.02, Oct. 00: Made TYPE of several equivalenced arrays correct
-!     40.02, Oct. 00: Modified argument list of SWPLOT to avoid int/real
-!     40.13, Oct. 01: Forces always computed by post-processing procedur
+!     40.02, Oct. 00: Modified argument list of SWPLOT to avoid int/real conflict
+!     40.13, Oct. 01: Forces always computed by post-processing procedure
 !     40.30, Jan. 03: introduction distributed-memory approach using MPI
 !     40.31, Nov. 03: removing POOL construction and HPGL-functionality
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.51, Feb. 05: optimization output process in parallel mode
 !     40.80, Feb. 08: computation of wave-induced force on unstructured
 !     40.86, Feb. 08: arguments added to calls of subroutines
@@ -130,7 +130,7 @@ SUBROUTINE SWOUTP (AC2             ,&
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 ! i   XCGRID: Coordinates of computational grid in x-direction
 ! i   YCGRID: Coordinates of computational grid in y-direction
 
@@ -170,17 +170,17 @@ SUBROUTINE SWOUTP (AC2             ,&
 !     Data:
 !
 !     output requests are encoded in array OUTREQ; these are set by
-!     commands TABLE, BLOCK, SPEC, etc. (see subr SWREOQ in file SWANPRE
+!     commands TABLE, BLOCK, SPEC, etc. (see subr SWREOQ in file SWANPRE2)
 !     each output request refers to one set of output locations,
 !     and to one or more output quantities.
-!     1st value in OUTREQ: time of next output, 2nd value: interval betw
-!     outputs, 3d value: type of output request RTYPE (encoded as intege
+!     1st value in OUTREQ: time of next output, 2nd value: interval between
+!     outputs, 3d value: type of output request RTYPE (encoded as integer),
 !     4&5: PSNAME (name of point set),
 !     6: file unit number, 7..10: output filename,
 !     other: dependent on type of output.
 !
 !     data on output locations are in array OUTDA; these are set by
-!     commands FRAME, POINTS, CURVE etc. (see subr SWREPS in file SWANPR
+!     commands FRAME, POINTS, CURVE etc. (see subr SWREPS in file SWANPRE2)
 !     each set is characterized by its name (SNAME in the code)
 !     STYPE is the type of set (i.e. 'F' for Frame etc.)
 !
@@ -194,12 +194,12 @@ SUBROUTINE SWOUTP (AC2             ,&
 !
 !     Procedure:
 !
-!     After the coordinates of all output locations have been determined
+!     After the coordinates of all output locations have been determined,
 !     values of all output quantities are calculated, and written into
-!     2d array VOQ (one or two columns for each output quantity, one lin
+!     2d array VOQ (one or two columns for each output quantity, one line
 !     for each location). array VOQR shows with quantity is written in
 !     each column.
-!     After array VOQ is filled, the actual output starts; which subrout
+!     After array VOQ is filled, the actual output starts; which subroutine
 !     is called depends on RTYPE (see structure scheme below).
 !
 ! 12. Structure
@@ -324,7 +324,7 @@ SUBROUTINE SWOUTP (AC2             ,&
       IF (ITEST.GE.80 .OR. IOUTES .GE. 10)&
       &WRITE (PRTEST, "(' Test SWOUTP ', 2I6, 2X, A4, 2X, A16)") IRQ, NVOQP, RTYPE, SNAME
 
-!       call SWODDC to analyse output data; results: STYPE (type of outp
+!       call SWODDC to analyse output data; results: STYPE (type of output
 !       point set), MIP (number of output locations) etc.
 
       STYPE = CUOPS%PSTYPE
@@ -339,7 +339,7 @@ SUBROUTINE SWOUTP (AC2             ,&
       VOQ = 0.
 
 !       assign memory to array CROSS (indicates crossing of obstacles
-!                                     in between output and grid points)
+!                                     in between output and grid points)  40.86
       ALLOCATE(CROSS(4,MIP))
       CROSS = .FALSE.
 
@@ -352,7 +352,7 @@ SUBROUTINE SWOUTP (AC2             ,&
          IONOD = -999
       ENDIF
 
-!       call SWOEXC to calculate quantities dependent only on coordinate
+!       call SWOEXC to calculate quantities dependent only on coordinates
 
       CALL SWOEXC (STYPE               ,&
       &CUOPS%OPI           ,CUOPS%OPR           ,&
@@ -388,7 +388,7 @@ SUBROUTINE SWOUTP (AC2             ,&
 
       IF (BKC .GT. 0) THEN
 
-!         assign memory to array ACLOC (contains spectrum for one output
+!         assign memory to array ACLOC (contains spectrum for one output point)
 
          ALLOCATE(ACLOC(MDC*MSC))
 
@@ -521,13 +521,13 @@ WRITE (PRINTF, "(' Error in output request ', 2I6, 2X, A4, 2X, A16, I6)") IRQ, N
 RETURN
 end subroutine SWOUTP
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
 &OQPROC, BKC,&
 &VOQR, OURQT, LOGACT)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE TIMECOMM
 !NCF   USE OCPCOMM2
@@ -554,7 +554,7 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -565,7 +565,7 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -588,7 +588,7 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
 !                     is a reserved word)
 !     40.30, May  03: introduction distributed-memory approach using MPI
 !     40.31, Nov. 03: removing HPGL-functionality
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     41.62, Nov. 15: included fields required for partitioning output
 !
 !  2. Purpose
@@ -681,7 +681,7 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
    IF (NSTATM.EQ.1) THEN
 !       check time of output action:
 !       DIF  in case that timco is not a fraction of the
-!       computational period and the user do not ask for a periodic plot
+!       computational period and the user do not ask for a periodic plots
       DIF = TFINC - TIMCO
       IF (OUTR(1).LT.TINIC) THEN
          TNEXT = TINIC
@@ -879,13 +879,13 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
    RETURN
 !*    end of subroutine SWORDC   **
 end subroutine SWORDC
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK,&
 &XNLEN, YNLEN, MXN, MYN, XPCN, YPCN, ALPCN,&
 &XCGRID,YCGRID,RTYPE)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM3
    USE OCPCOMM4
@@ -908,7 +908,7 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -919,7 +919,7 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -932,14 +932,14 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK,&
 !  1. Updates
 !
 !            Oct. 95: New subroutine
-!     30.72, Sept 97: Replaced DO-block with one CONTINUE to DO-block wi
+!     30.72, Sept 97: Replaced DO-block with one CONTINUE to DO-block with
 !                     two CONTINUE's
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.00, Jan. 99: argument RTYPE added, computation of ALCQ changed
 !                     output type (indicated by RTYPE) is PLOT
 !     40.22, Sep. 01: small corrections
 !     40.31, Nov. 03: removing HPGL-functionality
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -959,15 +959,15 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK,&
 !  PSNAME      Char   input   name of output point set referred to
 !  PSTYPE      Char   input   type of output point set
 !  MIP         Int    outp    number of output points
-!  MXK         Int    outp    number of output points in X-direction (Fr
-!  MYK         Int    outp    number of output points in Y-direction (Fr
+!  MXK         Int    outp    number of output points in X-direction (Frame)
+!  MYK         Int    outp    number of output points in Y-direction (Frame)
 !  XNLEN,YNLEN real   outp    (X,Y)lenght of the nested grid
 !  MXN, MYN    int    outp    number of meshes in X, Y direction for
 !                             the nested grid
 !  XPCN, YPCN  real   outp    location of the origin of the nested grid
 !  ALPCN       real   outp    angle of the nested grid with the positive
 !                             x-axis, counterclockwise measured
-!  RTYPE       char   input   indicates type of output; "PLOT" means tha
+!  RTYPE       char   input   indicates type of output; "PLOT" means that
 !                             a spatial plot is made
    CHARACTER(LEN=*) :: RTYPE
    INTEGER OPI(2)
@@ -983,7 +983,7 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK,&
 !
 !       If the point set is not of a known type an error message
 !       is printed and control returns to subroutine SWOUTP
-!       If the point set is not of the type frame or ngrid an error mess
+!       If the point set is not of the type frame or ngrid an error message
 !       is printed and control returns to subroutine SWOUTP
 !
 !  8. REMARKS
@@ -1011,7 +1011,7 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK,&
    ALPQ  = 0.
    COSPQ = 1.
    SINPQ = 0.
-!     ALCQ  = ALPC           removed 30.50: U and V now in user coordina
+!     ALCQ  = ALPC           removed 30.50: U and V now in user coordinates
    ALCQ  = 0.
    COSCQ = COS(ALCQ)
    SINCQ = SIN(ALCQ)
@@ -1135,7 +1135,7 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK,&
    RETURN
 !*    end of subroutine SWODDC   **
 end subroutine SWODDC
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   ,&
 &X         ,Y          ,&
@@ -1145,7 +1145,7 @@ SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   ,&
 &XCGRID    ,YCGRID     ,&
 &CROSS                 )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM3
    USE OCPCOMM4
@@ -1170,7 +1170,7 @@ SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1181,7 +1181,7 @@ SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1198,18 +1198,18 @@ SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   ,&
 !  1. Update
 !
 !     30.72, Sept 97: placed a missing comma in FORMAT statement
-!     30.72, Sept 97: Replaced DO-block with one CONTINUE to DO-block wi
+!     30.72, Sept 97: Replaced DO-block with one CONTINUE to DO-block with
 !                     two CONTINUE's
 !     32.02, Feb. 98: Introduced 1D version
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.00, June 98: argument KGRBND added, call CVMESH modified
 !     40.02, Oct. 00: Gave KGRBND array dimension
 !     40.13, Aug. 01: repeating grid (KREPTX>0) XC modified
 !                     swcomm4.inc reactivated
 !     40.30, Apr. 03: introduction distributed-memory approach using MPI
 !     40.31, Dec. 03: removing POOL mechanism
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
-!     40.86, Feb. 08: modifications to prevent interpolation over obstac
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!     40.86, Feb. 08: modifications to prevent interpolation over obstacles
 !                     arguments added to list
 !
 !  2. Purpose
@@ -1449,14 +1449,14 @@ SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   ,&
 
    RETURN
 end subroutine SWOEXC
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA ,&
 &KGRPNT, FORCE, CROSS, IONOD&
 &,IRQ&
 &)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM1
@@ -1487,7 +1487,7 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1498,7 +1498,7 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1518,7 +1518,7 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA ,&
 !  1. Updates
 !
 !     10.07, July 94, error in current velocity repaired, wind velocity
-!     30.72, Oct. 97: logical function EQREAL introduced for floating po
+!     30.72, Oct. 97: logical function EQREAL introduced for floating point
 !                     comparisons
 !     32.02, Feb. 98: Introduced 1D version
 !     31.02, Sep. 97: computation of Setup, and computation of Force
@@ -1529,13 +1529,13 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA ,&
 !     40.13, Oct. 01: Forces always computed by SWOEXF
 !     40.21, Nov. 01: diffraction parameter added
 !     40.41, Aug. 04: friction coefficient added
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.51, Feb. 05: bottom wave period added
 !     40.51, Sep. 05: water level and bottom level added
 !     40.61, Sep. 06: separate dissipation coefficients added
 !     40.80, Sep. 07: extension to unstructured grids
 !     40.86, Feb. 08: interpolation near obstacles modified,
-!                     points on the other side of the obstacle not taken
+!                     points on the other side of the obstacle not taken into account
 !                     calls of SWIPOL changed
 !     41.12, Apr. 10: output quantity NPL (type nr 70) added
 !     41.75, Jan. 19: adding sea ice
@@ -2922,12 +2922,12 @@ IF (OQPROC(9)) THEN
 
    RETURN
 end subroutine SWOEXD
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWIPOL (FINP, EXCVAL, XC, YC, MIP, CROSS, FOUTP,&
 &KGRPNT, DEP2)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM3
@@ -2947,7 +2947,7 @@ SUBROUTINE SWIPOL (FINP, EXCVAL, XC, YC, MIP, CROSS, FOUTP,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2958,7 +2958,7 @@ SUBROUTINE SWIPOL (FINP, EXCVAL, XC, YC, MIP, CROSS, FOUTP,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2974,12 +2974,12 @@ SUBROUTINE SWIPOL (FINP, EXCVAL, XC, YC, MIP, CROSS, FOUTP,&
 !                     margin around comp. grid introduced
 !     40.13, Aug. 01: provision for repeating grid
 !                     swcomm4.inc reactivated
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.86, Feb. 08: interpolation over an obstacle prevented
 !
 !  2. PURPOSE
 !
-!       Interpolate the function FINP to the point given by computationa
+!       Interpolate the function FINP to the point given by computational
 !       grid coordinates XC and YC; result appears in array FOUTP
 !
 !  3. METHOD
@@ -3019,12 +3019,12 @@ SUBROUTINE SWIPOL (FINP, EXCVAL, XC, YC, MIP, CROSS, FOUTP,&
 !
 !       FINP    real a input    array of function values defined on the
 !                               computational grid
-!       EXCVAL  real   input    exception value (assigned if point is ou
+!       EXCVAL  real   input    exception value (assigned if point is outside
 !                               computational grid)
-!       XC, YC  real a input    array containing computational grid coor
+!       XC, YC  real a input    array containing computational grid coordinates
 !                               of output points
 !       MIP     INT    input    number of output points
-!       FOUTP   real a output   array of interpolated values for the out
+!       FOUTP   real a output   array of interpolated values for the output
 !                               points
 !
 !  5. SUBROUTINES CALLING
@@ -3173,7 +3173,7 @@ SUBROUTINE SWIPOL (FINP, EXCVAL, XC, YC, MIP, CROSS, FOUTP,&
    RETURN
 ! * end of subroutine SWIPOL *
 end subroutine SWIPOL
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
 &MIP        ,XC         ,&
@@ -3185,7 +3185,7 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
 &NED        ,KGRPNT     ,&
 &DEPXY      ,CROSS      )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM1
@@ -3211,7 +3211,7 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3222,7 +3222,7 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -3247,26 +3247,26 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
 !     10.09, Aug. 94: relative and absolute period distinguished
 !                     NVOTP increased and type 28 added
 !     10.10, Aug. 94: arrays ECOS, ESIN, NE and NED added to arg. list
-!     10.22, Sep. 94: condition for tail changed from MSC.GE.3 to MSC.GT
+!     10.22, Sep. 94: condition for tail changed from MSC.GE.3 to MSC.GT.3
 !     20.59, Sep. 95: average wave number can be determined with
 !                     other powers of k (i.e. OUTPAR(3))
 !     20.61, Sep. 95: Tm02 and FWID added; computation of average period
 !                     also changed
-!     30.72, Oct. 97: logical function EQREAL introduced for floating po
+!     30.72, Oct. 97: logical function EQREAL introduced for floating point
 !                     comparisons
 !     32.01, Jan. 98: Nautical convention introduced (project h3268)
 !     30.70, Feb. 98: ALCQ ignored if nautical direction is requested
 !                     computation of kappa corrected (power of Sigma)
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.82, Oct. 98: Updated description of several variables
 !     30.81, Dec. 98: Argument list KSCIP1 adjusted
 !     40.13, Aug. 01: provision for repeating grid (KREPTX>0)
 !     40.30, May  03: introduction distributed-memory approach using MPI
 !     40.41, Sep. 04: added Tm-10 and RTm-10
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.51, Feb. 06: added Tp based on parabolic fitting
 !     40.80, Sep. 07: extension to unstructured grids
-!     40.86, Feb. 08: modification to prevent interpolation over an obst
+!     40.86, Feb. 08: modification to prevent interpolation over an obstacle
 !     40.87, Apr. 08: integration over [fmin,fmax] added
 !     41.62, Nov. 15: included interface for computing wave partitions
 !     41.72, Nov. 19: accommodate option for number of swells in output
@@ -3290,7 +3290,7 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
@@ -3309,7 +3309,7 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
 !
 !     Local Variables
 !
-!     IVOTP   type indicators of output quantities processed by this sub
+!     IVOTP   type indicators of output quantities processed by this subr.
 !             used for assignment of exception values
 !
 !  8. Subroutines used
@@ -3392,7 +3392,7 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
    INTEGER    NOSWLL
    CALL STRACE (IENT, 'SWOEXA')
 
-!     in case of transport of energy, compute the energy flux in all gri
+!     in case of transport of energy, compute the energy flux in all grid points
 !     (energy flux will then be interpolated at output points!)
 
    IF (OQPROC(15).OR.OQPROC(19)) THEN
@@ -3407,7 +3407,7 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
       ENDDO
    ENDIF
 
-!     in case of surfbeat, allocate help array for interpolation of boun
+!     in case of surfbeat, allocate help array for interpolation of bound infragravity energy
 
    IF(OQPROC(81).AND..NOT.ALLOCATED(EBLOC)) ALLOCATE(EBLOC(MDC,ntf))
 
@@ -3549,7 +3549,7 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
          ENDIF
       ENDIF
 
-!       average relative period                              modified 10
+!       average relative period                              modified 10.09
 
       IVTYPE = 28
       IF (OQPROC(IVTYPE)) THEN
@@ -3647,7 +3647,7 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
          ENDIF
       ENDIF
 
-!       average relative period                              modified 10
+!       average relative period                              modified 10.09
 
       IVTYPE = 43
       IF (OQPROC(IVTYPE)) THEN
@@ -4827,7 +4827,7 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
          IF (NP.GT.0) THEN
             IF (OQPROC(171)) VOQ(IP,VOQR(171)) = NINT(REAL(NP))
             IF (OQPROC(100)) THEN
-!              XPT(:,0) are values for the total wave field, not require
+!              XPT(:,0) are values for the total wave field, not required 41.62
                ! wind sea partition
                IF ( (XPT(6,1).GE.WSCUT).AND.(XPT(1,1).GE.0.) ) THEN
                   VOQ(IP,VOQR(100)) = XPT(1,1)
@@ -4936,11 +4936,11 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
    RETURN
 !     end of subroutine SWOEXA
 end subroutine SWOEXA
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWOINA (XC, YC, AC2, ACLOC, KGRPNT, DEPXY, CROSS,EXCPT)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM3
@@ -4960,7 +4960,7 @@ SUBROUTINE SWOINA (XC, YC, AC2, ACLOC, KGRPNT, DEPXY, CROSS,EXCPT)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4971,7 +4971,7 @@ SUBROUTINE SWOINA (XC, YC, AC2, ACLOC, KGRPNT, DEPXY, CROSS,EXCPT)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -4986,11 +4986,11 @@ SUBROUTINE SWOINA (XC, YC, AC2, ACLOC, KGRPNT, DEPXY, CROSS,EXCPT)
 !     10.10, Aug. 94: separated from subr. SWOEXA
 !     30.50,        : If depth on one of the corners is negative value 0
 !                     is returned
-!     30.72, Sept 97: Replaced DO-block with one CONTINUE to DO-block wi
+!     30.72, Sept 97: Replaced DO-block with one CONTINUE to DO-block with
 !                     two CONTINUE's
 !     40.13, Aug. 01: provision for repeating grid (KREPTX>0)
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
-!     40.86, Feb. 08: modification to prevent interpolation over an obst
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!     40.86, Feb. 08: modification to prevent interpolation over an obstacle
 !
 !  2. Purpose
 !
@@ -5142,7 +5142,7 @@ RETURN
 !     end of subroutine SWOINA
 end subroutine SWOINA
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
 &VOQ      ,AC2      ,DEP2     ,SPCSIG   ,&
@@ -5151,7 +5151,7 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
 &HS       ,IONOD&
 &)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM1
@@ -5177,7 +5177,7 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5188,7 +5188,7 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5202,12 +5202,12 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
 !
 !  1. Updates
 !
-!     30.55, Mar. 97: Procedure updated for curvilinear coordinates basi
-!                     described in SWANDOC.WP5 comp. grid point coordina
+!     30.55, Mar. 97: Procedure updated for curvilinear coordinates basics is
+!                     described in SWANDOC.WP5 comp. grid point coordinates are
 !                     new arguments
-!     30.72, Oct. 97: Logical function EQREAL introduced for floating po
+!     30.72, Oct. 97: Logical function EQREAL introduced for floating point
 !                     comparisons
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.80, Apr. 98: Provision for 1D computation
 !     30.82, Oct. 98: Updated description of several variables
 !     30.81, Dec. 98: Argument list KSCIP1 adjusted
@@ -5217,7 +5217,7 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
 !                     spherical coordinates taken into account
 !                     swcomm2.inc reactivated
 !     40.31, Jan. 04: adapted for parallelisation with MPI
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -5310,7 +5310,7 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
 !     DEP          depth
 !     DEPLOC       local depth
 !     FX, FY       (preliminary) forces in X-, and Y-direction
-!     FXADD, FYADD Cumulated forces/(RHO*GRAV) per frequency and directi
+!     FXADD, FYADD Cumulated forces/(RHO*GRAV) per frequency and directi-
 !                  onal step in X-, and Y-direction
 !     ID           counter for steps in direction
 !     IENT         number of entries
@@ -5323,10 +5323,10 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
 !     IS           counter for sigma
 !     IVTYPE
 !     JX           counter in X-direction
-!     JXLO, JXUP   lower resp. upper gridpoint number of point under con
+!     JXLO, JXUP   lower resp. upper gridpoint number of point under consideration
 !                  in X-direction
 !     JY           counter in Y-direction
-!     JYLO, JYUP   lower resp. upper gridpoint number of point under con
+!     JYLO, JYUP   lower resp. upper gridpoint number of point under consideration
 !                  in Y-direction
 !     NAX, NAY     derivative of N * Ac.dens. = N * E / Sigma, w.r.t. X
 !                  or Y, respectively.
@@ -5335,9 +5335,9 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
 !     RRDI,RRDJ    multiplication factor: 0.5 in case of two-sided or 1
 !                  of one-sided differential
 !     SIG          dummy variable
-!     SXLO, SXUP   weight coefficients for the lower and upper x-level o
+!     SXLO, SXUP   weight coefficients for the lower and upper x-level of the
 !                  point under consideration, respectively.
-!     SYLO, SYUP   weight coefficients for the lower and upper y-level o
+!     SYLO, SYUP   weight coefficients for the lower and upper y-level of the
 !                  point under consideration, respectively.
 
    REAL        ACWAV, ACWI, ACWJ, ACWX, ACWY, DDET, DDI, DDJ, DDX,&
@@ -5385,14 +5385,14 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
 !
 !  Counter: 1          2          JX        JX+1      JX+2       MXC-1
 !
-!         |=|----------|-- -- -- -|--------|=|=|--------|-- -- -- -|----
+!         |=|----------|-- -- -- -|--------|=|=|--------|-- -- -- -|----------|=|
 !
 !  XC:      0          1                     JX                  MXC-2
 !
 !
 !     -Order in which they are treated:
 !
-!         |=|----------|          |--------|=|=|--------|          |----
+!         |=|----------|          |--------|=|=|--------|          |----------|=|
 ! Order:         A                     B     C      D
 !
 !
@@ -5583,7 +5583,7 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
          DYJ = DYJ * LENDEG
       ENDIF
 
-!       coefficients from transformation from (i,j)-gradients to (x,y)-g
+!       coefficients from transformation from (i,j)-gradients to (x,y)-gradients
 
       IF (JXUP.EQ.JXLO .AND. JYUP.EQ.JYLO) THEN
 !         point surrounded by dry points
@@ -5655,7 +5655,7 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
                &SYUP * AC2(ID,IS,IND3))
             ENDIF
 
-!           ACWX is X-gradient of local action density, ACWY is Y-gradie
+!           ACWX is X-gradient of local action density, ACWY is Y-gradient
 
             IF (ONY) THEN
                ACWI = RRDI * (AC2(ID,IS,IND6) -&

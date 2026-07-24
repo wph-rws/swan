@@ -110,3 +110,9 @@ temporary directory and verifies that all numerical output is byte-identical:
 python3 examples/voordelta/benchmark.py \
   --swan-executable build/bin/swan.exe --threads 1,2,4,8
 ```
+
+For a cross-build comparison of both OpenMP and MPI scaling, use
+[`benchmarks/benchmark_parallel.py`](../../benchmarks/benchmark_parallel.py).
+The measured upstream comparison and complete build commands are documented
+in
+[`benchmarks/parallel_upstream.md`](../../benchmarks/parallel_upstream.md).

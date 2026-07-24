@@ -3,7 +3,7 @@
 !
 ! Contents of this file:
 !
-!     SWREAD:  Reading and processing of the user commands describing th
+!     SWREAD:  Reading and processing of the user commands describing the model
 !     SINPGR:  Read parameters of an input grid
 !     SREDEP
 !     SSFILL
@@ -14,11 +14,11 @@
 !              the wave field
 !     BACKUP
 !
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWREAD (COMPUT)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 !
 !     Modules
 
@@ -59,7 +59,7 @@ SUBROUTINE SWREAD (COMPUT)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -70,7 +70,7 @@ SUBROUTINE SWREAD (COMPUT)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -129,50 +129,50 @@ SUBROUTINE SWREAD (COMPUT)
 !  1. Updates
 !
 !     30.60, July 97: command CGRID, exception values added
-!     30.60, Aug. 97: JCOOX and JCOOY used when addingco ordinate arrays
+!     30.60, Aug. 97: JCOOX and JCOOY used when addingco ordinate arrays change in
 !                     command BOUND option SEGM
-!     30.60, Aug. 97: PNUMS(20) is set to 0.1 in command WIND if third g
+!     30.60, Aug. 97: PNUMS(20) is set to 0.1 in command WIND if third generation
 !                     is used
 !     30.60, Aug. 97: argument XYTST added in call of SWDIM
-!     30.60, Aug. 97: activate initial condition in commands WIND and GE
+!     30.60, Aug. 97: activate initial condition in commands WIND and GEN3
 !     30.60, Aug. 97: command CGRID, default keyword is REG keyword EXC
 !                     required
-!     30.60, Aug. 97: command OBST, names changed into ALPHA and BETA; c
+!     30.60, Aug. 97: command OBST, names changed into ALPHA and BETA; control
 !                     strings changed from UNC into STA
 !     30.60, Aug. 97: uncommented statement CALL WRNKEY
-!     30.70, Sep. 97: value of PWTAIL(1) is set to 5 in command GEN3 JAN
+!     30.70, Sep. 97: value of PWTAIL(1) is set to 5 in command GEN3 JANS,
 !                     GROWTH JANS and WCAP JANS
-!     30.72, Oct. 97: logical function EQREAL introduced for floating po
+!     30.72, Oct. 97: logical function EQREAL introduced for floating point
 !                     comparisons
-!     30.72, Nov. 97: Added the command syntax for all the commands as c
+!     30.72, Nov. 97: Added the command syntax for all the commands as comments
 !                     from the user manual
-!     30.72, Nov. 97: Header renewed, updated method and argument variab
+!     30.72, Nov. 97: Header renewed, updated method and argument variable
 !                     description
-!     30.72, Nov. 97: Did set the correct pointers for command GEN3 JANS
+!     30.72, Nov. 97: Did set the correct pointers for command GEN3 JANS, as
 !                     was already done correctly for command WCAP JANS
 !     30.74, Nov. 97: Prepared for version with INCLUDE statements
 !     30.72, Jan. 98: Removed reference to quadruplets in WIND command
 !     32.01, Jan. 98: Introduced SET NAUT command (project h3268)
 !     32.01, Jan. 98: Introduced keyword CON/VAR in command
 !                     BOU STAT ... SPEC1D/SPEC2D
-!     30.72, Jan. 98: Moved BOU NONSTAT non operational warning to end o
+!     30.72, Jan. 98: Moved BOU NONSTAT non operational warning to end of
 !                     command BOU
 !     30.72, Jan. 98: Changed size of JAUX(7) array to MCGRD
-!     32.01, Jan. 98: Modifications for nautical convention, interpolati
-!                     spectra at the boundary and warning (project h3268
+!     32.01, Jan. 98: Modifications for nautical convention, interpolation of
+!                     spectra at the boundary and warning (project h3268)
 !     32.02, Feb. 98: Introduced 1D-version
 !     30.70, Feb. 98: MODE DYN modified into MODE NONSTationary
 !                     option WINDGrowth added in command OFF
 !                     Nautical convention introduced into command CGRID
 !                     in command SET name 'negmes' changed into 'maxmes'
-!     30.72, Mar. 98: Leave limiter on when ITRIAD > 0 in command OFF QU
+!     30.72, Mar. 98: Leave limiter on when ITRIAD > 0 in command OFF QUAD
 !     30.70, Mar. 98: option CON/VAR after options SPEC1D/SPEC2D
 !                     keyword STAT made optional
 !                     name GRWMX changed into LIMITER
-!                     assignment of limiter in command OFF QUAD correcte
-!     30.75, Mar. 98: set ICOND=1 (default init.cond.) for nonstationary
+!                     assignment of limiter in command OFF QUAD corrected
+!     30.75, Mar. 98: set ICOND=1 (default init.cond.) for nonstationary mode
 !     30.82, Apr. 98: removed reference to commons KAART and KAR
-!     40.00, Sep. 98: in command OBST square of TRCOEF is stored (this i
+!     40.00, Sep. 98: in command OBST square of TRCOEF is stored (this is used
 !                     as transmission coefficient for action density)
 !     30.90, Oct. 98: Introduced EQUIVALENCE POOL-arrays
 !     30.81, Nov. 98: Adjustment for 1-D case of new boundary conditions
@@ -181,28 +181,28 @@ SUBROUTINE SWREAD (COMPUT)
 !                     properties of output quantities.
 !     34.01, Feb. 99: Introducing STPNOW
 !     30.82, Mar. 99: Deactivate limiter for GEN1 and GEN2
-!     40.00, Apr. 99: restructure command MODE: Nonstat Oned is now poss
+!     40.00, Apr. 99: restructure command MODE: Nonstat Oned is now possible
 !     33.08, July 98: input for model with higher order "S&L" scheme.
 !     33.09, Aug. 98: input for spherical coordinates
 !     32.06, June 99: Set correct values for IGEN
-!     30.82, Aug. 99: Modified default values for PTRIAD, after deactiva
+!     30.82, Aug. 99: Modified default values for PTRIAD, after deactivating
 !                     limiter for only the triads.
-!     30.82, Aug. 99: Modified command NUM to include settings for the S
+!     30.82, Aug. 99: Modified command NUM to include settings for the SETUP
 !                     and the global stop criterion
 !     40.01, Sep. 99: XASM and YASM replace fixed numbers
 !     40.03, Dec. 99: command QUANTITY corrected
 !     40.10, Mar. 00: prepared for exact quadruplets
 !     33.10, Jan. 00: input for model with higher order "SORDUP" scheme
 !     40.03, May  00: command INCLude added, array INCNUM added
-!     40.09, May  00: TRCOEF**2 replaced by TRCOEF (to make command opti
-!                     TRANSM and DAM consistent with one another in subr
+!     40.09, May  00: TRCOEF**2 replaced by TRCOEF (to make command options
+!                     TRANSM and DAM consistent with one another in subroutine
 !                     SWTRCOEF in swanser)
 !     40.09, May. 00: Reflection command option added
-!     40.03, Aug. 00: error message if start time is before current time
+!     40.03, Aug. 00: error message if start time is before current time (command COMP)
 !            Sep. 00: inconsistency with manual corrected
-!     40.02, Sep. 00: Changed SCHEME command to PROP and handling [cdlim
+!     40.02, Sep. 00: Changed SCHEME command to PROP and handling [cdlim] modified
 !     40.02, Oct. 00: In case of Nautical directions then output in not
-!     40.02, Oct. 00: Recalculate whitecapping coefficients for new SWCA
+!     40.02, Oct. 00: Recalculate whitecapping coefficients for new SWCAP routine
 !     40.02, Oct. 00: Avoided real/int conflict by introducing RPOOL in
 !     40.02, Oct. 00: Avoided real/int conflict by introducing replacing
 !                     RPOOL for POOL in various calls
@@ -210,7 +210,7 @@ SUBROUTINE SWREAD (COMPUT)
 !     40.12, Feb. 01: Avoided type conflict for OUTPS
 !     40.18, Apr. 01: Reflection option extended
 !     40.13, July 01: reading of PTRIAD(4) added in command TRIad
-!                     command OUTPut OPTions added; module OUTP_DATA add
+!                     command OUTPut OPTions added; module OUTP_DATA added
 !                     command OUTPUT QUANTITY is made obsolete
 !     40.13, Aug. 01: [xpc] and [ypc] are required in case of spherical
 !                     [ylenc] and [myc] not required in 1-D mode
@@ -233,14 +233,14 @@ SUBROUTINE SWREAD (COMPUT)
 !                     coordinate system
 !     40.31, Dec. 03: removing POOL-mechanism
 !     40.35, Jun. 04: introducing turbulent viscosity model
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.51, Jun. 06: correct input of MDIA
 !     40.55, Dec. 05: introducing vegetation model
 !     40.80, Jun. 07: extension to unstructured grids
-!     40.87, Apr. 08: in keyword QUANTITY more than 1 output parameter a
+!     40.87, Apr. 08: in keyword QUANTITY more than 1 output parameter at once
 !                     is possible and addition of [fmin] and [fmax]
-!     41.65, Jun. 16: extension frequency and direction dependent tranmi
-!     41.71, Dec. 18: extension freeboard dependent transmission and ref
+!     41.65, Jun. 16: extension frequency and direction dependent tranmission coefficients
+!     41.71, Dec. 18: extension freeboard dependent transmission and reflection
 !     41.75, Jan. 19: adding sea ice
 !     41.72, Nov. 19: add quantity for number of swell partitions
 !     41.77, Feb. 20: adding Jacobsen vegetation formulation
@@ -258,16 +258,16 @@ SUBROUTINE SWREAD (COMPUT)
 !     A new line is read, in which the first keyword determines what the
 !     command is. The command is read and processed. Common variable are
 !     given proper values. After processing
-!     the command the program returns to label 100, to process a new com
-!     This is repeated until the command STOP is found or the end of fil
+!     the command the program returns to label 100, to process a new command.
+!     This is repeated until the command STOP is found or the end of file is
 !     reached.
 !
-!     Depending on the commands, the argument variable COMPUT is given a
-!     depending on which the program will make a computation is some for
+!     Depending on the commands, the argument variable COMPUT is given a value,
+!     depending on which the program will make a computation is some form or not.
 !
 !  4. Argument variables (updated 30.72)
 !
-!     COMPUT   Output variable that determine the sort of computation to
+!     COMPUT   Output variable that determine the sort of computation to be
 !              performed by SWAN
 !              ='COMP'; computation requested
 !              ='NOCO'; no computation but output requested
@@ -284,8 +284,8 @@ SUBROUTINE SWREAD (COMPUT)
 !     DUM       Dummy variable
 !     FD1       Coeff. for freq. dep. reflection: vertical displacement
 !     FD2       Coeff. for freq. dep. reflection: shape parameter
-!     FD3       Coeff. for freq. dep. reflection: directional coefficien
-!     FD4       Coeff. for freq. dep. reflection: bending point of freq.
+!     FD3       Coeff. for freq. dep. reflection: directional coefficient 40.28
+!     FD4       Coeff. for freq. dep. reflection: bending point of freq.  40.28
 !     ICNL4     Counter for reading CNL4_? values
 !     ILAMBDA   Counter for reading LAMBDA values
 !     INCLEV    Include level, increases at INCL command,
@@ -295,7 +295,7 @@ SUBROUTINE SWREAD (COMPUT)
 !     ITMP2     auxiliary integer
 !     ITMP3     auxiliary integer
 !     ITMP4     auxiliary integer
-!     LREF      Indicates whether reflection is active (#0.) or not (=0.
+!     LREF      Indicates whether reflection is active (#0.) or not (=0.) 40.09
 !     LREFDIFF  Indicates whether scattered reflection is active (#0.)
 !               or not (=0.)
 !     LRFRD     Indicates whether frequency dependent reflection is
@@ -381,7 +381,7 @@ SUBROUTINE SWREAD (COMPUT)
 !  8. Subroutines used
 !
 !     DEGCNV: Transforms dir. from nautical to cartesian or vice versa
-!     INITVA: Processing comm. INIT and comp. initial state of wave fiel
+!     INITVA: Processing comm. INIT and comp. initial state of wave field 30.70
 !     SINPGR: Read parameters of an input grid
 !     SWINIT
 !     REINC
@@ -634,7 +634,7 @@ CALL NWLINE
       CYCLE command_loop
    ENDIF
 !     ------------------------------------------------------------------
-!     COTEst       parameters for required test output during computatio
+!     COTEst       parameters for required test output during computation
 !
 !     ============================================================
 !
@@ -663,7 +663,7 @@ CALL NWLINE
 
 !     ============================================================
 !
-!      OUTPut OPTIons  'comment'  (TABle [field])  (BLOck  [ndec]  [len]
+!      OUTPut OPTIons  'comment'  (TABle [field])  (BLOck  [ndec]  [len])   &
 !
 !      (SPEC  [ndec])
 !
@@ -842,7 +842,7 @@ CALL NWLINE
 !           quasi-cartesian projection method
             PROJ_METHOD = 0
          ELSE IF (KEYWIS ('CCM')) THEN
-!           uniform Mercator projection (default for spherical coordinat
+!           uniform Mercator projection (default for spherical coordinates)
             PROJ_METHOD = 1
          ENDIF
       ELSE
@@ -1106,7 +1106,7 @@ CALL NWLINE
             OBSTMP%TRCOEF(3) = OBET
          END IF
       ELSE
-!         if no transmission options are activated, there will be 0 tran
+!         if no transmission options are activated, there will be 0 transmission
          ITRAS = 0
          TRCF  = 0.
          OBSTMP%TRCOEF(1) = TRCF
@@ -1432,12 +1432,12 @@ CALL NWLINE
 !     ------------------------------------------------------------------
 !     READ   reading depths, coordinates and/or currents
 !
-!   ====================================================================
+!   ============================================================================
 !
 !   READinp    BOTtom/WLevel/CURrent/FRiction/WInd/COORdinates/
 !              NPLAnts/TURB/MUDL/AICE/HICE/HSS/TSS/DSS
 !        [fac]  / 'fname1'        \
-!               \ SERIES 'fname2' /  [idla] [nhedf] ([nhedt]) (nhedvec])
+!               \ SERIES 'fname2' /  [idla] [nhedf] ([nhedt]) (nhedvec])     &
 !        FREE / FORMAT 'form' / [idfm] / UNFORMATTED
 !
 !   or
@@ -1446,7 +1446,7 @@ CALL NWLINE
 !   READgrid UNSTRUCtured <  TRIAngle \
 !                          | EASYmesh / 'fname'
 !
-!   ====================================================================
+!   ============================================================================
 
    IF (KEYWIS ('READ')) THEN
 
@@ -1706,7 +1706,7 @@ CALL NWLINE
       ENDIF
       END IF
 
-!       for curvilinear grid, read exception values for grid point coord
+!       for curvilinear grid, read exception values for grid point coordinates
 
       IF (OPTG.EQ.3) THEN
          CALL INKEYW ('STA', ' ')
@@ -1731,7 +1731,7 @@ CALL NWLINE
          CALL ININTG('MDC',MDC,'RQI',0)
       ENDIF
 
-!       ***** MSC is the number of frequencies in sigma direction (logar
+!       ***** MSC is the number of frequencies in sigma direction (logaritmic)
 
       CALL INREAL('FLOW',FRLOW,'STA',-999.)
       CALL INREAL('FHIGH',FRHIG,'STA',-999.)
@@ -1764,12 +1764,12 @@ CALL NWLINE
       SHIG = 2.*PI*FRHIG
       MSC  = MSS+1
 
-!       ***** MDC is the number of steps in theta direction as part of a
+!       ***** MDC is the number of steps in theta direction as part of a circle
 
       IF (FULCIR) THEN
          DDIR  = PI2 / MDC
 
-!         modification of SPDIR1 first installed with version 30.72, the
+!         modification of SPDIR1 first installed with version 30.72, then
 !         reversed and reinstalled with 40.13
 !         purpose: prevent problem with grids under 45 degrees
          SPDIR1 = ALPC + 0.5 * DDIR
@@ -1901,7 +1901,7 @@ CALL NWLINE
 ! =====================================================================
 !
 !         | -> STOPC [dabs] [drel] [curvat] [npnts] [dtabs] [curvt] |
-!   NUM (<                                                           > &
+!   NUM (<                                                           > &  40.41
 !         | ACCUR [drel] [dhoval] [dtoval] [npnts]                  |
 !
 !                    | -> STAT  [mxitst] [alfa] |
@@ -2211,7 +2211,7 @@ CALL NWLINE
 !   QUANTity  <...>  'short'  'long'  [lexp]  [hexp]  [excv]  &
 !
 !         [ref]                    {for output quantity TSEC}
-!         [power]                  {for output quantity WLEN, PER or RPE
+!         [power]                  {for output quantity WLEN, PER or RPER}
 !         [fswell]                 {for output quantity HSWELL}
 !         [fmin]  [fmax]           {for integral parameters}
 !         PROBLEM/FRAME            {for directions and vectors)
@@ -2350,7 +2350,7 @@ CALL NWLINE
 !
 !           | -> CONstant [alpha] [gamma]
 !           |
-!           |    VARiable [alpha] [gammin] [gammax] [gamneg] [coeff1] [c
+!           |    VARiable [alpha] [gammin] [gammax] [gamneg] [coeff1] [coeff2] |
 ! BREaking <
 !           |    RUEssink [alpha] [a] [b]
 !           |
@@ -2452,7 +2452,7 @@ CALL NWLINE
       IF (KEYWIS ('KOM')) THEN
 !         *** whitecapping according to Komen et al. (1984) ***
 !
-!         error checking in case user has already selected Babanin physi
+!         error checking in case user has already selected Babanin physics
          IF (WCAPSET) CALL MSGERR (4, 'whitecapping is already set')
          IWCAP = 1
          WCAPSET = .TRUE.
@@ -2520,7 +2520,7 @@ CALL NWLINE
 !
 !                   |              | -> CONstant [cfjon]
 !                   | -> JONswap  <
-!                   |              |    VARiable [cfj1] [cfj2] [dsp1] [d
+!                   |              |    VARiable [cfj1] [cfj2] [dsp1] [dsp2]   (NOT documented)
 !                   |
 !                   |    COLLins   [cfw]    &
 !   FRICtion       <
@@ -2792,7 +2792,7 @@ CALL NWLINE
 !
 ! ==========================================
 !
-! GEN1     [cf10]  [cf20]  [cf30]  [cf40]  [edmlpm]  [cdrag]  [umin]  [c
+! GEN1     [cf10]  [cf20]  [cf30]  [cf40]  [edmlpm]  [cdrag]  [umin]  [cfpm]
 !
 ! ==========================================
 
@@ -2827,7 +2827,7 @@ CALL NWLINE
 !
 ! ==========================================
 !
-! GEN2 [cf10] [cf20] [cf30] [cf40] [cf50] [cf60] [edmlpm] [cdrag] [umin]
+! GEN2 [cf10] [cf20] [cf30] [cf40] [cf50] [cf60] [edmlpm] [cdrag] [umin] [cfpm]
 !
 ! ==========================================
 
@@ -2933,13 +2933,13 @@ CALL NWLINE
          CALL INREAL ('BR',    PWCAP(12), 'STA', 1.75E-3)
       ELSE IF (KEYWIS('BAB')) THEN
 !         "BABanin"=legacy mode of input ; "ST6"=new mode of input
-!         *** wind according to Rogers et al. (JTECH 2012) based on work
+!         *** wind according to Rogers et al. (JTECH 2012) based on work of
 !             Donelan, Babanin, Tsagareli and others
          LWINDM = 8
          IF (LWINDR .GT. 0) IWIND = LWINDM
 !         note: command "GEN3 BABANIN" supports Hwang wind drag only
          IDRAG = 4
-!         *** whitecapping according to Rogers et al. (JTECH 2012) based
+!         *** whitecapping according to Rogers et al. (JTECH 2012) based on work of
 !             Babanin, Young, Tsagareli, Ardhuin and others
          IF (WCAPSET) CALL MSGERR (4, 'whitecapping is already set')
          WCAPSET = .TRUE.
@@ -2973,11 +2973,11 @@ CALL NWLINE
          ENDIF
       ELSE IF (KEYWIS('ST6')) THEN
 !         "BABanin"=legacy mode of input ; "ST6"=new mode of input
-!         *** wind according to Rogers et al. (JTECH 2012) based on work
+!         *** wind according to Rogers et al. (JTECH 2012) based on work of
 !             Donelan, Babanin, Tsagareli and others
          LWINDM = 8
          IF (LWINDR .GT. 0) IWIND = LWINDM
-!         *** whitecapping according to Rogers et al. (JTECH 2012) based
+!         *** whitecapping according to Rogers et al. (JTECH 2012) based on work of
 !             Babanin, Young, Tsagareli, Ardhuin and others
          IWCAP = 8
          CALL INREAL ('A1SDS', A1SDS, 'UNC', 0.)
@@ -3062,7 +3062,7 @@ CALL NWLINE
 
 !     ------------------------------------------------------------------
 !
-!     GEN4        shallow water with 4th generation (quasi-coherent mode
+!     GEN4        shallow water with 4th generation (quasi-coherent modelling)
 !
 ! ==========================================
 !
@@ -3197,7 +3197,7 @@ CALL NWLINE
 !         |                                                  |
 !         |   G2 [cf10] [cf20] [cf30] [cf40] [cf50] [cf60] & |
 !         |                                                  |
-! GROWTH <       [edmlpm] [cdrag] [umin] [cfpm]              | (NOT docu
+! GROWTH <       [edmlpm] [cdrag] [umin] [cfpm]              | (NOT documented)
 !         |                                                  |
 !         |       |    JANSsen [pwtail] |                    |
 !         | ->G3 <                       > (AGROW [a])       |
@@ -3699,11 +3699,11 @@ CONTAINS
    END FUNCTION bottom_read_failed
 
 end subroutine SWREAD
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE TIMECOMM
    USE OCPCOMM1
@@ -3731,7 +3731,7 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3742,7 +3742,7 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -3767,13 +3767,13 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
 !     30.60, July 97: default values for STAGRX, STAGRY, MXINP, MYINP
 !     30.60, Aug. 97: format 6021 changed
 !     30.60, Aug. 97: keyword EXC not required
-!     30.72, Sept 97: Changed DO-block with one CONTINUE to DO-block wit
+!     30.72, Sept 97: Changed DO-block with one CONTINUE to DO-block with
 !                     two CONTINUE's
 !     30.72, Nov. 97: Header renewed, Common Blocks updated
 !     30.74, Nov. 97: Prepared for version with INCLUDE statements
 !     32.02, Feb. 98: Introduced 1D-version
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
-!     30.70, Feb. 98: warning concerning DYINP removed; default MYINP ch
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
+!     30.70, Feb. 98: warning concerning DYINP removed; default MYINP changed
 !     30.75, Mar. 98: correction nonstationary wind and current field
 !     30.80, Apr. 98: default value for MYINP (curvil. grid) was lost
 !     34.01, Feb. 99: Introducing STPNOW
@@ -3784,7 +3784,7 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
 !                     spherical coordinates
 !                     Arguments XCGRID and YCGRID removed (not used)
 !     40.31, Dec. 03: removing POOL-mechanism
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.80, Dec. 07: extension to unstructured grids
 !     41.75, Jan. 19: adding sea ice
 !
@@ -3799,13 +3799,13 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
 !  4. Argument variables
 !
 !     IGRID1:   input  int grid number for which parameters are read
-!     IGRID2:   input  int input grid number for which parameters are re
+!     IGRID2:   input  int input grid number for which parameters are read
 !                          only relevant if >0
-!     SNAMEG:   input char name of output frame corresponding to input g
+!     SNAMEG:   input char name of output frame corresponding to input grid
 !
 !  9. Subroutines calling
 !
-!     SWREAD:  Reading and processing of the user commands describing th
+!     SWREAD:  Reading and processing of the user commands describing the model
 !
 !  8. Subroutines used
 
@@ -3962,7 +3962,7 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
          &'UNC', 0., 0.)
          CALL INREAL ('ALPINP',ALPG(IGRID1),'UNC',0.)
       ELSE
-!         [xpinp] and [ypinp] are required in case of spherical coordina
+!         [xpinp] and [ypinp] are required in case of spherical coordinates
          CALL READXY ('XPINP', 'YPINP', XPG(IGRID1), YPG(IGRID1),&
          &'REQ', 0., 0.)
          CALL INREAL ('ALPINP',ALPG(IGRID1),'STA',0.)
@@ -4005,7 +4005,7 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
    LEDS(IGRID1) = 1
    IF (IGRID2.GT.0) LEDS(IGRID2) = 1
 !     next lines to process the option NONSTAT for wind, currents
-!     and waterlevel                                                VER.
+!     and waterlevel                                                VER.  30.00
 !     SUBR. INCTIM reads a time string  and gives a time from given
 !     reference day
    CALL INKEYW ('STA', ' ')
@@ -4116,11 +4116,11 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
 RETURN
 !     end of subroutine SINPGR
 end subroutine SINPGR
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE TIMECOMM
    USE OCPCOMM1
@@ -4149,7 +4149,7 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4160,7 +4160,7 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4181,8 +4181,8 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
 !  1. Updates
 !
 !     20.05, Jan. 94: new pool
-!     20.67, Dec. 95: call of REPARM is modified, VFAC is read in SREDEP
-!     30.72, Nov. 97: Changed position of label 18 in block IF, as sugge
+!     20.67, Dec. 95: call of REPARM is modified, VFAC is read in SREDEP itself
+!     30.72, Nov. 97: Changed position of label 18 in block IF, as suggested by
 !                     Richard Gorman
 !     30.74, Nov. 97: Prepared for version with INCLUDE statements
 !     40.00, Jan. 98: calls of REPARM and INAR2D changed
@@ -4190,7 +4190,7 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
 !     40.02, Oct. 00: Avoided real/int conflict by introducing RPOOL
 !     40.31, Oct. 03: remove POOL construction
 !     40.35, Jun. 04: introducing turbulent viscosity model
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.55, Dec. 05: introducing vegetation model
 !     40.59, Aug. 07: introducing fluid mud-induced dissipation model
 !     41.20, Mar. 10: extension to tightly coupled ADCIRC+SWAN model
@@ -4281,15 +4281,15 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
 
 !     ***** read instructions of the user *****
 !
-!   ====================================================================
+!   ============================================================================
 !
 !   READinp    BOTtom/WLevel/CURrent/FRiction/WInd/COORdinates/
 !              NPLAnts/TURB/MUDL/AICE/HICE/HSS/TSS/DSS
 !        [fac]  / 'fname1'        \
-!               \ SERIES 'fname2' /  [idla] [nhedf] ([nhedt]) (nhedvec])
+!               \ SERIES 'fname2' /  [idla] [nhedf] ([nhedt]) (nhedvec])     &
 !        FREE / FORMAT 'form' / [idfm] / UNFORMATTED
 !
-!   ====================================================================
+!   ============================================================================
 
    CALL INKEYW ('REQ',' ')
    IGR2 = 0
@@ -4320,8 +4320,8 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
       IGR1   = 8
       IGR2   = 9
       LOGCOM(4) = .TRUE.
-!       *** Next lines because there is no information for READ COORD  *
-!       *** command INPGRID was not used to read coordinates           *
+!       *** Next lines because there is no information for READ COORD  ***
+!       *** command INPGRID was not used to read coordinates           ***
       MXG(IGR1) = MXC
       MYG(IGR1) = MYC
       MXG(IGR2) = MXC
@@ -4557,11 +4557,11 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
    RETURN
 ! * end of subroutine SREDEP *
 end subroutine SREDEP
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SSFILL (SPCSIG, SPCDIR)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM1
    USE OCPCOMM2
@@ -4587,7 +4587,7 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4598,7 +4598,7 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4611,10 +4611,10 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR)
 !  1. Updates
 !
 !     20.43         : Calculation of spectral directions added
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.82, Oct. 98: Updated description of SPCDIR
 !     40.02, Sep. 00: Calculate powers of Sigma for later use
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -4625,8 +4625,8 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR)
 !     Create a logarithmic distribution in frequency between lowest and
 !     frequencies and store them in the array SPCSIG.
 !
-!     Create a distribution in direction that does not coincide with the
-!     of the computational grid, calculate some geometric derivatives an
+!     Create a distribution in direction that does not coincide with the orientation
+!     of the computational grid, calculate some geometric derivatives and store
 !     it in the array SPCDIR
 !
 !  4. Argument variables
@@ -4637,7 +4637,7 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR)
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-!   o SPCSIG: Relative frequencies in computational domain in sigma-spac
+!   o SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
 
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
@@ -4721,11 +4721,11 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR)
    RETURN
 ! * end of function SSFILL *
 end subroutine SSFILL
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE CGINIT (LOGCOM)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM1
    USE OCPCOMM3
@@ -4752,7 +4752,7 @@ SUBROUTINE CGINIT (LOGCOM)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4763,7 +4763,7 @@ SUBROUTINE CGINIT (LOGCOM)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4791,7 +4791,7 @@ SUBROUTINE CGINIT (LOGCOM)
 !     40.30, Apr. 03: introduction distributed-memory approach using MPI
 !     40.31, Dec. 03: removing POOL-mechanism and reconsidering this
 !                     subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.80, Jun. 07: extension to unstructured grids
 !
 !  2. PURPOSE
@@ -4996,11 +4996,11 @@ SUBROUTINE CGINIT (LOGCOM)
    RETURN
 !     end of subroutine CGINIT
 end subroutine CGINIT
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM1
    USE OCPCOMM2
@@ -5025,7 +5025,7 @@ SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5036,7 +5036,7 @@ SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5052,12 +5052,12 @@ SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
 !     30.60, Aug. 97: correction KGRPNT
 !     30.60, Aug. 97: test point introduced
 !     30.72, Sept 97: INTEGER(KIND=SELECTED_INT_KIND(9)) replaced by INTEGER
-!     30.72, Sept 97: Changed DO-block with one CONTINUE to DO-block wit
+!     30.72, Sept 97: Changed DO-block with one CONTINUE to DO-block with
 !                     two CONTINUE's
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
-!     40.03, Dec. 99: computation of XCGMIN, XCGMAX, YCGMIN, YCGMAX is n
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
+!     40.03, Dec. 99: computation of XCGMIN, XCGMAX, YCGMIN, YCGMAX is now done
 !                     for curvilinear and regular grids.
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -5096,10 +5096,10 @@ SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
 !           Determine whether this point is a test point
 !           If coordinates are valid
 !           Then If grid offset is not yet defined (LXOFFS = False)
-!                Then make grid offset equal to coordinates of this poin
+!                Then make grid offset equal to coordinates of this point
 !                     Make LXOFFS = True
 !                Else Subtract offset from coordinates
-!                -------------------------------------------------------
+!                --------------------------------------------------------
 !                If bottom level is not an exception value
 !                Then assign a valid grid address to this grid point
 !                     increase MCGRD by 1
@@ -5212,11 +5212,11 @@ SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
    RETURN
 ! * end of subroutine SWDIM *
 end subroutine SWDIM
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE CGBOUN (KGRPNT, KGRBND)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE SWCOMM3
    USE OCPCOMM4
@@ -5238,7 +5238,7 @@ SUBROUTINE CGBOUN (KGRPNT, KGRBND)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5249,7 +5249,7 @@ SUBROUTINE CGBOUN (KGRPNT, KGRBND)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5264,18 +5264,18 @@ SUBROUTINE CGBOUN (KGRPNT, KGRBND)
 !
 !     New function for curvilinear version (ver. 40.00). May '98
 !     30.81, Nov. 98: Adjustment for 1-D case of new boundary conditions
-!     40.03, Dec. 99: 2d procedure modified; boundary can now consist al
+!     40.03, Dec. 99: 2d procedure modified; boundary can now consist also
 !                     of diagonals
-!     40.04, Aug. 00: prevented that boundary is not closed: several che
+!     40.04, Aug. 00: prevented that boundary is not closed: several checks
 !                     added
 !                     argument list adjusted
 !     40.13, July 01: 1-D procedure corrected
 !     40.30, Apr. 01: introduction distributed-memory approach using MPI
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
-!     Determine array containing all points of (a) (closed) boundary/bou
+!     Determine array containing all points of (a) (closed) boundary/boundaries
 !     within the computational grid
 !
 !  3. Method (updated...)
@@ -5285,12 +5285,12 @@ SUBROUTINE CGBOUN (KGRPNT, KGRBND)
 !         save first and last point in boundary array
 !     2D: For all grid points:
 !         0) find first point which is possibly on the boundary
-!         1) check whether neighbour is a valid point and valid boundary
+!         1) check whether neighbour is a valid point and valid boundary point
 !            save information that point is scanned
 !         2) If so store point in boundary array and repeat from 1
 !            Else go to next neighbour (if not scanned already
 !                                       Else remove isolated point from
-!                                            computational grid and star
+!                                            computational grid and start from 0)
 !
 !  4. Argument variables
 !
@@ -5315,14 +5315,14 @@ SUBROUTINE CGBOUN (KGRPNT, KGRBND)
 !     IXNEW, IYNEW  X- and Y-index of point under consideration
 !     IXOLD, IYOLD  X- and Y-index of point under consideration
 !     KGRPNTNEW     Indirect addresses for grid points
-!     MCGRDNEW      Number of points in computational grid after elimina
-!                   of isolated and points that are part of 1D configura
+!     MCGRDNEW      Number of points in computational grid after elimination
+!                   of isolated and points that are part of 1D configurations
 !                   or connections
-!     MCGRDOLD      Number of points in computational grid before elimin
-!                   of isolated and points that are part of 1D configura
+!     MCGRDOLD      Number of points in computational grid before elimination
+!                   of isolated and points that are part of 1D configurations
 !                   or connections
 !     WNP           Number of Wet Neighbouring Points
-!     SCANND        Array containing information whether point is scanne
+!     SCANND        Array containing information whether point is scanned
 
 
    INTEGER, SAVE :: IENT = 0
@@ -5399,7 +5399,7 @@ SUBROUTINE CGBOUN (KGRPNT, KGRBND)
 !                       Then If SCANNED(ixnew,iynew)
 !                            Then exit from repeat
 !                            Else
-!                              Increase number of boundary outline point
+!                              Increase number of boundary outline points by 1
 !                              Store (ixnew,iynew) in KGRBND array
 !                              Make SCANNED(ixnew,iynew) = True
 !                              Make ixold=ixnew; iyold=iynew
@@ -5568,11 +5568,11 @@ ENDDO
    END IF
    RETURN
 end subroutine CGBOUN
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 LOGICAL FUNCTION PVALID (IX, IY, KGRPNT)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE SWCOMM3
 
@@ -5592,7 +5592,7 @@ LOGICAL FUNCTION PVALID (IX, IY, KGRPNT)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5603,7 +5603,7 @@ LOGICAL FUNCTION PVALID (IX, IY, KGRPNT)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5653,12 +5653,12 @@ LOGICAL FUNCTION PVALID (IX, IY, KGRPNT)
 ! 12. Structure
 !
 !     PVALID = .TRUE.
-!     If gridcounter in x-direction is less then 1 or greater than MXC o
-!     If gridcounter in y-direction is less then 1 or greater than MYC o
+!     If gridcounter in x-direction is less then 1 or greater than MXC or
+!     If gridcounter in y-direction is less then 1 or greater than MYC or
 !     If gridpoint is exception point PVALID = .FALSE.
 !
 ! 13. Source text
-!***********************************************************************
+!************************************************************************
 
    CALL STRACE (IENT, 'PVALID')
 
@@ -5674,11 +5674,11 @@ LOGICAL FUNCTION PVALID (IX, IY, KGRPNT)
    RETURN
 end function PVALID
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 LOGICAL FUNCTION VALIDBP (IX, IY, KGRPNT,WNP)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE SWCOMM3
    USE OCPCOMM4
@@ -5699,7 +5699,7 @@ LOGICAL FUNCTION VALIDBP (IX, IY, KGRPNT,WNP)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5710,7 +5710,7 @@ LOGICAL FUNCTION VALIDBP (IX, IY, KGRPNT,WNP)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5721,11 +5721,11 @@ LOGICAL FUNCTION VALIDBP (IX, IY, KGRPNT,WNP)
 !  1. Updates
 !
 !     August 2000 new function
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
-!     Check whether point with index (IX,IY) can be a valid boundary poi
+!     Check whether point with index (IX,IY) can be a valid boundary point
 !
 !  3. Method
 !
@@ -5793,7 +5793,7 @@ LOGICAL FUNCTION VALIDBP (IX, IY, KGRPNT,WNP)
 !
 ! 13. Source text
 !
-!***********************************************************************
+!************************************************************************
 
    CALL STRACE (IENT, 'VALIDBP')
 
@@ -5867,7 +5867,7 @@ SUBROUTINE SEPARAREA(IX, IY, KGRPNT,IDIR)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5878,7 +5878,7 @@ SUBROUTINE SEPARAREA(IX, IY, KGRPNT,IDIR)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5889,7 +5889,7 @@ SUBROUTINE SEPARAREA(IX, IY, KGRPNT,IDIR)
 !  1. Updates
 !
 !     August 2000 new subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -5897,7 +5897,7 @@ SUBROUTINE SEPARAREA(IX, IY, KGRPNT,IDIR)
 !
 !  3. Method
 !
-!     Redirect original IDIR ( '<#' in plot below) to new direction('=>'
+!     Redirect original IDIR ( '<#' in plot below) to new direction('=>')
 !
 !     .    D    W -- W         X: point under consideration (wet)
 !               |    |         W: wet point
@@ -5910,9 +5910,9 @@ SUBROUTINE SEPARAREA(IX, IY, KGRPNT,IDIR)
 !
 !  4. Argument variables
 !
-!     IX, IY    input          x- and y-index of point under considerati
+!     IX, IY    input          x- and y-index of point under consideration
 !     KGRPNT    input          indirect addresses for grid points
-!     IDIR      input/output   index for direction (see subroutine CGBOU
+!     IDIR      input/output   index for direction (see subroutine CGBOUN)
 
    INTEGER IX, IY, KGRPNT(MXC,MYC), IDIR
 
@@ -5974,7 +5974,7 @@ SUBROUTINE SEPARAREA(IX, IY, KGRPNT,IDIR)
 !
 ! 13. Source text
 !
-!***********************************************************************
+!************************************************************************
 
    CALL STRACE (IENT,'SEPARAREA')
 
@@ -6034,7 +6034,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -6045,7 +6045,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -6063,7 +6063,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
 !  1. Updates
 !
 !     30.70, Oct. 97: New subroutine
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.82, Oct. 98: Updated description of SPCDIR
 !     30.82, Dec. 98: Corrected the arguments in CALL SINTRP(..)
 !     34.01, Feb. 99: Introducing STPNOW
@@ -6075,14 +6075,14 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
 !                     function EQCSTR used to compare strings
 !     40.13, Jan. 01: option Spherical was not yet taken care of
 !                     ! is now allowed as comment sign in a restart file
-!     40.13, Oct. 01: error message removed, command MODE not required a
+!     40.13, Oct. 01: error message removed, command MODE not required any more
 !     40.31, Oct. 03: small changes
 !     40.31, Dec. 03: appending number to file name i.c. of
 !                     parallel computing
 !     40.41, Sep. 04: small changes
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.62, Jul. 06: modified HOTSTART functionality to handle reading
-!                     single hotfile or from multiple hotfiles when runn
+!                     single hotfile or from multiple hotfiles when running in
 !                     parallel with MPI
 !     40.80, Jun. 07: extension to unstructured grids
 !
@@ -6098,7 +6098,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
@@ -6581,7 +6581,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
       ENDIF
       CLOSE (NREF)
    ELSE
-!       default initial wave state, will be computed later by subr SWINC
+!       default initial wave state, will be computed later by subr SWINCO
       CALL IGNORE ('DEF')
       ICOND = 1
    ENDIF
@@ -6620,7 +6620,7 @@ SUBROUTINE BACKUP (AC2, SPCSIG, SPCDIR, KGRPNT,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -6631,7 +6631,7 @@ SUBROUTINE BACKUP (AC2, SPCSIG, SPCDIR, KGRPNT,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !     ver 40.00, Apr 1998 by N.Booij: new subroutine
@@ -6657,13 +6657,13 @@ SUBROUTINE BACKUP (AC2, SPCSIG, SPCDIR, KGRPNT,&
 !     40.13, Jan. 01: option Spherical was not yet taken care of
 !     40.31, Dec. 03: appending number to file name i.c. of
 !                     parallel computing
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.80, Jun. 07: extension to unstructured grids
 !     41.20, Mar. 10: extension to tightly coupled ADCIRC+SWAN model
 !
 !  2. Purpose
 !
-!     backup current state of the wave field to a file (specified in FIL
+!     backup current state of the wave field to a file (specified in FILENM)
 !
 !  4. Argument variables
 !
@@ -6673,7 +6673,7 @@ SUBROUTINE BACKUP (AC2, SPCSIG, SPCDIR, KGRPNT,&
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 ! i   XCGRID: Coordinates of computational grid in x-direction
 ! i   YCGRID: Coordinates of computational grid in y-direction
 

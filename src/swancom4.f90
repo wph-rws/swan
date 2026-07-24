@@ -14,22 +14,22 @@
 !             interactions)
 !     RANGE4 (compute the counters for the different types of
 !             computations for the nonlinear wave interactions)
-!     SWSNL1 (nonlinear four wave interactions; semi-implicit and comput
+!     SWSNL1 (nonlinear four wave interactions; semi-implicit and computed
 !             for all bins that fall within a sweep with DIA technique.
 !             Interaction are calculated per sweep)
-!     SWSNL2 (nonlinear four wave interactions; fully explicit and compu
+!     SWSNL2 (nonlinear four wave interactions; fully explicit and computed
 !             for all bins that fall within a sweep with DIA technique.
 !             Interaction are calculated per sweep)
-!     SWSNL3 (calculate nonlinear four wave interactions fully explicitl
+!     SWSNL3 (calculate nonlinear four wave interactions fully explicitly
 !             for the full circle per iteration by means of DIA approach
 !             and store results in auxiliary array MEMNL4)
-!     SWSNL4 (calculate nonlinear four wave interactions fully explicitl
-!             for the full circle per iteration by means of MDIA approac
+!     SWSNL4 (calculate nonlinear four wave interactions fully explicitly
+!             for the full circle per iteration by means of MDIA approach
 !             and store results in auxiliary array MEMNL4)
-!     SWSNL8 (calculate nonlinear four wave interactions fully explicitl
+!     SWSNL8 (calculate nonlinear four wave interactions fully explicitly
 !             for the full circle per iteration by means of DIA approach
 !             and store results in auxiliary array MEMNL4. Neighbouring
-!             interactions are interpolated in piecewise constant manner
+!             interactions are interpolated in piecewise constant manner)
 !     FILNL3 (fill main diagonal and right-hand side of the system with
 !             results of array MEMNL4)
 !
@@ -46,11 +46,11 @@
 !              Collinear Triad Approximation of Booij et al, 2009)
 !     SWDNCTA (triad-wave interactions calculated with the Distributed
 !              NonCollinear Triad Approximation)
-!     SWFTIM  (triad-wave interactions calculated using the full integra
+!     SWFTIM  (triad-wave interactions calculated using the full integration
 !              and the parametrized bispectrum)
-!     PEREXC  (includes periodic exchange between first and second harmo
+!     PEREXC  (includes periodic exchange between first and second harmonics
 !              for estimating biphase based on Saprykina et al, 2017)
-!     SWBIDW  (compute the biphase based on the parametrization of De Wi
+!     SWBIDW  (compute the biphase based on the parametrization of De Wit, 2022)
 !     SWBIPM  (spatially filter the De Wit's biphase)
 !
 !----------------------------------------------------------------------
@@ -81,7 +81,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -92,7 +92,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -103,11 +103,11 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
 !
 !  1. Updates
 !
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.17, Dec. 01: Implementation of Multiple DIA
 !     40.41, Sep. 04: compute indices for interactions which will be
 !                     interpolated in piecewise constant manner
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose :
 !
@@ -118,7 +118,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCSIG(MSC)
 
@@ -506,7 +506,7 @@ SUBROUTINE RANGE4 (WWINT ,IDDLOW,IDDTOP)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -517,7 +517,7 @@ SUBROUTINE RANGE4 (WWINT ,IDDLOW,IDDTOP)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -529,7 +529,7 @@ SUBROUTINE RANGE4 (WWINT ,IDDLOW,IDDTOP)
 !  1. Updates
 !
 !     40.10, Mar. 00: Made modification for exact quadruplets
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose :
 !
@@ -887,7 +887,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -898,7 +898,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -912,10 +912,10 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 !
 !  1. Updates
 !
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.17, Dec. 01: Implentation of Multiple DIA
 !     40.23, Aug. 02: some corrections
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.85, Aug. 08: store quadruplets for output purposes
 !
 !  2. Purpose
@@ -972,7 +972,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCSIG(MSC)
 
@@ -1377,7 +1377,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1388,7 +1388,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1402,10 +1402,10 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 !
 !  1. Updates
 !
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.17, Dec. 01: Implemented Multiple DIA
-!     40.23, Aug. 02: rhs and main diagonal adjusted according to Patank
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.23, Aug. 02: rhs and main diagonal adjusted according to Patankar-rules
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.85, Aug. 08: store quadruplets for output purposes
 !
 !  2. Purpose
@@ -1465,7 +1465,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCSIG(MSC)
 
@@ -1830,7 +1830,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1841,7 +1841,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1852,9 +1852,9 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
 !
 !  1. Updates
 !
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.17, Dec. 01: Implemented Multiple DIA
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -1939,11 +1939,11 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
 !     KMESPC: mean average wavenumber over full spectrum
 !     MEMNL4
 !     PI    : circular constant
-!     SA1   : interaction contribution of first quadruplet (unfolded spa
-!     SA2   : interaction contribution of second quadruplet (unfolded sp
+!     SA1   : interaction contribution of first quadruplet (unfolded space)
+!     SA2   : interaction contribution of second quadruplet (unfolded space)
 !     SFNL
 !     SNLC1
-!     SPCSIG: relative frequencies in computational domain in sigma-spac
+!     SPCSIG: relative frequencies in computational domain in sigma-space
 !     UE    : "unfolded" spectrum
 !     WWAWG : weight coefficients for the quadruplet interactions
 
@@ -2215,7 +2215,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2226,7 +2226,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2237,7 +2237,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
 !  1. Updates
 !
 !     40.17, Dec. 01: New Subroutine based on SWSNL3
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -2323,11 +2323,11 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
 !     KMESPC: mean average wavenumber over full spectrum
 !     MEMNL4
 !     PI    : circular constant
-!     SA1   : interaction contribution of first quadruplet (unfolded spa
-!     SA2   : interaction contribution of second quadruplet (unfolded sp
+!     SA1   : interaction contribution of first quadruplet (unfolded space)
+!     SA2   : interaction contribution of second quadruplet (unfolded space)
 !     SFNL
 !     SNLC1
-!     SPCSIG: relative frequencies in computational domain in sigma-spac
+!     SPCSIG: relative frequencies in computational domain in sigma-space
 !     UE    : "unfolded" spectrum
 !     WWAWG : weight coefficients for the quadruplet interactions
 
@@ -2606,7 +2606,7 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2617,7 +2617,7 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2628,7 +2628,7 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
 !
 !     40.41, Sep. 04: piecewise constant interpolation instead
 !                     of bi-linear one
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -2695,11 +2695,11 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
 !     KMESPC: mean average wavenumber over full spectrum
 !     MEMNL4
 !     PI    : circular constant
-!     SA1   : interaction contribution of first quadruplet (unfolded spa
-!     SA2   : interaction contribution of second quadruplet (unfolded sp
+!     SA1   : interaction contribution of first quadruplet (unfolded space)
+!     SA2   : interaction contribution of second quadruplet (unfolded space)
 !     SFNL
 !     SNLC1
-!     SPCSIG: relative frequencies in computational domain in sigma-spac
+!     SPCSIG: relative frequencies in computational domain in sigma-space
 !     UE    : "unfolded" spectrum
 
    REAL    DAL1, DAL2, DAL3, FACHFR, KMESPC, SNLC1
@@ -2890,7 +2890,7 @@ SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2901,7 +2901,7 @@ SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2912,13 +2912,13 @@ SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
 !
 !  1. Updates
 !
-!     40.23, Aug. 02: rhs and main diagonal adjusted according to Patank
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.23, Aug. 02: rhs and main diagonal adjusted according to Patankar-rules
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.85, Aug. 08: store quadruplets for output purposes
 !
 !  2. Purpose
 !
-!     Fill the IMATRA/IMATDA arrays with the nonlinear wave-wave interac
+!     Fill the IMATRA/IMATDA arrays with the nonlinear wave-wave interaction
 !     source term for a gridpoint ix,iy per sweep direction
 !
 !  3. Method
@@ -3014,7 +3014,7 @@ SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3025,7 +3025,7 @@ SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
    USE M_PARALL
@@ -3051,9 +3051,9 @@ SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH,&
 !     02/02/2001 Interface modified, was N(k), now A(sigma) like SWAN
 !     06/11/2001 Bug fixed in initialisation of Snl
 !     08/08/2002 Version 4
-!     22/08/2002 Size of direction array modified to conform with SWAN 4
+!     22/08/2002 Size of direction array modified to conform with SWAN 40.11
 !     09/09/2002 Release 5
-!     18/05/2004 Implemented in SWAN 40.41, with adapted values of IQTYP
+!     18/05/2004 Implemented in SWAN 40.41, with adapted values of IQTYPE
 !
 !
 !  1. Purpose:
@@ -3076,14 +3076,14 @@ SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH,&
    INTEGER, INTENT(IN) :: IQTYPE                  ! method of computi
 !                                                      interactions
    REAL   , INTENT(IN) :: ASWAN(NDIR,NSIG,NGRID)  ! action density sp
-!                                                    ! function of (sigm
+!                                                    ! function of (sigma,dir)
    REAL   , INTENT(IN) :: SIGMA(NSIG)             ! Intrinsic frequen
    REAL   , INTENT(IN) :: DIR(NDIR,6)             ! directions in rad
    REAL   , INTENT(IN) :: DEPTH(NGRID)            ! depth array
    INTEGER, INTENT(IN) :: ICMAX                   ! number of points
    INTEGER, INTENT(IN) :: KCGRD(ICMAX)            ! grid addresses fo
    REAL   , INTENT(OUT):: SNL(NDIR,NSIG,NGRID)    ! nonlinear quadrup
-!                                                    ! a certain exact m
+!                                                    ! a certain exact method (sigma,dir)
    INTEGER, INTENT(OUT):: IERROR                  ! Error indicator.
 !-----------------------------------------------------------------------
 !
@@ -3167,7 +3167,7 @@ SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH,&
 !     IQTYPE/IQUAD = 52/2   ! deep water transfer with WAM depth scaling
 !     IQTYPE/IQUAD = 53/3   ! finite depth transfer
 !
-!     --- call of main subroutine to compute nonlinear quadruplet intera
+!     --- call of main subroutine to compute nonlinear quadruplet interactions
 !         for a given action density spectrum on a given spectral grid
 
    XNL   = 0.
@@ -3177,7 +3177,7 @@ SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH,&
 
    IF (IERROR.NE.0) RETURN
 
-!     --- convert nonlinear transfer to SWAN convention, only sequence o
+!     --- convert nonlinear transfer to SWAN convention, only sequence of indices
 
    DO ISIG = 1, NSIG
       DO IDIR = 1, NDIR
@@ -3214,7 +3214,7 @@ SUBROUTINE TCOEF ( W1, W2, W12, K1, K2, K12, DEP, R, S )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3225,7 +3225,7 @@ SUBROUTINE TCOEF ( W1, W2, W12, K1, K2, K12, DEP, R, S )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -3249,12 +3249,12 @@ SUBROUTINE TCOEF ( W1, W2, W12, K1, K2, K12, DEP, R, S )
 !
 !     R_m,p-m = (k_m + k_p-m)^2 * [0.5 + (w_m*w_p-m / g*h*k_m*k_p-m)]
 !
-!     S_p     = -2/g * ( g*h*k_p + 2*B*g*h^3*k_p^3 - (B+(1/3))*h^2*w_p^2
+!     S_p     = -2/g * ( g*h*k_p + 2*B*g*h^3*k_p^3 - (B+(1/3))*h^2*w_p^2*k_p )
 !
 !     where: B = 1/15
 !
 !     See also Becq-Girard et al (1999), Eqs. 2.5 and 2.6
-!     Further details can be found in Akrish et al (2024), Eqs. (13)-(15
+!     Further details can be found in Akrish et al (2024), Eqs. (13)-(15)
 !     and Appendix A
 !
 !  4. Argument variables
@@ -3263,7 +3263,7 @@ SUBROUTINE TCOEF ( W1, W2, W12, K1, K2, K12, DEP, R, S )
 !     R           numerator of transfer function
 !     S           denominator of transfer function
 !
-!     W1, W2, W12 w_p, w_m, w_I      where I represents the sum or diffe
+!     W1, W2, W12 w_p, w_m, w_I      where I represents the sum or difference, i.e.
 !     K1, K2, K12 k_p, k_m, k_I      I=p-m and I=p+m, respectively
 
    REAL :: W1, W2, W12
@@ -3280,7 +3280,7 @@ SUBROUTINE TCOEF ( W1, W2, W12, K1, K2, K12, DEP, R, S )
 !     A2          second optimization parameter for QuadWave1D
 !     A3          third optimization parameter for QuadWave1D
 !
-!     Note: these optimization parameters minimize the error in nonlinea
+!     Note: these optimization parameters minimize the error in nonlinearity
 !           while maintaining the dispersion properties of the Bredmose
 !           model
 
@@ -3294,7 +3294,7 @@ SUBROUTINE TCOEF ( W1, W2, W12, K1, K2, K12, DEP, R, S )
 !     ITRF  : indicates type of transfer function for triad interaction
 !             =1; classic Boussinesq: Freilich and Guza (1984), Herbers
 !             =2; deterministic Boussinesq of Madsen and Sorensen (1993)
-!             =3; exact second order transfer coefficient of Bredmose et
+!             =3; exact second order transfer coefficient of Bredmose et al (2005)
 !             =4; QuadWave of Akrish et al (2024)
 
    INTEGER, SAVE :: IENT = 0
@@ -3339,7 +3339,7 @@ SUBROUTINE TCOEF ( W1, W2, W12, K1, K2, K12, DEP, R, S )
    B3    = B + 1./3.
 
    IF ( ITRF.EQ.1 ) THEN !classic Boussinesq
-!          R = 0.75 * (W2 + W12) should be W1! See Herbers and Burton, E
+!          R = 0.75 * (W2 + W12) should be W1! See Herbers and Burton, Eq. 11
       R = 0.75 * W1
       S = -DEP * SQRT(GRAV*DEP)
 
@@ -3398,7 +3398,7 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3409,7 +3409,7 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -3687,7 +3687,7 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG )
                   K3 = -1.
                ENDIF
 
-!                 --- compute the wave number mismatch and frequency ste
+!                 --- compute the wave number mismatch and frequency step
 
                DK = K3 + K2 - K1
                DF = FRINTF * SIG2 / PI2
@@ -3716,7 +3716,7 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG )
                   KB = PTRIAD(6)*KM + PTRIAD(7)
                   FT = KB * DF / (DK*DK + KB*KB)
                ELSE IF ( ITRIAD.EQ.3 ) THEN
-!                    based on the quasi-normal closure using parametrize
+!                    based on the quasi-normal closure using parametrized biphase
 !                    (see routine SWFTIM)
                   FT = DF / MAX( ABS(DK), 0.1*K1 )
                ENDIF
@@ -3764,7 +3764,7 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG )
                   K3 = -1.
                ENDIF
 
-!                 --- compute the wave number mismatch and frequency ste
+!                 --- compute the wave number mismatch and frequency step
 
                DK = K1 + K2 - K3
                DF = FRINTF * SIG2 / PI2
@@ -3793,7 +3793,7 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG )
                   KB = PTRIAD(6)*KM + PTRIAD(7)
                   FT = KB * DF / (DK*DK + KB*KB)
                ELSE IF ( ITRIAD.EQ.3 ) THEN
-!                    based on the quasi-normal closure using parametrize
+!                    based on the quasi-normal closure using parametrized biphase
 !                    (see routine SWFTIM)
                   FT = DF / MAX( ABS(DK), 0.1*K1 )
                ENDIF
@@ -3849,7 +3849,7 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG )
                K2   = K     (IS2)
                CG2  = CG    (IS2)
 
-!                 --- determine third component by means of quasi-resona
+!                 --- determine third component by means of quasi-resonance condition
                SIG3 = ABS(SIG2 - SIG1)
 
                J = J + 1
@@ -3934,7 +3934,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3945,7 +3945,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4013,11 +4013,11 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !     - The interactions are calculated up to 2.5 times the mean
 !       frequency only.
 !
-!     - The consistent collinear approximation (CCA) of Salmon et al (20
+!     - The consistent collinear approximation (CCA) of Salmon et al (2016)
 !       is applied. The directional integration as given by their Eq. 13
 !       is determined by a tunable parameter.
 !
-!     - Since the spectral grid is logarithmically distributed in freque
+!     - Since the spectral grid is logarithmically distributed in frequency
 !       space, the interactions between central bin and interacting bin
 !       are interpolated such that the distance between these bins is
 !       factor 2 (nearly).
@@ -4045,10 +4045,10 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !     ISSTOP      maximum frequency counter in a sweep
 !     PLTRI       triad contribution in TEST points
 !     QTL2        frequency-dependent scaling factor
-!     REDC0       explicit part of energy redistribution for output purp
-!     REDC1       implicit part of energy redistribution for output purp
+!     REDC0       explicit part of energy redistribution for output purposes
+!     REDC1       implicit part of energy redistribution for output purposes
 !     SMEBRK      average (angular) frequency
-!     SPCSIG      relative frequencies in computational domain in sigma-
+!     SPCSIG      relative frequencies in computational domain in sigma-space
 !     URSELL      Ursell number
 
    INTEGER IDDLOW, IDDTOP, ISSTOP
@@ -4141,7 +4141,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
    SA  = 0.
    SA3 = 0.
 
-!     --- compute maximum frequency for which interactions are calculate
+!     --- compute maximum frequency for which interactions are calculated
 
    ISMAX = 1
    DO IS = 1, MSC
@@ -4170,7 +4170,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
          IDW = -1
       ENDIF
 
-!        --- calculate integral of E(f,t) over all directions, if desire
+!        --- calculate integral of E(f,t) over all directions, if desired
       IF ( IDW.EQ.-1 ) THEN
          ED(:) = SUM(AC2(:,:,KCGRD(1)),DIM=1) * 2.*PI*SPCSIG(:) *DDIR
       ENDIF
@@ -4178,7 +4178,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
       DO II = IDDLOW, IDDTOP
          ID = MOD ( II - 1 + MDC , MDC ) + 1
 
-!           --- initialize array with E(f) for the direction theta consi
+!           --- initialize array with E(f) for the direction theta considered
 
          E(:) = AC2(ID,:,KCGRD(1)) * 2. * PI * SPCSIG(:)
 
@@ -4346,7 +4346,7 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4357,7 +4357,7 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4398,7 +4398,7 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !     p  is a shape coefficient to force the high-frequency tail
 !
 !     Note that factor T is a heuristically determined coefficient that
-!     on the group velocity, water depth, mean frequency and mean wave n
+!     on the group velocity, water depth, mean frequency and mean wave number
 !
 !     Note that the interactions are calculated in terms of energy
 !     density instead of action density
@@ -4419,10 +4419,10 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !     PLTRI       triad contribution in TEST points
 !     QTL1        frequency-dependent interpolation factors
 !     QTL2        frequency-dependent scaling factors
-!     REDC0       explicit part of energy redistribution for output purp
-!     REDC1       implicit part of energy redistribution for output purp
+!     REDC0       explicit part of energy redistribution for output purposes
+!     REDC1       implicit part of energy redistribution for output purposes
 !     SIGM        mean angular frequency
-!     SPCSIG      relative frequencies in computational domain in sigma-
+!     SPCSIG      relative frequencies in computational domain in sigma-space
 !     URSELL      Ursell number
 
    INTEGER IDDLOW, IDDTOP, ISSTOP
@@ -4534,14 +4534,14 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
                SIG2 = SPCSIG(IS2)
                E2   = E     (IS2)
 
-!                --- determine third component by means of quasi-resonan
+!                --- determine third component by means of quasi-resonance condition
                SIG3 = SIG2 - SIG1
 
                J = J + 1
 
                IF ( SIG3.GT.SPCSIG(1) ) THEN
 
-!                   --- obtain third energy density by means of interpol
+!                   --- obtain third energy density by means of interpolation
 
                   WIS = QTL1(J,1)
                   IS3 = INT(QTL1(J,2))
@@ -4626,7 +4626,7 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4637,7 +4637,7 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4678,7 +4678,7 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
 !     p  is a shape coefficient to force the high-frequency tail
 !
 !     Note that factor T is a heuristically determined coefficient that
-!     on the group velocity, water depth, mean frequency and mean wave n
+!     on the group velocity, water depth, mean frequency and mean wave number
 !
 !     Note that the interactions are calculated in terms of energy
 !     density instead of action density
@@ -4701,8 +4701,8 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
 !     PLTRI       triad contribution in TEST points
 !     QTL1        frequency-dependent interpolation factors
 !     QTL2        frequency-dependent scaling factors
-!     REDC0       explicit part of energy redistribution for output purp
-!     REDC1       implicit part of energy redistribution for output purp
+!     REDC0       explicit part of energy redistribution for output purposes
+!     REDC1       implicit part of energy redistribution for output purposes
 !     SIGM        mean angular frequency
 !     SPCDIR      (*,1); spectral directions (radians)
 !                 (*,2); cosine of spectral directions
@@ -4710,7 +4710,7 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
 !                 (*,4); cosine^2 of spectral directions
 !                 (*,5); cosine*sine of spectral directions
 !                 (*,6); sine^2 of spectral directions
-!     SPCSIG      relative frequencies in computational domain in sigma-
+!     SPCSIG      relative frequencies in computational domain in sigma-space
 !     URSELL      Ursell number
 
    INTEGER IDDLOW, IDDTOP, ISSTOP
@@ -4868,7 +4868,7 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
                   ECOS2 = SPCDIR(ID2,2)
                   ESIN2 = SPCDIR(ID2,3)
 
-!                   --- determine third component by means of quasi-reso
+!                   --- determine third component by means of quasi-resonance condition
                   SIG3 = ABS(SIG2 - SIG1)
 
                   IF ( SIG3.GT.SPCSIG(1) ) THEN
@@ -4890,7 +4890,7 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
                         TH3 = TH1 - ASIN(-K2/K12*SIN12)
                      ENDIF
 
-!                      --- obtain third energy density by means of inter
+!                      --- obtain third energy density by means of interpolation
 
                      WIS = QTL1(J,1)
                      IS3 = INT(QTL1(J,2))
@@ -5147,7 +5147,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5158,7 +5158,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5211,9 +5211,9 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 !     PLTRI       triad contribution in TEST points
 !     QTL1        frequency-dependent interpolation factors
 !     QTL2        frequency-dependent scaling factors
-!     REDC0       explicit part of energy redistribution for output purp
-!     REDC1       implicit part of energy redistribution for output purp
-!     SPCSIG      relative frequencies in computational domain in sigma-
+!     REDC0       explicit part of energy redistribution for output purposes
+!     REDC1       implicit part of energy redistribution for output purposes
+!     SPCSIG      relative frequencies in computational domain in sigma-space
 !     URSELL      Ursell number
 
    INTEGER IDDLOW, IDDTOP, ISSTOP
@@ -5314,7 +5314,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
          IDW = -1
       ENDIF
 
-!        --- calculate integral of E(f,t) over all directions, if desire
+!        --- calculate integral of E(f,t) over all directions, if desired
       IF ( IDW.EQ.-1 ) THEN
          ED(:) = SUM(AC2(:,:,KCGRD(1)),DIM=1) * 2.*PI*SPCSIG(:) *DDIR
       ENDIF
@@ -5322,7 +5322,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
       DO II = IDDLOW, IDDTOP
          ID = MOD ( II - 1 + MDC , MDC ) + 1
 
-!           --- initialize array with E(f) for the direction theta consi
+!           --- initialize array with E(f) for the direction theta considered
 
          E(:) = AC2(ID,:,KCGRD(1)) * 2. * PI * SPCSIG(:)
 
@@ -5371,7 +5371,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 
                J = J + 1
 
-!                 --- obtain primary energy density by means of interpol
+!                 --- obtain primary energy density by means of interpolation
 
                IF ( WPM.GT.SPCSIG(1) ) THEN
 
@@ -5425,7 +5425,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 
                J = J + 1
 
-!                 --- obtain primary energy density by means of interpol
+!                 --- obtain primary energy density by means of interpolation
 
                IF ( WPM.LT.SPCSIG(MSC) ) THEN
 
@@ -5522,7 +5522,7 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5533,7 +5533,7 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5661,7 +5661,7 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5672,7 +5672,7 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5710,8 +5710,8 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
 
 !  5. Parameter variables
 !
-!     IDIM        number of interpolation nodes related to the bed slope
-!     JDIM        number of interpolation nodes related to the peak peri
+!     IDIM        number of interpolation nodes related to the bed slopes
+!     JDIM        number of interpolation nodes related to the peak periods
 
    INTEGER, PARAMETER :: IDIM = 8
    INTEGER, PARAMETER :: JDIM = 5
@@ -5910,7 +5910,7 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5921,7 +5921,7 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors

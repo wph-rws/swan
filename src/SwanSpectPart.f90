@@ -1,7 +1,7 @@
 !     Contents of this file
 !
-!     W3ODATMD           Parameters required for partitioning model outp
-!     SWPARTMD           Spectral partitioning according to the watershe
+!     W3ODATMD           Parameters required for partitioning model output
+!     SWPARTMD           Spectral partitioning according to the watershed method
 !        includes the subroutines :
 !        SWPART     (interface to watershed routines)
 !        PTSORT     (sort discretized image)
@@ -26,7 +26,7 @@ MODULE W3ODATMD
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -37,7 +37,7 @@ MODULE W3ODATMD
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -50,7 +50,7 @@ MODULE W3ODATMD
 !
 !  2. Purpose
 !
-!     This module considers the parameters required for partitioned mode
+!     This module considers the parameters required for partitioned model output
 !     (from the WAVEWATCH III codes w3odatmd.ftn and ww3_grid.ftn)
 !
 !  3. Method
@@ -137,7 +137,7 @@ MODULE SWPARTMD
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -148,7 +148,7 @@ MODULE SWPARTMD
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -220,12 +220,12 @@ MODULE SWPARTMD
 
 CONTAINS
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
    SUBROUTINE SWPART ( SPEC, UABS, UDIR, DEPTH, WN, SPCSIG, SPCDIR,&
    &NP, XP, DIMXP )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
       USE W3ODATMD, ONLY: WSCUT, FLCOMB
       USE SWCOMM3 , ONLY: MSC, MDC
@@ -245,7 +245,7 @@ CONTAINS
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -256,7 +256,7 @@ CONTAINS
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -474,11 +474,11 @@ CONTAINS
 !     end of subroutine SWPART
    end subroutine SWPART
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
    SUBROUTINE PTSORT ( IMI, IND, IHMAX )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
       USE SWCOMM3, ONLY: MSC, MDC
 
@@ -495,7 +495,7 @@ CONTAINS
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -506,7 +506,7 @@ CONTAINS
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -611,11 +611,11 @@ CONTAINS
 !     end of subroutine PTSORT
    end subroutine PTSORT
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
    SUBROUTINE PTNGHB
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
       USE SWCOMM3, ONLY: MSC, MDC
       USE OCPCOMM4, ONLY: PRINTF
@@ -633,7 +633,7 @@ CONTAINS
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -644,7 +644,7 @@ CONTAINS
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -842,11 +842,11 @@ CONTAINS
 !     end of subroutine PTNGHB
    end subroutine PTNGHB
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
    SUBROUTINE PT_FLD ( IMI, IND, IMO, ZP, NPART )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
       USE SWCOMM3, ONLY: MSC, MDC
 
@@ -864,7 +864,7 @@ CONTAINS
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -875,7 +875,7 @@ CONTAINS
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1184,12 +1184,12 @@ CONTAINS
 !     end of subroutine PT_FLD
    end subroutine PT_FLD
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
    SUBROUTINE PTMEAN ( NPI, IMO, ZP, DEPTH, UABS, UDIR, WN,&
    &SPCSIG, SPCDIR, NPO, XP, DIMXP, PMAP )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
       USE SWCOMM3, ONLY: MSC, MDC, DDIR, PI2, DEGRAD, FRINTF
       USE SWCOMM1, ONLY: OUTPAR
@@ -1209,7 +1209,7 @@ CONTAINS
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1220,7 +1220,7 @@ CONTAINS
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors

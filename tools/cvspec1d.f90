@@ -13,7 +13,7 @@ program cvspec1d
 !     1: name of the input file (file containing spectra in old format)
 !     2: number of spectral frequencies
 !     3: average direction, or -999. if average direction is in the file
-!     4: directional spread (in degr), or -999. if spreading is in the f
+!     4: directional spread (in degr), or -999. if spreading is in the file
 !     5: number of columns in the input file (excluding the first column
 !        which always contains the frequencies)
 

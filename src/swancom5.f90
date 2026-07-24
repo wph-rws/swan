@@ -57,7 +57,7 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -68,7 +68,7 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -79,7 +79,7 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
 !  1. Updates
 !
 !     40.41, Sep. 04: New subroutine (taken from routine SWPSEL)
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.98, Feb. 09: SORDUP scheme is made consistent
 !
 !  2. Purpose
@@ -256,7 +256,7 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -267,7 +267,7 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -280,7 +280,7 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 !
 !  1. Updates
 !
-!     20.44, Sep. 96: Subroutine completely reorganised subroutine has n
+!     20.44, Sep. 96: Subroutine completely reorganised subroutine has new name
 !                     instead of COUNT
 !     32.02, Feb. 98: Introduced 1D-version
 !     40.00, July 98: common swcomm3 introduced, argument list changed
@@ -292,12 +292,12 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 !                     error severity changed for "blocked" points
 !                     "blocked" points written to error points file
 !                     comments added
-!                     minimal value of ISSTOP is 4 (in view of CGSTAB so
-!     40.13, July 01: values of DX2 and DY2 corrected in repeating coord
+!                     minimal value of ISSTOP is 4 (in view of CGSTAB solver)
+!     40.13, July 01: values of DX2 and DY2 corrected in repeating coordinates
 !     40.30, Mar. 03: introduction distributed-memory approach using MPI
-!     40.41, Sep. 04: part concerning computation of geometric quantitie
+!     40.41, Sep. 04: part concerning computation of geometric quantities
 !                     moved to new routine SWGEOM
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -360,10 +360,10 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 !                                              ..*..
 !                                           *.........*
 !                                         |. ............      |   *..*
-!            |              |            *|    ..o.......*     | *......
-!            |             *|*            |...... .......      | *......
+!            |              |            *|    ..o.......*     | *......*
+!            |             *|*            |...... .......      | *......*
 !            |           *  |..*          |*...     ....*      |   *..*
-!       -----|-----    -*---|---*-   -----|--*-------*--    ---|--------
+!       -----|-----    -*---|---*-   -----|--*-------*--    ---|-------------
 !            |           *  |  *          |      *             |
 !       * *  |             *|*            |                    |
 !     *     *|              |             |                    |
@@ -850,7 +850,7 @@ SUBROUTINE SPROXY (CAX        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -861,14 +861,14 @@ SUBROUTINE SPROXY (CAX        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !     1. UPDATE
 !
 !        40.13, Oct. 01: loop over IC now inside this subroutine
 !        40.21, Aug. 01: adaption of velocities in case of diffraction
-!        40.41, Oct. 04: common blocks replaced by modules, include file
+!        40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !     2. PURPOSE
 !
@@ -952,7 +952,7 @@ SUBROUTINE SPROXY (CAX        ,&
 !
 !     9. STRUCTURE
 !
-!       ****************************************************************
+!       ******************************************************************
 !       *  attention! in the action balance equation the term
 !       *  dx
 !       *  -- = CGO + U = CX  with x, CGO, U and CX vectors
@@ -960,17 +960,17 @@ SUBROUTINE SPROXY (CAX        ,&
 !       *  is in the literature the term dx/dt often indicated
 !       *  with CX and CY in the action balance equation.
 !       *  In this program we use:    CAX = CGO + U
-!       ****************************************************************
+!       ******************************************************************
 !
 !   ------------------------------------------------------------
 !   If depth is negative ( DEP(IX,IY) <= 0), then,
 !     For every point in S and D-direction do,
 !       Give propagation velocities default values :
-!       CAX(ID,IS,IC)     = 0.   {propagation velocity of energy in X-di
-!       CAY(ID,IS,IC)     = 0.   {propagation velocity of energy in Y-di
+!       CAX(ID,IS,IC)     = 0.   {propagation velocity of energy in X-dir.}
+!       CAY(ID,IS,IC)     = 0.   {propagation velocity of energy in Y-dir.}
 !     ---------------------------------------------------------
 !   Else if current is on (ICUR > 0) then,
-!     For every point in S and D-direction do,  {using the output of SWA
+!     For every point in S and D-direction do,  {using the output of SWAPAR}
 !       S = logaritmic distributed via LOGSIG
 !       Compute propagation velocity in X-direction:
 !
@@ -1010,7 +1010,7 @@ SUBROUTINE SPROXY (CAX        ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER, SAVE :: IENT = 0
    INTEGER  IP, IC    ,IS    ,ID    ,SWPDIR
@@ -1129,7 +1129,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1140,7 +1140,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1159,30 +1159,30 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 !
 !  1. Updates
 !
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.80, Nov. 98: Provision for limitation on Ctheta (refraction)
 !     30.80, Aug. 99: SWCOMM3.INC included
 !     30.80, Sep. 99: SWCOMM2.INC included, limitation modified
-!     40.03, Dec. 99: for directions outside the current sweep the depth
+!     40.03, Dec. 99: for directions outside the current sweep the depth and
 !                     current gradients are computed using the gradient
 !                     proper side of the grid point.
 !                     argument KGRPNT added.
 !                     argument IC removed (is always 1)
 !                     argument DT removed, TIMECOMM.INC included
 !                     code completely revised
-!     40.02, Jan. 00: Introduction limiter dependent on Cx, Cy, Dx and D
+!     40.02, Jan. 00: Introduction limiter dependent on Cx, Cy, Dx and Dy
 !     40.02, Sep. 00: Corrected order of handling sweeps
 !     40.02, Sep. 00: Limiter on refraction only activated when IREFR=-1
 !     40.14, Nov. 00: Land points excluded (bug fix)
 !     40.21, Aug. 01: adaption of velocities in case of diffraction
-!     40.30, Mar. 03: correcting indices of test point with offsets MXF,
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.30, Mar. 03: correcting indices of test point with offsets MXF, MYF
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.59, Aug. 07: replace upwind scheme with centered scheme;
-!                     replace @h/@x method for computation of CAD with @
+!                     replace @h/@x method for computation of CAD with @C/@x method
 !                     limitation procedure removed
 !                     sweeping procedure removed
-!     40.61, Dec. 06: correction DO loop 60 (IDCMIN, IDCMAX -> IDDLOW,ID
-!     41.06, Mar. 09: add option of limitation of velocity in theta-dire
+!     40.61, Dec. 06: correction DO loop 60 (IDCMIN, IDCMAX -> IDDLOW,IDDTOP)
+!     41.06, Mar. 09: add option of limitation of velocity in theta-direction
 !     41.35, Mar. 12: add option of limitation on csigma and ctheta
 !
 !  2. Purpose
@@ -1224,10 +1224,10 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 
    INTEGER, INTENT(IN) :: IDDLOW, IDDTOP
 
-!     CAS   : Wave transport velocity in S-direction, function of (ID,IS
-!     CAD   : Wave transport velocity in D-dirctiion, function of (ID,IS
-!     CAX   : Wave transport velocity in X-direction, function of (ID,IS
-!     CAY   : Wave transport velocity in Y-direction, function of (ID,IS
+!     CAS   : Wave transport velocity in S-direction, function of (ID,IS,IC)
+!     CAD   : Wave transport velocity in D-dirctiion, function of (ID,IS,IC)
+!     CAX   : Wave transport velocity in X-direction, function of (ID,IS,IC)
+!     CAY   : Wave transport velocity in Y-direction, function of (ID,IS,IC)
 !     CGO   : Group velocity as function of X and Y and sigma in the
 !             direction of wave propagation in absence of currents
 !     DEP1  : Depth as function of X and Y at time T
@@ -1235,7 +1235,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 !     ECOS  : Represent the values of cos(d) of each spectral direction
 !     ESIN  : Represent the values of sin(d) of each spectral direction
 !     KWAVE : wavenumber as function of the relative frequency sigma
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 !     UX2   : X-component of current velocity of X and Y at time T+1
 !     UY2   : Y-component of current velocity of X and Y at time T+1
 !     XCGRID: x-coordinate of comput. grid points
@@ -1312,35 +1312,35 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 !  8. Remarks
 !
 !  Motivation for using @C/@x instead of @h/@x :
-!  Formulae for computing CAD via @h/@x and @C/@x are identical. However
-!     Experiments suggest that @C/@x method with coarse resolution yield
+!  Formulae for computing CAD via @h/@x and @C/@x are identical. However, they differ in result due to numerics.                     40.59
+!     Experiments suggest that @C/@x method with coarse resolution yields results that are similar to those                          40.59
 !     using @C/@x or @h/@x with high resolution.
-!     By contrast, @h/@x method with coarse resolution yields considerab
-!  Further, using @C/@x allows for adding refraction by additional varia
-!     Specifically, non-rigid seafloor (mud) can cause refraction even w
-!     Obviously, this type of refraction does require the mud to be non-
+!     By contrast, @h/@x method with coarse resolution yields considerably different result.                                         40.59
+!  Further, using @C/@x allows for adding refraction by additional variables included in dispersion relation.                        40.59
+!     Specifically, non-rigid seafloor (mud) can cause refraction even when water layer thickness (i.e. depths) are uniform.         40.59
+!     Obviously, this type of refraction does require the mud to be non-uniform.                                                     40.59
 !
 !  Motivation for using centered scheme instead of upwind scheme :
-!  Similar to above, the difference is only in numerics; experimental re
-!     better representation of unknown true solution via centered scheme
-!  Further, upwind scheme can lead to non-physical asymmetry in CAD, and
-!  Further still, implementation of the upwind scheme in versions such a
-!     keep track of results from neighboring sweeps. This involved large
-!     The utility of this sweeping is not known to this author, since it
+!  Similar to above, the difference is only in numerics; experimental results suggest                                                40.59
+!     better representation of unknown true solution via centered scheme.                                                            40.59
+!  Further, upwind scheme can lead to non-physical asymmetry in CAD, and therefore wave action field                                 40.59
+!  Further still, implementation of the upwind scheme in versions such as 40.41 and 40.51 used sweeping to                           40.59
+!     keep track of results from neighboring sweeps. This involved large amounts of additional code, which is obviously undesirable. 40.59
+!     The utility of this sweeping is not known to this author, since it does not seem to be strictly required by the upwind scheme. 40.59
 !     As evidence, note that v30.75 used the upwind scheme, but did not
 !
-!  Note that since we are using a centered scheme now, we stop before we
-!  It would be possible to have separate code for falling back to the up
-!  but this may require sweeping, which would mean much additional code,
+!  Note that since we are using a centered scheme now, we stop before we get to the last grid point.                                 40.59
+!  It would be possible to have separate code for falling back to the upwind scheme,                                                 40.59
+!  but this may require sweeping, which would mean much additional code, see e.g. code of public release v40.51                      40.59
 !
-!  Note: RDX and RDY are unavailable for P5-P2 and P4-P3, so we use as a
-!  Experience with implementation of more precise calculations of RDX,RD
-!      yielded imperceptible change in results. However, this could be a
+!  Note: RDX and RDY are unavailable for P5-P2 and P4-P3, so we use as approximation, 0.5*RDX(1), etc.                               40.59
+!  Experience with implementation of more precise calculations of RDX,RDY, specifically with the SORDUP scheme,                      40.59
+!      yielded imperceptible change in results. However, this could be added later if sufficiently motivated.                        40.59
 !
-!  The depth refraction limitation procedure (i.e. IREFR=-1) has been re
-!      we hope/expect has been made unnecessary by the other changes her
-!      restored, but this is not straightforward, since C is computed fr
-!      To make this work, the depths would be limited here in SPROSD and
+!  The depth refraction limitation procedure (i.e. IREFR=-1) has been removed, because it is basically a "dirty fix" which           40.59
+!      we hope/expect has been made unnecessary by the other changes here. If we are wrong about this, the "dirty fix" can be        40.59
+!      restored, but this is not straightforward, since C is computed from k, which is an input argument not affected by IREFR.      40.59
+!      To make this work, the depths would be limited here in SPROSD and k would then need to be calculated                          40.59
 !      using the limited depths within SPROSD.
 !
 !  9. STRUCTURE
@@ -1362,7 +1362,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 !
 !   10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
    IF (LTRACE) CALL STRACE (IENT,'SPROSD')
 
@@ -1552,11 +1552,11 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
             CAD_TMP=COEF*(ESIN(ID)*DHDX-ECOS(ID)*DHDY) ! @h/@x method,
          ELSE IF ( INT(PNUMS(32)).EQ.1 ) THEN
             CAD_TMP=(CGLOC1/CLOC1)*(ESIN(ID)*DCDX-ECOS(ID)*DCDY) ! @C/@
-!             CAD_TMP=(CGLOC1/KLOC1)*(-1.0)*(ESIN(ID)*DKDX-ECOS(ID)*DKDY
+!             CAD_TMP=(CGLOC1/KLOC1)*(-1.0)*(ESIN(ID)*DKDX-ECOS(ID)*DKDY)   ! @k/@x method, differs only very slightly from @C/dx
          ENDIF
 
-!         Intuitively, one may expect that variable currents could be in
-!         C is determined from sigma and k (and the latter is determined
+!         Intuitively, one may expect that variable currents could be included via @C/@x. However, this is not the case.
+!         C is determined from sigma and k (and the latter is determined from sigma).
 !         Thus, if dealing with a fixed sigma value, as in SWAN,
 !            having non-uniform currents does not result in non-uniform
 
@@ -1743,7 +1743,7 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1754,7 +1754,7 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1766,7 +1766,7 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
 !
 !     33.09, Aug. 99: new subroutine
 !     40.41, Aug. 04: CG replaced by CAX*COS(D)+CAY*SIN(D)
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -1776,7 +1776,7 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
 !  3. Method
 !
 !     References:
-!     W. E. Rogers, J. M. Kaihatu, H. A. H. Petit, N. Booij and L. H. Ho
+!     W. E. Rogers, J. M. Kaihatu, H. A. H. Petit, N. Booij and L. H. Holthuijsen,
 !     "Multiple-scale Propagation in a Third-Generation Wind Wave Model"
 !     in preparation
 !
@@ -1806,14 +1806,14 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
 
    LOGICAL  ANYBIN(MDC,MSC)
 
-!     o  CAD    3D    Wave transport velocity in D-direction, function o
+!     o  CAD    3D    Wave transport velocity in D-direction, function of
 !                     (ID,IS,IC)
 !     i  CAX    3D    propagation velocity in X-direction (CGO+UX)
 !     i  CAY    3D    propagation velocity in Y-direction (CGO+UY)
-!     i  YCGRID 2D    Y-coordinate (latitude) for each geographic grid p
-!     i  ECOS   1D    Represent the values of Cos(Theta) of each spectra
+!     i  YCGRID 2D    Y-coordinate (latitude) for each geographic grid point
+!     i  ECOS   1D    Represent the values of Cos(Theta) of each spectral
 !                     direction
-!     i  ESIN   1D    Represent the values of Sin(Theta) of each spectra
+!     i  ESIN   1D    Represent the values of Sin(Theta) of each spectral
 !                     direction
 !
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint
@@ -1863,7 +1863,7 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER, SAVE :: IENT=0
    IF (LTRACE) CALL STRACE (IENT,'DSPHER')
@@ -1914,7 +1914,7 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1925,13 +1925,13 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !     0. AUTHORS
 !
 !        30.72: IJsbrand Haagsma
-!        33.08: W. Erick Rogers (a few changes related to the S&L scheme
+!        33.08: W. Erick Rogers (a few changes related to the S&L scheme)
 !        33.09: Nico Booij (changes related to spherical coordinates)
 !        40.08: Erick Rogers
 !        40.41: Marcel Zijlema
@@ -1939,16 +1939,16 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !
 !     1. UPDATE
 !
-!        30.72, Oct. 97: changed floating point comparison to avoid equa
+!        30.72, Oct. 97: changed floating point comparison to avoid equality
 !                        comparisons
 !        new subroutine replacing STRSX and STRSY
 !        time derivative is included here
 !        33.08, July 98: STRSXY must use the rolled back AC when S&L is
 !                        elsewhere in the domain.
-!        33.09, June 99: commons swcomm2 and swcomm3 introduced, argumen
+!        33.09, June 99: commons swcomm2 and swcomm3 introduced, argument list
 !                        modified; introduction of spherical coordinates
 !        40.08, Mar. 03: Removed artifact from code
-!        40.41, Oct. 04: common blocks replaced by modules, include file
+!        40.41, Oct. 04: common blocks replaced by modules, include files removed
 !        40.85, Aug. 08: store xy-propagation for output purposes
 !
 !     2. PURPOSE
@@ -1969,18 +1969,18 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !            @x
 !
 !      RDX(1) *
-!      [CAX(ID,IS,1).AC2(ID,IS,KCGRD(1)) - CAX(ID,IS,2).AC2(ID,IS,KCGRD(
+!      [CAX(ID,IS,1).AC2(ID,IS,KCGRD(1)) - CAX(ID,IS,2).AC2(ID,IS,KCGRD(2))]
 !   +  RDX(2) *
-!      [CAX(ID,IS,1).AC2(ID,IS,KCGRD(1)) - CAX(ID,IS,3).AC2(ID,IS,KCGRD(
+!      [CAX(ID,IS,1).AC2(ID,IS,KCGRD(1)) - CAX(ID,IS,3).AC2(ID,IS,KCGRD(3))]
 !
 !        @[CAY AC2]
 !        --------- =
 !            @y
 !
 !      RDY(1) *
-!      [CAY(ID,IS,1).AC2(ID,IS,KCGRD(1)) - CAY(ID,IS,2).AC2(ID,IS,KCGRD(
+!      [CAY(ID,IS,1).AC2(ID,IS,KCGRD(1)) - CAY(ID,IS,2).AC2(ID,IS,KCGRD(2))]
 !   +  RDY(2) *
-!      [CAY(ID,IS,1).AC2(ID,IS,KCGRD(1)) - CAY(ID,IS,3).AC2(ID,IS,KCGRD(
+!      [CAY(ID,IS,1).AC2(ID,IS,KCGRD(1)) - CAY(ID,IS,3).AC2(ID,IS,KCGRD(3))]
 !
 !        in diagonal matrix: 1/DT + (RDX(1)+RDX(2)) * CAX(ID,IS,1)
 !                                 + (RDY(1)+RDY(2)) * CAY(ID,IS,1)
@@ -1991,22 +1991,22 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !
 !     4. PARAMETERLIST
 !
-!        KCGRD   int, i     Point index for grid points in comp molecule
+!        KCGRD   int, i     Point index for grid points in comp molecule  30.40
 !                           array of length ICMAX
 !        MDC     int, i     Maximum counter of directional distribution
 !        MSC     int, i     Maximum counter of relative frequency
 !        MCGRD   int, i     Maximum counter of gridpoints in space
-!        ICMAX   int, i     Maximum counter for the points of the molecu
-!        ISSTOP  int, i     highest spectral frequency counter in the sw
-!        IDCMIN  int, i     minimum value of direction counter in this s
-!        IDCMAX  int, i     maximum value of direction counter in this s
+!        ICMAX   int, i     Maximum counter for the points of the molecule
+!        ISSTOP  int, i     highest spectral frequency counter in the sweep
+!        IDCMIN  int, i     minimum value of direction counter in this sweep
+!        IDCMAX  int, i     maximum value of direction counter in this sweep
 !        CAX     rea, i     3D array    propagation velocity in x
 !        CAY     rea, i     3D array    propagation velocity in y
 !        AC2     rea, i     array  spectral action density, function of
 !                           x, y, theta, sigma
 !        IMATDA  rea, i/o   array  Coefficients of diagonal of matrix
-!        IMATRA  rea, i/o   array  Coefficients of right hand side of ma
-!        OBREDF  rea, i     action reduction factors, function of freq a
+!        IMATRA  rea, i/o   array  Coefficients of right hand side of matrix
+!        OBREDF  rea, i     action reduction factors, function of freq and
 !                           direction
 !        RDX,RDY 1D   i     array  containing spatial derivative coeff
 !        NUMOBS  int, i     number of obstacles in comp grid
@@ -2127,8 +2127,8 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !         *** the term FXY2 is known, store in IMATRA ***
 !         *** the term FXY1 is unknown, store in IMATDA ***
 !
-!         This business of doing rollback regardless of ITERMX was an ar
-!         and has been removed. Thus, the code reverts to its form in v4
+!         This business of doing rollback regardless of ITERMX was an artifact 40.08
+!         and has been removed. Thus, the code reverts to its form in v40.01   40.08
 
          IF (NSTATC.EQ.1) THEN
             IF (ITERMX.EQ.1) THEN
@@ -2214,7 +2214,7 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2225,12 +2225,12 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !     0. AUTHORS
 !
-!        33.10: Nico Booij and Erick Rogers (changes related to the SORD
+!        33.10: Nico Booij and Erick Rogers (changes related to the SORDUP scheme)
 !        33.09: Nico Booij (changes related to spherical coordinates)
 !        40.08: Erick Rogers
 !        40.41: Marcel Zijlema
@@ -2240,16 +2240,16 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !
 !     1. UPDATE
 !
-!        33.10, Jan. 2000: subroutine SORDUP created. It is a modified S
-!        40.08, Mar. 2003: Improve scheme to use dx,dy calculated over t
-!                          spaces (instead of one) where appropriate. Th
+!        33.10, Jan. 2000: subroutine SORDUP created. It is a modified STRSXY.
+!        40.08, Mar. 2003: Improve scheme to use dx,dy calculated over two grid
+!                          spaces (instead of one) where appropriate. This involves
 !                          the use of RDX(3),RDX(4),RDY(3),RDY(4). This
-!                          be a noticeable improvement. (I have not seen
-!                          case where the original SORDUP does poorly re
+!                          be a noticeable improvement. (I have not seen an example of a
+!                          case where the original SORDUP does poorly relative to BSBT,
 !                          so this is a speculative improvement).
-!                          Remove option for controllable 1st order diff
+!                          Remove option for controllable 1st order diffusion ("XYMU",
 !                          "THETAK", etc.)
-!        40.41, Oct. 04: common blocks replaced by modules, include file
+!        40.41, Oct. 04: common blocks replaced by modules, include files removed
 !        40.59, Aug. 07: stencil modification
 !        40.85, Aug. 08: store xy-propagation for output purposes
 !        40.98, Feb. 09: SORDUP scheme is made consistent
@@ -2263,12 +2263,12 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !        The scheme reduces to the "best" approximation of
 !             d/dx which can be determined using Taylor Series for the
 !             stencil (ix),(ix-1),(ix-2):
-!                         3/2*mu*phi(ix)-2*mu*phi(ix-1)+1/2*mu*phi(ix-2)
+!                         3/2*mu*phi(ix)-2*mu*phi(ix-1)+1/2*mu*phi(ix-2)  40.08
 !
 !     3. METHOD
 !
 !     References:
-!     W. E. Rogers, J. M. Kaihatu, H. A. H. Petit, N. Booij and L. H. Ho
+!     W. E. Rogers, J. M. Kaihatu, H. A. H. Petit, N. Booij and L. H. Holthuijsen,
 !     "Multiple-scale Propagation in a Third-Generation Wind Wave Model"
 !     in preparation
 !
@@ -2286,39 +2286,39 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !        --------- =
 !            @x
 !
-!        [1.5*CAX(ID,IS,1)*AC2(ID,IS,KCGRD(1))-2.0*CAX(ID,IS,2)*AC2(ID,I
+!        [1.5*CAX(ID,IS,1)*AC2(ID,IS,KCGRD(1))-2.0*CAX(ID,IS,2)*AC2(ID,IS,KCGRD(2))
 !        +0.5*CAX(ID,IS,6)*AC2(ID,IS,KCGRD(6))]/DX
 !
 !        @[CAY AC2]
 !        --------- =
 !            @y
 !
-!        [1.5*CAY(ID,IS,1)*AC2(ID,IS,KCGRD(1))-2.0*CAY(ID,IS,3)*AC2(ID,I
+!        [1.5*CAY(ID,IS,1)*AC2(ID,IS,KCGRD(1))-2.0*CAY(ID,IS,3)*AC2(ID,IS,KCGRD(3))
 !        +0.5*CAY(ID,IS,7)*AC2(ID,IS,KCGRD(7))]/DY
 !
 !        ADD TO DIAGONAL:
 !        +1.5*CAX(ID,IS,1)/DX+1.5*CAY(ID,IS,1)/DY
 !        ADD TO RHS:
-!        +[2.0*CAX(ID,IS,2)*AC2(ID,IS,KCGRD(2)-0.5*CAX(ID,IS,6)*AC2(ID,I
-!        +[2.0*CAY(ID,IS,3)*AC2(ID,IS,KCGRD(3)-0.5*CAY(ID,IS,7)*AC2(ID,I
+!        +[2.0*CAX(ID,IS,2)*AC2(ID,IS,KCGRD(2)-0.5*CAX(ID,IS,6)*AC2(ID,IS,KCGRD(6)]/DX
+!        +[2.0*CAY(ID,IS,3)*AC2(ID,IS,KCGRD(3)-0.5*CAY(ID,IS,7)*AC2(ID,IS,KCGRD(7)]/DY
 !
 !     4. PARAMETERLIST
 !
-!        KCGRD   int, i     Point index for grid points in comp molecule
+!        KCGRD   int, i     Point index for grid points in comp molecule  30.40
 !                           array of length ICMAX
 !        MDC     int, i     Maximum counter of directional distribution
 !        MSC     int, i     Maximum counter of relative frequency
 !        MCGRD   int, i     Maximum counter of gridpoints in space
-!        ICMAX   int, i     Maximum counter for the points of the molecu
-!        ISSTOP  int, i     highest spectral frequency counter in the sw
-!        IDCMIN  int, i     minimum value of direction counter in this s
-!        IDCMAX  int, i     maximum value of direction counter in this s
+!        ICMAX   int, i     Maximum counter for the points of the molecule
+!        ISSTOP  int, i     highest spectral frequency counter in the sweep
+!        IDCMIN  int, i     minimum value of direction counter in this sweep
+!        IDCMAX  int, i     maximum value of direction counter in this sweep
 !        CAX     rea, i     3D array    propagation velocity in x
 !        CAY     rea, i     3D array    propagation velocity in y
 !        AC2     rea, i     array  spectral action density, function of
 !                           x, y, theta, sigma
 !        IMATDA  rea, i/o   array  Coefficients of diagonal of matrix
-!        IMATRA  rea, i/o   array  Coefficients of right hand side of ma
+!        IMATRA  rea, i/o   array  Coefficients of right hand side of matrix
 !        RDX,RDY 1D   i     array  containing spatial derivative coeff
 !
 !     5. SUBROUTINES CALLING
@@ -2542,7 +2542,7 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2553,7 +2553,7 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !     0. AUTHORS
@@ -2567,12 +2567,12 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 !
 !     1. UPDATE
 !
-!        33.08, July 98: SANDL: New subroutine using a Stelling and Leen
+!        33.08, July 98: SANDL: New subroutine using a Stelling and Leenderste
 !                        SANDL: scheme (Qo=0,Q1=1/6) is created.
 !        33.09, Aug. 99: extension with spherical coordinates
 !        40.02, Aug. 00: Avoid more than 19 continuation lines
 !        40.08, Feb. 03: Check for exceedence of soft CFL criterion
-!        40.41, Oct. 04: common blocks replaced by modules, include file
+!        40.41, Oct. 04: common blocks replaced by modules, include files removed
 !        40.85, Aug. 08: store xy-propagation for output purposes
 !
 !     2. PURPOSE
@@ -2589,24 +2589,24 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 !        and H. Petit, 2002: "Diffusion Reduction in an Arbitrary
 !        Scale Wave Action Model", Ocean Eng, 29, 1357-1390.
 !
-!        computational stencil:                                     40.0
-!                                                                   33.0
-!      IY+1                 o 11 o 4  o 12                          33.0
-!                           |    |    |                             33.0
-!                 8    6    | 2  | 1  | 5                           33.0
-!      IY         o----o----o----*----o                             33.0
-!                           |    |    |                             33.0
-!                           10   | 3  | 13                          33.0
-!      IY-1                 o----o----o                             33.0
-!                                |                                  33.0
-!                                |                                  33.0
-!      IY-2                      o 7                                33.0
-!                                |                                  33.0
-!                                |                                  33.0
-!      IY-3                      o 9                                33.0
+!        computational stencil:                                     40.03
+!                                                                   33.08
+!      IY+1                 o 11 o 4  o 12                          33.08
+!                           |    |    |                             33.08
+!                 8    6    | 2  | 1  | 5                           33.08
+!      IY         o----o----o----*----o                             33.08
+!                           |    |    |                             33.08
+!                           10   | 3  | 13                          33.08
+!      IY-1                 o----o----o                             33.08
+!                                |                                  33.08
+!                                |                                  33.08
+!      IY-2                      o 7                                33.08
+!                                |                                  33.08
+!                                |                                  33.08
+!      IY-3                      o 9                                33.08
 !
 !                 ^    ^    ^    ^    ^
-!                 |    |    |    |    |                             33.0
+!                 |    |    |    |    |                             33.08
 !               IX-3 IX-2 IX-1  IX  IX+1
 !
 !        Compute the derivative in x-direction:
@@ -2620,8 +2620,8 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 !        --------- =
 !            @x
 !
-!       (1/4DX)*(CAX1(KCGRD(5))*AC1(KCGRD(5))-CAX1(KCGRD(2))*AC1(KCGRD(2
-!       +(1/12DX)*( 10*CAX(KCGRD(1))*AC2(KCGRD(1))-15*CAX(KCGRD(2))*AC2(
+!       (1/4DX)*(CAX1(KCGRD(5))*AC1(KCGRD(5))-CAX1(KCGRD(2))*AC1(KCGRD(2)))          33.08
+!       +(1/12DX)*( 10*CAX(KCGRD(1))*AC2(KCGRD(1))-15*CAX(KCGRD(2))*AC2(KCGRD(2))    33.08
 !       +6*CAX(KCGRD(6))*AC2(KCGRD(6))-1*CAX(KCGRD(8))*AC2(KCGRD(8)) )
 !
 !
@@ -2629,12 +2629,12 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 !        --------- =
 !            @y
 !
-!       (1/4DY)*(CAY1(KCGRD(4))*AC1(KCGRD(4))-CAY1(KCGRD(3))*AC1(KCGRD(3
-!       +(1/12DY)*( 10*CAY(KCGRD(1))*AC2(KCGRD(1))-15*CAY(KCGRD(3))*AC2(
+!       (1/4DY)*(CAY1(KCGRD(4))*AC1(KCGRD(4))-CAY1(KCGRD(3))*AC1(KCGRD(3)))          33.08
+!       +(1/12DY)*( 10*CAY(KCGRD(1))*AC2(KCGRD(1))-15*CAY(KCGRD(3))*AC2(KCGRD(3))    33.08
 !       +6*CAY(KCGRD(7))*AC2(KCGRD(7))-1*CAY(KCGRD(9))*AC2(KCGRD(9)) )
 !
-!        in diagonal matrix: 1/DT + (5./6.)*(RDX(1)+RDX(2)) * CAX(ID,IS,
-!                                 + (5./6.)*(RDY(1)+RDY(2)) * CAY(ID,IS,
+!        in diagonal matrix: 1/DT + (5./6.)*(RDX(1)+RDX(2)) * CAX(ID,IS,1)           33.08
+!                                 + (5./6.)*(RDY(1)+RDY(2)) * CAY(ID,IS,1)           33.08
 !
 !        in r.h.s.: AC1/DT + RDX(1)*CAX(ID,IS,2)*AC2(ID,IS,KCGRD(2))
 !                  +(5./4.) *RDY(2)*CAY(ID,IS,3)*AC2(ID,IS,KCGRD(3))
@@ -2664,25 +2664,25 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 !
 !                  Where DXX, DYY, and DXY are diffusion coefficients.
 !
-!         Notes (Rogers, Jan 10 2013) : I noticed a few years ago that t
+!         Notes (Rogers, Jan 10 2013) : I noticed a few years ago that there is
 !            some asymmetry to this anti-GSE implementation that can be
-!            In some tests, the asymmetry results in something that look
+!            In some tests, the asymmetry results in something that looks like a lima bean
 !            where we would expect an ellipsoid.
-!            If we do this, it may make some swell dispersion look a bit
-!            Good news: the change is to the variable "D12AC", which mea
+!            If we do this, it may make some swell dispersion look a bit more "natural"
+!            Good news: the change is to the variable "D12AC", which means that it is not complicated by RDX RDY
 !            Bad news: the change requires 3 new points in our stencil.
 !
 !         Notes (Rogers, Feb 21 2013) : this is now done.
 !            from ./RDX_FD_NOSUBS/swan_clone.f90 :
-!         < !            D12AC = 1.00*(QDENS(IX  ,JY  ) -     QDENS(IX-1
-!         <              D12AC = 0.25*(QDENS(IX+1,JY+1) -     QDENS(IX-1
-!                        thus indices are :   + IND12              -IND1
+!         < !            D12AC = 1.00*(QDENS(IX  ,JY  ) -     QDENS(IX-1,JY  ) - QDENS(IX  ,JY-1) + QDENS(IX-1,JY-1)) ! lima bean
+!         <              D12AC = 0.25*(QDENS(IX+1,JY+1) -     QDENS(IX-1,JY+1) - QDENS(IX+1,JY-1) + QDENS(IX-1,JY-1)) ! corrected
+!                        thus indices are :   + IND12              -IND11              -IND13            +IND10
 !
 !        The finite difference scheme for @^2/@x^2 is created by taking
 !          @A/@x=(A(i+0.5)-A(i-0.5))/dx
-!        ...and applying it twice, @(@A/@x)/@x=(A(i+1)-2*A(i)+A(i-1))/(d
+!        ...and applying it twice, @(@A/@x)/@x=(A(i+1)-2*A(i)+A(i-1))/(dx^2)
 !
-!        The OLD finite difference scheme for @(@A/@x)/@y is mentioned i
+!        The OLD finite difference scheme for @(@A/@x)/@y is mentioned in our paper, Rogers et al. (2002)
 !          However, I don't know the origins of this scheme.
 !
 !        The NEW finite difference scheme for @(@A/@x)/@y is created by
@@ -2692,18 +2692,18 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 !
 !     4. PARAMETERLIST
 !
-!        ISSTOP  int, i     highest spectral frequency counter in the sw
-!        IDCMIN  int, i     minimum value of direction counter in this s
-!        IDCMAX  int, i     maximum value of direction counter in this s
+!        ISSTOP  int, i     highest spectral frequency counter in the sweep
+!        IDCMIN  int, i     minimum value of direction counter in this sweep
+!        IDCMAX  int, i     maximum value of direction counter in this sweep
 !        CGO     rea, i     2D array    group velocity
-!        CAX     rea, i     3D array    propagation velocity in x  new t
+!        CAX     rea, i     3D array    propagation velocity in x  new time level
 !        CAY     rea, i     3D array    propagation velocity in y
-!        CAX1    rea, i     3D array    propagation velocity in x  old t
+!        CAX1    rea, i     3D array    propagation velocity in x  old time level
 !        CAY1    rea, i     3D array    propagation velocity in y
 !        AC2     rea, i     array  spectral action density, function of
 !                           x, y, theta, sigma
 !        IMATDA  rea, i/o   array  Coefficients of diagonal of matrix
-!        IMATRA  rea, i/o   array  Coefficients of right hand side of ma
+!        IMATRA  rea, i/o   array  Coefficients of right hand side of matrix
 !        RDX,RDY 1D   i     array  containing spatial derivative coeff
 !
 !     5. SUBROUTINES CALLING
@@ -2893,7 +2893,7 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 !           the known, rhs part
 !
 !
-!         To avoid violation of the ANSI standard this statement is spli
+!         To avoid violation of the ANSI standard this statement is split 40.02
 
             FXY2 =&
             &+1.25   * RDX(1) * CAX(ID,IS,2) * AC2(ID,IS,IND2)&
@@ -3035,7 +3035,7 @@ SUBROUTINE STRSSI(SPCSIG  ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3046,7 +3046,7 @@ SUBROUTINE STRSSI(SPCSIG  ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -3057,8 +3057,8 @@ SUBROUTINE STRSSI(SPCSIG  ,&
 !
 !  1. Updates
 !
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.85, Aug. 08: store sigma-propagation for output purposes
 !
 !  2. Purpose
@@ -3088,13 +3088,13 @@ SUBROUTINE STRSSI(SPCSIG  ,&
 !     ----------  =
 !        @S
 !
-!     CAS(ID,IS+1,1) AC2(ID,IS+1,IX,IY) - CAS(ID,IS-1,1) AC2(ID,IS-1,IX,
+!     CAS(ID,IS+1,1) AC2(ID,IS+1,IX,IY) - CAS(ID,IS-1,1) AC2(ID,IS-1,IX,IY)
 !     ------------------------------------------------------------------
 !                                      2 DS
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCSIG(MSC)
 
@@ -3349,7 +3349,7 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3360,7 +3360,7 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -3371,8 +3371,8 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 !
 !  1. Updates
 !
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     41.07, Jul. 09: also central scheme blended with upwind scheme
 !
 !  2. Purpose
@@ -3424,13 +3424,13 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 !     ---------------------------------- = -----------------------
 !                   DS                                DS
 !
-!                  /  CAS(IS+0.5) * ( (1-0.5mu)*AC2(IS+1) + 0.5mu*AC2(IS
+!                  /  CAS(IS+0.5) * ( (1-0.5mu)*AC2(IS+1) + 0.5mu*AC2(IS) )    IF CAS(IS+0.5) < 0
 !     F(IS+0.5) =  |
-!                  \  CAS(IS+0.5) * ( (1-0.5mu)*AC2(IS) + 0.5mu*AC2(IS+1
+!                  \  CAS(IS+0.5) * ( (1-0.5mu)*AC2(IS) + 0.5mu*AC2(IS+1) )    IF CAS(IS+0.5) > 0
 !
-!                  /  CAS(IS-0.5) * ( (1-0.5mu)*AC2(IS-1) + 0.5mu*AC2(IS
+!                  /  CAS(IS-0.5) * ( (1-0.5mu)*AC2(IS-1) + 0.5mu*AC2(IS) )    IF CAS(IS-0.5) > 0
 !     F(IS-0.5) =  |
-!                  \  CAS(IS-0.5) * ( (1-0.5mu)*AC2(IS) + 0.5mu*AC2(IS-1
+!                  \  CAS(IS-0.5) * ( (1-0.5mu)*AC2(IS) + 0.5mu*AC2(IS-1) )    IF CAS(IS-0.5) < 0
 !
 !     with
 !
@@ -3469,7 +3469,7 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCSIG(MSC)
 
@@ -3543,7 +3543,7 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER, SAVE :: IENT = 0
    INTEGER  IS      ,ID      ,ISSTOP  ,&
@@ -3732,7 +3732,7 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3743,12 +3743,12 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !     1. UPDATE
 !
-!        40.41, Oct. 04: common blocks replaced by modules, include file
+!        40.41, Oct. 04: common blocks replaced by modules, include files removed
 !        40.85, Aug. 08: store theta-propagation for output purposes
 !
 !     2. PURPOSE
@@ -3778,8 +3778,8 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
 !        ----------  =
 !           @D
 !
-!        CAD(ID+1,IS,1) AC2(ID+1,IS,IX,IY) - CAD(ID-1,IS,1) AC2(ID-1,IS,
-!        ---------------------------------------------------------------
+!        CAD(ID+1,IS,1) AC2(ID+1,IS,IX,IY) - CAD(ID-1,IS,1) AC2(ID-1,IS,IX,IY)
+!        --------------------------------------------------------------------
 !                                         2*DD
 !
 !     4. PARAMETERLIST
@@ -3925,7 +3925,7 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
 
             RHS12 = 0.
             IF (IIDM.EQ.0 .AND. C2.LT.0.) THEN
-!             fully upwind approximation at the boundary of the directio
+!             fully upwind approximation at the boundary of the directional
 !             sector
                DIAG12 = - PCD1 - PCD2
                LEAKC1(ID,IS) = -C2
@@ -4012,7 +4012,7 @@ SUBROUTINE STRSDFV (DD      ,IDCMIN  ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4023,7 +4023,7 @@ SUBROUTINE STRSDFV (DD      ,IDCMIN  ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4035,7 +4035,7 @@ SUBROUTINE STRSDFV (DD      ,IDCMIN  ,&
 !  1. Updates
 !
 !     40.23, Nov. 02: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.85, Aug. 08: store theta-propagation for output purposes
 !
 !  2. Purpose
@@ -4259,7 +4259,7 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4270,7 +4270,7 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !     0. Authors
@@ -4286,7 +4286,7 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 !                       argument list changed, swcomm3 added
 !        40.13, Aug 01: modification of action densities is skipped
 !                       in case of Mode Noupdate
-!        40.41, Oct 04: common blocks replaced by modules, include files
+!        40.41, Oct 04: common blocks replaced by modules, include files removed
 !        41.53, Oct 14: correction curvilinear grid
 !
 !     2. PURPOSE
@@ -4310,8 +4310,8 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 !     3. METHOD
 !
 !
-!          [RDX1*CAX + RDY1*CAY]*N(i-1,j) + [RDX2*CAX + RDY2*CAY]*N(i,j-
-! N(i,j) = -------------------------------------------------------------
+!          [RDX1*CAX + RDY1*CAY]*N(i-1,j) + [RDX2*CAX + RDY2*CAY]*N(i,j-1)
+! N(i,j) = ---------------------------------------------------------------
 !                      (RDX1+RDX2) * CAX  +  (RDY1+RDY2) * CAY
 !
 !     4. PARAMETERLIST
@@ -4404,7 +4404,7 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER  IS    ,ID    ,&
    &SWPDIR,IDDUM ,ISSTOP
@@ -4571,7 +4571,7 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4582,7 +4582,7 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4597,14 +4597,14 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
 !  1. Updates
 !
 !     20.96, Jan. 96: Computation of CGO etc. taken out of ID loop
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.81, Dec. 98: Argument list KSCIP1 adjusted
 !     30.82, July 99: Corrected argumentlist KSCIP1
 !     40.13, Oct. 01: single call to KSCIP1 instead of loop over call
 !                     N and ND declared as arrays
 !                     loop over IC now inside routine SWAPAR
 !     40.41, Aug. 04: CG moved to DSPHER and code optimized
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.59, Aug. 07: muddy bottom included
 !
 !  2. Purpose
@@ -4630,7 +4630,7 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCSIG(MSC)
 
@@ -4656,9 +4656,9 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
 !        ---------------------------------
 !
 !        CGO       2D    Group velocity as function of X and Y and S in
-!                        direction of wave propagation in absence of cur
+!                        direction of wave propagation in absence of currents
 !        DEP       2D    Depth as function of X and Y at certain time
-!        KWAVE     2D    wavenumber as function of the relative frequenc
+!        KWAVE     2D    wavenumber as function of the relative frequency S
 !
 !     5. SUBROUTINES CALLING
 !
@@ -4694,7 +4694,7 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 !
 !        IC          Dummy variable: ICode gridpoint:
 !                      IC = 1  Top or Bottom gridpoint
@@ -4874,7 +4874,7 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4885,7 +4885,7 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4900,16 +4900,16 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     ,&
 !
 !     20.53, Aug. 95: New subroutine
 !     30.74, Nov. 97: Prepared for version with INCLUDE statements
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
-!     40.61, Sep. 06: introduction of all separate dissipation coefficie
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
+!     40.61, Sep. 06: introduction of all separate dissipation coefficients
 !     40.67, Jun. 07: more accurate computation of dissipation terms
-!     40.85, Aug. 08: add also propagation, generation and redistributio
+!     40.85, Aug. 08: add also propagation, generation and redistribution terms
 !                     and radiation stress
 !     41.75, Jan. 19: adding sea ice
 !
 !  2. Purpose
 !
-!     Adds propagation, generation, dissipation, redistribution, leak an
+!     Adds propagation, generation, dissipation, redistribution, leak and radiation stress terms
 !
 !  3. Method
 !
@@ -4917,7 +4917,7 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     ,&
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCSIG(MSC)
 
@@ -4954,10 +4954,10 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     ,&
 !     The same holds for DISBOT, DISSRF and DISWCP for bottom friction-,
 !     surf- and whitecapping dissipation, respectively
 !
-!     Note on different source terms and transport terms for output purp
-!     these terms in absolute value are integrated over the spectral spa
-!     each grid point. In this way we can estimate the associated time s
-!     Besides these terms we may also compute energy transfer between wa
+!     Note on different source terms and transport terms for output purposing:
+!     these terms in absolute value are integrated over the spectral space for
+!     each grid point. In this way we can estimate the associated time scale.
+!     Besides these terms we may also compute energy transfer between waves
 !     and currents due to radiation stress.
 !
 !     Further details can be found in the ICCE paper of
@@ -5136,8 +5136,8 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     ,&
    TSXSPS(KCGRD(1)) = TSXSPS(KCGRD(1)) + ATRANSP(3)     ! sigma-propa
    TRANXY(KCGRD(1)) = TRANXY(KCGRD(1)) + SUM(ATRANSP)   ! total propa
 
-!       energy transfer between waves and currents due to radiation stre
-!       the ICCE paper of Holthuijsen, L.H., Zijlema, M. and Van der Ham
+!       energy transfer between waves and currents due to radiation stress, see page 439 of
+!       the ICCE paper of Holthuijsen, L.H., Zijlema, M. and Van der Ham, P.J. (2009)
 !       Wave physics in a tidal inlet, in: J.M. Smith (Ed.), Proc. 31st
 !       ASCE, World Scientific Publishing, Singapore, pp. 437-448
 
@@ -5180,7 +5180,7 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5191,7 +5191,7 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5202,7 +5202,7 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
 !  1. Updates
 !
 !     40.23, Nov. 02: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -5484,7 +5484,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5495,7 +5495,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5508,7 +5508,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
 !
 !     40.21, Aug. 01: New subroutine
 !     40.41, Mar. 04: parallelization of diffraction
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.68, Aug. 07: extension to spherical coordinates
 !
 !  2. Purpose
@@ -5520,7 +5520,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
 !     Parameters governing smoothing of the energy field.
 !
 !     Effectively, E(i,j) = (1-4*alpha) * E(i,j) +
-!                           alpha * (E(i-1,j)+E(i+1,j)+E(i,j-1)+E(i,j+1)
+!                           alpha * (E(i-1,j)+E(i+1,j)+E(i,j-1)+E(i,j+1))
 !
 !     Parameters governing numerical computation of diffraction
 !     coefficient and its spatial derivatives:
@@ -5770,7 +5770,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
 !     --- transform energy density into wave amplitude
    EN(1:MCGRD) = SQRT(MAX(EN(1:MCGRD),0.))
 
-!     --- compute Laplacian of SQRT(energy) in each computational grid p
+!     --- compute Laplacian of SQRT(energy) in each computational grid point
 !
 !     --- initially, set all values to zero
    DENOM(1:MCGRD) = 0.

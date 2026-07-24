@@ -3,7 +3,7 @@
 !
 !  Contents of this file:
 !     SPROUT: Reading and processing of the user output commands
-!     SWREPS: Reading and processing of the commands defining output poi
+!     SWREPS: Reading and processing of the commands defining output points
 !     SWREOQ: Reading and processing of the output requests
 !     SIRAY : Searching the first point on a ray where the depth is DP
 !     SWNMPS
@@ -15,11 +15,11 @@
 !     SWBCPT
 !     RETSTP
 !
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM3
@@ -38,7 +38,7 @@ SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -49,7 +49,7 @@ SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -71,10 +71,10 @@ SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
 !    100.04, Nov. 92: Filename of plotfile will be given by user
 !     30.70, Nov. 97: Arguments BOTLEV and WATLEV added
 !     32.02, Feb. 98: 1D version introduced
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.82, Apr. 98: Removed reference to commons KAART and KAR
 !     30.90, Oct. 98: Introduced EQUIVALENCE POOL-arrays
-!     30.81, Nov. 98: Replaced variable STATUS by IERR (because STATUS i
+!     30.81, Nov. 98: Replaced variable STATUS by IERR (because STATUS is a
 !                     reserved word)
 !     30.81, Jan. 99: Replaced variable FROM by FROM_ (because FROM is a
 !                     reserved word)
@@ -82,7 +82,7 @@ SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
 !     40.03, Sep. 00: inconsistency with manual corrected
 !     40.02, Oct. 00: Initialisation of IERR
 !     40.31, Nov. 03: removing POOL construction and HPGL functionality
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -173,11 +173,11 @@ FOUND = .TRUE.
    RETURN
 ! *   end of subroutine SPROUT *
 end subroutine SPROUT
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM1
    USE OCPCOMM3
@@ -203,7 +203,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -214,7 +214,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -232,27 +232,27 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !
 !  1. Updates
 !
-!     30.72, Sept 97: Changed DO-block with one CONTINUE to DO-block wit
+!     30.72, Sept 97: Changed DO-block with one CONTINUE to DO-block with
 !                     two CONTINUE's
-!     30.70, Nov. 97: comm ISO, inquire pointer added to get correct val
+!     30.70, Nov. 97: comm ISO, inquire pointer added to get correct value
 !                     for IADRAY
-!     30.70, Nov. 97: comm ISO, offset origin added in message concernin
+!     30.70, Nov. 97: comm ISO, offset origin added in message concerning rays
 !                     declaration INT SIRAY added
 !     30.70, Nov. 97: arguments BOTLEV and WATLEV added
 !     30.72, Feb. 98: Declaration of Argument variables updated
 !     32.02, Feb. 98: 1D version introduced
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.82, Apr. 98: removed reference to commons KAART and KAR
-!     30.81, Nov. 98: Replaced variable STATUS by IERR (because STATUS i
+!     30.81, Nov. 98: Replaced variable STATUS by IERR (because STATUS is a
 !                     reserved word)
 !     34.01, Feb. 99: Introducing STPNOW
 !     40.01, Sep. 99: XASM and YASM replace fixed numbers
 !     33.09, Sep. 00: modifications in view of spherical coordinates
 !     40.03, Sep. 00: inconsistency with manual corrected
-!     40.13, Sep. 01: nesting in curvilinear grid: division by 0 prevent
+!     40.13, Sep. 01: nesting in curvilinear grid: division by 0 prevented
 !     40.30, May  03: introduction distributed-memory approach using MPI
 !     40.31, Dec. 03: removing POOL-mechanism
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.80, Mar. 08: extension to unstructured grids
 !
 !  2. PURPOSE
@@ -335,7 +335,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          FOUND = .TRUE.
          RETURN
       ELSE
-!         ver 30.20: names of input variables changed, order of data cha
+!         ver 30.20: names of input variables changed, order of data changed
          ALLOCATE(OPSTMP)
          CALL INCSTR ('SNAME',PSNAME,'REQ',' ')
          IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
@@ -1039,11 +1039,11 @@ CONTAINS
 
 !*    end of subroutine SWREPS  **
 end subroutine SWREPS
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWREOQ ( FOUND )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM1
    USE OCPCOMM2
@@ -1071,7 +1071,7 @@ SUBROUTINE SWREOQ ( FOUND )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1082,7 +1082,7 @@ SUBROUTINE SWREOQ ( FOUND )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1106,28 +1106,28 @@ SUBROUTINE SWREOQ ( FOUND )
 !     30.50         : option COORD added in command PLOT
 !                     option STAR  added in command PLOT
 !     32.02, Feb. 98: 1D version introduced
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.82, Apr. 98: removed reference to commons KAART and KAR
-!     30.81, Nov. 98: Replaced variable STATUS by IERR (because STATUS i
+!     30.81, Nov. 98: Replaced variable STATUS by IERR (because STATUS is a
 !                     reserved word)
-!     30.81, Jan. 99: Replaced variable TO by TO_ (because TO is a reser
+!     30.81, Jan. 99: Replaced variable TO by TO_ (because TO is a reserved
 !                     word)
 !     34.01, Feb. 99: Introducing STPNOW
-!     40.03, Nov. 99: in case SPEC2D the value of MXOUTAR is increased b
+!     40.03, Nov. 99: in case SPEC2D the value of MXOUTAR is increased by
 !                     6*MIP
 !     40.03, Mar. 00: NQUA increased in case of Isoline plot
 !            Sep. 00: inconsistency with manual corrected
 !     40.13, Mar. 01: option BLOCKed added in plot of problem points
 !            Aug. 01: array for NESTOUT request extended to 20 (in view
 !     40.13, Oct. 01: filenames are stored in array OUTP_FILES
-!                     not any more in array containing output request pa
+!                     not any more in array containing output request parameters
 !     40.14, Dec. 01: format for setup corrected.
 !     40.30, Mar. 03: introduction distributed-memory approach using MPI
 !     40.31, Nov. 03: removing POOL construction and HPGL funcationality
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     41.62, Nov. 15: included input fields for wave partitioning
 !     41.75, Jan. 19: adding sea ice
-!     41.72, Nov. 19: user defined number of swell partitions instead of
+!     41.72, Nov. 19: user defined number of swell partitions instead of hardcoded 9
 !
 !  2. Purpose
 !
@@ -1191,11 +1191,11 @@ SUBROUTINE SWREOQ ( FOUND )
 
 !   --------------------------------------------------------------------
 !   BLOCK   'sname'  HEADER / NOHEADER  'fname' (LAY-OUT [idla])
-!          <  DSPR/HSIGN/DIR/PDIR/TDIR/TM01/RTM01/RTP/TM02/FSPR/DEPTH/VE
-!             FRCOEFF/WIND/DISSIP/QB/TRANSP/FORCE/UBOT/URMS/WLEN/STEEPNE
+!          <  DSPR/HSIGN/DIR/PDIR/TDIR/TM01/RTM01/RTP/TM02/FSPR/DEPTH/VEL/   &
+!             FRCOEFF/WIND/DISSIP/QB/TRANSP/FORCE/UBOT/URMS/WLEN/STEEPNESS/  &
 !             DHSIGN/DRTM01/LEAK/TSEC/XP/YP/DIST/SETUP/TMM10/RTMM10/
 !             TMBOT/QP/BFI/WATLEV/BOTLEV/TPS/DISBOT/DISSURF/DISWCAP/
-!             GENE/GENW/REDI/REDQ/REDT/REDB/REDC/PROPA/PROPX/PROPT/PROPS
+!             GENE/GENW/REDI/REDQ/REDT/REDB/REDC/PROPA/PROPX/PROPT/PROPS/    &
 !             RADS/LWAVP/DISTUR/TURB/DISSWELL/AICE/DISICE/
 !             PTHSIGN/PTRTP/PTWLEN/PTDIR/PTDSPR/PTWFRAC/PTSTEEPNESS>
 !             ([unit]) (OUTPUT [tbegblk] [deltblk] SEC/MIN/HR/DAY)
@@ -1600,11 +1600,11 @@ SUBROUTINE SWREOQ ( FOUND )
    ENDIF
 !   --------------------------------------------------------------------
 !   TABLE   'sname'  HEADER / NOHEADER / INDEXED 'fname'
-!          <  DSPR/HSIGN/DIR/PDIR/TDIR/TM01/RTM01/RTP/TM02/FSPR/DEPTH/VE
-!             FRCOEFF/WIND/DISSIP/QB/TRANSP/FORCE/UBOT/URMS/WLEN/STEEPNE
-!             DHSIGN/DRTM01/LEAK/TIME/TSEC/XP/YP/DIST/SETUP/TMM10/RTMM10
+!          <  DSPR/HSIGN/DIR/PDIR/TDIR/TM01/RTM01/RTP/TM02/FSPR/DEPTH/VEL/   &
+!             FRCOEFF/WIND/DISSIP/QB/TRANSP/FORCE/UBOT/URMS/WLEN/STEEPNESS/  &
+!             DHSIGN/DRTM01/LEAK/TIME/TSEC/XP/YP/DIST/SETUP/TMM10/RTMM10/    &
 !             TMBOT/QP/BFI/WATLEV/BOTLEV/TPS/DISBOT/DISSURF/DISWCAP/
-!             GENE/GENW/REDI/REDQ/REDT/REDB/REDC/PROPA/PROPX/PROPT/PROPS
+!             GENE/GENW/REDI/REDQ/REDT/REDB/REDC/PROPA/PROPX/PROPT/PROPS/    &
 !             RADS/LWAVP/DISTUR/TURB/DISSWELL/AICE/DISICE/
 !             PTHSIGN/PTRTP/PTWLEN/PTDIR/PTDSPR/PTWFRAC/PTSTEEPNESS>
 !             ([unit]) (OUTPUT [tbegtbl] [delttbl] SEC/MIN/HR/DAY)
@@ -1642,7 +1642,7 @@ SUBROUTINE SWREOQ ( FOUND )
       ORQTMP%OQR(1) = -1.
       ORQTMP%OQR(2) = -1.
       ORQTMP%RQTYPE = RTYPE
-!       unit reference number NREF is 0, will be determined in output mo
+!       unit reference number NREF is 0, will be determined in output module
       CALL INCSTR ('FNAME', FILENM, 'STA', ' ')
       IF (FILENM .NE. '    ') THEN
 !NCF         IF ( INDEX( FILENM, '.NC' ).NE.0 .OR.&
@@ -2118,12 +2118,12 @@ FOUND = .TRUE.
    RETURN
 !*    end of subroutine SWREOQ  **
 end subroutine SWREOQ
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 INTEGER FUNCTION SIRAY (DP, XP1, YP1, XP2, YP2, XX, YY, BOTDEP,&
 &BOTLEV, WATLEV)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM2
@@ -2143,7 +2143,7 @@ INTEGER FUNCTION SIRAY (DP, XP1, YP1, XP2, YP2, XX, YY, BOTDEP,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2154,7 +2154,7 @@ INTEGER FUNCTION SIRAY (DP, XP1, YP1, XP2, YP2, XX, YY, BOTDEP,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -2166,13 +2166,13 @@ INTEGER FUNCTION SIRAY (DP, XP1, YP1, XP2, YP2, XX, YY, BOTDEP,&
 !
 !     00.00, Mar. 87: heading added, name of routine changed from
 !                     IRAAI in SIRAY
-!     30.72, Oct. 97: logical function EQREAL introduced for floating po
+!     30.72, Oct. 97: logical function EQREAL introduced for floating point
 !                     comparisons
 !     30.70, Nov. 97: changed into INTEGER function
 !                     test output added
 !                     arguments BOTDEP, BOTLEV, WATLEV added
 !     40.03, Nov. 99: X2= etc. moved out of IF-ENDIF group
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -2289,11 +2289,11 @@ INTEGER FUNCTION SIRAY (DP, XP1, YP1, XP2, YP2, XX, YY, BOTDEP,&
    RETURN
 ! * end of function SIRAY *
 end function SIRAY
-!***********************************************************************
+!************************************************************************
 
 SUBROUTINE SWNMPS (PSNAME, PSTYPE, MIP, IERR)
 
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM1
    USE OCPCOMM4
@@ -2314,7 +2314,7 @@ SUBROUTINE SWNMPS (PSNAME, PSTYPE, MIP, IERR)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2325,7 +2325,7 @@ SUBROUTINE SWNMPS (PSNAME, PSTYPE, MIP, IERR)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2334,7 +2334,7 @@ SUBROUTINE SWNMPS (PSNAME, PSTYPE, MIP, IERR)
 !  1. UPDATE
 !
 !       Oct. 1996, ver. 30.50: new subr.
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -2406,11 +2406,11 @@ IF (ITEST.GE.100) WRITE (PRTEST, "(' exit SWNMPS, name:', A8, ' type:', A1, ' nu
    RETURN
    RETURN
 end subroutine SWNMPS
-!***********************************************************************
+!************************************************************************
 
 SUBROUTINE SVARTP (IVTYPE)
 
-!***********************************************************************
+!************************************************************************
 
    USE SWCOMM1
 
@@ -2428,7 +2428,7 @@ SUBROUTINE SVARTP (IVTYPE)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2439,7 +2439,7 @@ SUBROUTINE SVARTP (IVTYPE)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2529,11 +2529,11 @@ SUBROUTINE SVARTP (IVTYPE)
 
 !     end of subroutine SVARTP *
 end subroutine SVARTP
-!***********************************************************************
+!************************************************************************
 
 SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM2
    USE OCPCOMM4
@@ -2563,7 +2563,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2574,7 +2574,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2596,25 +2596,25 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !
 !  1. Updates
 !
-!     30.73, Nov. 97: New subroutine, replacing code in subr. SWREAD (fi
+!     30.73, Nov. 97: New subroutine, replacing code in subr. SWREAD (file SWANPRE1)
 !     30.90, Oct. 98: Introduced EQUIVALENCE POOL-arrays
 !     30.82, Oct. 98: Updated description several arrays
 !     30.81, Nov. 98: Adjustment for 1-D case of new boundary conditions
 !     34.01, Feb. 99: Introducing STPNOW
-!     30.81, Apr. 99: Prevent negative powers for cosine directional spr
-!                     prevented DSPR > 360 and DSPR < 0 (except for exce
+!     30.81, Apr. 99: Prevent negative powers for cosine directional spreading (DSPR);
+!                     prevented DSPR > 360 and DSPR < 0 (except for exception value).
 !     30.82, July 99: Used EQREAL for real equality comparisons
-!     40.05, Aug  00: WW3 boundary nesting command, in Swan nesting opti
+!     40.05, Aug  00: WW3 boundary nesting command, in Swan nesting option
 !                     adding of a new option (same as WW3 command)
 !     40.03, Sep. 00: inconsistency with manual corrected
 !     40.02, Oct. 00: WWIII added as keyword (will appear in the manual)
 !     40.13, Nov. 01: determination of side corrected (iside=3)
-!     40.31, Nov. 03: removing POOL-mechanism, reconsideration of this s
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.31, Nov. 03: removing POOL-mechanism, reconsideration of this subroutine
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.80, Jun. 07: extension to unstructured grids
 !     40.92, Jun. 08: changes with respect to boundary polygons
 !     41.14, Jul. 10: call SwanBndStruc added
-!     43.01, Aug. 24: parallelization of unstructured boundaries and the
+!     43.01, Aug. 24: parallelization of unstructured boundaries and their conditions
 !
 !  2. Purpose
 !
@@ -2899,7 +2899,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !                                    | UNFormatted <          > |
 !                                    |              | WKstat |  |
 !                                    |                          |
-!       BOUndnest2  WAMNest 'fname' <                            > [xgc]
+!       BOUndnest2  WAMNest 'fname' <                            > [xgc] [ygc] [lwdate]
 !                                    |                          |
 !                                    | FREE                     |
 !
@@ -2950,7 +2950,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !
 !      =================================================================
 !                                | UNFormatted |   | -> CLOS |
-!       BOUndnest3  WW3 'fname' <               > <           > [xgc] [y
+!       BOUndnest3  WW3 'fname' <               > <           > [xgc] [ygc]
 !                                | FREe        |   |    OPEN |
 !      =================================================================
 
@@ -3026,7 +3026,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !       if keyword is OPEN then
 !          DONALL is TRUE  and the nesting boundary remain open
 !       else (default case)
-!          DONALL is FALSE  and boundary is close and interpolation betw
+!          DONALL is FALSE  and boundary is close and interpolation between
 !          the last and the first point will be done
 
       CALL INKEYW ('STA', 'CLOS')
@@ -3273,7 +3273,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 
 !                 1) the wave spectrum along the given segment can be
 !                    imposed in counterclockwise or clockwise direction
-!                 2) content of array blist is ordered in counterclockwi
+!                 2) content of array blist is ordered in counterclockwise
 !                    manner for sea/mainland boundary (JBG=1) and
 !                    clockwise for island boundary (JBG>1)
 !                 3) therefore, determine orientation by means of the
@@ -3460,8 +3460,8 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                         KC2 = KGRPNT(IX,1)
                         IF (IX.GT.1) THEN
                            IF (KC1.GT.1 .AND. KC2.GT.1) THEN
-!                        if both grid points at ends of a step are valid
-!                        take DX and DY into account when determining di
+!                        if both grid points at ends of a step are valid, then
+!                        take DX and DY into account when determining direction
                               SOMX = SOMX + XCGRID(IX,1)-XCGRID(IX-1,1)
                               SOMY = SOMY + YCGRID(IX,1)-YCGRID(IX-1,1)
                               NUMP = NUMP + 1
@@ -3950,7 +3950,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3961,7 +3961,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -3981,15 +3981,15 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 !     34.01, Feb. 99: Introducing STPNOW
 !     40.03, June 00: function EQCSTR used to compare strings
 !            July 00: option LONLAT for location coordinates introduced
-!     40.05, Aug. 00: replace the source text related with the grid poin
-!                     interpolation coef. with a new subroutine BC_POINT
-!     40.13, Jan. 01: ! is now allowed as comment sign in a boundary fil
+!     40.05, Aug. 00: replace the source text related with the grid points
+!                     interpolation coef. with a new subroutine BC_POINTS
+!     40.13, Jan. 01: ! is now allowed as comment sign in a boundary file
 !                     checking coordinates only for nesting situation
 !                     remove declarations of unused variables
 !            Nov. 01: initial size of BSPAUX array enlarged
 !     40.31, Nov. 03: removing POOL-mechanism, reconsideration of this
 !                     subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.41, Nov. 04: small corrections
 !
 !  2. Purpose
@@ -4013,7 +4013,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 !       KGRPNT  int   inp    indirect addresses of grid points
 !       XYTST   int   inp    ix, iy of test points
 !
-!     DONALL: logic arguments declare if the nesting  boundary is open o
+!     DONALL: logic arguments declare if the nesting  boundary is open or close
 !             it is defined by the users
 
    LOGICAL, INTENT(INOUT)  ::  DONALL
@@ -4039,7 +4039,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
    CHARACTER(LEN=80) :: HEDLIN
 
 !    NBGRPT_PREV is the prevous number of NBGRPT
-!    IIPT2 counter use for the chekinf if there are grid points on neste
+!    IIPT2 counter use for the chekinf if there are grid points on nested boundary
 !
 !  8. Subroutines Used
 !
@@ -4058,9 +4058,9 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 !  11. Remarks
 !
 !
-!       This subroutine reads the heading of the file to determine locat
+!       This subroutine reads the heading of the file to determine locations
 !       of boundary spectra, spectral frequencies and directions etc.
-!       Reading and processing of spectral energy densities is done duri
+!       Reading and processing of spectral energy densities is done during
 !       computation by subroutine RESPEC (file Swanmain.for)
 !
 !       data concerning boundary files are stored in array BFILED
@@ -4094,7 +4094,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 !             If b.c. type is NEST
 !             Then calculate data on grid points
 !             put into array BGRIDP
-!             ----------------------------------------------------------
+!             -----------------------------------------------------------
 !             Read spectral directions from file into array BSPDIR
 !             Read spectral frequencies from file into array BSPFRQ
 !       ----------------------------------------------------------------
@@ -4193,7 +4193,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
                XP2 = XP
                YP2 = YP
 
-!             --- interpolate the boundaries points to the grid points o
+!             --- interpolate the boundaries points to the grid points of
 !                 the SWAN computational grid
 
                NBGRPT_PREV = NBGRPT
@@ -4320,7 +4320,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
                   BSPFIL%BFILED(17) = 2
                ENDIF
             ELSE IF (IQUANT.EQ.2) THEN
-!             if second quantity is 'NDIR' transform from Nautical to Ca
+!             if second quantity is 'NDIR' transform from Nautical to Cartesian dir.
                IF ( EQCSTR(HEDLIN,'NDIR')) THEN
 !               quantity on file is Nautical direction
                   BSPFIL%BFILED(18) = 2
@@ -4434,7 +4434,7 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4445,7 +4445,7 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4461,18 +4461,18 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
 !
 !  1. Updates
 !
-!     30.73, Jan. 98: new subroutine, based on older version by Weimin L
+!     30.73, Jan. 98: new subroutine, based on older version by Weimin Luo
 !     30.90, Oct. 98: Introduced EQUIVALENCE POOL-arrays
 !     34.01, Feb. 99: Introducing STPNOW
 !     40.03, Nov. 99: THD (first spectral direction in radians) added in
-!                     expression for RBSDIR (directions of boundary spec
+!                     expression for RBSDIR (directions of boundary spectrum)
 !     40.03, Aug. 00: correction WAM nest with spherical SWAN
-!     40.13, May  01: order of boundary points in WAM nesting file diffe
+!     40.13, May  01: order of boundary points in WAM nesting file differed
 !                     from order assumed in SWAN
 !     40.31, Nov. 03: removing POOL-mechanism, reconsideration of this
 !                     subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
-!     40.61, Nov. 06: variables USNEW, THWNEW no longer written in WAM4.
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!     40.61, Nov. 06: variables USNEW, THWNEW no longer written in WAM4.5
 !
 !  2. PURPOSE
 !
@@ -4546,7 +4546,7 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
 !           For all other spatial points in WAM file do
 !               If the two points are neighbours
 !               Then For all computational grid points on boundary do
-!                        if point is located between nest file grid poin
+!                        if point is located between nest file grid points
 !                        calculate interpolation coefficients
 !                        and put these into array BGRIDP
 !       ----------------------------------------------------------------
@@ -4781,7 +4781,7 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
          &DYWAM = MIN (DYWAM, ABS(YPWAM(IBOUNC)-YPWAM(IBOUNC-1)))
       ENDIF
       IF (KSPHER.EQ.0) THEN
-!         determine lower left corner of WAM nesting grid if not given b
+!         determine lower left corner of WAM nesting grid if not given by the user
          IF (IBOUNC.EQ.1) THEN
             IF (XLON0.LT.-900.) THEN
                XLON0 = XLON
@@ -4825,7 +4825,7 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
             IF (RL2.GT.0.) THEN
                RX  = RX/RL2
                RY  = RY/RL2
-!             check whether direction of (RX,RY) corresponds to ALPC + k
+!             check whether direction of (RX,RY) corresponds to ALPC + k * 90 degr
                PHI = ATAN2(RY,RX)
                DPHI = MOD(PHI-ALPC+1.25*PI,0.5*PI)-0.25*PI
                IF (ABS(DPHI) .LT. 0.1) THEN
@@ -5008,7 +5008,7 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5019,7 +5019,7 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5035,7 +5035,7 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
 !     40.13, Jan. 01: remove declarations of unused variables
 !     40.31, Nov. 03: removing POOL-mechanism, reconsideration this
 !                     subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -5044,21 +5044,21 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
 !  3. Method
 !
 !      open boundaries files
-!      read from ASCII files the points where the energy density is give
-!      interpolate them to the grid points of the SWAN computational gri
+!      read from ASCII files the points where the energy density is given and
+!      interpolate them to the grid points of the SWAN computational grid
 !
 !  4. Argument variables
 
    INTEGER, INTENT(IN)     ::  KGRPNT(MXC,MYC)
-!                                 indirect addresses of computational gr
+!                                 indirect addresses of computational grid points
    INTEGER, INTENT(IN)     ::  KGRBND(*)
 !                                 array of boundary grid points
    INTEGER, INTENT(IN)     ::  XYTST(*)
 !                                 array of (ix,iy) of test points
    REAL, INTENT(IN)        ::  XCGRID(MXC,MYC), YCGRID(MXC,MYC)
-!                                 coordinates of computational grid poin
+!                                 coordinates of computational grid points
 !     FBCNAM  char  inp    filename of boundary data file
-!     BCTYPE  char  inp    boundary condition type, is 'WW3N' in this ca
+!     BCTYPE  char  inp    boundary condition type, is 'WW3N' in this case
 
    CHARACTER(LEN=*) :: FBCNAM, BCTYPE
 
@@ -5119,7 +5119,7 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
 !     YP2       problem coordinate of a boundary location
 !     DIRRD1
 !     NBGRPT_PREV is the prevous number of NBGRPT
-!     IIPT2 counter use for the chekinf if there are grid points on nest
+!     IIPT2 counter use for the chekinf if there are grid points on nested boundary
 
    REAL               :: DUM_A, XLON, XLAT,XP2,YP2,DIRRD1
 
@@ -5176,7 +5176,7 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
 !       14. number of heading lines per file
 !       15. number of heading lines per time step
 !       16. number of heading lines per spectrum
-!       17. =1: energy dens., =2: variance density, =3 variance energy d
+!       17. =1: energy dens., =2: variance density, =3 variance energy density (k)
 !       18. =1: Cartesian direction, =2: Nautical dir.
 !       19. =1: direction spread in degr, =2: Power of Cos.
 !       20.  depth of boundary points
@@ -5342,11 +5342,11 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
    ENDIF
 
 !     Read from boundary file info about the boundary points(b.p): name
-!     geographical location of b.p., depth, wind u-velocity  and directi
+!     geographical location of b.p., depth, wind u-velocity  and direction at the b.p.
 !     current velocity and direction at the b.p.
 !
-!     If  DONALL = .TRUE. boundary data correspond to an open boundary o
-!     it is continue the interpolation of the grid point between the las
+!     If  DONALL = .TRUE. boundary data correspond to an open boundary otherwise
+!     it is continue the interpolation of the grid point between the last and the
 !     first point
 
    DO IBOUNC = 1, NBOUNC
@@ -5363,7 +5363,7 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
          READ (NDSD)     PTNME, XLAT, XLON, DUM_A, DUM_A,&
          &DUM_A, DUM_A, DUM_A
       ENDIF
-!       Pass over the lines where the energy spectra is written in the b
+!       Pass over the lines where the energy spectra is written in the boundary file.
 !       The energy spectra is going to be read later, in the subroutine
 
       IF (BTYPE.EQ.'WW3F') THEN
@@ -5377,12 +5377,12 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
          &XLAT, IERR
       ENDIF
 
-!       in case of nesting coordinates on file are used to determine int
+!       in case of nesting coordinates on file are used to determine interpolation
 !       coefficients
 
       IF (KSPHER.EQ.0) THEN
 
-!       if SWAN uses Cartesian coordinates, then transform the spherical
+!       if SWAN uses Cartesian coordinates, then transform the spherical coordinates
 !       of the boundary point to local Cartesian coordinates
 
          IF (IBOUNC.EQ.1) THEN
@@ -5484,13 +5484,13 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
 
 end subroutine BCWW3N
 
-!***********************************************************************
+!************************************************************************
 
 SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
 &KGRPNT, XYTST,  KGRBND,XP2,YP2,IBOUNC,&
 &NBOUNC,DONALL )
 
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM2
@@ -5517,7 +5517,7 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5528,7 +5528,7 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5546,7 +5546,7 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
 !     40.13, Jan. 01: remove declarations of unused variables
 !     40.31, Jul. 03: initializations XP0, XP1, YP0, YP1
 !     40.31, Nov. 03: removing POOL mechanism
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     41.14, Jul. 10: error in nesting unstructured grid corrected
 !
 !  2. Purpose
@@ -5573,7 +5573,7 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
    REAL                    ::  XP2, YP2         ! coordinates of a po
    REAL, INTENT(IN)        ::  XCGRID(MXC,MYC), YCGRID(MXC,MYC)  ! co
 
-!     DONALL : logic arguments declare if the nesting boundary is open o
+!     DONALL : logic arguments declare if the nesting boundary is open or close
 !              it is defined by the users
 
    LOGICAL, INTENT(INOUT)  ::  DONALL
@@ -5629,7 +5629,7 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
 !          if DONALL is TRUE
 !             the nesting boundary remain open
 !          else DONALL is FALSE (default case)
-!             boundary is close, it do interpolation between the last an
+!             boundary is close, it do interpolation between the last and the first point
 !             put interpolation coefficients into array BGRIDP
 !
 !  13. Source text
@@ -5654,7 +5654,7 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
       IBSP0 = IBSP2
       IIPT1 = 1
    ELSE
-!        RX, RY difference vector between consecutive points of spectral
+!        RX, RY difference vector between consecutive points of spectral file  41.14
       IF (KSPHER.EQ.0) THEN
          RX  = XP2 - XP1
       ELSE
@@ -5671,7 +5671,7 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
 !           WRITE(PRINTF,'(A,2I6,6F12.4)') 'BC_SEARCH_1: ',IBSP1,IBSP2,
 !     &       XP1+XOFFS,YP1+YOFFS,XP2+XOFFS,YP2+YOFFS,RX,RY
 !
-!          loop over boundary of computational grid, select boundary poi
+!          loop over boundary of computational grid, select boundary points
 !          between (XP1,YP1) and (XP2,YP2)
 
          IF (OPTG.EQ.5) THEN
@@ -5703,8 +5703,8 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
                   ENDIF
 
 !                DISXY is relative distance from (XP,YP) to line
-!                (XP1,YP1) to (XP2,YP2) with respect to the length of th
-!                DOTR1 is relative length of projection on line (XP1,YP1
+!                (XP1,YP1) to (XP2,YP2) with respect to the length of that line
+!                DOTR1 is relative length of projection on line (XP1,YP1) to (XP2,YP2)
 
                   DISXY = ABS ( RX*DY1P - RY*DX1P )
                   DOTR1 = RX*DX1P + RY*DY1P
@@ -5712,7 +5712,7 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
 !                 WRITE(PRINTF,'(A,I6,5F12.4)') 'BC_SEARCH_2: ',IXP,
 !     &             XP+XOFFS,YP+YOFFS,DOTR1,DOTR2,DISXY
 !
-!                check if boundary point is between (XP1,YP1) and (XP2,Y
+!                check if boundary point is between (XP1,YP1) and (XP2,YP2)
                   IF ( DOTR1.GE.0.AND.DOTR2.GE.0.AND.DISXY.LE.0.1 ) THEN
                      W2 = DOTR1
                      IF (W2.LT.0.001) W2 = 0.
@@ -5751,7 +5751,7 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
             ENDDO
          ELSE
 
-!           KGRBND grid addresses on boundary points, NGRBND number of g
+!           KGRBND grid addresses on boundary points, NGRBND number of grid points
 !           on computational grid boundary
 
             DO IGRBND = 1, NGRBND
@@ -5784,16 +5784,16 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
                   ENDIF
 
 !                DISXY is relative distance from (XP,YP) to line
-!                (XP1,YP1) to (XP2,YP2) with respect to the length of th
-!                DOTR1 is relative length of projection on line (XP1,YP1
+!                (XP1,YP1) to (XP2,YP2) with respect to the length of that line
+!                DOTR1 is relative length of projection on line (XP1,YP1) to (XP2,YP2)
 
                   DISXY = ABS( RX*DY1P - RY*DX1P )
                   DOTR1 = RX*DX1P + RY*DY1P
                   DOTR2 = RX*DXP2 + RY*DYP2
-!                 WRITE(PRINTF,'(A,2I6,5F12.4)') 'BC_SEARCH_2: ',IXP,IYP
+!                 WRITE(PRINTF,'(A,2I6,5F12.4)') 'BC_SEARCH_2: ',IXP,IYP,
 !     &             XP+XOFFS,YP+YOFFS,DOTR1,DOTR2,DISXY
 !
-!                check if boundary point is between (XP1,YP1) and (XP2,Y
+!                check if boundary point is between (XP1,YP1) and (XP2,YP2)
                   IF ( DOTR1.GE.0.AND.DOTR2.GE.0.AND.DISXY.LE.0.1 ) THEN
                      W2 = DOTR1
                      IF (W2.LT.0.001) W2 = 0.
@@ -5894,7 +5894,7 @@ LOGICAL FUNCTION BOUNPT (IX,IY,KGRPNT)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5905,7 +5905,7 @@ LOGICAL FUNCTION BOUNPT (IX,IY,KGRPNT)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5919,7 +5919,7 @@ LOGICAL FUNCTION BOUNPT (IX,IY,KGRPNT)
 !
 !  2. PURPOSE
 !
-!       determine whether a grid point is a point where a boundary condi
+!       determine whether a grid point is a point where a boundary condition
 !       can be applied
 !
 !  3. METHOD
@@ -6053,7 +6053,7 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -6064,7 +6064,7 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -6092,7 +6092,7 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
 !            May  01: two incorrect units changed from m2/2 to m2/s
 !     40.30, Mar. 03: introduction distributed-memory approach using MPI
 !     40.31, Dec. 03: removing POOL-mechanism
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.80, Jun. 07: extension to unstructured grids
 !     41.75, Jan. 19: adding sea ice
 !
@@ -6112,7 +6112,7 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 ! i   XCGRID: Coordinates of computational grid in x-direction
 ! i   YCGRID: Coordinates of computational grid in y-direction
 

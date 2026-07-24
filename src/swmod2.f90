@@ -28,7 +28,7 @@ MODULE M_WCAP
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -39,7 +39,7 @@ MODULE M_WCAP
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -52,7 +52,7 @@ MODULE M_WCAP
 !
 !  2. Purpose
 !
-!     Create global variables used in whitecapping and integral paramete
+!     Create global variables used in whitecapping and integral parameter
 !     subroutines
 !
 !  3. Method
@@ -83,9 +83,9 @@ MODULE M_WCAP
 !     ETOT2  : Second moment of the energy density
 !     ETOT4  : Fourth moment of the energy density
 !     KM_WAM : Mean wavenumber according to the WAM-formulation
-!     KM01   : Mean wavenumber according to first and zeroth order momen
-!     SIGM_10: Mean frequency according to zeroth and first order moment
-!     SIGM01 : Mean frequency according to first and zeroth order moment
+!     KM01   : Mean wavenumber according to first and zeroth order moments
+!     SIGM_10: Mean frequency according to zeroth and first order moments
+!     SIGM01 : Mean frequency according to first and zeroth order moments
 
    REAL, SAVE    :: ACTOT
    REAL, SAVE    :: EDRKTOT
@@ -150,7 +150,7 @@ MODULE OUTP_DATA
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -161,7 +161,7 @@ MODULE OUTP_DATA
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -390,7 +390,7 @@ MODULE M_SNL4
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -401,7 +401,7 @@ MODULE M_SNL4
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -508,7 +508,7 @@ MODULE M_SNL3
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -519,7 +519,7 @@ MODULE M_SNL3
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -563,10 +563,10 @@ MODULE M_SNL3
 !     QTRI1 : frequency-dependent interpolation data
 !     QTRI2 : frequency- and space-dependent scaling factors
 !     TCOLL : true if collinear, otherwise noncollinear
-!     WISM  : interpolation weight factor corresponding to lower harmoni
-!     WISM1 : interpolation weight factor corresponding to lower harmoni
-!     WISP  : interpolation weight factor corresponding to higher harmon
-!     WISP1 : interpolation weight factor corresponding to higher harmon
+!     WISM  : interpolation weight factor corresponding to lower harmonic
+!     WISM1 : interpolation weight factor corresponding to lower harmonic
+!     WISP  : interpolation weight factor corresponding to higher harmonic
+!     WISP1 : interpolation weight factor corresponding to higher harmonic
 
    INTEGER MSC4D
 
@@ -619,7 +619,7 @@ MODULE M_BNDSPEC
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -630,7 +630,7 @@ MODULE M_BNDSPEC
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -671,18 +671,18 @@ MODULE M_BNDSPEC
 !     ALOBND  : if true, user has specified boundary conditions
 !     BFILED  : data concerning boundary condition files
 !     BGP     : array containing data w.r.t. boundary grid points
-!     BSPLOC  : place in array BSPECS where to store interpolated spectr
+!     BSPLOC  : place in array BSPECS where to store interpolated spectra
 !     BSPDIR  : spectral directions of input spectrum
 !     BSPFRQ  : spectral frequencies of input spectrum
 !     CUBGP   : current item in list of boundary grid points
-!     DSHAPE  : indicates option for computation of directional distribu
+!     DSHAPE  : indicates option for computation of directional distribution
 !               in the spectrum (boundary spectra etc.)
 !               =1: directional spread in degrees is given
 !               =2: power of COS is given
 !     FBNDFIL : first boundary condition file in list of files
 !     FBGP    : first item in list of boundary grid points
 !     FBS     : first item in list of boundary spectrum parameters
-!     FSHAPE  : indicates option for computation of frequency distributi
+!     FSHAPE  : indicates option for computation of frequency distribution
 !               in the spectrum (boundary spectra etc.)
 !               =1: Pierson-Moskowitz
 !               =2: Jonswap
@@ -690,7 +690,7 @@ MODULE M_BNDSPEC
 !               =4: Gaussian
 !     NBS     : index of BSPECS
 !     NEXTBGP : pointer to next item in list of boundary grid points
-!     NEXTBS  : pointer to next item in list of boundary spectrum parame
+!     NEXTBS  : pointer to next item in list of boundary spectrum parameters
 !     NEXTBSPC: pointer to next boundary condition file in list
 !     SPPARM  : integral parameters used for computation of
 !               incident spectrum. Meaning:
@@ -830,7 +830,7 @@ MODULE M_OBSTA
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -841,7 +841,7 @@ MODULE M_OBSTA
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -891,7 +891,7 @@ MODULE M_OBSTA
 !     RFTYP2  : reflection type: diffusive/specular (RDIFF/RSPEC)
 !     RFTYP3  : reflection type: frequency-dependent (RFD)
 !     TRCF1D  : frequency dependent transmission coefficients
-!     TRCF2D  : frequency and direction dependent transmission coefficie
+!     TRCF2D  : frequency and direction dependent transmission coefficients
 !     TRCOEF  : transmission coefficients
 !     TRTYPE  : transmission type
 !     XCRP    : x-coordinate of corner point
@@ -957,7 +957,7 @@ MODULE M_GENARR
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -968,7 +968,7 @@ MODULE M_GENARR
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1028,7 +1028,7 @@ MODULE M_GENARR
 !     HICEF : input field containing ice thickness (meters)
 !     HSSF  : input field containing sea-swell sig wave height
 !     KGRBND: array containing all boundary points
-!             (+ 2 extra zeros as area separator for all separated areas
+!             (+ 2 extra zeros as area separator for all separated areas)
 !     KGRPNT: array containing indirect addresses for grid points
 !     LAYH  : layer thickness for vegetation model
 !     MUDLF : input field containing fluid mud layer
@@ -1039,7 +1039,7 @@ MODULE M_GENARR
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 !     TSSF  : input field containing sea-swell mean wave period
 !     TURBF : input field containing turbulent viscosity
 !     UXB   : input field of contravariant U-velocity
@@ -1115,7 +1115,7 @@ MODULE M_PARALL
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1126,7 +1126,7 @@ MODULE M_PARALL
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1231,14 +1231,14 @@ MODULE M_PARALL
 !JAC!     IBCOL   : integer indicating the color of own subdomain
 !     IBLKAD  : administration array for subdomain interfaces
 !               contents:
-!               pos. 1                     number of neighbouring subdom
+!               pos. 1                     number of neighbouring subdomains
 !                                          =m
 !               pos. 3*i-1                 number of i-th neighbour
-!               pos. 3*i                   position of i-th neighbour wi
+!               pos. 3*i                   position of i-th neighbour with
 !                                          respect to present subdomain
 !               pos. 3*i+1                 pointer of i-th neighbour in
 !                                          last part of this array
-!               pos. 3*m+2                 number of overlapping unknown
+!               pos. 3*m+2                 number of overlapping unknowns
 !                                          on subdomain interface
 !               pos. 3*m+3 ... 3*m+2+n     position of unknown in array
 !                                          to be sent to neighbour
@@ -1246,19 +1246,19 @@ MODULE M_PARALL
 !                                          to be received from neighbour
 !     IWEIG   : weights to determine load per part
 !     KGRBGL  : array containing all boundary points in global domain
-!               (+ 2 extra zeros as area separator for all separated are
+!               (+ 2 extra zeros as area separator for all separated areas)
 !     KGRPGL  : indirect addressing for grid points in global domain
 !               =1: not active point
 !               >1: active point
 !     LENSPO  : format length for spectral output
-!     LMXF    : logical indicating whether first x-point of subdomain eq
-!               first x-point of global domain (=.TRUE.) or not (=.FALSE
-!     LMXL    : logical indicating whether last x-point of subdomain equ
-!               last x-point of global domain (=.TRUE.) or not (=.FALSE.
-!     LMYF    : logical indicating whether first y-point of subdomain eq
-!               first y-point of global domain (=.TRUE.) or not (=.FALSE
-!     LMYL    : logical indicating whether last y-point of subdomain equ
-!               last y-point of global domain (=.TRUE.) or not (=.FALSE.
+!     LMXF    : logical indicating whether first x-point of subdomain equals
+!               first x-point of global domain (=.TRUE.) or not (=.FALSE.)
+!     LMXL    : logical indicating whether last x-point of subdomain equals
+!               last x-point of global domain (=.TRUE.) or not (=.FALSE.)
+!     LMYF    : logical indicating whether first y-point of subdomain equals
+!               first y-point of global domain (=.TRUE.) or not (=.FALSE.)
+!     LMYL    : logical indicating whether last y-point of subdomain equals
+!               last y-point of global domain (=.TRUE.) or not (=.FALSE.)
 !     MCGRDGL : number of wet grid points in global computational grid
 !     MXCGL   : number of grid points in x-direction in global
 !               computational grid
@@ -1593,7 +1593,7 @@ MODULE M_DIFFR
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1604,7 +1604,7 @@ MODULE M_DIFFR
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1653,7 +1653,7 @@ MODULE M_DIFFR
 !
 !  9. Subroutines and functions calling
 !
-!     DIFPAR :   calculates the above arrays DIFPARAM, DIFPARDX, DIFPARD
+!     DIFPAR :   calculates the above arrays DIFPARAM, DIFPARDX, DIFPARDY
 !     SPROSD :   computes propagation velocity in (x,y,theta) based on
 !                arrays DIFPARAM, DIFPARDX, DIFPARDY
 !

@@ -16,7 +16,6 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class Variant:
-    group: str
     directory: str
     basename: str
     description: str
@@ -24,17 +23,17 @@ class Variant:
 
 
 VARIANTS = {
-    "quad_off": Variant("quad", "quad", "quad_off", "quadruplets disabled"),
-    "quad_dia2": Variant("quad", "quad", "quad_dia2", "DIA per sweep"),
-    "quad_dia3": Variant("quad", "quad", "quad_dia3", "DIA per iteration"),
+    "quad_off": Variant("quad", "quad_off", "quadruplets disabled"),
+    "quad_dia2": Variant("quad", "quad_dia2", "DIA per sweep"),
+    "quad_dia3": Variant("quad", "quad_dia3", "DIA per iteration"),
     "quad_xnl": Variant(
-        "quad", "quad", "quad_xnl", "exact XNL reference", slow=True
+        "quad", "quad_xnl", "exact XNL reference", slow=True
     ),
-    "triad_off": Variant("triad", "triad", "triad_off", "triads disabled"),
-    "triad_dcta": Variant("triad", "triad", "triad_dcta", "DCTA triads"),
-    "triad_ftim": Variant("triad", "triad", "triad_ftim", "FTIM triads"),
+    "triad_off": Variant("triad", "triad_off", "triads disabled"),
+    "triad_dcta": Variant("triad", "triad_dcta", "DCTA triads"),
+    "triad_ftim": Variant("triad", "triad_ftim", "FTIM triads"),
     "combined": Variant(
-        "combined", "combined", "combined", "DIA and FTIM from ocean to coast"
+        "combined", "combined", "DIA and FTIM from ocean to coast"
     ),
 }
 
@@ -51,9 +50,7 @@ STANDARD_KEYS = (
 
 @dataclass
 class RunResult:
-    key: str
     variant: Variant
-    elapsed: float
     table: list[list[float]]
     frequencies: list[float]
     locations: list[tuple[float, float]]
@@ -245,7 +242,7 @@ def run_variant(
 
     qualifier = " (slow reference)" if variant.slow else ""
     print(f"{key}: completed in {elapsed:.2f} s{qualifier}")
-    return RunResult(key, variant, elapsed, table, frequencies, locations, spectra)
+    return RunResult(variant, table, frequencies, locations, spectra)
 
 
 def relative_spectral_difference(first: list[float], second: list[float]) -> float:

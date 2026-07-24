@@ -30,7 +30,7 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -41,7 +41,7 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -61,17 +61,17 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
 !                     Check on validity period now uses OCDTIM
 !     30.74, Nov. 97: Prepared for version with INCLUDE statements
 !     30.82, Nov. 98: Introduced recordlength of 1000 for file PRINT to
-!                     avoid error-messages on the Cray-J90 and SGI Origi
+!                     avoid error-messages on the Cray-J90 and SGI Origin 200
 !     34.01, Feb. 99: Changed STOP statements for MSGERR(4,'message')
 !                     calls
 !     34.01, Feb. 99: Opens a file 'screen' when unitnr in swaninit<>6
-!     40.00, Feb. 99: Directory separation characters included in init f
+!     40.00, Feb. 99: Directory separation characters included in init file
 !                     these characters are used in subr FOR
-!     40.03, May  00: backslash replaced by CHAR(92) because of problems
+!     40.03, May  00: backslash replaced by CHAR(92) because of problems on Linux
 !     40.30, Jan. 03: introduction distributed-memory approach using MPI
 !     40.31, Nov. 03: removing HPGL-functionality
 !     40.41, Sep. 04: includes speed processors in initialisation file
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.95, Jun. 08: parallelization of unSWAN
 !
 !  2. Purpose
@@ -214,11 +214,11 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
       SCREEN = 6
       IUNMAX = 99999
 !/SGI      IUNMAX = 199
-!       TABC is the Tab character (interpreted as blank in command readi
+!       TABC is the Tab character (interpreted as blank in command reading)
       TABC = CHAR(9)
 !       COMID is the comment identifier (usually $)
       COMID  = '$'
-!       DIRCH1 is directory separation character as appears in input fil
+!       DIRCH1 is directory separation character as appears in input file
 !       DIRCH2 is directory separation character replacing DIRCH1
 !DOS      DIRCH1 =  CHAR(47)
 !DOS      DIRCH2 =  CHAR(92)
@@ -378,7 +378,7 @@ SUBROUTINE OCDTIM (PRCTIM)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -389,7 +389,7 @@ SUBROUTINE OCDTIM (PRCTIM)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -404,7 +404,7 @@ SUBROUTINE OCDTIM (PRCTIM)
 !     30.07, Oct. 95: option DEC added
 !     30.70, Sep. 97: adaptation in view of year 2000
 !     30.82, Mar. 99: Adapted to Fortran 90 standard
-!     40.02, Sep. 00: Removed all platform dependent Fortran 77 statemen
+!     40.02, Sep. 00: Removed all platform dependent Fortran 77 statements
 !
 !  2. PURPOSE
 !
@@ -477,7 +477,7 @@ SUBROUTINE DTSTTI (IOPT, TIMSTR, DTTIME)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -488,13 +488,13 @@ SUBROUTINE DTSTTI (IOPT, TIMSTR, DTTIME)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !     Updates
 !
 !       ver 30.70, Sep 1997 by N.Booij: adaptation in view year 2000
-!       40.89, Nico Booij: integer Jumpyear introduced to prevent proble
+!       40.89, Nico Booij: integer Jumpyear introduced to prevent problems
 !                          with 2-digit year code
 !
 !     Function:
@@ -616,7 +616,7 @@ SUBROUTINE DTTIST (IOPT, TIMSTR, DTTIME)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -627,7 +627,7 @@ SUBROUTINE DTTIST (IOPT, TIMSTR, DTTIME)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !     Updates

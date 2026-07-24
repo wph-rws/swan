@@ -44,7 +44,7 @@ REAL FUNCTION DTTIME (INTTIM)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -55,7 +55,7 @@ REAL FUNCTION DTTIME (INTTIM)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -67,7 +67,7 @@ REAL FUNCTION DTTIME (INTTIM)
 !
 !      9705, May  97: month number is checked
 !     30.74, Nov. 97: Prepared for version with INCLUDE statements
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -76,7 +76,7 @@ REAL FUNCTION DTTIME (INTTIM)
 !
 !  3. Method
 !
-!     every fourth year is a leap-year, but not the century-years, howev
+!     every fourth year is a leap-year, but not the century-years, however
 !     also leap-years are: year 0, 1000, 2000 etc.
 !     1 jan of year 0 is daynumber 1.
 !
@@ -112,7 +112,7 @@ REAL FUNCTION DTTIME (INTTIM)
    LOGICAL LEAPYR
    LOGICAL, SAVE :: LOGREF = .FALSE.
 
-!     REFDAY  day number of the reference day; the reference time is 0:0
+!     REFDAY  day number of the reference day; the reference time is 0:00
 !            of the reference day; the first day entered is used as
 !             reference day.
 !
@@ -180,7 +180,7 @@ SUBROUTINE DTINTI (TIMESC, INTTIM)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -191,7 +191,7 @@ SUBROUTINE DTINTI (TIMESC, INTTIM)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -212,7 +212,7 @@ SUBROUTINE DTINTI (TIMESC, INTTIM)
 !
 !  3. Method
 !
-!     every fourth year is a leap-year, but not the century-years, howev
+!     every fourth year is a leap-year, but not the century-years, however
 !     also leap-years are: year 0, 1000, 2000 etc.
 !     1 jan of year 0 is daynumber 1.
 !
@@ -374,7 +374,7 @@ SUBROUTINE DTRETI (TSTRNG, IOPT, TIMESC)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -385,7 +385,7 @@ SUBROUTINE DTRETI (TSTRNG, IOPT, TIMESC)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -420,7 +420,7 @@ SUBROUTINE DTRETI (TSTRNG, IOPT, TIMESC)
 
    REAL    RTMP
 
-!     DTTIME : Gives time in seconds from a reference day it also initia
+!     DTTIME : Gives time in seconds from a reference day it also initialises the
 !              reference day
 
    REAL    DTTIME
@@ -466,7 +466,7 @@ CHARACTER(LEN=18) FUNCTION DTTIWR (IOPT, TIMESC)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -477,7 +477,7 @@ CHARACTER(LEN=18) FUNCTION DTTIWR (IOPT, TIMESC)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -561,7 +561,7 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -572,7 +572,7 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -597,7 +597,7 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
 !     34.01, Feb. 99: Introducing STPNOW
 !     40.02, Sep. 00: Replaced computed GOTO by CASE construct
 !     40.03, Jul. 00: TRIM used to improve readability of message
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -610,17 +610,17 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
 !     IDFM   : output   format index
 !     IDLA   : output   lay-out indicator
 !     IDYN   : input    indicate whether grid is dynamic or not
-!     NDSD   : ??       unit number of the file from which to read the d
-!     NDSL   : ??       unit number of the file containing the list of f
-!     NHEDF  : output   number of heading lines in the file (once in eac
-!     NHEDT  : output   number of heading lines in the file before readi
+!     NDSD   : ??       unit number of the file from which to read the dataset
+!     NDSL   : ??       unit number of the file containing the list of filenames
+!     NHEDF  : output   number of heading lines in the file (once in each file)
+!     NHEDT  : output   number of heading lines in the file before reading
 !                       each time level
 !     NHEDC  : output   number of heading lines in the file before each
 !                       or vector component
 
    INTEGER   IDFM, IDLA,  NDSL, NDSD, NHEDF, NHEDT, NHEDC, IDYN
 
-!     LOGC   : input    if True more than one component is read from fil
+!     LOGC   : input    if True more than one component is read from file
 
    LOGICAL   LOGC
 
@@ -788,7 +788,7 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -799,7 +799,7 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -818,29 +818,29 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM,&
 !  1. Updates
 !
 !     01.05, Feb. 90: Before reading values in the array are divided by
-!                     in order to retain correct values for points where
+!                     in order to retain correct values for points where no
 !                     value was given
 !     01.06, Apr. 91: i/o status is printed if read error occurs
-!     30.72, Sept 97: Changed DO-block with one CONTINUE to DO-block wit
+!     30.72, Sept 97: Changed DO-block with one CONTINUE to DO-block with
 !                     two CONTINUE's
-!     30.72, Sept 97: Corrected reading of heading lines for SERIES of f
+!     30.72, Sept 97: Corrected reading of heading lines for SERIES of files
 !                     in dynamic mode
 !     30.74, Nov. 97: Prepared for version with INCLUDE statements
 !     40.00, July 98: SWAN specific statements modified
-!                     unformatted read: heading lines also read unformat
-!                     distinction between NDSD (data file) and NDSL (fil
-!     30.82, Sep. 98: Added INQUIRE statement to produce correct file na
+!                     unformatted read: heading lines also read unformatted
+!                     distinction between NDSD (data file) and NDSL (file list)
+!     30.82, Sep. 98: Added INQUIRE statement to produce correct file name in
 !                     case of a read error
 !     34.01, Feb. 99: Introducing STPNOW
 !     40.02, Sep. 00: Replaced computed GOTO with CASE construct
-!     40.02, Sep. 00: Replaced reserved words IOSTAT with IOERR and STAT
-!     40.03, Jul. 00: END= added to READ statement for correct reading o
+!     40.02, Sep. 00: Replaced reserved words IOSTAT with IOERR and STATUS with IERR
+!     40.03, Jul. 00: END= added to READ statement for correct reading of series
 !                     of files
 !     40.03, Jul. 00: TRIM used to improve readability of message
-!     40.13, Apr. 01: END=930 added in READ statement; corresponding err
-!     40.08, Mar. 03: Changed an INQUIRE statement so that it does not p
+!     40.13, Apr. 01: END=930 added in READ statement; corresponding error message added
+!     40.08, Mar. 03: Changed an INQUIRE statement so that it does not produce
 !                     misleading results.
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -855,9 +855,9 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM,&
 !     IDLAM  : input    lay-out indicator
 !     MXA    : input    number of points along x-side of grid
 !     MYA    : input    number of points along y-side of grid
-!     NDSD   : input    unit number of the file from which to read the d
-!     NDSL   : input    unit number of the file containing the list of f
-!     NHEDF  : input    number of heading lines in the file (first lines
+!     NDSD   : input    unit number of the file from which to read the dataset
+!     NDSL   : input    unit number of the file containing the list of filenames
+!     NHEDF  : input    number of heading lines in the file (first lines).
 !     NHEDL  : input    number of heading lines in the file
 !                       before each array
 
@@ -912,7 +912,7 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM,&
 IF (NDSD.LT.0) RETURN
 !     no reading from file due to open error
 !
-!     *** NUMFIL is the number of files that is open in one time step  *
+!     *** NUMFIL is the number of files that is open in one time step  **
    NUMFIL = 0
    IF (ITEST.GE.100) THEN
       WRITE (PRINTF, "(' * TEST INAR2D *', 4I4, 1X, A16, I3, 1X, E12.4, I3)") MXA, MYA, NDSD, IDFM, RFORM,&
@@ -1162,7 +1162,7 @@ SUBROUTINE STRACE (IENT, SUBNAM)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1173,7 +1173,7 @@ SUBROUTINE STRACE (IENT, SUBNAM)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -1182,7 +1182,7 @@ SUBROUTINE STRACE (IENT, SUBNAM)
 !
 !  1. UPDATES
 !
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -1271,7 +1271,7 @@ SUBROUTINE MSGERR (LEV,STRING)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1282,7 +1282,7 @@ SUBROUTINE MSGERR (LEV,STRING)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -1300,7 +1300,7 @@ SUBROUTINE MSGERR (LEV,STRING)
 !     40.13, Nov. 01: OPEN statement instead of CALL FOR
 !                     to prevent recursive subroutines calling
 !     40.30, Jan. 03: introduction distributed-memory approach using MPI
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -1323,7 +1323,7 @@ SUBROUTINE MSGERR (LEV,STRING)
 !
 !  6. LOCAL VARIABLES
 !
-!     IERR   : if non-zero error message file was already opened unsucce
+!     IERR   : if non-zero error message file was already opened unsuccessfully
 !     IERRF  : unit reference number of the error message file
 !     ILPOS  : actual length of error message filename
 
@@ -1412,7 +1412,7 @@ LOGICAL FUNCTION STPNOW()
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1423,7 +1423,7 @@ LOGICAL FUNCTION STPNOW()
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1434,7 +1434,7 @@ LOGICAL FUNCTION STPNOW()
 !  1. Updates
 !
 !     30.82: New function
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -1509,7 +1509,7 @@ SUBROUTINE TABHED (PROGNM, LPR)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1520,7 +1520,7 @@ SUBROUTINE TABHED (PROGNM, LPR)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -1531,7 +1531,7 @@ SUBROUTINE TABHED (PROGNM, LPR)
 !  1. UPDATES
 !
 !     40.13, Jan. 01: VERTXT replaces VERNUM
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -1601,7 +1601,7 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1612,7 +1612,7 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1634,7 +1634,7 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
 !     34.01, Feb. 99: STOP statement removed
 !     40.00, Feb. 99: DIRCH2 replaces DIRCH1 in filenames
 !     40.03, May  00: modification for Linux: local copy of filename
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     41.20, Mar. 10: extension to tightly coupled ADCIRC+SWAN model
 !
 !  1. PURPOSE
@@ -1653,9 +1653,9 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
 !       IUNIT   int     input   =0 : get free unit number
 !                               >0 : fixed unit number
 !                       output  allocated unit number
-!       DDNAME  char    input   ddname/filename string (empty if IUNIT>0
+!       DDNAME  char    input   ddname/filename string (empty if IUNIT>0)
 !       SF      char*2  input   file qualifiers
-!                               1st char: O(ld),N(ew),S(cratch),U(nknown
+!                               1st char: O(ld),N(ew),S(cratch),U(nknown)
 !                               2nd char: F(ormatted),U(nformatted)
 !       IOSTAT  int     input   0 : Full messages printed
 !                               -1: Only error messages printed
@@ -1837,7 +1837,7 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
             ELSE
                IFUN = IFUN + 1
             ENDIF
-!Casey 160728: Merging the changes from Jason in an earlier version of S
+!Casey 160728: Merging the changes from Jason in an earlier version of SWAN.
             IF (IFUN.LT.411 .OR. IFUN.GT.417) EXIT
          END DO
          IUNIT = IFUN
@@ -1924,11 +1924,11 @@ CONTAINS
 
 !  *  end of subroutine  FOR  *
 end subroutine FOR
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM1
    USE OCPCOMM2
@@ -1951,7 +1951,7 @@ LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1962,7 +1962,7 @@ LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1974,16 +1974,16 @@ LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
 !
 !  1. Updates
 !
-!     30.72, Oct. 97: Changed from EXCYES to make floating point point c
+!     30.72, Oct. 97: Changed from EXCYES to make floating point point comparisons
 !     30.60, July 97: new subroutine (EXCYES)
 !     40.04, Aug. 00: introduced EPSILON and TINY
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
 !     to determine whether a value (usually a value read from file)
 !     is an exception value or not
-!     Later (30.72) used to make comparisons of floating points within r
+!     Later (30.72) used to make comparisons of floating points within reasonable bounds
 !
 !  3. Method (updated...)
 !
@@ -2001,7 +2001,7 @@ LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
 !
 !  6. Local variables
 !
-!     EPS    : Small number (related to REAL1 and its difference with RE
+!     EPS    : Small number (related to REAL1 and its difference with REAL2)
 !     IENT   : Number of entries into this subroutine
 
    REAL      EPS
@@ -2047,11 +2047,11 @@ LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
    RETURN
 !     end of subroutine EQREAL
 end function EQREAL
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 LOGICAL FUNCTION EQDBLE (DBLE1, DBLE2)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
 
@@ -2071,7 +2071,7 @@ LOGICAL FUNCTION EQDBLE (DBLE1, DBLE2)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2082,7 +2082,7 @@ LOGICAL FUNCTION EQDBLE (DBLE1, DBLE2)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2158,7 +2158,7 @@ SUBROUTINE LSPLIT(RELINE, DATITM, NUMITM)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2169,7 +2169,7 @@ SUBROUTINE LSPLIT(RELINE, DATITM, NUMITM)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -2182,7 +2182,7 @@ SUBROUTINE LSPLIT(RELINE, DATITM, NUMITM)
 !     40.00, Jan. 98: New subroutine for SWAN
 !     40.03, Jun. 00: declaration updated, TRIM added for readability
 !                     test output added
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -2326,11 +2326,11 @@ SUBROUTINE LSPLIT(RELINE, DATITM, NUMITM)
    ENDIF
    RETURN
 end subroutine LSPLIT
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE BUGFIX (FIXABC)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM2
 
@@ -2348,7 +2348,7 @@ SUBROUTINE BUGFIX (FIXABC)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2359,7 +2359,7 @@ SUBROUTINE BUGFIX (FIXABC)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2418,11 +2418,11 @@ SUBROUTINE BUGFIX (FIXABC)
    RETURN
 !     end of subroutine BUGFIX
 end subroutine BUGFIX
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE COPYCH (STRING, MOVE, IARRAY, LENARR, IERR)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
 
@@ -2442,7 +2442,7 @@ SUBROUTINE COPYCH (STRING, MOVE, IARRAY, LENARR, IERR)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2453,7 +2453,7 @@ SUBROUTINE COPYCH (STRING, MOVE, IARRAY, LENARR, IERR)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -2467,12 +2467,12 @@ SUBROUTINE COPYCH (STRING, MOVE, IARRAY, LENARR, IERR)
 !
 !     30.72, Sept 97: INTEGER(KIND=SELECTED_INT_KIND(9)) replaced by INTEGER
 !     ver 30.01
-!     30.81, Nov. 98: Replaced variable STATUS by IERR (because STATUS i
+!     30.81, Nov. 98: Replaced variable STATUS by IERR (because STATUS is a
 !                     reserved word)
-!     30.81, Jan. 99: Replaced variable FROM by FROM_ and TO by TO_ (bec
+!     30.81, Jan. 99: Replaced variable FROM by FROM_ and TO by TO_ (because
 !                     FROM and TO are reserved words)
 !     40.03, Nov. 99: LENS2 removed from WRITE statement (value not yet
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -2503,7 +2503,7 @@ SUBROUTINE COPYCH (STRING, MOVE, IARRAY, LENARR, IERR)
 !  5. PARAMETER VARIABLES
 !
 !     OPMLFC : largest allowed integer character (ASCII) code + 1
-!     OPMNLI : number of characters that can be stored in one integer nu
+!     OPMNLI : number of characters that can be stored in one integer number
 
    INTEGER, PARAMETER :: OPMNLI=4, OPMLFC=128
 
@@ -2523,7 +2523,7 @@ SUBROUTINE COPYCH (STRING, MOVE, IARRAY, LENARR, IERR)
    INTEGER   IC, II, LENS1, LENS2, LL, MC1, MCHAR, MM, NSL
 
 !     CC     : a single character
-!     CHAR   : intrinsic character function, translates integer to chara
+!     CHAR   : intrinsic character function, translates integer to character
 !     FROM_  : 'F'
 !     TO_    : 'T'
 

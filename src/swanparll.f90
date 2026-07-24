@@ -54,7 +54,7 @@ SUBROUTINE SWINITMPI
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -65,7 +65,7 @@ SUBROUTINE SWINITMPI
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -76,7 +76,7 @@ SUBROUTINE SWINITMPI
 !  1. Updates
 !
 !     40.30, Jan. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -231,7 +231,7 @@ SUBROUTINE SWEXITMPI
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -242,7 +242,7 @@ SUBROUTINE SWEXITMPI
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -253,7 +253,7 @@ SUBROUTINE SWEXITMPI
 !  1. Updates
 !
 !     40.30, Jan. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -350,7 +350,7 @@ SUBROUTINE SWSYNC
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -361,7 +361,7 @@ SUBROUTINE SWSYNC
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -372,7 +372,7 @@ SUBROUTINE SWSYNC
 !  1. Updates
 !
 !     40.30, Jan. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -474,7 +474,7 @@ SUBROUTINE SWSENDNB_LEGACY ( IPTR, ILEN, ITYPE, IDEST, ITAG )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -485,7 +485,7 @@ SUBROUTINE SWSENDNB_LEGACY ( IPTR, ILEN, ITYPE, IDEST, ITAG )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -496,7 +496,7 @@ SUBROUTINE SWSENDNB_LEGACY ( IPTR, ILEN, ITYPE, IDEST, ITAG )
 !  1. Updates
 !
 !     40.30, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -606,7 +606,7 @@ SUBROUTINE SWRECVNB_LEGACY ( IPTR, ILEN, ITYPE, ISOURCE, ITAG )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -617,7 +617,7 @@ SUBROUTINE SWRECVNB_LEGACY ( IPTR, ILEN, ITYPE, ISOURCE, ITAG )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -628,7 +628,7 @@ SUBROUTINE SWRECVNB_LEGACY ( IPTR, ILEN, ITYPE, ISOURCE, ITAG )
 !  1. Updates
 !
 !     40.30, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -744,7 +744,7 @@ SUBROUTINE SWBROADC_LEGACY ( IPTR, ILEN, ITYPE )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -755,7 +755,7 @@ SUBROUTINE SWBROADC_LEGACY ( IPTR, ILEN, ITYPE )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -766,7 +766,7 @@ SUBROUTINE SWBROADC_LEGACY ( IPTR, ILEN, ITYPE )
 !  1. Updates
 !
 !     40.30, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -875,7 +875,7 @@ SUBROUTINE SWGATHER_LEGACY ( IOPTR, IOLEN, IIPTR, IILEN, ITYPE )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -886,7 +886,7 @@ SUBROUTINE SWGATHER_LEGACY ( IOPTR, IOLEN, IIPTR, IILEN, ITYPE )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -897,7 +897,7 @@ SUBROUTINE SWGATHER_LEGACY ( IOPTR, IOLEN, IIPTR, IILEN, ITYPE )
 !  1. Updates
 !
 !     40.30, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -1063,7 +1063,7 @@ SUBROUTINE SWREDUCE_LEGACY ( IPTR, ILEN, ITYPE, ITYPRD )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1074,7 +1074,7 @@ SUBROUTINE SWREDUCE_LEGACY ( IPTR, ILEN, ITYPE, ITYPRD )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1086,8 +1086,8 @@ SUBROUTINE SWREDUCE_LEGACY ( IPTR, ILEN, ITYPE, ITYPRD )
 !  1. Updates
 !
 !     40.30, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
-!     40.96, Dec. 08: call SWREDUCI/R instead of passing startaddress of
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!     40.96, Dec. 08: call SWREDUCI/R instead of passing startaddress of the array
 !
 !  2. Purpose
 !
@@ -1177,7 +1177,7 @@ SUBROUTINE SWREDUCI ( IARR, ILEN, ITYPRD )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1188,7 +1188,7 @@ SUBROUTINE SWREDUCI ( IARR, ILEN, ITYPRD )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1314,7 +1314,7 @@ SUBROUTINE SWREDUCR ( ARR, ILEN, ITYPRD )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1325,7 +1325,7 @@ SUBROUTINE SWREDUCR ( ARR, ILEN, ITYPRD )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1449,7 +1449,7 @@ end subroutine SWREDUCR
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1460,7 +1460,7 @@ end subroutine SWREDUCR
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !WFR!
 !WFR!  0. Authors
@@ -1649,7 +1649,7 @@ end subroutine SWREDUCR
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1660,7 +1660,7 @@ end subroutine SWREDUCR
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !JAC!
 !JAC!  0. Authors
@@ -1884,7 +1884,7 @@ end subroutine SWREDUCR
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1895,7 +1895,7 @@ end subroutine SWREDUCR
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !JAC!
 !JAC!  0. Authors
@@ -2147,7 +2147,7 @@ SUBROUTINE SWPARTIT ( IPOWN, MXC, MYC )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2158,7 +2158,7 @@ SUBROUTINE SWPARTIT ( IPOWN, MXC, MYC )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2170,7 +2170,7 @@ SUBROUTINE SWPARTIT ( IPOWN, MXC, MYC )
 !
 !     40.30, Feb. 03: New subroutine
 !     40.41, Sep. 04: determines load per processor based on speed
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -2315,7 +2315,7 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2326,7 +2326,7 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2338,7 +2338,7 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
 !
 !     40.30, Feb. 03: New subroutine
 !     40.41, Jul. 04: determine global bounds in subdomains
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -2657,7 +2657,7 @@ SUBROUTINE SWDECOMP
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2668,7 +2668,7 @@ SUBROUTINE SWDECOMP
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2679,7 +2679,7 @@ SUBROUTINE SWDECOMP
 !  1. Updates
 !
 !     40.30, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -2821,7 +2821,7 @@ end subroutine SWDECOMP
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2832,7 +2832,7 @@ end subroutine SWDECOMP
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !JAC!
 !JAC!  0. Authors
@@ -3050,7 +3050,7 @@ end subroutine SWDECOMP
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3061,7 +3061,7 @@ end subroutine SWDECOMP
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !WFR!
 !WFR!  0. Authors
@@ -3237,7 +3237,7 @@ end subroutine SWDECOMP
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3248,7 +3248,7 @@ end subroutine SWDECOMP
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !WFR!
 !WFR!  0. Authors
@@ -3400,7 +3400,7 @@ end subroutine SWDECOMP
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3411,7 +3411,7 @@ end subroutine SWDECOMP
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !WFR!
 !WFR!  0. Authors
@@ -3564,7 +3564,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3575,7 +3575,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -3587,7 +3587,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
 !  1. Updates
 !
 !     40.30, Mar. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.51, Feb. 05: extended to full arrays
 !
 !  2. Purpose
@@ -3601,7 +3601,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
 !  4. Argument variables
 !
 !     FIELD       geographical field array in own subdomain
-!     FIELDGL     global geographical field array gathered from all node
+!     FIELDGL     global geographical field array gathered from all nodes
 !     FULL        if true, full arrays are handled otherwise 1-D compact
 !                 arrays are handled
 
@@ -3611,7 +3611,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
 !  6. Local variables
 !
 !     FLDC  :     auxiliary array for collecting data
-!     IARRC :     auxiliary array for collecting grid indices and counte
+!     IARRC :     auxiliary array for collecting grid indices and counter
 !     IARRL :     auxiliary array containing grid indices and counter
 !     IENT  :     number of entries
 !     ILEN  :     integer indicating length of an array
@@ -3846,7 +3846,7 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3857,7 +3857,7 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -3870,7 +3870,7 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
 !  1. Updates
 !
 !     40.30, May  03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.41, Dec. 04: optimization output with respect to COMPGRID
 !     40.51, Feb. 05: re-design output process in parallel mode
 !     41.36, Jun. 06: collecting data for PunSWAN
@@ -3982,7 +3982,7 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
 !     do for all COMPUTE commands
 !        do for all time steps
 !           do for all output requests
-!              processing of output instructions necessary for collectio
+!              processing of output instructions necessary for collection
 !              check time of output action
 !              compute coordinates of output points
 !              correct problem coordinates with offset values
@@ -4205,7 +4205,7 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
                IF (STPNOW()) RETURN
             END IF
 
-!              --- rewrite block output by means of collection of proces
+!              --- rewrite block output by means of collection of process
 !                  output data
 
             IF ( RTYPE(1:3).EQ.'BLK' ) THEN
@@ -4278,7 +4278,7 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4289,7 +4289,7 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4303,7 +4303,7 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
 !  1. Updates
 !
 !     40.30, May  03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.41, Dec. 04: optimization output with respect to COMPGRID
 !     40.51, Feb. 05: further optimization
 !     40.51, Feb. 05: re-design output process in parallel mode
@@ -4625,7 +4625,7 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4636,7 +4636,7 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4650,7 +4650,7 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 !  1. Updates
 !
 !     40.30, May  03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.41, Dec. 04: optimization output with respect to COMPGRID
 !     40.51, Feb. 05: further optimization
 !     40.51, Feb. 05: re-design output process in parallel mode
@@ -5013,7 +5013,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5024,7 +5024,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5040,7 +5040,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
 !
 !     40.31, Dec. 03: New subroutine
 !     40.41, Jun. 04: some improvements with respect to MATLAB
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.41, Dec. 04: optimization output with respect to COMPGRID
 !     40.51, Feb. 05: further optimization
 !     40.51, Feb. 05: re-design output process in parallel mode
@@ -5514,7 +5514,7 @@ end subroutine SWCOLBLK
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5525,7 +5525,7 @@ end subroutine SWCOLBLK
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !JAC!
 !JAC!  0. Authors

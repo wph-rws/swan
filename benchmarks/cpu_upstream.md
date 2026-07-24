@@ -1,5 +1,9 @@
 # CPU performance versus upstream
 
+> A follow-up report covers
+> [OpenMP and MPI scaling versus upstream](parallel_upstream.md)
+> for both the repository defaults and equal `-O3` optimization.
+
 This report compares the CPU performance of the current working tree,
 the build of 19 July 2026, with freshly fetched upstream revision `43e9bbb`. It
 includes the SWSNL workspace optimizations in `swancom4.f90` and the FFTW

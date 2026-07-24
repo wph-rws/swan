@@ -50,11 +50,11 @@
 !           The calculated wave height from SWAN is then compared with
 !           the wave heigth as provided by the user
 !
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE READXY (NAMX, NAMY, XX, YY, KONT, XSTA, YSTA)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM1
    USE SWCOMM2
@@ -73,7 +73,7 @@ SUBROUTINE READXY (NAMX, NAMY, XX, YY, KONT, XSTA, YSTA)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -84,7 +84,7 @@ SUBROUTINE READXY (NAMX, NAMY, XX, YY, KONT, XSTA, YSTA)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -94,11 +94,11 @@ SUBROUTINE READXY (NAMX, NAMY, XX, YY, KONT, XSTA, YSTA)
 !
 !  1. UPDATE
 !
-!       Nov. 1996               offset values are added to standard valu
+!       Nov. 1996               offset values are added to standard values
 !                               because they will be subtracted later
 !     40.13, Nov. 01: a valid value for YY is required if a valid value
 !                     for XX has been given; ocpcomm1.inc reactivated
-!     40.51, Feb. 05: correction to location points equal to offset valu
+!     40.51, Feb. 05: correction to location points equal to offset values
 !
 !  2. PURPOSE
 !
@@ -110,9 +110,9 @@ SUBROUTINE READXY (NAMX, NAMY, XX, YY, KONT, XSTA, YSTA)
 !
 !  4. PARAMETERLIST
 !
-!       NAMX, NAMY   inp char    names of the two coordinates as given i
+!       NAMX, NAMY   inp char    names of the two coordinates as given in
 !                                the user manual
-!       XX, YY       out real    values of x and y taking into account o
+!       XX, YY       out real    values of x and y taking into account offset
 !       KONT         inp char    what to be done if values are missing
 !                                see doc. of INDBLE (Ocean Pack doc.)
 !       XSTA, YSTA   inp real    standard values of x and y
@@ -183,11 +183,11 @@ SUBROUTINE READXY (NAMX, NAMY, XX, YY, KONT, XSTA, YSTA)
    RETURN
 ! * end of subroutine READXY  *
 end subroutine READXY
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE REFIXY (NDS, XX, YY, IERR)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE SWCOMM2
 
@@ -205,7 +205,7 @@ SUBROUTINE REFIXY (NDS, XX, YY, IERR)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -216,7 +216,7 @@ SUBROUTINE REFIXY (NDS, XX, YY, IERR)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -238,8 +238,8 @@ SUBROUTINE REFIXY (NDS, XX, YY, IERR)
 !  4. PARAMETERLIST
 !
 !       NDS          in  int     file reference number
-!       XX, YY       out real    values of x and y taking into account o
-!       IERR         out int     error indicator: IERR=0: no error, =-1:
+!       XX, YY       out real    values of x and y taking into account offset
+!       IERR         out int     error indicator: IERR=0: no error, =-1: end-
 !                                of-file, =-2: read error
 !
 !  5. SUBROUTINES CALLING
@@ -309,11 +309,11 @@ SUBROUTINE REFIXY (NDS, XX, YY, IERR)
    RETURN
 ! * end of subroutine REFIXY  *
 end subroutine REFIXY
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 LOGICAL FUNCTION  INFRAM (XQQ, YQQ)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM1
@@ -332,7 +332,7 @@ LOGICAL FUNCTION  INFRAM (XQQ, YQQ)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -343,7 +343,7 @@ LOGICAL FUNCTION  INFRAM (XQQ, YQQ)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -351,12 +351,12 @@ LOGICAL FUNCTION  INFRAM (XQQ, YQQ)
 !
 !  1. UPDATE
 !
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
 !       Checking whether a point given in frame coordinates is located
-!       in the plotting frame (INFRAM = .TRUE.) or not (INFRAM = .FALSE.
+!       in the plotting frame (INFRAM = .TRUE.) or not (INFRAM = .FALSE.)
 !
 !  3. METHOD
 !
@@ -406,11 +406,11 @@ LOGICAL FUNCTION  INFRAM (XQQ, YQQ)
    RETURN
 ! * end of function INFRAM *
 end function INFRAM
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE DISTR (CDIR, DIR, COEF, SPCDIR)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM3
@@ -429,7 +429,7 @@ SUBROUTINE DISTR (CDIR, DIR, COEF, SPCDIR)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -440,7 +440,7 @@ SUBROUTINE DISTR (CDIR, DIR, COEF, SPCDIR)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !
@@ -455,11 +455,11 @@ SUBROUTINE DISTR (CDIR, DIR, COEF, SPCDIR)
 !      0.1 , Jul. 87: Standard heading added
 !      0.2 , Dec. 89: Value for energy outside of the sector changed
 !                     from 0. to 1.E-6
-!            Oct. 90: Value for energy outside the sector changed to 1.E
-!                     logical BDIR introduced to take care for case wher
+!            Oct. 90: Value for energy outside the sector changed to 1.E-10
+!                     logical BDIR introduced to take care for case where
 !                     none of the values is positive
 !     30.82, Oct. 98: Updated description of several variables
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -555,11 +555,11 @@ SUBROUTINE DISTR (CDIR, DIR, COEF, SPCDIR)
    RETURN
 ! * end of subroutine DISTR *
 end subroutine DISTR
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE KSCIP1 (MMT, SIG, D, K, CG, N, ND)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM3
@@ -581,7 +581,7 @@ SUBROUTINE KSCIP1 (MMT, SIG, D, K, CG, N, ND)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -592,7 +592,7 @@ SUBROUTINE KSCIP1 (MMT, SIG, D, K, CG, N, ND)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -605,9 +605,9 @@ SUBROUTINE KSCIP1 (MMT, SIG, D, K, CG, N, ND)
 !  1. Updates
 !
 !     Aug. 94, ver. 10.10: arguments N and ND added
-!     Dec. 98, ND corrected, argument list adjusted and IMPLICIT NONE ad
+!     Dec. 98, ND corrected, argument list adjusted and IMPLICIT NONE added
 !     40.41, Aug. 04: tables replaced by Pade and other formulas
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     41.16, Mar. 11: correction: add dk/dh to dn/dh
 !
 !  2. Purpose
@@ -728,11 +728,11 @@ SUBROUTINE KSCIP1 (MMT, SIG, D, K, CG, N, ND)
    RETURN
 !     end of subroutine KSCIP1 *
 end subroutine KSCIP1
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE KSCIP2 (MMT, SIG, D, K, CG, N, ND, DMW, DM)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM3
@@ -753,7 +753,7 @@ SUBROUTINE KSCIP2 (MMT, SIG, D, K, CG, N, ND, DMW, DM)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -764,7 +764,7 @@ SUBROUTINE KSCIP2 (MMT, SIG, D, K, CG, N, ND, DMW, DM)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -782,7 +782,7 @@ SUBROUTINE KSCIP2 (MMT, SIG, D, K, CG, N, ND, DMW, DM)
 !
 !  3. Method
 !
-!     Wave number based on Ng (2000) and other quantities derived thereo
+!     Wave number based on Ng (2000) and other quantities derived thereof
 !
 !  4. Argument variables
 !
@@ -869,7 +869,7 @@ SUBROUTINE KSCIP2 (MMT, SIG, D, K, CG, N, ND, DMW, DM)
       IF ( KND.LT.10. .AND. DM.GT.1.E-5 ) THEN
          SBLTM  = SQRT(2.*KINVISM/SIG(IS))
          DTILDE = DM/SBLTM
-!         calculate muddy wave number and dissipation rate using Ng (200
+!         calculate muddy wave number and dissipation rate using Ng (2000)
          CALL NG(SIG(IS),D,DTILDE,ZETA,SBLTM,GAMMA,K(IS),KMUD,DMW(IS))
          K(IS)  = KMUD
 !         calculate ratio N, CG and derivative of N w.r.t. D
@@ -894,11 +894,11 @@ SUBROUTINE KSCIP2 (MMT, SIG, D, K, CG, N, ND, DMW, DM)
    RETURN
 !     end of subroutine KSCIP2 *
 end subroutine KSCIP2
-!***********************************************************************
+!************************************************************************
 
 SUBROUTINE NG(SIGMA,H_WDEPTH,DTILDE,ZETA,SBLTM,GAMMA,WK,WKDR,DISS)
 
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
 
@@ -918,7 +918,7 @@ SUBROUTINE NG(SIGMA,H_WDEPTH,DTILDE,ZETA,SBLTM,GAMMA,WK,WKDR,DISS)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -929,7 +929,7 @@ SUBROUTINE NG(SIGMA,H_WDEPTH,DTILDE,ZETA,SBLTM,GAMMA,WK,WKDR,DISS)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -989,7 +989,7 @@ SUBROUTINE NG(SIGMA,H_WDEPTH,DTILDE,ZETA,SBLTM,GAMMA,WK,WKDR,DISS)
 
 ! 11. Remarks
 !
-!     Calculations for the "B coefficients" came from a code by Jim Kaih
+!     Calculations for the "B coefficients" came from a code by Jim Kaihatu
 !
 ! 13. Source text
 
@@ -1025,11 +1025,11 @@ SUBROUTINE NG(SIGMA,H_WDEPTH,DTILDE,ZETA,SBLTM,GAMMA,WK,WKDR,DISS)
    RETURN
 
 end subroutine NG
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE AC2TST (XYTST, AC2,KGRPNT)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM2
@@ -1051,7 +1051,7 @@ SUBROUTINE AC2TST (XYTST, AC2,KGRPNT)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1062,7 +1062,7 @@ SUBROUTINE AC2TST (XYTST, AC2,KGRPNT)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !     0. Authors
@@ -1118,7 +1118,7 @@ SUBROUTINE CVCHEK (KGRPNT, XCGRID, YCGRID)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1129,7 +1129,7 @@ SUBROUTINE CVCHEK (KGRPNT, XCGRID, YCGRID)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !  0. Authors
 !
@@ -1140,9 +1140,9 @@ SUBROUTINE CVCHEK (KGRPNT, XCGRID, YCGRID)
 !  1. Updates
 !
 !            May  96: New subroutine
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.13, Mar. 01: messages corrected and extended
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -1319,11 +1319,11 @@ SUBROUTINE CVCHEK (KGRPNT, XCGRID, YCGRID)
    RETURN
 !     *** end of subroutine CVCHEK ***
 end subroutine CVCHEK
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM2
@@ -1344,7 +1344,7 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1355,7 +1355,7 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1368,13 +1368,13 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
 !  1. Updates
 !
 !     30.21, Jun. 96: New for curvilinear version
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.00, May  98: procedure for points outside grid accelerated
 !     40.00, Feb  99: procedure extended for 1D case
 !                     XOFFS and YOFFS added in write statements
-!     40.02, Mar. 00: Fixed bug that placed dry testpoints outside compu
+!     40.02, Mar. 00: Fixed bug that placed dry testpoints outside computational grid
 !     40.13, Mar. 01: message "CVMESH 2nd attempt .." suppressed
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.41, Nov. 04: search for boundary points improved
 !
 !  2. Purpose
@@ -1386,15 +1386,15 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
 !
 !     First attempt: use Newton-Raphson method to find XC and YC
 !     (Note: in the program XC and YC indicate the mesh and position in
-!     the mesh) in a few steps; this may be most efficient if a series o
+!     the mesh) in a few steps; this may be most efficient if a series of
 !     points is processed, because the previous point provides a good
 !     first estimate.
 !     This procedure may fail if the number of iterations is larger than
 !     a previously set limit (default=5).
 !
-!     If the first attempt fails then determine whether the points (XP,Y
-!     is inside the mesh. If so, then the Newton-Raphson procedure is us
-!     again with the pivoting point like first guess. Otherwise, scan th
+!     If the first attempt fails then determine whether the points (XP,YP)
+!     is inside the mesh. If so, then the Newton-Raphson procedure is used
+!     again with the pivoting point like first guess. Otherwise, scan the
 !     boundaries whether the point is on the boundaries. If this fails,
 !     may be concluded that the point (XP,YP) is outside the grid.
 !
@@ -1480,7 +1480,7 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
 !                 2: K1 = KGRPNT(ix+1,iy), K2 = KGRPNT(ix+1,iy+1)
 !                 3: K1 = KGRPNT(ix+1,iy+1), K2 = KGRPNT(ix,iy+1)
 !                 4: K1 = KGRPNT(ix,iy+1), K2 = KGRPNT(ix,iy)
-!                 ------------------------------------------------------
+!                 ----------------------------------------------------------
 !                 If K1>0 and K2>0
 !                 Then Det = (xp-xpg(K1))*(ypg(K2)-ypg(K1)) -
 !                            (yp-ypg(K1))*(xpg(K2)-xpg(K1))
@@ -1577,7 +1577,7 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
             WRITE (PRINTF, "(' search for point with location ', 2F12.4, ' fails in', I3, ' iterations')") XP+XOFFS, YP+YOFFS, MXITNR
          END IF
       ELSE IF (.NOT. FINDXY) THEN
-!         scan boundary to see whether the point is close to the boundar
+!         scan boundary to see whether the point is close to the boundary
          DISMIN=99999.
          ONBND =.FALSE.
          IX1 = 0
@@ -1646,11 +1646,11 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
       YC = -99.
    ENDIF
 end subroutine CVMESH
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 LOGICAL FUNCTION INMESH (XP, YP, XCGRID ,YCGRID, KGRBND)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM2
@@ -1671,7 +1671,7 @@ LOGICAL FUNCTION INMESH (XP, YP, XCGRID ,YCGRID, KGRBND)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1682,7 +1682,7 @@ LOGICAL FUNCTION INMESH (XP, YP, XCGRID ,YCGRID, KGRBND)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1694,8 +1694,8 @@ LOGICAL FUNCTION INMESH (XP, YP, XCGRID ,YCGRID, KGRBND)
 !  1. Updates
 !
 !       New function for curvilinear version (ver. 40.00). May '98
-!       40.03, Dec 99: test output added; commons swcomm2 and ocpcomm4 a
-!       40.41, Oct. 04: common blocks replaced by modules, include files
+!       40.03, Dec 99: test output added; commons swcomm2 and ocpcomm4 added
+!       40.41, Oct. 04: common blocks replaced by modules, include files removed
 !       40.41, Nov. 04: search for points restricted to subdomain
 !       40.51, Feb. 05: determining number of crossing points improved
 !
@@ -1833,12 +1833,12 @@ LOGICAL FUNCTION INMESH (XP, YP, XCGRID ,YCGRID, KGRBND)
       INMESH = .FALSE.
    ENDIF
 end function INMESH
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE NEWTON (XP, YP, XCGRID, YCGRID,&
 &MXITNR, ITER, XC, YC, FIND)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM3
@@ -1858,7 +1858,7 @@ SUBROUTINE NEWTON (XP, YP, XCGRID, YCGRID,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1869,7 +1869,7 @@ SUBROUTINE NEWTON (XP, YP, XCGRID, YCGRID,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !  0. Authors
 !
@@ -1881,16 +1881,16 @@ SUBROUTINE NEWTON (XP, YP, XCGRID, YCGRID,&
 !  1. Updates
 !
 !     30.21, Jun. 96: New for curvilinear version
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.82, Oct. 98: Updated description of several variables
 !     30.80, Oct. 98: computation of update of XC,YC modified to avoid
 !                     division by 0
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
 !     Solve eqs. and find a point  (XC,YC) in a curvilinear grid (compt.
-!     grid) for a given point (XP ,YP) in a cartesian grid (problem coor
+!     grid) for a given point (XP ,YP) in a cartesian grid (problem coord).
 !
 !  3. Method
 !
@@ -2042,12 +2042,12 @@ SUBROUTINE NEWTON (XP, YP, XCGRID, YCGRID,&
    RETURN
 !     *** end of subroutine NEWTON ***
 end subroutine NEWTON
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE NEWT1D (XP, YP, XCGRID, YCGRID, KGRPNT,&
 &XC, YC, FIND)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM2
@@ -2067,7 +2067,7 @@ SUBROUTINE NEWT1D (XP, YP, XCGRID, YCGRID, KGRPNT,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2078,7 +2078,7 @@ SUBROUTINE NEWT1D (XP, YP, XCGRID, YCGRID, KGRPNT,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !  0. Authors
 !
@@ -2091,11 +2091,11 @@ SUBROUTINE NEWT1D (XP, YP, XCGRID, YCGRID, KGRPNT,&
 !     40.13, Feb. 01: DX and DY renamed to DELX and DELY (DX and DY are
 !                     common var.); error in expression for RS corrected
 !                     PRINTF replaced by PRTEST in test output
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
-!     Finds broken coordinate XC for a given point XP in a rectilinear g
+!     Finds broken coordinate XC for a given point XP in a rectilinear grid
 !
 !  3. Method
 !
@@ -2193,11 +2193,11 @@ SUBROUTINE NEWT1D (XP, YP, XCGRID, YCGRID, KGRPNT,&
    end do
 !     *** end of subroutine NEWT1D ***
 end subroutine NEWT1D
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE EVALF (XC ,YC ,XVC ,YVC ,XCGRID ,YCGRID)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM3
@@ -2216,7 +2216,7 @@ SUBROUTINE EVALF (XC ,YC ,XVC ,YVC ,XCGRID ,YCGRID)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2227,7 +2227,7 @@ SUBROUTINE EVALF (XC ,YC ,XVC ,YVC ,XCGRID ,YCGRID)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2238,8 +2238,8 @@ SUBROUTINE EVALF (XC ,YC ,XVC ,YVC ,XCGRID ,YCGRID)
 !  1. Updates
 !
 !     30.21, Jun. 96: New for curvilinear version
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -2257,7 +2257,7 @@ SUBROUTINE EVALF (XC ,YC ,XVC ,YVC ,XCGRID ,YCGRID)
 
    REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
 
-!       XC, YC      real, outp    point in computational grid coordinate
+!       XC, YC      real, outp    point in computational grid coordinates
 !       XVC, YCV    real, OUTP    same point  but in problem coordinates
 !
 !  6. SUBROUTINES USED
@@ -2311,11 +2311,11 @@ SUBROUTINE EVALF (XC ,YC ,XVC ,YVC ,XCGRID ,YCGRID)
 !     *** end of subroutine EVALF ***
 end subroutine EVALF
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWOBST (XCGRID, YCGRID, KGRPNT, CROSS)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM3
@@ -2337,7 +2337,7 @@ SUBROUTINE SWOBST (XCGRID, YCGRID, KGRPNT, CROSS)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2348,7 +2348,7 @@ SUBROUTINE SWOBST (XCGRID, YCGRID, KGRPNT, CROSS)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2364,14 +2364,14 @@ SUBROUTINE SWOBST (XCGRID, YCGRID, KGRPNT, CROSS)
 !  1. Updates
 !
 !     30.70, Feb. 98: check if neighbouring point is a true grid point
-!                     loop over grid points moved from calling routine i
+!                     loop over grid points moved from calling routine into this
 !                     argument list changed
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.04, Nov. 99: IMPLICIT NONE added, header updated
 !                   : Removed include files that are not used
 !     40.28, Feb. 02: Adjustments for extended REFLECTION option
 !     40.31, Oct. 03: changes w.r.t. obstacles
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -2444,10 +2444,10 @@ SUBROUTINE SWOBST (XCGRID, YCGRID, KGRPNT, CROSS)
 !               For every grid point do
 !                   call function TCROSS to search if there is crossing
 !                   point
-!                   between the line of two points of the stencil and th
+!                   between the line of two points of the stencil and the
 !                   line of the corners of the obstacle.
 !                   If there is crossing point then
-!                   then CROSS(link,kcgrd) = number of the crossing obst
+!                   then CROSS(link,kcgrd) = number of the crossing obstacle
 !                   else CROSS(link,kcgrd) = 0
 !       ----------------------------------------------------------------
 !
@@ -2496,7 +2496,7 @@ SUBROUTINE SWOBST (XCGRID, YCGRID, KGRPNT, CROSS)
                         ENDIF
                         IF (ICGRD.GT.1) THEN
 
-!                     *** All links are analyzed in each point otherwise
+!                     *** All links are analyzed in each point otherwise the   ***
 !                     *** boundaries can be excluded
 
                            IF (TCROSS(X1, X2, X3, X4, Y1, Y2, Y3, Y4,&
@@ -2519,11 +2519,11 @@ SUBROUTINE SWOBST (XCGRID, YCGRID, KGRPNT, CROSS)
    RETURN
 ! * end of subroutine SWOBST *
 end subroutine SWOBST
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 LOGICAL FUNCTION TCROSS (X1, X2, X3, X4, Y1, Y2, Y3, Y4, X1ONOBST)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
 
@@ -2543,7 +2543,7 @@ LOGICAL FUNCTION TCROSS (X1, X2, X3, X4, Y1, Y2, Y3, Y4, X1ONOBST)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2554,7 +2554,7 @@ LOGICAL FUNCTION TCROSS (X1, X2, X3, X4, Y1, Y2, Y3, Y4, X1ONOBST)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2568,11 +2568,11 @@ LOGICAL FUNCTION TCROSS (X1, X2, X3, X4, Y1, Y2, Y3, Y4, X1ONOBST)
 !       30.70, Feb 98: argument list simplified
 !                      subroutine changed into logical function
 !       40.00, Aug 98: division by zero prevented
-!       40.04, Aug 99: method corrected, IMPLICIT NONE added, XCONOBST a
-!                      introduced TINY and EPSILON (instead of comparing
+!       40.04, Aug 99: method corrected, IMPLICIT NONE added, XCONOBST added,
+!                      introduced TINY and EPSILON (instead of comparing to 0)
 !                      replaced 0 < LMBD,MIU by  0 <= LMBD,MIU
 !                      XCONOBST added to argument list
-!       40.41, Oct. 04: common blocks replaced by modules, include files
+!       40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -2636,8 +2636,8 @@ LOGICAL FUNCTION TCROSS (X1, X2, X3, X4, Y1, Y2, Y3, Y4, X1ONOBST)
 !     DIV1       denominator of value of LMBD (or MIU)
 !     E,F        dummy variables
 !     IENT       number of entries
-!     LMBD       coefficient in vector equation for stencil points (or o
-!     MIU        coefficient in vector equation for obstacle (or stencil
+!     LMBD       coefficient in vector equation for stencil points (or obstacle)
+!     MIU        coefficient in vector equation for obstacle (or stencil points)
 
    INTEGER, SAVE :: IENT = 0
    REAL       A, B, C, D, DIV1, E, F, LMBD, MIU
@@ -2724,7 +2724,7 @@ LOGICAL FUNCTION TCROSS (X1, X2, X3, X4, Y1, Y2, Y3, Y4, X1ONOBST)
    RETURN
 end function TCROSS
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 &LINK  , OBREDF,&
@@ -2733,7 +2733,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 &SPCSIG, SPCDIR, CGO   , KWAVE , HSS2, TSS2  ,&
 &DSS2  )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM2
@@ -2761,7 +2761,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2772,7 +2772,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2806,23 +2806,23 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 !                     Reflection option for obstacle added
 !     40.14, Dec. 00: Reflection call corrected: reduced to neighbouring
 !                     linepiece of obstacle (bug fix 40.11D)
-!            Jan. 01: Constant waterlevel taken into account as well (bu
+!            Jan. 01: Constant waterlevel taken into account as well (bug fix 40.11E)
 !     40.18, Apr. 01: Scattered reflection against obstacles added
 !     40.28, Dec. 01: Frequency dependent reflection added
 !     40.13, Aug. 02: subroutine restructured:
-!                     loop in reflection procedure changed to avoid doub
+!                     loop in reflection procedure changed to avoid double
 !                     reflection
 !                     argument list of subr REFLECT revised
 !                     argument SPCDIR added
-!     40.30, Mar. 03: correcting indices of test point with offsets MXF,
+!     40.30, Mar. 03: correcting indices of test point with offsets MXF, MYF
 !     40.08, Mar. 03: Dimensioning of RDX, RDX changed to be consistent
 !                     with other subroutines
 !     40.31, Oct. 03: changes w.r.t. obstacles
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
-!     40.66, Mar. 07: extension with d'Angremond and Van der Meer transm
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!     40.66, Mar. 07: extension with d'Angremond and Van der Meer transmission
 !     40.80, Mar. 08: extension to unstructured grids
-!     41.65, Jun. 16: extension frequency and direction dependent tranmi
-!     41.71, Dec. 18: extension freeboard dependent transmission and ref
+!     41.65, Jun. 16: extension frequency and direction dependent tranmission coefficients
+!     41.71, Dec. 18: extension freeboard dependent transmission and reflection
 !     41.82, Aug. 21: introduce FIG source term
 !     41.85, May  19: implementation of IEM (surfbeat model)
 !     41.93, May  22: radiated seaward FIG
@@ -2862,13 +2862,13 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 !  4. Argument variables
 !
 !     AC2      input     Action density array
-!     ANYBIN   input     Set a particular bin TRUE or FALSE depending on
+!     ANYBIN   input     Set a particular bin TRUE or FALSE depending on  40.09
 !                        SECTOR
 !     CAX      input     Propagation velocity
 !     CAY      input     Propagation velocity
 !     CHS      input     Hs in all computational grid points
 !     DEP2     input     Water depth in grid points
-!     DSS2     input     sea-swell mean wave direction in all grid point
+!     DSS2     input     sea-swell mean wave direction in all grid points 42.06
 !     HSS2     input     sea-swell sig wave height in all grid points
 !     KCGRD    input     Grid address of points of computational stencil
 !     LINK     input     indicates whether link in stencil
@@ -2877,7 +2877,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 !                        (reduction at the obstacle)
 !     REFLSO   inp/outp  contribution to the source term of action
 !                        balance equation due to reflection
-!     RDX,RDY  input     Array containing spatial derivative coefficient
+!     RDX,RDY  input     Array containing spatial derivative coefficients 40.09
 !     TSS2     input     sea-swell mean wave period in all grid points
 !     WLEV2    input     Water level in grid points
 
@@ -2903,7 +2903,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 !     BVH      Bk/Hsin
 !     FD1      Coeff. for freq. dep. reflection: vertical displacement
 !     FD2      Coeff. for freq. dep. reflection: shape parameter
-!     FD3      Coeff. for freq. dep. reflection: directional coefficient
+!     FD3      Coeff. for freq. dep. reflection: directional coefficient  40.28
 !     FD4      Coeff. for freq. dep. reflection: bending point of freq.
 !     FVH      WATHIG/Hsin
 !     HGT      elevation of top of obstacle above reference level
@@ -3001,7 +3001,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 !
 ! 11. Remarks
 !
-!     Here the formulation of the transmission coefficients concerns the
+!     Here the formulation of the transmission coefficients concerns the  40.09
 !     ratio of action densities!
 !
 ! 12. Structure
@@ -3081,7 +3081,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 !         level of dam above the water surface (freeboard)
          WATHIG =  HGT - WLEV2(KCGRD(1)) - WLEV
 
-!         *** Here the transmission coeff. is that of Goda and Seelig **
+!         *** Here the transmission coeff. is that of Goda and Seelig ***
          FVH  = WATHIG/HSIN
          ALOW = -OBET-OGAM
          BUPL = OGAM-OBET
@@ -3340,7 +3340,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 !             limit sea-swell direction to range [normal-90,normal+90]
             SSTH = MAX(SSTH,-0.5*PI+BNORM)
             SSTH = MIN(SSTH, 0.5*PI+BNORM)
-!             compute outgoing sea-swell direction (specular reflection)
+!             compute outgoing sea-swell direction (specular reflection)  42.06
             TOUT = 2.*BNORM - SSTH
             IF (MS.LT.12.) THEN
                CTOT = GAMMAF(0.5*MS+1.)/(SQRT(PI)*GAMMAF(0.5*MS+0.5))
@@ -3394,7 +3394,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 !     * end of SUBROUTINE SWTRCF
 end subroutine SWTRCF
 
-!***********************************************************************
+!************************************************************************
 
 SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
 &X4, Y4, CAX, CAY, RDX, RDY,&
@@ -3402,7 +3402,7 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
 &LRFRD, SPCSIG, SPCDIR, FD1, FD2, FD3, FD4,&
 &OBREDF, REFLTST)
 
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM3
@@ -3425,7 +3425,7 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3436,7 +3436,7 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -3461,7 +3461,7 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
 !     40.08, Mar. 03: Dimensioning of RDX, RDX changed to be consistent
 !                     with other subroutines
 !     40.13, Nov. 03: test on refl + transm added
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     41.73, Apr. 20: bug fix reflection in case of 360->0
 !
 !  2. Purpose
@@ -3493,8 +3493,8 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
 !     CAY      inp  Propagation velocity in y-direction
 !     FD1      inp  Coeff. freq. dep. reflection: vertical displacement
 !     FD2      inp  Coeff. freq. dep. reflection: shape parameter
-!     FD3      inp  Coeff. freq. dep. reflection: directional coefficien
-!     FD4      inp  Coeff. freq. dep. reflection: bending point of freq.
+!     FD3      inp  Coeff. freq. dep. reflection: directional coefficient 40.28
+!     FD4      inp  Coeff. freq. dep. reflection: bending point of freq.  40.28
 !     ILINK    inp  Indicates which link is analyzed: 1 -> neighbour in
 !                                                     2 -> neighbour in
 !     LREFDIFF inp  Indicates whether reflected energy should be
@@ -3567,11 +3567,11 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
 !
 ! 11. Remarks
 !
-!    -In case the obstacle cuts exactly through computational grid point
+!    -In case the obstacle cuts exactly through computational grid point, 40.09
 !    -The length of the obstacle linepiece is assumed to be
 !     'long enough' compared to grid resolution (> 0.5*sqrt(dx^2+dy^2))
-!     (if this restriction is violated, the reflections due to an obsta-
-!     cle of one straight line can be very different from a similar line
+!     (if this restriction is violated, the reflections due to an obsta-  40.09
+!     cle of one straight line can be very different from a similar line  40.09
 !     consisting of several pieces (because only the directions of the
 !     spectrum that are directed towards the obstacle linepiece are
 !     reflected).
@@ -3690,7 +3690,7 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
          IF (ANYBIN(ID,IS)) THEN
             AC2REF = 0.
             TH_OUT = SPCDIR(ID,1)
-!           corresponding incident direction (assuming specular reflecti
+!           corresponding incident direction (assuming specular reflection)
             TH_INC = 2.*BETA-TH_OUT
             IF ( TH_INC.LT.0. ) TH_INC = TH_INC + 2.*PI
 !           determine counter for which direction is TH_INC:
@@ -3700,7 +3700,7 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
             ID_I1 = 1 + INT (IANG)
             ID_I2 = ID_I1+1
             IF ( ID_I2.GT.MDC ) ID_I2 = ID_I2 - MDC
-!           W1 and W2 are weighting coefficients for the above direction
+!           W1 and W2 are weighting coefficients for the above directions
 !           by linear interpolation
             W2 = IANG + 1. - REAL(ID_I1)
             W1 = 1. - W2
@@ -3742,11 +3742,11 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
 !     End of subroutine REFLECT
 end subroutine REFLECT
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM3
@@ -3765,7 +3765,7 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3776,7 +3776,7 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -3799,8 +3799,8 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
 !     30.80, Oct. 98: correction suggested by Mauro Sclavo, and renames
 !                     computation of tail added to improve accuracy
 !     30.82, Oct. 98: Updated description of several variables
-!     40.02, Oct. 00: Modified test write statement to avoid division by
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.02, Oct. 00: Modified test write statement to avoid division by MS=0
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     41.99, Aug. 22: correction to cos m-model
 !
 !  2. Purpose
@@ -3810,7 +3810,7 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
 !  3. Method (updated...)
 !
 !     see: M. Yamaguchi: Approximate expressions for integral properties
-!          of the JONSWAP spectrum; Proc. JSCE, No. 345/II-1, pp. 149-15
+!          of the JONSWAP spectrum; Proc. JSCE, No. 345/II-1, pp. 149-152,
 !          1984.
 !
 !     computation of mean period: see Swan system documentation
@@ -3824,7 +3824,7 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    ACLOC(MDC,MSC)
    REAL    SPCDIR(MDC,6)
@@ -3901,7 +3901,7 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
 !
 ! 11. Remarks
 !
-!     PSHAPE(1): SY0, peak enhancement factor (gamma) in Jonswap spectru
+!     PSHAPE(1): SY0, peak enhancement factor (gamma) in Jonswap spectrum
 !     PSHAPE(2): spectral width in case of Gauss spectrum in rad/s
 !
 !     SPPARM    real     input    incident wave parameters (Hs, Period,
@@ -3913,11 +3913,11 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
 !
 !     ------------------------------------------------------------------
 !
-!     In the case of a JONSWAP spectrum the initial conditions are given
+!     In the case of a JONSWAP spectrum the initial conditions are given by
 !                   _               _       _       _       _
 !                  |       _   _ -4  |     |       | S - S   |
 !             2    |      |  S  |    |     |       |      p  |
-!          a g     |      |  _  |    |  exp|-1/2 * |________ |* 2/pi COS
+!          a g     |      |  _  |    |  exp|-1/2 * |________ |* 2/pi COS(T-T  )
 ! E(S,D )= ___  exp|-5/4 *|  S  |    | G   |       | e * S   |
 !      wa    5     |      |   p |    |     |_      |_     p _|
 !           S      |      |_   _|    |
@@ -4219,7 +4219,7 @@ SUBROUTINE SINTRP (W1, W2, FL1, FL2, FL, SPCDIR, SPCSIG)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4230,7 +4230,7 @@ SUBROUTINE SINTRP (W1, W2, FL1, FL2, FL, SPCDIR, SPCSIG)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4248,7 +4248,7 @@ SUBROUTINE SINTRP (W1, W2, FL1, FL2, FL, SPCDIR, SPCSIG)
 !     30.82, Oct. 98: Update description of several variables
 !     30.82, Oct. 98: Made arguments in ATAN2 REAL(KIND=KIND(0.0D0)) to preven
 !                     underflows
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -4258,12 +4258,12 @@ SUBROUTINE SINTRP (W1, W2, FL1, FL2, FL, SPCDIR, SPCSIG)
 !
 !     linear interpolation with peakedness maintained
 !     interpolated average direction and frequency are determined
-!     average direction and frequency of interpolated spectrum are deter
-!     shifts in frequency and direction are determined from spectrum 1 a
+!     average direction and frequency of interpolated spectrum are determ.
+!     shifts in frequency and direction are determined from spectrum 1 and
 !     2 to the interpolated spectrum
 !     bilinear interpolation in spectral space is used to calculate
 !     contributions from spectrum 1 and 2.
-!     in full circle cases interpolation crosses the boundary 0-360 degr
+!     in full circle cases interpolation crosses the boundary 0-360 degr.
 !
 !  4. Argument variables
 !
@@ -4276,7 +4276,7 @@ SUBROUTINE SINTRP (W1, W2, FL1, FL2, FL, SPCDIR, SPCSIG)
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 ! i   W1    : Weighting coefficient for spectrum 1.
 ! i   W2    : Weighting coefficient for spectrum 2.
 
@@ -4453,7 +4453,7 @@ SUBROUTINE SINTRP (W1, W2, FL1, FL2, FL, SPCDIR, SPCSIG)
          ASTOT  = W1 * ASTOT1 + W2 * ASTOT2
          ASIG   = ASTOT / ATOT
 
-!         DELSG1 is shift in frequency between spectrum 1 and interpolat
+!         DELSG1 is shift in frequency between spectrum 1 and interpolated
 !         spectrum in number of frequency steps
          DELSG1 = ALOG (ASIG1 / ASIG) / FRINTF
          IDS1A  = NINT(DELSG1)
@@ -4465,7 +4465,7 @@ SUBROUTINE SINTRP (W1, W2, FL1, FL2, FL, SPCDIR, SPCSIG)
          IDS1B  = IDS1A + 1
          RDS1A  = 1. - RDS1B
 
-!         DELSG2 is shift in frequency between spectrum 2 and interpolat
+!         DELSG2 is shift in frequency between spectrum 2 and interpolated
 !         spectrum in number of frequency steps
          DELSG2 = ALOG (ASIG2 / ASIG) / FRINTF
          IDS2A  = NINT(DELSG2)
@@ -4597,11 +4597,11 @@ SUBROUTINE SINTRP (W1, W2, FL1, FL2, FL, SPCDIR, SPCSIG)
    RETURN
 !  end of subroutine of SINTRP
 end subroutine SINTRP
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 REAL FUNCTION DEGCNV (DEGREE)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE SWCOMM3
 
@@ -4619,7 +4619,7 @@ REAL FUNCTION DEGCNV (DEGREE)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4630,7 +4630,7 @@ REAL FUNCTION DEGCNV (DEGREE)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4694,7 +4694,7 @@ REAL FUNCTION DEGCNV (DEGREE)
 !
 ! 10. SOURCE TEXT
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER, SAVE :: IENT = 0
    REAL DEGREE
@@ -4720,11 +4720,11 @@ REAL FUNCTION DEGCNV (DEGREE)
    RETURN
 end function DEGCNV
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 REAL FUNCTION ANGRAD (DEGREE)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE SWCOMM3
 
@@ -4742,7 +4742,7 @@ REAL FUNCTION ANGRAD (DEGREE)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4753,7 +4753,7 @@ REAL FUNCTION ANGRAD (DEGREE)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4802,7 +4802,7 @@ REAL FUNCTION ANGRAD (DEGREE)
 !
 ! 10. SOURCE TEXT
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER, SAVE :: IENT = 0
    REAL DEGREE
@@ -4816,11 +4816,11 @@ REAL FUNCTION ANGRAD (DEGREE)
    RETURN
 end function ANGRAD
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 REAL FUNCTION ANGDEG (RADIAN)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE SWCOMM3
 
@@ -4838,7 +4838,7 @@ REAL FUNCTION ANGDEG (RADIAN)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4849,7 +4849,7 @@ REAL FUNCTION ANGDEG (RADIAN)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4898,7 +4898,7 @@ REAL FUNCTION ANGDEG (RADIAN)
 !
 ! 10. SOURCE TEXT
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER, SAVE :: IENT = 0
    REAL RADIAN
@@ -4912,11 +4912,11 @@ REAL FUNCTION ANGDEG (RADIAN)
    RETURN
 end function ANGDEG
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE HSOBND (AC2   ,SPCSIG,HSIBC ,KGRPNT)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM3
@@ -4936,7 +4936,7 @@ SUBROUTINE HSOBND (AC2   ,SPCSIG,HSIBC ,KGRPNT)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4947,7 +4947,7 @@ SUBROUTINE HSOBND (AC2   ,SPCSIG,HSIBC ,KGRPNT)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4962,11 +4962,11 @@ SUBROUTINE HSOBND (AC2   ,SPCSIG,HSIBC ,KGRPNT)
 !
 !     32.01, Sep. 97: new for SWAN
 !     30.72, Jan. 98: Changed number of elements for HSI to MCGRD
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.70, Feb. 98: structure scheme corrected
 !     40.00, Mar. 98: integration method changed (as in SNEXTI)
 !                     structure corrected
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -5030,7 +5030,7 @@ SUBROUTINE HSOBND (AC2   ,SPCSIG,HSIBC ,KGRPNT)
 !
 ! 10. SOURCE TEXT
 !
-!***********************************************************************
+!************************************************************************
 
    REAL      AC2(MDC,MSC,MCGRD) ,HSIBC(MCGRD)
 
@@ -5119,7 +5119,7 @@ SUBROUTINE CHGBAS (X1, X2, PERIOD, Y1, Y2, N1, N2,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5130,12 +5130,12 @@ SUBROUTINE CHGBAS (X1, X2, PERIOD, Y1, Y2, N1, N2,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Update history
 !
-!       ver 20.48: also accomodates periodic variables such as direction
+!       ver 20.48: also accomodates periodic variables such as directions
 !
 !  1. Purpose
 !
@@ -5181,7 +5181,7 @@ SUBROUTINE CHGBAS (X1, X2, PERIOD, Y1, Y2, N1, N2,&
 !       Make all values of Y2 = 0
 !       For each cell in X1 do
 !           determine boundaries of cell in X1
-!           ------------------------------------------------------------
+!           --------------------------------------------------------------
 !           For each cell in X2 do
 !               determine overlap with cell in X1; limits: RLOW and RUPP
 !               add to Y2: Y1 * length of overlapping interval
@@ -5396,11 +5396,11 @@ REAL FUNCTION GAMMLN(XX)
    GAMMLN=TMP+LOG(STP*SER)
    RETURN
 end function GAMMLN
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE WRSPEC (NREF, ACLOC)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM4
    USE SWCOMM3
@@ -5422,7 +5422,7 @@ SUBROUTINE WRSPEC (NREF, ACLOC)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5433,7 +5433,7 @@ SUBROUTINE WRSPEC (NREF, ACLOC)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5444,9 +5444,9 @@ SUBROUTINE WRSPEC (NREF, ACLOC)
 !  1. UPDATE
 !
 !     new subroutine, update 40.00
-!     40.03, Mar. 00: precision increased; 2 decimals more in output tab
+!     40.03, Mar. 00: precision increased; 2 decimals more in output table
 !     40.13, July 01: variable format using module OUTP_DATA
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -5554,7 +5554,7 @@ SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5565,7 +5565,7 @@ SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5576,7 +5576,7 @@ SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX)
 !  1. Updates
 !
 !     40.23, Sep. 02: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -5667,7 +5667,7 @@ end subroutine SWACC
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5678,7 +5678,7 @@ end subroutine SWACC
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !TIMG!
 !TIMG!  0. Authors
@@ -5833,7 +5833,7 @@ end subroutine SWACC
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5844,7 +5844,7 @@ end subroutine SWACC
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !TIMG!
 !TIMG!  0. Authors
@@ -5991,7 +5991,7 @@ end subroutine SWACC
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -6002,7 +6002,7 @@ end subroutine SWACC
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !TIMG!
 !TIMG!  0. Authors
@@ -6380,7 +6380,7 @@ SUBROUTINE TXPBLA(TEXT,IF,IL)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -6391,7 +6391,7 @@ SUBROUTINE TXPBLA(TEXT,IF,IL)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -6478,7 +6478,7 @@ CHARACTER(LEN=20) FUNCTION INTSTR ( IVAL )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -6489,7 +6489,7 @@ CHARACTER(LEN=20) FUNCTION INTSTR ( IVAL )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -6566,7 +6566,7 @@ CHARACTER(LEN=20) FUNCTION NUMSTR ( IVAL, RVAL, FORM )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -6577,7 +6577,7 @@ CHARACTER(LEN=20) FUNCTION NUMSTR ( IVAL, RVAL, FORM )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -6588,7 +6588,7 @@ CHARACTER(LEN=20) FUNCTION NUMSTR ( IVAL, RVAL, FORM )
 !  1. Updates
 !
 !     40.23, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -6646,7 +6646,7 @@ SUBROUTINE SWCOPI ( IARR1, IARR2, LENGTH )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -6657,7 +6657,7 @@ SUBROUTINE SWCOPI ( IARR1, IARR2, LENGTH )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -6668,7 +6668,7 @@ SUBROUTINE SWCOPI ( IARR1, IARR2, LENGTH )
 !  1. Updates
 !
 !     40.23, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -6758,7 +6758,7 @@ SUBROUTINE SWCOPR ( ARR1, ARR2, LENGTH )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -6769,7 +6769,7 @@ SUBROUTINE SWCOPR ( ARR1, ARR2, LENGTH )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -6780,7 +6780,7 @@ SUBROUTINE SWCOPR ( ARR1, ARR2, LENGTH )
 !  1. Updates
 !
 !     40.23, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -6870,7 +6870,7 @@ end subroutine SWCOPR
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -6881,7 +6881,7 @@ end subroutine SWCOPR
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !MatL4!
 !MatL4!  0. Authors
@@ -7009,7 +7009,7 @@ end subroutine SWCOPR
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -7020,7 +7020,7 @@ end subroutine SWCOPR
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !MatL4!
 !MatL4!  0. Authors
@@ -7270,7 +7270,7 @@ SUBROUTINE MKPATH ( PATH, IERR )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -7281,7 +7281,7 @@ SUBROUTINE MKPATH ( PATH, IERR )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors

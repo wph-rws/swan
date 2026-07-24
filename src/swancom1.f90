@@ -21,8 +21,8 @@
 !              almost identical to SOLMAT, however, space in theta can
 !              be periodic)
 !     SOURCE  (fill the array with the source terms)
-!     PHILIM  (limit the change in action density between two iterations
-!     HJLIM   (limit the change in action density between two iterations
+!     PHILIM  (limit the change in action density between two iterations)
+!     HJLIM   (limit the change in action density between two iterations  40.61
 !              based on Hersbach and Janssen limiter)
 !     RESCALE (remove negative values from action density)
 !     SWSIP   (solve penta-diagonal system in spectral space by means
@@ -30,10 +30,10 @@
 !     SWSOR   (solve penta-diagonal system in spectral space by means
 !              of point SOR method)
 !     SWMTLB  (compute bounds of thread loop)
-!     SWSTPC  (calculate the accuracy and check if the iteration process
+!     SWSTPC  (calculate the accuracy and check if the iteration process  40.41
 !              can be terminated based on curvature of Hs)
 !     SETUPP  (compute the wave-induced setup for a one-dimensional and
-!              two-dimensional run. Note that the one-dimensional mode o
+!              two-dimensional run. Note that the one-dimensional mode of 32.01
 !              SWAN has been coded in this project (H3268))
 !     SETUP2D (computation of the change of waterlevel by waves,
 !              a 2D Poisson equation in general coordinates is solved)
@@ -100,7 +100,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -111,7 +111,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -149,21 +149,21 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     30.72, Nov. 97: Declaration of MSC4MI, MSC4MA, MDC4MI, MDC4MA and
 !                     ISTAT removed because they are common and already
 !                     declared in the INCLUDE file
-!     30.72, Nov. 97: ITERMX can be chosen freely with NUM ACCUR also in
+!     30.72, Nov. 97: ITERMX can be chosen freely with NUM ACCUR also in dynamic
 !                     mode. Default ITERMX=6. Needs extensive testing
 !     30.74, Nov. 97: Prepared for version with INCLUDE statements
 !     32.02, Jan. 98: Introduced 1D-version
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.70, Feb. 98: call WINDP0 removed, function taken over by WINDP1
 !     30.72, Mar. 98: Current switched off for the first iteration, when
 !                     preconditining is required
-!     30.72, Mar. 98: Writes the result of the iteration step to the PRI
+!     30.72, Mar. 98: Writes the result of the iteration step to the PRINT
 !                     file
-!     30.75, Mar. 98: Renamed SLOW to SIGLOW, because SLOW was used only
+!     30.75, Mar. 98: Renamed SLOW to SIGLOW, because SLOW was used only locally
 !     31.03, Feb. 98: Call SETUPP added, initialisation of array SETPDA
 !     30.90, Oct. 98: Introduced EQUIVALENCE POOL-arrays
 !     30.82, Oct. 98: Updated description of several variables
-!     30.81, Jan. 99: Replaced variable STATUS by IERR (because STATUS i
+!     30.81, Jan. 99: Replaced variable STATUS by IERR (because STATUS is a
 !                     reserved word)
 !     34.01, Feb. 99: Introducing STPNOW
 !     33.08, July 98: some S&L scheme-related changes
@@ -171,12 +171,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     40.00, July 99: argument KQUAD removed from call PLTSRC
 !     30.82, Sep. 99: Modified messages in case of non-convergence
 !     33.10, Jan. 00: minor changes re: the SORDUP scheme
-!     40.03, Mar. 00: Ursell number is now array (value for each grid po
+!     40.03, Mar. 00: Ursell number is now array (value for each grid point)
 !     40.02, Oct. 00: Avoided real/int conflict by introducing replacing
 !                     RWAREA for WAREA in FAC4WW and SETUPP
 !     40.13, Mar. 01: comments changed;
 !                     order of calling SWAPAR and SPROXY changed
-!                     message concerning lack of convergence only to pri
+!                     message concerning lack of convergence only to print file
 !                     in nonstationary cases
 !     40.21, Aug. 01: implementation of diffraction
 !     40.22, Sep. 01: WAREA, LWAREA, and RWAREA structures removed
@@ -199,9 +199,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                     iteration because of the first guess
 !     40.41, May  04: Implemented XNL (Webb-Resio-Tracy) method for
 !                     quadruplet interactions
-!     40.41, Jun. 04: Implementation of curvature-based convergence chec
+!     40.41, Jun. 04: Implementation of curvature-based convergence check
 !     40.41, Aug. 04: some code optimization
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.59, Aug. 07: stencil modification
 !     41.90, Oct. 21: adding QC scattering
 !
@@ -236,7 +236,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 ! i   XCGRID: Coordinates of computational grid in x-direction
 ! i   YCGRID: Coordinates of computational grid in y-direction
 
@@ -272,14 +272,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     ITRIAD            Indicator for nonlinear triad interactions
 !     IQUAD             Indicator for nonlinear quadruplet interactions
 !     IWCAP             Indicator for white capping
-!     IWIND             Indicator for which wind generation model is use
+!     IWIND             Indicator for which wind generation model is used
 !                       IWIND = 1 first generation wind growth model
 !                       IWIND = 2 second generation wind growth model
 !                       IWIND = 3 third generation wind growth model
 !     IREFR             indicator for refraction (can be tuned off)
 !     ITFRE             indicator for transport of action in frequency
 !                       space
-!     ICMAX             Maximum array size for the points in the molecul
+!     ICMAX             Maximum array size for the points in the molecule
 !     KSX      input    Dummy variable to get the right sign in the
 !                       numerical difference scheme in X-direction
 !                       depending on the sweep direction
@@ -335,9 +335,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                       of the logarithmic distribution of the frequency
 !     DDIR     input    Width of directional band
 !     DT       input    Time step
-!     DDX      input    Same as DX but with correct sign depending of th
+!     DDX      input    Same as DX but with correct sign depending of the
 !                       direction of the sweep (+1. OR -1. ) no input
-!     DDY      input    Same as DY but with correct sign depending of th
+!     DDY      input    Same as DY but with correct sign depending of the
 !                       direction of the sweep (+1. OR -1. ) no input
 !     FAC_A             Factor representing the influence of the action-
 !                       density depening of the propagation velocity
@@ -355,32 +355,32 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     AC2       4D    (Nonstationary case) action density as function
 !                     of D,S,X,Y at time T+DT
 !     CGO       2D    Group velocity as function of IC and IS in the
-!                     direction of wave propagation in absence of curren
-!     CAX       3D    Wave transport velocity in X-direction, function o
+!                     direction of wave propagation in absence of currents
+!     CAX       3D    Wave transport velocity in X-direction, function of
 !                     (ID,IS,IC)
-!     CAY       3D    Wave transport velocity in Y-direction, function o
+!     CAY       3D    Wave transport velocity in Y-direction, function of
 !                     (ID,IS,IC)
-!     CAS       3D    Wave transport velocity in S-direction, function o
+!     CAS       3D    Wave transport velocity in S-direction, function of
 !                     (ID,IS,IC)
 !     CAD       3D    Wave transport velocity in D-dirction, function of
 !                     (ID,IS,IC)
-!     COMPDA    3D    array containing depth and other arrays of (IX,IY)
+!     COMPDA    3D    array containing depth and other arrays of (IX,IY)  20.39
 !                     JDP1    Depth as function of X and Y at time T
 !                     JDP2    (Nonstationary case) depth as function of
 !                             at time T+DT
 !                     JVX1    X-component of current velocity of X and Y
 !                             at time T
-!                     JVX2    (Nonstationary case) X-component of curren
+!                     JVX2    (Nonstationary case) X-component of current
 !                             velocity in (X,Y) at time T+DT
 !                     JVY1    Y-component of current velocity in (X,Y)
 !                             at time T
-!                     JVY2    (Nonstationary case) Y-component of curren
+!                     JVY2    (Nonstationary case) Y-component of current
 !                             velocity in (X,Y) at time T+DT
 !                     JWX2    X-component of wind velocity in (X,Y)
 !                             at time T+DT (nonstationary case)
 !                     JWY2    Y-component of wind velocity in (X,Y)
 !                             at time T+DT (nonstationary case)
-!                     JUBOT   Absolute orbital velocity in a gridpoint (
+!                     JUBOT   Absolute orbital velocity in a gridpoint (IX,IY)
 !     SWTSDA    4D    intermediate data computed for the test points;
 !                     there are MTSVAR subarrays:
 !                     JPWNDD   wind input term (implicit part)
@@ -410,10 +410,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     HSDIFC    2D    Represent Hs(iter) - Hs(iter-2) meant for
 !                     computation of curvature of Hs
 !     IMATDA    2D    Coefficients of main diagonal of matrix
-!     IMATLA    2D    Coefficients of lower diagonal of matrix in theta-
-!     IMATUA    2D    Coefficients of upper diagonal of matrix in theta-
-!     IMAT5L    2D    Coefficients of lower diagonal of matrix in sigma-
-!     IMAT6U    2D    Coefficients of upper diagonal of matrix in sigma-
+!     IMATLA    2D    Coefficients of lower diagonal of matrix in theta-space
+!     IMATUA    2D    Coefficients of upper diagonal of matrix in theta-space
+!     IMAT5L    2D    Coefficients of lower diagonal of matrix in sigma-space
+!     IMAT6U    2D    Coefficients of upper diagonal of matrix in sigma-space
 !     IMATRA    2D    Coefficients of right hand side
 !     KWAVE     2D    wavenumber as function of the relative frequency S
 !                     and position IC(ix,iy)
@@ -439,11 +439,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                     no current <---> current
 !     ISCMAX    1D    frequency dependent counter in frequency space
 !                     no current <---> current
-!     ANYBIN    2D    Set for a particular bin TRUE or FALSE depending o
+!     ANYBIN    2D    Set for a particular bin TRUE or FALSE depending on
 !                     propagation velocities within a sweep
 !     WWINT     1D    Counters for 4 wave-wave interactions
-!     WWAWG     1D    Weight coefficients for the 4 wave-wave interactio
-!     WWSWG     1D    Weights coefficients for the 4 wave-wave interacti
+!     WWAWG     1D    Weight coefficients for the 4 wave-wave interactions
+!     WWSWG     1D    Weights coefficients for the 4 wave-wave interactions
 !                     for the semi-implicit computation
 !     ISLMIN    1D    Lowest sigma-index occured in applying limiter
 !     NFLIM     1D    Number of frequency use of limiter in each
@@ -461,9 +461,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     ---------------
 !
 !     CGFT            Fourier-transformed modulation of group velocity
-!     SIGFT           Fourier-transformed modulation of intrinsic freque
-!     UXFT            u-component of Fourier-transformed modulation of a
-!     UYFT            v-component of Fourier-transformed modulation of a
+!     SIGFT           Fourier-transformed modulation of intrinsic frequency
+!     UXFT            u-component of Fourier-transformed modulation of ambient current
+!     UYFT            v-component of Fourier-transformed modulation of ambient current
 !
 !     CFT             Fourier coefficients (FFT)
 !     RFT             input data (FFT)
@@ -486,7 +486,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     PBOT(1)   = CFC      0.005    (Collins equation)
 !     PBOT(2)   = CFW      0.01     (Collins equation)
 !     PBOT(3)   = GAMJNS   0.038    (Jonswap formulation)
-!     note: this lower friction value combined with second order polynom
+!     note: this lower friction value combined with second order polynomial wind drag
 !     PBOT(4)   = MF      -0.08     (Madsen equation)
 !     PBOT(5)   = KN       0.05     (bottom roughness)
 !
@@ -497,16 +497,16 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     PSURF(2)  = GAMMA    0.73     (breaking criterium)
 !
 !     PWCAP(1)  = ALFAWC   2.36e-5  (Empirical coefficient)
-!     PWCAP(2)  = ALFAPM   3.02E-3  (Alpha of Pierson Moskowitz frequenc
+!     PWCAP(2)  = ALFAPM   3.02E-3  (Alpha of Pierson Moskowitz frequency)
 !
-!     PWIND(1)  = CF10     188.0    (second generation wind growth model
-!     PWIND(2)  = CF20     0.59     (second generation wind growth model
-!     PWIND(3)  = CF30     0.12     (second generation wind growth model
-!     PWIND(4)  = CF40     250.0    (second generation wind growth model
-!     PWIND(5)  = CF50     0.0023   (second generation wind growth model
-!     PWIND(6)  = CF60    -0.2233   (second generation wind growth model
-!     PWIND(7)  = CF70     0.       (second generation wind growth model
-!     PWIND(8)  = CF80    -0.56     (second generation wind growth model
+!     PWIND(1)  = CF10     188.0    (second generation wind growth model)
+!     PWIND(2)  = CF20     0.59     (second generation wind growth model)
+!     PWIND(3)  = CF30     0.12     (second generation wind growth model)
+!     PWIND(4)  = CF40     250.0    (second generation wind growth model)
+!     PWIND(5)  = CF50     0.0023   (second generation wind growth model)
+!     PWIND(6)  = CF60    -0.2233   (second generation wind growth model)
+!     PWIND(7)  = CF70     0.       (second generation wind growth model)
+!     PWIND(8)  = CF80    -0.56     (second generation wind growth model)
 !     PWIND(9)  = RHOAW    0.00125  (density air / density water)
 !     PWIND(10) = EDMLPM   0.0036   (limit energy Pierson Moskowitz)
 !     PWIND(11) = CDRAG    0.0012   (drag coefficient)
@@ -531,14 +531,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                          diffusion coefficient can be chosen
 !     PNUMS(12) = EPS2     termination criterion in relative sense for a
 !                          penta-diagonal solver
-!     PNUMS(13) = OUTP     request for output for a penta-diagonal solve
-!     PNUMS(14) = NITER    maximum number of iterations for a penta-diag
+!     PNUMS(13) = OUTP     request for output for a penta-diagonal solver
+!     PNUMS(14) = NITER    maximum number of iterations for a penta-diagonal
 !                          solver
 !     PNUMS(15) = DHOVAL   global error in Hs
 !               = CURVAT   curvature of Hs meant for convergence check
 !     PNUMS(16) = DTOVAL   global error in Tm01
 !     PNUMS(17) = CDLIM    coefficient of limitation of Ctheta
-!     PNUMS(18) = FROUDMAX maximum Froude number for reduction of curren
+!     PNUMS(18) = FROUDMAX maximum Froude number for reduction of currents
 !     PNUMS(19) = CFL      CFL criterion for option explicit scheme
 !                          in frequency space (see PNUMS(8))
 !     PNUMS(20) = GRWMX    maximum growth in spectral bin
@@ -549,7 +549,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                          1: based on absolute, relative and curvature
 !                             errors of Hs
 !
-!     PNUMS(30) = ALFA     relaxation parameter for under-relaxation met
+!     PNUMS(30) = ALFA     relaxation parameter for under-relaxation method
 !
 !     arrays for the 4-wave interactions:
 !
@@ -621,11 +621,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 ! 11. Remarks
 !
-!     SWCOMP is the main subroutine is and called of the main program SW
+!     SWCOMP is the main subroutine is and called of the main program SWAN.
 !     The main program SWAN is build of three main subroutines:
 !
 !     1. SWREAD    (preparation of the computation (reading parameters))
-!     2. SWCOMP    (computation of the action densities (discussed below
+!     2. SWCOMP    (computation of the action densities (discussed below))
 !     3. SWOUTP    (output of the computation)
 !
 !     In this part the subroutine SWCOMP is discussed:
@@ -633,7 +633,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWCOMP
 !     ======
 !      |
-!      |------+  INSAC                       determine initial values fo
+!      |------+  INSAC                       determine initial values for
 !      |                                     accuracy check
 !      |
 !      |
@@ -652,12 +652,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !      |       |                             CAS, CAD
 !      |       |
 !      |       |--------+ WINDP1             compute absolute wind, FPM
-!      |       |                             mean wind direction, min. a
+!      |       |                             mean wind direction, min. and
 !      |       |                             max. counters for the wind,
 !      |       |                             wind friction velocity
 !      |       |
 !      |       |--------+ CNTAIL             Compute contributions to
-!      |       |                             spectrum due to high freque
+!      |       |                             spectrum due to high frequency
 !      |       |                             tail
 !      |       |
 !      |       |--------+ SPREDT             predict energy density in
@@ -674,11 +674,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !      |       |        |
 !      |       |        +-------+ SBOT       bottom friction
 !      |       |        |
-!      |       |        +-------+ SVEG       dissipation due to vegetati
+!      |       |        +-------+ SVEG       dissipation due to vegetation
 !      |       |        |
-!      |       |        +-------+ STURBV     dissipation due to turbulen
+!      |       |        +-------+ STURBV     dissipation due to turbulence
 !      |       |        |
-!      |       |        +-------+ SMUD       fluid mud-induced wave diss
+!      |       |        +-------+ SMUD       fluid mud-induced wave dissipation
 !      |       |        |
 !      |       |        +-------+ SICE       dissipation by sea ice
 !      |       |        |
@@ -686,14 +686,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !      |       |        |
 !      |       |        +-------+ SSURF      wave breaking
 !      |       |        |
-!      |       |        +-------+ SWLTA      nonlinear triad interaction
+!      |       |        +-------+ SWLTA      nonlinear triad interactions based on LTA
 !      |       |        |
-!      |       |        +-------+ SWSNL?     nonlinear quadruplet intera
+!      |       |        +-------+ SWSNL?     nonlinear quadruplet interactions
 !      |       |        |
 !      |       |        +-------+ SWIND1     first generation wind model
 !      |       |                |
-!      |       |                + -- WINDP2  compute total wind sea ener
-!      |       |                |    SWIND2  second generation wind mode
+!      |       |                + -- WINDP2  compute total wind sea energy o
+!      |       |                |    SWIND2  second generation wind model
 !      |       |                |
 !      |       |                + SWIND3     third generation wind model
 !      |       |
@@ -713,13 +713,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !      |       |--------+ SOLMAT             solve the matrix which is
 !      |       |                             filled in SOURCE and ACTION
 !      |       |
-!      |       |--------+ FILIMP             filter the frequency spectr
-!      |       |   |                         in presence of a current us
-!      |       |   |                         a diffusion model (importan
+!      |       |--------+ FILIMP             filter the frequency spectrum
+!      |       |   |                         in presence of a current using
+!      |       |   |                         a diffusion model (important for
 !      |       |   |                         wave blocking) -->IMPLICIT
 !      |       |   |
-!      |       |   |----+ DIFSOL             The matrix filled in FILIMP
-!      |       |                             solved for each direction s
+!      |       |   |----+ DIFSOL             The matrix filled in FILIMP is
+!      |       |                             solved for each direction separately
 !      |       |
 !      |       |--------+ WINDP3             Limit the energy spectrum
 !      |                                     for first and second
@@ -773,7 +773,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       {**************************************************************}
 !
 !     ----------------------------------------------------------
-!     Call INSAC to give values to HSACC and SACC meant for accuracy che
+!     Call INSAC to give values to HSACC and SACC meant for accuracy check
 !     ----------------------------------------------------------
 !     For IT = 1 to end of computation time (MTC), do,
 !
@@ -817,7 +817,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 ! 13. Source text
 !
-!     ******************************************************************
+!     ************************************************************************
 !     *
 !     *                  MAIN SUBROUTINE OF COMPUTATIONAL PART
 !     *
@@ -825,7 +825,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     *
 !     *                Definition of variables in main program
 !     *
-!     ******************************************************************
+!     ************************************************************************
 
    INTEGER :: ITER  ,IX    ,IY    ,IS    ,IT
    INTEGER :: IP, IDC, ISC
@@ -1245,7 +1245,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    ALLOCATE(DMW(MSC,MICMAX))
 !     Since SWMATR has been broken up into a real array(SWMATR) and a
 !     logical array(LSWMAT), the size of each array has been adjusted
-!     to MSWMATR(x-2) and MLSWMAT(2) instead of the original equivalence
+!     to MSWMATR(x-2) and MLSWMAT(2) instead of the original equivalenced 40.22
 !     array with a size of MSWMAT(x).
    ALLOCATE(SWMATR(MDC,MSC,MSWMATR))
    ALLOCATE(LSWMAT(MDC,MSC,MLSWMAT))
@@ -1522,7 +1522,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       initialise local (thread private) counter for SIP solver
       INOCNT = 0
 
-!       initialise propagation, generation, dissipation, redistribution,
+!       initialise propagation, generation, dissipation, redistribution,  40.85
 !       leak and radiation stress for each iteration
 !       this is done in parallel within OpenMP environment
 
@@ -1703,7 +1703,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
       &CROSS , XCGRID, YCGRID, XYTST  )
 !TIMG      CALL SWTSTO(137)
 !
-!       --- spatially filter the De Wit's biphase to prevent abrupt chan
+!       --- spatially filter the De Wit's biphase to prevent abrupt changes
       IF (IBIPH.EQ.3) CALL SWBIPM ( COMPDA(1,JBIPH ), COMPDA(1,JDP2),&
       &COMPDA(1,JHSIBC)                )
 
@@ -2428,7 +2428,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$OMP END PARALLEL
                   CALL prop_cache_reset()
 
-!     Print message when the solver did not converge in setup calculatio
+!     Print message when the solver did not converge in setup calculation
 
                   IF (.NOT.CSETUP) THEN
                      WRITE(PRINTF,"(1X,'no convergence in set-up calculation')")
@@ -2490,7 +2490,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   RETURN
                end subroutine SWCOMP
 
-!***********************************************************************
+!************************************************************************
 
                SUBROUTINE SWOMPU (SWPDIR   ,KSX      ,KSY      ,&
                &IX       ,IY       ,DDX      ,&
@@ -2527,7 +2527,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &CAX1,CAY1&
                &)
 
-!***********************************************************************
+!************************************************************************
 
                   USE OCPCOMM1
                   USE OCPCOMM2
@@ -2557,7 +2557,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2568,7 +2568,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2607,16 +2607,16 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                     PI, U10 and WDIC removed because they are
 !                     common and already declared in the INCLUDE file
 !     32.02, Jan. 98: Introduced 1D-version
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.72, Feb. 98: Modified argument list for update CGSTAB solver
-!     30.70, Feb. 98: argument list of WINDP1 changed, current vel. adde
+!     30.70, Feb. 98: argument list of WINDP1 changed, current vel. added
 !     40.00, July 98: KCGRD removed from Call WINDP1
 !     40.00, Aug. 98: argument OBREDF added in call SPREDT
-!                     subr SWTRCF called to calculate obstacle reduction
+!                     subr SWTRCF called to calculate obstacle reduction factors
 !     30.90, Oct. 98: Introduced EQUIVALENCE POOL-arrays
 !     30.82, Oct. 98: Updated description several variables
 !     30.80, Nov. 98: Provision for limitation on Ctheta (refraction)
-!     30.81, Jan. 99: Replaced variable STATUS by IERR (because STATUS i
+!     30.81, Jan. 99: Replaced variable STATUS by IERR (because STATUS is a
 !                     reserved word)
 !     34.01, Feb. 99: Introducing STPNOW
 !     33.08  July 98: some S&L scheme-related changes
@@ -2630,27 +2630,27 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                     Ursell array added to argument list of SDISPA and
 !                     readability of test output improved
 !     40.10, Sep. 00: Replaced SDISPA with SINTGRL
-!     40.02, Sep. 00: Replaced SWMATR(1,1,JABIN) with LSWMAT (logical eq
-!     40.13, Mar. 01: if point was dry at previous time level, fall back
-!                     order of calling SWAPAR and SPROXY changed, in ord
+!     40.02, Sep. 00: Replaced SWMATR(1,1,JABIN) with LSWMAT (logical equivalence)
+!     40.13, Mar. 01: if point was dry at previous time level, fall back to BSBT scheme
+!                     order of calling SWAPAR and SPROXY changed, in order
 !                     to get correct values of CGO as input to SPROXY
 !     40.22, Sep. 01: Removed WAREA constructs and split SWMATR into
 !                     SWMATR(real) and LSWMAT(logical).
 !     40.22, Sep. 01: Changed array definitions to use the parameter
 !                     MICMAX instead of ICMAX.
-!     40.13, Oct. 01: loop over IC moved to subroutines SWAPAR and SPROX
+!     40.13, Oct. 01: loop over IC moved to subroutines SWAPAR and SPROXY
 !     40.16, Dec. 01: Implementation of limiter switches
 !     40.17, Dec. 01: Implementation of Multiple DIA
 !     40.28, Dec. 01: Argument list SWTRCF modified
 !     40.23, Aug. 02: Print of CPU times added
 !     40.23, Aug. 02: Introducing arrays NFLIM and NRSCAL
-!     40.30, Mar. 03: correcting indices of test point with offsets MXF,
+!     40.30, Mar. 03: correcting indices of test point with offsets MXF, MYF
 !     40.08, Mar. 03: Dimensioning of RDX, RDX changed to be consistent
 !                     with other subroutines
 !     40.41, Aug. 04: code optimization
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
-!     40.59, Aug. 07: stencil numbering made consistent, so that if used
-!                     varied purposes (e.g. SPROSD), if-then not require
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!     40.59, Aug. 07: stencil numbering made consistent, so that if used for
+!                     varied purposes (e.g. SPROSD), if-then not required
 !     40.61, Nov. 06: Hersbach and Janssen (1999) limiter option added
 !     41.75, Jan. 19: adding sea ice
 !     41.90, Oct. 21: adding QC scattering
@@ -2773,7 +2773,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 ! i   XCGRID: Coordinates of computational grid in x-direction
 ! i   YCGRID: Coordinates of computational grid in y-direction
 
@@ -2820,11 +2820,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                 the wind subroutines. The wind sea energy spectrum
 !                 is computed before every iteration
 !     Compute for the two nearby points:
-!       {to reduce the size of the arrays K, CPX, CPY, CAX, CAY, CAS, CA
+!       {to reduce the size of the arrays K, CPX, CPY, CAX, CAY, CAS, CAD
 !       and CGO, CP use a FUNCTION ICODE(_,_) in were the information
 !       of the nearby gridpoints is stored.
-!       The size of the arrays of the wave parameters are reduced signif
-!       par example: CAX(ID,IS,IX,IY) --> CAX(ID,IS,ICMAX)  with ICMAX =
+!       The size of the arrays of the wave parameters are reduced significantly,
+!       par example: CAX(ID,IS,IX,IY) --> CAX(ID,IS,ICMAX)  with ICMAX = 3
 !       If a higher order scheme is used ICMAX can be increased so that
 !       at locations ksx = -2,+2 and ksy = -2,+2 can be used:
 !
@@ -2845,13 +2845,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !          Molecule:
 !
 !          (4)     2
-!            o------o------* 1           Central grid point     : IC = 1
-!                          |             Point in X-direction   : IC = 2
-!                          |             Point in Y-direction   : IC = 3
-!                        3 o             Point in X-direction   : IC = (
-!                          |             Point in Y-diretion    : IC = (
+!            o------o------* 1           Central grid point     : IC = 1              30.70(?), 33.10
+!                          |             Point in X-direction   : IC = 2              30.70(?), 33.10
+!                          |             Point in Y-direction   : IC = 3              30.70(?), 33.10
+!                        3 o             Point in X-direction   : IC = (4)            30.70(?), 33.10
+!                          |             Point in Y-diretion    : IC = (5)            30.70(?), 33.10
 !                          |             5 gridpoints --> ICC = 5
-!                      (5) o             ( ) = is not used by default (B
+!                      (5) o             ( ) = is not used by default (BSBT) scheme   30.70(?), 33.10
 !
 !          Notice that IX and IY are still in the argument list because
 !          the counter of DEP2(IX,IY) and UX2(IX,IY) and UY2(IX,IY) !
@@ -2890,7 +2890,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     If depth > 1.e-4 then do
 !       If wind is present :
 !         Call WINDP1 to compute the wind speed, PM frequency, mean
-!                     wind direction, wind friction velocity and counter
+!                     wind direction, wind friction velocity and counters
 !       ----------------------------------------------------------------
 !       Call CNTAIL to compute the contribution of high frequency
 !                   tail to the spectrum
@@ -2916,7 +2916,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                  10. Dissipation by sea ice
 !                  11. Bragg scattering
 !       ----------------------------------------------------------------
-!       Call ACTION  calculate the derivatives in x,y,s,d space and stor
+!       Call ACTION  calculate the derivatives in x,y,s,d space and store
 !                    the results in the corresponding arrays
 !       ----------------------------------------------------------------
 !       If a current is present do
@@ -3016,8 +3016,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !     CGFT : Fourier-transformed modulation of group velocity
 !     SIGFT: Fourier-transformed modulation of intrinsic frequency
-!     UXFT : u-component of Fourier-transformed modulation of ambient cu
-!     UYFT : v-component of Fourier-transformed modulation of ambient cu
+!     UXFT : u-component of Fourier-transformed modulation of ambient current
+!     UYFT : v-component of Fourier-transformed modulation of ambient current
 !
 !     CFT  : Fourier coefficients (FFT)
 !     RFT  : input data (FFT)
@@ -3087,15 +3087,15 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         IYCGRD(13) = IY+KSY
                      ENDIF
                      DO IC = 2, ICMAX
-!         if one of the points of a stencil is outside the computational
+!         if one of the points of a stencil is outside the computational  33.09
 !         domain, fall back to first order scheme
 !
 ! Note that stencil of first order scheme has been increased to 5
 ! Also note that points 4 and 5 are used only for SPROSD.
-! In cases where user has chosen the first order scheme (PROPSC=1) , and
-! points 4 and/or 5 fall outside the grid, we do not want to set PROPSL=
-! However, we do want to set INSIDE=FALSE, so that KCGRD(IC) = 1, so tha
-! SPROSD will know that the point is not available. As the code is writt
+! In cases where user has chosen the first order scheme (PROPSC=1) , and    40.59
+! points 4 and/or 5 fall outside the grid, we do not want to set PROPSL=0.  40.59
+! However, we do want to set INSIDE=FALSE, so that KCGRD(IC) = 1, so that   40.59
+! SPROSD will know that the point is not available. As the code is written  40.59
 ! now, no change is required. But also be aware that refraction will no
 ! longer be calculated at the last grid point (i.e. SPROSD is not coded
 ! fall back to the first order scheme, it just set C_theta=0).
@@ -3303,11 +3303,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !         calculate propagation velocities for old time level
 !         (needed for S&L scheme nonstationary)
 !
-!         COMPDA(1,JDP2) is dep2 ;change to..dep1 which is COMPDA(1,JDP1
-!         COMPDA(1,JVX2) is ux2  ;change to..ux1 which is COMPDA(1,JVX1)
-!         COMPDA(1,JVY2) is uy2  ;change to..uy1 which is COMPDA(1,JVY1)
+!         COMPDA(1,JDP2) is dep2 ;change to..dep1 which is COMPDA(1,JDP1) 33.08
+!         COMPDA(1,JVX2) is ux2  ;change to..ux1 which is COMPDA(1,JVX1)  33.08
+!         COMPDA(1,JVY2) is uy2  ;change to..uy1 which is COMPDA(1,JVY1)  33.08
 !
-!         we could save CPU time by calculating the CAX values only once
+!         we could save CPU time by calculating the CAX values only once  33.08
 !         when CAX is constant, but this would require SWAN to
 !         save CAX over the entire grid (more memory).
 !
@@ -3473,7 +3473,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         LPREDT=.FALSE.
                      END IF
 
-!       Calculate various integral parameters for use in the source term
+!       Calculate various integral parameters for use in the source terms
 !
 !TIMG                     CALL SWTSTA(116)
                      IF (.NOT.postpone_prediction) THEN
@@ -3495,14 +3495,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      END IF
                      postpone_prediction = .FALSE.
 
-!       *** If there are obstacles crossing the points in the stencil **
-!       *** then the transmission and reflection coeff. are computed  **
-!       *** and also the contribution to the source term              **
+!       *** If there are obstacles crossing the points in the stencil ***
+!       *** then the transmission and reflection coeff. are computed  ***
+!       *** and also the contribution to the source term              ***
 
 !TIMG                     CALL SWTSTA(136)
                      IF (NUMOBS .NE. 0) THEN
 
-!         *** OBREDF(:,:,2) are the transmission coeff for the two links
+!         *** OBREDF(:,:,2) are the transmission coeff for the two links ***
 !         *** in the stencil (between the three point on the stencil)
 !         *** REFLSO(:,:) contains the contribution to the source term
 
@@ -3871,7 +3871,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3882,7 +3882,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -3905,7 +3905,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 
                   REAL SPCSIG(MSC), SPCDIR(MDC,6)
 
@@ -4334,7 +4334,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4345,7 +4345,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4363,16 +4363,16 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     30.72, Nov. 97: Declaration of DDIR, PI and PI2 removed because
 !                     they are common and already declared in the
 !                     INCLUDE file
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
-!     30.82, Aug. 99: Introduced a new overall measure for checking accu
-!     30.82, Aug. 99: Changed all variables INDEX to INDX, since INDEX i
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
+!     30.82, Aug. 99: Introduced a new overall measure for checking accuracy
+!     30.82, Aug. 99: Changed all variables INDEX to INDX, since INDEX is reserved
 !     40.03, Feb. 00: test level of message changed
 !     40.22, Sep. 01: Added initialization of SACC1 and HSACC1 elements
 !                     that are not wet points.
 !     40.30, Mar. 03: introduction distributed-memory approach using MPI
 !     40.31, Jul. 03: some improvements and corrections w.r.t. OpenMP
 !     40.41, Aug. 04: add some test output for checking accuracy
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -4587,7 +4587,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            SME_B = SME_B * FRINTF * DDIR
                            SME_T = SME_T * FRINTF * DDIR
 
-!         *** mean frequency and significant wave height per gridpoint *
+!         *** mean frequency and significant wave height per gridpoint ***
 
                            IF ( SME_B .LE. 0. ) THEN
                               SME_B = 1.E-20
@@ -4784,7 +4784,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -4795,7 +4795,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -4809,10 +4809,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !     30.72, Nov. 97: Declartion of DDIR removed because it is a common
 !                     and already declared in the INCLUDE file
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.30, Mar. 03: introduction distributed-memory approach using MPI
 !     40.31, Jul. 03: some improvements and corrections w.r.t. OpenMP
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -4825,7 +4825,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 
                   REAL    SPCSIG(MSC)
 
@@ -4880,7 +4880,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
                   INTEGER  IS    ,ID, IND, IX, IY, IX1, IX2, IY1, IY2
                   INTEGER  I1MYC, I2MYC
@@ -5002,7 +5002,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5013,7 +5013,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5035,15 +5035,15 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !  1. Updates
 !
 !     30.74, Nov. 97: Prepared for version with INCLUDE statements
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
-!     30.70, Mar. 98: water level (WLEV2) and wave height (CHS) in comp.
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
+!     30.70, Mar. 98: water level (WLEV2) and wave height (CHS) in comp. grid
 !                     added as arguments (needed for SWTRCF)
 !                     Call SWTRCF modified
 !     33.08, July 98: some S&L scheme-related changes
 !     33.09, Sept 99: changes re: the spherical coordinates
 !     33.10, Jan. 00: changes re: the SORDUP scheme
 !     40.09, May  00: Argument list SWTRCF modified
-!     40.03, Apr. 00: integers LINK1 and LINK2 replaced by array LINK(1:
+!     40.03, Apr. 00: integers LINK1 and LINK2 replaced by array LINK(1:MICMAX)
 !     40.22, Sep. 01: Removed WAREA array.
 !     40.22, Sep. 01: Changed array definitions to use the parameter
 !                     MICMAX instead of ICMAX.
@@ -5053,7 +5053,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     40.08, Mar. 03: Dimensioning of RDX, RDX changed to be consistent
 !                     with other subroutines
 !     40.41, Aug. 04: call to SWTRCF removed because superfluous
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.85, Aug. 08: add transport for output purposes
 !
 !  2. Purpose
@@ -5067,7 +5067,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 !     XCGRID: Coordinates of computational grid in x-direction
 !     YCGRID: Coordinates of computational grid in y-direction
 
@@ -5172,7 +5172,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     endif
 !     ------------------------------------------------------------------
 !     IF no flux-limiting DO
-!       Call STRSD to compute the propagation terms in directional domai
+!       Call STRSD to compute the propagation terms in directional domain
 !     ELSE IF flux-limiting DO
 !       Call SWFLXD
 !     ---------------------------------------------------------
@@ -5390,7 +5390,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5401,7 +5401,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5431,7 +5431,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     40.16, Dec. 01: Implemented limiter switches
 !     40.08, Mar. 03: Dimensioning of RDX, RDX changed to be consistent
 !                     with other subroutines
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.51, Feb. 05: near bottom wave period added
 !     41.38, Apr. 12: extension to nkd scaling
 !     41.96, Aug. 22: store BKD-computed breaker index (e.g. for output)
@@ -5439,7 +5439,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !  2. Purpose
 !
-!     To compute several integrals used in SWAN and some general paramet
+!     To compute several integrals used in SWAN and some general parameters
 !
 !  3. Method
 !
@@ -5455,19 +5455,19 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                      2
 !     EMAX  = 0.25 * HM
 !
-!     When EMAX > ETOT, then the action density AC2 is reduced by EMAX/E
+!     When EMAX > ETOT, then the action density AC2 is reduced by EMAX/ETOT
 !
-!     In the physicaly unrealistic case that ETOT <= 0, the integrals an
-!     get values that represent a steady sea-state with wind close to ze
+!     In the physicaly unrealistic case that ETOT <= 0, the integrals and other parameters
+!     get values that represent a steady sea-state with wind close to zero.
 !
 !     The following integrals are calculated:
 !
 !                                                       2
-!     AB2   = Integrate [ (AC2(theta,sigma) sigma / Sinh [ K(sigma) dept
+!     AB2   = Integrate [ (AC2(theta,sigma) sigma / Sinh [ K(sigma) depth ]) dsigma dtheta ]
 !
 !     ACTOT = Integrate [ AC2(theta,sigma) dsigma dtheta ]
 !
-!     EDRKTOT=Integrate [ (AC2(theta,sigma) sigma / Sqrt [ K(sigma) ]) d
+!     EDRKTOT=Integrate [ (AC2(theta,sigma) sigma / Sqrt [ K(sigma) ]) dsigma dtheta ]
 !
 !     EKTOT = Integrate [ AC2(theta,sigma) K(sigma) sigma dsigma dtheta
 !
@@ -5481,9 +5481,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     ETOT4 = Integrate [ AC2(theta,sigma) sigma dsigma dtheta ]
 !
 !                                                3      2
-!     UB2   = Integrate [ (AC2(theta,sigma) sigma / Sinh [ K(sigma) dept
+!     UB2   = Integrate [ (AC2(theta,sigma) sigma / Sinh [ K(sigma) depth ]) dsigma dtheta ]
 !
-!     For reasons of ??, in the calculation of UB2, AB2, ETOTM2, ETOTM4,
+!     For reasons of ??, in the calculation of UB2, AB2, ETOTM2, ETOTM4, the high frequency
 !     tail is ignored.
 !
 !     Based on these integrals the following parameters are calculated:
@@ -5495,7 +5495,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     QB      : computed in the subroutine FRABRE
 !     SIGM01  = ETOT1 / ETOT
 !     SIGM_10 = ETOT  / ACTOT
-!     UBOT    = Sqrt [ UB2 ]             NOTE: THIS IS THE ROOT MEAN SQU
+!     UBOT    = Sqrt [ UB2 ]             NOTE: THIS IS THE ROOT MEAN SQUARE OF THE ORBITAL MOTION NEAR THE BOTTOM!!!
 !     TMBOT   = 2 PI Sqrt [ AB2 / UB2 ]
 !
 !  4. Argument variables
@@ -5564,9 +5564,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     ETOT_SIG2_DSHKD2_DSIG: Integration term for calculating UB2
 !     ETOT_SIG4_DSIG     : Integration term for calculating ETOT4
 !     ETOT_SIG_2_DSIG    : Integration term for calculating ETOT_2
-!     ETOT_2             : (negative) second moment of the energy densit
+!     ETOT_2             : (negative) second moment of the energy density
 !     FRINT_X_DDIR       : FRINTF * DDIR
-!     KLOC               : help variable to compute wave number based on
+!     KLOC               : help variable to compute wave number based on sigma0,-2
 !     SINH_K_X_DEP_2     : SINH(KWAVE*DEP2)**2
 !     UB2                : Sum of ETOT_SIG2_DSHKD2_DSIG
 !     WH                 : fraction of breaking waves
@@ -5723,7 +5723,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         HS       = 4. * SQRT (ETOT)
                      END IF
 
-!       --- calculate the orbital velocity UBOT, orbital excursion ABRBO
+!       --- calculate the orbital velocity UBOT, orbital excursion ABRBOT
 !           and near bottom wave period TMBOT
 
                      IF ( UB2 .GT. 0.) UBOT(KCGRD(1)) = SQRT ( UB2 )
@@ -5899,7 +5899,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -5910,7 +5910,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -5922,12 +5922,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !  1. Updates
 !
-!     40.00, Feb. 99: New subroutine common tasks before solution of lin
-!                     system (software moved from SOLBAND, SOLMAT and SO
+!     40.00, Feb. 99: New subroutine common tasks before solution of linear
+!                     system (software moved from SOLBAND, SOLMAT and SOLMT1)
 !     40.23, Aug. 02: implementation of under-relaxation technique
-!     40.30, Mar. 03: correcting indices of test point with offsets MXF,
+!     40.30, Mar. 03: correcting indices of test point with offsets MXF, MYF
 !     40.41, Aug. 04: code optimized
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -6001,7 +6001,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
                   INTEGER, SAVE :: IENT = 0
                   INTEGER  IS, ID, IDDUM, ID_MIN, ID_MAX, &
@@ -6028,10 +6028,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     --- when ambient currents are involved or when the spectral space
 !         is not a circular one (use SECTOR instead of CIRCLE in command
 !         CGRID), some bins do not fall within the current sweep (in
-!         particular, when SECTOR = 0 or 4 i.c. ICUR=1 or SECTOR = 4 i.c
+!         particular, when SECTOR = 0 or 4 i.c. ICUR=1 or SECTOR = 4 i.c.
 !         FULCIR=.FALSE., see routine SWPSEL for meaning of SECTOR). For
 !         such bins, the corresponding rows in the matrix are reset such
-!         that the solution AC2 does not change: the main diagonal is se
+!         that the solution AC2 does not change: the main diagonal is set
 !         to 1, the off-diagonals are set to 0 and the righ-hand side is
 !         set to AC2.
 
@@ -6112,7 +6112,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -6123,7 +6123,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -6134,10 +6134,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !  1. Updates
 !
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.00, Feb. 99: swcomm3 introduced
-!     40.30, Mar. 03: correcting indices of test point with offsets MXF,
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.30, Mar. 03: correcting indices of test point with offsets MXF, MYF
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -6353,7 +6353,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -6364,7 +6364,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -6374,10 +6374,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !  1. Updates
 !
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.00, Feb. 99: swcomm3 introduced
-!     40.41, Aug. 04: array SECTOR removed and some corrections if SECTO
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Aug. 04: array SECTOR removed and some corrections if SECTOR=0
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -6433,10 +6433,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !        IMATRA    2D    Coefficients of right hand side of matrix
 !        IDCMIN    1D    Integer array containing minimum counter
 !        IDCMAX    1D    Integer array containing maximum counter
-!        ICOLU2    1D    In presence of a current the spectral direction
-!                        be circular and closed. Matrix coefficients app
-!                        the top right and bottom left corner of the mat
-!                        After pivoting --> coefficients are stored in I
+!        ICOLU2    1D    In presence of a current the spectral direction can
+!                        be circular and closed. Matrix coefficients appear in
+!                        the top right and bottom left corner of the matrix
+!                        After pivoting --> coefficients are stored in ICOLU2
 !                        space
 !
 !  7. Common blocks used
@@ -6475,7 +6475,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
                   INTEGER, SAVE :: IENT = 0
                   INTEGER  IS, ID, J, IDDUM, IIDM, IIDP
@@ -6717,7 +6717,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -6728,7 +6728,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !  0. Authors
 !
@@ -6755,7 +6755,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !  1. Updates
 !
 !     20.72, Jan. 96: Common introduced
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.82, Oct. 98: Updated description several variables
 !     32.06, June 99: Updated argument list of WNDPAR
 !     30.81, Sep. 99: Updated argument list of SSURF
@@ -6773,12 +6773,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     40.41, May  04: Implementation of XNL (WRT) interface
 !     40.41, Aug. 04: contribution due to reflection added to right-hand
 !                     side of the system of equations
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.55, Dec. 05: introducing vegetation model
 !     40.59, Aug. 07: introducing fluid mud-induced dissipation model
-!     40.61, Sep. 06: introduction of all separate dissipation coefficie
+!     40.61, Sep. 06: introduction of all separate dissipation coefficients
 !                     for output purposes
-!     40.85, Aug. 08: add generation and redistribition for output purpo
+!     40.85, Aug. 08: add generation and redistribition for output purposes
 !     41.75, Jan. 19: add dissipation by sea ice
 !     41.80, Sep. 21: adding Bragg scattering
 !
@@ -6802,7 +6802,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
                   REAL    ECOS(MDC)
                   REAL    ESIN(MDC)
@@ -6873,9 +6873,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     PWCAP     1D    Coefficient for the white capping model
 !     PWIND     1D    Coefficient for the wind growth model
 !     UBOT      2D    Absolute orbital velocity in a gridpoint (IX,IY)
-!     UX2       2D    (Nonstationary case) X-component of current veloci
+!     UX2       2D    (Nonstationary case) X-component of current velocity
 !                     in (X,Y) at time T+DIT
-!     UY2       2D    (Nonstationary case) Y-component of current veloci
+!     UY2       2D    (Nonstationary case) Y-component of current velocity
 !                     in (X,Y) at time T+DIT
 !     USTAR     2D    Friction velocity at previous iteration for
 !                     Janssen (1989,1990) wind input formulation
@@ -6890,7 +6890,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     PBOT(1)   = CFC      0.005    (Putnam and Collins equation)
 !     PBOT(2)   = CFW      0.01     (Putnam and Collins equation)
 !     PBOT(3)   = GAMJNS   0.038    (Jonswap formulation)
-!     note: this lower friction value combined with second order polynom
+!     note: this lower friction value combined with second order polynomial wind drag
 !     PBOT(4)   = MF      -0.08     (Madsen et al. equation)
 !     PBOT(5)   = KN       0.05     (Madsen et al. bottom roughness)
 !
@@ -6898,20 +6898,20 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     PSURF(2)  = GAMMA    0.73     (breaking criterium)
 !
 !     PWCAP(1)  = ALFAWC   2.36e-5  (Emperical coefficient)
-!     PWCAP(2)  = ALFAPM   3.02E-3  (Alpha of Pierson Moskowitz frequenc
+!     PWCAP(2)  = ALFAPM   3.02E-3  (Alpha of Pierson Moskowitz frequency)
 !     PWCAP(3)  = CFJANS   4.5
 !     PWCAP(4)  = DELTA    0.5
 !     PWCAP(5)  = CFLHIG   1.
 !     PWCAP(6)  = GAMBTJ   0.88     (Steepness limited wave breaking )
 !
-!     PWIND(1)  = CF10     188.0    (second generation wind growth model
-!     PWIND(2)  = CF20     0.59     (second generation wind growth model
-!     PWIND(3)  = CF30     0.12     (second generation wind growth model
-!     PWIND(4)  = CF40     250.0    (second generation wind growth model
-!     PWIND(5)  = CF50     0.0023   (second generation wind growth model
-!     PWIND(6)  = CF60    -0.2233   (second generation wind growth model
-!     PWIND(7)  = CF70     0.       (second generation wind growth model
-!     PWIND(8)  = CF80    -0.56     (second generation wind growth model
+!     PWIND(1)  = CF10     188.0    (second generation wind growth model)
+!     PWIND(2)  = CF20     0.59     (second generation wind growth model)
+!     PWIND(3)  = CF30     0.12     (second generation wind growth model)
+!     PWIND(4)  = CF40     250.0    (second generation wind growth model)
+!     PWIND(5)  = CF50     0.0023   (second generation wind growth model)
+!     PWIND(6)  = CF60    -0.2233   (second generation wind growth model)
+!     PWIND(7)  = CF70     0.       (second generation wind growth model)
+!     PWIND(8)  = CF80    -0.56     (second generation wind growth model)
 !     PWIND(9)  = RHOAW    0.00125  (density air / density water)
 !     PWIND(10) = EDMLPM   0.0036   (limit energy Pierson Moskowitz)
 !     PWIND(11) = CDRAG    0.0012   (drag coefficient)
@@ -6955,7 +6955,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       on value of VARAICE, VARHICE:
 !    * PICE(1) will be used for AICELOC *only* if VARAICE is false.
 !    * PICE(2) will be used for HICELOC *only* if VARHICE is false.
-!    * We check for case of IICE>6 as a reminder to update this subrouti
+!    * We check for case of IICE>6 as a reminder to update this subroutine
 !      if/when new S_ice routines are added.
 !
 !     9. STRUCTURE
@@ -6968,7 +6968,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !   ------------------------------------------------------------
 !   If SVEG is on (IVEG > 0 ) then,
 !     Call SVEG  to compute the source term due to vegetation
-!      dissipation according to Dalrymple (1984) or Jacobsen et al. (201
+!      dissipation according to Dalrymple (1984) or Jacobsen et al. (2019)
 !   ------------------------------------------------------------
 !   If STURBV is on (ITURBV > 0 ) then,
 !     Call STURBV  to compute the source term due to turbulence
@@ -6979,7 +6979,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !      dissipation according to Ng (2000)
 !   ------------------------------------------------------------
 !   If SICE is on (IICE > 2 ) then,
-!     Call SICE to compute the source term due to dissipation by sea ice
+!     Call SICE to compute the source term due to dissipation by sea ice.
 !     For IICE=3, use method R19 : Rogers (2019)
 !                                  - polynomial parametric function
 !     For IICE=4, use method D15 : Doble et al. (2015)
@@ -7032,7 +7032,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
                   INTEGER  ITER    ,IDWMIN  ,IDWMAX  ,SWPDIR  ,ISSTOP  ,&
                   &IDDTOP  ,IDDLOW  ,IX      ,IY
@@ -7367,7 +7367,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &TESTFL,IPTST,PLSWEL,MDC,CGO,CDSV)
                      ELSE
                         CALL MSGERR(4,' Sswell must be defined! ')
-!           note that CGO is for diagnostic purposes only, may be omitte
+!           note that CGO is for diagnostic purposes only, may be omitted
 !           excluded : SPCDIR AC2 DEP2 IMATRA
                      END IF
                   END IF
@@ -7496,8 +7496,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                         ENDIF
 
-!         *** Get source term value of additional array for the bin   **
-!         *** that fall within a sweep and store in right hand vector **
+!         *** Get source term value of additional array for the bin   ***
+!         *** that fall within a sweep and store in right hand vector ***
 
                         CALL FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
                         &MEMNL4  ,PLNL4S  ,ISSTOP  ,REDC0   ,REDC1   )
@@ -7530,7 +7530,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            END DO
                         ENDIF
 
-!         Fill the matrix per sweep even though the quadruplets are calc
+!         Fill the matrix per sweep even though the quadruplets are calculated
 !         only once per iteration
 
                         CALL FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
@@ -7565,8 +7565,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                         ENDIF
 
-!         *** get source term value of additional array for the bin   **
-!         *** that fall within a sweep and store in right hand vector **
+!         *** get source term value of additional array for the bin   ***
+!         *** that fall within a sweep and store in right hand vector ***
 
                         CALL FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
                         &MEMNL4  ,PLNL4S  ,ISSTOP  ,REDC0   ,REDC1   )
@@ -7695,12 +7695,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   RETURN
                end subroutine SOURCE
 
-!***********************************************************************
+!************************************************************************
 
                SUBROUTINE PHILIM(AC2,AC2OLD,CGO,KWAVE,SPCSIG,ANYBIN,ISLMIN,NFLIM,&
                &QB_LOC)
 
-!***********************************************************************
+!************************************************************************
 
                   USE SWCOMM3
 
@@ -7720,7 +7720,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -7731,7 +7731,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -7746,7 +7746,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     30.82, Feb. 99: New subroutine
 !     40.16, Dec. 01: Implemented limiter switch
 !     40.23, Aug. 02: Store number of frequency use of limiter
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -7850,12 +7850,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   END IF
                   RETURN
                end subroutine PHILIM
-!***********************************************************************
+!************************************************************************
 
                SUBROUTINE HJLIM(AC2,AC2OLD,CGO,KWAVE,SPCSIG,ANYBIN,ISLMIN,NFLIM,&
                &QB_LOC,USTAR)
 
-!***********************************************************************
+!************************************************************************
 
                   USE SWCOMM3
                   USE TIMECOMM
@@ -7877,7 +7877,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -7888,7 +7888,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -7902,12 +7902,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !  2. Purpose
 !
 !     Limits the change in action density between two iterations to
-!     the (directionally independent) Hersbach and Janssen (1999) limite
+!     the (directionally independent) Hersbach and Janssen (1999) limiter
 !
 !  3. Method
 !
 !     The maximum change of energy density per bin is related to
-!     the (directionally independent) Hersbach and Janssen (1999) limite
+!     the (directionally independent) Hersbach and Janssen (1999) limiter
 !     This change is estimated in terms of frequency and energy density
 !
 !     |D E(f,t)| = 3.0 * 1.0E-7 * g * u* * f_c * dt/ (f^4)
@@ -7915,7 +7915,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     in which f_c is the model's cut off frequency and u* the
 !     friction velocity and dt integration time step (sec)
 !
-!     In terms of action density and angular frequency and for deep wate
+!     In terms of action density and angular frequency and for deep water,
 !     we have:
 !
 !     |D N(s,t)| = C_HJ * u* / (s^3 * k)
@@ -8019,7 +8019,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -8030,7 +8030,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !  0. Authors
 !
@@ -8044,8 +8044,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     40.00, Feb. 99: New subroutine (software moved from subroutines
 !                     SOLBAND, SOLMT1 and SOLMAT
 !     40.23, Aug. 02: Store number of frequency use of rescaling
-!     40.30, Mar. 03: correcting indices of test point with offsets MXF,
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.30, Mar. 03: correcting indices of test point with offsets MXF, MYF
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -8053,7 +8053,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !  3. Method
 !
-!     Make negative action densities 0 at the expense of other action de
+!     Make negative action densities 0 at the expense of other action densities
 !     for the frequency
 !
 !  4. Argument variables
@@ -8108,7 +8108,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 !
 !         local variables
 !
@@ -8120,7 +8120,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   INTEGER  IS      ,ID      ,IDDUM
 
 !         ATOT       integral of action density for one frequency
-!         ATOTP      integral of positive action density for one frequen
+!         ATOTP      integral of positive action density for one frequency
 !         FACTOR
 
                   REAL     ATOT    ,ATOTP   ,FACTOR
@@ -8203,7 +8203,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -8214,7 +8214,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -8229,7 +8229,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     40.30, Mar. 03: introduction distributed-memory approach using MPI
 !     40.41, Mar. 04: parameter ALFA set to 0.0, extra test output
 !                     and some corrections if SECTOR=0
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -8803,7 +8803,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -8814,7 +8814,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -9301,7 +9301,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -9312,7 +9312,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -9323,7 +9323,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !  1. Updates
 !
 !     40.31, Jul. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -9418,7 +9418,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -9429,7 +9429,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -9442,7 +9442,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !  1. Updates
 !
 !     40.41, Jun. 04: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.93, Sep. 08: extended with curvature of Tm
 !     41.90, Dec. 21: adapted to QCM
 !
@@ -9455,7 +9455,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !     In case of QC modelling, stopping criterion based on absolute and
 !     relative changes in wave height only
-!     Also note that the curvature criterion is risky because of inheren
+!     Also note that the curvature criterion is risky because of inherent
 !     rapid changes in Hs due to scattering and/or surf breaking
 !
 !  4. Argument variables
@@ -9593,7 +9593,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      IY2 = MYC-IHALOY
                   END IF
 
-!     --- store Hs and Tm as old values and count number of wet grid poi
+!     --- store Hs and Tm as old values and count number of wet grid points
 
                   WETGRDt = 0
                   DO IX = IX1, IX2
@@ -9786,7 +9786,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -9797,7 +9797,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -9817,15 +9817,15 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !     32.01, Sept 97: New Subroutine
 !     32.03, Feb. 98: Comma added in FORMAT to prevent compilation error
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.70, Feb. 98: transformation of radiation stress in 1D case
 !     30.82, Oct. 98: Updated description of several variables
 !     30.81, Dec. 98: Argument list KSCIP1 adjusted
 !     34.01, Feb. 99: Introducing STPNOW
 !     30.82, July 99: Corrected argumentlist SETUPP and SETUP2D
 !     30.82, July 99: Corrected argumentlist KSCIP1
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
-!     40.41, Dec. 04: this routine is reconsidered, cleaned up and moved
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!     40.41, Dec. 04: this routine is reconsidered, cleaned up and moved to SWANCOM1
 !
 !  2. Purpose
 !
@@ -9842,7 +9842,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !     This equation is integrated using the forward Euler technique
 !
-!     For the two-dimensional case, a 2D Poisson equation in general coo
+!     For the two-dimensional case, a 2D Poisson equation in general coordinates
 !     is solved by means of vertex-centered finite volume method
 !
 !  4. Argument variables
@@ -9869,8 +9869,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                        (*,6); sine^2 of spectral directions
 !     SPCSIG    input    Relative frequencies in computational domain
 !                        in sigma-space
-!     XCGRID    input    Coordinates of computational grid in x-directio
-!     YCGRID    input    Coordinates of computational grid in y-directio
+!     XCGRID    input    Coordinates of computational grid in x-direction 30.72
+!     YCGRID    input    Coordinates of computational grid in y-direction 30.72
 
                   INTEGER MSTPDA, KGRPNT(MXC,MYC)
 
@@ -9931,7 +9931,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     MSGSTR      string to pass message to call MSGERR
 !     N           CGroup/CPhase
 !     ND          derivative of N with respect to depth
-!     NEIGHB      boolean variable indicating whether neighbouring point
+!     NEIGHB      boolean variable indicating whether neighbouring point is wet
 !     RRDI        1/number of steps in i-direction
 !     RRDJ        1/number of steps in j-direction
 !     RSXX        xx-component of the radiation stress
@@ -9944,7 +9944,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     RSYYI       derivative of RSYY in i-direction
 !     RSYYJ       derivative of RSYY in j-direction
 !     S_UPCOR     total correction to setup (user defined and S_UPDP)
-!     S_UPDP      setup at location with maximum depth, before correctio
+!     S_UPDP      setup at location with maximum depth, before correction
 !     SIG         dummy variable for frequency
 !     SXX1        radiation stress in  point i in 1-D case
 !     SXX2        radiation stress in  point i+1 in 1-D case
@@ -9974,7 +9974,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     KSCIP1           Calculates KWAVE, CGO
 !     MSGERR           Writes error message
 !     SETUP2D          Computation of the change of waterlevel by waves,
-!                      a 2D Poisson equation in general coordinates is s
+!                      a 2D Poisson equation in general coordinates is solved
 !     STRACE           Tracing routine for debugging
 !     TXPBLA           Removes leading and trailing blanks in string
 !
@@ -10017,7 +10017,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 ! 13. Source text
 !
-!***********************************************************************
+!************************************************************************
 
                   CALL STRACE (IENT, 'SETUPP')
 
@@ -10041,7 +10041,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                                  IDXMAX = INDX
                               ENDIF
 
-!             --- compute radiation stress components RSXX, RSXY and RSY
+!             --- compute radiation stress components RSXX, RSXY and RSYY
 
                               RSXX = 0.
                               RSXY = 0.
@@ -10203,7 +10203,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                                  DJY  =  DXI / DDET
                               END IF
 
-!                --- forces based on spatial gradients of radiation stre
+!                --- forces based on spatial gradients of radiation stresses
                               SETPDA(INDX,1) =&
                               &-(RSXXI*DIX + RSXXJ*DJX + RSXYI*DIY + RSXYJ*DJY)
                               SETPDA(INDX,2) =&
@@ -10223,7 +10223,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   IF (LSETUP.EQ.1) THEN
 !       set set-up to 0 for deepest point (This is allowed because the
-!       solution of a Poisson equation + constant is again a solution of
+!       solution of a Poisson equation + constant is again a solution of  31.03
 !       the same Poisson equation)
                      S_UPDP = SETUP2(IDXMAX)
                      S_UPCOR = S_UPDP - PSETUP(2)
@@ -10338,7 +10338,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -10349,7 +10349,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -10402,7 +10402,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !  6. Local variables
 !
-!     CONTRB:     auxiliary variable containing contribution to the matr
+!     CONTRB:     auxiliary variable containing contribution to the matrix
 !     DEPF  :     water depth in flux point
 !     FACT  :     a factor
 !     IAMOUT:     control parameter indicating the amount of
@@ -10415,15 +10415,15 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     ICONV :     indicator for convergence (1=yes, 0=no)
 !     IENT  :     number of entries
 !     II    :     iteration count in case of omega#1
-!     INDX  :     index counter for point (ix  ,iy  ) in computational g
-!     INDXB :     index counter for point (ix  ,iy-1) in computational g
-!     INDXL :     index counter for point (ix-1,iy  ) in computational g
-!     INDXLB:     index counter for point (ix-1,iy-1) in computational g
-!     INDXLU:     index counter for point (ix-1,iy+1) in computational g
-!     INDXR :     index counter for point (ix+1,iy  ) in computational g
-!     INDXRB:     index counter for point (ix+1,iy-1) in computational g
-!     INDXRU:     index counter for point (ix+1,iy+1) in computational g
-!     INDXU :     index counter for point (ix  ,iy+1) in computational g
+!     INDX  :     index counter for point (ix  ,iy  ) in computational grid
+!     INDXB :     index counter for point (ix  ,iy-1) in computational grid
+!     INDXL :     index counter for point (ix-1,iy  ) in computational grid
+!     INDXLB:     index counter for point (ix-1,iy-1) in computational grid
+!     INDXLU:     index counter for point (ix-1,iy+1) in computational grid
+!     INDXR :     index counter for point (ix+1,iy  ) in computational grid
+!     INDXRB:     index counter for point (ix+1,iy-1) in computational grid
+!     INDXRU:     index counter for point (ix+1,iy+1) in computational grid
+!     INDXU :     index counter for point (ix  ,iy+1) in computational grid
 !     IT    :     iteration count
 !     IX    :     counter in x-direction
 !     IXINF :     point in x-direction with largest error in solution

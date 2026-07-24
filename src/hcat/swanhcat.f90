@@ -1,20 +1,20 @@
 !     HotConcat
 !     Author: Ben Payment 07.17.2006
 !
-!     Program take hotfiles created from SWAN parallel runs and compiles
+!     Program take hotfiles created from SWAN parallel runs and compiles them
 !     into a single file.
 !
 !     HotConcat [-v] [-s] [-h halosize] <basefile>
 !     <basefile> refers to the base file name used for hotfiles
 !     [-v]           verbose mode: program reports non-error information
-!     [-h halosize]  optional argument which changes the overlap halo fr
+!     [-h halosize]  optional argument which changes the overlap halo from default value
 !     [-s]           stomp over existing basefile
 !     [help] [-help] display above information
 !
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -25,7 +25,7 @@
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
 program HotConcat
@@ -237,7 +237,7 @@ program HotConcat
    allocate(x(0:numfiles,1:sum))
    allocate(y(0:numfiles,1:sum))
 
-!.....Allocate array to refer to which hotfile a grid point info is stor
+!.....Allocate array to refer to which hotfile a grid point info is stored
    allocate(source(1:sum))
 
 !.....Read in locations
@@ -272,7 +272,7 @@ program HotConcat
       IF(verbose) PRINT *,'Processes divided along x'
    ENDIF
 
-!.....Index array keep track of the index number of the grid point being
+!.....Index array keep track of the index number of the grid point being processes
    allocate(index(0:numfiles))
    DO i=0,numfiles
       index(i)=1
@@ -444,7 +444,7 @@ program HotConcat
       ENDDO
    ENDIF
 
-!.....Allocate action density in case of binary format for reading/writi
+!.....Allocate action density in case of binary format for reading/writing purpose
    if (.not.free) allocate(ac2(cdir,freq))
 
 !.....Process QUANT (must be single quantity) in case of free format
@@ -477,7 +477,7 @@ program HotConcat
       index(i)=1
    ENDDO
 
-!.....Change in source represent hotfile boundary and the need to proces
+!.....Change in source represent hotfile boundary and the need to process halo points
    prevsource=1
 
 !.....Process action densities
@@ -486,7 +486,7 @@ program HotConcat
 !...........IF divided along Y
          IF(ydivide) THEN
             IF(source(index(0))==j) THEN
-!.................IF source equals 1 there are no halo points at the beg
+!.................IF source equals 1 there are no halo points at the beginning
                IF(j .NE. 1) THEN
                   IF (free) THEN
                      DO k=1,halo
@@ -522,7 +522,7 @@ program HotConcat
                      ENDDO
                   ENDIF
                ENDIF
-!.................Write out grid point data as long as the source doesn'
+!.................Write out grid point data as long as the source doesn't change
                DO WHILE(source(index(0))==j)
                   IF (free) THEN
                      READ (10+j,"(A)",IOSTAT=ios) RLINE
@@ -607,7 +607,7 @@ program HotConcat
 !...........IF divided along X
          ELSE
             IF(source(index(0))==j) THEN
-!.................IF source equals 1 there are no halo points at the beg
+!.................IF source equals 1 there are no halo points at the beginning
                IF(j .NE. 1) THEN
 !                     DO WHILE (index(j-1)<=ownlocat(j-1))
                   DO WHILE (index(j-1)<=locations(j-1))
@@ -655,7 +655,7 @@ program HotConcat
                      ENDIF
                   ENDDO
                ENDIF
-!.................Write out grid point data as long as the source doesn'
+!.................Write out grid point data as long as the source doesn't change
                DO WHILE(source(index(0))==j)
                   IF (free) THEN
                      READ (10+j,"(A)",IOSTAT=ios) RLINE

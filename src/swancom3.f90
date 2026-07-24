@@ -55,7 +55,7 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -66,7 +66,7 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -84,7 +84,7 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 !  1. Updates
 !
 !            Jan. 97: New subroutine (Roeland Ris)
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.70, Feb. 98: argument list of WINDP2 changed
 !     30.75, Mar. 98: Set FPM=SIGPKD, due to change in argument list of
 !     40.00, July 98: argument list of WINDP2 changed
@@ -92,8 +92,8 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 !     30.82, Apr. 99: Dimensioning KCGRD corrected
 !     32.06, June 99: Reformulated directional spreading for first guess
 !     30.82, June 99: Implicit none added; all variables declared
-!     40.41, Aug. 04: COS(THETA-THETAW) replaced by sumrule to make it c
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Aug. 04: COS(THETA-THETAW) replaced by sumrule to make it cheaper
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.85, Aug. 08: store wind input for output purposes
 !     41.75, Jan. 19: adding sea ice
 !
@@ -177,7 +177,7 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
@@ -198,10 +198,10 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 !        IX          Counter of gridpoint in x-direction
 !        IY          Counter of gridpoint in y-direction
 !        IS          Counter of frequency bin
-!        ISSTOP      Countrer for the maximum frequency of all direction
+!        ISSTOP      Countrer for the maximum frequency of all directions
 !        IDDUM       Dummy counter
 !        ID          Counter of directional distribution
-!        IDWMIN/IDWMAX  Minimum / maximum counter in wind sector (180 de
+!        IDWMIN/IDWMAX  Minimum / maximum counter in wind sector (180 degrees)
 !
 !        REALS:
 !        ---------
@@ -280,7 +280,7 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 !        factor_on_Sin=(1-aice*(1-icewind))    (1)
 !        This can be re-written as :
 !        factor_on_Sin=awater+aice*icewind     (2)
-!        where a_water is open water fraction and a_water+aice==1.0 by d
+!        where a_water is open water fraction and a_water+aice==1.0 by definition
 !
 !     9. STRUCTURE
 !
@@ -316,7 +316,7 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER  IS    ,ID    ,ITER  ,&
    &IDWMIN,IDWMAX,IDDUM ,ISSTOP
@@ -383,9 +383,9 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 
 !       *** second generation model ***
 !
-!       *** Determine the proportionality constant alpha on the basis **
-!       *** of the total energy in the wind sea part of the spectrum  **
-!       *** output of subroutine (WINDP2) is ETOTW                    **
+!       *** Determine the proportionality constant alpha on the basis ***
+!       *** of the total energy in the wind sea part of the spectrum  ***
+!       *** output of subroutine (WINDP2) is ETOTW                    ***
 
       CALL WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
       &ETOTW   ,&
@@ -405,10 +405,10 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
    ALPMD  = 0.0081 + ( 0.013 - 0.0081 ) * EXP ( -1. * DND )
    ALPM   = MIN ( 0.155  ,  MAX ( ALPMD , ALPM ) )
 
-!     *** Calculate the limiting spectrum in terms of action density   *
-!     *** for the wind sea part (centered around the local wind        *
-!     *** direction). For conversion of f^-5 --> k^-3 and coefficients *
-!     *** see Kitaigorodskii et al. 1975                               *
+!     *** Calculate the limiting spectrum in terms of action density   ***
+!     *** for the wind sea part (centered around the local wind        ***
+!     *** direction). For conversion of f^-5 --> k^-3 and coefficients ***
+!     *** see Kitaigorodskii et al. 1975                               ***
 
    DO IS = 1, ISSTOP
       TEMP1  = ALPM / ( 2. * KWAVE(IS,1)**3 * CGO(IS,1) )
@@ -420,7 +420,7 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
          THETA  = SPCDIR(ID,1)
          COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
 
-!     For better convergence the first guess of the directional spreadin
+!     For better convergence the first guess of the directional spreading 32.06
 !     is modified in third generation mode. The new formulation better
 !     fits the directional spreading of the deep water growth curves.
 
@@ -575,7 +575,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -586,7 +586,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -610,9 +610,9 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
 !     30.82, Oct. 98: Updated description of several variables
 !     32.06, June 99: Reformulation of wind speed in terms of friction
 !                     velocity for first and second generation
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     41.20, Jun. 10: use ADCIRC's new sector-based wind drag
-!     41.33, Mar. 12: extension drag coefficient based on 2nd order poly
+!     41.33, Mar. 12: extension drag coefficient based on 2nd order polynomial
 !     41.33, Aug. 12: extension drag coefficient based on cross swell
 !
 !  2. Purpose
@@ -669,7 +669,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
@@ -682,7 +682,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
 !        MYC              Maximum counter of gridppoints in y-direction
 !        KCGRD   int, i   Point index for grid point
 !        MCGRD   int, i   Maximum counter of gridpoints in space
-!        ICMAX   int, i   Maximum counter for the points of the molecule
+!        ICMAX   int, i   Maximum counter for the points of the molecule  30.21
 !
 !        REALS:
 !        ---------
@@ -739,7 +739,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER      IDWMIN ,IDWMAX
    INTEGER, SAVE :: IENT = 0
@@ -1046,11 +1046,11 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
 !          Hwang (2011) drag formulation
 !
 ! Sep 1 2010 : Wu formula replaced with Hwang eq 10.
-!              Source Hwang, "A note on the ocean surface roughness spec
-!              Successfully tested with Hurricane Frances and Ivan in Fe
+!              Source Hwang, "A note on the ocean surface roughness spectrum"
+!              Successfully tested with Hurricane Frances and Ivan in February 2011.
 !              Cap is necessary or CDRAG = 0 when winds reach > or = to
 !              Capped at maximum Ustar for winds greater than 50.33 m/s.
-!              Hwang formulation added to wave age calculation on 2/15/1
+!              Hwang formulation added to wave age calculation on 2/15/11 in swanout1.f.
 ! Dec 28 2016: CDFAC added to (optionally) counter bias in wind speeds
 !            : Important: this is applied *after* the cap on UFRIC
 
@@ -1124,7 +1124,7 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1135,7 +1135,7 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1148,11 +1148,11 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
 !
 !     20.72, Jan. 96: Integration modified, using FRINTF, FRINTH
 !                     and PWTAIL(6)
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.70, Feb. 98: full common introduced, argument list changed
 !                     ISFPM changed (in case of very high value of FPM)
 !     40.00, July 98: argument list changed: KCGRD removed
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -1200,7 +1200,7 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCSIG(MSC)
 
@@ -1268,7 +1268,7 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
 
    INTEGER  IDWMIN  ,IDWMAX  ,&
@@ -1352,7 +1352,7 @@ SUBROUTINE WINDP3 (ISSTOP  ,ALIMW   ,AC2     ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1363,12 +1363,12 @@ SUBROUTINE WINDP3 (ISSTOP  ,ALIMW   ,AC2     ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !     1. UPDATE
 !
-!        40.41, Oct. 04: common blocks replaced by modules, include file
+!        40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !     2. PURPOSE
 !
@@ -1452,7 +1452,7 @@ SUBROUTINE WINDP3 (ISSTOP  ,ALIMW   ,AC2     ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER, SAVE :: IENT = 0
    INTEGER     IS, ID, ISSTOP, IDDUM
@@ -1527,7 +1527,7 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1538,7 +1538,7 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1551,10 +1551,10 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 !
 !  1. Updates
 !
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.82, Oct. 98: Updated description of several variables
-!     40.41, Aug. 04: COS(THETA-THETAW) replaced by sumrule to make it c
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Aug. 04: COS(THETA-THETAW) replaced by sumrule to make it cheaper
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.85, Aug. 08: store wind input for output purposes
 !     41.75, Jan. 19: adding sea ice
 !
@@ -1597,7 +1597,7 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
@@ -1646,40 +1646,40 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 !     8. REMARKS
 !
 ! E. Rogers, May 16 2012: I have noticed that for computations beyond 1
-! the stress contribution from this term could be quite large. This is b
+! the stress contribution from this term could be quite large. This is because
 ! 1) it is a linear term, so the smallness of E(f) in the tail does not
 ! 2) the linear term is flat, plotted as a function of frequency
-! 3) the stress contribution is something like tau(f)=integral of Sin(f)
+! 3) the stress contribution is something like tau(f)=integral of Sin(f) / C df , so tau
 !    increases with frequency
 ! And some other remarks:
-! 1) Equation (5) in Cavaleri and Rizzoli (JGR 1981) does not make sense
+! 1) Equation (5) in Cavaleri and Rizzoli (JGR 1981) does not make sense to me:
 !    the units in particular do not seem correct.
-! 2) I cannot see how equation (4) in Cavaleri and Rizzoli (JGR 1981) fo
+! 2) I cannot see how equation (4) in Cavaleri and Rizzoli (JGR 1981) follows from
 !    his source material. In particular, where does the "80" come from?
-!    appears to be at least one step missing in getting from Luigi's sou
+!    appears to be at least one step missing in getting from Luigi's source material
 !    to his equation (4).
-! 3) I cannot see how eq (5) in Tolman (JPO 1992) follows from his sourc
-!    which is Luigi's paper. Again, there appears to be at least one ste
+! 3) I cannot see how eq (5) in Tolman (JPO 1992) follows from his source material
+!    which is Luigi's paper. Again, there appears to be at least one step missing,
 !    this time in getting from Luigi's eq (5) to Tolman's eq (10).
-! 4) In particular, Luigi's eq (5) is proportional to (sigma)/(g^2*k^2),
-!    for deep water sigma^-3. This dependency is completely missing in T
+! 4) In particular, Luigi's eq (5) is proportional to (sigma)/(g^2*k^2), which is
+!    for deep water sigma^-3. This dependency is completely missing in Tolman's eq (10)!
 !
 ! ....so what to do?
-! I don't want to make drastic changes to this formulation without knowi
-! highly suspicious genesis of the formulation, even though I have a str
-! that it is wrong. So, for now, I'll just apply the sigma^-3 drop-off f
-! beyond 1 Hz. Thus, it won't affect most simulations, which stop at 1 H
+! I don't want to make drastic changes to this formulation without knowing more about the
+! highly suspicious genesis of the formulation, even though I have a strong feeling now
+! that it is wrong. So, for now, I'll just apply the sigma^-3 drop-off for frequencies
+! beyond 1 Hz. Thus, it won't affect most simulations, which stop at 1 Hz.
 ! Source for the sigma^-3 drop-off: Luigi eq (5)
-! Source for the 1 Hz application/bending point: mostly arbitrary, inten
+! Source for the 1 Hz application/bending point: mostly arbitrary, intended to have
 !   zero effect on typical simulations (which stop at 1 Hz)
-! Alternate bending point: fpm, though this would have a much more notic
+! Alternate bending point: fpm, though this would have a much more noticeable effect on
 !   typical simulations.
 !
 !     Regarding ICEWIND variable :
 !        factor_on_Sin=(1-aice*(1-icewind))    (1)
 !        This can be re-written as :
 !        factor_on_Sin=awater+aice*icewind     (2)
-!        where a_water is open water fraction and a_water+aice==1.0 by d
+!        where a_water is open water fraction and a_water+aice==1.0 by definition
 !
 !     9. STRUCTURE
 !
@@ -1692,7 +1692,7 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER, SAVE :: IENT = 0
    INTEGER  IDDUM   ,ID      ,IS      ,ISSTOP
@@ -1775,7 +1775,7 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
          DO ID = 1, MDC
             CTH = SPCDIR(ID,2) ! new local variable = cos(theta)
             STH = SPCDIR(ID,3) ! new local variable = sin(theta)
-! SPCSIG(IS) replaces "EN" as used in SWIND_Donelan: Thus, factor AC2 is
+! SPCSIG(IS) replaces "EN" as used in SWIND_Donelan: Thus, factor AC2 is removed, EN=sig*ac2
             TAUX   =TAUX +CTH*CINV2*PLWNDS(ID,IS,IPTST)&
             &*SPCSIG(IS)*DDIR*FRINTF*SPCSIG(IS)
             TAUY   =TAUY +STH*CINV2*PLWNDS(ID,IS,IPTST)&
@@ -1838,7 +1838,7 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1849,7 +1849,7 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1862,10 +1862,10 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
 !
 !  1. Updates
 !
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.82, Oct. 98: Updated description of several variables
-!     40.41, Aug. 04: COS(THETA-THETAW) replaced by sumrule to make it c
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Aug. 04: COS(THETA-THETAW) replaced by sumrule to make it cheaper
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.85, Aug. 08: store wind input for output purposes
 !     41.75, Jan. 19: adding sea ice
 !
@@ -1915,7 +1915,7 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
@@ -1969,7 +1969,7 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
 !        factor_on_Sin=(1-aice*(1-icewind))    (1)
 !        This can be re-written as :
 !        factor_on_Sin=awater+aice*icewind     (2)
-!        where a_water is open water fraction and a_water+aice==1.0 by d
+!        where a_water is open water fraction and a_water+aice==1.0 by definition
 !
 !     9. STRUCTURE
 !
@@ -1982,7 +1982,7 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER, SAVE :: IENT = 0
    INTEGER  IDDUM ,ID    ,IS    ,ISSTOP
@@ -2087,7 +2087,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2098,7 +2098,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2114,12 +2114,12 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
 !
 !  1. Updates
 !
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.82, Oct. 98: Updated description of several variables
 !     40.02, Oct. 00: References to CDRAGP and TAUWP removed
 !     40.31, Jul. 03: correction calculation TAUDIR in test output
-!     40.41, Aug. 04: COS(THETA-THETAW) replaced by sumrule to make it c
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Aug. 04: COS(THETA-THETAW) replaced by sumrule to make it cheaper
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.61, Nov. 06: improvements to WAM4 based on WAM4.5
 !     40.85, Aug. 08: store wind input for output purposes
 !     41.75, Jan. 19: adding sea ice
@@ -2159,7 +2159,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
@@ -2222,7 +2222,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
 !        factor_on_Sin=(1-aice*(1-icewind))    (1)
 !        This can be re-written as :
 !        factor_on_Sin=awater+aice*icewind     (2)
-!        where a_water is open water fraction and a_water+aice==1.0 by d
+!        where a_water is open water fraction and a_water+aice==1.0 by definition
 !
 !     9. STRUCTURE
 !
@@ -2235,7 +2235,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
 !     10. SOURCE
 !
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER  IDWMAX  ,IDWMIN  ,IDDUM   ,ID      ,ISSTOP  ,IS
 
@@ -2636,7 +2636,7 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2647,7 +2647,7 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2661,11 +2661,11 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
 !
 !  1. Updates
 !
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.82, Oct. 98: Updated description of several variables
-!     40.41, Aug. 04: COS(THETA-THETAW) replaced by sumrule to make it c
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
-!     40.53, Aug. 04: changes parameters of Yan formulae in case of Alve
+!     40.41, Aug. 04: COS(THETA-THETAW) replaced by sumrule to make it cheaper
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!     40.53, Aug. 04: changes parameters of Yan formulae in case of Alves and
 !                     Banner whitecapping method
 !     40.85, Aug. 08: store wind input for output purposes
 !     41.75, Jan. 19: adding sea ice
@@ -2701,7 +2701,7 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
@@ -2748,7 +2748,7 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
 !        factor_on_Sin=(1-aice*(1-icewind))    (1)
 !        This can be re-written as :
 !        factor_on_Sin=awater+aice*icewind     (2)
-!        where a_water is open water fraction and a_water+aice==1.0 by d
+!        where a_water is open water fraction and a_water+aice==1.0 by definition
 !
 !     9. STRUCTURE
 !
@@ -2761,7 +2761,7 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER, SAVE :: IENT = 0
    INTEGER  IDDUM  ,ID     ,IS     ,ISSTOP

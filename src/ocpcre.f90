@@ -47,7 +47,7 @@ SUBROUTINE RDINIT
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -58,7 +58,7 @@ SUBROUTINE RDINIT
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -67,7 +67,7 @@ SUBROUTINE RDINIT
 !
 !  1. UPDATES
 !
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -131,7 +131,7 @@ SUBROUTINE NWLINE
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -142,7 +142,7 @@ SUBROUTINE NWLINE
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -156,7 +156,7 @@ SUBROUTINE NWLINE
 !     34.01, Feb. 99: Changed STOP statement in a MSGERR(4,'message')
 !     40.03, Apr. 99: length of command lines changed from 80 to LINELN
 !                     name of input file included in error message
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -234,7 +234,7 @@ SUBROUTINE INKEYW (KONT, CSTA)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -245,7 +245,7 @@ SUBROUTINE INKEYW (KONT, CSTA)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -255,7 +255,7 @@ SUBROUTINE INKEYW (KONT, CSTA)
 !  1. UPDATES
 !
 !     ver 30.70, Jan. 1998: data type 'OTHR' is condidered
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -383,7 +383,7 @@ SUBROUTINE INREAL (NAAM, R, KONT, RSTA)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -394,7 +394,7 @@ SUBROUTINE INREAL (NAAM, R, KONT, RSTA)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -405,10 +405,10 @@ SUBROUTINE INREAL (NAAM, R, KONT, RSTA)
 !  1. UPDATES
 !
 !     20.04, Aug. 93: logical CHGVAL is introduced it  is made True if
-!                     user changes value of an input parameter via INREA
+!                     user changes value of an input parameter via INREAL
 !     30.82, Sep. 98: To avoid errors using the Cray-cf90 compiler
 !                     introduced a dummy
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -427,7 +427,7 @@ SUBROUTINE INREAL (NAAM, R, KONT, RSTA)
 
 !     KONT   : What to do with the variable?
 !              ='REQ' : variable is required
-!              ='UNC' : if no variable, then variable will not be change
+!              ='UNC' : if no variable, then variable will not be changed
 !              ='STA' : if no variable, then variable will get value of
 !              ='RQI' : variable may not have the value of RSTA
 !              ='REP' : (REPEAT)
@@ -504,7 +504,7 @@ SUBROUTINE INDBLE (NAAM, R, KONT, RSTA)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -515,7 +515,7 @@ SUBROUTINE INDBLE (NAAM, R, KONT, RSTA)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -526,11 +526,11 @@ SUBROUTINE INDBLE (NAAM, R, KONT, RSTA)
 !
 !  1. UPDATES
 !
-!     30.72, Oct. 97: Introduced logical function EQREAL for floating po
+!     30.72, Oct. 97: Introduced logical function EQREAL for floating point
 !                     comparisons
 !     20.05, Aug. 93: NEW subroutine for double prec. data
 !     40.03, Feb. 00: local copy of NAAM used in error message
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -697,7 +697,7 @@ SUBROUTINE ININTG (NAAM, IV, KONT, ISTA)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -708,7 +708,7 @@ SUBROUTINE ININTG (NAAM, IV, KONT, ISTA)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -722,7 +722,7 @@ SUBROUTINE ININTG (NAAM, IV, KONT, ISTA)
 !                          it is made True if user changes value
 !                          of an input parameter via ININTG
 !     40.03, Feb. 00: local copy of NAAM used in error message
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -739,7 +739,7 @@ SUBROUTINE ININTG (NAAM, IV, KONT, ISTA)
 
 !     NAAM   :  name of the variable according to the user manual
 !     KONT   : What to do with the variable?
-!              ='REQ'; error message if no value is found in the input f
+!              ='REQ'; error message if no value is found in the input file
 !              ='UNC'; If no value, then variable will not be changed
 !              ='STA'; If no value, then variable will get default value
 !              ='RQI'; Variable may not have the value of RSTA
@@ -878,7 +878,7 @@ SUBROUTINE INCSTR (NAAM, C, KONT, CSTA)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -889,7 +889,7 @@ SUBROUTINE INCSTR (NAAM, C, KONT, CSTA)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -903,7 +903,7 @@ SUBROUTINE INCSTR (NAAM, C, KONT, CSTA)
 !                          it is made True if user changes value
 !                          of an input parameter via INCSTR
 !     40.03, Feb. 00: local copy of NAAM used in error message
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -915,7 +915,7 @@ SUBROUTINE INCSTR (NAAM, C, KONT, CSTA)
 !
 !     NAAM   : name of the variable according to the user manual
 !     KONT   : What to do with the variable?
-!              ='REQ'; error message if no value is found in the input f
+!              ='REQ'; error message if no value is found in the input file
 !              ='UNC'; If no value, then variable will not be changed
 !              ='STA'; If no value, then variable will get default value
 !              ='RQI'; Variable may not have the value of CSTA
@@ -1076,7 +1076,7 @@ SUBROUTINE INCTIM (IOPTIM, NAAM, RV, KONT, RSTA)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1087,7 +1087,7 @@ SUBROUTINE INCTIM (IOPTIM, NAAM, RV, KONT, RSTA)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -1098,11 +1098,11 @@ SUBROUTINE INCTIM (IOPTIM, NAAM, RV, KONT, RSTA)
 !
 !  1. UPDATES
 !
-!     30.72, Oct. 97: Introduced logical function EQREAL for floating po
+!     30.72, Oct. 97: Introduced logical function EQREAL for floating point
 !                     comparisons
 !     30.04, Mar. 95: New subroutine
 !     40.03, Feb. 00: local copy of NAAM used in error message
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -1124,7 +1124,7 @@ SUBROUTINE INCTIM (IOPTIM, NAAM, RV, KONT, RSTA)
 
 !     NAAM   : name of the variable according to the user manual
 !     KONT   : What to do with the variable?
-!              ='REQ'; error message if no value is found in the input f
+!              ='REQ'; error message if no value is found in the input file
 !              ='UNC'; If no value, then variable will not be changed
 !              ='STA'; If no value, then variable will get default value
 !              ='RQI'; Variable may not have the value of RSTA
@@ -1265,7 +1265,7 @@ SUBROUTINE ININTV (NAME, RVAR, KONT, RSTA)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1276,7 +1276,7 @@ SUBROUTINE ININTV (NAME, RVAR, KONT, RSTA)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -1286,7 +1286,7 @@ SUBROUTINE ININTV (NAME, RVAR, KONT, RSTA)
 !  1. UPDATES
 !
 !     Dec 1995, ver 30.09 : new subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -1298,7 +1298,7 @@ SUBROUTINE ININTV (NAME, RVAR, KONT, RSTA)
 !
 !     NAAM   : name of the variable according to the user manual
 !     KONT   : What to do with the variable?
-!              ='REQ'; error message if no value is found in the input f
+!              ='REQ'; error message if no value is found in the input file
 !              ='UNC'; If no value, then variable will not be changed
 !              ='STA'; If no value, then variable will get default value
 !              ='RQI'; Variable may not have the value of RSTA
@@ -1406,7 +1406,7 @@ SUBROUTINE INITVD (NAME, RVAR, KONT, RSTA)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1417,7 +1417,7 @@ SUBROUTINE INITVD (NAME, RVAR, KONT, RSTA)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -1438,7 +1438,7 @@ SUBROUTINE INITVD (NAME, RVAR, KONT, RSTA)
 !
 !     NAAM   : name of the variable according to the user manual
 !     KONT   : What to do with the variable?
-!              ='REQ'; error message if no value is found in the input f
+!              ='REQ'; error message if no value is found in the input file
 !              ='UNC'; If no value, then variable will not be changed
 !              ='STA'; If no value, then variable will get default value
 !              ='RQI'; Variable may not have the value of RSTA
@@ -1546,7 +1546,7 @@ SUBROUTINE LEESEL
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1557,7 +1557,7 @@ SUBROUTINE LEESEL
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -1569,7 +1569,7 @@ SUBROUTINE LEESEL
 !
 !     Jan. 1994, mod. 20.05: ELREAL is made REAL(KIND=KIND(0.0D0))
 !     40.13, Jan. 01: ! is now added as comment sign
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -1920,7 +1920,7 @@ SUBROUTINE GETKAR
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1931,7 +1931,7 @@ SUBROUTINE GETKAR
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -1942,7 +1942,7 @@ SUBROUTINE GETKAR
 !  1. UPDATES
 !
 !     40.13, Jan. 2001: TRIM used to limit output
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -2025,7 +2025,7 @@ SUBROUTINE PUTKAR (LTEXT, KARR, JKAR)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2036,7 +2036,7 @@ SUBROUTINE PUTKAR (LTEXT, KARR, JKAR)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -2045,7 +2045,7 @@ SUBROUTINE PUTKAR (LTEXT, KARR, JKAR)
 !
 !  1. UPDATES
 !
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -2123,7 +2123,7 @@ SUBROUTINE UPCASE (CHARST)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2134,7 +2134,7 @@ SUBROUTINE UPCASE (CHARST)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -2143,7 +2143,7 @@ SUBROUTINE UPCASE (CHARST)
 !
 !  1. UPDATES
 !
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -2228,7 +2228,7 @@ LOGICAL FUNCTION EQCSTR (STR1, STR2)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2239,7 +2239,7 @@ LOGICAL FUNCTION EQCSTR (STR1, STR2)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -2248,7 +2248,7 @@ LOGICAL FUNCTION EQCSTR (STR1, STR2)
 !
 !  1. UPDATES
 !
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -2337,7 +2337,7 @@ LOGICAL FUNCTION KEYWIS (STRING)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2348,7 +2348,7 @@ LOGICAL FUNCTION KEYWIS (STRING)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -2358,7 +2358,7 @@ LOGICAL FUNCTION KEYWIS (STRING)
 !  1. UPDATES
 !
 !     40.00, July
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -2371,7 +2371,7 @@ LOGICAL FUNCTION KEYWIS (STRING)
 !
 !  4. ARGUMENT VARIABLES
 !
-!     STRING : a keyword which is compared with a keyword found in the i
+!     STRING : a keyword which is compared with a keyword found in the input file
 
    CHARACTER(LEN=*) :: STRING
 
@@ -2447,7 +2447,7 @@ SUBROUTINE  WRNKEY
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2458,7 +2458,7 @@ SUBROUTINE  WRNKEY
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -2467,7 +2467,7 @@ SUBROUTINE  WRNKEY
 !
 !  1. UPDATES
 !
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !
@@ -2532,7 +2532,7 @@ SUBROUTINE  IGNORE (STRING)
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2543,7 +2543,7 @@ SUBROUTINE  IGNORE (STRING)
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. AUTHORS
@@ -2552,7 +2552,7 @@ SUBROUTINE  IGNORE (STRING)
 !
 !  1. UPDATES
 !
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. PURPOSE
 !

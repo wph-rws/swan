@@ -18,7 +18,7 @@
 !     SSURF   (Wave breaking: five formulations)
 !     SWCAP   (White capping: seven formulations)
 !     SWCAP8  (Whitecapping according to Rogers et al. (JTECH 2012))
-!     BRKPAR  (compute variable gamma for Battjes-Janssen breaking formu
+!     BRKPAR  (compute variable gamma for Battjes-Janssen breaking formula)
 !     CNTAIL  (contributions to the spectrum of the high frequency tail)
 !     PLTSRC  (store the values for plot of the source terms and spec.)
 !
@@ -52,7 +52,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -63,7 +63,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -78,10 +78,10 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 !
 !  1. Updates
 !
-!     20.68, Jan. 96: subroutine restructured variable friction coeffici
+!     20.68, Jan. 96: subroutine restructured variable friction coefficient
 !                     introduced Putnam model replaced by Collins
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.61, Sep. 06: introduce DISBOT variable for output purposes
 !     40.67, Jun. 07: more accurate computation fo dissipation terms
 !     41.04, Mar. 09: frequency-dependent JONSWAP formulation
@@ -93,7 +93,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 !
 !  3. Method
 !
-!     In SWAN several bottom friction dissipation models are computed, i
+!     In SWAN several bottom friction dissipation models are computed, i.e.:
 !
 !     IBOT = 1   Jonswap bottom friction model
 !     IBOT = 2   Collins bottom friction model
@@ -196,7 +196,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL    SPCSIG(MSC)
 
@@ -236,7 +236,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 !     PHI         mobility number for determination of ripple geometry
 !     THETA       Shields entrainment parameter
 !     DAST        dimensionless sediment parameter
-!     THETAC      critical Shields parameter where sediment becomes mobi
+!     THETAC      critical Shields parameter where sediment becomes mobile
 !     RIPH        ripple height
 !     RIPW        ripple wavelength
 !
@@ -253,7 +253,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 !     UBOT      2D    Near bottom velocity as function of X,Y
 !     UX2       2D    Current velocity in y direction as function of X,Y
 !     UY2       2D    Current velocity in y direction as function of X,Y
-!     DISSC1    2D    Dissipation coefficient, function of sigma and the
+!     DISSC1    2D    Dissipation coefficient, function of sigma and theta
 !     FRCOEF    2D    Spatially variable friction coefficient
 !
 !  7. Common blocks used
@@ -273,7 +273,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 !
 ! 11. Remarks
 !
-!     According to Gleb Pantalev., Mar 3 2017, in the calculation of DDU
+!     According to Gleb Pantalev., Mar 3 2017, in the calculation of DDUM:
 !       ADUM should be replaced with "ADUM*log(10)"
 !             DDUM  = ( ADUM + LOG10(ADUM) - XDUM ) /
 !    &                                          ( 1.+ ( 1. / ADUM) )
@@ -423,7 +423,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
          D = PBOT(7)
 
          IF ( NSTATC.EQ.1 .AND. IT.EQ.1 ) THEN
-!          if nonstationary and first time step, roughness is based on g
+!          if nonstationary and first time step, roughness is based on grain size (assumes no ripples)
             AKN = 2.5*D
             IF ( (AKN/ABRBOT).LT.0.63 ) THEN
 !                friction factor based on Swart formula
@@ -432,7 +432,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
                FW = 0.3
             ENDIF
          ELSEIF ( NSTATC.EQ.0 .AND. ITER.EQ.1 ) THEN
-!          if stationary and first iteration, roughness is based on grai
+!          if stationary and first iteration, roughness is based on grain size (assumes no ripples)
             AKN = 2.5*D
             IF ( (AKN/ABRBOT).LT.0.63 ) THEN
 !                friction factor based on Swart formula
@@ -441,7 +441,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
                FW = 0.3
             ENDIF
          ELSE
-!          set friction factor obtained from previous time step or itera
+!          set friction factor obtained from previous time step or iteration
             FW = FRCOEF(KCGRD(1))
          ENDIF
 
@@ -470,7 +470,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 !             calculation of ripple wavelength
             RIPW = RIPH/(0.342-0.34*THETA**0.25)
 
-!             roughness coefficient calculation incorporating ripple hei
+!             roughness coefficient calculation incorporating ripple height and wavelength
             AKN = ((8.*RIPH**2)/RIPW)+(170.*D*(THETA-0.05)**0.5)
 
          ELSEIF ( THETA.GT.1. ) THEN
@@ -479,7 +479,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
             AKN = 170.*D*((THETA-0.05)**0.5)
 
          ELSE
-!          immobile seabed case: zero concentration and friction based o
+!          immobile seabed case: zero concentration and friction based on grain size
 
             AKN = 2.5*D
 
@@ -495,7 +495,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 !          bottom friction coefficient based on friction factor
          CFBOT = UBOT(KCGRD(1)) * FW / (SQRT(2.) * GRAV)
 
-!          save friction factor to FRCOEF for next time step or iteratio
+!          save friction factor to FRCOEF for next time step or iteration
          IF (( SWPDIR .EQ. 1) .OR.&
          &( SWPDIR .EQ. 2 .AND. IXCGRD(1) .EQ. 1) .OR.&
          &( SWPDIR .EQ. 3 .AND. IYCGRD(1) .EQ. 1) .OR.&
@@ -577,7 +577,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -588,7 +588,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -723,7 +723,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !
 !     The vertical integration is approximated using the Simpson's rule.
 !     A minimum number of integration points would be needed to reduce
-!     the error of the approximation; 21 points appeared to be sufficien
+!     the error of the approximation; 21 points appeared to be sufficient
 !
 !     Note: current effects are not included in Jacobsen et al. (2019)
 !
@@ -737,10 +737,10 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !     IMATDA      coefficients of diagonal of matrix
 !     ISSTOP      maximum counter of wave component in frequency
 !                 space that is propagated
-!     KMESPC      mean average wavenumber according to the WAM-formulati
+!     KMESPC      mean average wavenumber according to the WAM-formulation
 !     KWAVE       wave number
 !     NPLA2       number of plants per square meter (depth-averaged)
-!     PLVEGT      array containing the vegetation source term for test-o
+!     PLVEGT      array containing the vegetation source term for test-output
 !     SMEBRK      mean frequency according to first order moment
 
    INTEGER ISSTOP, IDCMIN(MSC), IDCMAX(MSC)
@@ -766,7 +766,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !     B     :     auxiliary variable
 !     C     :     auxiliary variable
 !     D     :     auxiliary variable
-!     DCIP  :     frequency-dependent dissipation for each integration p
+!     DCIP  :     frequency-dependent dissipation for each integration point
 !     DZ    :     interval for vertical integration
 !     EKZ   :     exponential of k(h+z)
 !     FDD   :     factor with orbital velocity to determine Su from Sn
@@ -792,7 +792,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !                 to be stored in the array IMATDA
 !     ZDH   :     vertical point z between -depth to 0 or - value water
 !     ZH    :     cumulative layer thickness for velocities, bottom up
-!                 (z+d between 0 and vegetation height or depth value in
+!                 (z+d between 0 and vegetation height or depth value in water column)
 
    INTEGER, SAVE :: IENT = 0
    INTEGER ID, IDDUM, IK, IL, IS
@@ -824,7 +824,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !     ILMAX = number of layers in grid point
 !
 !     Subsequently, the vegetation parameters up to the layer where the
-!     water level is in, are used to calculate dissipation for each laye
+!     water level is in, are used to calculate dissipation for each layer
 !
 !     Thereafter, the contributions to disspation are summed up
 !
@@ -931,7 +931,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 
 !     --- Jacobsen et al. (2019)
 !
-!        --- compute layer- and frequency-independent canopy dissipation
+!        --- compute layer- and frequency-independent canopy dissipation factor
 
       SVEG1 = SQRT(2./PI)*(1/GRAV) * ALFU**3 *&
       &VEGDRL(1) * VEGDIL(1) * VEGNSL(1)
@@ -940,7 +940,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
       SVEGET = 0.
       IF ( SVEG1.NE.0. ) THEN
 
-!        --- determine integration interval (submerged vegetation is ass
+!        --- determine integration interval (submerged vegetation is assumed)
 
       DZ = MIN( SLAYH, DEP2(KCGRD(1)) ) / REAL(NIP)
 
@@ -982,7 +982,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 
          MU = MU * DDIR * FRINTF
 
-!           --- determine weight coefficient for integration based on Si
+!           --- determine weight coefficient for integration based on Simpson's rule
 
          IF ( IK.EQ.0 .OR. IK.EQ.NIP ) THEN
             C = 1. / 3.
@@ -992,7 +992,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
             C = 4. / 3.
          END IF
 
-!           --- compute frequency-distributed dissipation per integratio
+!           --- compute frequency-distributed dissipation per integration point
 
          DO IS = 1, ISSTOP
             DCIP(IK,IS) = C * FDD(IS) * SQRT(MU)
@@ -1059,7 +1059,7 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1070,7 +1070,7 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1151,7 +1151,7 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
 
 !         *** Tolman's model ***
          DO IS = 1, ISSTOP
-!           expression: Pt * K * k * sigma^2 / g * (tanh(kd) - kd/(cosh(
+!           expression: Pt * K * k * sigma^2 / g * (tanh(kd) - kd/(cosh(kd)^2))
             XKD = KWAVE(IS,1) * DEP2(KCGRD(1))
             CVISC = PTURBV(1) * VISCLOC * KWAVE(IS,1) *&
             &SIGPOW(IS,2) / GRAV *&
@@ -1203,7 +1203,7 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1214,7 +1214,7 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1249,7 +1249,7 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
 !                 space that is propagated
 !     KMUD        muddy wave number (calculated via routine KSCIP2 and
 !                 it represents the real part of the wave number)
-!     PLMUD       array containing the fluid mud source term for test-ou
+!     PLMUD       array containing the fluid mud source term for test-output
 
    REAL             :: IMATDA(1:MDC,1:MSC)
    REAL, INTENT(IN) :: CGMUD(1:MSC,1:ICMAX)
@@ -1272,7 +1272,7 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
 !     IENT        number of entries
 !     IS          counter in frequency space
 !     KD          dimensionless depth
-!     SMUDWD      source term containing fluid mud-induced wave dissipat
+!     SMUDWD      source term containing fluid mud-induced wave dissipation
 
    INTEGER, SAVE :: IENT = 0
    INTEGER :: ID, IDDUM, IS
@@ -1300,10 +1300,10 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
 !
 !     In the calculation SMUD = 2*DMW*CGMUD :
 !     This is a conversion from spatial dissipation rate of amplitude to
-!     temporal dissipation rate of energy (linear exponential in both ca
-!     A consistent Cg (CGMUD) must be used for propagation. Otherwise, t
-!     answer will be wrong. If it is necessary to use the standard, non-
-!     Cg for propagation, then this routine (SMUD) should use SMUD = 2*D
+!     temporal dissipation rate of energy (linear exponential in both cases).
+!     A consistent Cg (CGMUD) must be used for propagation. Otherwise, the
+!     answer will be wrong. If it is necessary to use the standard, non-muddy
+!     Cg for propagation, then this routine (SMUD) should use SMUD = 2*DMW*CG
 !     where CG is the standard, non-muddy Cg.
 !
 ! 12. Structure
@@ -1369,7 +1369,7 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1380,7 +1380,7 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1399,10 +1399,10 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  ,&
 !
 !     Compute sink term accounting for dissipation.
 !
-!          IICE=3; In 41.31, activated with keyword "IC4M2" in "INPUT" f
-!                  In v41.32+, activated with keyword "R19" in "INPUT" f
+!          IICE=3; In 41.31, activated with keyword "IC4M2" in "INPUT" file.
+!                  In v41.32+, activated with keyword "R19" in "INPUT" file.
 !                  This is dissipation by sea ice using method denoted
-!                  as "IC4M2" in Rogers (2019) (R19), since it is simila
+!                  as "IC4M2" in Rogers (2019) (R19), since it is similar
 !                  (but not identical!) to IC4M2 in WW3. It is
 !                  ki= C0*f^0 + C1*f^1 ... C5*f^5 + C6*f^6
 !                  It is a polynomial parameterization loosely following
@@ -1414,22 +1414,22 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  ,&
 !                  Meylan et al. (2018) "model with order 3 power law"
 !                  also known as "M2" model in Liu et al. (2020)
 !          IICE=6; v41.32+: "R21B" method. This uses a formula from
-!                  Rogers et al. (2021) Tech report, based on combinatio
+!                  Rogers et al. (2021) Tech report, based on combination
 !                  of Yu et al. (2019) normalization with monomial power
 !                  law empirical fitting.
 !
 !  4. Argument variables
 !
-!     IDCMIN      frequency dependent lower bound in directional index s
-!     IDCMAX      frequency dependent upper bound in directional index s
+!     IDCMIN      frequency dependent lower bound in directional index space
+!     IDCMAX      frequency dependent upper bound in directional index space
 !     IMATDA      coefficients of diagonal of matrix
 !     ISSTOP      maximum counter of wave component in frequency
 !                 space that is propagated
 !     DISSC1      dissipation coefficient
 !     PLICE       array containing the ice source term for test-output
-!     CG          group velocity without currents, but includes depth ef
+!     CG          group velocity without currents, but includes depth effects
 !                 (We use lower case "o" to avoid confusion with "zero")
-!     SPCSIG      Relative frequencies in computational domain in sigma-
+!     SPCSIG      Relative frequencies in computational domain in sigma-space
 
    REAL             :: IMATDA(1:MDC,1:MSC)
    REAL             :: DISSC1(1:MDC,1:MSC,1:MDISP)
@@ -1596,7 +1596,7 @@ SUBROUTINE FRABRE ( HM, ETOT, QBLOC, KTETA )
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1607,7 +1607,7 @@ SUBROUTINE FRABRE ( HM, ETOT, QBLOC, KTETA )
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1619,9 +1619,9 @@ SUBROUTINE FRABRE ( HM, ETOT, QBLOC, KTETA )
 !  1. Updates
 !
 !     30.77, Sep. 98: the discontinuity at B = 0.9 has been removed and
-!                     the discontinuity at B = 0.3 is changed in a disco
+!                     the discontinuity at B = 0.3 is changed in a discontinuity
 !                     at B = 0.2 for which QBLOC = 1.E-9
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     41.47, Oct. 13: include effect wave directionality
 !
 !  2. Purpose
@@ -1791,7 +1791,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1802,7 +1802,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1827,7 +1827,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 !     30.82, Oct. 98: Made subroutine intrinsic REAL(KIND=KIND(0.0D0))
 !     30.81, Sep. 99: Argumentlist reduced
 !     40.13, Jan. 01: PLWBRK corrected (dissipation test output)
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.61, Sep. 06: introduce DISSRF variable for output purposes
 !     40.67, Jun. 07: more accurate computation of dissipation terms
 !     41.03, Feb. 09: extension to alternative surf breaking formula's
@@ -1838,7 +1838,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 !
 !  2. Purpose
 !
-!     Computation of the source term due to wave breaking with one of th
+!     Computation of the source term due to wave breaking with one of the
 !     following formulation:
 !                 1) Battjes and Janssen (1978)
 !                 2) Thornton and Guza (1983)
@@ -1848,7 +1848,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 !
 !  3. Method
 !
-!     Basically, the source term for surf breaking is implemented follow
+!     Basically, the source term for surf breaking is implemented following
 !     the approach of Battjes/Janssen (1978) for the energy dissipation:
 !
 !             Alpha      -     2                  -   SMEBRK
@@ -1863,7 +1863,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 !
 !
 !              Alpha * SMEBRK * Qb * Hm * Hm    SIGMA * AC2(ID,IS,IX,IY)
-!         =    ------------------------------ * ------------------------
+!         =    ------------------------------ * -------------------------
 !                       8 * Pi                            Etot
 !
 !
@@ -1881,12 +1881,12 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 !     BB    = 8 Etot / Hm  = - (1 - Qb) / ln (Qb) ;
 !
 !
-!     The local maximum wave height Hm and mean frequency SMEBRK are com
+!     The local maximum wave height Hm and mean frequency SMEBRK are computed
 !     in subroutine SINTGRL.
 !     The fraction of breaking waves Qb is calculated in the subroutine
 !
 !     The new value for the dissipation is computed implicitly using
-!     the last computed value for the action density Nold (at the spatia
+!     the last computed value for the action density Nold (at the spatial
 !     gridpoint under consideration).
 !
 !     Sbr = WS * N
@@ -1909,7 +1909,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 !     Since BB and N are proportional, we have
 !
 !     d Sbr     d WS                   SMEBRK  (d Qb/ d BB) *BB - Qb
-!     -----  =  ---- * BB + WS = Alpha ------  --------------------- * B
+!     -----  =  ---- * BB + WS = Alpha ------  --------------------- * BB + WS
 !     d N       d BB                     Pi           sqr(BB)
 !
 !
@@ -1939,13 +1939,13 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 !     d N         BB - Qb
 !
 !
-!     Alternatively, the source term for surf breaking is implemented fo
+!     Alternatively, the source term for surf breaking is implemented following
 !     the approach of Thornton and Guza (1983) for energy dissipation:
 !
 !               3  -
-!              B * f                3                          -   SMEBR
-!     Dtot =  ------- * INT(0,inf){H * W(H) * p(H)}dH     with f = -----
-!              4 * d                                               2 * P
+!              B * f                3                          -   SMEBRK
+!     Dtot =  ------- * INT(0,inf){H * W(H) * p(H)}dH     with f = ------
+!              4 * d                                               2 * Pi
 !
 !                    3
 !               3 * B * SMEBRK             3
@@ -1965,13 +1965,13 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 !           Hmax
 !
 !
-!     For implementation details, see the Scientific/Technical documenta
+!     For implementation details, see the Scientific/Technical documentation.
 !
 !
 !  4. Argument variables
 !
 !     AC2     input :   Action density array
-!     DISBK   output:   bulk dissipation per unit variance density (=Dto
+!     DISBK   output:   bulk dissipation per unit variance density (=Dtot/Etot)
 !     DISSC0  output:   Dissipation coefficient as explicit part
 !                       (meant for output)
 !     DISSC1  output:   Dissipation coefficient as implicit part
@@ -1985,7 +1985,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 !     IMATRA  output:   Coefficient of righthandside of matrix
 !     ISSTOP  input :   Maximum for counter IS
 !     ITER    input :   iteration counter
-!     KMESPC  input :   Mean average wavenumber according to the WAM-for
+!     KMESPC  input :   Mean average wavenumber according to the WAM-formulation
 !     KTETA   input :   number of directional partitions
 !     PLWBRK  output:   array containing the surf breaking source term
 !                       for test-output
@@ -2020,7 +2020,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 !             (i.e. SURFA0 * Nold = right hand side of matrix equation)
 !     SURFA1  Coefficient for new source term in matrix equation
 !     WS      Wavebreaking source term coefficient = DTOT/ETOT
-!     SbrD    Derivative of source term for surf breaking (Sbr) to actio
+!     SbrD    Derivative of source term for surf breaking (Sbr) to action density
 
    INTEGER, SAVE :: IENT = 0
    INTEGER          ID,       IDDUM,   IS
@@ -2224,7 +2224,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2235,7 +2235,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2256,12 +2256,12 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !
 !     40.02, Jan. 00: New, based on the old SWCAP1-5 subroutines
 !     40.12, Nov. 00: Added WCAP to dissipation output (bug fix)
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.53: Aug. 04: white-capping based Alves and Banner (2003) method
 !     40.61, Sep. 06: introduce DISWCP variable for output purposes
 !     40.63, Apr. 07: a correction to Alves and Banner method
 !     40.67, Jun. 07: more accurate computation of source terms
-!                     DISSIP and DISIMP renamed DISSC1 and DISSC0 (as el
+!                     DISSIP and DISIMP renamed DISSC1 and DISSC0 (as elsewhere)
 !     41.11, Oct. 09: Enhanced dissipation in counter current
 !
 !
@@ -2298,7 +2298,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !
 !     where alpha can be varied.
 !
-!     for Hrms > Hm the formulation changes in a limit to (Hrms->Hm; Qb-
+!     for Hrms > Hm the formulation changes in a limit to (Hrms->Hm; Qb->1):
 !
 !            alpha
 !     C_BJ = -----
@@ -2311,7 +2311,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !
 !     where
 !                    2    2         4                2       2
-!     A = -1/8 [1-eps ] [g /(m0 sig0 )]  with  [1-eps ] = [m2 ] / [m0 m4
+!     A = -1/8 [1-eps ] [g /(m0 sig0 )]  with  [1-eps ] = [m2 ] / [m0 m4]
 !
 !     and C3 can be varied
 !
@@ -2341,23 +2341,23 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !     CAS   : Wave transport velocity in sigma-direction
 !     CGO   : Group velocity (excluding current!)
 !     DEP2  : Array containing water-depth
-!     DISSC0: Dissipation coefficient as explicit part (meant for output
-!     DISSC1: Dissipation coefficient as implicit part (meant for output
+!     DISSC0: Dissipation coefficient as explicit part (meant for output)
+!     DISSC1: Dissipation coefficient as implicit part (meant for output)
 !     ETOT  : Total wave energy density
-!     IDCMIN: Counter that indicates the minimum direction that is propa
-!     IDCMAX: Counter that indicates the maximum direction that is propa
-!     IMATDA: The values at the diagonal of the matrix that is solved nu
+!     IDCMIN: Counter that indicates the minimum direction that is propagated in the sweep
+!     IDCMAX: Counter that indicates the maximum direction that is propagated in the sweep
+!     IMATDA: The values at the diagonal of the matrix that is solved numerically
 !     IMATRA: The values at the right-hand side of the equation that is
-!     ISSTOP: Maximum counter in frequency space that is propagated with
+!     ISSTOP: Maximum counter in frequency space that is propagated within a sweep
 !     KWAVE : Wavenumber
-!     PLWCAP: Array containing the whitecapping source term for test-out
+!     PLWCAP: Array containing the whitecapping source term for test-output
 !     SPCDIR: (*,1); spectral directions (radians)
 !             (*,2); cosine of spectral directions
 !             (*,3); sine of spectral directions
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 !     UFRIC : wind friction velocity
 
    INTEGER, INTENT(IN) :: ISSTOP, IDCMIN(MSC), IDCMAX(MSC)
@@ -2383,7 +2383,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !     C_LH  : Whitecapping coefficient according to Longuet Higgins
 !     EF    : Energy density spectrum in frequency domain
 !             (azimuth-integrated frequency spectrum)
-!     HM    : Maximum waveheight as used in the Battjes-Janssen expressi
+!     HM    : Maximum waveheight as used in the Battjes-Janssen expression
 !     HRMS  : Significant wave height, based on total energy
 !     ID    : Counter in directional space
 !     ID1   : Counter in directional space
@@ -2395,7 +2395,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !     N2    : Exponent for the steepness term in the Komen expression
 !     P     : Exponent of the relative saturation (B/Br)
 !     QB_WC : The fraction of whitecapping waves in the Battjes-Janssen
-!     SIG0  : Average zero-crossing frequency used in the Longuet Higgin
+!     SIG0  : Average zero-crossing frequency used in the Longuet Higgins expression
 !     STP_OV: Overall steepness
 !     STP_PM: Overall steepness for a Pierson-Moskowitz spectrum
 !     WCAP  : Whitecapping source-term
@@ -2603,7 +2603,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
             IF (IWCAP.EQ.4) WCAP(IS) = C_BJ*SIGM01 *(KWAVE(IS,1)/KM01  )
             IF (IWCAP.EQ.5) WCAP(IS) = C_BJ*SIGM_10*(KWAVE(IS,1)/KM_WAM)
 
-! Calculate a term that is added to both sides of the equation to compen
+! Calculate a term that is added to both sides of the equation to compensate
 ! for the strong non-linearity in the fraction of breaking waves Qb
 
             IF (HRMS.LT.HM) THEN
@@ -2704,7 +2704,7 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2715,7 +2715,7 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2732,7 +2732,7 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !
 !  3. Method
 !
-!     Whitecapping according to Rogers et al. (JTECH 2012) based on work
+!     Whitecapping according to Rogers et al. (JTECH 2012) based on work of Babanin, Young, Tsagareli, Ardhuin and others
 !
 !  4. Argument variables
 !
@@ -2858,14 +2858,14 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !NRL               CTH = SPCDIR(ID,2) ! new local variable = cos(theta)
 !NRL               STH = SPCDIR(ID,3) ! new local variable = sin(theta)
 !NRL               EN=SPCSIG(IS)*AC2(ID,IS,KCGRD(1))
-!NRL               TAUX   =TAUX +CTH*CINV*WCAP(IS)*EN*DDIR*FRINTF*SPCSIG
-!NRL               TAUY   =TAUY +STH*CINV*WCAP(IS)*EN*DDIR*FRINTF*SPCSIG
-!NRL               ENCHECK=ENCHECK+                EN*DDIR*FRINTF*SPCSIG
+!NRL               TAUX   =TAUX +CTH*CINV*WCAP(IS)*EN*DDIR*FRINTF*SPCSIG(IS)
+!NRL               TAUY   =TAUY +STH*CINV*WCAP(IS)*EN*DDIR*FRINTF*SPCSIG(IS)
+!NRL               ENCHECK=ENCHECK+                EN*DDIR*FRINTF*SPCSIG(IS)
 !NRL            end do
 !NRL         end do
 !NRL         TAUX=TAUX*PWIND(17)*GRAV
 !NRL         TAUY=TAUY*PWIND(17)*GRAV
-!NRL         WRITE(*,*)'SWCAP: TAUX,TAUY,HM0 = ',TAUX,TAUY,(4*SQRT(ENCHE
+!NRL         WRITE(*,*)'SWCAP: TAUX,TAUY,HM0 = ',TAUX,TAUY,(4*SQRT(ENCHECK))
 !NRL      ENDIF
 !
 ! Fill the diagonal of the matrix and the PLWCAP-array
@@ -2922,7 +2922,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2933,7 +2933,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2950,12 +2950,12 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 !  1. Updates
 !
 !            Jan. 97: New subroutine (Roeland Ris)
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.02, Oct. 00: KWAVE removed
-!     40.22, Oct. 01: PSURF(2) is kept constant, BRCOEF added as argumen
+!     40.22, Oct. 01: PSURF(2) is kept constant, BRCOEF added as argument
 !     40.08, Mar. 03: Dimensioning of RDX, RDX changed to be consistent
 !                     with other subroutines
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     41.03, Feb. 09: extension with spatially varying breaker parameter
 !                     according to Ruessink et al (2003)
 !     41.38, Apr. 12: extension to nkd scaling
@@ -2968,7 +2968,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 !     Determines the breaker index, i.e. the ratio between the
 !     maximum wave height and the water depth
 !
-!     Also take into account effect of wave directionality, if appropria
+!     Also take into account effect of wave directionality, if appropriate
 !
 !  3. Method
 !
@@ -3007,7 +3007,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
    REAL, INTENT(OUT) :: BRCOEF    ! variable breaker coefficient
    REAL, INTENT(OUT) :: KTETA     ! number of directional partitions
 
-!     SPCSIG: Relative frequencies in computational domain in sigma-spac
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
 
    REAL, INTENT(IN)  :: SPCSIG(MSC)
    REAL, INTENT(IN)  :: AC2(MDC,MSC,MCGRD)   ! action densities
@@ -3081,7 +3081,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 !
 !     10. SOURCE
 !
-!***********************************************************************
+!************************************************************************
 
    INTEGER :: ID    ,IS      ! counters
    INTEGER :: ISIGM
@@ -3145,7 +3145,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 
       DDDS = -1. * ( DDDX * COSDIR + DDDY * SINDIR )
 
-!        *** calculate breaking coefficient according to Nelson (1987) *
+!        *** calculate breaking coefficient according to Nelson (1987) ***
 
       IF ( DDDS .GE. 0. ) THEN
          DDDS   = MAX ( 1.E-6 , DDDS)
@@ -3271,7 +3271,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
       ELSEIF ( E2.GT.0.35*E1 ) THEN
          BRCOEF = PSURF(4)
       ELSE
-!           note: the actual breaker index is computed in routine SINTGR
+!           note: the actual breaker index is computed in routine SINTGRL
          BRCOEF = -1.
       ENDIF
 
@@ -3360,7 +3360,7 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        ,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -3371,7 +3371,7 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        ,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !     0. AUTHORS
@@ -3383,7 +3383,7 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        ,&
 !
 !        40.00, Sep. 98: subroutine modified for new spectral file def.
 !        40.00, Apr. 99: factor 2*PI added in 1d spectra
-!        40.41, Oct. 04: common blocks replaced by modules, include file
+!        40.41, Oct. 04: common blocks replaced by modules, include files removed
 !        41.75, Jan. 19: adding sea ice
 !
 !     2. PURPOSE
@@ -3432,12 +3432,12 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        ,&
 !
 !        IMPLICIT NONE statement has been added (41.75)
 !
-!        There is a check against WCAP, to make behavior different if WC
-!        Note that WCAP will be 0 at the first iteration. In case of a m
-!        prints test output after a single iteration, e.g. for use in si
-!        tests, the header indicating # quantities will be one higher th
-!        # quantities (SSWELL will be missing). This does not affect nor
-!        model operation, since we generally do not use single iteration
+!        There is a check against WCAP, to make behavior different if WCAP=8.
+!        Note that WCAP will be 0 at the first iteration. In case of a model that
+!        prints test output after a single iteration, e.g. for use in simplistic code
+!        tests, the header indicating # quantities will be one higher than the actual
+!        # quantities (SSWELL will be missing). This does not affect normal
+!        model operation, since we generally do not use single iteration for
 !        cases of stationary compute.
 !
 !     9. STRUCTURE
@@ -3466,7 +3466,7 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        ,&
    INTEGER     INDX  ,LOOP
    REAL        SWND  ,SIG2AC
 
-!     SIGACT      product of sigma and action density, i.e. energy densi
+!     SIGACT      product of sigma and action density, i.e. energy density
 !     WCAP        integral of whitecapping dissipation
 
    REAL        WCAP  ,BTFR  ,WBRK  ,NL4   ,FAC   ,SIGACT,&

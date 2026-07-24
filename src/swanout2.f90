@@ -13,12 +13,12 @@
 !     SWCMSP
 !     SWRMAT
 !
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 &MXK  , MYK , IRQ , VOQR , VOQ        )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
    USE OCPCOMM2
    USE OCPCOMM4
@@ -43,7 +43,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -54,7 +54,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -80,8 +80,8 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !                     call SWRMAT
 !     40.31, Dec. 03: removing POOL construction
 !     40.41, Jun. 04: some improvements with respect to MATLAB
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
-!     41.62, Nov. 15: included wave partitioning output (raw partition f
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!     41.62, Nov. 15: included wave partitioning output (raw partition file)
 !
 !  2. PURPOSE
 !
@@ -161,7 +161,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
    INTEGER, SAVE :: IENT=0
    IF (LTRACE) CALL STRACE (IENT,'SWBLOK')
 
-!     **** obtain destination and number of variables from array OUTR **
+!     **** obtain destination and number of variables from array OUTR ***
    NREF = OQI(1)
    IF (RTYPE .EQ. 'BLKP') THEN
 !       printer type output with header
@@ -351,12 +351,12 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
       RETURN
 ! * end of subroutine SWBLOK *
    end subroutine SWBLOK
-!***********************************************************************
+!************************************************************************
 !                                                                      *
    SUBROUTINE SBLKPT (IPD, NREF, DFAC, PSNAME, QUNIT,&
    &MXK, MYK, IDLA, STRING, OQVALS)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
       USE OCPCOMM2
       USE OCPCOMM4
@@ -379,7 +379,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -390,7 +390,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -406,14 +406,14 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     00.00, Mar. 87: subroutine heading added, some variable names
 !                     line numbers changed, layout modified
 !     00.04, Feb. 90: lay-out of output changed according to IDLA=1
-!     30.72, Sept 97: Changed DO-block with one CONTINUE to DO-block wit
+!     30.72, Sept 97: Changed DO-block with one CONTINUE to DO-block with
 !                     two CONTINUE's
 !     30.74, Nov. 97: Prepared for version with INCLUDE statements
 !     30.82, Nov. 98: Corrected syntax format statement
-!     40.13, July 01: variable formats introduced, using module OUTP_DAT
+!     40.13, July 01: variable formats introduced, using module OUTP_DATA
 !     40.13, Oct. 01: longer output filenames now obtained from array
 !                     OUTP_FILES (in module OUTP_DATA)
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
@@ -436,7 +436,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     QUNIT   CH*6   input    physical unit (dimension) of variable
 !     MXK     int    input    number of points in x-direction of frame
 !     MYK     int    input    number of points in y-direction of frame
-!     IDLA    INT    input    controls lay-out of output (see user manua
+!     IDLA    INT    input    controls lay-out of output (see user manual)
 !     STRING  CH*(*) input    description of output variable
 !
 !  8. Subroutines used
@@ -462,11 +462,11 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !           If DFAC < 0 (DFAC not given by the user) then
 !               Compute maximum value of output variable
 !               Compute multiplication factor DFAC
-!           ------------------------------------------------------------
+!           --------------------------------------------------------------
 !           Print block heading
 !           For each IX of the output frame do
-!               Print IX and for every IY the value of the outputvariabl
-!           ------------------------------------------------------------
+!               Print IX and for every IY the value of the outputvariable
+!           --------------------------------------------------------------
 !       Else
 !           If DFAC < 0 then DFAC = 1.
 !           Write output variable line by line to datafile
@@ -597,7 +597,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -608,7 +608,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -620,7 +620,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !  1. Updates
 !
 !     40.31, Dec. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.51, Feb. 05: further optimization
 !
 !  2. Purpose
@@ -743,7 +743,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -754,7 +754,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -989,7 +989,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1000,7 +1000,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1080,7 +1080,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 
                NPT = INT(VOQ(IP,VOQR(171)))
 
-!              --- compute magnitude and direction of wind and ambient c
+!              --- compute magnitude and direction of wind and ambient current
 
                UABS = SQRT(VOQ(IP,VOQR(26))**2+VOQ(IP,VOQR(26)+1)**2)
                UDIR = ATAN2(VOQ(IP,VOQR(26)+1),VOQ(IP,VOQR(26)))*180./PI
@@ -1149,13 +1149,13 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 
       RETURN
    end subroutine SRAWPT
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 !NCF   SUBROUTINE SWTABP (RTYPE , OQI  , OQR , IVTYP, PSNAME, MIP, VOQR,&
 !NNCF      SUBROUTINE SWTABP (RTYPE , OQI  , IVTYP, PSNAME, MIP, VOQR,&
       &VOQ, IONOD)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
          USE OCPCOMM2
          USE OCPCOMM4
@@ -1184,7 +1184,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1195,7 +1195,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1221,20 +1221,20 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     32.01, Jan. 98: Extended initialisation of NUMDEC for SETUP
 !     30.80, Apr. 98: number of decimals for setup from 2 to 3
 !     40.00, June 98: severely revised
-!     30.82, Oct. 98: Header information is now also printed in PRINT fi
+!     30.82, Oct. 98: Header information is now also printed in PRINT file
 !     30.81, Jan. 99: Replaced variable FROM by FROM_ (because FROM is
 !                     a reserved word)
 !     34.01, Feb. 99: Introducing STPNOW
 !     40.03, Mar. 00: number of decimals (NUMDEC) is made larger
 !     40.13, Jan. 01: program version now written into table heading
-!            Mar. 01: XOFFS and YOFFS were incorrectly added to coordina
+!            Mar. 01: XOFFS and YOFFS were incorrectly added to coordinates
 !                     (they are already included in VOQ values)
-!     40.13, July 01: variable formats introduced, using module OUTP_DAT
+!     40.13, July 01: variable formats introduced, using module OUTP_DATA
 !                     comment sign in front of heading lines
 !     40.13, Oct. 01: longer output filenames now obtained from array
 !                     OUTP_FILES (in module OUTP_DATA)
 !     40.31, Dec. 03: removing POOL construction
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.51, Feb. 05: further optimization
 !
 !  2. Purpose
@@ -1346,7 +1346,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !                    Write value into output line according to Format
 !               --------------------------------------------------------
 !               Make Linkar = Linkar + lfield + 1
-!           ------------------------------------------------------------
+!           --------------------------------------------------------------
 !           Write Output line to file
 !       ----------------------------------------------------------------
 !
@@ -1575,11 +1575,11 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
          RETURN
 ! * end of subroutine SWTABP *
       end subroutine SWTABP
-!***********************************************************************
+!************************************************************************
 !                                                                      *
       CHARACTER(LEN=8) FUNCTION SUHEAD (QUNIT)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 !
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1594,7 +1594,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1605,7 +1605,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  1. UPDATE
@@ -1682,12 +1682,12 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 RETURN
 !     end of subroutine SUHEAD
       end function SUHEAD
-!***********************************************************************
+!************************************************************************
 !                                                                      *
       SUBROUTINE SWSPEC (RTYPE, OQI, OQR, MIP, VOQR, VOQ, AC2, ACLOC,&
       &SPCSIG, SPCDIR, DEP2, KGRPNT, CROSS, IONOD)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
          USE OCPCOMM2
          USE OCPCOMM4
@@ -1714,7 +1714,7 @@ RETURN
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -1725,7 +1725,7 @@ RETURN
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -1745,22 +1745,22 @@ RETURN
 !     20.28         : completely new version
 !     20.43         : arguments ECOS and ESIN replaced by SPCDIR
 !     32.01, Jan. 98: Introduced nautical convention (project h3268)
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.82, Oct. 98: Updated description of several variables
 !     30.81, Jan. 99: Replaced variable FROM by FROM_ (because FROM is
 !                     a reserved word)
 !     34.01, Feb. 99: Introducing STPNOW
 !     40.00, Aug. 99: new file structure introduced
-!     40.03, May  00: correct time coding option written to heading of f
+!     40.03, May  00: correct time coding option written to heading of file
 !            Oct. 00: write 'LOCATION' in upper case
-!     40.13, Mar. 01: format for writing coordinates different for Carte
+!     40.13, Mar. 01: format for writing coordinates different for Cartesian
 !                     and spherical coordinates
 !     40.13, Oct. 01: longer output filenames now obtained from array
 !                     OUTP_FILES (in module OUTP_DATA)
 !     40.31, Dec. 03: removing POOL construction
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.51, Feb. 05: further optimization
-!     40.90, June 08: argument CROSS added to enable subroutine SWCMSP t
+!     40.90, June 08: argument CROSS added to enable subroutine SWCMSP to
 !                     take into account obstacles
 !
 !  2. Purpose
@@ -1781,7 +1781,7 @@ RETURN
 !             (*,4); cosine^2 of spectral directions
 !             (*,5); cosine*sine of spectral directions
 !             (*,6); sine^2 of spectral directions
-! i   SPCSIG: Relative frequencies in computational domain in sigma-spac
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
          INTEGER MIP
          REAL    SPCDIR(MDC,6)
@@ -1789,10 +1789,10 @@ RETURN
          LOGICAL, INTENT(IN) :: CROSS(1:4,1:MIP) ! true if obstacle is
          ! between output point and computational grid point
 
-!     RTYPE   ch*4   input    type of output request: 'SPEC' for 2-D spe
+!     RTYPE   ch*4   input    type of output request: 'SPEC' for 2-D spectral
 !                             output, 'SPE1' for 1-D freq. spectrum
 !     MIP     int    input    number of output points in set PSNAME
-!     ACLOC   real   local    case SPEC: 2-D spectrum at one output loca
+!     ACLOC   real   local    case SPEC: 2-D spectrum at one output location
 !                             case SPE1: 1-D spectra at output locations
 !     AK      real   input    wavenumber array at output location
 !     UX, UY  real   input    current velocities at output location
@@ -2035,7 +2035,7 @@ RETURN
          RETURN
 ! * end of subroutine SWSPEC *
       end subroutine SWSPEC
-!***********************************************************************
+!************************************************************************
 !                                                                      *
       SUBROUTINE SWCMSP (OTYPE     ,XC        ,YC        ,&
       &AC2       ,ACLOC     ,SPCSIG    ,&
@@ -2043,7 +2043,7 @@ RETURN
       &UY        ,ECOS      ,ESIN      ,&
       &OFAC      ,KGRPNT    ,CROSS     ,IERR         )
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
          USE OCPCOMM4
          USE SWCOMM1
@@ -2065,7 +2065,7 @@ RETURN
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2076,7 +2076,7 @@ RETURN
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !
 !  0. Authors
@@ -2093,7 +2093,7 @@ RETURN
 !  1. Updates
 !
 !     20.xx         : New subroutine
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG
+!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.81, Nov. 98: Adjustment for 1-D case of new boundary conditions
 !     30.81, Dec. 98: Argument list KSCIP1 adjusted
 !     40.00, Jan. 98: number of output points is always 1
@@ -2102,9 +2102,9 @@ RETURN
 !                     interpolation changed: if a corner of the mesh is
 !                     exception values are written
 !                     argument DEP2 added
-!     30.82, Apr. 99: Conversion from m^2/rad/s to m^2/Hz correctly impl
+!     30.82, Apr. 99: Conversion from m^2/rad/s to m^2/Hz correctly implemented
 !     30.82, July 99: Corrected argumentlist KSCIP1
-!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     40.80, Sep. 07: extension to unstructured grids
 !     40.90, June 08: interpolation near obstacles improved
 !     41.90, Dec. 21: allow negative 1D spectrum for QCM
@@ -2142,13 +2142,13 @@ RETURN
 !                               positive: relative freq, negative: abs.
 !       MPP     int    input    number of output points in set PSNAME
 !       XC, YC  real   input    coordinates of output location(s)
-!       ACLOC   real   local    |OTYPE|=2: 2-D spectrum at one output lo
-!                               |OTYPE|=1: 1-D spectra at output locatio
+!       ACLOC   real   local    |OTYPE|=2: 2-D spectrum at one output location
+!                               |OTYPE|=1: 1-D spectra at output locations
 !       DEP     real   input    depths at output location
 !       UX, UY  real   input    current velocities at output location
 !       ECOS  real   input    cosines of spectral directions
 !       ESIN  real   input    sines of spectral directions
-!       OFAC    real   input    output factor (if INRHOG=1, equal to Rho
+!       OFAC    real   input    output factor (if INRHOG=1, equal to Rho*Grav)
 
          LOGICAL, INTENT(IN) :: CROSS(1:4) ! true if obstacle is between
          ! output point and computational grid point
@@ -2396,7 +2396,7 @@ RETURN
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2407,7 +2407,7 @@ RETURN
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !MatL4!
 !MatL4!  0. Authors
@@ -2691,7 +2691,7 @@ RETURN
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
 !
-!     This program is free software: you can redistribute it and/or modi
+!     This program is free software: you can redistribute it and/or modify
 !     it under the terms of the GNU General Public License as published
 !     the Free Software Foundation, either version 3 of the License, or
 !     (at your option) any later version.
@@ -2702,7 +2702,7 @@ RETURN
 !     GNU General Public License for more details.
 !
 !     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
 !MatL5!
 !MatL5!  0. Authors

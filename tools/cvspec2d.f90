@@ -40,8 +40,8 @@ program convrt2d
    numq = 1
    itim = 0
 
-!     Old SWAN data files had the Variance denisity calculated per radia
-!     The new files store it per degree. The factor pi/180 is the conver
+!     Old SWAN data files had the Variance denisity calculated per radian
+!     The new files store it per degree. The factor pi/180 is the conversion
 !     factor.
 
    fact = pi/180
@@ -204,7 +204,7 @@ program convrt2d
                WRITE (9, '(a4)') 'ZERO'
             else
                efac = 1.01 * efac * 10.**(-4)
-!             factor pi/180 introduced to account for change from rad to
+!             factor pi/180 introduced to account for change from rad to degr
 !             factor 2*pi to account for transition from rad/s to hz
                write (9, "('FACTOR', /, e18.8)") efac * 2. * pi**2 / 180.
                do ifr = 1, nfreqs
