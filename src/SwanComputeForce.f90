@@ -1,4 +1,6 @@
 subroutine SwanComputeForce ( fx, fy, ac2, dep2, hs, spcsig, spcdir )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_wave_physics, ONLY: KSCIP1
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

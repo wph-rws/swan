@@ -1,6 +1,7 @@
 !   This file contains subroutines for the Babanin physics according to Rogers et al (JTECH 2012)
 !   based on work of Babanin, Young, Tsagareli, Ardhuin and others
 MODULE SDSBABANIN
+   USE swan_service_interfaces, ONLY: STRACE
   IMPLICIT NONE
 
 CONTAINS

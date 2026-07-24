@@ -486,7 +486,7 @@ subroutine xnl_init(sigma,dird,nsigma,ndir,pftail,x_grav,depth,ndepth, &
 
 
 use m_fileio
-use m_constants
+use m_constants, only: dera, pih, rade, sqrtg, trshdep
 ! do not use m_xnldata
 
 implicit none
@@ -1914,7 +1914,7 @@ subroutine q_cmplocus(ka,kb,km,kw,loclen)
 !
 !
 ! do not use m_xnldata
-use m_constants
+use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5
 implicit none
 !-------------------------------------------------------------------------------
@@ -3058,7 +3058,7 @@ subroutine q_getlocus(ik1,ia1,ik3,ia3,ifnd)
 !
 !
 ! do not use m_xnldata
-use m_constants
+use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5
 !----------------------------------------------------------------------------------
 implicit none
@@ -3542,7 +3542,7 @@ subroutine q_init
 !
 ! do not use m_xnldata
 use m_fileio
-use m_constants
+use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5
 implicit none
 !--------------------------------------------------------------------------------
@@ -3852,7 +3852,7 @@ subroutine q_locpos(ka,kb,km,kw,loclen)
 !
 !
 ! do not use m_xnldata
-use m_constants
+use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5, only: z_root2
 
 implicit none
@@ -4251,7 +4251,7 @@ subroutine q_makegrid
 !
 !
 ! do not use m_xnldata
-use m_constants
+use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5
 
 !  0. Update history
@@ -4672,7 +4672,7 @@ subroutine q_modify
 !
 !
 ! do not use m_xnldata
-use m_constants
+use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5
 implicit none
 !--------------------------------------------------------------------------------
@@ -5297,7 +5297,7 @@ subroutine q_polar2(kmin,kmax,kx_beg,ky_beg,kx_end,ky_end,loclen,ierr)
 !
 !
 ! do not use m_xnldata
-use m_constants
+use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5, only: z_wnumb
 
 implicit none
@@ -6611,7 +6611,7 @@ subroutine q_t13v4(ik1,ia1,ik3,ia3,t13,diagk1,diagk3)
 !
 !
 ! do not use m_xnldata
-use m_constants
+use m_constants, only: dera, pih, rade, sqrtg, trshdep
 implicit none
 
 !  0. Update history
@@ -7348,7 +7348,7 @@ subroutine q_xnl4v4(aspec,sigma,angle,nsig,nang,depth,xnl,diag,ierror)
 !
 !
 ! do not use m_xnldata
-use m_constants
+use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5
 implicit none
 !------------------------------------------------------------------------------
@@ -7999,7 +7999,7 @@ real function x_flocus(kxx,kyy)
 !
 !
 ! do not use m_xnldata
-use m_constants
+use m_constants, only: dera, pih, rade, sqrtg, trshdep
 implicit none
 
 !  0. Update history
@@ -8339,7 +8339,7 @@ real function x_locus1(k2)
 !
 !
 ! do not use m_xnldata
-use m_constants
+use m_constants, only: dera, pih, rade, sqrtg, trshdep
 implicit none
 
 !  0. Update history
@@ -8442,7 +8442,7 @@ real function x_locus2(lambda)
 !
 !
 ! do not use m_xnldata
-use m_constants
+use m_constants, only: dera, pih, rade, sqrtg, trshdep
 implicit none
 
 !  0. Update history

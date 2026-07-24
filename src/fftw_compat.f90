@@ -18,6 +18,31 @@ module swan_fftw_compat
 
   type(fftw_plan_pair), save :: plan_cache(max_cached_plans)
 
+  interface
+    subroutine cfft2i(l, m, wsave, lensav, ier)
+      import :: c_double
+      integer, intent(in) :: l, m, lensav
+      real(c_double), intent(out) :: wsave(lensav)
+      integer, intent(out) :: ier
+    end subroutine cfft2i
+
+    subroutine cfft2f(ldim, l, m, c, wsave, lensav, work, lenwrk, ier)
+      import :: c_double, c_double_complex
+      integer, intent(in) :: ldim, l, m, lensav, lenwrk
+      complex(c_double_complex), intent(inout) :: c(ldim,m)
+      real(c_double), intent(in) :: wsave(lensav), work(lenwrk)
+      integer, intent(out) :: ier
+    end subroutine cfft2f
+
+    subroutine cfft2b(ldim, l, m, c, wsave, lensav, work, lenwrk, ier)
+      import :: c_double, c_double_complex
+      integer, intent(in) :: ldim, l, m, lensav, lenwrk
+      complex(c_double_complex), intent(inout) :: c(ldim,m)
+      real(c_double), intent(in) :: wsave(lensav), work(lenwrk)
+      integer, intent(out) :: ier
+    end subroutine cfft2b
+  end interface
+
 contains
 
   integer(c_int) function array_alignment(values) result(alignment)

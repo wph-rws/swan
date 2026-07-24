@@ -1,6 +1,12 @@
 ! This file contains data and routines for quasi-coherent modelling (QCM)
 
 module SwanQCM
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, STPNOW
+   USE swan_wave_physics, ONLY: KSCIP1
+   USE swan_input_interpolation, ONLY: SVALQI
+   USE swan_point_interpolation, ONLY: SwanInterpolatePoint
+
+    use swan_fftw_compat, only: cfft2b, cfft2f
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -208,7 +214,6 @@ subroutine SWQCINIT ( BGRIDP, COMPDA )
     real                            :: sdev                ! global standard deviation in wave number (1/m)
 
     logical                         :: lpb                 ! indicate whether boundary point is a test point
-    logical                         :: stpnow              ! indicate whether program must be terminated or not
 
     character(80)                   :: msgstr              ! string to pass message
 
@@ -270,7 +275,7 @@ subroutine SWQCINIT ( BGRIDP, COMPDA )
 
              ! ... and subsequently the wave numbers
 
-             call KSCIP1 ( MSC, SPCSIG, dp, k, cg, arr, arr )
+             call KSCIP1 ( MSC, SPCSIG, dp, k, cg )
 
              ! compute the incoming energy density in wave number space, integrated over all directions
 
@@ -387,10 +392,10 @@ subroutine SWQCINIT ( BGRIDP, COMPDA )
 
        ! next, compute minimum and maximum absolute wave numbers ...
 
-       call KSCIP1 ( 1, spcsig(  1), hmin, k, cg, arr, arr )
+       call KSCIP1 ( 1, spcsig(  1), hmin, k, cg )
        kmin = k(1)
 
-       call KSCIP1 ( 1, spcsig(MSC), hmax, k, cg, arr, arr )
+       call KSCIP1 ( 1, spcsig(MSC), hmax, k, cg )
        kmax = k(1)
 
        ! finally, determine size and resolution of the intended wave number grid for scattering
@@ -764,7 +769,6 @@ subroutine SWQCDFT ( sigft, cgft, dep2, kwave, cgo, cft, rft, sft, wft, wsave )
     real                           :: k        ! wave number
     real                           :: sig      ! relative frequency within coherent zone
     real                           :: sigp     ! relative frequency at current grid point
-    real                           :: SVALQI   ! function giving interpolated value of an input array
     real                           :: x        ! x-coordinate of point in coherent region
     real                           :: xp       ! x-coordinate of computational grid point
     real                           :: y        ! y-coordinate of point in coherent region
@@ -1004,7 +1008,6 @@ subroutine SWQCUFT ( uxft, uyft, dep2, ux2, uy2, cft, rft, sft, wft, wsave )
     real                           :: cgmx     ! max Froude number times wave celerity
     real                           :: dp       ! local depth
     real                           :: fac      ! auxiliary factor
-    real                           :: SVALQI   ! function giving interpolated value of an input array
     real                           :: u        ! u-component of ambient current within coherent zone obtained from input grid
     real                           :: uu       ! u-component of ambient current w.r.t. user coordinates
     real                           :: uxp      ! u-component of ambient current at current grid point
@@ -1287,7 +1290,6 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
     real, dimension(mkyc,mkxc)   :: dwdy     ! y-derivative of Wigner distribution
     real, dimension(mkyc,mkxc,5) :: W        ! the Wigner distribution in wave number space
 
-    logical                      :: stpnow   ! indicate whether program must be terminated or not
 
 !   Structure
 !

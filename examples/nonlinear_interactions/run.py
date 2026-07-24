@@ -410,12 +410,20 @@ def main() -> int:
         "--swan-executable",
         help="path to swan.exe (default: build/bin/swan.exe or PATH)",
     )
+    parser.add_argument(
+        "--results-directory",
+        help="write generated results here instead of examples/nonlinear_interactions/results",
+    )
     parser.add_argument("--no-plots", action="store_true", help="skip Matplotlib plots")
     arguments = parser.parse_args()
 
     example_directory = Path(__file__).resolve().parent
-    results_root = example_directory / "results"
-    results_root.mkdir(exist_ok=True)
+    results_root = (
+        Path(arguments.results_directory).expanduser().resolve()
+        if arguments.results_directory
+        else example_directory / "results"
+    )
+    results_root.mkdir(parents=True, exist_ok=True)
 
     try:
         executable = find_executable(example_directory, arguments.swan_executable)

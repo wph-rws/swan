@@ -17,13 +17,20 @@
 !************************************************************************
 !                                                                      *
 SUBROUTINE SWREAD (COMPUT)
+   USE swan_array_copy, ONLY: SWCOPI
+   USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
+   USE swan_angle_conversions, ONLY: DEGCNV, ANGRAD, ANGDEG
+   USE swan_coordinate_input, ONLY: READXY, REFIXY
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, INCTIM, ININTV, INITVD, NWLINE, WRNKEY
 !                                                                      *
 !************************************************************************
 !
 !     Modules
 
-   USE TIMECOMM
-   USE OCPCOMM1
+   USE swan_time, ONLY: default_time_context
+   USE swan_input_parser, ONLY: default_command_reader
    USE OCPCOMM2
    USE OCPCOMM3
    USE OCPCOMM4
@@ -312,7 +319,6 @@ SUBROUTINE SWREAD (COMPUT)
    REAL              :: AFIG, HSS, TSS, DSS, MFR, SHP
    REAL              :: ALTMP,FRLOW,FRHIG,GAMMA,TMPDIR,VALX,VALY
    REAL(KIND=KIND(0.0D0))            :: DIFF
-   REAL              :: DEGCNV
    REAL              :: HH, CC, DD
    INTEGER           :: NN
    INTEGER           :: NREGB, NDSD, IDLA, IK, JK
@@ -399,12 +405,9 @@ SUBROUTINE SWREAD (COMPUT)
 !     INREAL
 !     FOR
 !     KEYWIS
-   LOGICAL :: KEYWIS
 !     COPYCH
-   LOGICAL :: EQREAL
 !     (all Ocean Pack)
 
-   LOGICAL STPNOW
 
 !  9. Subroutines calling
 !
@@ -450,7 +453,6 @@ SUBROUTINE SWREAD (COMPUT)
    CHARACTER(LEN=8)  :: PSNAME, PNAME
    CHARACTER(LEN=*)  :: COMPUT
    CHARACTER(LEN=1)  :: PTYPE
-   CHARACTER(LEN=18) :: DTTIWR
    INTEGER, SAVE :: IENT = 0       ! number of entries to this subr
    INTEGER, SAVE :: LWINDR = 0     ! if non-zero, there is wind
    INTEGER, SAVE :: LWINDM = 5     ! type of wind growth formulation
@@ -467,7 +469,7 @@ SUBROUTINE SWREAD (COMPUT)
 
 command_loop: DO
 CALL NWLINE
-   IF (ELTYPE.EQ.'EOF') THEN
+   IF (default_command_reader%ELTYPE.EQ.'EOF') THEN
 !       end-of-file encountered in (included) input file
 !       return to previous input file
       CLOSE (INCNUM(INCLEV))
@@ -476,7 +478,7 @@ CALL NWLINE
          CALL MSGERR (4, ' unexpected end of command input')
          RETURN
       ENDIF
-      ELTYPE = 'USED'
+      default_command_reader%ELTYPE = 'USED'
       INPUTF = INCNUM(INCLEV)
    ENDIF
 
@@ -525,8 +527,8 @@ CALL NWLINE
 ! ===============================================================
 
    IF (KEYWIS ('PROJ')) THEN
-      CALL INCSTR ('NAME', PROJID, 'UNC', BLANK)
-      CALL INCSTR ('NR', PROJNR, 'REQ', BLANK)
+      CALL INCSTR ('NAME', PROJID, 'UNC', default_command_reader%BLANK)
+      CALL INCSTR ('NR', PROJNR, 'REQ', default_command_reader%BLANK)
       CALL NWLINE
       IF (STPNOW()) RETURN
       CALL INCSTR ('TITLE1',PROJT1,'UNC',' ')
@@ -876,55 +878,55 @@ CALL NWLINE
       CALL INKEYW ('STA','  ')
       IF (NSTATM.LE.0 .OR. KEYWIS('STAT')) THEN
          IF (NSTATM.EQ.-1) NSTATM = 0
-         IF (NSTATM.GT.0) CALL INCTIM (ITMOPT,'TIME',TINIC,'REQ',0D0)
-         IF (TINIC .LT. TIMCO) THEN
+         IF (NSTATM.GT.0) CALL INCTIM (ITMOPT,'TIME',default_time_context%TINIC,'REQ',0D0)
+         IF (default_time_context%TINIC .LT. default_time_context%TIMCO) THEN
             CALL MSGERR (2, '[time] before current time')
-            TINIC = TIMCO
+            default_time_context%TINIC = default_time_context%TIMCO
          ENDIF
-         TFINC = TINIC
-         TIMCO = TINIC
-         DT = 1.E10
+         default_time_context%TFINC = default_time_context%TINIC
+         default_time_context%TIMCO = default_time_context%TINIC
+         default_time_context%DT = 1.E10
          RDTIM = 0.
          NSTATC = 0
          MTC = 1
       ELSE
          CALL IGNORE ('NONST')
-         IF (TIMCO .LT. -0.9E10) THEN
-            CALL INCTIM (ITMOPT,'TBEGC',TINIC,'REQ',0D0)
+         IF (default_time_context%TIMCO .LT. -0.9E10) THEN
+            CALL INCTIM (ITMOPT,'TBEGC',default_time_context%TINIC,'REQ',0D0)
          ELSE
-            CALL INCTIM (ITMOPT,'TBEGC',TINIC,'STA',TIMCO)
+            CALL INCTIM (ITMOPT,'TBEGC',default_time_context%TINIC,'STA',default_time_context%TIMCO)
          ENDIF
-         IF (TINIC .LT. TIMCO) THEN
+         IF (default_time_context%TINIC .LT. default_time_context%TIMCO) THEN
             CALL MSGERR (2, 'start time [tbegc] before current time')
-            TINIC = TIMCO
+            default_time_context%TINIC = default_time_context%TIMCO
          ENDIF
-         CALL INITVD ('DELTC', DT, 'REQ', 0D0)
-         CALL INCTIM (ITMOPT,'TENDC',TFINC,'REQ',0D0)
+         CALL INITVD ('DELTC', default_time_context%DT, 'REQ', 0D0)
+         CALL INCTIM (ITMOPT,'TENDC',default_time_context%TFINC,'REQ',0D0)
          NSTATC = 1
 
 !           *** tfinc must be greater than tinic **
-         DIFF = TFINC - TINIC
+         DIFF = default_time_context%TFINC - default_time_context%TINIC
          IF (DIFF .LE. 0.) CALL MSGERR (3,&
          &'start time [tbegc] greater or equal end time [tendc]')
 
 !           **The number of computational steps is calculated
-         RDTIM = 1./DT
-         MTC = NINT ((TFINC - TINIC)/DT)
-         IF (MOD(TFINC-TINIC,DT).GT.0.01*DT .AND.&
-         &MOD(TFINC-TINIC,DT).LT.0.99*DT)&
+         RDTIM = 1./default_time_context%DT
+         MTC = NINT ((default_time_context%TFINC - default_time_context%TINIC)/default_time_context%DT)
+         IF (MOD(default_time_context%TFINC-default_time_context%TINIC,default_time_context%DT).GT.0.01*default_time_context%DT .AND.&
+         &MOD(default_time_context%TFINC-default_time_context%TINIC,default_time_context%DT).LT.0.99*default_time_context%DT)&
          &CALL MSGERR (1,&
          &'DT is not a fraction of the computational period')
-         TIMCO = TINIC
+         default_time_context%TIMCO = default_time_context%TINIC
       ENDIF
-      IF (NSTATM.GT.0) CHTIME = DTTIWR(ITMOPT, TIMCO)
+      IF (NSTATM.GT.0) CHTIME = DTTIWR(ITMOPT, default_time_context%TIMCO)
       NCOMPT = NCOMPT + 1
       IF (NCOMPT.GT.300) CALL MSGERR (2,&
       &'No more than 300 COMPUTE commands are allowed')
       RCOMPT(NCOMPT,1) = REAL(NSTATC)
       RCOMPT(NCOMPT,2) = REAL(MTC)
-      RCOMPT(NCOMPT,3) = TFINC
-      RCOMPT(NCOMPT,4) = TINIC
-      RCOMPT(NCOMPT,5) = DT
+      RCOMPT(NCOMPT,3) = default_time_context%TFINC
+      RCOMPT(NCOMPT,4) = default_time_context%TINIC
+      RCOMPT(NCOMPT,5) = default_time_context%DT
 !       set ITERMX equal to MXITST in case of stationary computations
 !       and to MXITNS otherwise
       IF (NSTATC.EQ.0) THEN
@@ -2180,7 +2182,7 @@ CALL NWLINE
       ENDIF
 
       CALL INREAL ('PWTAIL', PWTAIL(1), 'UNC', 0.)
-      IF (CHGVAL) THEN
+      IF (default_command_reader%CHGVAL) THEN
          IF (PWTAIL(1).LE.1.) CALL MSGERR (3, 'Incorrect PWTAIL')
          PWTAIL(3) = PWTAIL(1) + 1.
       ENDIF
@@ -3596,9 +3598,9 @@ CALL NWLINE
       CALL INKEYW ('STA', 'TRU')
       IF ( KEYWIS('TRU') ) THEN
          CALL INREAL ('ALPHA', PSCAT(1), 'STA', 1.)
-         CHGALF = CHGVAL
+         CHGALF = default_command_reader%CHGVAL
          CALL INREAL ('QMAX ', PSCAT(2), 'UNC', 0.)
-         IF (CHGVAL .AND. .NOT.CHGALF) PSCAT(1) = 99999.
+         IF (default_command_reader%CHGVAL .AND. .NOT.CHGALF) PSCAT(1) = 99999.
       ELSE
          CALL WRNKEY
       ENDIF
@@ -3668,7 +3670,7 @@ CALL NWLINE
 !
 !     In case of an empty line in the command file proceed to next line
 
-   IF (KEYWRD .EQ. '    ') CYCLE command_loop
+   IF (default_command_reader%KEYWRD .EQ. '    ') CYCLE command_loop
 
 !     process output requests
 
@@ -3702,11 +3704,13 @@ end subroutine SWREAD
 !************************************************************************
 !                                                                      *
 SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
+   USE swan_coordinate_input, ONLY: READXY, REFIXY
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_input_parser, ONLY: IGNORE, ININTG, INKEYW, INREAL, KEYWIS, INCTIM, INITVD
 !                                                                      *
 !************************************************************************
 
-   USE TIMECOMM
-   USE OCPCOMM1
+   USE swan_time, ONLY: default_time_context
    USE OCPCOMM3
    USE OCPCOMM4
    USE SWCOMM1
@@ -3809,7 +3813,6 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
 !
 !  8. Subroutines used
 
-   LOGICAL STPNOW
 
 ! 10. Error messages
 !
@@ -3830,7 +3833,6 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
    INTEGER   IGRID1, IGRID2
    REAL      ALTMP, STAGRX, STAGRY
    CHARACTER(LEN=8) :: SNAMEG
-   LOGICAL   KEYWIS
    TYPE(OPSDAT), POINTER :: OPSTMP
    CALL STRACE(IENT,'SINPGR')
 
@@ -4119,11 +4121,14 @@ end subroutine SINPGR
 !************************************************************************
 !                                                                      *
 SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
+   USE swan_legacy_io, ONLY: INAR2D, COPYCH
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: INKEYW, INREAL, KEYWIS, WRNKEY
+   USE swan_array_copy, ONLY: SWCOPR
 !                                                                      *
 !************************************************************************
 
-   USE TIMECOMM
-   USE OCPCOMM1
+   USE swan_time, ONLY: default_time_context
    USE OCPCOMM2
    USE OCPCOMM3
    USE OCPCOMM4
@@ -4219,7 +4224,6 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
 !     OTAR2D
 !     REPARM (all Ocean Pack)
 
-   LOGICAL STPNOW
 
 !  9. Subroutines calling
 !
@@ -4275,7 +4279,7 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
    REAL, ALLOCATABLE :: TARR(:)
    INTEGER, SAVE :: IENT = 0
    INTEGER    :: IGR1, IGR2, LWINDR, LWINDM, NHEDC
-   LOGICAL    KEYWIS, VECTOR
+      LOGICAL :: VECTOR
    LOGICAL    LOGCOM(7)
    CALL STRACE (IENT,'SREDEP')
 
@@ -4560,10 +4564,10 @@ end subroutine SREDEP
 !************************************************************************
 !                                                                      *
 SUBROUTINE SSFILL (SPCSIG, SPCDIR)
+   USE swan_service_interfaces, ONLY: STRACE
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM1
    USE OCPCOMM2
    USE OCPCOMM3
    USE OCPCOMM4
@@ -4724,10 +4728,12 @@ end subroutine SSFILL
 !************************************************************************
 !                                                                      *
 SUBROUTINE CGINIT (LOGCOM)
+   USE swan_array_copy, ONLY: SWCOPI
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE, TXPBLA
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM1
    USE OCPCOMM3
    USE OCPCOMM4
    USE SWCOMM1
@@ -4825,7 +4831,7 @@ SUBROUTINE CGINIT (LOGCOM)
    INTEGER ISTAT, IF1, IL1
    INTEGER, ALLOCATABLE :: IARR(:)
 !JAC   LOGICAL   MCOLR
-   CHARACTER(LEN=20) NUMSTR, CHARS(1)
+   CHARACTER(LEN=20) CHARS(1)
    CHARACTER(LEN=80) MSGSTR
 
 !  8. SUBROUTINES CALLING
@@ -4845,7 +4851,6 @@ SUBROUTINE CGINIT (LOGCOM)
 !TIMG!     SWTSTO
 !     TXPBLA : Removes leading and trailing blanks in string
 
-   LOGICAL STPNOW
 
 ! 10. ERROR MESSAGES
 !
@@ -4999,10 +5004,11 @@ end subroutine CGINIT
 !************************************************************************
 !                                                                      *
 SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
+   USE swan_input_interpolation, ONLY: SVALQI
+   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STRACE
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM1
    USE OCPCOMM2
    USE OCPCOMM3
    USE OCPCOMM4
@@ -5112,8 +5118,6 @@ SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
    INTEGER     IX, IY
    REAL        DEPTH(*)
    REAL        DEP, XP, YP
-   REAL        SVALQI
-   LOGICAL     EQREAL
    CALL STRACE(IENT,'SWDIM')
 
    do IX = 1, MXC
@@ -5215,6 +5219,9 @@ end subroutine SWDIM
 !************************************************************************
 !                                                                      *
 SUBROUTINE CGBOUN (KGRPNT, KGRBND)
+   USE swan_grid_point_validation, ONLY: VALIDBP
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_grid_point_validation, ONLY: PVALID
 !                                                                      *
 !************************************************************************
 
@@ -5339,7 +5346,6 @@ SUBROUTINE CGBOUN (KGRPNT, KGRBND)
 !     SEPARAREA
 !     MSGERR
 
-   LOGICAL   PVALID, VALIDBP
 
 !  9. Subroutines calling
 !
@@ -5570,281 +5576,16 @@ ENDDO
 end subroutine CGBOUN
 !************************************************************************
 !                                                                      *
-LOGICAL FUNCTION PVALID (IX, IY, KGRPNT)
-!                                                                      *
-!************************************************************************
 
-   USE SWCOMM3
-
-   IMPLICIT NONE
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!  1. Updates
-!
-!     New function for curvilinear version (ver. 40.00). May '98
-!
-!  2. Purpose
-!
-!     procedure to find whether a couple (ix,iy) represents
-!     a valid grid point
-!
-!  3. Method
-!
-!     If one of the gridcounter (IX,IY) is less then 1 or greater than
-!     maximum or point is an exception point the point is not valid.
-!
-!  4. Argument variables
-!
-!     IX, IY    input    x- and y-index of point under consideration
-!     KGRPNT    input    indirect addresses for grid points
-
-   INTEGER IX, IY, KGRPNT(MXC,MYC)
-
-!  5. Parameter variables
-!
-!  6. Local variables
-!
-!     IENT    number of entries of this subroutine
-
-   INTEGER, SAVE :: IENT = 0
-   INTEGER ICGRD
-
-!  8. Subroutines used
-!
-!  9. Subroutines calling
-!
-!     CGBOUN
-!     SEPARAREA
-!     function VALIDBP
-!
-! 10. Error messages
-!
-! 11. Remarks
-!
-! 12. Structure
-!
-!     PVALID = .TRUE.
-!     If gridcounter in x-direction is less then 1 or greater than MXC or
-!     If gridcounter in y-direction is less then 1 or greater than MYC or
-!     If gridpoint is exception point PVALID = .FALSE.
-!
-! 13. Source text
-!************************************************************************
-
-   CALL STRACE (IENT, 'PVALID')
-
-   PVALID = .TRUE.
-   IF (IX.LT.1)   PVALID = .FALSE.
-   IF (IY.LT.1)   PVALID = .FALSE.
-   IF (IX.GT.MXC) PVALID = .FALSE.
-   IF (IY.GT.MYC) PVALID = .FALSE.
-   IF (PVALID) THEN
-      ICGRD = KGRPNT(IX,IY)
-      IF (ICGRD.LE.1) PVALID = .FALSE.
-   ENDIF
-   RETURN
-end function PVALID
 
 !************************************************************************
 !                                                                      *
-LOGICAL FUNCTION VALIDBP (IX, IY, KGRPNT,WNP)
-!                                                                      *
-!************************************************************************
-
-   USE SWCOMM3
-   USE OCPCOMM4
-
-   IMPLICIT NONE
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.04  Annette Kieftenburg
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!     August 2000 new function
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     Check whether point with index (IX,IY) can be a valid boundary point
-!
-!  3. Method
-!
-!     The number of wet neighbouring points WNP is determined
-!     Depending on this number certain configurations with wet and dry
-!     points surrounding (IX,IY) are excluded
-!
-!  4. Argument variables
-!
-!     IX, IY    input    x- and y-index of point under consideration
-!     KGRPNT    input    indirect addresses for grid points
-!     WNP       output   number of wet neighbouring points
-
-   INTEGER IX, IY, KGRPNT(MXC,MYC), WNP
-
-!  5. Parameter variables
-!
-!  6. Local variables
-!
-!     IENT    number of entries of this subroutine
-
-   INTEGER, SAVE :: IENT = 0
-
-!  8. Subroutines used
-!
-!     Function PVALID
-
-   LOGICAL PVALID
-
-!  9. Subroutines calling
-!
-!     CGBOUN
-!
-! 10. Error messages
-!
-! 11. Remarks
-!
-!     This function prevends all projections of one cell width to
-!     be a boundary point
-!
-! 12. Structure
-!
-!     Determine amount of Wet Neighbouring Points WNP
-!     IF WNP =0  (isolated cell)     VALIDBP = .FALSE.
-!     IF WNP =1  (one wet neighbour) VALIDBP = .FALSE.
-!     IF WNP =2  (neighbouring points on straight line)
-!                                    VALIDBP = .FALSE.
-!
-!      . W-d     (neighbouring points make angle with no wet point
-!        | |      'between' them)    VALIDBP = .FALSE.
-!      D-X-W
-!        |
-!      . D .     (X: point under consideration (assumed to be wet)
-!                 W: wet neighbour
-!                 D: dry neighbour  d: dry non-neighbour)
-!                 .: either wet or dry point
-!
-!     IF WNP =3
-!      . W-d     (point is 1D connection between areas or centre point
-!        | |      of isolated 'half plus')
-!      D-X-W                         VALIDBP = .FALSE.
-!        | |
-!      . W-d
-!
-!
-! 13. Source text
-!
-!************************************************************************
-
-   CALL STRACE (IENT, 'VALIDBP')
-
-   VALIDBP = .TRUE.
-!      IF (PVALID(IX,IY,KGRPNT)) THEN
-   WNP = 0
-   IF (PVALID(IX-1,IY,KGRPNT)) WNP = WNP +1
-   IF (PVALID(IX,IY-1,KGRPNT)) WNP = WNP +1
-   IF (PVALID(IX+1,IY,KGRPNT)) WNP = WNP +1
-   IF (PVALID(IX,IY+1,KGRPNT)) WNP = WNP +1
-!         isolated point
-   IF (WNP.EQ.0) VALIDBP = .FALSE.
-!         point with one valid (wet) neighbouring grid point
-   IF (WNP.EQ.1) VALIDBP = .FALSE.
-
-!         neighbouring points on straight line (i.e. in fact 1D)
-   IF ((WNP.EQ.2) .AND.(&
-   &(PVALID(IX,IY-1,KGRPNT).AND.PVALID(IX,IY+1,KGRPNT)) .OR.&
-   &(PVALID(IX-1,IY,KGRPNT).AND.PVALID(IX+1,IY,KGRPNT)) .OR.&
-!         neighbouring points make angle but no wet point 'between' them
-   &(PVALID(IX-1,IY,KGRPNT).AND.PVALID(IX,IY+1,KGRPNT) .AND.&
-   &.NOT. PVALID(IX-1,IY+1,KGRPNT)) .OR.&
-   &(PVALID(IX-1,IY,KGRPNT).AND.PVALID(IX,IY-1,KGRPNT) .AND.&
-   &.NOT. PVALID(IX-1,IY-1,KGRPNT)) .OR.&
-   &(PVALID(IX+1,IY,KGRPNT).AND.PVALID(IX,IY-1,KGRPNT) .AND.&
-   &.NOT. PVALID(IX+1,IY-1,KGRPNT)) .OR.&
-   &(PVALID(IX+1,IY,KGRPNT).AND.PVALID(IX,IY+1,KGRPNT) .AND.&
-   &.NOT. PVALID(IX+1,IY+1,KGRPNT)) )  )  VALIDBP = .FALSE.
-
-!        point (IX,IY) is 1D connection between areas or isolated
-!        centre point of 'half plus'
-   IF ((WNP.EQ.3) .AND.(&
-   &(.NOT.PVALID(IX-1,IY,KGRPNT) .AND.&
-   &.NOT.PVALID(IX+1,IY-1,KGRPNT).AND.&
-   &.NOT.PVALID(IX+1,IY+1,KGRPNT)).OR.&
-   &(.NOT.PVALID(IX+1,IY,KGRPNT) .AND.&
-   &.NOT.PVALID(IX-1,IY-1,KGRPNT).AND.&
-   &.NOT.PVALID(IX-1,IY+1,KGRPNT)).OR.&
-   &(.NOT.PVALID(IX,IY-1,KGRPNT) .AND.&
-   &.NOT.PVALID(IX-1,IY+1,KGRPNT).AND.&
-   &.NOT.PVALID(IX+1,IY+1,KGRPNT)).OR.&
-   &(.NOT.PVALID(IX,IY+1,KGRPNT) .AND.&
-   &.NOT.PVALID(IX-1,IY-1,KGRPNT).AND.&
-   &.NOT.PVALID(IX+1,IY-1,KGRPNT)) )  )  VALIDBP = .FALSE.
-
-   RETURN
-end function VALIDBP
 
 !*******************************************************************
 !                                                                  *
 SUBROUTINE SEPARAREA(IX, IY, KGRPNT,IDIR)
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_grid_point_validation, ONLY: PVALID
 !                                                                  *
 !*******************************************************************
 
@@ -5928,7 +5669,6 @@ SUBROUTINE SEPARAREA(IX, IY, KGRPNT,IDIR)
 !
 !     Function PVALID
 
-   LOGICAL PVALID
 
 !  9. Subroutines calling
 !
@@ -6005,10 +5745,15 @@ end subroutine SEPARAREA
 !*******************************************************************
 !                                                                  *
 SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
+   USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
+   USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, EQCSTR
 !                                                                  *
 !*******************************************************************
 
-   USE OCPCOMM1
+   USE swan_input_parser, ONLY: default_command_reader
    USE OCPCOMM2
    USE OCPCOMM3
    USE OCPCOMM4
@@ -6016,7 +5761,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
    USE SWCOMM2
    USE SWCOMM3
    USE SWCOMM4
-   USE TIMECOMM
+   USE swan_time, ONLY: default_time_context
    USE M_PARALL
    USE SwanGriddata
 
@@ -6105,7 +5850,6 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
 
 !  8. Subroutines used
 
-   LOGICAL :: STPNOW, EQCSTR
 
 ! 13. Source text
 
@@ -6114,7 +5858,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
    INTEGER JXMAX, JYMAX, NPTOT
    REAL       AC2(MDC,MSC,MCGRD)
    LOGICAL SINGLEHOT, PTNSUBGRD
-   LOGICAL    KEYWIS, LERR
+      LOGICAL :: LERR
    CHARACTER(LEN=80) :: RLINE
    CHARACTER(LEN=16) :: RPROJID
    CHARACTER(LEN=4)  :: RPROJNR
@@ -6126,7 +5870,6 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
    INTEGER :: J, JX, JY, K, NQUA, NREF, NUMDIR, NUMFRE, NUMPTS
    REAL    ACTMP(MDC), DIRTMP(MDC), ACLOC(MDC,MSC)
    REAL    :: AFAC, AFAC1, FF, XX, YY
-   LOGICAL EQREAL
 
    CALL STRACE (IENT, 'INITVA')
 
@@ -6330,7 +6073,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
 
          IF (IIOPT.GE.0) THEN
             READ (NREF) RCHTIME
-            CALL DTRETI (RCHTIME, IIOPT, TIMCO)
+            CALL DTRETI (RCHTIME, IIOPT, default_time_context%TIMCO)
             WRITE (PRINTF, "(' initial condition read for time: ', A)") RCHTIME
          ENDIF
 
@@ -6407,7 +6150,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
          &' is not a correct hotstart file')
          DO
             READ (NREF, "(A)") RLINE
-            IF (RLINE(1:1).NE.COMID .AND. RLINE(1:1).NE.'!') EXIT
+            IF (RLINE(1:1).NE.default_command_reader%COMID .AND. RLINE(1:1).NE.'!') EXIT
          END DO
          IF (EQCSTR(RLINE,'TIME')) THEN
             READ (NREF, *) IIOPT
@@ -6468,7 +6211,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
 
          IF (IIOPT.GE.0) THEN
             READ (NREF, "(A)") RLINE
-            CALL DTRETI (RLINE(1:18), IIOPT, TIMCO)
+            CALL DTRETI (RLINE(1:18), IIOPT, default_time_context%TIMCO)
             WRITE (PRINTF, "(' initial condition read for time: ', A)") RLINE(1:18)
          ENDIF
 
@@ -6592,10 +6335,13 @@ end subroutine INITVA
 !                                                                  *
 SUBROUTINE BACKUP (AC2, SPCSIG, SPCDIR, KGRPNT,&
 &XCGRID, YCGRID)
+   USE swan_spectrum_output, ONLY: WRSPEC
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: EQREAL, STPNOW, STRACE
+   USE swan_input_parser, ONLY: INCSTR, IGNORE, INKEYW, KEYWIS
 !                                                                  *
 !*******************************************************************
 
-   USE OCPCOMM1
    USE OCPCOMM2
    USE OCPCOMM3
    USE OCPCOMM4
@@ -6683,7 +6429,6 @@ SUBROUTINE BACKUP (AC2, SPCSIG, SPCDIR, KGRPNT,&
 
 !  8. Subroutines used
 
-   LOGICAL STPNOW
 
 ! 13. Source text
 
@@ -6692,8 +6437,6 @@ SUBROUTINE BACKUP (AC2, SPCSIG, SPCDIR, KGRPNT,&
    INTEGER, SAVE :: IENT = 0
    INTEGER  ID, ILPOS, INDX, IOSTAT, IS, IX, IY, K, NREF
    CHARACTER (LEN=8) :: CRFORM = '(2F14.4)'
-   LOGICAL  EQREAL
-   LOGICAL  KEYWIS
    CALL STRACE (IENT, 'BACKUP')
 
 !     ==================================================================

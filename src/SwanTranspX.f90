@@ -1,6 +1,7 @@
 subroutine SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
                          rdx    , rdy  , obredf, idcmin, idcmax, isslow, &
                          isstop , trac0, trac1 )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

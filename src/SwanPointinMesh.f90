@@ -1,4 +1,5 @@
 logical function SwanPointinMesh ( x, y )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

@@ -4,6 +4,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
                           obredf, idcmin, idcmax, iscmin, iscmax, &
                           iddlow, iddtop, isslow, isstop, anyblk, &
                           trac0 , trac1 )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

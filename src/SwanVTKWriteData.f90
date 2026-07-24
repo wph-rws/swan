@@ -1,4 +1,5 @@
 subroutine SwanVTKWriteData ( uvtk, pstype, nvar, ivtyp, voqr, data, lenp, mxk, myk, ionod )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

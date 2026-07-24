@@ -18,6 +18,8 @@
 !************************************************************************
 !                                                                      *
 SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, STPNOW
+   USE swan_input_parser, ONLY: KEYWIS
 !                                                                      *
 !************************************************************************
 
@@ -111,7 +113,6 @@ SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
 !     SWREOQ
 !     STPNOW
 
-   LOGICAL STPNOW
 
 !  9. Subroutines calling
 !
@@ -136,7 +137,6 @@ SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
 ! 13. Source text
 
    LOGICAL   FOUND
-   LOGICAL   KEYWIS
    INTEGER, SAVE :: IENT = 0
    CALL STRACE (IENT,'SPROUT')
 
@@ -176,10 +176,14 @@ end subroutine SPROUT
 !************************************************************************
 !                                                                      *
 SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
+   USE swan_coordinate_input, ONLY: READXY, REFIXY
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, NWLINE
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM1
+   USE swan_input_parser, ONLY: default_command_reader
    USE OCPCOMM3
    USE OCPCOMM4
    USE SWCOMM2
@@ -295,8 +299,6 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !     command reading routines
 !     (all Ocean Pack)
 
-   LOGICAL :: STPNOW
-   LOGICAL :: EQREAL ! if True the two (real) arguments are equal
 
 !  9. Subroutines calling
 !
@@ -319,7 +321,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
    REAL      XQ, XQ1, XX, YF, YI, YNLEN, YP, YP1, YPCN, YQ, YQ1, YY
    CHARACTER(LEN=16) :: PSNAME, PRNAME
    CHARACTER(LEN=1)  :: STYPE
-   LOGICAL   KEYWIS, BOTDEP
+      LOGICAL :: BOTDEP
    CALL STRACE (IENT,'SWREPS')
 
 !   --------------------------------------------------------------------
@@ -338,7 +340,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !         ver 30.20: names of input variables changed, order of data changed
          ALLOCATE(OPSTMP)
          CALL INCSTR ('SNAME',PSNAME,'REQ',' ')
-         IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+         IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
          OPSTMP%PSNAME = PSNAME
          CALL READXY ('XPFR', 'YPFR', XPFR, YPFR, 'REQ', 0., 0.)
          OPSTMP%OPR(1) = XPFR
@@ -395,7 +397,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !         an option SUBG within the Frame command
          ALLOCATE(OPSTMP)
          CALL INCSTR ('SNAME',PSNAME,'REQ',' ')
-         IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+         IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
          OPSTMP%PSNAME = PSNAME
          CALL INKEYW ('STA', ' ')
          CALL IGNORE ('SUBG')
@@ -473,7 +475,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
    IF (KEYWIS ('CURV')) THEN
       ALLOCATE(OPSTMP)
       CALL INCSTR('SNAME',PSNAME,'REQ',' ')
-      IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+      IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
       OPSTMP%PSNAME = PSNAME
       OPSTMP%PSTYPE = 'C'
       MIP  = 0
@@ -546,7 +548,7 @@ CALL NWLINE
    IF (KEYWIS ('POIN')) THEN
       ALLOCATE(OPSTMP)
       CALL INCSTR('SNAME',PSNAME,'REQ',' ')
-      IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+      IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
       OPSTMP%PSNAME = PSNAME
       OPSTMP%PSTYPE = 'P'
       MIP  = 0
@@ -628,7 +630,7 @@ CALL NWLINE
       ELSE
          ALLOCATE(OPSTMP)
          CALL INCSTR('RNAME',PSNAME,'REQ',' ')
-         IF (LENCST.GT.8) CALL MSGERR (2, 'RNAME is too long')
+         IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'RNAME is too long')
          OPSTMP%PSNAME = PSNAME
          OPSTMP%PSTYPE = 'R'
          MIP  = 1
@@ -715,10 +717,10 @@ CALL NWLINE
       ELSE
          ALLOCATE(OPSTMP)
          CALL INCSTR ('SNAME',PSNAME,'REQ',' ')
-         IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+         IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
          OPSTMP%PSNAME = PSNAME
          CALL INCSTR ('RNAME', PRNAME, 'REQ', ' ')
-         IF (LENCST.GT.8) CALL MSGERR (2, 'RNAME is too long')
+         IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'RNAME is too long')
          CALL INKEYW ('STA', 'DEP')
          IF (KEYWIS ('BOT')) THEN
             BOTDEP = .TRUE.
@@ -818,7 +820,7 @@ CALL NWLINE
 !         ver 30.20: names changed, order changed
          ALLOCATE(OPSTMP)
          CALL INCSTR('SNAME',PSNAME,'REQ',' ')
-         IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+         IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
          OPSTMP%PSNAME = PSNAME
          OPSTMP%PSTYPE = 'N'
          CALL INKEYW ('STA', ' ')
@@ -1042,10 +1044,12 @@ end subroutine SWREPS
 !************************************************************************
 !                                                                      *
 SUBROUTINE SWREOQ ( FOUND )
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, INCTIM, INITVD
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM1
    USE OCPCOMM2
    USE OCPCOMM3
    USE OCPCOMM4
@@ -1150,7 +1154,6 @@ SUBROUTINE SWREOQ ( FOUND )
 !     command reading routines
 !     (all Ocean Pack)
 
-   LOGICAL STPNOW
 
 !  9. Subroutines calling
 !
@@ -1170,7 +1173,6 @@ SUBROUTINE SWREOQ ( FOUND )
    CHARACTER(LEN=16) :: PSNAME
    CHARACTER(LEN=1)  :: STYPE
    CHARACTER(LEN=4)  :: RTYPE
-   LOGICAL   KEYWIS
    TYPE(ORQDAT), POINTER :: ORQTMP
    TYPE(ORQDAT), SAVE, POINTER :: CORQ
    TYPE AUXT
@@ -2122,6 +2124,8 @@ end subroutine SWREOQ
 !                                                                      *
 INTEGER FUNCTION SIRAY (DP, XP1, YP1, XP2, YP2, XX, YY, BOTDEP,&
 &BOTLEV, WATLEV)
+   USE swan_service_interfaces, ONLY: EQREAL, STRACE
+   USE swan_input_interpolation, ONLY: SVALQI
 !                                                                      *
 !************************************************************************
 
@@ -2228,13 +2232,12 @@ INTEGER FUNCTION SIRAY (DP, XP1, YP1, XP2, YP2, XX, YY, BOTDEP,&
 !     ----------------------------------------------------------------
 !  10. SOURCE TEXT
 
-   LOGICAL   EQREAL, BOTDEP
+      LOGICAL :: BOTDEP
    REAL      BOTLEV(*), WATLEV(*)
    INTEGER, SAVE :: IENT = 0
    INTEGER   JDMINMAX, JJ, NSTEP
    REAL      DP, XP1, YP1, XP2, YP2, XX, YY
    REAL      D2, D3, DIFDEP, DSTEP, RAYLEN, X2, X3, Y2, Y3
-   REAL      SVALQI
    CALL STRACE (IENT,'SIRAY')
 
    SIRAY   = 0
@@ -2292,10 +2295,12 @@ end function SIRAY
 !************************************************************************
 
 SUBROUTINE SWNMPS (PSNAME, PSTYPE, MIP, IERR)
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_input_parser, ONLY: INCSTR
 
 !************************************************************************
 
-   USE OCPCOMM1
+   USE swan_input_parser, ONLY: default_command_reader
    USE OCPCOMM4
    USE SWCOMM1
    USE OUTP_DATA
@@ -2380,7 +2385,7 @@ SUBROUTINE SWNMPS (PSNAME, PSTYPE, MIP, IERR)
 
    IERR = 0
    CALL INCSTR ('SNAME', PSNAME, 'STA', 'BOTTGRID')
-   IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+   IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
    CUOPS => FOPS
    DO
       IF (CUOPS%PSNAME.EQ.PSNAME) EXIT
@@ -2409,6 +2414,8 @@ end subroutine SWNMPS
 !************************************************************************
 
 SUBROUTINE SVARTP (IVTYPE)
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_input_parser, ONLY: INKEYW, KEYWIS, WRNKEY
 
 !************************************************************************
 
@@ -2496,7 +2503,6 @@ SUBROUTINE SVARTP (IVTYPE)
 !
 ! 13. Source text
 
-   LOGICAL KEYWIS
    INTEGER, SAVE :: IENT = 0
    INTEGER IVT, IVTYPE
    CALL STRACE (IENT,'SVARTP')
@@ -2532,6 +2538,9 @@ end subroutine SVARTP
 !************************************************************************
 
 SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
+   USE swan_coordinate_input, ONLY: READXY, REFIXY
+   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, WRNKEY
 
 !************************************************************************
 
@@ -2657,7 +2666,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
    REAL      RLEN1,RDIST,RLEN2,XC1,YC1,XC2,YC2,W1
    REAL      DET, DXLOC, DYLOC, X1, Y1, X2, Y2, X3, Y3
 
-   LOGICAL   KEYWIS, LOCGRI, CCW, BPARF, BOUNPT, DONALL
+      LOGICAL :: LOCGRI, CCW, BPARF, BOUNPT, DONALL
    LOGICAL   LFRST1, LFRST2, LFRST3
    LOGICAL, SAVE :: BNDDONE = .FALSE.
    LOGICAL   SwanPointinMesh
@@ -2690,8 +2699,6 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !       Ocean Pack command reading routines
 !       BOUNPT
 
-   LOGICAL STPNOW
-   LOGICAL EQREAL
 
 !  9. Subroutines calling
 !
@@ -3922,10 +3929,15 @@ end subroutine SWBOUN
 SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 &XCGRID, YCGRID, KGRPNT,&
 &XYTST,  KGRBND, DONALL)
+   USE swan_legacy_io, ONLY: INAR2D, COPYCH
+   USE swan_coordinate_input, ONLY: READXY, REFIXY
+   USE swan_file_opening, ONLY: FOR
+   USE swan_input_parser, ONLY: EQCSTR
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
 !                                                                    *
 !*********************************************************************
 
-   USE OCPCOMM1
+   USE swan_input_parser, ONLY: default_command_reader
    USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM2
@@ -4046,7 +4058,6 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 !       Ocean Pack command reading routines
 !       SWBCPT : boundary points interpolation
 
-   LOGICAL STPNOW, EQCSTR
 
 !  9. Subroutines calling
 !
@@ -4142,7 +4153,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
          READ (NDSD, '(A)') HEDLIN
          IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
 !        skip heading lines starting with comment sign
-         IF (HEDLIN(1:1).NE.COMID .AND. HEDLIN(1:1).NE.'!') EXIT
+         IF (HEDLIN(1:1).NE.default_command_reader%COMID .AND. HEDLIN(1:1).NE.'!') EXIT
       END DO
       IF (EQCSTR(HEDLIN,'TIME')) THEN
          IF (NSTATM.EQ.0) CALL MSGERR (3,&
@@ -4407,6 +4418,10 @@ end subroutine BCFILE
 !                                                                    *
 SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
 &XCGRID, YCGRID, KGRPNT, XYTST)
+   USE swan_legacy_io, ONLY: INAR2D, COPYCH
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: IGNORE, ININTG, INKEYW, KEYWIS, INDBLE
 !                                                                    *
 !*********************************************************************
 
@@ -4501,7 +4516,6 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
 !
 !       Ocean Pack command reading routines
 
-   LOGICAL :: STPNOW
 
 
 !  7. ERROR MESSAGES
@@ -4635,7 +4649,6 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
 
 !     subroutines used
 
-   LOGICAL :: KEYWIS
 
    INTEGER, SAVE :: IENT = 0
    CALL STRACE (IENT, 'BCWAMN')
@@ -4982,6 +4995,10 @@ end subroutine BCWAMN
 SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
 &XCGRID, YCGRID, KGRPNT,&
 &XYTST,  KGRBND)
+   USE swan_legacy_io, ONLY: INAR2D, COPYCH
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: INKEYW, KEYWIS, INDBLE, WRNKEY
 !                                                                    *
 !*********************************************************************
 
@@ -5148,8 +5165,6 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
 !     Ocean Pack command reading routines
 !     SWBCPT, STPNOW
 
-   LOGICAL   :: STPNOW
-   LOGICAL   :: KEYWIS
 
 !  9. Subroutines calling
 !
@@ -5489,6 +5504,7 @@ end subroutine BCWW3N
 SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
 &KGRPNT, XYTST,  KGRBND,XP2,YP2,IBOUNC,&
 &NBOUNC,DONALL )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !************************************************************************
 
@@ -5875,6 +5891,7 @@ end subroutine SWBCPT
 !*********************************************************************
 !                                                                    *
 LOGICAL FUNCTION BOUNPT (IX,IY,KGRPNT)
+   USE swan_service_interfaces, ONLY: STRACE
 !                                                                    *
 !*********************************************************************
 
@@ -6027,6 +6044,10 @@ end function BOUNPT
 !                                                                    *
 SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
 &SPCSIG, SPCDIR)
+   USE swan_coordinate_input, ONLY: READXY, REFIXY
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: INCSTR, ININTG, INKEYW, KEYWIS, WRNKEY
 !                                                                    *
 !*********************************************************************
 
@@ -6136,7 +6157,6 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
 !
 !  6. SUBROUTINES USED
 
-   LOGICAL STPNOW
 
 !  7. Common blocks used
 !
@@ -6169,7 +6189,7 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
    INTEGER, SAVE :: IENT = 0
    INTEGER   ID, IERR, ILPOS, IS, K
    REAL      XC, XP, YC, YP
-   LOGICAL   KEYWIS, LOCGRI
+      LOGICAL :: LOCGRI
    TYPE(OPSDAT), POINTER :: OPSTMP
    CALL STRACE (IENT, 'RETSTP')
 

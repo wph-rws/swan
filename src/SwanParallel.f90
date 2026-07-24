@@ -3,6 +3,8 @@
 ! --- supplementary to swanparll.f ---
 
 module SwanParallel
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, STPNOW
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -176,7 +178,6 @@ subroutine SwanDecomposition ( logcom )
 !   Local variables
 
     integer, save :: ient = 0 ! number of entries in this subroutine
-    logical       :: STPNOW   ! indicates that program must stop
 
 !   Structure
 !
@@ -638,7 +639,6 @@ subroutine SwanCommAdmin
     integer, dimension(:,:), allocatable   :: vlistlg  ! local-to-global vertex-based list
                                                        ! = (j,i); global vertex index of local vertex j in subdomain i
 
-    logical                                :: stpnow   ! indicate whether program must be terminated or not
 
     character(120)                         :: msgstr   ! string to pass message
 

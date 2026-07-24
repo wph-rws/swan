@@ -1,4 +1,13 @@
+module swan_action_interpolation
+   use swan_geometry, only: TCROSS
+   implicit none
+   private
+   public :: SwanInterpolateAc
+
+contains
+
 subroutine SwanInterpolateAc ( acintp, x, y, ac2, excpt )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -101,9 +110,7 @@ subroutine SwanInterpolateAc ( acintp, x, y, ac2, excpt )
 
     logical                               :: cellfound ! indicate whether cell containing given point is found or not
     logical, dimension (3)                :: cross     ! if true there is an obstacle between given point and vertex
-    logical                               :: EQREAL    ! indicate whether two reals are equal or not
     logical                               :: obstcell  ! if true there is an obstacle in cell
-    logical                               :: TCROSS    ! determines whether two line segments cross
     logical                               :: xonobst   ! not used
 
     type(OBSTDAT), pointer                :: COBST     ! pointer to obstacle data
@@ -292,3 +299,5 @@ subroutine SwanInterpolateAc ( acintp, x, y, ac2, excpt )
 
 
 end subroutine SwanInterpolateAc
+
+end module swan_action_interpolation

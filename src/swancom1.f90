@@ -63,11 +63,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 &IT         ,KGRPNT     ,&
 &XCGRID     ,YCGRID     ,&
 &CROSS      )
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, STPNOW
 
 !******************************************************************
 
-   USE TIMECOMM
-   USE OCPCOMM1
+   USE swan_time, ONLY: default_time_context
    USE OCPCOMM2
    USE OCPCOMM3
    USE OCPCOMM4
@@ -78,10 +79,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    USE SwanQCM
    USE M_PARALL
    USE M_SNL3, ONLY: MSC4D
-   USE m_constants
+   USE m_constants, ONLY: init_constants
    USE m_xnldata
    USE m_fileio
    USE m_propcache, ONLY: prop_cache_reset
+   USE swan_fftw_compat, ONLY: cfft2i
 !ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
 
    IMPLICIT NONE
@@ -609,7 +611,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !MPI!     STPNOW : Logical indicating whether program must
 !MPI!              terminated or not
 !
-!MPI   LOGICAL STPNOW
 !
 !  9. Subroutines calling
 !
@@ -842,7 +843,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    REAL    :: FRAC
 
    INTEGER   ISTAT, IF1, IL1
-   CHARACTER(LEN=20) NUMSTR, CHARS(1)
+   CHARACTER(LEN=20) CHARS(1)
    CHARACTER(LEN=80) MSGSTR
 
    INTEGER IARR(10)
@@ -2022,7 +2023,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !TIMG                           CALL SWTSTA(104)
                            CALL SWOMPU (SWPDIR,KSX              ,KSY              ,&
                            &IX               ,IY               ,DDX              ,&
-                           &DDY              ,DT               ,SNLC1            ,&
+                           &DDY              ,default_time_context%DT               ,SNLC1            ,&
                            &DAL1             ,DAL2             ,DAL3             ,&
                            &XIS              ,SWTSDA           ,INOCNT           ,&
                            &AC2              ,COMPDA           ,SPCDIR           ,&
@@ -2526,10 +2527,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &MEMSINA  ,MEMSINB  ,&
                &CAX1,CAY1&
                &)
+   USE swan_service_interfaces, ONLY: STRACE
 
 !************************************************************************
 
-                  USE OCPCOMM1
                   USE OCPCOMM2
                   USE OCPCOMM3
                   USE OCPCOMM4
@@ -3845,6 +3846,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !****************************************************************
 
                SUBROUTINE SWPRSET (SPCSIG,SPCDIR)
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -4301,10 +4303,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &HSACC1     ,HSACC2     ,SACC1      ,&
                &SACC2      ,DELHS      ,DELTM      ,&
                &I1MYC      ,I2MYC                  )
+   USE swan_service_interfaces, ONLY: STRACE, EQREAL, STPNOW
 
 !****************************************************************
 
-                  USE OCPCOMM1
                   USE OCPCOMM2
                   USE OCPCOMM3
                   USE OCPCOMM4
@@ -4460,8 +4462,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                      terminated or not
 !     SWREDUCE         Performs a global reduction
 
-                  LOGICAL EQREAL
-!MPI                  LOGICAL STPNOW
 !
 !  9. Subroutines calling
 !
@@ -4757,10 +4757,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                SUBROUTINE INSAC (AC2      ,SPCSIG   ,DEP2     ,&
                &HSACC2   ,SACC2    ,KGRPNT   ,&
                &I1MYC    ,I2MYC              )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-                  USE OCPCOMM1
                   USE OCPCOMM2
                   USE OCPCOMM3
                   USE OCPCOMM4
@@ -4980,10 +4980,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &CAX1       ,CAY1       ,SPCDIR     ,&
                &CGO        ,TRAC0      ,TRAC1&
                &)
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-                  USE TIMECOMM
+                  USE swan_time, ONLY: default_time_context
                   USE SWCOMM3
                   USE SWCOMM4
                   USE OCPCOMM4
@@ -5363,6 +5364,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &SWPDIR  ,&
                &URMSTOP ,&
                &IDDLOW  ,IDDTOP  )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -5876,6 +5878,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &IDDLOW      ,IDDTOP      ,&
                &ISSTOP      ,&
                &SPCSIG                   )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -6090,6 +6093,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &IMATDA     ,IMATUA     ,&
                &IMATLA&
                &)
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -6332,6 +6336,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &ISSTOP     ,&
                &ANYBLK     ,IDDLOW     ,&
                &IDDTOP              )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -6685,10 +6690,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &TAUWV      ,BIPHAS&
                &,URMSTOP&
                &)
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
 
-                  USE OCPCOMM1
                   USE OCPCOMM2
                   USE OCPCOMM3
                   USE OCPCOMM4
@@ -7858,7 +7863,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !************************************************************************
 
                   USE SWCOMM3
-                  USE TIMECOMM
+                  USE swan_time, ONLY: default_time_context
 
                   IMPLICIT NONE
 
@@ -7963,7 +7968,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 ! 13. Source text
 
-                  C_HJ = PI2**2*3.0*1.0E-7*DT*SPCSIG(MSC)
+                  C_HJ = PI2**2*3.0*1.0E-7*default_time_context%DT*SPCSIG(MSC)
                   SPM_NOND = PI2 * 5.6 * 1.0E-3
                   IF (MSC.GT.3) THEN
                      DO IS=1,MSC
@@ -7995,6 +8000,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !****************************************************************
 
                SUBROUTINE RESCALE (AC2, ISSTOP, IDCMIN, IDCMAX, NRSCAL)
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -8178,6 +8184,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &IMAT5L, IMAT6U, AC2OLD, REPS  , MAXIT ,&
                &IAMOUT, INOCNV, IDDLOW, IDDTOP, ISSTOP,&
                &IDCMIN, IDCMAX )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -8778,6 +8785,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &IMAT5L, IMAT6U, AC2OLD, REPS  , MAXIT ,&
                &IAMOUT, INOCNV, IDDLOW, IDDTOP, ISSTOP,&
                &IDCMIN, IDCMAX )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
 
@@ -9280,6 +9288,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !****************************************************************
 
                SUBROUTINE SWMTLB ( N1, N2, M1, M2 )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -9391,6 +9400,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                SUBROUTINE SWSTPC ( HSACC0, HSACC1, HSACC2, SACC0 , SACC1,&
                &SACC2 , HSDIFC, TMDIFC, DELHS , DELTM,&
                &DEP2  , ACCUR , I1MYC , I2MYC )
+   USE swan_service_interfaces, ONLY: STRACE, EQREAL, STPNOW
 
 !****************************************************************
 
@@ -9544,8 +9554,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                      terminated or not
 !     SWREDUCE         Performs a global reduction
 
-                  LOGICAL EQREAL
-!MPI                  LOGICAL STPNOW
 !
 !  9. Subroutines calling
 !
@@ -9763,6 +9771,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                                                                   *
                SUBROUTINE SETUPP (KGRPNT, MSTPDA, SETPDA, AC2, DEP2, DEPSAV,&
                &SETUP2, XCGRID, YCGRID, SPCSIG, SPCDIR )
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
+   USE swan_wave_physics, ONLY: KSCIP1
 !                                                                   *
 !********************************************************************
 
@@ -9963,7 +9974,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   &SXX1  ,SXX2
                   REAL     CG(1), K(1), N(1), ND(1), SIG(1)
                   INTEGER      IF1, IL1
-                  CHARACTER(LEN=20) INTSTR, CHARS(1)
+                  CHARACTER(LEN=20) CHARS(1)
                   CHARACTER(LEN=80) MSGSTR
 
                   LOGICAL  NEIGHB
@@ -10316,6 +10327,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                SUBROUTINE SETUP2D ( SETUP , XCGRID, YCGRID, WFRCX, WFRCY,&
                &KGRPNT, DEPTH , AMAT  , RHS  , JCTA )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 

@@ -1,4 +1,5 @@
 subroutine SwanGridFace ( nfaces, ncells, nverts, xcugrd, ycugrd, kvertf )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

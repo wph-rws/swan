@@ -32,6 +32,7 @@
 !****************************************************************
 
 SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -230,6 +231,7 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 &SPCDIR    ,RDX       ,RDY       ,&
 &KGRPNT&
 &)
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !******************************************************************
 
@@ -826,6 +828,7 @@ SUBROUTINE SPROXY (CAX        ,&
 &ESIN       ,UX2        ,UY2        ,&
 &SWPDIR&
 &)
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -1101,13 +1104,14 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 &XCGRID     ,YCGRID     ,&
 &IDDLOW     ,IDDTOP&
 &)
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
    USE SWCOMM2
    USE SWCOMM3
    USE SWCOMM4
-   USE TIMECOMM
+   USE swan_time, ONLY: default_time_context
    USE OCPCOMM4
    USE M_PARALL
    USE M_DIFFR
@@ -1168,7 +1172,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 !                     proper side of the grid point.
 !                     argument KGRPNT added.
 !                     argument IC removed (is always 1)
-!                     argument DT removed, TIMECOMM.INC included
+!                     argument DT removed, shared time state used
 !                     code completely revised
 !     40.02, Jan. 00: Introduction limiter dependent on Cx, Cy, Dx and Dy
 !     40.02, Sep. 00: Corrected order of handling sweeps
@@ -1719,6 +1723,7 @@ end subroutine SPROSD
 !****************************************************************
 
 SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -1892,6 +1897,7 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 &CAY     ,AC2     ,AC1     ,IMATRA  ,IMATDA  ,&
 &RDX     ,RDY     ,&
 &OBREDF  ,TRAC0   ,TRAC1   )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -2191,6 +2197,7 @@ end subroutine STRSXY
 SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 &CAY     ,AC2     ,IMATRA  ,IMATDA  ,&
 &RDX     ,RDY     ,TRAC0   ,TRAC1   )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
 
@@ -2516,6 +2523,7 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 &CAY     ,AC2     ,AC1     ,IMATRA  ,IMATDA  ,&
 &RDX     ,RDY     ,CAX1    ,CAY1    ,SPCDIR  ,&
 &TRAC0   ,TRAC1   )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
 
@@ -2523,7 +2531,7 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE TIMECOMM
+   USE swan_time, ONLY: default_time_context
 
    IMPLICIT NONE
 
@@ -2834,7 +2842,7 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 !     --- Even if KSPHER=1, dx and dy are already in meters
    DXMYU=SQRT(DY1DUM**2+DX1DUM**2)
    DYMYU=SQRT(DY2DUM**2+DX2DUM**2)
-   MYU=ABS(DT*CGO(1,1)/MIN(DXMYU,DYMYU))
+   MYU=ABS(default_time_context%DT*CGO(1,1)/MIN(DXMYU,DYMYU))
 !     --- Since there is no hard stability limit, we use a nonexact
 !         definition of CFL. I only check IS=1, since that is the
 !         fastest wave.
@@ -3014,6 +3022,7 @@ SUBROUTINE STRSSI(SPCSIG  ,&
 &CAS     ,IMAT5L  ,IMATDA  ,IMAT6U  ,ANYBIN  ,&
 &IMATRA  ,AC2     ,ISCMIN  ,ISCMAX  ,IDDLOW  ,&
 &IDDTOP  ,TRAC0   ,TRAC1                     )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -3326,6 +3335,7 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 &IDCMIN  ,IDCMAX  ,ISSTOP  ,CAX     ,CAY     ,&
 &CAS     ,AC2     ,SPCSIG  ,IMATRA  ,&
 &ANYBLK  ,RDX     ,RDY     ,TRAC0            )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -3711,6 +3721,7 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
 &IDCMAX  ,CAD     ,IMATLA  ,IMATDA  ,IMATUA  ,&
 &IMATRA  ,AC2     ,ISSTOP  ,&
 &ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1            )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -3989,6 +4000,7 @@ SUBROUTINE STRSDFV (DD      ,IDCMIN  ,&
 &IDCMAX  ,CAD     ,IMATLA  ,IMATDA  ,IMATUA  ,&
 &IMATRA  ,AC2     ,ISSTOP  ,&
 &ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1            )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -4235,6 +4247,7 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 &ISSTOP     ,ANYBIN     ,&
 &XCGRID     ,YCGRID     ,&
 &RDX        ,RDY        ,OBREDF    )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -4547,6 +4560,8 @@ end subroutine SPREDT
 !****************************************************************
 
 SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_wave_physics, ONLY: KSCIP1, KSCIP2
 
 !****************************************************************
 
@@ -4769,6 +4784,8 @@ end subroutine SWAPAR
 !*******************************************************************
 
 SUBROUTINE SWAPRE ( DEP, MUDL, SPCSIG )
+   USE swan_service_interfaces, ONLY: MSGERR
+   USE swan_wave_physics, ONLY: KSCIP1, KSCIP2
 
 !*******************************************************************
 !
@@ -4853,6 +4870,7 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     ,&
 &TSXGEO     ,TSXSPT     ,&
 &TSXSPS     ,TRANXY     ,&
 &LEAKC1     ,RADSXY     ,SPCSIG     )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !*******************************************************************
 
@@ -5156,6 +5174,7 @@ end subroutine ADDDIS
 SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
 &AC2   , DD    , ANYBIN, LEAKC1, IDCMIN,&
 &IDCMAX, ISSTOP)
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -5458,6 +5477,8 @@ end subroutine SWFLXD
 
 SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
 &CROSS , XCGRID, YCGRID, XYTST )
+   USE swan_service_interfaces, ONLY: STRACE, EQREAL, STPNOW
+   USE swan_wave_physics, ONLY: KSCIP1
 
 !****************************************************************
 
@@ -5584,7 +5605,6 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
 !     STRACE           Tracing routine for debugging
 !     SWEXCHG          exchanges some data at subdomain boundaries
 
-   LOGICAL EQREAL, STPNOW
 
 !  9. Subroutines calling
 !

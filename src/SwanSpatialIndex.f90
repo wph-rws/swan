@@ -1,4 +1,5 @@
 module SwanSpatialIndex
+   USE swan_service_interfaces, ONLY: MSGERR
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

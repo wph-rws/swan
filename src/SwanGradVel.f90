@@ -1,4 +1,5 @@
 subroutine SwanGradVel ( dep2, ux2, uy2, duxdx, duxdy, duydx, duydy, ivert )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

@@ -203,6 +203,11 @@ floating-point transformations such as `-ffast-math`.
 development and validation builds. Leave it disabled for production runs,
 because the checks can alter compiler optimization and reduce performance.
 
+The source is compiled in standard Fortran 2018 mode, while the migration from
+legacy external procedures and global state is still ongoing. See
+[Modern Fortran status](doc/modern-fortran.md) for concrete before/after
+examples, measured diagnostic improvements and the remaining boundary.
+
 For example, the following commands
 
 ```bash

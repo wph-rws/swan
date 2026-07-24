@@ -1,6 +1,9 @@
 ! This file contains data and routines for surfbeat (Infragravity Energy Model)
 
 module SwanIEM
+   USE swan_spectrum_transform, ONLY: CHGBAS
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_wave_physics, ONLY: KSCIP1
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -832,6 +835,10 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
     real                 :: w2           ! radial frequency of second wave component
     real                 :: w_l          ! difference radial frequency
     real                 :: wm           ! mean radial frequency
+    real                 :: frequency_one(1)
+    real                 :: group_number_one(1)
+    real                 :: group_velocity_one(1)
+    real                 :: wave_number_one(1)
 
     real, dimension(:), allocatable :: cg      ! group velocity based on local Tm-1,0
     real, dimension(:), allocatable :: cgx     ! cross-shore group velocity
@@ -920,7 +927,11 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
 
           endif
 
-          call KSCIP1 ( 1, wm, deploc, rval, cg(ind), n(ind), rval )
+          frequency_one(1) = wm
+          call KSCIP1 ( 1, frequency_one, deploc, wave_number_one, &
+                        group_velocity_one, group_number_one )
+          cg(ind) = group_velocity_one(1)
+          n(ind)  = group_number_one(1)
 
        else
 
@@ -981,8 +992,12 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
 
                       ! compute wave numbers and phase velocities
 
-                      call KSCIP1 ( 1, w1, deploc, k1, rval, rval, rval )
-                      call KSCIP1 ( 1, w2, deploc, k2, rval, rval, rval )
+                      frequency_one(1) = w1
+                      call KSCIP1 ( 1, frequency_one, deploc, wave_number_one )
+                      k1 = wave_number_one(1)
+                      frequency_one(1) = w2
+                      call KSCIP1 ( 1, frequency_one, deploc, wave_number_one )
+                      k2 = wave_number_one(1)
 
                       c1 = w1 / k1
                       c2 = w2 / k2

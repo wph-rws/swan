@@ -1,4 +1,6 @@
 subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig )
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_wave_physics, ONLY: KSCIP1, KSCIP2
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

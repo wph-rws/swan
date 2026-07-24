@@ -1,4 +1,6 @@
 subroutine SwanReadTriangleGrid ( basenm, lenfnm )
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -72,7 +74,6 @@ subroutine SwanReadTriangleGrid ( basenm, lenfnm )
     integer           :: nnodes   ! number of nodes per triangle
     real              :: rdum     ! dummy value
     character(80)     :: line     ! auxiliary textline
-    logical           :: stpnow   ! indicate whether program must be terminated or not
 
 !   Structure
 !

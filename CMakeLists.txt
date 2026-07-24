@@ -116,12 +116,6 @@ if( SWAN_LTO )
   if( NOT SWAN_IPO_SUPPORTED )
     message( FATAL_ERROR "-- SWAN_LTO is not supported: ${SWAN_IPO_ERROR}" )
   endif()
-  if( CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
-    # A few legacy work arrays still use storage association.
-    # Without this LTO can misoptimize a valid run into non-convergence.
-    target_compile_options( swan_build_options INTERFACE -fno-strict-aliasing )
-    target_link_options( swan_build_options INTERFACE -fno-strict-aliasing )
-  endif()
   set( CMAKE_INTERPROCEDURAL_OPTIMIZATION ON )
 endif()
 
@@ -174,4 +168,49 @@ if( BUILD_TESTING )
   add_executable( test_fftw_compat tests/test_fftw_compat.f90 )
   target_link_libraries( test_fftw_compat PRIVATE swan${VERSION} )
   add_test( NAME fftw_compat COMMAND test_fftw_compat )
+
+  add_executable( test_contexts tests/test_contexts.f90 )
+  target_link_libraries( test_contexts PRIVATE swan${VERSION} )
+  add_test( NAME contexts COMMAND test_contexts )
+
+  add_test(
+    NAME quick_test
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/examples/quick_test/run.py
+            --swan-executable $<TARGET_FILE:${EXE}>
+            --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/quick
+  )
+  if( MPI )
+    add_test(
+      NAME quick_test_mpi
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/examples/quick_test/run.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/quick-mpi
+              --mpi-exec ${MPIEXEC_EXECUTABLE}
+              --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
+              --mpi-processes 2
+    )
+    set_tests_properties( quick_test_mpi PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
+  endif()
+  add_test(
+    NAME nonstationary_examples
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/examples/nonstationary/run.py
+            --swan-executable $<TARGET_FILE:${EXE}>
+            --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/nonstationary
+  )
+  add_test(
+    NAME nonlinear_interactions
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/examples/nonlinear_interactions/run.py
+            --case standard
+            --no-plots
+            --swan-executable $<TARGET_FILE:${EXE}>
+            --results-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/nonlinear
+  )
+  set_tests_properties(
+    quick_test nonstationary_examples nonlinear_interactions
+    PROPERTIES RUN_SERIAL TRUE TIMEOUT 180
+  )
 endif()

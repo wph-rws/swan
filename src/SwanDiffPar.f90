@@ -1,4 +1,7 @@
 subroutine SwanDiffPar ( ac2, dep2, spcsig )
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_wave_physics, ONLY: KSCIP1
+   USE swan_spectral_integration, ONLY: SwanIntgratSpc
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -143,7 +146,6 @@ subroutine SwanDiffPar ( ac2, dep2, spcsig )
     real, dimension(:), allocatable       :: hs             ! wave height
     real, dimension(:), allocatable       :: k              ! mean wave number
 
-    real                                  :: SwanIntgratSpc ! integration of variance over a part of frequency space
 
     type(celltype), dimension(:), pointer :: cell           ! datastructure for cells with their attributes
     type(verttype), dimension(:), pointer :: vert           ! datastructure for vertices with their attributes

@@ -29,6 +29,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 &UY2     ,IDCMIN  ,IDCMAX  ,IT      ,ITER    ,&
 &SWPDIR  ,PLBTFR  ,ISSTOP  ,DISSC1  ,VARFR   ,&
 &FRCOEF  )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -552,6 +553,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 &KWAVE  ,KMESPC   ,PLVEGT ,&
 &IDCMIN ,IDCMAX   ,ISSTOP ,DISSC1    ,&
 &NPLA2  )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -1035,6 +1037,7 @@ end subroutine SVEG
 SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
 &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 &KWAVE   ,DISSC1  ,PLTURB  )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -1180,6 +1183,7 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
 &KMUD    ,CGMUD   ,DMW     ,&
 &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 &DISSC1  ,PLMUD   )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -1346,6 +1350,7 @@ end subroutine SMUD
 SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  ,&
 &DISSC1  , PLICE   , AICELOC , HICELOC ,&
 &SPCSIG  , CG      )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
 
@@ -1574,6 +1579,7 @@ end subroutine SICE
 !****************************************************************
 
 SUBROUTINE FRABRE ( HM, ETOT, QBLOC, KTETA )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -1767,6 +1773,8 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 &KMESPC  ,SPCSIG  ,AC2     ,IMATRA  ,&
 &IMATDA  ,IDCMIN  ,IDCMAX  ,PLWBRK  ,&
 &ISSTOP  ,DISSC0  ,DISSC1  ,DISBK   ,ITER    )
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_spectral_integration, ONLY: SwanIntgratSpc
 
 !****************************************************************
 
@@ -2029,7 +2037,6 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
    REAL(KIND=KIND(0.0D0)) BB,       DIS0,    SbrD,&
    &SURFA0,   SURFA1,  WS  ,&
    &TEMP1 ,   TEMP2
-   REAL             SwanIntgratSpc
 
 
 !  7. Common blocks used
@@ -2199,6 +2206,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 &ETOT    ,IMATDA  ,IMATRA  ,PLWCAP  ,&
 &CGO     ,UFRIC   ,CAS     ,&
 &DEP2    ,DISSC1  ,DISSC0  )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
 
@@ -2679,6 +2687,7 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 &ETOT    ,IMATDA  ,IMATRA  ,PLWCAP  ,&
 &CGO     ,UFRIC   ,&
 &DEP2    ,DISSC1  ,DISSC0  )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
 
@@ -2898,6 +2907,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 &SPCSIG  ,DEP2    ,BOTLV   ,&
 &RDX     ,RDY     ,KWAVE   ,&
 &IDDLOW  ,IDDTOP  ,FDIR    ,KTETA   )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -3335,6 +3345,8 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        ,&
 &AC2           ,SPCSIG        ,&
 &DEP2          ,XYTST         ,&
 &KGRPNT        )
+   USE swan_spectrum_output, ONLY: WRSPEC
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 

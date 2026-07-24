@@ -1,4 +1,5 @@
 subroutine SwanConvStopc ( accur, hscurr, hsprev, hsdifc, tmcurr, tmprev, tmdifc, delhs, deltm, xytst, spcsig, ac2 )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

@@ -1,4 +1,5 @@
 subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

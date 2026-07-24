@@ -1,4 +1,6 @@
 subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_wave_physics, ONLY: KSCIP1, KSCIP2
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -285,9 +287,9 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
 
           ! compute wave numbers for all frequencies
 
-          call KSCIP1 (MSC, spcsig, dloc(1), kloc(1,1), arr, arr, arr)
-          call KSCIP1 (MSC, spcsig, dloc(2), kloc(1,2), arr, arr, arr)
-          call KSCIP1 (MSC, spcsig, dloc(3), kloc(1,3), arr, arr, arr)
+          call KSCIP1 (MSC, spcsig, dloc(1), kloc(1,1))
+          call KSCIP1 (MSC, spcsig, dloc(2), kloc(1,2))
+          call KSCIP1 (MSC, spcsig, dloc(3), kloc(1,3))
 
           if ( IMUD == 1 ) then
 
@@ -301,9 +303,9 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
                 dm(3) = PMUD(1)
              endif
 
-             call KSCIP2 (MSC, spcsig, dloc(1), kloc(1,1), arr, arr, arr, arr, dm(1))
-             call KSCIP2 (MSC, spcsig, dloc(2), kloc(1,2), arr, arr, arr, arr, dm(2))
-             call KSCIP2 (MSC, spcsig, dloc(3), kloc(1,3), arr, arr, arr, arr, dm(3))
+             call KSCIP2 (MSC, spcsig, dloc(1), kloc(1,1), mud_depth=dm(1))
+             call KSCIP2 (MSC, spcsig, dloc(2), kloc(1,2), mud_depth=dm(2))
+             call KSCIP2 (MSC, spcsig, dloc(3), kloc(1,3), mud_depth=dm(3))
 
           endif
 
@@ -336,9 +338,9 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
 
           ! compute wave numbers for all frequencies
 
-          call KSCIP1 (MSC, spcsig, dloc(1), kloc(1,1), arr, arr, arr)
-          call KSCIP1 (MSC, spcsig, dloc(2), kloc(1,2), arr, arr, arr)
-          call KSCIP1 (MSC, spcsig, dloc(3), kloc(1,3), arr, arr, arr)
+          call KSCIP1 (MSC, spcsig, dloc(1), kloc(1,1))
+          call KSCIP1 (MSC, spcsig, dloc(2), kloc(1,2))
+          call KSCIP1 (MSC, spcsig, dloc(3), kloc(1,3))
 
           if ( IMUD == 1 ) then
 
@@ -348,9 +350,9 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
                 dm(3) = mudl2(v(3))
              endif
 
-             call KSCIP2 (MSC, spcsig, dloc(1), kloc(1,1), arr, arr, arr, arr, dm(1))
-             call KSCIP2 (MSC, spcsig, dloc(2), kloc(1,2), arr, arr, arr, arr, dm(2))
-             call KSCIP2 (MSC, spcsig, dloc(3), kloc(1,3), arr, arr, arr, arr, dm(3))
+             call KSCIP2 (MSC, spcsig, dloc(1), kloc(1,1), mud_depth=dm(1))
+             call KSCIP2 (MSC, spcsig, dloc(2), kloc(1,2), mud_depth=dm(2))
+             call KSCIP2 (MSC, spcsig, dloc(3), kloc(1,3), mud_depth=dm(3))
 
           endif
 

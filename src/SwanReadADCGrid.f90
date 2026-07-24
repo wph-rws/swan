@@ -1,4 +1,6 @@
 subroutine SwanReadADCGrid
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -78,7 +80,6 @@ subroutine SwanReadADCGrid
     integer                 :: nopbc    ! number of open boundaries in ADCIRC
     integer                 :: vm       ! boundary marker
     character(80)           :: line     ! auxiliary textline
-    logical                 :: stpnow   ! indicate whether program must be terminated or not
 
 !   Structure
 !

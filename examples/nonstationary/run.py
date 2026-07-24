@@ -108,11 +108,27 @@ def main() -> int:
         "--swan-executable",
         help="path to swan.exe (default: build/bin/swan.exe or PATH)",
     )
+    parser.add_argument(
+        "--work-directory",
+        help="run in this directory instead of writing results beside the examples",
+    )
     arguments = parser.parse_args()
-    example_directory = Path(__file__).resolve().parent
+    source_directory = Path(__file__).resolve().parent
+    example_directory = (
+        Path(arguments.work_directory).expanduser().resolve()
+        if arguments.work_directory
+        else source_directory
+    )
 
     try:
-        executable = find_executable(example_directory, arguments.swan_executable)
+        executable = find_executable(source_directory, arguments.swan_executable)
+        if example_directory != source_directory:
+            for case in CASES:
+                shutil.copytree(
+                    source_directory / case,
+                    example_directory / case,
+                    dirs_exist_ok=True,
+                )
         selected = CASES if arguments.case == "all" else (arguments.case,)
         for case in selected:
             elapsed = run_case(executable, example_directory, case)

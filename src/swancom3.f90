@@ -32,6 +32,7 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 &THETAW,AC2   ,KWAVE ,IMATRA,IMATDA,&
 &SPCSIG,CGO   ,ALIMW ,GROWW ,ETOTW ,&
 &PLWNDS,PLWNDD,SPCDIR,ITER,AICELOC    )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -546,10 +547,10 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
 &SPCSIG     ,AC2&
 &,GENC0      ,KWAVE&
 &)
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-   USE OCPCOMM1
    USE OCPCOMM2
    USE OCPCOMM3
    USE OCPCOMM4
@@ -1098,10 +1099,10 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
 &ETOTW   ,&
 &AC2     ,SPCSIG  ,&
 &WIND10                                      )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-   USE OCPCOMM1
    USE OCPCOMM2
    USE OCPCOMM3
    USE OCPCOMM4
@@ -1331,6 +1332,7 @@ end subroutine WINDP2
 
 SUBROUTINE WINDP3 (ISSTOP  ,ALIMW   ,AC2     ,&
 &GROWW   ,IDCMIN  ,IDCMAX  )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -1504,6 +1506,7 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 &UFRIC   ,FPM     ,PLWNDS  ,&
 &IMATRA  ,SPCDIR  ,GENC0   ,&
 &KWAVE   ,AICELOC )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -1814,6 +1817,7 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
 &IDCMIN  ,IDCMAX  ,AC2     ,UFRIC   ,&
 &FPM     ,PLWNDS  ,ISSTOP  ,SPCDIR  ,&
 &ANYWND  ,AICELOC )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -2062,6 +2066,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
 &IDCMIN  ,IDCMAX  ,AC2     ,UFRIC   ,&
 &PLWNDS  ,ISSTOP  ,ITER    ,USTAR   ,ZELEN   ,&
 &SPCDIR  ,ANYWND  ,IT      ,TAUWV   ,AICELOC )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !******************************************************************
 
@@ -2612,6 +2617,7 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
 &UFRIC   ,KWAVE   ,IMATRA  ,IDCMIN  ,&
 &IDCMAX  ,AC2     ,ANYWND  ,PLWNDS  ,&
 &SPCDIR  ,GENC0   ,AICELOC          )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 

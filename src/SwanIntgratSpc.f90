@@ -1,4 +1,12 @@
+module swan_spectral_integration
+   implicit none
+   private
+   public :: SwanIntgratSpc
+
+contains
+
 real function SwanIntgratSpc ( p, fmin, fmax, spcsig, theta, wpar, ecs, uloc, vloc, acloc, itype )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -346,3 +354,5 @@ real function SwanIntgratSpc ( p, fmin, fmax, spcsig, theta, wpar, ecs, uloc, vl
     SwanIntgratSpc = pmom
 
 end function SwanIntgratSpc
+
+end module swan_spectral_integration

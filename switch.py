@@ -119,9 +119,15 @@ def process(
     destination = output_path(source, output_directory)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with source.open("r", encoding="ascii", newline="") as input_file:
-        contents = input_file.readlines()
+        transformed = "".join(transform(line, enabled) for line in input_file)
+
+    if destination.exists():
+        with destination.open("r", encoding="ascii", newline="") as output_file:
+            if output_file.read() == transformed:
+                return
+
     with destination.open("w", encoding="ascii", newline="") as output_file:
-        output_file.writelines(transform(line, enabled) for line in contents)
+        output_file.write(transformed)
 
 
 def main(arguments: list[str]) -> int:

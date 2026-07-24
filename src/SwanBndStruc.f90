@@ -1,4 +1,5 @@
 subroutine SwanBndStruc ( xcgrid, ycgrid )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -73,7 +74,6 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
     integer                              :: ii, jj   ! counters
     integer, save                        :: ient = 0 ! number of entries in this subroutine
 
-    logical                              :: EQREAL   ! function
 
     real                                 :: xp, yp       ! one boundary point
     real, allocatable, dimension (:)     :: xbnd, ybnd   ! points of whole boundary

@@ -1,4 +1,5 @@
 subroutine SwanReadGrid ( basenm, lenfnm )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

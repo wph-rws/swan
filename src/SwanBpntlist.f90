@@ -1,4 +1,5 @@
 subroutine SwanBpntlist
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

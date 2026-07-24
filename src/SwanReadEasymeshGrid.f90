@@ -1,4 +1,6 @@
 subroutine SwanReadEasymeshGrid ( basenm, lenfnm )
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -65,7 +67,6 @@ subroutine SwanReadEasymeshGrid ( basenm, lenfnm )
     integer           :: j        ! loop counter
     integer           :: ndsd     ! unit reference number of file
     character(80)     :: line     ! auxiliary textline
-    logical           :: stpnow   ! indicate whether program must be terminated or not
 
 !   Structure
 !

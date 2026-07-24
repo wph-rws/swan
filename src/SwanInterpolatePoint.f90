@@ -1,4 +1,12 @@
+module swan_point_interpolation
+   implicit none
+   private
+   public :: SwanInterpolatePoint
+
+contains
+
 subroutine SwanInterpolatePoint ( foutp, x, y, finp, excval )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -93,7 +101,6 @@ subroutine SwanInterpolatePoint ( foutp, x, y, finp, excval )
     character(80)                         :: msgstr    ! string to pass message
 
     logical                               :: cellfound ! indicate whether cell containing given point is found or not
-    logical                               :: EQREAL    ! indicate whether two reals are equal or not
 
     type(celltype), dimension(:), pointer :: cell      ! datastructure for cells with their attributes
     type(verttype), dimension(:), pointer :: vert      ! datastructure for vertices with their attributes
@@ -246,3 +253,5 @@ subroutine SwanInterpolatePoint ( foutp, x, y, finp, excval )
     endif
 
 end subroutine SwanInterpolatePoint
+
+end module swan_point_interpolation

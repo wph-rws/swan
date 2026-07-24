@@ -1,6 +1,10 @@
 ! This file contains data and routines for Bragg scattering
 
 module SwanBraggScat
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL
+   USE swan_wave_physics, ONLY: KSCIP1, KSCIP2
+
+    use swan_fftw_compat, only: cfft2b, cfft2i
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -154,7 +158,6 @@ subroutine SWBRBOT
 
     logical       :: filb     ! indicate whether bottom spectrum is available through file or not
     logical       :: ingrd    ! Boolean variable to determine whether point is in depth grid or not
-    logical       :: EQREAL   ! indicate whether two reals are equal or not
 
     character(80) :: msgstr   ! string to pass message
 
@@ -703,8 +706,8 @@ subroutine SWFBXY ( dep2, mudl2, spcsig, spcdir )
 
        ! compute wave number for all frequencies
 
-       call KSCIP1 ( MSC, spcsig, d, kwave, arr, arr, arr )
-       if ( IMUD == 1 ) call KSCIP2 ( MSC, spcsig, d, kwave, arr, arr, arr, arr, dm )
+       call KSCIP1 ( MSC, spcsig, d, kwave )
+       if ( IMUD == 1 ) call KSCIP2 ( MSC, spcsig, d, kwave, mud_depth=dm )
 
        do is = 1, MSC
 

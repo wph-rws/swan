@@ -17,6 +17,9 @@
 !                                                                      *
 SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 &MXK  , MYK , IRQ , VOQR , VOQ        )
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: STRACE, TXPBLA, STPNOW
+   USE swan_wave_physics, ONLY: KSCIP1
 !                                                                      *
 !************************************************************************
 
@@ -113,7 +116,6 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !       MSGERR, COPYCH, FOR
 !       SWRMAT, TXPBLA
 
-   LOGICAL STPNOW
 
 !  7. ERROR MESSAGES
 !
@@ -355,6 +357,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !                                                                      *
    SUBROUTINE SBLKPT (IPD, NREF, DFAC, PSNAME, QUNIT,&
    &MXK, MYK, IDLA, STRING, OQVALS)
+   USE swan_service_interfaces, ONLY: STRACE
 !                                                                      *
 !************************************************************************
 
@@ -363,7 +366,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
       USE SWCOMM1
       USE SWCOMM3
       USE OUTP_DATA
-      USE TIMECOMM
+      USE swan_time, ONLY: default_time_context
 
 
 !   --|-----------------------------------------------------------|--
@@ -573,6 +576,8 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 
    SUBROUTINE SWBLKP ( OQI   , IVTYP, MXK  , MYK, VOQR, VOQ,&
    &IONOD )
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: STRACE, STPNOW
 
 !****************************************************************
 
@@ -669,7 +674,6 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !                      terminated or not
 !     STRACE           Tracing routine for debugging
 
-      LOGICAL STPNOW
 
 !  9. Subroutines calling
 !
@@ -719,6 +723,9 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 
    SUBROUTINE SWBLKV ( OQI, OQR, IVTYP, MXK, MYK, VOQR, VOQ,&
    &PSTYPE, PSNAME, IONOD )
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: STRACE, TXPBLA, STPNOW
 
 !****************************************************************
 
@@ -795,9 +802,9 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
       INTEGER, SAVE :: IENT = 0
       INTEGER IOSTAT
       INTEGER IPRC, IARRL(4), IARRC(4,0:NPROC-1)
-      LOGICAL LC, STPNOW
+         LOGICAL :: LC
       CHARACTER (LEN=4) :: PNUM
-      CHARACTER (LEN=20) :: CTIM, NUMSTR
+      CHARACTER (LEN=20) :: CTIM
       CHARACTER (LEN=1024) :: PVDLINE
       CHARACTER (LEN=LENFNM) :: CDIR, VDIR, PVDFNM, PVTFIL, VTKFIL
 
@@ -965,6 +972,8 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !****************************************************************
 
    SUBROUTINE SRAWPT ( NREF, VOQR, VOQ, MXK, MYK )
+   USE swan_angle_conversions, ONLY: DEGCNV, ANGRAD, ANGDEG
+   USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
@@ -1047,7 +1056,6 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
       REAL    HSPT(10), TPPT(10), WLPT(10), DIRPT(10),&
       &DSPT(10), WFPT(10), STPT(10)
 
-      REAL    DEGCNV
 
 !  9. Subroutines calling
 !
@@ -1154,6 +1162,10 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !NCF   SUBROUTINE SWTABP (RTYPE , OQI  , OQR , IVTYP, PSNAME, MIP, VOQR,&
 !NNCF      SUBROUTINE SWTABP (RTYPE , OQI  , IVTYP, PSNAME, MIP, VOQR,&
       &VOQ, IONOD)
+!NCF         USE swan_service_interfaces, ONLY: STPNOW, STRACE
+!NNCF         USE swan_service_interfaces, ONLY: STPNOW, STRACE
+!NCF         USE swan_file_opening, ONLY: FOR
+!NNCF         USE swan_file_opening, ONLY: FOR
 !                                                                      *
 !************************************************************************
 
@@ -1164,7 +1176,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
          USE SWCOMM3
          USE SWCOMM4
          USE OUTP_DATA
-         USE TIMECOMM
+         USE swan_time, ONLY: default_time_context
          USE M_PARALL
 !NCF         USE swn_outnc, only: swn_outnc_openblockfile,&
 !NCF         &swn_outnc_appendblock,&
@@ -1296,7 +1308,6 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !     FOR
 !     TABHED (all Ocean Pack)
 
-         LOGICAL STPNOW
 
 !  9. Subroutines calling
 !
@@ -1578,6 +1589,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !************************************************************************
 !                                                                      *
       CHARACTER(LEN=8) FUNCTION SUHEAD (QUNIT)
+         USE swan_service_interfaces, ONLY: STRACE
 !                                                                      *
 !************************************************************************
 !
@@ -1686,6 +1698,9 @@ RETURN
 !                                                                      *
       SUBROUTINE SWSPEC (RTYPE, OQI, OQR, MIP, VOQR, VOQ, AC2, ACLOC,&
       &SPCSIG, SPCDIR, DEP2, KGRPNT, CROSS, IONOD)
+         USE swan_spectrum_output, ONLY: WRSPEC
+         USE swan_service_interfaces, ONLY: EQREAL, STPNOW, STRACE
+         USE swan_file_opening, ONLY: FOR
 !                                                                      *
 !************************************************************************
 
@@ -1803,7 +1818,6 @@ RETURN
 !     ANGDEG: Transforms degrees to radians
 !     SWCMSP
 
-         LOGICAL STPNOW
 
 !  9. Subroutines calling
 !
@@ -1838,7 +1852,6 @@ RETURN
          REAL      VOQ(MIP,*), AC2(MDC,MSC,MCGRD),&
          &ACLOC(*), DEP2(MCGRD)
          REAL      DEP, OFAC, UX, UY, XC, YC
-         LOGICAL   EQREAL
 !NCF         LOGICAL, SAVE :: NCF =.FALSE.
 
          INTEGER, SAVE :: IENT=0
@@ -2042,6 +2055,11 @@ RETURN
       &DEP       ,DEP2      ,UX        ,&
       &UY        ,ECOS      ,ESIN      ,&
       &OFAC      ,KGRPNT    ,CROSS     ,IERR         )
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_angle_conversions, ONLY: DEGCNV, ANGRAD, ANGDEG
+         USE swan_service_interfaces, ONLY: EQREAL, STRACE
+         USE swan_wave_physics, ONLY: KSCIP1
+         USE swan_action_interpolation, ONLY: SwanInterpolateAc
 !                                                                      *
 !************************************************************************
 
@@ -2184,9 +2202,7 @@ RETURN
          REAL      CG(1), K1(1), K2(1), N(1), ND(1), SIG1(1), SIG2(1)
          REAL      ACLL, DOMEG, DSIG, EADD, ECLL, EE, EX, EY, FF, OFAC
          REAL      OMEG1, OMEG2, OMEGA, OMEGB, RLOW, RR, RUPP, UDIR
-         REAL      DEGCNV
          LOGICAL EXCPT
-         LOGICAL EQREAL
          REAL, ALLOCATABLE :: ACL(:,:)
 
          IF (LTRACE) CALL STRACE(IENT,'SWCMSP')
@@ -2375,6 +2391,7 @@ RETURN
 !MatL4!
 !MatL4      SUBROUTINE SWRMAT ( MROWS , NCOLS, MATNAM, RDATA,&
 !MatL4      &IOUTMA, IREC , IDLA  , DUMVAL )
+!MatL4         USE swan_service_interfaces, ONLY: STRACE
 !MatL4!
 !MatL4!****************************************************************
 !MatL4!
@@ -2533,7 +2550,7 @@ RETURN
 !MatL4         INTEGER I, J, IF, IL, IOS, M, N
 !MatL4         INTEGER, SAVE :: IENT = 0
 !MatL4         INTEGER BVAL(4), IMAGF, ITYPE, NAMLEN, NANVAL
-!MatL4         CHARACTER(LEN=20) INTSTR, CHARS
+!MatL4         CHARACTER(LEN=20) CHARS
 !MatL4         CHARACTER(LEN=80) MSGSTR
 !MatL4!
 !MatL4!  8. Subroutines used
@@ -2669,6 +2686,7 @@ RETURN
 !MatL5!
 !MatL5      SUBROUTINE SWRMAT ( MROWS , NCOLS, MATNAM, RDATA,&
 !MatL5      &IOUTMA, IREC , IDLA  , DUMVAL )
+!MatL5         USE swan_service_interfaces, ONLY: STRACE
 !MatL5!
 !MatL5!****************************************************************
 !MatL5!

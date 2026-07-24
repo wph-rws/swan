@@ -1,4 +1,5 @@
 subroutine SwanVTKPDataSets ( upvt, pstype, nvar, ivtyp, mxk, myk, vtkfile, upvd, psname, iarr )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

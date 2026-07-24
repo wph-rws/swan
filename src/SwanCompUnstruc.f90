@@ -1,4 +1,5 @@
 subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -97,6 +98,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
     use SwanQCM
     use m_snl3
     use m_parall
+    use swan_fftw_compat, only: cfft2i
 !METIS    use SwanParallel
 
     implicit none

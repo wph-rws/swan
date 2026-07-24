@@ -1,4 +1,5 @@
 subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

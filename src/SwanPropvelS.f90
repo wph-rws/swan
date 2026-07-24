@@ -5,6 +5,7 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
                           sincos, sinsin, rdx   , rdy   , &
                           dhdx  , dhdy  , dkdx  , dkdy  , &
                           duxdx , duxdy , duydx , duydy )
+   USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

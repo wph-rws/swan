@@ -31,6 +31,8 @@
 !****************************************************************
 
 SUBROUTINE SWINITMPI
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_service_interfaces, ONLY: MSGERR, TXPBLA
 
 !****************************************************************
 !
@@ -105,7 +107,7 @@ SUBROUTINE SWINITMPI
 !     MSGSTR:     string to pass message to call MSGERR
 
    INTEGER      IERR, IF1, IF2, IL1, IL2
-   CHARACTER(LEN=20) INTSTR, CHARS(2)
+   CHARACTER(LEN=20) CHARS(2)
    CHARACTER(LEN=80) MSGSTR
 
 !  8. Subroutines used
@@ -327,6 +329,8 @@ end subroutine SWEXITMPI
 !****************************************************************
 
 SUBROUTINE SWSYNC
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
 
 !****************************************************************
 !
@@ -403,7 +407,7 @@ SUBROUTINE SWSYNC
 
    INTEGER, SAVE :: IENT = 0
    INTEGER      IERR, IF1, IF2, IL1, IL2
-   CHARACTER(LEN=20) INTSTR, CHARS(2)
+   CHARACTER(LEN=20) CHARS(2)
    CHARACTER(LEN=80) MSGSTR
 
 !  8. Subroutines used
@@ -450,984 +454,11 @@ SUBROUTINE SWSYNC
 end subroutine SWSYNC
 !****************************************************************
 
-SUBROUTINE SWSENDNB_LEGACY ( IPTR, ILEN, ITYPE, IDEST, ITAG )
-
 !****************************************************************
-!
-!MPI   USE MPI
-   USE OCPCOMM4
-   USE M_PARALL
-
-   IMPLICIT NONE
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.30: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.30, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     Data is sent to a neighbour
-!
-!  3. Method
-!
-!     Wrapper for MPI_SEND
-!
-!  4. Argument variables
-!
-!     IDEST       rank of the destination process
-!     ILEN        length of array to be sent
-!     IPTR        pointer to first element of array to be sent
-!     ITAG        message type
-!     ITYPE       type of data
-
-   INTEGER IPTR, ILEN, ITYPE, IDEST, ITAG
-
-!  5. Parameter variables
-!
-!     ---
-!
-!  6. Local variables
-!
-!     CHARS :     array to pass character info to MSGERR
-!     IENT  :     number of entries
-!     IERR  :     error value of MPI call
-!     IF1   :     first non-character in string1
-!     IF2   :     first non-character in string2
-!     IL1   :     last non-character in string1
-!     IL2   :     last non-character in string2
-!     MSGSTR:     string to pass message to call MSGERR
-
-   INTEGER, SAVE :: IENT = 0
-   INTEGER      IERR, IF1, IF2, IL1, IL2
-   CHARACTER(LEN=20) INTSTR, CHARS(2)
-   CHARACTER(LEN=80) MSGSTR
-
-!  8. Subroutines used
-!
-!     INTSTR           Converts integer to string
-!MPI!     MPI_SEND         Immediately sends the data in the active
-!MPI!                      MPI message buffer
-!     MSGERR           Writes error message
-!     STRACE           Tracing routine for debugging
-!     TXPBLA           Removes leading and trailing blanks in string
-!
-!  9. Subroutines calling
-!
-!     SWEXCHG
-!
-! 10. Error messages
-!
-!     ---
-!
-! 12. Structure
-!
-!MPI!     Data is sent to a neighbour with command MPI_SEND
-!
-! 13. Source text
-
-   IF (LTRACE) CALL STRACE (IENT,'SWSENDNB_LEGACY')
-
-!     --- if not parallel, return
-   IF (.NOT.PARLL) RETURN
-
-!MPI!NCOH   CALL MPI_SEND ( IPTR, ILEN, ITYPE, IDEST-1,&
-!MPI!NCOH   &ITAG, MPI_COMM_WORLD, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS(1) = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS(1),IF1,IL1)
-!MPI      CHARS(2) = INTSTR(INODE)
-!MPI      CALL TXPBLA(CHARS(2),IF2,IL2)
-!MPI      MSGSTR = 'MPI produces some internal error - '//&
-!MPI      &'return code is '//CHARS(1)(IF1:IL1)//&
-!MPI      &' and node number is '//CHARS(2)(IF2:IL2)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-
-   RETURN
-end subroutine SWSENDNB_LEGACY
-!****************************************************************
-
-SUBROUTINE SWRECVNB_LEGACY ( IPTR, ILEN, ITYPE, ISOURCE, ITAG )
-
-!****************************************************************
-!
-!MPI   USE MPI
-   USE OCPCOMM4
-   USE M_PARALL
-
-   IMPLICIT NONE
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.30: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.30, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     Data is received from a neighbour
-!
-!  3. Method
-!
-!     Wrapper for MPI_RECV
-!
-!  4. Argument variables
-!
-!     ILEN        length of array to be received
-!     IPTR        pointer to first element of array to be received
-!     ISOURCE     rank of the source process
-!     ITAG        message type
-!     ITYPE       type of data
-
-   INTEGER IPTR, ILEN, ITYPE, ISOURCE, ITAG
-
-!  5. Parameter variables
-!
-!     ---
-!
-!  6. Local variables
-!
-!     CHARS :     array to pass character info to MSGERR
-!     IENT  :     number of entries
-!     IERR  :     error value of MPI call
-!     IF1   :     first non-character in string1
-!     IF2   :     first non-character in string2
-!     IL1   :     last non-character in string1
-!     IL2   :     last non-character in string2
-!MPI!     ISTAT :     MPI status array
-!     MSGSTR:     string to pass message to call MSGERR
-
-   INTEGER, SAVE :: IENT = 0
-   INTEGER      IERR, IF1, IF2, IL1, IL2
-!MPI   INTEGER      ISTAT(MPI_STATUS_SIZE)
-   CHARACTER(LEN=20) INTSTR, CHARS(2)
-   CHARACTER(LEN=80) MSGSTR
-
-!  8. Subroutines used
-!
-!     INTSTR           Converts integer to string
-!MPI!     MPI_RECV         Immediately receives the data in the active
-!MPI!                      MPI message buffer
-!     MSGERR           Writes error message
-!     STRACE           Tracing routine for debugging
-!     TXPBLA           Removes leading and trailing blanks in string
-!
-!  9. Subroutines calling
-!
-!     SWEXCHG
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!MPI!     Data is received from a neighbour with command MPI_RECV
-!
-! 13. Source text
-
-   IF (LTRACE) CALL STRACE (IENT,'SWRECVNB_LEGACY')
-
-!     --- if not parallel, return
-   IF (.NOT.PARLL) RETURN
-
-!MPI!NCOH   CALL MPI_RECV ( IPTR, ILEN, ITYPE, ISOURCE-1, ITAG,&
-!MPI!NCOH   &MPI_COMM_WORLD, ISTAT, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS(1) = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS(1),IF1,IL1)
-!MPI      CHARS(2) = INTSTR(INODE)
-!MPI      CALL TXPBLA(CHARS(2),IF2,IL2)
-!MPI      MSGSTR = 'MPI produces some internal error - '//&
-!MPI      &'return code is '//CHARS(1)(IF1:IL1)//&
-!MPI      &' and node number is '//CHARS(2)(IF2:IL2)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-
-   RETURN
-end subroutine SWRECVNB_LEGACY
-!****************************************************************
-
-SUBROUTINE SWBROADC_LEGACY ( IPTR, ILEN, ITYPE )
-
-!****************************************************************
-!
-!MPI   USE MPI
-   USE OCPCOMM4
-   USE M_PARALL
-
-   IMPLICIT NONE
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.30: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.30, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     Broadcasts data from the master to all other processes
-!
-!  3. Method
-!
-!     Wrapper for MPI_BCAST
-!
-!  4. Argument variables
-!
-!     ILEN        length of array to be sent
-!     IPTR        pointer to first element of array to be sent
-!     ITYPE       type of data
-
-   INTEGER IPTR, ILEN, ITYPE
-
-!  5. Parameter variables
-!
-!     ---
-!
-!  6. Local variables
-!
-!     CHARS :     character for passing info to MSGERR
-!     IENT  :     number of entries
-!     IERR  :     error value of MPI call
-!     IF    :     first non-character in string
-!     IL    :     last non-character in string
-!     MSGSTR:     string to pass message to call MSGERR
-
-   INTEGER, SAVE :: IENT = 0
-   INTEGER      IERR, IF, IL
-   CHARACTER(LEN=20) INTSTR, CHARS
-   CHARACTER(LEN=80) MSGSTR
-
-!  8. Subroutines used
-!
-!     INTSTR           Converts integer to string
-!MPI!     MPI_BCAST        Broadcasts a message from the master
-!MPI!                      to all other processes of the group
-!     MSGERR           Writes error message
-!     STRACE           Tracing routine for debugging
-!TIMG!     SWTSTA           Start timing for a section of code
-!TIMG!     SWTSTO           Stop timing for a section of code
-!     TXPBLA           Removes leading and trailing blanks in string
-!
-!  9. Subroutines calling
-!
-!     SNEXTI
-!     FLFILE
-!
-! 10. Error messages
-!
-!     ---
-!
-! 12. Structure
-!
-!MPI!     Broadcasts data from the master to all other nodes
-!MPI!     with command MPI_BCAST
-!
-! 13. Source text
-
-   IF (LTRACE) CALL STRACE (IENT,'SWBROADC_LEGACY')
-
-!     --- if not parallel, return
-   IF (.NOT.PARLL) RETURN
-
-!TIMG   CALL SWTSTA(201)
-!MPI!NCOH   CALL MPI_BCAST ( IPTR, ILEN, ITYPE, MASTER-1,&
-!MPI!NCOH   &MPI_COMM_WORLD, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS,IF,IL)
-!MPI      MSGSTR = 'MPI produces some internal error - '//&
-!MPI      &'return code is '//CHARS(IF:IL)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-!TIMG   CALL SWTSTO(201)
-
-   RETURN
-end subroutine SWBROADC_LEGACY
-!****************************************************************
-
-SUBROUTINE SWGATHER_LEGACY ( IOPTR, IOLEN, IIPTR, IILEN, ITYPE )
-
-!****************************************************************
-!
-!MPI   USE MPI
-   USE OCPCOMM4
-   USE M_PARALL
-
-   IMPLICIT NONE
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.30: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.30, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     Gathers different amounts of data from each processor
-!     to the master
-!
-!  3. Method
-!
-!     Wrapper for MPI_GATHERV
-!
-!  4. Argument variables
-!
-!     IILEN       length of input array
-!     IIPTR       pointer to first element of input array (local)
-!     IOLEN       length of output array
-!     IOPTR       pointer to first element of output array (global)
-!     ITYPE       type of data
-
-   INTEGER IILEN, IIPTR, IOLEN, IOPTR, ITYPE
-
-!  5. Parameter variables
-!
-!     ---
-!
-!  6. Local variables
-!
-!     CHARS :     character for passing info to MSGERR
-!     I     :     loop counter
-!     ICOUNT:     array specifying array size of data received
-!                 from each processor
-!     IDSPLC:     array specifying the starting address of the
-!                 incoming data from each processor, relative
-!                 to the global array
-!     IENT  :     number of entries
-!     IERR  :     error value of MPI call
-!     IF    :     first non-character in string
-!     IL    :     last non-character in string
-!     MSGSTR:     string to pass message to call MSGERR
-
-   INTEGER, SAVE :: IENT = 0
-   INTEGER                 I, IERR, IF, IL
-   INTEGER, ALLOCATABLE :: ICOUNT(:), IDSPLC(:)
-   CHARACTER(LEN=20)            INTSTR, CHARS
-   CHARACTER(LEN=80)            MSGSTR
-
-!  8. Subroutines used
-!
-!     INTSTR           Converts integer to string
-!MPI!     MPI_GATHER       Gathers data from all nodes to the master
-!MPI!     MPI_GATHERV      Gathers different amounts of data from
-!MPI!                      all nodes to the master
-!     MSGERR           Writes error message
-!     STRACE           Tracing routine for debugging
-!     TXPBLA           Removes leading and trailing blanks in string
-!
-!  9. Subroutines calling
-!
-! 10. Error messages
-!
-!     ---
-!
-! 12. Structure
-!
-!     if not parallel, return
-!
-!MPI!     gather the array sizes to the master
-!MPI!
-!     check whether enough space has been allocated
-!     for gathered data
-!
-!     calculate starting address of each local array
-!     with respect to the global array
-!
-!MPI!     gather different amounts of data from each processor
-!MPI!     to the master
-!MPI!
-! 13. Source text
-
-   IF (LTRACE) CALL STRACE (IENT,'SWGATHER_LEGACY')
-
-!     --- if not parallel, return
-   IF (.NOT.PARLL) RETURN
-
-   IF (IAMMASTER) THEN
-      ALLOCATE(ICOUNT(0:NPROC-1))
-      ALLOCATE(IDSPLC(0:NPROC-1))
-   END IF
-
-!MPI!     --- gather the array sizes to the master
-!MPI
-!MPI!NCOH   CALL MPI_GATHER( IILEN, 1, SWINT, ICOUNT, 1, SWINT,&
-!MPI!NCOH   &MASTER-1, MPI_COMM_WORLD, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS,IF,IL)
-!MPI      MSGSTR = 'MPI produces some internal error - '//&
-!MPI      &'return code is '//CHARS(IF:IL)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-!
-!     --- check whether enough space has been allocated
-!         for gathered data
-
-   IF (IAMMASTER) THEN
-      IF ( SUM(ICOUNT).GT.IOLEN ) THEN
-         CALL MSGERR(4,&
-         &'Not enough space allocated for gathered data')
-         RETURN
-      END IF
-   END IF
-
-!     --- calculate starting address of each local array
-!         with respect to the global array
-
-   IF (IAMMASTER) THEN
-      IDSPLC(0) = 0
-      DO I = 1, NPROC-1
-         IDSPLC(I) = ICOUNT(I-1) + IDSPLC(I-1)
-      END DO
-   END IF
-
-!MPI!     --- gather different amounts of data from each processor
-!MPI!         to the master
-!MPI
-!MPI!NCOH   CALL MPI_GATHERV( IIPTR, IILEN, ITYPE, IOPTR, ICOUNT, IDSPLC,&
-!MPI!NCOH   &ITYPE, MASTER-1, MPI_COMM_WORLD, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS,IF,IL)
-!MPI      MSGSTR = 'MPI produces some internal error - '//&
-!MPI      &'return code is '//CHARS(IF:IL)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-
-   IF (IAMMASTER) DEALLOCATE(ICOUNT,IDSPLC)
-
-   RETURN
-end subroutine SWGATHER_LEGACY
-!****************************************************************
-
-SUBROUTINE SWREDUCE_LEGACY ( IPTR, ILEN, ITYPE, ITYPRD )
-
-!****************************************************************
-
-   USE OCPCOMM4
-   USE M_PARALL
-
-   IMPLICIT NONE
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.30: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!     40.96: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.30, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!     40.96, Dec. 08: call SWREDUCI/R instead of passing startaddress of the array
-!
-!  2. Purpose
-!
-!     Performs a global reduction of type ITYPRD on
-!     array (IPTR) of type ITYPE to collect values from
-!     all processes
-!
-!  4. Argument variables
-!
-!     ILEN        length of array to be collect
-!     IPTR        pointer to first element of array to be collect
-!     ITYPE       type of data
-!     ITYPRD      type of reduction
-
-   INTEGER IPTR, ILEN, ITYPE, ITYPRD
-
-!  5. Parameter variables
-!
-!     ---
-!
-!  6. Local variables
-!
-!     IENT  :     number of entries
-
-   INTEGER, SAVE :: IENT = 0
-   INTEGER VALUES(1)
-
-!  8. Subroutines used
-!
-!     STRACE           Tracing routine for debugging
-!
-!  9. Subroutines calling
-!
-!     SWCOMP
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!     Performs a global reduction of data across all nodes
-!
-! 13. Source text
-
-   IF (LTRACE) CALL STRACE (IENT,'SWREDUCE_LEGACY')
-
-!     --- if not parallel, return
-   IF (.NOT.PARLL) RETURN
-
-!     --- actual reduction of field array based on its type
-   IF ( ITYPE.EQ.SWINT ) THEN
-      VALUES(1) = IPTR
-      CALL SWREDUCI ( VALUES, ILEN, ITYPRD )
-      IPTR = VALUES(1)
-   END IF
-
-   RETURN
-end subroutine SWREDUCE_LEGACY
-!****************************************************************
-
-SUBROUTINE SWREDUCI ( IARR, ILEN, ITYPRD )
-
-!****************************************************************
-!
-!MPI   USE MPI
-   USE OCPCOMM4
-   USE M_PARALL
-
-   IMPLICIT NONE
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.96: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.96, Dec. 08: New subroutine
-!
-!  2. Purpose
-!
-!     Performs a global reduction of type ITYPRD on integer
-!     array IARR to collect values from all processes
-!
-!  3. Method
-!
-!     Wrapper for MPI_ALLREDUCE
-!
-!  4. Argument variables
-!
-!     IARR        integer array
-!     ILEN        length of array to be collect
-!     ITYPRD      type of reduction
-
-   INTEGER, INTENT(IN)    :: ILEN, ITYPRD
-   INTEGER, INTENT(INOUT) :: IARR(ILEN)
-
-!  6. Local variables
-!
-!     CHARS :     character for passing info to MSGERR
-!     IENT  :     number of entries
-!     IERR  :     error value of MPI call
-!     IF    :     first non-character in string
-!     IL    :     last non-character in string
-!     ITEMP :     temporary array to store collected data
-!     MSGSTR:     string to pass message to call MSGERR
-
-   INTEGER, SAVE :: IENT = 0
-   INTEGER      IERR, IF, IL
-   CHARACTER(LEN=20) INTSTR, CHARS
-   CHARACTER(LEN=80) MSGSTR
-
-   INTEGER, ALLOCATABLE :: ITEMP(:)
-
-!  8. Subroutines used
-!
-!     INTSTR           Converts integer to string
-!MPI!     MPI_ALLREDUCE    Combines values from all processes and
-!MPI!                      distribute the result back to all processes
-!     MSGERR           Writes error message
-!     STRACE           Tracing routine for debugging
-!TIMG!     SWTSTA           Start timing for a section of code
-!TIMG!     SWTSTO           Stop timing for a section of code
-!     TXPBLA           Removes leading and trailing blanks in string
-!
-!  9. Subroutines calling
-!
-!     SWREDUCE
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!MPI!     Performs a global reduction of integers across all nodes
-!MPI!     with command MPI_ALLREDUCE
-!
-! 13. Source text
-
-   IF (LTRACE) CALL STRACE (IENT,'SWREDUCI')
-
-   IF (.NOT.PARLL) RETURN
-
-   ALLOCATE(ITEMP(ILEN))
-
-!TIMG   CALL SWTSTA(202)
-!MPI!NCOH   CALL MPI_ALLREDUCE ( IARR, ITEMP, ILEN, SWINT,&
-!MPI!NCOH   &ITYPRD, MPI_COMM_WORLD, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS,IF,IL)
-!MPI      MSGSTR = 'MPI produces some internal error - '//&
-!MPI      &'return code is '//CHARS(IF:IL)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-   IARR = ITEMP
-!TIMG   CALL SWTSTO(202)
-
-   DEALLOCATE(ITEMP)
-
-   RETURN
-end subroutine SWREDUCI
-!****************************************************************
-
-SUBROUTINE SWREDUCR ( ARR, ILEN, ITYPRD )
-
-!****************************************************************
-!
-!MPI   USE MPI
-   USE OCPCOMM4
-   USE M_PARALL
-
-   IMPLICIT NONE
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.96: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.96, Dec. 08: New subroutine
-!
-!  2. Purpose
-!
-!     Performs a global reduction of type ITYPRD on real
-!     array ARR to collect values from all processes
-!
-!  3. Method
-!
-!     Wrapper for MPI_ALLREDUCE
-!
-!  4. Argument variables
-!
-!     ARR         real array
-!     ILEN        length of array to be collect
-!     ITYPRD      type of reduction
-
-   INTEGER, INTENT(IN) :: ILEN, ITYPRD
-   REAL, INTENT(INOUT) :: ARR(ILEN)
-
-!  6. Local variables
-!
-!     CHARS :     character for passing info to MSGERR
-!     IENT  :     number of entries
-!     IERR  :     error value of MPI call
-!     IF    :     first non-character in string
-!     IL    :     last non-character in string
-!     MSGSTR:     string to pass message to call MSGERR
-!     TEMP  :     temporary array to store collected data
-
-   INTEGER, SAVE :: IENT = 0
-   INTEGER      IERR, IF, IL
-   CHARACTER(LEN=20) INTSTR, CHARS
-   CHARACTER(LEN=80) MSGSTR
-
-   REAL, ALLOCATABLE :: TEMP(:)
-
-!  8. Subroutines used
-!
-!     INTSTR           Converts integer to string
-!MPI!     MPI_ALLREDUCE    Combines values from all processes and
-!MPI!                      distribute the result back to all processes
-!     MSGERR           Writes error message
-!     STRACE           Tracing routine for debugging
-!TIMG!     SWTSTA           Start timing for a section of code
-!TIMG!     SWTSTO           Stop timing for a section of code
-!     TXPBLA           Removes leading and trailing blanks in string
-!
-!  9. Subroutines calling
-!
-!     SWREDUCE
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!MPI!     Performs a global reduction of reals across all nodes
-!MPI!     with command MPI_ALLREDUCE
-!
-! 13. Source text
-
-   IF (LTRACE) CALL STRACE (IENT,'SWREDUCR')
-
-   IF (.NOT.PARLL) RETURN
-
-   ALLOCATE(TEMP(ILEN))
-
-!TIMG   CALL SWTSTA(202)
-!MPI!NCOH   CALL MPI_ALLREDUCE ( ARR, TEMP, ILEN, SWREAL,&
-!MPI!NCOH   &ITYPRD, MPI_COMM_WORLD, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS,IF,IL)
-!MPI      MSGSTR = 'MPI produces some internal error - '//&
-!MPI      &'return code is '//CHARS(IF:IL)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-   ARR = TEMP
-!TIMG   CALL SWTSTO(202)
-
-   DEALLOCATE(TEMP)
-
-   RETURN
-end subroutine SWREDUCR
 !WFR!****************************************************************
 !WFR!
 !WFRSUBROUTINE SWSTRIP ( IPOWN, IDIR, NPART, IWORK, MXC, MYC )
+!WFR   USE swan_service_interfaces, ONLY: STRACE
 !WFR!
 !WFR!****************************************************************
 !WFR!
@@ -1628,6 +659,7 @@ end subroutine SWREDUCR
 !JAC!
 !JACSUBROUTINE SWSTRIP ( IPOWN, IDIR, IPART, NPART, LPARTS,&
 !JAC&MXC  , MYC )
+!JAC   USE swan_service_interfaces, ONLY: STRACE
 !JAC!
 !JAC!****************************************************************
 !JAC!
@@ -1863,6 +895,7 @@ end subroutine SWREDUCR
 !JAC!
 !JACSUBROUTINE SWORB ( IPOWN, IDIR, IPART, NPART, LPARTS,&
 !JAC&MXC  , MYC )
+!JAC   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 !JAC!
 !JAC!****************************************************************
 !JAC!
@@ -2125,6 +1158,7 @@ end subroutine SWREDUCR
 !****************************************************************
 
 SUBROUTINE SWPARTIT ( IPOWN, MXC, MYC )
+   USE swan_service_interfaces, ONLY: STRACE, STPNOW
 
 !****************************************************************
 
@@ -2220,7 +1254,6 @@ SUBROUTINE SWPARTIT ( IPOWN, MXC, MYC )
 !WFR!     SWSTRIP          Performs a stripwise partitioning with straight
 !WFR!                      interfaces
 
-   LOGICAL STPNOW
 
 !  9. Subroutines calling
 !
@@ -2293,6 +1326,8 @@ end subroutine SWPARTIT
 !****************************************************************
 
 SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
 
 !****************************************************************
 
@@ -2404,7 +1439,7 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
    INTEGER      IWORK(3,NPROC),&
    &ICRECV(NPROC,MAX(MXC,MYC)),&
    &ICSEND(NPROC,MAX(MXC,MYC))
-   CHARACTER(LEN=20) INTSTR, CHARS
+   CHARACTER(LEN=20) CHARS
    CHARACTER(LEN=80) MSGSTR
 
 !  8. Subroutines used
@@ -2634,6 +1669,7 @@ end subroutine SWBLADM
 !****************************************************************
 
 SUBROUTINE SWDECOMP
+   USE swan_service_interfaces, ONLY: STRACE, STPNOW
 
 !****************************************************************
 
@@ -2716,7 +1752,6 @@ SUBROUTINE SWDECOMP
 !     SWPARTIT         Carries out the partitioning of the SWAN
 !                      computational grid
 
-   LOGICAL STPNOW
 
 !  9. Subroutines calling
 !
@@ -2798,6 +1833,7 @@ end subroutine SWDECOMP
 !JAC!****************************************************************
 !JAC!
 !JACSUBROUTINE SWEXCHG ( FIELD, SWPDIR, KGRPNT )
+!JAC   USE swan_service_interfaces, ONLY: STRACE, STPNOW
 !JAC!
 !JAC!****************************************************************
 !JAC!
@@ -2902,7 +1938,6 @@ end subroutine SWDECOMP
 !JAC!TIMG!     SWTSTA           Start timing for a section of code
 !JAC!TIMG!     SWTSTO           Stop timing for a section of code
 !JAC!
-!JAC   LOGICAL STPNOW
 !JAC!
 !JAC!  9. Subroutines calling
 !JAC!
@@ -3027,6 +2062,7 @@ end subroutine SWDECOMP
 !WFR!****************************************************************
 !WFR!
 !WFRSUBROUTINE SWEXCHG ( FIELD, KGRPNT )
+!WFR   USE swan_service_interfaces, ONLY: STRACE, STPNOW
 !WFR!
 !WFR!****************************************************************
 !WFR!
@@ -3120,7 +2156,6 @@ end subroutine SWDECOMP
 !WFR!TIMG!     SWTSTA           Start timing for a section of code
 !WFR!TIMG!     SWTSTO           Stop timing for a section of code
 !WFR!
-!WFR   LOGICAL STPNOW
 !WFR!
 !WFR!  9. Subroutines calling
 !WFR!
@@ -3214,6 +2249,7 @@ end subroutine SWDECOMP
 !WFR!****************************************************************
 !WFR!
 !WFRSUBROUTINE SWRECVAC ( AC2, IS, J, SWPDIR, KGRPNT )
+!WFR   USE swan_service_interfaces, ONLY: STRACE, STPNOW
 !WFR!
 !WFR!****************************************************************
 !WFR!
@@ -3306,7 +2342,6 @@ end subroutine SWDECOMP
 !WFR!     STRACE           Tracing routine for debugging
 !WFR!     SWRECVNB         Data is received from a neighbour
 !WFR!
-!WFR   LOGICAL STPNOW
 !WFR!
 !WFR!  9. Subroutines calling
 !WFR!
@@ -3377,6 +2412,7 @@ end subroutine SWDECOMP
 !WFR!****************************************************************
 !WFR!
 !WFRSUBROUTINE SWSENDAC ( AC2, IE, J, SWPDIR, KGRPNT )
+!WFR   USE swan_service_interfaces, ONLY: STRACE, STPNOW
 !WFR!
 !WFR!****************************************************************
 !WFR!
@@ -3469,7 +2505,6 @@ end subroutine SWDECOMP
 !WFR!     STRACE           Tracing routine for debugging
 !WFR!     SWSENDNB         Data is sent to a neighbour
 !WFR!
-!WFR   LOGICAL STPNOW
 !WFR!
 !WFR!  9. Subroutines calling
 !WFR!
@@ -3540,6 +2575,7 @@ end subroutine SWDECOMP
 !****************************************************************
 
 SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
+   USE swan_service_interfaces, ONLY: STRACE, STPNOW
 
 !****************************************************************
 
@@ -3645,7 +2681,6 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
 !     STRACE           Tracing routine for debugging
 !     SWGATHER         Gathers different amounts of data from all nodes
 
-   LOGICAL STPNOW
 
 !  9. Subroutines calling
 !
@@ -3818,10 +2853,12 @@ end subroutine SWCOLLECT
 !****************************************************************
 
 SUBROUTINE SWCOLOUT ( OURQT, BLKND )
+   USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL, STPNOW
 
 !****************************************************************
 
-   USE TIMECOMM
+   USE swan_time, ONLY: default_time_context
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -3948,7 +2985,6 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
    CHARACTER(LEN=1)  :: PSTYPE
    CHARACTER(LEN=4)  :: RTYPE
    CHARACTER(LEN=8)  :: SNAMPF
-   CHARACTER(LEN=18) :: DTTIWR
    TYPE(ORQDAT), POINTER :: CORQ
    TYPE(OPSDAT), POINTER :: CUOPS
 
@@ -3963,7 +2999,6 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
 !     SWCOLTAB         Collects table ouput
 !     SWOEXC           Computes coordinates of output points
 
-   LOGICAL   EQREAL, STPNOW
 
 !  9. Subroutines calling
 !
@@ -4008,16 +3043,16 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
          IT0 = 1
       END IF
       IT1   = NINT(RCOMPT(IC,2))
-      TFINC = RCOMPT(IC,3)
-      TINIC = RCOMPT(IC,4)
-      DT    = RCOMPT(IC,5)
-      TIMCO = TINIC
+      default_time_context%TFINC = RCOMPT(IC,3)
+      default_time_context%TINIC = RCOMPT(IC,4)
+      default_time_context%DT    = RCOMPT(IC,5)
+      default_time_context%TIMCO = default_time_context%TINIC
 
 !        --- do for all time steps
 
       DO IT = IT0, IT1
 
-         IF (NSTATM.GT.0) CHTIME = DTTIWR(ITMOPT, TIMCO)
+         IF (NSTATM.GT.0) CHTIME = DTTIWR(ITMOPT, default_time_context%TIMCO)
 
 !           --- do for all output requests
 
@@ -4030,18 +3065,18 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
 !
 !              --- check time of output action
 
-            DIF = TFINC - TIMCO
+            DIF = default_time_context%TFINC - default_time_context%TIMCO
             IF ( IT.EQ.IT0 .AND. IC.EQ.1 ) THEN
                CORQ%OQR(1) = OURQT(IRQ)
             END IF
-            IF (CORQ%OQR(1).LT.TINIC) THEN
-               TNEXT = TINIC
+            IF (CORQ%OQR(1).LT.default_time_context%TINIC) THEN
+               TNEXT = default_time_context%TINIC
             ELSE
                TNEXT = CORQ%OQR(1)
             ENDIF
-            IF ( ABS(DIF).LT.0.5*DT .AND. CORQ%OQR(2).LT.0. ) THEN
-               CORQ%OQR(1) = TIMCO
-            ELSE IF ( CORQ%OQR(2).GT.0. .AND. TIMCO.GE.TNEXT ) THEN
+            IF ( ABS(DIF).LT.0.5*default_time_context%DT .AND. CORQ%OQR(2).LT.0. ) THEN
+               CORQ%OQR(1) = default_time_context%TIMCO
+            ELSE IF ( CORQ%OQR(2).GT.0. .AND. default_time_context%TIMCO.GE.TNEXT ) THEN
                CORQ%OQR(1) = TNEXT + CORQ%OQR(2)
             ELSE
                EXIT request_processing
@@ -4228,7 +3263,7 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
 
          end do output_request_loop
 
-         IF ( NSTATC.EQ.1.AND.IT.LT.IT1 ) TIMCO = TIMCO + DT
+         IF ( NSTATC.EQ.1.AND.IT.LT.IT1 ) default_time_context%TIMCO = default_time_context%TIMCO + default_time_context%DT
 
       END DO
 
@@ -4251,6 +3286,7 @@ end subroutine SWCOLOUT
 
 SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
 &XC   , YC , XP   , YP )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, EQREAL
 
 !****************************************************************
 
@@ -4365,7 +3401,7 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
    &IUT, IVTYPE, IXK, IYK, JVAR, LFIELD, NLINES,&
    &NREF, NUMDEC, NVAR
    REAL          RVAL1, RVAL2
-   LOGICAL       EXIST, OPENED, EQREAL
+      LOGICAL :: EXIST, OPENED
    CHARACTER(LEN=80)  MSGSTR
    CHARACTER(LEN=18)  FSTR
    CHARACTER(LEN=512) OUTLIN
@@ -4596,6 +3632,7 @@ end subroutine SWCOLTAB
 !****************************************************************
 
 SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, EQREAL
 
 !****************************************************************
 
@@ -4709,7 +3746,7 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
    INTEGER       I, IBLKN, IF, IL, ILPOS, IP, IPROC, IS,&
    &IUNIT, IUT, IXK, IYK, NLINES, NREF, OTYPE
    REAL          RVAL1, RVAL2
-   LOGICAL       EMPTY, EXIST, OPENED, EQREAL
+      LOGICAL :: EMPTY, EXIST, OPENED
 !NCF   LOGICAL, SAVE :: NCF = .FALSE.
    CHARACTER(LEN=80)  MSGSTR
    CHARACTER (LEN=LENSPO) OUTLIN
@@ -4723,7 +3760,6 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 !NCF!     swn_outnc_colspc Collect spectral output for netcdf
 !     TXPBLA           Removes leading and trailing blanks in string
 !
-!NCF   LOGICAL STPNOW
 !
 !  9. Subroutines calling
 !
@@ -4984,6 +4020,8 @@ end subroutine SWCOLSPC
 SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
 &PSNAME, MXK, MYK, IRQ  , BLKND,&
 &XC    , YC )
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, EQREAL
 
 !****************************************************************
 
@@ -5118,7 +4156,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
    &NVAR
    REAL         DFAC, FMAX, FTIP, FTIP1, FTIP2
    REAL         RVAL1, RVAL2
-   LOGICAL      EXIST, OPENED, EQREAL
+      LOGICAL :: EXIST, OPENED
    INTEGER, SAVE :: IREC(MAX_OUTP_REQ)=0
    LOGICAL, SAVE :: MATLAB=.FALSE.
 !NCF   LOGICAL, SAVE :: NCF   =.FALSE.
@@ -5491,6 +4529,7 @@ end subroutine SWCOLBLK
 !JAC!****************************************************************
 !JAC!
 !JACSUBROUTINE SWBLKCOL ( MCOLR, KGRPNT )
+!JAC   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
 !JAC!
 !JAC!****************************************************************
 !JAC!
@@ -5591,7 +4630,7 @@ end subroutine SWCOLBLK
 !JAC!
 !JAC   INTEGER      ICOLNB, ICONV, IF, IL, ITER, IXCOL, IYCOL
 !JAC   INTEGER, SAVE :: IENT = 0
-!JAC   CHARACTER(LEN=20) INTSTR, CHARS
+!JAC   CHARACTER(LEN=20) CHARS
 !JAC   CHARACTER(LEN=80) MSGSTR
 !JAC   REAL, ALLOCATABLE :: XCOL(:), YCOL(:)
 !JAC!

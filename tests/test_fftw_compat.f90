@@ -1,6 +1,7 @@
 program test_fftw_compat
 
    use, intrinsic :: iso_fortran_env, only: real64
+   use swan_fftw_compat, only: cfft2b, cfft2f, cfft2i
 
    implicit none
 

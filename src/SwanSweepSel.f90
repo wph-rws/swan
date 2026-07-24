@@ -2,6 +2,7 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
                           iddlow, iddtop, idtot , isslow, isstop, &
                           istot , cax   , cay   , rdx   , rdy   , &
                           spcsig)
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

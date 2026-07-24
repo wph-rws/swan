@@ -1,4 +1,21 @@
 set( swan_src
+${SWAN_GENERATED_SRC}/swan_kinds.f90
+${SWAN_GENERATED_SRC}/swan_service_interfaces.f90
+${SWAN_GENERATED_SRC}/swan_wave_physics.f90
+${SWAN_GENERATED_SRC}/swan_grid_point_validation.f90
+${SWAN_GENERATED_SRC}/swan_file_opening.f90
+${SWAN_GENERATED_SRC}/swan_array_copy.f90
+${SWAN_GENERATED_SRC}/swan_spectrum_output.f90
+${SWAN_GENERATED_SRC}/swan_coordinate_input.f90
+${SWAN_GENERATED_SRC}/swan_angle_conversions.f90
+${SWAN_GENERATED_SRC}/swan_number_formatting.f90
+${SWAN_GENERATED_SRC}/swan_time.f90
+${SWAN_GENERATED_SRC}/swan_spectrum_transform.f90
+${SWAN_GENERATED_SRC}/swan_input_point_validation.f90
+${SWAN_GENERATED_SRC}/swan_triads.f90
+${SWAN_GENERATED_SRC}/swan_field_file_update.f90
+${SWAN_GENERATED_SRC}/swan_geometry.f90
+${SWAN_GENERATED_SRC}/swan_legacy_io.f90
 ${SWAN_GENERATED_SRC}/swmod1.f90
 ${SWAN_GENERATED_SRC}/swmod2.f90
 ${SWAN_GENERATED_SRC}/SwanSpectPart.f90
@@ -56,8 +73,10 @@ ${SWAN_GENERATED_SRC}/SwanGSECorr.f90
 ${SWAN_GENERATED_SRC}/SwanGradDepthorK.f90
 ${SWAN_GENERATED_SRC}/SwanGradVel.f90
 ${SWAN_GENERATED_SRC}/SwanInterpolatePoint.f90
+${SWAN_GENERATED_SRC}/swan_input_interpolation.f90
 ${SWAN_GENERATED_SRC}/SwanInterpolateAc.f90
 ${SWAN_GENERATED_SRC}/SwanInterpolateOutput.f90
+${SWAN_GENERATED_SRC}/swan_structured_output_interpolation.f90
 ${SWAN_GENERATED_SRC}/SwanConvAccur.f90
 ${SWAN_GENERATED_SRC}/SwanConvStopc.f90
 ${SWAN_GENERATED_SRC}/SwanFindObstacles.f90

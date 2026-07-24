@@ -45,7 +45,13 @@ def find_executable(case_directory: Path, requested: str | None) -> Path:
     )
 
 
-def run(executable: Path, case_directory: Path) -> None:
+def run(
+    executable: Path,
+    case_directory: Path,
+    mpi_executable: str | None = None,
+    mpi_processes: int = 1,
+    mpi_numproc_flag: str = "-n",
+) -> None:
     for name in GENERATED_FILES:
         path = case_directory / name
         if path.is_file() or path.is_symlink():
@@ -53,9 +59,17 @@ def run(executable: Path, case_directory: Path) -> None:
 
     input_file = case_directory / "INPUT"
     shutil.copyfile(case_directory / "quick_test.swn", input_file)
+    command = [str(executable)]
+    if mpi_processes > 1:
+        launcher = mpi_executable or shutil.which("mpiexec")
+        if not launcher:
+            raise FileNotFoundError(
+                "MPI launcher not found; pass --mpi-exec /path/to/mpiexec."
+            )
+        command = [launcher, mpi_numproc_flag, str(mpi_processes), str(executable)]
     started = time.monotonic()
     try:
-        result = subprocess.run([executable], cwd=case_directory, check=False)
+        result = subprocess.run(command, cwd=case_directory, check=False)
     finally:
         input_file.unlink(missing_ok=True)
     elapsed = time.monotonic() - started
@@ -89,13 +103,46 @@ def main() -> int:
         "--swan-executable",
         help="path to swan.exe (default: build/bin/swan.exe or PATH)",
     )
+    parser.add_argument(
+        "--work-directory",
+        help="run in this directory instead of writing results beside the example",
+    )
+    parser.add_argument("--mpi-exec", help="MPI launcher, for example mpiexec")
+    parser.add_argument(
+        "--mpi-processes",
+        type=int,
+        default=1,
+        help="number of MPI processes (default: 1)",
+    )
+    parser.add_argument(
+        "--mpi-numproc-flag",
+        default="-n",
+        help="launcher option used before the process count (default: -n)",
+    )
     arguments = parser.parse_args()
-    case_directory = Path(__file__).resolve().parent
+    source_directory = Path(__file__).resolve().parent
+    case_directory = (
+        Path(arguments.work_directory).expanduser().resolve()
+        if arguments.work_directory
+        else source_directory
+    )
 
     try:
-        executable = find_executable(case_directory, arguments.swan_executable)
-        run(executable, case_directory)
-    except (FileNotFoundError, OSError, RuntimeError) as error:
+        executable = find_executable(source_directory, arguments.swan_executable)
+        if case_directory != source_directory:
+            case_directory.mkdir(parents=True, exist_ok=True)
+            for name in ("quick_test.swn", "bottom.bot"):
+                shutil.copy2(source_directory / name, case_directory / name)
+        if arguments.mpi_processes < 1:
+            raise ValueError("--mpi-processes must be positive")
+        run(
+            executable,
+            case_directory,
+            arguments.mpi_exec,
+            arguments.mpi_processes,
+            arguments.mpi_numproc_flag,
+        )
+    except (FileNotFoundError, OSError, RuntimeError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
     return 0

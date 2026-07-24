@@ -1,4 +1,5 @@
 logical function SwanCrossObstacle ( xv, yv, xobs, yobs )
+   USE swan_service_interfaces, ONLY: EQREAL, STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -70,7 +71,6 @@ logical function SwanCrossObstacle ( xv, yv, xobs, yobs )
     real                           :: p        ! dummy variable
     real                           :: q        ! dummy variable
 
-    logical                        :: EQREAL   ! indicate whether two reals are equal or not
 
 !   Structure
 !

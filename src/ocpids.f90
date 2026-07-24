@@ -5,10 +5,12 @@
 !*****************************************************************
 !                                                                *
 SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
+   USE swan_input_parser, ONLY: RDINIT
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, TXPBLA
 !                                                                *
 !*****************************************************************
 
-   USE OCPCOMM1
+   USE swan_input_parser, ONLY: default_command_reader
    USE OCPCOMM2
    USE OCPCOMM3
    USE OCPCOMM4
@@ -102,7 +104,6 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
    INTEGER :: PFROPT
    REAL :: PLPARM(10)
    INTEGER :: NUMM(10)
-   LOGICAL :: STPNOW
 
 !     version of initialisation file
    INIVER = 4
@@ -149,9 +150,9 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
       IF (initialisation_read_failed(IOSTAT)) RETURN
       READ (11, *, IOSTAT=IOSTAT) IUNMAX
       IF (initialisation_read_failed(IOSTAT)) RETURN
-      READ (11, "(A1)", IOSTAT=IOSTAT) COMID
+      READ (11, "(A1)", IOSTAT=IOSTAT) default_command_reader%COMID
       IF (initialisation_read_failed(IOSTAT)) RETURN
-      READ (11, "(A1)", IOSTAT=IOSTAT) TABC
+      READ (11, "(A1)", IOSTAT=IOSTAT) default_command_reader%TABC
       IF (initialisation_read_failed(IOSTAT)) RETURN
       IF (INIVEF.GE.2) THEN
          READ (11, "(A1)", IOSTAT=IOSTAT) DIRCH1
@@ -215,9 +216,9 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
       IUNMAX = 99999
 !/SGI      IUNMAX = 199
 !       TABC is the Tab character (interpreted as blank in command reading)
-      TABC = CHAR(9)
+      default_command_reader%TABC = CHAR(9)
 !       COMID is the comment identifier (usually $)
-      COMID  = '$'
+      default_command_reader%COMID  = '$'
 !       DIRCH1 is directory separation character as appears in input file
 !       DIRCH2 is directory separation character replacing DIRCH1
 !DOS      DIRCH1 =  CHAR(47)
@@ -270,8 +271,8 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
          WRITE (12, "(A40, A)") TSTFO,  'test file name'
          WRITE (12, "(I5, T41, A)") SCREEN, 'screen ref. number'
          WRITE (12, "(I5, T41, A)") IUNMAX, 'highest file ref. number'
-         WRITE (12, "(A1, T41, A)") COMID,  'comment identifier'
-         WRITE (12, "(A1, T41, A)") TABC,   'TAB character'
+         WRITE (12, "(A1, T41, A)") default_command_reader%COMID,  'comment identifier'
+         WRITE (12, "(A1, T41, A)") default_command_reader%TABC,   'TAB character'
          WRITE (12, "(A1, T41, A)") DIRCH1, 'dir sep char in input file'
          WRITE (12, "(A1, T41, A)") DIRCH2, 'dir sep char replacing previous one'
          WRITE (12, "(I5, T41, A)") ITMOPT, 'default time coding option'
@@ -460,6 +461,8 @@ end subroutine OCDTIM
 !*****************************************************************
 !                                                                *
 SUBROUTINE DTSTTI (IOPT, TIMSTR, DTTIME)
+   USE swan_input_parser, ONLY: UPCASE
+   USE swan_service_interfaces, ONLY: MSGERR
    IMPLICIT NONE
 !                                                                *
 !*****************************************************************
@@ -599,6 +602,7 @@ end subroutine DTSTTI
 !*****************************************************************
 !                                                                *
 SUBROUTINE DTTIST (IOPT, TIMSTR, DTTIME)
+   USE swan_service_interfaces, ONLY: MSGERR
    IMPLICIT NONE
 !                                                                *
 !*****************************************************************

@@ -1,4 +1,6 @@
 subroutine SwanVertlist ( compda )
+   USE swan_field_file_update, ONLY: FLFILE
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |

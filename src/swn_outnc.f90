@@ -1,4 +1,6 @@
 module swn_outnc
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STPNOW, STRACE
 !
 !   --|-----------------------------------------------------------|--
 !     | BMT ARGOSS                                                |
@@ -60,7 +62,7 @@ module swn_outnc
     use SWCOMM3,   only: NSTATC, NSTATM, ALPC, MDC, MSC, MCGRD, MXC, MYC, DNORTH, &
                          PI2, ICUR, BNAUT
     use SWCOMM4
-    use TIMECOMM,  only: TFINC, TIMCO, TINIC, DT
+    use swan_time, only: default_time_context
 
     implicit none
 
@@ -190,7 +192,6 @@ contains
 !     nf90_close
 !     swn_outnc_deallocate_spcaux
 
-      logical STPNOW
 
 !  9. Subroutines calling
 !
@@ -300,8 +301,7 @@ contains
 !
 !  5. Local variables
 
-      logical                             :: lopen, file_exists, &
-                                             EQREAL, STPNOW
+      logical                             :: lopen, file_exists
       integer                             :: ip, ierr, otype, xpctime2, &
                                              i, tmip, binnr, irq, &
                                              tip, ips(MIP), iproc, nref, ilpos
@@ -459,7 +459,7 @@ contains
 
         call swn_outnc_deallocate_spcaux( spcaux )
 
-        if ( NSTATM == 0 .or. TIMCO >= TFINC ) then
+        if ( NSTATM == 0 .or. default_time_context%TIMCO >= default_time_context%TFINC ) then
             ! The end time is reached in each computation block. See
             ! SWCOLOUT structure.
             call close_ncfile(OQI(1) + ncoffset(irq) )
@@ -477,7 +477,7 @@ contains
                               SPCSIG, SPCDIR, DEP2, KGRPNT, CROSS, IONOD, &
                               lspcaux)
       USE OCPCOMM2
-      USE TIMECOMM, only: TINIC, TFINC, TIMCO
+      USE swan_time, ONLY: default_time_context
 
 
 !   --|-----------------------------------------------------------|--
@@ -557,7 +557,7 @@ contains
 
 !  5. Local variables
 
-      logical                                        :: EQREAL, lopen, do_open_files, write_header
+         LOGICAL :: lopen, do_open_files, write_header
       integer                                        :: ip, ierr, otype, xpctmp(2), xpctime, &
                                                         pnr, ri, i, tmip, irq, ips(MIP), iproc, &
                                                         binnr, xi, yi, npnts, kgrpnt1d(MXC*MYC)
@@ -568,7 +568,6 @@ contains
 !
 !     SWCMSP
 
-      logical STPNOW
 
 !  9. Subroutines calling
 !
@@ -912,7 +911,6 @@ contains
 !
 !     SWCMSP
 
-      logical STPNOW
 
 !  9. Subroutines calling
 !
@@ -1072,7 +1070,7 @@ contains
 
         logical                               :: file_exists, nc_debug, &
                                                  Escale, monthly, spc_as_map, &
-                                                 wetnode_list, STPNOW, noaux
+                                                 wetnode_list, noaux
         integer                               :: ncid, xpctmp(2), i, irq
         type(spcgrid_type)                    :: spcgrid
         type(mapgrid_type)                    :: mapgrid
@@ -1110,7 +1108,7 @@ contains
                 if ( NSTATC == 0 ) then
                    recordaxe(irq)%delta   = oqr(2)
                 else
-                   recordaxe(irq)%delta   = maxval((/oqr(2), DT/))
+                   recordaxe(irq)%delta   = maxval((/oqr(2), default_time_context%DT/))
                 endif
                 recordaxe(irq)%nstatm     = .true.
             else
@@ -1278,7 +1276,7 @@ contains
                 if ( NSTATC == 0 ) then
                    recordaxe(irq)%delta = oqr(2)
                 else
-                   recordaxe(irq)%delta = maxval((/oqr(2), DT/))
+                   recordaxe(irq)%delta = maxval((/oqr(2), default_time_context%DT/))
                 endif
             else
                 recordaxe(irq)%delta = 1
@@ -1392,7 +1390,7 @@ contains
         ! otherwise data is buffered during the entire computation,
         ! increasing the chance on file corruption
         if (LTRACE) call STRACE (IENT,'swn_outnc_close_on_end')
-        if ( nstatm == 0 .or. TIMCO >= TFINC ) then
+        if ( nstatm == 0 .or. default_time_context%TIMCO >= default_time_context%TFINC ) then
             ncoffset(irq) = 0
             call close_ncfile(ncid)
         else
@@ -1478,7 +1476,7 @@ contains
                 if ( NSTATC == 0 ) then
                    recordaxe(irq)%delta   = oqr(2)
                 else
-                   recordaxe(irq)%delta   = maxval((/oqr(2), DT/))
+                   recordaxe(irq)%delta   = maxval((/oqr(2), default_time_context%DT/))
                 endif
                 recordaxe(irq)%nstatm     = .true.
             else
@@ -1581,7 +1579,7 @@ contains
                 if ( NSTATC == 0 ) then
                    recordaxe(irq)%delta = oqr(2)
                 else
-                   recordaxe(irq)%delta = maxval((/oqr(2), DT/))
+                   recordaxe(irq)%delta = maxval((/oqr(2), default_time_context%DT/))
                 endif
             else
                 recordaxe(irq)%delta = 1

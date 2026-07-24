@@ -27,6 +27,7 @@
 !************************************************************************
 !                                                                      *
 PROGRAM SWAN
+   USE swan_service_interfaces, ONLY: STPNOW
 !                                                                      *
 !************************************************************************
 
@@ -94,7 +95,6 @@ PROGRAM SWAN
 !     SWINITMPI
 !     SWMAIN
 
-   LOGICAL STPNOW
 
 ! 11. Remarks
 !
@@ -125,10 +125,15 @@ end program SWAN
 !************************************************************************
 !                                                                      *
 SUBROUTINE SWMAIN
+   USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
+!TIMG   USE swan_time, ONLY: DCUMTM, NCUMTM
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: MSGERR, TXPBLA, STPNOW
 !                                                                      *
 !************************************************************************
 
-   USE TIMECOMM
+   USE swan_time, ONLY: default_time_context
    USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
@@ -285,8 +290,7 @@ SUBROUTINE SWMAIN
    INTEGER   INERR
    INTEGER   ISTAT, IF1, IL1
    CHARACTER(LEN=4)  :: COMPUT
-   CHARACTER(LEN=18) :: DTTIWR
-   CHARACTER(LEN=20) NUMSTR, CHARS(1)
+   CHARACTER(LEN=20) CHARS(1)
    CHARACTER(LEN=80) MSGSTR
    LOGICAL   LOPEN
    INTEGER   IRQ, UPVD
@@ -327,7 +331,6 @@ SUBROUTINE SWMAIN
 !     NUMSTR : Converts integer/real to string
 !     TXPBLA : Removes leading and trailing blanks in string
 
-   LOGICAL STPNOW
 
 !  9. Subroutines calling
 !
@@ -682,9 +685,9 @@ SUBROUTINE SWMAIN
 
             IF (NSTATC.EQ.1) THEN
                IF (IT.LT.MTC) THEN
-                  TIMCO = TIMCO + DT
-                  CHTIME = DTTIWR(ITMOPT, TIMCO)
-                  WRITE (PRINTF, "(' Time of computation -> ',A,' in sec:', F12.0)") CHTIME, TIMCO
+                  default_time_context%TIMCO = default_time_context%TIMCO + default_time_context%DT
+                  CHTIME = DTTIWR(ITMOPT, default_time_context%TIMCO)
+                  WRITE (PRINTF, "(' Time of computation -> ',A,' in sec:', F12.0)") CHTIME, default_time_context%TIMCO
                ENDIF
             ENDIF
 
@@ -763,10 +766,11 @@ end subroutine SWMAIN
 !************************************************************************
 !                                                                      *
 SUBROUTINE SWINIT (INERR)
+   USE swan_service_interfaces, ONLY: STPNOW
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM1
+   USE swan_input_parser, ONLY: default_command_reader
    USE OCPCOMM2
    USE OCPCOMM3
    USE OCPCOMM4
@@ -774,7 +778,7 @@ SUBROUTINE SWINIT (INERR)
    USE SWCOMM2
    USE SWCOMM3
    USE SWCOMM4
-   USE TIMECOMM
+   USE swan_time, ONLY: default_time_context
    USE OUTP_DATA, ONLY: NREOQ, LOPS, LORQ, UPVDF
    USE M_SNL4
    USE M_BNDSPEC
@@ -927,7 +931,6 @@ SUBROUTINE SWINIT (INERR)
 !
 !  8. Subroutines used
 
-   LOGICAL STPNOW
 
 !  9. Subroutines calling
 !
@@ -953,7 +956,7 @@ SUBROUTINE SWINIT (INERR)
 !
 ! 13. Source text
 
-   VERTXT = BLANK
+   VERTXT = default_command_reader%BLANK
    VERNUM = 41.51
    WRITE (VERTXT, '(F5.2)') VERNUM
    CALL BUGFIX ('A')
@@ -970,13 +973,13 @@ SUBROUTINE SWINIT (INERR)
 !     ***** initial values for common variables *****
 !     ***** names *****
    PROJID = 'SWAN'
-   PROJNR = BLANK
-   PROJT1 = BLANK
-   PROJT2 = BLANK
-   PROJT3 = BLANK
-   FNEST  = BLANK
-   FBCR   = BLANK
-   FBCL   = BLANK
+   PROJNR = default_command_reader%BLANK
+   PROJT1 = default_command_reader%BLANK
+   PROJT2 = default_command_reader%BLANK
+   PROJT3 = default_command_reader%BLANK
+   FNEST  = default_command_reader%BLANK
+   FBCR   = default_command_reader%BLANK
+   FBCL   = default_command_reader%BLANK
    UH     = 'm'
    UV     = 'm/s'
    UT     = 'sec'
@@ -1015,7 +1018,7 @@ SUBROUTINE SWINIT (INERR)
    ncells  = 0
    nfaces  = 0
 !     time of computation
-   TIMCO = -1.E10
+   default_time_context%TIMCO = -1.E10
    CHTIME = '    '
 !     boundary conditions
    NBFILS = 0
@@ -3528,6 +3531,10 @@ end subroutine SWINIT
 !                                                                      *
 SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
 &KGRPNT, KGRBND, SPCDIR, SPCSIG )
+   USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_angle_conversions, ONLY: DEGCNV, ANGRAD, ANGDEG
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
 !                                                                      *
 !************************************************************************
 
@@ -3669,10 +3676,9 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
    INTEGER :: INDX, INDXGR, IP, IRFRD, ITMP1, ITMP2, ITMP3, ITRA, ITRAS
    INTEGER :: IVTYPE, IX, IY, J, JJ, K, MTH, NBS
    REAL :: ALBC, ALTMP, ATMP, PPTAIL, PWDTH, TRCF
-   REAL :: DEGCNV
 
    INTEGER   ISTAT, IF1, IL1
-   CHARACTER(LEN=20) NUMSTR, CHARS(1)
+   CHARACTER(LEN=20) CHARS(1)
    CHARACTER(120) :: MSGSTR
 
    TYPE(BSDAT) , POINTER :: CURRBS
@@ -4242,6 +4248,8 @@ end subroutine SWPREP
 !************************************************************************
 !                                                                      *
 SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)
+   USE swan_input_point_validation, ONLY: SINUPT, SINBTG
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 !                                                                      *
 !************************************************************************
 
@@ -4395,7 +4403,6 @@ SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)
 ! 13. Source text
 
    INTEGER  KGRPNT(MXC,MYC)
-   LOGICAL  SINBTG
    CHARACTER(LEN=1) :: STYPE
    TYPE(OPSDAT), POINTER :: CUOPS
    INTEGER, SAVE :: IENT = 0
@@ -4620,6 +4627,8 @@ end subroutine SPRCON
 !************************************************************************
 !                                                                      *
 SUBROUTINE SWRBC ( COMPDA )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_input_interpolation, ONLY: SVALQI
 !                                                                      *
 !************************************************************************
 
@@ -4753,7 +4762,6 @@ SUBROUTINE SWRBC ( COMPDA )
    INTEGER :: INDX, IX, IY, JVERT
    REAL :: ASTD, CGFACT, CGMAX, DEP, DEPW, FRI, UU, VTOT, VV, WLVL
    REAL :: XAICE, XDSS, XHICE, XHSS, XMUD, XNPL, XP, XTSS, XTUR, YP
-   REAL :: SVALQI
    CALL STRACE(IENT,'SWRBC')
 
    IF (ITEST .GE. 100 .OR. INTES .GE. 30) THEN
@@ -5273,825 +5281,14 @@ SUBROUTINE SWRBC ( COMPDA )
 end subroutine SWRBC
 !************************************************************************
 !                                                                      *
-REAL FUNCTION SVALQI (XP, YP, IGRID, ARRINP, ZERO ,IXC ,IYC)
-!                                                                      *
-!************************************************************************
-
-   USE OCPCOMM4
-   USE SWCOMM2
-   USE M_PARALL
-
-   IMPLICIT NONE
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     30.60: Nico Booij
-!     30.72: IJsbrand Haagsma
-!     30.82: IJsbrand Haagsma
-!     32.03: Nico Booij
-!     40.04: Annette Kieftenburg
-!     40.30: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!     40.80: Marcel Zijlema
-!
-!  1. Updates
-!
-!     30.72, Sept 97: INTEGER(KIND=SELECTED_INT_KIND(9)) replaced by INTEGER
-!     30.60, Aug. 97: inequalities changed in view of bug reported by
-!                     Ralf Kaiser (GT -> GE and LT -> LE)
-!     32.03, Feb. 98: option for 1-D computation introduced
-!                     real equality changed into inequality
-!     30.82, Apr. 98: Replace statement with division through DYG to avoid division
-!                     through zero in case of 1D.
-!     30.82, Nov. 98: Now takes care of interpolation near points that
-!                     contain exception values
-!     40.04, Aug. 00: Interpolation near points that contain exception values
-!                     modified
-!                   : Removed include files that are not used
-!     40.30, Mar. 03: correcting indices IXC, IYC with offsets MXF, MYF
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!     40.80, Dec. 07: extension to unstructured grids
-!
-!  2. Purpose
-!
-!     Determining the value of a quantity from an input grid
-!     such as depth and the current velocity components
-!     for point given in problem coordinates
-!
-!  3. Method (updated...)
-!
-!     The required values are computed by bilinear interpolation. The
-!     coordinates are given in the bottom grid as the number of meshes
-!     in X- and Y-direction, IB and JB respectively (both real).
-!
-!           YB|
-!             |
-!             |--------------- *                *
-!             | A
-!             | |SYB1
-!             | V
-!         IYB-|-------------------- o
-!             |
-!             |                     |
-!         JB1-|--------------- *    |           *
-!             |                     |
-!             |                |    |    SXB1   |
-!             |                |    |<--------->|
-!             +----------------------------------------------->
-!                              |    |                       XB
-!                             IB1  IXB
-!
-!                   *  bottom grid points
-!                   o  point for interpolation
-!
-!  4. Argument variables
-!
-!     IGRID    Grid indicator
-!     IXC      Counter for X-coordinate in computational grid (used
-!              in curvilinear case)
-!     IYC      Counter for Y-coordinate in computational grid (used
-!              in curvilinear case)
-!     ZERO     If ZERO=0, then value outside the grid is zero, otherwise
-!              the value is extrapolated
-
-   INTEGER  IGRID, IXC, IYC, ZERO
-
-!     ARRINP   Array holding the values at the input grid locations
-!     SVALQI   Value of quantity in (XP,YP)
-!     XP       X-coordinate in computational gridpoint
-!     YP       Y-coordinate in computational gridpoint
-
-   REAL     ARRINP(*), XP, YP
-
-!  5. Parameter variables
-!
-!  6. Local variables
-!
-!     EQREAL   Boolean function which compares two REAL values
-!     IB1      Grid counter in x-direction
-!     IENT     Number of entries into this subroutine
-!     II       Pointer number in ARRINP
-!     INGRD    Boolean variable to determine whether point is in grid
-!     IXB      Distance to origin in x-direction devided by meshsize
-!              in y-direction
-!     IXCGL    X-index with respect to global grid
-!     IYB      Distance to origin in y-direction devided by meshsize
-!              in y-direction
-!     IYCGL    Y-index with respect to global grid
-!     JB1      Grid counter in y-direction
-!     SUMWEXC  Sum of weight factors of points with exception value
-!     SUMWREG  Sum of weight factors of points with regular   value
-!     SXB1     First weight factor for distance in x-direction
-!     SXB2     Second weight factor for distance in x-direction
-!     SYB1     First weight factor for distance in y-direction
-!     SYB2     Second weight factor for distance in y-direction
-!     WF1      Weight factor of point ARRINP(II)
-!     WF2      Weight factor of point ARRINP(II+MXG(IGRID))
-!     WF3      Weight factor of point ARRINP(II+1)
-!     WF4      Weight factor of point ARRINP(II+1+MXG(IGRID))
-
-   INTEGER, SAVE :: IENT = 0
-   INTEGER  IB1, II, JB1, IXCGL, IYCGL
-   REAL     IXB, IYB, SXB1, SXB2, SYB1, SYB2
-   REAL     SUMWEXC, SUMWREG, WF1, WF2, WF3, WF4
-   LOGICAL  INGRD
-
-!  8. Subroutines used
-!
-!     LOGICAL FUNCTION EQREAL: Checks whether two reals are equal within certain margins
-!     STRACE: Traces the entry into subroutines (test purposes)
-
-   LOGICAL  EQREAL
-
-!  9. Subroutines calling
-!
-!     SWDIM
-!     INTEGER FUNCTION SIRAY
-!     SWRBC
-!     SNEXTI
-!     FLFILE
-!
-! 10. Error messages
-!
-! 11. Remarks
-!
-! 12. Structure
-!
-!       ----------------------------------------------------------------
-!       If the point is out of bottom grid in X-direction, then
-!           Compute lines for interpolation and interpolation factors
-!             such that the value at the side of the grid is taken
-!       Else
-!           Compute nearest line IX in the bottom grid and the interpo-
-!             lation factor in X-direction
-!       ----------------------------------------------------------------
-!       If the point is out of bottom grid in Y-direction, then
-!           Compute lines for interpolation and interpolation factors
-!             such that the value at the side of the grid is taken
-!       Else
-!           Compute nearest line IY in the bottom grid and the interpo-
-!             lation factor in Y-direction
-!       ----------------------------------------------------------------
-!       Compute pointer in arrays and interpolation factors in both
-!       directions
-!       Compute the depth to the reference level for the point
-!       Add the water level to the depth
-!       If depth > 0 and current is on, then
-!           Interpolate X- and Y-component of current velocity
-!       Else
-!           Current components are zero
-!       ----------------------------------------------------------------
-!
-! 13. Source text
-
-   CALL STRACE (IENT, 'SVALQI')
-
-!     --- take global indices instead of local ones
-
-   IXCGL = IXC + MXF - 1
-   IYCGL = IYC + MYF - 1
-
-!     ***    Two different procedures in funcion of       ***
-!     ***    grid type: regular or curvilinear (staggered)*** ver 30.21
-
-   IF (IGTYPE(IGRID) .EQ. 1) THEN
-
-!     Regular grid:
-
-      IXB = ( (XP-XPG(IGRID))*COSPG(IGRID) +&
-      &(YP-YPG(IGRID))*SINPG(IGRID) ) / DXG(IGRID)
-
-      INGRD = .TRUE.
-      IF (IXB .LE. 0.) THEN
-         IB1   = 1
-         SXB2  = 0.
-         IF (IXB.LT.-0.1) INGRD = .FALSE.
-      ELSE IF (IXB .GE. FLOAT(MXG(IGRID)-1)) THEN
-         IB1   = MXG(IGRID)-1
-         SXB2  = 1.
-         IF (IXB.GT.FLOAT(MXG(IGRID))-0.9) INGRD = .FALSE.
-      ELSE
-         IB1   = INT(IXB)
-         SXB2  = IXB-REAL(IB1)
-         IB1   = IB1+1
-      ENDIF
-      IF (MYG(IGRID).GT.1) THEN
-         IYB = (-(XP-XPG(IGRID))*SINPG(IGRID) +&
-         &(YP-YPG(IGRID))*COSPG(IGRID) ) / DYG(IGRID)
-         IF (IYB .LE. 0.) THEN
-            JB1   = 1
-            SYB2  = 0.
-            IF (IYB.LT.-0.1) INGRD = .FALSE.
-         ELSE IF (IYB .GE. FLOAT(MYG(IGRID)-1)) THEN
-            JB1   = MYG(IGRID)-1
-            SYB2  = 1.
-            IF (IYB.GT.FLOAT(MYG(IGRID))-0.9) INGRD = .FALSE.
-         ELSE
-            JB1   = INT(IYB)
-            SYB2  = IYB-REAL(JB1)
-            JB1   = JB1+1
-         ENDIF
-      ENDIF
-
-!       evaluate SVALQI (2D-mode):
-
-      IF (.NOT.INGRD .AND. ZERO.EQ.0) THEN
-         SVALQI = 0.
-      ELSE IF (MYG(IGRID).GT.1) THEN
-         SXB1   = 1.- SXB2
-         SYB1   = 1.- SYB2
-         II     = IB1 + (JB1-1) * MXG(IGRID)
-         WF1 = SXB1*SYB1
-         WF2 = SXB1*SYB2
-         WF3 = SXB2*SYB1
-         WF4 = SXB2*SYB2
-         SUMWEXC = 0.
-         IF  (EQREAL(ARRINP(II             ),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF1
-            WF1 =0.
-         ENDIF
-         IF (EQREAL(ARRINP(II+  MXG(IGRID)),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF2
-            WF2=0.
-         ENDIF
-         IF (EQREAL(ARRINP(II+1           ),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF3
-            WF3=0.
-         ENDIF
-         IF (EQREAL(ARRINP(II+1+MXG(IGRID)),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF4
-            WF4=0.
-         ENDIF
-         SUMWREG = 1. -SUMWEXC
-
-         IF (SUMWEXC.GE.SUMWREG)   THEN
-            SVALQI = EXCFLD(IGRID)
-         ELSE
-            SVALQI = ( WF1*ARRINP(II)   + WF2*ARRINP(II+MXG(IGRID))&
-            &+ WF3*ARRINP(II+1) + WF4*ARRINP(II+1+MXG(IGRID)) )&
-            &/ SUMWREG
-         END IF
-      ELSE
-
-!       evaluate SVALQI (1D-mode):
-
-         SXB1 = 1. - SXB2
-         IF (EQREAL(ARRINP(IB1  ),EXCFLD(IGRID)).OR.&
-         &EQREAL(ARRINP(IB1+1),EXCFLD(IGRID))    ) THEN
-
-!           One of the cornerpoints contains an exception value thus:
-
-            SVALQI = EXCFLD(IGRID)
-         ELSE
-            SVALQI = SXB1*ARRINP(IB1)&
-            &+ SXB2*ARRINP(IB1+1)
-         ENDIF
-      ENDIF
-   ELSEIF ( IGTYPE(IGRID).EQ.3 ) THEN
-
-!     unstructured grid
-
-      CALL SwanInterpolatePoint(SVALQI, XP, YP, ARRINP, EXCFLD(IGRID))
-
-   ELSE IF (ABS(STAGX(IGRID)) .LT. 0.01 .AND.&
-   &ABS(STAGY(IGRID)) .LT. 0.01) THEN
-
-!     Curvilinear and non-staggered input grid:
-
-      IB1   = IXCGL
-      JB1   = IYCGL
-      II     = IB1 + (JB1-1) * MXG(IGRID)
-      SVALQI = ARRINP(II)
-   ELSE
-
-!     Curvilinear and staggered input grid:
-
-      INGRD = .TRUE.
-      IF (IXCGL .EQ. 1) THEN
-         IB1   = 1
-         SXB2  = 0.
-         IF (STAGY(IGRID) .GT. 0.) INGRD = .FALSE.
-      ELSE IF (IXCGL .GT. MXG(IGRID)-1) THEN
-         IB1   = MXG(IGRID)-1
-         SXB2  = 1.
-         IF (STAGY(IGRID) .GT. 0.) INGRD = .FALSE.
-      ELSE
-         IB1   = IXCGL + 1
-         SXB2  = 1. - STAGX(IGRID)
-      ENDIF
-      IF (IYCGL .EQ. 1) THEN
-         JB1   = 1
-         SYB2  = 0.
-         IF (STAGX(IGRID) .GT. 0.) INGRD = .FALSE.
-      ELSE IF (IYCGL .GT. MYG(IGRID)-1) THEN
-         JB1   = MYG(IGRID)-1
-         SYB2  = 1.
-         IF (STAGY(IGRID) .GT. 0.) INGRD = .FALSE.
-      ELSE
-         JB1   = IYCGL + 1
-         SYB2  =1. - STAGY(IGRID)
-      ENDIF
-
-!       evaluate SVALQI (2D-mode):
-
-      IF (.NOT.INGRD .AND. ZERO.EQ.0) THEN
-         SVALQI = 0.
-      ELSE
-         SXB1   = STAGX(IGRID)
-         SYB1   = STAGY(IGRID)
-         II     = IB1 + (JB1-1) * MXG(IGRID)
-         WF1 = SXB1*SYB1
-         WF2 = SXB1*SYB2
-         WF3 = SXB2*SYB1
-         WF4 = SXB2*SYB2
-         SUMWEXC = 0.
-         IF (EQREAL(ARRINP(II             ),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF1
-            WF1 =0.
-         ENDIF
-         IF (EQREAL(ARRINP(II+  MXG(IGRID)),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF2
-            WF2=0.
-         ENDIF
-         IF (EQREAL(ARRINP(II+1           ),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF3
-            WF3=0.
-         ENDIF
-         IF (EQREAL(ARRINP(II+1+MXG(IGRID)),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF4
-            WF4=0.
-         ENDIF
-         SUMWREG = 1. -SUMWEXC
-
-         IF (SUMWEXC.GE.SUMWREG)   THEN
-            SVALQI = EXCFLD(IGRID)
-         ELSE
-            SVALQI = ( WF1*ARRINP(II)   + WF2*ARRINP(II+MXG(IGRID))&
-            &+ WF3*ARRINP(II+1) + WF4*ARRINP(II+1+MXG(IGRID)) )&
-            &/ SUMWREG
-         END IF
-      ENDIF
-   ENDIF
-
-!     ***** test *****
-   IF (ITEST .GE. 280)&
-!     &   WRITE(PRINTF, "(' Test SVALQI:',5F10.3)") SVALQI,IGRID,XP,YP,IXB,IYB,II,ARRINP(II)
-! 6010 FORMAT(' SVALQI  IGRID       XP      YP        IXB',
-!     &       '       IYB  II  ARRINP(II)', /
-!     &      ,E10.3,I3,1X,4E10.3,I4,E10.3)
-   &WRITE(PRINTF, "(' Test SVALQI:',5F10.3)") XP, YP, IXB, IYB, SVALQI
-
-   RETURN
-!     end of function SVALQI
-end function SVALQI
-!************************************************************************
-!                                                                      *
-SUBROUTINE SINUPT (PSNAME, XP, YP, XCGRID, YCGRID, KGRPNT, KGRBND)
-!                                                                      *
-!************************************************************************
-
-   USE OCPCOMM4
-   USE SWCOMM2
-   USE SWCOMM3
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     30.72: IJsbrand Haagsma
-!     40.04: Annette Kieftenburg
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!      0.0 , Mar. 87: Heading added, IF..GOTO.. changed into IF..THEN..
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
-!     40.00, Feb. 99: test skipped for irregular bottom grid
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     Checking whether the point XP, YP (given in problem coordinates)
-!     of the output pointset SNAME is located in the computational grid
-!     and bottom grid or not. If not, a warning is generated.
-!
-!  3. Method
-!
-!     ---
-!
-!  4. Argument variables
-!
-!     KGRPNT: input  Adresses of the computational grid points
-!     KGRBND: input
-
-   INTEGER KGRPNT(MXC,MYC), KGRBND(*)
-
-!     XCGRID: input  Coordinates of computational grid in x-direction
-!     XP    : input  X-coordinate of the point (problem coordinates)
-!     YCGRID: input  Coordinates of computational grid in y-direction
-!     YP    : input  Y-coordinate of the point (problem coordinates)
-
-   REAL    XP, YP
-   REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
-
-!     PSNAME: input  Name of the output pointset (any type)
-
-   CHARACTER(LEN=*) :: PSNAME
-
-!  5. SUBROUTINES CALLING
-!
-!     SPRCON (SWAN/SWREAD)
-!
-!  6. SUBROUTINES USED
-!
-!     SINBTG, SINCMP (both SWAN/SER) and MSGERR (Ocean Pack)
-
-   LOGICAL SINBTG, SINCMP
-
-!  7. ERROR MESSAGES
-!
-!     ---
-!
-!  8. REMARKS
-!
-!     ---
-!
-!  9. STRUCTURE
-!
-!     ----------------------------------------------------------------
-!     If point (XP,YP) is not in the bottom grid (SINBTG = FALSE), then
-!         Call MSGERR to generate a warning
-!     If point (XP,YP) is not in the comp. grid (SINCMP = FALSE), then
-!         Call MSGERR to generate a warning
-!     ----------------------------------------------------------------
-!
-! 10. SOURCE TEXT
-
-
-   INTEGER, SAVE :: IENT = 0
-   CALL STRACE(IENT,'SINUPT')
-
-   IF (.NOT. SINBTG (XP,YP) ) THEN
-      CALL MSGERR(1,'(corner)point outside bottom grid')
-      WRITE (PRINTF, "(' Set of output locations: ',A8, ' coordinates:', 2F12.2)") PSNAME, XP+XOFFS, YP+YOFFS
-   ENDIF
-   IF (.NOT.SINCMP (XP, YP, XCGRID, YCGRID, KGRPNT, KGRBND)) THEN
-      CALL MSGERR(1,'(corner)point outside comp. grid')
-      WRITE (PRINTF, "(' Set of output locations: ',A8, ' coordinates:', 2F12.2)") PSNAME, XP+XOFFS, YP+YOFFS
-   ENDIF
-
-   RETURN
-!     end of subroutine SINUPT *
-end subroutine SINUPT
 
 !************************************************************************
 !                                                                      *
-LOGICAL FUNCTION SINBTG (XP, YP)
-!                                                                      *
-!************************************************************************
 
-   USE SWCOMM2
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     32.02: Roeland Ris & Cor van der Schelde (1D-version)
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!      0.0 , Mar. 87: name of function changed from INBODP into SINBTG
-!     32.02, Jan. 98: Introduced 1D-version
-!     40.00, Feb. 99: 1D procedure simplified, tolerance introduced
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     Checking whether a point given in problem coordinates is in the
-!     bottom grid (SINBTG = true) or not (SINBTG = false).
-!
-!  3. Method
-!
-!     ---
-!
-!  4. Argument variables
-!
-!     XP      REAL   input    X-coordinate (problem grid) of the point
-!     YP      REAL   input    Y-coordinate (problem grid) of the point
-!
-!  6. Local variables
-!
-!     XB      x-coordinate (of bottom grid)
-!     YB      y-coordinate (of bottom grid)
-!     XLENB   length of bottom grid in x-direction (of bottom grid)
-!     YLENB   length of bottom grid in y-direction (of bottom grid)
-!     BTOL    tolerance length
-
-   REAL :: XP, YP
-   REAL :: XB, YB, XLENB, YLENB, BTOL
-   INTEGER, SAVE :: IENT = 0
-
-!  8. Subroutines used
-!
-!     ---
-!
-!  9. Subroutines calling
-!
-!     SPRCON (SWAN/MAIN)
-!     SINUPT (SWAN/SER)
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!     ----------------------------------------------------------------
-!     If the bottom grid is defined (DXB>0 and DYB>0), then
-!         Compute coordinates XB,YB in the bottom grid
-!         Give SINBTG initial value TRUE
-!         If XB < 0, XB > X-length of grid, YB < 0 or YB > .. then
-!            SINBTG is FALSE
-!     ----------------------------------------------------------------
-!
-! 13. Source text
-
-   CALL  STRACE (IENT,'SINBTG')
-
-   SINBTG = .TRUE.
-   IF ( IGTYPE(1).NE.1 ) RETURN
-
-   XLENB = (MXG(1)-1)*DXG(1)
-   YLENB = (MYG(1)-1)*DYG(1)
-   BTOL  = 0.01 * (XLENB+YLENB)
-
-!     ***** compute bottom grid coordinates from problem coordinates ****
-
-   XB =  (XP-XPG(1))*COSPG(1) + (YP-YPG(1))*SINPG(1)
-   YB = -(XP-XPG(1))*SINPG(1) + (YP-YPG(1))*COSPG(1)
-
-!     ***** check location of point *****
-   IF (XB .LT. -BTOL) SINBTG = .FALSE.
-   IF (XB .GT. XLENB+BTOL) SINBTG = .FALSE.
-   IF (YB .LT. -BTOL) SINBTG = .FALSE.
-   IF (YB .GT. YLENB+BTOL) SINBTG = .FALSE.
-
-   RETURN
-!   * end of subroutine SINBTG *
-end function SINBTG
 !************************************************************************
 !                                                                      *
-LOGICAL FUNCTION SINCMP (XP, YP ,XCGRID ,YCGRID ,KGRPNT, KGRBND)
-!                                                                      *
 !************************************************************************
-
-   USE SWCOMM2
-   USE SWCOMM3
-   USE M_PARALL
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     30.72: IJsbrand Haagsma
-!     32.02: Roeland Ris & Cor van der Schelde
-!     30.60, 40.00: Nico Booij
-!     40.41: Marcel Zijlema
-!     40.80: Marcel Zijlema
-!
-!  1. Updates
-!
-!     00.00, Mar. 87: name changed from INREKP into SINCMP, heading added
-!     30.60, Aug. 97: assignment of SINCMP moved
-!     30.72, Sept 97: INTEGER(KIND=SELECTED_INT_KIND(9)) replaced by INTEGER
-!     32.02, Jan. 98: Introduced 1D-version
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
-!     40.00, June 98: argument KGRBND added, call CVMESH modified
-!            Febr 99: separate 1D code removed, margin introduced
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!     40.80, Sep. 07: extension to unstructured grids
-!
-!  2. Purpose
-!
-!     Checking whether a point given in problem coordinates is in the
-!     computational grid (SINCMP = true) or not (SINCMP = false).
-!
-!  3. Method
-!
-!     ---
-!
-!  4. Argument variables
-!
-!     KGRPNT  input  grid point addresses
-!     KGRBND  input  describes computational grid boundary
-
-   INTEGER KGRPNT(MXC,MYC), KGRBND(*)
-
-!     XCGRID: input  Coordinates of computational grid in x-direction
-!     XP      REAL   input    X-coordinate (problem grid) of the point
-!     YCGRID: input  Coordinates of computational grid in y-direction
-!     YP      REAL   input    Y-coordinate (problem grid) of the point
-
-   REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
-   REAL    XP,     YP
-
-!  6. Local variables
-!
-!     CTOL    tolerance value (margin around comput. grid)
-
-   REAL :: CTOL, XC, YC
-   INTEGER :: K
-   INTEGER, SAVE :: IENT = 0
-
-!  8. Subroutines used
-!
-!     ---
-!
-!  9. Subroutines calling
-!
-!     SINUPT
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!     ----------------------------------------------------------------
-!     Compute coordinates XC,YC in the computational grid
-!     Give SINCMP initial value TRUE
-!     If XC < 0, XC > XCLEN, YC < 0 or YC > YCLEN, then
-!         SINCMP = FALSE
-!     ----------------------------------------------------------------
-!
-! 13. Source text
-
-   CALL STRACE(IENT,'SINCMP')
-
-!     *** Different procedure depending on grid type **
-   IF (OPTG .EQ. 1) THEN
-
-!       regular grid: compute comp. coordinates from problem coordinates
-
-      XC   =  (XP-XPC)*COSPC+(YP-YPC)*SINPC
-      YC   = -(XP-XPC)*SINPC+(YP-YPC)*COSPC
-!       XC and YC are in m
-!
-!       ***** check for location *****
-      SINCMP = .TRUE.
-      CTOL   = 0.01 * (XCLEN+YCLEN)
-      IF (XC .LT. -CTOL) SINCMP = .FALSE.
-      IF (XC .GT. XCLEN+CTOL) SINCMP = .FALSE.
-      IF (YC .LT. -CTOL) SINCMP = .FALSE.
-      IF (YC .GT. YCLEN+CTOL) SINCMP = .FALSE.
-   ELSE IF (OPTG .EQ. 3) THEN
-
-!       curvilinear grid
-
-      CALL CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
-!       XC and YC are nondimensional; equivalent to grid index
-!
-!       ***** check for location *****
-      SINCMP = .TRUE.
-      IF (XC .LT. -0.01) SINCMP = .FALSE.
-      IF (XC .GT. REAL(MXC-1)+0.01) SINCMP = .FALSE.
-      IF (YC .LT. -0.01) SINCMP = .FALSE.
-      IF (YC .GT. REAL(MYC-1)+0.01) SINCMP = .FALSE.
-   ELSE IF (OPTG.EQ.5) THEN
-
-!       unstructured grid
-
-      SINCMP = .TRUE.
-      CALL SwanFindPoint ( XP, YP, K )
-      IF ( K.LT.0 ) SINCMP = .FALSE.
-
-   ENDIF
-
-!     --- check if output location is in global subdomain
-
-   IF ( PARLL .AND. .NOT.SINCMP ) THEN
-      IF ( XP.GE.XCGMIN .AND. XP.LE.XCGMAX .AND.&
-      &YP.GE.YCGMIN .AND. YP.LE.YCGMAX ) SINCMP = .TRUE.
-   END IF
-
-   RETURN
-!   * end of subroutine SINCMP *
-end function SINCMP
+!                                                                      *
 !************************************************************************
 !                                                                      *
 SUBROUTINE WRTEST (NAME, NA, IARR, RARR)
@@ -6185,6 +5382,7 @@ end subroutine WRTEST
 !********************************************************************
 
 SUBROUTINE ERRCHK
+   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STRACE
 
 !****************************************************************
 
@@ -6305,7 +5503,6 @@ SUBROUTINE ERRCHK
 !
 ! 13. Source text
 
-   LOGICAL :: EQREAL
    INTEGER :: II
    INTEGER, SAVE :: IENT = 0
    REAL :: GAMMA
@@ -6671,10 +5868,14 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   ,&
 &UYB   , NPLAF , TURBF , MUDLF , WXI   ,&
 &AICEF , HICEF , HSSF  , TSSF  , DSSF  ,&
 &WYI   )
+   USE swan_field_file_update, ONLY: FLFILE
+   USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
+   USE swan_service_interfaces, ONLY: STPNOW, STRACE
+   USE swan_input_interpolation, ONLY: SVALQI
 !                                                                    *
 !*********************************************************************
 
-   USE TIMECOMM
+   USE swan_time, ONLY: default_time_context
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -6816,7 +6017,6 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   ,&
 !
 !     SWBROADC
 
-   LOGICAL STPNOW
 
 !  9. Subroutines calling
 !
@@ -6844,7 +6044,6 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   ,&
    REAL :: AA, AADD, ADEG, APER, ASADD, ASTOT, ATOT, AX, AY
    REAL :: CGFACT, CGMAX, DEP, DEPW, ETOT, HS, SIG, SIG2
    REAL :: UU, VTOT, VV, W1, W2, WLVL, XP, YP
-   REAL :: SVALQI
    TYPE(BSPCDAT), POINTER :: CURBFL
    LOGICAL LPB
    INTEGER, SAVE :: IENT = 0
@@ -7427,10 +6626,14 @@ end subroutine SNEXTI
 
 SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC,&
 &BSPDIR, BSPFRQ, BSPECS, XYTST )
+   USE swan_legacy_io, ONLY: INAR2D, COPYCH
+   USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
+   USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
 
-   USE TIMECOMM
+   USE swan_time, ONLY: default_time_context
    USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
@@ -7671,7 +6874,7 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC,&
    TIMF1 = DBLE(BFILED(2))
    TIMF2 = DBLE(BFILED(3))
    IF (ITEST.GE.120) WRITE (PRINTF, "(' Boundary', I2, 2X, A, ' times: ', 3F10.1)") BFILED(1), BTYPE,&
-   &TIMF1, TIMF2, TIMCO
+   &TIMF1, TIMF2, default_time_context%TIMCO
 
    ALLOCATE(SPAUX(MDC,MSC))
 
@@ -7681,7 +6884,7 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC,&
 
    GLOOP : DO
 
-      IF (TIMCO.GT.TIMF2) THEN
+      IF (default_time_context%TIMCO.GT.TIMF2) THEN
 
 !     then read from boundary nesting files all the information
 !     and the spectral ones
@@ -7753,7 +6956,7 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC,&
 
          IF (.NOT.NSTATF) TIMF2 = 0D0
          IF (ITEST.GE.60) WRITE (PRINTF, "(' Boundary times ', 3F12.0, 2X, 4I4)")&
-         &TIMF1, TIMF2, TIMCO, BFILED(8), BFILED(15)
+         &TIMF1, TIMF2, default_time_context%TIMCO, BFILED(8), BFILED(15)
 
 !         read additional information from the headers and spectrum from
 !         the nesting boundary files (for all the cases)
@@ -8022,14 +7225,14 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC,&
 !       obtain boundary spectra
 
          IF (TIMF1.NE.TIMF2) THEN
-            W1 = REAL((TIMF2-TIMCO) / (TIMF2-TIMF1))
+            W1 = REAL((TIMF2-default_time_context%TIMCO) / (TIMF2-TIMF1))
          ELSE
             W1 = 0.
          END IF
          DO IBOUNC = 1, BFILED(8)
             IBSPEC = BSPLOC(IBOUNC)
             IF (IBOUNC.EQ.1 .AND. ITEST.GE.80) WRITE (PRTEST, "(' interp in time ', F14.1, F8.3, 2F14.1, I4)")&
-            &TIMCO, W1, TIMF1, TIMF2, IBSPEC
+            &default_time_context%TIMCO, W1, TIMF1, TIMF2, IBSPEC
 
 !       interpolate spectra in time; result has to be store in BSPECS(..,1)
 !       first interpolate to auxiliary array
@@ -8043,7 +7246,7 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC,&
             &BSPECS(1,1,IBSPEC,2), BSPECS(1,1,IBSPEC,1),&
             &SPCDIR, SPCSIG)
          ENDDO
-         BFILED(2) = NINT(TIMCO)
+         BFILED(2) = NINT(default_time_context%TIMCO)
          BFILED(3) = NINT(TIMF2)
          EXIT GLOOP
 !       end of time comparison
@@ -8108,10 +7311,12 @@ end subroutine RBFILE
 SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER,&
 &SPCSIG, SPCDIR, BSPFRQ, BSPDIR, LSPEC, UFAC,&
 &IERR)
+   USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
+   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STRACE
 
 !****************************************************************
 
-   USE TIMECOMM
+   USE swan_time, ONLY: default_time_context
    USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM3
@@ -8260,8 +7465,6 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER,&
 !  8. Subroutines used
 !
 !       GAMMAF (in SWANSER)
-   REAL :: GAMMAF
-   LOGICAL EQREAL
 
 !  9. Subroutines calling
 !
@@ -8546,340 +7749,6 @@ CONTAINS
 end subroutine RESPEC
 !**********************************************************************
 
-SUBROUTINE FLFILE (IGR1, IGR2,&
-&ARR, ARR2, JX1, JX2, JX3, JY1, JY2, JY3,&
-&COSFC, SINFC, COMPDA,&
-&XCGRID, YCGRID,&
-&KGRPNT, IERR)
-
-!**********************************************************************
-
-   USE TIMECOMM
-   USE OCPCOMM4
-   USE SWCOMM2
-   USE SWCOMM3
-   USE M_PARALL
-   USE SwanGriddata
-
-   IMPLICIT NONE
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     30.90: IJsbrand Haagsma (Equivalence version)
-!     40.00: Nico Booij
-!     34.01: Jeroen Adema
-!     40.02: IJsbrand Haagsma
-!     40.03, 40.13: Nico Booij
-!     40.30: Marcel Zijlema
-!     40.31: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!     40.80: Marcel Zijlema
-!     41.20: Casey Dietrich
-!
-!  1. Updates
-!
-!     40.00, Jan. 98: new subroutine replacing code in subr SNEXTI
-!     30.90, Oct. 98: Introduced EQUIVALENCE POOL-arrays
-!     34.01, Feb. 99: Introducing STPNOW
-!     40.03, Aug. 00: condition added for calling INAR2D to prevent error
-!                     in case command INP GRID is present and corresponding
-!                     command READ is not.
-!     40.02, Oct. 00: Avoided real/int conflict by replacing RPOOL for POOL in
-!                     INAR2D
-!     40.13, Mar. 01: misplaced error message moved to proper place
-!     40.30, Mar. 03: introduction distributed-memory approach using MPI
-!     40.31, Nov. 03: removing POOL-mechanism
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!     40.80, Sep. 07: extension to unstructured grids
-!     41.20, Mar. 10: extension to tightly coupled ADCIRC+SWAN model
-!
-!  2. PURPOSE
-!
-!     Update boundary conditions, update nonstationary input fields
-!
-!  3. METHOD
-!
-!
-!  4. Argument list
-!
-!     ARR      real  i  array holding values read from file (x-comp)
-!     ARR2     real  i  array holding values read from file (y-comp)
-!     INTRV    real  i  time interval between input fields
-!     TMENDR   real  i  end time of input field
-!     IGR1     int   i  location in array COMPDA for interpolated input
-!     IGR2     int   i  location in array COMPDA for interpolated input
-!                       for a scalar field IGR2=0
-!     JX1      int   i  location in array COMPDA for interpolated input
-!     JX2      int   i  location in array COMPDA for interpolated input
-!     JX3      int   i  location in array COMPDA for interpolated input
-!     JY1      int   i  location in array COMPDA for interpolated input
-!     JY2      int   i  location in array COMPDA for interpolated input
-!     JY3      int   i  location in array COMPDA for interpolated input
-!     COSFC    real  i  cos of angle between input grid and computational grid
-!     SINFC    real  i  sin of angle between input grid and computational grid
-!     COMPDA   real i/o array holding values for computational grid points
-!     XCGRID   real  i  x-coordinate of computational grid points
-!     YCGRID   real  i  y-coordinate of computational grid points
-!     KGRPNT   int   i  indirect addresses of computational grid points
-!     NHDF     int   i  number of heading lines for a data file
-!     NHDT     int   i  number of heading lines per time step
-!     NHDC     int   i  number of heading lines before second component
-!     IDLA     int   i  lay-out identifier for a data file
-!     IDFM     int   i  format identifier for a data file
-!     DFORM    char  i  format to read a data file
-!     VFAC     real  i  multiplication factor applied to values from data file
-!     IERR     int   o  error status: 0=no error, 9=end-of-file
-!
-!
-!  5. SUBROUTINES CALLING
-!
-!     SNEXTI
-!
-!  6. SUBROUTINES USED
-!
-!     INAR2D
-!     MSGERR
-!     STRACE
-!     SWBROADC
-
-   LOGICAL STPNOW
-
-!  7. ERROR MESSAGES
-!
-!        ---
-!
-!  8. REMARKS
-!
-!
-!  9. Structure
-!
-!     --------------------------------------------------------------
-!     for all comp. grid points do
-!         copy new values to old
-!     --------------------------------------------------------------
-!     repeat
-!         if present time > time of last reading
-!         then read new values from file
-!              update time of last reading
-!              interpolate values to computational grid
-!         else exit from repeat
-!     --------------------------------------------------------------
-!     for all comp. grid points do
-!         interpolate new values
-!     --------------------------------------------------------------
-!
-! 10. SOURCE
-!
-!****************************************************************
-
-   INTEGER    KGRPNT(MXC,MYC),&
-   &IGR1, IGR2, JX1, JX2, JX3, JY1, JY2, JY3, IERR
-
-   REAL       COMPDA(MCGRD,MCMVAR),&
-   &XCGRID(MXC,MYC), YCGRID(MXC,MYC),&
-   &COSFC, SINFC
-   REAL       ARR(*), ARR2(*)
-
-!     local variables
-
-   INTEGER, SAVE :: IENT = 0
-   INTEGER    INDX, IX, IY, JVERT
-!     INDX       counter of comp. grid points
-!     IX         index in x-dir of comput grid point
-!     IY         index in y-dir of comput grid point
-!     JVERT      global index of unstructured mesh
-
-   REAL       SVALQI
-!     SVALQI     real function giving interpolated value of an input array
-
-   REAL       XP, YP, UU, VV, VTOT, W1, W3,&
-   &SIZE1, SIZE2, SIZE3
-   REAL(KIND=KIND(0.0D0))     FAC
-   REAL(KIND=KIND(0.0D0))     TIMR1
-!     TIMR1      time of one but last input field
-!     XP         x-coord of one comput grid point
-!     YP         y-coord of one comput grid point
-!     UU         x-component of vector, or scalar value
-!     VV         y-component of vector
-!     VTOT       length of vector
-!     W1         weighting coeff for interpolation in time
-!     W3         weighting coeff for interpolation in time
-!     DIRE       direction of interpolated vector
-!     SIZE1      length of vector at time TIMR1
-!     SIZE2      length of vector at time TIMCO
-!     SIZE3      length of vector at time TIMR2
-
-   CALL STRACE (IENT, 'FLFILE')
-
-   IERR = 0
-
-   IF (JX1.GT.1) THEN
-      DO INDX = 1, MCGRD
-         COMPDA(INDX,JX1)=COMPDA(INDX,JX2)
-      ENDDO
-   ENDIF
-   IF (IGR2.GT.0 .AND. JY1.GT.1) THEN
-      DO INDX = 1, MCGRD
-         COMPDA(INDX,JY1)=COMPDA(INDX,JY2)
-      ENDDO
-   ENDIF
-   TIMR1 = TIMCO - DT
-
-   field_updates: DO WHILE (TIMCO > IFLTIM(IGR1))
-   TIMR1 = IFLTIM(IGR1)
-   IFLTIM(IGR1) = IFLTIM(IGR1) + IFLINT(IGR1)
-   IF (IFLTIM(IGR1) .GT. IFLEND(IGR1)) THEN
-      IFLTIM(IGR1) = 1.E10
-      IF (IGR2.GT.0) IFLTIM(IGR2) = IFLTIM(IGR1)
-      EXIT field_updates
-   ENDIF
-   IF (IFLNDS(IGR1).GT.0) THEN
-      IF (INODE.EQ.MASTER) THEN
-         CALL INAR2D( ARR, MXG(IGR1), MYG(IGR1),&
-         &IFLNDF(IGR1),&
-         &IFLNDS(IGR1), IFLIFM(IGR1), IFLFRM(IGR1),&
-         &IFLIDL(IGR1), IFLFAC(IGR1),&
-         &IFLNHD(IGR1), IFLNHF(IGR1))
-         IF (STPNOW()) RETURN
-      END IF
-      CALL SWBROADC(IFLIDL(IGR1),1)
-      IF (IFLIDL(IGR1).LT.0) THEN
-!         end of file was encountered
-         IFLTIM(IGR1) = 1.E10
-         IF (IGR2.GT.0) IFLTIM(IGR2) = IFLTIM(IGR1)
-         EXIT field_updates
-      ELSE
-         CALL SWBROADC(ARR,MXG(IGR1)*MYG(IGR1))
-      ENDIF
-   ELSE
-      IF (ITEST.GE.20) THEN
-         CALL MSGERR (1,&
-         &'no read of input field because unit nr=0')
-         WRITE (PRINTF, "(' field nr.', I2)") IGR1
-      ENDIF
-   ENDIF
-   IF (IGR2.GT.0) THEN
-      IFLTIM(IGR2) = IFLTIM(IGR1)
-      IF (IFLNDS(IGR2).GT.0) THEN
-         IF (INODE.EQ.MASTER) THEN
-            CALL INAR2D( ARR2, MXG(IGR2), MYG(IGR2),&
-            &IFLNDF(IGR2),&
-            &IFLNDS(IGR2), IFLIFM(IGR2), IFLFRM(IGR2),&
-            &IFLIDL(IGR2), IFLFAC(IGR2), IFLNHD(IGR2), 0)
-            IF (STPNOW()) RETURN
-         END IF
-         CALL SWBROADC(ARR2,MXG(IGR2)*MYG(IGR2))
-      ENDIF
-   ENDIF
-!     Interpolation over the computational grid
-!     structured grid
-   do IX = 1, MXC
-      do IY = 1, MYC
-         INDX = KGRPNT(IX,IY)
-         IF (INDX.GT.1) THEN
-            XP = XCGRID(IX,IY)
-            YP = YCGRID(IX,IY)
-            UU = SVALQI (XP, YP, IGR1, ARR, 0, IX, IY)
-            IF (IGR2.EQ.0) THEN
-               COMPDA(INDX,JX3) = UU
-            ELSE
-               VV = SVALQI (XP, YP, IGR2, ARR2, 0, IX, IY)
-               COMPDA(INDX,JX3) =  UU*COSFC + VV*SINFC
-               COMPDA(INDX,JY3) = -UU*SINFC + VV*COSFC
-            ENDIF
-         ENDIF
-      end do
-   end do
-!     unstructured grid
-   DO INDX = 1, nverts
-      XP = xcugrd(INDX)
-      YP = ycugrd(INDX)
-      IF (.NOT.PARLL) THEN
-         JVERT=INDX
-      ELSE
-         JVERT=ivertg(INDX)
-      ENDIF
-      IF ( IGTYPE(IGR1).EQ.3 ) THEN
-         UU = ARR(JVERT)
-      ELSE
-         UU = SVALQI (XP, YP, IGR1, ARR, 0, 0, 0)
-      ENDIF
-      IF (IGR2.EQ.0) THEN
-         COMPDA(INDX,JX3) = UU
-      ELSE
-         IF ( IGTYPE(IGR2).EQ.3 ) THEN
-            VV = ARR2(JVERT)
-         ELSE
-            VV = SVALQI (XP, YP, IGR2, ARR2, 0, 0, 0)
-         ENDIF
-         COMPDA(INDX,JX3) =  UU*COSFC + VV*SINFC
-         COMPDA(INDX,JY3) = -UU*SINFC + VV*COSFC
-      ENDIF
-   ENDDO
-   END DO field_updates
-
-!         Interpolation in time
-
-   FAC = (TIMCO-TIMR1) / (IFLTIM(IGR1)-TIMR1)
-   W3 = REAL(FAC)
-   W1 = 1.-W3
-   IF (ITEST.GE.60) WRITE(PRTEST,"(' input field', I2, ' interp at ', 2F9.0, 2F8.3, 6I3)") IGR1,&
-   &TIMCO,IFLTIM(IGR1),W1,W3,JX1,JY1,JX2,JY2,JX3,JY3
-   do INDX = 1, MCGRD
-      UU = W1 * COMPDA(INDX,JX2) + W3 * COMPDA(INDX,JX3)
-      IF (IGR2.LE.0) THEN
-         COMPDA(INDX,JX2) = UU
-      ELSE
-         VV = W1 * COMPDA(INDX,JY2) + W3 * COMPDA(INDX,JY3)
-         VTOT = SQRT (UU*UU + VV*VV)
-
-!         procedure to prevent loss of magnitude due to interpolation
-
-         IF (VTOT.GT.0.) THEN
-            SIZE1 = SQRT(COMPDA(INDX,JX2)**2 + COMPDA(INDX,JY2)**2)
-            SIZE3 = SQRT(COMPDA(INDX,JX3)**2 + COMPDA(INDX,JY3)**2)
-            SIZE2 = W1*SIZE1 + W3*SIZE3
-!           SIZE2 is to be length of vector
-            COMPDA(INDX,JX2) = SIZE2*UU/VTOT
-            COMPDA(INDX,JY2) = SIZE2*VV/VTOT
-         ELSE
-            COMPDA(INDX,JX2) = UU
-            COMPDA(INDX,JY2) = VV
-         ENDIF
-      ENDIF
-   end do
-   RETURN
-
-!     End of subroutine FLFILE
-end subroutine FLFILE
 
 !************************************************************************
 !                                                                      *
@@ -8887,6 +7756,8 @@ SUBROUTINE SWINCO (AC2    ,COMPDA ,&
 &XCGRID ,YCGRID ,&
 &KGRPNT ,SPCDIR ,&
 &SPCSIG ,XYTST   )
+   USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
+   USE swan_service_interfaces, ONLY: STRACE
 !                                                                      *
 !************************************************************************
 
