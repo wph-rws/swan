@@ -31,6 +31,13 @@
 !
 !****************************************************************
 
+module swan_propagation
+   implicit none
+   private
+   public :: SWGEOM, SWPSEL, SPROXY, SPROSD, DSPHER, STRSXY, SORDUP, SANDL
+   public :: STRSSI, STRSSB, STRSD, SPREDT, SWAPAR, SWAPRE, ADDDIS, SWFLXD, DIFPAR
+contains
+
 SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -3568,8 +3575,11 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
    &CAY(MDC,MSC,ICMAX)       ,&
    &AC2(MDC,MSC,MCGRD)       ,&
    &IMATRA(MDC,MSC)          ,&
-   &RDX(MICMAX)              ,&
-   &RDY(MICMAX)
+   &RDX(*)                   ,&
+   &RDY(*)
+!  RDX/RDY assumed-size: the unstructured caller passes a 2-element array and
+!  STRSSB only reads RDX(1:2). The module's explicit interface rejected the old
+!  RDX(MICMAX) declaration against that shorter actual argument.
    REAL  :: TRAC0(MDC,MSC,MTRNP)
 
    INTEGER  IDCMIN(MSC)              ,&
@@ -4428,9 +4438,14 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint
    REAL  :: CAX(MDC,MSC,MICMAX)
    REAL  :: CAY(MDC,MSC,MICMAX)
-   REAL  :: RDX(MICMAX),  RDY(MICMAX),&
+!  RDX/RDY assumed-size: unstructured callers pass a 2-element array; SPREDT
+!  only reads RDX(1:2). XCGRID/YCGRID are OPTIONAL because they are dereferenced
+!  only on the OPTG==3 (curvilinear) branch below, which unstructured (OPTG==5)
+!  never reaches. Passing under-sized/scalar placeholders here was a latent
+!  mismatch that the module's explicit interface now rejects.
+   REAL  :: RDX(*),  RDY(*),&
    &OBREDF(MDC,MSC,2)
-   REAL  :: XCGRID(MXC,MYC), YCGRID(MXC,MYC)
+   REAL, OPTIONAL  :: XCGRID(MXC,MYC), YCGRID(MXC,MYC)
 
    INTEGER  IDCMIN(MSC)              ,&
    &IDCMAX(MSC)
@@ -6012,3 +6027,5 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
 !     End of subroutine DIFPAR
    RETURN
 end subroutine DIFPAR
+
+end module swan_propagation

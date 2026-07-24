@@ -477,6 +477,7 @@ contains
                               SPCSIG, SPCDIR, DEP2, KGRPNT, CROSS, IONOD, &
                               lspcaux)
       USE OCPCOMM2
+      use swan_spectrum_output, only: SWCMSP
       USE swan_time, ONLY: default_time_context
 
 

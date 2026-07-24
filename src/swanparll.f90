@@ -2854,6 +2854,7 @@ end subroutine SWCOLLECT
 
 SUBROUTINE SWCOLOUT ( OURQT, BLKND )
    USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
+   USE swan_output_orchestration, ONLY: SWOEXC
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL, STPNOW
 
 !****************************************************************
@@ -4021,6 +4022,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
 &PSNAME, MXK, MYK, IRQ  , BLKND,&
 &XC    , YC )
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_output_writers, ONLY: SBLKPT, SRAWPT, SWRMAT
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, EQREAL
 
 !****************************************************************

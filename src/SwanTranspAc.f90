@@ -51,6 +51,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
 !   Modules used
 
     use ocpcomm4
+     use swan_propagation, only: STRSD, STRSSI, STRSSB
     use swcomm2
     use swcomm3
     use swcomm4

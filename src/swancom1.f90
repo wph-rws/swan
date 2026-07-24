@@ -64,6 +64,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 &XCGRID     ,YCGRID     ,&
 &CROSS      )
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_propagation, ONLY: DIFPAR, SWAPRE
    USE swan_nonlinear_interactions, ONLY: FAC3WW, FAC4WW, SWBIPM, SWPRE4W
    USE swan_dissipation, ONLY: PLTSRC
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, STPNOW
@@ -2530,6 +2531,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &CAX1,CAY1&
                &)
    USE swan_service_interfaces, ONLY: STRACE
+   USE swan_propagation, ONLY: ADDDIS, DSPHER, SPREDT, SPROSD, SPROXY, SWAPAR, SWGEOM, SWPSEL
    USE swan_wind_source, ONLY: WINDP1, WINDP3
 
 !************************************************************************
@@ -4984,6 +4986,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &CGO        ,TRAC0      ,TRAC1&
                &)
    USE swan_service_interfaces, ONLY: STRACE
+   USE swan_propagation, ONLY: SANDL, SORDUP, STRSD, STRSSB, STRSSI, STRSXY, SWFLXD
 
 !****************************************************************
 

@@ -126,6 +126,7 @@ end program SWAN
 !                                                                      *
 SUBROUTINE SWMAIN
    USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
+   USE swan_output_orchestration, ONLY: SWOUTP
 !TIMG   USE swan_time, ONLY: DCUMTM, NCUMTM
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_file_opening, ONLY: FOR

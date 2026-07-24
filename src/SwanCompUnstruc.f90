@@ -91,6 +91,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
     use swan_wind_source, only: WINDP1, WINDP3
     use swan_dissipation, only: PLTSRC
     use swan_nonlinear_interactions, only: FAC3WW, FAC4WW, SWBIPM, SWPRE4W
+    use swan_propagation, only: SPREDT, ADDDIS
     use swcomm1
     use swcomm2
     use swcomm3
@@ -1024,8 +1025,9 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
                             initial_prediction_pass = .false.
                          else
                          if ( lpredt ) then
+                            ! XCGRID/YCGRID omitted: only used on the OPTG==3 branch, never for unstructured.
                             call SPREDT (swpnr , ac2   , cax  , cay  , idcmin, idcmax,        &
-                                         isstop, anybin, dummy, dummy, rdx   , rdy   , obredf)
+                                         isstop, anybin, rdx=rdx, rdy=rdy, obredf=obredf)
                             lpredt = .false.
                          endif
 
