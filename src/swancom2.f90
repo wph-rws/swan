@@ -24,6 +24,13 @@
 !
 !****************************************************************
 
+module swan_dissipation
+   implicit none
+   private
+   public :: SBOT, SVEG, STURBV, SMUD, SICE, FRABRE, SSURF, SWCAP, SWCAP8
+   public :: BRKPAR, PLTSRC
+contains
+
 SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 &IMATDA  ,KWAVE   ,SPCSIG  ,UBOT    ,UX2     ,&
 &UY2     ,IDCMIN  ,IDCMAX  ,IT      ,ITER    ,&
@@ -3489,7 +3496,17 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        ,&
    &NL4S  ,NL4D  ,TRIA  ,BRAG  ,QC    ,ENERGY,ENRSIG
    REAL        SWEL
 
-   INTEGER     XYTST(*),KGRPNT(MXC,MYC)
+   INTEGER     XYTST(*)
+!     KGRPNT is the structured-grid point index, dereferenced only on the
+!     OPTG /= 5 branch below; the unstructured path (OPTG == 5) uses XYTST
+!     instead and never touches it. KGRPNT is OPTIONAL so unstructured callers
+!     can omit it.
+!     History: before swancom2 became a module, PLTSRC had no explicit
+!     interface, and the unstructured caller (SwanCompUnstruc) passed a scalar
+!     for this rank-2 dummy -- a rank mismatch that compiled silently but was
+!     invalid Fortran. Making it OPTIONAL and omitting it there is behaviour-
+!     preserving because the value was never actually dereferenced.
+   INTEGER, OPTIONAL :: KGRPNT(MXC,MYC)
 
 
    REAL        AC2(MDC,MSC,MCGRD)          ,&
@@ -3789,3 +3806,5 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        ,&
    RETURN
 !     end of subroutine PLTSRC
 end subroutine PLTSRC
+
+end module swan_dissipation

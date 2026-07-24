@@ -238,6 +238,7 @@ program benchmark_snl4
    use SWCOMM4
    use OCPCOMM4
    use M_SNL4
+   use swan_nonlinear_interactions, only: FAC4WW, RANGE4, SWSNL2
    use snl4_bench_dirmajor, only: swsnl2_dirmajor
 
    implicit none

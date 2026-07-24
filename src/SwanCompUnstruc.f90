@@ -88,6 +88,9 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
 !   Modules used
 
     use ocpcomm4
+    use swan_wind_source, only: WINDP1, WINDP3
+    use swan_dissipation, only: PLTSRC
+    use swan_nonlinear_interactions, only: FAC3WW, FAC4WW, SWBIPM, SWPRE4W
     use swcomm1
     use swcomm2
     use swcomm3
@@ -1382,13 +1385,13 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
           if ( IFPAR > 0 ) write (IFPAR,"(i4, t41, 'iteration')") iter
           if ( IFS1D > 0 ) write (IFS1D,"(i4, t41, 'iteration')") iter
           if ( IFS2D > 0 ) write (IFS2D,"(i4, t41, 'iteration')") iter
+          ! KGRPNT is omitted: unstructured (OPTG=5) never uses it (see PLTSRC decl).
           call PLTSRC ( swtsda(1,1,1,JPWNDS), swtsda(1,1,1,JPWNDD), swtsda(1,1,1,JPWCAP), swtsda(1,1,1,JPBTFR), &
                         swtsda(1,1,1,JPWBRK), swtsda(1,1,1,JP4S)  , swtsda(1,1,1,JP4D)  , swtsda(1,1,1,JPTRI) , &
                         swtsda(1,1,1,JPVEGT), swtsda(1,1,1,JPTURB), swtsda(1,1,1,JPMUD) , swtsda(1,1,1,JPICE) , &
                         swtsda(1,1,1,JPBRAG), swtsda(1,1,1,JPQCS) ,                                             &
                         swtsda(1,1,1,JPSWEL),                                                                   &
-                        ac2                 , spcsig              , compda(1,JDP2)      , xytst               , &
-                        idummy              )
+                        ac2                 , spcsig              , compda(1,JDP2)      , xytst               )
        endif
 !TIMG       call SWTSTO(105)
 
@@ -1632,13 +1635,13 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
        if ( IFPAR > 0 ) write (IFPAR,"(a , t41, 'date-time')") CHTIME
        if ( IFS1D > 0 ) write (IFS1D,"(a , t41, 'date-time')") CHTIME
        if ( IFS2D > 0 ) write (IFS2D,"(a , t41, 'date-time')") CHTIME
+       ! KGRPNT is omitted: unstructured (OPTG=5) never uses it (see PLTSRC decl).
        call PLTSRC ( swtsda(1,1,1,JPWNDS), swtsda(1,1,1,JPWNDD), swtsda(1,1,1,JPWCAP), swtsda(1,1,1,JPBTFR), &
                      swtsda(1,1,1,JPWBRK), swtsda(1,1,1,JP4S)  , swtsda(1,1,1,JP4D)  , swtsda(1,1,1,JPTRI) , &
                      swtsda(1,1,1,JPVEGT), swtsda(1,1,1,JPTURB), swtsda(1,1,1,JPMUD) , swtsda(1,1,1,JPICE) , &
                      swtsda(1,1,1,JPBRAG), swtsda(1,1,1,JPQCS) ,                                             &
                      swtsda(1,1,1,JPSWEL),                                                                   &
-                     ac2                 , spcsig              , compda(1,JDP2)      , xytst               , &
-                     idummy              )
+                     ac2                 , spcsig              , compda(1,JDP2)      , xytst               )
     endif
 !TIMG    call SWTSTO(105)
 

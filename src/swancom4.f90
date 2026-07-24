@@ -57,6 +57,14 @@
 !
 !******************************************************************
 
+module swan_nonlinear_interactions
+   implicit none
+   private
+   public :: FAC4WW, RANGE4, SWPRE4W, SWSNL1, SWSNL2, SWSNL3, SWSNL4, SWSNL8
+   public :: FILNL3, SWINTFXNL, FAC3WW, SWLTA, SWDCTA, SWDNCTA, SWFTIM
+   public :: PEREXC, SWBIDW, SWBIPM
+contains
+
 SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
 &DAL1  ,DAL2  ,DAL3         ,SPCSIG,&
 &WWINT ,WWAWG ,WWSWG                )
@@ -5929,3 +5937,5 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC )
 !     End of subroutine SWBIPM
    RETURN
 end subroutine SWBIPM
+
+end module swan_nonlinear_interactions

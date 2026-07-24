@@ -27,6 +27,12 @@
 !
 !****************************************************************
 
+module swan_wind_source
+   implicit none
+   private
+   public :: WNDPAR, WINDP1, WINDP3, SWIND0, SWIND3, SWIND4, SWIND5
+contains
+
 SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 &DEP2  ,WIND10,GENC0 ,GENC1 ,&
 &THETAW,AC2   ,KWAVE ,IMATRA,IMATDA,&
@@ -2847,3 +2853,5 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
    RETURN
 !     end of subroutine SWIND5
 end subroutine SWIND5
+
+end module swan_wind_source

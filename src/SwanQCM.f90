@@ -1215,6 +1215,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 !   Modules used
 
     use ocpcomm4
+   use swan_dissipation, only: SSURF
     use swcomm2
     use swcomm3
     use swcomm4
