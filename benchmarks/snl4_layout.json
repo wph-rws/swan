@@ -1,0 +1,72 @@
+{
+  "date": "2026-07-23",
+  "subject": "quadruplet workspace layout in SWSNL2",
+  "outcome": "rejected",
+  "machine": {
+    "cpu": "Intel Core Ultra 9 185H",
+    "logical_cpus": 22,
+    "compiler": "GNU Fortran 13.3.0",
+    "flags": "-O3",
+    "execution": "serial, OMP_NUM_THREADS=1, pinned to logical CPU 0"
+  },
+  "case": {
+    "name": "regular Voordelta",
+    "msc": 25,
+    "mdc": 36,
+    "mcgrd": 9076,
+    "iquad": 2,
+    "msc4mi": -2,
+    "msc4ma": 30,
+    "mdc4mi": -39,
+    "mdc4ma": 76,
+    "isclw": 1,
+    "ischg": 28,
+    "idlow": -3,
+    "idhgh": 13,
+    "sweep_sector": [1, 9]
+  },
+  "profile_o3_pg": {
+    "unit": "percent of self time",
+    "swsnl2": 43.74,
+    "sordup": 8.10,
+    "solmat": 7.16,
+    "strsd": 6.96,
+    "swpsel": 5.62,
+    "sproxy": 4.13,
+    "swsnl2_calls": 790512,
+    "swsnl2_self_seconds": 8.80
+  },
+  "avx2_control": {
+    "description": "widening the main interaction loop to 32-byte vectors with FMA",
+    "unit": "seconds, full Voordelta run",
+    "baseline_o3": [24.963, 24.025, 23.761],
+    "o3_march_native": [24.301, 24.266, 24.217],
+    "baseline_median": 24.025,
+    "native_median": 24.266,
+    "verdict": "no gain"
+  },
+  "layout_prototype": {
+    "bit_identical": true,
+    "repetitions": 30000,
+    "unit": "microseconds per call",
+    "sweep": [
+      {"scratch_kb": 0,    "production": 4.009,  "prototype": 3.306,  "saved": 0.7022},
+      {"scratch_kb": 256,  "production": 6.056,  "prototype": 5.507,  "saved": 0.5494},
+      {"scratch_kb": 512,  "production": 8.221,  "prototype": 7.574,  "saved": 0.6471},
+      {"scratch_kb": 1024, "production": 12.668, "prototype": 11.869, "saved": 0.7986},
+      {"scratch_kb": 2048, "production": 24.147, "prototype": 24.203, "saved": -0.0562}
+    ],
+    "calibrated_repeats": [
+      {"scratch_kb": 768,  "production": 10.030, "saved": 0.1238},
+      {"scratch_kb": 768,  "production": 9.939,  "saved": 0.3604},
+      {"scratch_kb": 768,  "production": 9.576,  "saved": 0.2704},
+      {"scratch_kb": 1024, "production": 11.632, "saved": 0.4114},
+      {"scratch_kb": 1024, "production": 11.597, "saved": 0.6220},
+      {"scratch_kb": 1024, "production": 11.481, "saved": -0.1296}
+    ],
+    "production_cost_per_call_us": 11.1,
+    "calibrated_median_saving_us": 0.315,
+    "estimated_end_to_end_gain_percent": 1.0,
+    "note": "The scratch buffer is touched identically in both arms, so it compresses the ratio; the absolute saving per call is the quantity that scales to the model run."
+  }
+}

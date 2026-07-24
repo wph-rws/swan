@@ -11,6 +11,16 @@ the reports as JSON.
 - [`cpu_upstream.md`](cpu_upstream.md): serial
   end-to-end, compiler/source matrix, FFT kernels and unstructured-grid
   hotspots.
+- [`snl4_layout.md`](snl4_layout.md): a rejected
+  optimization. Turning the quadruplet workspace direction-major is
+  bit-identical but gains about 1%, because `SWSNL2` is bound by memory
+  latency rather than by layout or SIMD width. Kept so the question is not
+  re-opened without new evidence.
+
+`benchmark_snl4.f90` is the harness behind that report. It drives the
+production `SWSNL2` and a direction-major prototype over identical input,
+asserts bit equality, and varies cache pressure so the isolated kernel gain can
+be separated from the gain the full model would actually see.
 
 `benchmark_parallel.py` is the reusable cross-build runner. It alternates the
 upstream and current executable, reports median wall-clock time and scaling,

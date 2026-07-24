@@ -20,3 +20,8 @@ __pycache__/
 # Editors
 *.swp
 .vscode/
+
+# Operationele so-rp/Voordelta-case: lokaal en groot (data + binaries) — niet in git,
+# behalve de verificatieplots die de GEN3-analyse documenteren.
+/so-rp_swan/*
+!/so-rp_swan/verificatie_plots/
