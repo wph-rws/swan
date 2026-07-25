@@ -29,6 +29,12 @@ MODULE swan_io_context
       INTEGER :: PRINTF = 4     ! standard output file ('PRINT')
       INTEGER :: PRTEST = 4     ! test output file (defaults to PRINTF)
       INTEGER :: SCREEN = 6     ! screen
+!     Free-unit bookkeeping used when opening files (OCPINI sets these).
+      INTEGER :: IUNMIN = 0     ! lowest valid unit number
+      INTEGER :: IUNMAX = 99999 ! highest valid unit number
+      INTEGER :: FUNLO  = 21    ! lowest unit in the free-unit search interval
+      INTEGER :: FUNHI  = 99999 ! highest unit in the free-unit search interval
+      INTEGER :: HIOPEN = 0     ! highest unit number opened so far
    CONTAINS
       PROCEDURE :: reset => reset_io_context
    END TYPE io_context_t
@@ -56,6 +62,11 @@ SUBROUTINE reset_io_context (context)
    context%PRINTF = 4
    context%PRTEST = 4
    context%SCREEN = 6
+   context%IUNMIN = 0
+   context%IUNMAX = 99999
+   context%FUNLO  = 21
+   context%FUNHI  = 99999
+   context%HIOPEN = 0
 END SUBROUTINE reset_io_context
 
 SUBROUTINE reset_diagnostics_context (context)
@@ -70,24 +81,36 @@ END SUBROUTINE reset_diagnostics_context
 
 !     Copy the live OCPCOMM4 stream units into a context.
 SUBROUTINE capture_io_context (context)
-   USE OCPCOMM4, ONLY: INPUTF, PRINTF, PRTEST, SCREEN
+   USE OCPCOMM4, ONLY: INPUTF, PRINTF, PRTEST, SCREEN,&
+   &IUNMIN, IUNMAX, FUNLO, FUNHI, HIOPEN
    TYPE(io_context_t), INTENT(OUT) :: context
 
    context%INPUTF = INPUTF
    context%PRINTF = PRINTF
    context%PRTEST = PRTEST
    context%SCREEN = SCREEN
+   context%IUNMIN = IUNMIN
+   context%IUNMAX = IUNMAX
+   context%FUNLO  = FUNLO
+   context%FUNHI  = FUNHI
+   context%HIOPEN = HIOPEN
 END SUBROUTINE capture_io_context
 
 !     Publish a context's stream units to the OCPCOMM4 globals.
 SUBROUTINE apply_io_context (context)
-   USE OCPCOMM4, ONLY: INPUTF, PRINTF, PRTEST, SCREEN
+   USE OCPCOMM4, ONLY: INPUTF, PRINTF, PRTEST, SCREEN,&
+   &IUNMIN, IUNMAX, FUNLO, FUNHI, HIOPEN
    TYPE(io_context_t), INTENT(IN) :: context
 
    INPUTF = context%INPUTF
    PRINTF = context%PRINTF
    PRTEST = context%PRTEST
    SCREEN = context%SCREEN
+   IUNMIN = context%IUNMIN
+   IUNMAX = context%IUNMAX
+   FUNLO  = context%FUNLO
+   FUNHI  = context%FUNHI
+   HIOPEN = context%HIOPEN
 END SUBROUTINE apply_io_context
 
 !     Copy the live OCPCOMM4 error/trace status into a context.

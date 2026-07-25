@@ -27,6 +27,19 @@
 !                                                                *
 !*****************************************************************
 !                                                                *
+
+module swan_input_helpers
+!
+!     Input helpers that sit above the command parser: REPARM reads the
+!     parameters for an input array, LSPLIT splits a line into data items.
+!     They live here rather than in swan_service_interfaces because they use
+!     swan_input_parser, which in turn uses that module.
+!
+   implicit none
+   private
+   public :: REPARM, LSPLIT
+contains
+
 SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
 &NHEDF, IDYN, NHEDT, LOGC, NHEDC)
    USE swan_file_opening, ONLY: FOR
@@ -450,5 +463,5 @@ SUBROUTINE LSPLIT(RELINE, DATITM, NUMITM)
    ENDIF
    RETURN
 end subroutine LSPLIT
-!************************************************************************
-!                                                                      *
+
+end module swan_input_helpers

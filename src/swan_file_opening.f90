@@ -5,8 +5,9 @@ module swan_file_opening
 
 contains
 
-SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
+SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT, IO)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_io_context, ONLY: io_context_t
 !                                                                *
 !*****************************************************************
 
@@ -94,6 +95,7 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
    INTEGER   IUNIT, IOSTAT
    CHARACTER(LEN=LENFNM) :: DDNAME
    CHARACTER(LEN=2) :: SF
+   TYPE(io_context_t), OPTIONAL, INTENT(INOUT) :: IO
 
 !  5. PARAMETER VAR. (CONSTANTS)
 !
@@ -130,6 +132,7 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
 !     IUTTM     aux. unit number
 
    INTEGER, SAVE :: IENT = 0
+   INTEGER :: CUR_IUNMIN, CUR_IUNMAX, CUR_FUNLO, CUR_FUNHI
    INTEGER, SAVE :: IFUN = 0
    INTEGER   IFO, II, IOSTTM, IS, IUTTM
 
@@ -195,13 +198,30 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
 
    CALL STRACE (IENT, 'FOR')
 
+!     IO : optional stream context. When present its free-unit bookkeeping is
+!          used instead of the OCPCOMM4 globals, and the highest opened unit is
+!          recorded back into it, so an isolated run can own its unit range.
+!          Declared INTENT(INOUT) because HIOPEN is updated on a successful open.
+
+   IF (PRESENT(IO)) THEN
+      CUR_IUNMIN = IO%IUNMIN
+      CUR_IUNMAX = IO%IUNMAX
+      CUR_FUNLO  = IO%FUNLO
+      CUR_FUNHI  = IO%FUNHI
+   ELSE
+      CUR_IUNMIN = IUNMIN
+      CUR_IUNMAX = IUNMAX
+      CUR_FUNLO  = FUNLO
+      CUR_FUNHI  = FUNHI
+   END IF
+
    IF (ITEST.GE.80) WRITE (PRTEST, "(' Entry FOR: ', I3, 1X, A36, A2, I7)") IUNIT, DDNAME, SF, IOSTAT
    DDNAME_L = DDNAME
 
 !     check file qualifiers
 
    IF ((IUNIT.NE.0) .AND.&
-   &((IUNIT .LT. IUNMIN) .OR. (IUNIT .GT. IUNMAX))) THEN
+   &((IUNIT .LT. CUR_IUNMIN) .OR. (IUNIT .GT. CUR_IUNMAX))) THEN
       IF (IOSTAT.GT.-2) CALL MSGERR (3, 'Unit number out of range')
       IOSTAT= IEUNBD
       RETURN
@@ -262,7 +282,7 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
 !           Assign free unit number
          DO
             IF (IFUN.EQ.0) THEN
-               IFUN = FUNLO
+               IFUN = CUR_FUNLO
             ELSE
                IFUN = IFUN + 1
             ENDIF
@@ -270,7 +290,7 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
             IF (IFUN.LT.411 .OR. IFUN.GT.417) EXIT
          END DO
          IUNIT = IFUN
-         IF (IUNIT .GT. FUNHI) THEN
+         IF (IUNIT .GT. CUR_FUNHI) THEN
             IF (IOSTAT.GT.-2) CALL MSGERR (3, 'All free units used')
             IOSTAT= IENUNF
          ENDIF
@@ -312,6 +332,7 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
             IF (open_failed()) RETURN
             IF (IOSTTM.NE.IESUCC) IOSTAT = IOSTTM
             HIOPEN = IFUN
+            IF (PRESENT(IO)) IO%HIOPEN = IFUN
             IF (ITEST.GE.30) WRITE (PRINTF, "(' File opened: ', I6, 2X, A36, 2X, A2)") IUNIT, DDNAME, SF
             RETURN
          ENDIF
@@ -335,6 +356,7 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT)
       END IF
    END IF
    HIOPEN = IFUN
+   IF (PRESENT(IO)) IO%HIOPEN = IFUN
 IF (ITEST.GE.30) WRITE (PRINTF, "(' File opened: ', I6, 2X, A36, 2X, A2)") IUNIT, DDNAME, SF
    RETURN
 

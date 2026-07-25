@@ -1,6 +1,7 @@
 set( swan_src
 ${SWAN_GENERATED_SRC}/swan_kinds.f90
 ${SWAN_GENERATED_SRC}/swan_parallel_state.f90
+${SWAN_GENERATED_SRC}/swan_text_utilities.f90
 ${SWAN_GENERATED_SRC}/swan_service_interfaces.f90
 ${SWAN_GENERATED_SRC}/swan_wave_physics.f90
 ${SWAN_GENERATED_SRC}/swan_grid_point_validation.f90

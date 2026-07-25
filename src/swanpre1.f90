@@ -17,6 +17,7 @@
 !************************************************************************
 
 module swan_command_reading
+   use swan_input_helpers, only: REPARM
    use swan_create_edges, only: SwanCreateEdges
    use swan_grid_topology, only: SwanGridTopology
    use swan_init_comp_grid, only: SwanInitCompGrid
@@ -3172,6 +3173,13 @@ CALL NWLINE
             ENDIF
          ENDDO
          MDIA = ILAMBDA
+!        Reject an empty lambda list. With MDIA = 0 the loop over the
+!        quadruplets in SWPRE4W does not execute, so MSC4MI/MSC4MA and
+!        MDC4MI/MDC4MA would be assigned from uninitialised locals and the
+!        derived spectral range MSCMAX/MDCMAX would be meaningless. This is
+!        the only path that can set MDIA below one.
+         IF (MDIA.LT.1) CALL MSGERR (4,&
+         &'MDIA LAMBDA requires at least one non-negative [lambda] value')
          ALLOCATE (LAMBDA(MDIA))
          LAMBDA(1:MDIA) = RLAMBDA(1:MDIA)
          DEALLOCATE (RLAMBDA)

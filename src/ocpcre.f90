@@ -1,6 +1,7 @@
 module swan_input_parser
    use swan_kinds, only: swan_double
-   use swan_io_context, only: io_context_t
+   use swan_io_context, only: io_context_t, diagnostics_context_t
+   use swan_text_utilities, only: upcase
    implicit none
    private
 
@@ -26,6 +27,11 @@ module swan_input_parser
       ! configuration, not parse state, so reset() leaves it untouched.
       type(io_context_t) :: io
       logical :: io_bound = .false.
+      ! Optional owned diagnostics. When diag_bound is .true. the parser reports
+      ! errors into diag (and to io's streams) instead of the shared globals, so
+      ! two readers can keep separate logs. Configuration, not parse state.
+      type(diagnostics_context_t) :: diag
+      logical :: diag_bound = .false.
    contains
       procedure :: reset => reset_command_reader
    end type command_reader_t
@@ -86,6 +92,33 @@ module swan_input_parser
    end interface
 
 contains
+
+!  Report through the reader's own diagnostics/streams when it owns them,
+!  otherwise through the shared globals. Keeps the 32 call sites in the parser
+!  free of PRESENT/bound branching.
+subroutine reader_msgerr (STATE, LEV, STRING)
+   use swan_service_interfaces, only: MSGERR
+   type(command_reader_t), intent(inout) :: STATE
+   integer, intent(in) :: LEV
+   character(len=*), intent(in) :: STRING
+
+   if (STATE%diag_bound) then
+      call MSGERR (LEV, STRING, STATE%diag, STATE%io)
+   else if (STATE%io_bound) then
+      call MSGERR (LEV, STRING, IO=STATE%io)
+   else
+      call MSGERR (LEV, STRING)
+   end if
+end subroutine reader_msgerr
+
+!  Unit the reader echoes its input and messages to.
+integer function reader_print_unit (STATE) result(UNIT)
+   use OCPCOMM4, only: PRINTF
+   type(command_reader_t), intent(in) :: STATE
+
+   UNIT = PRINTF
+   if (STATE%io_bound) UNIT = STATE%io%PRINTF
+end function reader_print_unit
 
 subroutine reset_command_reader(self)
    class(command_reader_t), intent(inout) :: self
@@ -307,14 +340,14 @@ SUBROUTINE NWLINE_CTX (STATE)
 !     The end of the previous line is reached, there are no more
 !     unprocessed data items on that line.
 !     Jump to new line can take place.
-   WRITE (PRINTF,"(A4)") '    '
+   WRITE (reader_print_unit(STATE),"(A4)") '    '
    STATE%KARNR=0
    STATE%KAR=' '
    STATE%ELTYPE='USED'
    END DO
    IF (STATE%ELTYPE.EQ.'EOF' .AND. ITEST.GE.10) THEN
       INQUIRE (UNIT=MERGE(STATE%io%INPUTF, INPUTF, STATE%io_bound), NAME=FILENM)
-      WRITE (PRINTF, *) ' end of input file '//FILENM
+      WRITE (reader_print_unit(STATE), *) ' end of input file '//FILENM
    ENDIF
 end subroutine NWLINE_CTX
 !****************************************************************
@@ -429,7 +462,7 @@ SUBROUTINE INKEYW_CTX (STATE, KONT, CSTA)
 !     at the end of the input 'STOP' is generated.
    IF (STATE%ELTYPE.EQ.'EOF') THEN
       STATE%KEYWRD='STOP'
-      CALL MSGERR (2, 'STOP statement is missing')
+      CALL reader_msgerr (STATE, 2, 'STOP statement is missing')
       EXIT keyword_search
    ENDIF
 !     ----------------------------------------------------------
@@ -441,30 +474,30 @@ SUBROUTINE INKEYW_CTX (STATE, KONT, CSTA)
       EXIT keyword_search
    ENDIF
    IF (STATE%ELTYPE.EQ.'INT') THEN
-      CALL MSGERR (2, 'Data field skipped:'//STATE%ELTEXT)
+      CALL reader_msgerr (STATE, 2, 'Data field skipped:'//STATE%ELTEXT)
       CALL LEESEL (STATE)
       CYCLE keyword_search
    ENDIF
    IF (STATE%ELTYPE.EQ.'REAL') THEN
-      CALL MSGERR (2, 'Data field skipped:'//STATE%ELTEXT)
+      CALL reader_msgerr (STATE, 2, 'Data field skipped:'//STATE%ELTEXT)
       CALL LEESEL (STATE)
       CYCLE keyword_search
    ENDIF
    IF (STATE%ELTYPE.EQ.'CHAR' .OR. STATE%ELTYPE.EQ.'OTHR') THEN
-      CALL MSGERR (2, 'Data field skipped:'//STATE%ELTEXT)
+      CALL reader_msgerr (STATE, 2, 'Data field skipped:'//STATE%ELTEXT)
       CALL LEESEL (STATE)
       CYCLE keyword_search
    ENDIF
    IF (STATE%ELTYPE.EQ.'EMPT') THEN
-      CALL MSGERR (2, 'Empty data field skipped')
+      CALL reader_msgerr (STATE, 2, 'Empty data field skipped')
       CALL LEESEL (STATE)
       CYCLE keyword_search
    ENDIF
-   CALL MSGERR (3, 'Error subr. INKEYW')
+   CALL reader_msgerr (STATE, 3, 'Error subr. INKEYW')
    EXIT keyword_search
 !     ----------------------------------------------------------
    END DO keyword_search
-   IF (ITEST.GE.10) WRITE (PRINTF,"(' KEYWORD: ',A8)") STATE%KEYWRD
+   IF (ITEST.GE.10) WRITE (reader_print_unit(STATE),"(' KEYWORD: ',A8)") STATE%KEYWRD
    RETURN
 end subroutine INKEYW_CTX
 !****************************************************************
@@ -742,18 +775,18 @@ SUBROUTINE INDBLE_CTX (STATE, NAAM, R, KONT, RSTA)
          STATE%ELTYPE = 'USED'
          HAVE_CANDIDATE = .FALSE.
       CASE ('ERR')
-         CALL MSGERR (3, 'Read error with variable '//NAAM_L)
-         WRITE (PRINTF,"(' -> ',A, ' item=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         CALL reader_msgerr (STATE, 3, 'Read error with variable '//NAAM_L)
+         WRITE (reader_print_unit(STATE),"(' -> ',A, ' item=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
          STATE%ELTYPE = 'USED'
       CASE ('CHAR', 'OTHR')
          IF (KONT.NE.'NSKP') THEN
-            CALL MSGERR (3, 'Wrong type of data for variable '//NAAM_L)
-            WRITE (PRINTF,"(' -> ',A, ' item=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+            CALL reader_msgerr (STATE, 3, 'Wrong type of data for variable '//NAAM_L)
+            WRITE (reader_print_unit(STATE),"(' -> ',A, ' item=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
             STATE%ELTYPE = 'USED'
          END IF
       CASE DEFAULT
-         CALL MSGERR (3, 'Error subr. INREAL')
-         WRITE (PRINTF, '(1X,A,A)') STATE%ELTYPE, KONT
+         CALL reader_msgerr (STATE, 3, 'Error subr. INREAL')
+         WRITE (reader_print_unit(STATE), '(1X,A,A)') STATE%ELTYPE, KONT
       END SELECT
    END IF
 
@@ -766,21 +799,21 @@ SUBROUTINE INDBLE_CTX (STATE, NAAM, R, KONT, RSTA)
          IF (.NOT.EQREAL(REAL(R),REAL(RSTA))) THEN
             KEEP_VALUE = .TRUE.
          ELSE
-            CALL MSGERR (3, 'No value for variable '//NAAM_L)
-            WRITE (PRINTF,"(' -> ',A, ' item=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+            CALL reader_msgerr (STATE, 3, 'No value for variable '//NAAM_L)
+            WRITE (reader_print_unit(STATE),"(' -> ',A, ' item=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
          END IF
       CASE ('REQ')
-         CALL MSGERR (3, 'No value for variable '//NAAM_L)
-         WRITE (PRINTF,"(' -> ',A, ' item=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         CALL reader_msgerr (STATE, 3, 'No value for variable '//NAAM_L)
+         WRITE (reader_print_unit(STATE),"(' -> ',A, ' item=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
       CASE ('REP', 'STA', 'NSKP')
       CASE DEFAULT
-         CALL MSGERR (3, 'Error subr. INREAL')
-         WRITE (PRINTF, '(1X,A,A)') STATE%ELTYPE, KONT
+         CALL reader_msgerr (STATE, 3, 'Error subr. INREAL')
+         WRITE (reader_print_unit(STATE), '(1X,A,A)') STATE%ELTYPE, KONT
       END SELECT
    END IF
 
    IF (.NOT. KEEP_VALUE) R = RSTA
-   IF (ITEST.GE.10) WRITE (PRINTF, "(1X,A8,'=',D12.4)") NAAM, R
+   IF (ITEST.GE.10) WRITE (reader_print_unit(STATE), "(1X,A8,'=',D12.4)") NAAM, R
    RETURN
 end subroutine INDBLE_CTX
 !****************************************************************
@@ -928,17 +961,17 @@ SUBROUTINE ININTG_CTX (STATE, NAAM, IV, KONT, ISTA)
          HAVE_CANDIDATE = .FALSE.
       CASE ('CHAR', 'OTHR', 'REAL')
          IF (KONT.NE.'NSKP') THEN
-            CALL MSGERR (2, 'Wrong type of data for variable '//NAAM_L)
-            WRITE (PRINTF,"(' -> ',A8, ' item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+            CALL reader_msgerr (STATE, 2, 'Wrong type of data for variable '//NAAM_L)
+            WRITE (reader_print_unit(STATE),"(' -> ',A8, ' item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
             STATE%ELTYPE = 'USED'
          END IF
       CASE ('ERR')
-         CALL MSGERR (2, 'Read error with variable '//NAAM_L)
-         WRITE (PRINTF,"(' -> ',A8, ' item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         CALL reader_msgerr (STATE, 2, 'Read error with variable '//NAAM_L)
+         WRITE (reader_print_unit(STATE),"(' -> ',A8, ' item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
          STATE%ELTYPE = 'USED'
       CASE DEFAULT
-         CALL MSGERR (2, 'Read error with variable '//NAAM_L)
-         WRITE (PRINTF,"(' -> ',A8, ' item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         CALL reader_msgerr (STATE, 2, 'Read error with variable '//NAAM_L)
+         WRITE (reader_print_unit(STATE),"(' -> ',A8, ' item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
          STATE%ELTYPE = 'USED'
       END SELECT
    END IF
@@ -952,10 +985,10 @@ SUBROUTINE ININTG_CTX (STATE, NAAM, IV, KONT, ISTA)
          IF (IV.NE.ISTA) THEN
             KEEP_VALUE = .TRUE.
          ELSE
-            CALL MSGERR (2, 'No value for variable '//NAAM_L)
+            CALL reader_msgerr (STATE, 2, 'No value for variable '//NAAM_L)
          END IF
       CASE ('REQ')
-         CALL MSGERR (2, 'No value for variable '//NAAM_L)
+         CALL reader_msgerr (STATE, 2, 'No value for variable '//NAAM_L)
       CASE ('REP', 'STA', 'NSKP')
       CASE DEFAULT
          KEEP_VALUE = .TRUE.
@@ -963,7 +996,7 @@ SUBROUTINE ININTG_CTX (STATE, NAAM, IV, KONT, ISTA)
    END IF
 
    IF (.NOT. KEEP_VALUE) IV = ISTA
-   IF (ITEST.GE.10) WRITE (PRINTF, "(1X,A8,'=',I6)") NAAM, IV
+   IF (ITEST.GE.10) WRITE (reader_print_unit(STATE), "(1X,A8,'=',I6)") NAAM, IV
    RETURN
 end subroutine ININTG_CTX
 !****************************************************************
@@ -1100,8 +1133,8 @@ SUBROUTINE INCSTR_CTX (STATE, NAAM, C, KONT, CSTA)
       SELECT CASE (STATE%ELTYPE)
       CASE ('CHAR')
          IF (STATE%LENCST.GT.LENW) THEN
-            CALL MSGERR (2, 'too long string given for: '//NAAM_L)
-            WRITE (PRINTF, "(' name=', A, ' string=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+            CALL reader_msgerr (STATE, 2, 'too long string given for: '//NAAM_L)
+            WRITE (reader_print_unit(STATE), "(' name=', A, ' string=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
          ENDIF
          C = STATE%ELTEXT(1:LENW)
          IF (C.NE.CSTA) STATE%CHGVAL = .TRUE.
@@ -1117,17 +1150,17 @@ SUBROUTINE INCSTR_CTX (STATE, NAAM, C, KONT, CSTA)
          HAVE_CANDIDATE = .FALSE.
       CASE ('INT', 'REAL', 'OTHR')
          IF (KONT.NE.'NSKP') THEN
-            CALL MSGERR (3, 'Wrong type of data for variable '//NAAM_L)
-            WRITE (PRINTF,"(' -> ',A8)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+            CALL reader_msgerr (STATE, 3, 'Wrong type of data for variable '//NAAM_L)
+            WRITE (reader_print_unit(STATE),"(' -> ',A8)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
             STATE%ELTYPE = 'USED'
          END IF
       CASE ('ERR')
-         CALL MSGERR (3, 'Read error with variable '//NAAM_L)
-         WRITE (PRINTF,"(' -> ',A8)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         CALL reader_msgerr (STATE, 3, 'Read error with variable '//NAAM_L)
+         WRITE (reader_print_unit(STATE),"(' -> ',A8)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
          STATE%ELTYPE = 'USED'
       CASE DEFAULT
-         CALL MSGERR (3, 'Error subr. INCSTR')
-         WRITE (PRINTF, '(1X,A,1X,A)') STATE%ELTYPE, KONT
+         CALL reader_msgerr (STATE, 3, 'Error subr. INCSTR')
+         WRITE (reader_print_unit(STATE), '(1X,A,1X,A)') STATE%ELTYPE, KONT
          KEEP_VALUE = .TRUE.
       END SELECT
    END IF
@@ -1141,14 +1174,14 @@ SUBROUTINE INCSTR_CTX (STATE, NAAM, C, KONT, CSTA)
          IF (C(1:LENW).NE.CSTA(1:LENW)) THEN
             KEEP_VALUE = .TRUE.
          ELSE
-            CALL MSGERR (3, 'No value for variable '//NAAM_L)
+            CALL reader_msgerr (STATE, 3, 'No value for variable '//NAAM_L)
          END IF
       CASE ('REQ')
-         CALL MSGERR (3, 'No value for variable '//NAAM_L)
+         CALL reader_msgerr (STATE, 3, 'No value for variable '//NAAM_L)
       CASE ('REP', 'STA', 'NSKP')
       CASE DEFAULT
-         CALL MSGERR (3, 'Error subr. INCSTR')
-         WRITE (PRINTF, '(1X,A,1X,A)') STATE%ELTYPE, KONT
+         CALL reader_msgerr (STATE, 3, 'Error subr. INCSTR')
+         WRITE (reader_print_unit(STATE), '(1X,A,1X,A)') STATE%ELTYPE, KONT
       END SELECT
    END IF
 
@@ -1163,7 +1196,7 @@ SUBROUTINE INCSTR_CTX (STATE, NAAM, C, KONT, CSTA)
          STATE%LENCST = LENW
       ENDIF
    END IF
-   IF (ITEST.GE.10) WRITE (PRINTF, "(1X, A, ' = ', A, 4X, 'length:', I3)") TRIM(NAAM), C, STATE%LENCST
+   IF (ITEST.GE.10) WRITE (reader_print_unit(STATE), "(1X, A, ' = ', A, 4X, 'length:', I3)") TRIM(NAAM), C, STATE%LENCST
    RETURN
 end subroutine INCSTR_CTX
 !****************************************************************
@@ -1321,12 +1354,12 @@ SUBROUTINE INCTIM_CTX (STATE, IOPTIM, NAAM, RV, KONT, RSTA)
          STATE%ELTYPE = 'USED'
          HAVE_CANDIDATE = .FALSE.
       CASE ('ERR')
-         CALL MSGERR (3, 'Read error with variable '//NAAM_L)
-         WRITE (PRINTF,"(' -> ',A, ' item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         CALL reader_msgerr (STATE, 3, 'Read error with variable '//NAAM_L)
+         WRITE (reader_print_unit(STATE),"(' -> ',A, ' item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
          STATE%ELTYPE = 'USED'
       CASE DEFAULT
-         CALL MSGERR (3, 'Error subr. INCTIM')
-         WRITE (PRINTF, '(1X,A,1X,A)') STATE%ELTYPE, KONT
+         CALL reader_msgerr (STATE, 3, 'Error subr. INCTIM')
+         WRITE (reader_print_unit(STATE), '(1X,A,1X,A)') STATE%ELTYPE, KONT
          KEEP_VALUE = .TRUE.
       END SELECT
    END IF
@@ -1340,21 +1373,21 @@ SUBROUTINE INCTIM_CTX (STATE, IOPTIM, NAAM, RV, KONT, RSTA)
          IF (.NOT.EQDBLE(RV,RSTA)) THEN
             KEEP_VALUE = .TRUE.
          ELSE
-            CALL MSGERR (3, 'No value for variable '//NAAM_L)
-            WRITE (PRINTF,"(' -> ',A, ' item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+            CALL reader_msgerr (STATE, 3, 'No value for variable '//NAAM_L)
+            WRITE (reader_print_unit(STATE),"(' -> ',A, ' item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
          END IF
       CASE ('REQ')
-         CALL MSGERR (3, 'No value for variable '//NAAM_L)
-         WRITE (PRINTF,"(' -> ',A, ' item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         CALL reader_msgerr (STATE, 3, 'No value for variable '//NAAM_L)
+         WRITE (reader_print_unit(STATE),"(' -> ',A, ' item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
       CASE ('REP', 'STA', 'NSKP')
       CASE DEFAULT
-         CALL MSGERR (3, 'Error subr. INCTIM')
-         WRITE (PRINTF, '(1X,A,1X,A)') STATE%ELTYPE, KONT
+         CALL reader_msgerr (STATE, 3, 'Error subr. INCTIM')
+         WRITE (reader_print_unit(STATE), '(1X,A,1X,A)') STATE%ELTYPE, KONT
       END SELECT
    END IF
 
    IF (.NOT. KEEP_VALUE) RV = RSTA
-   IF (ITEST.GE.10) WRITE (PRINTF, "(1X, A, ' = ', A, 4X, 't in sec:', F10.0)") NAAM, STATE%ELTEXT(1:STATE%LENCST), RV
+   IF (ITEST.GE.10) WRITE (reader_print_unit(STATE), "(1X, A, ' = ', A, 4X, 't in sec:', F10.0)") NAAM, STATE%ELTEXT(1:STATE%LENCST), RV
    RETURN
 end subroutine INCTIM_CTX
 !*******************************************************************
@@ -1904,7 +1937,7 @@ SUBROUTINE LEESEL_CTX (STATE)
 
          IF (.NOT.PARSE_AS_OTHER) THEN
             ISTATE = 2
-            IF (ITEST.GE.330) WRITE (PRINTF,"(1X, A4, 2I6, F12.9, 2I6)") STATE%ELTYPE, ISIGN1, NUM1,&
+            IF (ITEST.GE.330) WRITE (reader_print_unit(STATE),"(1X, A4, 2I6, F12.9, 2I6)") STATE%ELTYPE, ISIGN1, NUM1,&
             &RMANT, ISIGN2, NUM2
             IF (STATE%ELTYPE.EQ.'REAL') STATE%ELREAL = &
             &ISIGN1*(DBLE(NUM1)+RMANT) * 1.D1**(ISIGN2*NUM2)
@@ -1922,7 +1955,7 @@ SUBROUTINE LEESEL_CTX (STATE)
                   CALL GETKAR (STATE)
                   CYCLE item_start
                ELSE
-                  CALL MSGERR (2, 'Wrong repetition factor')
+                  CALL reader_msgerr (STATE, 2, 'Wrong repetition factor')
                   CALL GETKAR (STATE)
                   EXIT parse_item
                ENDIF
@@ -2106,10 +2139,10 @@ SUBROUTINE GETKAR_CTX (STATE)
       IF (IO_STATUS /= 0) THEN
          STATE%ELTYPE = 'EOF'
          STATE%KAR = '@'
-         IF (ITEST.GE.320) WRITE (PRINTF, "(' Test GETKAR', 2X, A4, 2X, A1, I4)") STATE%ELTYPE, STATE%KAR, STATE%KARNR
+         IF (ITEST.GE.320) WRITE (reader_print_unit(STATE), "(' Test GETKAR', 2X, A4, 2X, A1, I4)") STATE%ELTYPE, STATE%KAR, STATE%KARNR
          RETURN
       END IF
-      IF (ITEST.GE.-10) WRITE (PRINTF, "(1X,A)") TRIM(STATE%KAART)
+      IF (ITEST.GE.-10) WRITE (reader_print_unit(STATE), "(1X,A)") TRIM(STATE%KAART)
       STATE%KARNR=1
    ENDIF
    IF (STATE%KARNR.GT.LINELN) THEN
@@ -2118,7 +2151,7 @@ SUBROUTINE GETKAR_CTX (STATE)
       STATE%KAR = STATE%KAART(STATE%KARNR:STATE%KARNR)
       STATE%KARNR=STATE%KARNR+1
    ENDIF
-   IF (ITEST.GE.320) WRITE (PRINTF, "(' Test GETKAR', 2X, A4, 2X, A1, I4)") STATE%ELTYPE, STATE%KAR, STATE%KARNR
+   IF (ITEST.GE.320) WRITE (reader_print_unit(STATE), "(' Test GETKAR', 2X, A4, 2X, A1, I4)") STATE%ELTYPE, STATE%KAR, STATE%KARNR
    RETURN
 !     end of subroutine GETKAR
 end subroutine GETKAR_CTX
@@ -2213,7 +2246,7 @@ SUBROUTINE PUTKAR_CTX (STATE, LTEXT, KARR, JKAR)
 ! 13. SOURCE TEXT
 
    CALL STRACE (IENT, 'PUTKAR')
-   IF (JKAR.GT.LEN(LTEXT)) CALL MSGERR (2, 'PUTKAR, string too long')
+   IF (JKAR.GT.LEN(LTEXT)) CALL reader_msgerr (STATE, 2, 'PUTKAR, string too long')
    LTEXT(JKAR:JKAR) = KARR
    STATE%LENCST = JKAR
    JKAR = JKAR + 1
@@ -2222,108 +2255,6 @@ SUBROUTINE PUTKAR_CTX (STATE, LTEXT, KARR, JKAR)
 end subroutine PUTKAR_CTX
 !****************************************************************
 !                                                               *
-SUBROUTINE UPCASE (CHARST)
-   USE swan_service_interfaces, ONLY: STRACE
-!                                                               *
-!****************************************************************
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-
-   IMPLICIT NONE
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. AUTHORS
-!
-!     40.41: Marcel Zijlema
-!
-!  1. UPDATES
-!
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. PURPOSE
-!
-!     changes all characters of the string CHARST from lower to
-!     upper case
-!
-!  3. METHOD
-!
-!  4. ARGUMENT VARIABLES
-!
-!     CHARST : a character string
-
-   CHARACTER(LEN=*) :: CHARST
-
-!  5. PARAMETER VARIABLES
-!
-!  6. LOCAL VARIABLES
-!
-!     IC     : sequence number of a character in the string CHARST
-!     IENT   : Number of entries into this subroutine
-!     KK     : position of a character in a given string
-!     LLCC   : length of the given character string
-
-   INTEGER, SAVE :: IENT = 0
-   INTEGER   IC, KK, LLCC
-
-!     ABCUP  : A to Z upper case characters
-!     ABCLO  : a to z lower case characters
-!     CC     : a character
-
-   CHARACTER(LEN=*), PARAMETER :: ABCUP = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-   CHARACTER(LEN=*), PARAMETER :: ABCLO = 'abcdefghijklmnopqrstuvwxyz'
-   CHARACTER(LEN=1) :: CC
-
-!  8. SUBROUTINE USED
-!
-!  9. SUBROUTINES CALLING
-!
-! 10. ERROR MESSAGES
-!
-! 11. REMARKS
-!
-! 12. STRUCTURE
-!
-! 13. SOURCE TEXT
-
-   CALL STRACE (IENT, 'UPCASE')
-
-   LLCC = LEN (CHARST)
-   do IC = 1, LLCC
-      CC = CHARST(IC:IC)
-      KK = INDEX (ABCLO, CC)
-      IF (KK.NE.0) CHARST(IC:IC) = ABCUP(KK:KK)
-   end do
-   RETURN
-!     end of subroutine UPCASE
-end subroutine UPCASE
 !****************************************************************
 !                                                               *
 LOGICAL FUNCTION EQCSTR (STR1, STR2)
@@ -2625,7 +2556,7 @@ SUBROUTINE WRNKEY_CTX (STATE)
 
    CALL STRACE (IENT, 'WRNKEY')
 
-   CALL MSGERR (2, 'Illegal keyword: '//STATE%KEYWRD)
+   CALL reader_msgerr (STATE, 2, 'Illegal keyword: '//STATE%KEYWRD)
    STATE%ELTYPE = 'USED'
    RETURN
 end subroutine WRNKEY_CTX
@@ -2722,7 +2653,7 @@ SUBROUTINE IGNORE_CTX (STATE, STRING)
    CALL INKEYW (STATE, 'STA', 'XXXX')
    IF (KEYWIS (STATE, STRING)) RETURN
    IF (KEYWIS (STATE, 'XXXX')) RETURN
-   IF (ITEST.GE.60) WRITE (PRINTF, "(' NOT IGNORED: ', A, 2X, A)") STATE%KEYWRD, STATE%ELTYPE
+   IF (ITEST.GE.60) WRITE (reader_print_unit(STATE), "(' NOT IGNORED: ', A, 2X, A)") STATE%KEYWRD, STATE%ELTYPE
    RETURN
 end subroutine IGNORE_CTX
 ! Legacy entry points retain the original signatures and use the singleton

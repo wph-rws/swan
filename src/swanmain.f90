@@ -28,6 +28,7 @@
 !                                                                      *
 
 module swan_driver
+   use swan_input_helpers, only: LSPLIT
    use swan_comp_unstruc, only: SwanCompUnstruc
    use swan_prep_comp, only: SwanPrepComp
    use swan_vertlist, only: SwanVertlist

@@ -6,7 +6,7 @@ program test_contexts
    use swan_io_context, only: io_context_t, diagnostics_context_t, &
       capture_io_context, apply_io_context, &
       capture_diagnostics_context, apply_diagnostics_context
-   use ocpcomm4, only: PRINTF, LEVERR, MAXERR, INPUTF, ITEST, ITRACE
+   use ocpcomm4, only: PRINTF, LEVERR, MAXERR, INPUTF, ITEST, ITRACE, HIOPEN
    implicit none
 
    call test_time_contexts
@@ -16,8 +16,79 @@ program test_contexts
    call test_diagnostics_stop
    call test_trace_context
    call test_error_reporting
+   call test_file_opening_context
+   call test_reader_own_log
 
 contains
+
+   subroutine test_reader_own_log
+      use swan_input_parser, only: inkeyw
+      type(command_reader_t) :: reader
+      integer :: ulog, saved_leverr
+      character(len=120) :: line
+
+      saved_leverr = LEVERR
+      LEVERR = 0
+
+      ! Bind the reader to its own log and error status, then provoke a parser
+      ! error by asking for a required keyword the (empty) input cannot supply.
+      open (newunit=ulog, status='scratch')
+      call rdinit(reader)
+      reader%io%PRINTF = ulog
+      reader%io%PRTEST = ulog
+      reader%io%SCREEN = ulog
+      reader%io_bound = .true.
+      reader%diag%LEVERR = 0
+      reader%diag%MAXERR = 4
+      reader%diag_bound = .true.
+
+      reader%ELTYPE = 'ERR'
+      call inkeyw(reader, 'REQ', '    ')
+
+      call require(reader%diag%LEVERR > 0, &
+         "a bound reader did not record its error in its own context")
+      call require(LEVERR == 0, &
+         "a bound reader raised the shared global error level")
+      rewind (ulog)
+      read (ulog, '(A)', end=100) line
+      call require(len_trim(line) > 0, "the reader's own log stayed empty")
+100   close (ulog)
+
+      LEVERR = saved_leverr
+   end subroutine test_reader_own_log
+
+   subroutine test_file_opening_context
+      use swan_file_opening, only: FOR
+      use ocpcomm2, only: LENFNM
+      type(io_context_t) :: io
+      integer :: unit1, iostat1, saved_hiopen
+      !  FOR declares its filename dummy with a fixed length, so the actual
+      !  argument has to carry that same length; a shorter one is a mismatch
+      !  that -fcheck=all traps at the call.
+      character(len=LENFNM) :: name1
+
+      saved_hiopen = HIOPEN
+
+      ! Give the context its own free-unit window and let FOR pick from it.
+      call io%reset()
+      io%FUNLO = 61
+      io%FUNHI = 79
+      io%PRINTF = PRINTF
+      io%PRTEST = PRINTF
+
+      unit1  = 0
+      iostat1 = -2                     ! suppress messages
+      name1  = 'swan_context_probe.tmp'
+      call FOR (unit1, name1, 'UU', iostat1, io)
+
+      call require(unit1 >= io%FUNLO .and. unit1 <= io%FUNHI, &
+         "FOR did not draw a unit from the context's free-unit window")
+      call require(io%HIOPEN == unit1, &
+         "FOR did not record the opened unit in the context")
+
+      close (unit1, status='delete')
+      HIOPEN = saved_hiopen
+   end subroutine test_file_opening_context
 
    subroutine test_error_reporting
       use swan_service_interfaces, only: msgerr
