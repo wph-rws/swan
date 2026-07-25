@@ -1084,6 +1084,69 @@ MODULE M_GENARR
 !
 ! 13. Source text
 
+!     Several arrays here and in M_PARALL are only filled when the deck asks
+!     for them: an input field when a READINP command supplies it, the global
+!     grid arrays when the grid is structured. They are passed on to the
+!     reading, output and computation routines either way, and whether the data
+!     exists is decided by flags such as LEDS, never by ALLOCATED. Passing an
+!     unallocated allocatable as an actual argument is invalid, so SWINIT gives
+!     each of them the empty state and the routines below grow it to the size
+!     that is actually needed. Sizing rather than merely testing for allocation
+!     is what makes that safe: the earlier `IF (.NOT.ALLOCATED(..))` guard would
+!     have kept the empty array instead. It also covers the same grid being read
+!     again at a different size, which that guard silently ignored.
+
+   INTERFACE ENSURE_FIELD_SIZE
+      MODULE PROCEDURE ENSURE_FIELD_SIZE_R, ENSURE_FIELD_SIZE_I
+      MODULE PROCEDURE ENSURE_FIELD_SIZE_R2, ENSURE_FIELD_SIZE_I2
+   END INTERFACE ENSURE_FIELD_SIZE
+
+contains
+
+   SUBROUTINE ENSURE_FIELD_SIZE_R (FIELD, LENGTH)
+      REAL, ALLOCATABLE, INTENT(INOUT) :: FIELD(:)
+      INTEGER, INTENT(IN)              :: LENGTH
+
+      IF (ALLOCATED(FIELD)) THEN
+         IF (SIZE(FIELD).EQ.LENGTH) RETURN
+         DEALLOCATE(FIELD)
+      END IF
+      ALLOCATE(FIELD(LENGTH))
+   END SUBROUTINE ENSURE_FIELD_SIZE_R
+
+   SUBROUTINE ENSURE_FIELD_SIZE_I (FIELD, LENGTH)
+      INTEGER, ALLOCATABLE, INTENT(INOUT) :: FIELD(:)
+      INTEGER, INTENT(IN)                 :: LENGTH
+
+      IF (ALLOCATED(FIELD)) THEN
+         IF (SIZE(FIELD).EQ.LENGTH) RETURN
+         DEALLOCATE(FIELD)
+      END IF
+      ALLOCATE(FIELD(LENGTH))
+   END SUBROUTINE ENSURE_FIELD_SIZE_I
+
+   SUBROUTINE ENSURE_FIELD_SIZE_R2 (FIELD, LENGTH1, LENGTH2)
+      REAL, ALLOCATABLE, INTENT(INOUT) :: FIELD(:,:)
+      INTEGER, INTENT(IN)              :: LENGTH1, LENGTH2
+
+      IF (ALLOCATED(FIELD)) THEN
+         IF (SIZE(FIELD,1).EQ.LENGTH1 .AND. SIZE(FIELD,2).EQ.LENGTH2) RETURN
+         DEALLOCATE(FIELD)
+      END IF
+      ALLOCATE(FIELD(LENGTH1,LENGTH2))
+   END SUBROUTINE ENSURE_FIELD_SIZE_R2
+
+   SUBROUTINE ENSURE_FIELD_SIZE_I2 (FIELD, LENGTH1, LENGTH2)
+      INTEGER, ALLOCATABLE, INTENT(INOUT) :: FIELD(:,:)
+      INTEGER, INTENT(IN)                 :: LENGTH1, LENGTH2
+
+      IF (ALLOCATED(FIELD)) THEN
+         IF (SIZE(FIELD,1).EQ.LENGTH1 .AND. SIZE(FIELD,2).EQ.LENGTH2) RETURN
+         DEALLOCATE(FIELD)
+      END IF
+      ALLOCATE(FIELD(LENGTH1,LENGTH2))
+   END SUBROUTINE ENSURE_FIELD_SIZE_I2
+
 end module M_GENARR
 
 MODULE M_PARALL

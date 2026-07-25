@@ -155,7 +155,9 @@ configurations to reduce cache, temperature and frequency drift. The FFT
 kernel can be reproduced after building the current library with:
 
 ```sh
-gfortran -O3 -std=f2018 -fimplicit-none \
+# -J keeps any module this compile writes out of the repository root, where it
+# would shadow the build's own modules on the next compile or editor lint.
+gfortran -O3 -std=f2018 -fimplicit-none -J/tmp \
   benchmarks/benchmark_fft.f90 build/lib/libswan41.51.a \
   -lfftw3 -o /tmp/swan-fft-benchmark
 

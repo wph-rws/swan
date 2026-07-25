@@ -55,6 +55,7 @@ option( MATL4 "Enable MATLAB version 4 output" OFF )
 option( SWAN_NATIVE "Optimize for the CPU that performs the build" OFF )
 option( SWAN_LTO "Enable interprocedural/link-time optimization" OFF )
 option( SWAN_DEBUG_INVARIANTS "Enable diagnostic runtime invariant checks" OFF )
+option( SWAN_RUNTIME_CHECKS "Enable compiler runtime checks (bounds, allocation, arguments)" OFF )
 
 # Compiler compatibility options are target-specific so CMake's build-type
 # flags and user-provided CMAKE_Fortran_FLAGS remain effective.
@@ -86,6 +87,20 @@ elseif( CMAKE_Fortran_COMPILER_ID MATCHES "XL" )
   )
 else()
   message( FATAL_ERROR "-- Current Fortran compiler ${CMAKE_Fortran_COMPILER} not supported" )
+endif()
+
+if( SWAN_RUNTIME_CHECKS )
+  # Keep this on top of an optimizing build type. At -O0 the nonstationary
+  # regular case drifts about 1.2e-3 in the mean period against the stored
+  # reference, which is the optimization level's floating point and not a
+  # defect; -O2 reproduces the reference exactly.
+  if( CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
+    target_compile_options( swan_build_options INTERFACE -fcheck=all )
+  elseif( CMAKE_Fortran_COMPILER_ID MATCHES "Intel" )
+    target_compile_options( swan_build_options INTERFACE -check all )
+  else()
+    message( WARNING "SWAN_RUNTIME_CHECKS has no effect for ${CMAKE_Fortran_COMPILER_ID}" )
+  endif()
 endif()
 
 if( SWAN_NATIVE )

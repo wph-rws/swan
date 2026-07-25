@@ -247,7 +247,7 @@ The optimized LTO build now passes without the former
 wave-height block are byte-identical to the baseline and ordinary Release
 builds. Every build option the project offers passes its registered tests:
 serial, OpenMP, MPI (also on two processes), MPI+netCDF, netCDF, LTO, TIMG,
-METIS, MATL4, JAC, FFRO and the debug-invariant build.
+METIS, MATL4, JAC, FFRO, the debug-invariant build and `SWAN_RUNTIME_CHECKS`.
 
 Two of those options change the answer rather than the code path around it, and
 they have their own stored references instead of being exempt from comparison:
@@ -263,10 +263,41 @@ scheme and not this work.
 
 These checks demonstrate compatibility for the included regression cases. They
 are not a claim that compiler diagnostics are already clean or that every
-production scenario is covered. `-fcheck=all` in particular is *not* green: the
-runs stop on an unallocated `XYTST` passed as an actual argument in
-`swanpre1.f90`, which the baseline does identically. The unit tests do pass
-under it.
+production scenario is covered.
+
+### Runtime checks
+
+`-DSWAN_RUNTIME_CHECKS=ON` adds the compiler's own bounds, allocation and
+argument checks. Reaching a state where they pass took one fix, on a defect the
+pre-modernization baseline has as well: 25 arrays that could be passed on while
+still unallocated.
+
+Input fields are only allocated once a `READINP` command supplies them, and the
+global grid arrays only when the grid is structured; both are passed on
+unconditionally, because whether the data exists is decided by flags like `LEDS`,
+never by `ALLOCATED`. Any deck that left one out therefore passed an unallocated
+allocatable — undefined behaviour that happens to work, because the callee guards
+on the flag and never dereferences.
+
+`SWINIT` now gives all of them the empty state. That by itself would be worse
+than the disease: the allocations that fill them were guarded by
+`IF (.NOT.ALLOCATED(..))`, so an array pre-allocated at size zero would *stay* at
+size zero and the fill would write past its end. Sizing is what makes the empty
+state safe, so they go through `ENSURE_FIELD_SIZE` in `M_GENARR`, which grows the
+array to the size asked for. That also closes a latent bug in the old guard:
+reading the same grid again at a different size silently kept the first one.
+
+One deliberate exception, marked in the source: the `TEST` branch that falls back
+to an empty `XYTST` still only allocates when unallocated, because `NPTST` keeps
+its count from an earlier `TEST POI` and a resize there would leave the two
+disagreeing.
+
+Use it on top of an optimizing build type. At `-O0` the nonstationary regular
+case drifts about 1.2e-3 in the mean period against a 1e-3 tolerance, which is
+the optimization level's floating point rather than a defect — `-O2` reproduces
+the references exactly. The tolerance was deliberately left alone: widening it
+to accommodate a build nobody ships would weaken the guard for every build that
+does.
 
 ## Remaining migration boundary
 

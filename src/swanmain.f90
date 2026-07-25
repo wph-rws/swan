@@ -703,6 +703,9 @@ SUBROUTINE SWINIT (INERR)
    USE SWCOMM4
    USE swan_time, ONLY: default_time_context
    USE OUTP_DATA, ONLY: NREOQ, LOPS, LORQ, UPVDF
+   USE M_GENARR, ONLY: XYTST, DEPTH, FRIC, UXB, UYB, WXI, WYI, WLEVL,&
+   &ASTDF, MUDLF, NPLAF, TURBF, AICEF, HICEF, LAYH, VEGDIL, VEGDRL,&
+   &VEGNSL, HSSF, TSSF, DSSF
    USE M_SNL4
    USE M_BNDSPEC
    USE M_PARALL
@@ -971,6 +974,39 @@ SUBROUTINE SWINIT (INERR)
       IFLDYN(IGRID) = 0
       IFLTIM(IGRID) = -1.E20
    end do
+!     Each input field is only allocated once a READINP command supplies it,
+!     but the arrays are passed on unconditionally; whether a field exists is
+!     decided by LEDS above, never by ALLOCATED. A deck that leaves one out
+!     therefore passed an unallocated allocatable as an actual argument, which
+!     is invalid and which -fcheck=all stops on. Give them all the empty state,
+!     so that "not read" means allocated with size zero rather than undefined.
+   IF (.NOT.ALLOCATED(DEPTH )) ALLOCATE(DEPTH (0))
+   IF (.NOT.ALLOCATED(FRIC  )) ALLOCATE(FRIC  (0))
+   IF (.NOT.ALLOCATED(UXB   )) ALLOCATE(UXB   (0))
+   IF (.NOT.ALLOCATED(UYB   )) ALLOCATE(UYB   (0))
+   IF (.NOT.ALLOCATED(WXI   )) ALLOCATE(WXI   (0))
+   IF (.NOT.ALLOCATED(WYI   )) ALLOCATE(WYI   (0))
+   IF (.NOT.ALLOCATED(WLEVL )) ALLOCATE(WLEVL (0))
+   IF (.NOT.ALLOCATED(ASTDF )) ALLOCATE(ASTDF (0))
+   IF (.NOT.ALLOCATED(MUDLF )) ALLOCATE(MUDLF (0))
+   IF (.NOT.ALLOCATED(NPLAF )) ALLOCATE(NPLAF (0))
+   IF (.NOT.ALLOCATED(TURBF )) ALLOCATE(TURBF (0))
+   IF (.NOT.ALLOCATED(AICEF )) ALLOCATE(AICEF (0))
+   IF (.NOT.ALLOCATED(HICEF )) ALLOCATE(HICEF (0))
+   IF (.NOT.ALLOCATED(LAYH  )) ALLOCATE(LAYH  (0))
+   IF (.NOT.ALLOCATED(VEGDIL)) ALLOCATE(VEGDIL(0))
+   IF (.NOT.ALLOCATED(VEGDRL)) ALLOCATE(VEGDRL(0))
+   IF (.NOT.ALLOCATED(VEGNSL)) ALLOCATE(VEGNSL(0))
+   IF (.NOT.ALLOCATED(HSSF  )) ALLOCATE(HSSF  (0))
+   IF (.NOT.ALLOCATED(TSSF  )) ALLOCATE(TSSF  (0))
+   IF (.NOT.ALLOCATED(DSSF  )) ALLOCATE(DSSF  (0))
+!     The same holds for the global grid arrays in M_PARALL: CGINIT fills them
+!     for a structured grid, an unstructured run never does, and both kinds
+!     pass them on to SWBOUN and the mesh routines.
+   IF (.NOT.ALLOCATED(XGRDGL)) ALLOCATE(XGRDGL(0,0))
+   IF (.NOT.ALLOCATED(YGRDGL)) ALLOCATE(YGRDGL(0,0))
+   IF (.NOT.ALLOCATED(KGRPGL)) ALLOCATE(KGRPGL(0,0))
+   IF (.NOT.ALLOCATED(KGRBGL)) ALLOCATE(KGRBGL(0))
 !     ***** computational grid *****
    OPTG   = 1
    MXC    = 0
@@ -1531,6 +1567,11 @@ SUBROUTINE SWINIT (INERR)
    TESTFL = .FALSE.
    NPTST  = 0
    NPTSTA = 1
+!     XYTST holds the test point indices belonging to NPTST. Only the TEST
+!     command fills it, so a deck without one left it unallocated while it is
+!     still passed on to SWBOUN and the computation routines. Establish the
+!     empty state here, so that NPTST = 0 and an allocated XYTST always agree.
+   IF (.NOT.ALLOCATED(XYTST)) ALLOCATE(XYTST(0))
    LXDMP  = -1
    LYDMP  = 0
    NEGMES = 0

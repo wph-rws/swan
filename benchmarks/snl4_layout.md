@@ -120,8 +120,10 @@ cmake -S . -B build-bench -G Ninja \
   -DCMAKE_Fortran_FLAGS=-O3 -DSWAN_DEBUG_INVARIANTS=OFF -DBUILD_TESTING=OFF
 cmake --build build-bench
 
+# -J keeps the module this file defines out of the repository root, where it
+# would shadow the build's own modules on the next compile or editor lint.
 gfortran -O3 -std=f2018 -fimplicit-none -fno-second-underscore \
-  -ffree-line-length-none \
+  -ffree-line-length-none -J/tmp \
   benchmarks/benchmark_snl4.f90 build-bench/lib/libswan41.51.a \
   -Ibuild-bench/mod -lfftw3 -o /tmp/bench-snl4
 
