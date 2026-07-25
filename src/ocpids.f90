@@ -4,8 +4,21 @@
 !
 !*****************************************************************
 !                                                                *
+
+module swan_ocean_pack_init
+   implicit none
+   private
+!  OCPINI is the only entry point the driver needs; OCDTIM (processor-time
+!  formatting) is used only from here.
+!  DTSTTI and DTTIST stay external below on purpose: swan_time declares them in
+!  its interface block, and they call UPCASE from swan_input_parser, which in
+!  turn uses swan_time -- moving them into swan_time would create a cycle.
+   public :: OCPINI
+contains
+
 SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
    USE swan_input_parser, ONLY: RDINIT
+   USE swan_parallel, ONLY: SWSYNC
    USE swan_service_interfaces, ONLY: MSGERR, STPNOW, TXPBLA
 !                                                                *
 !*****************************************************************
@@ -458,6 +471,9 @@ SUBROUTINE OCDTIM (PRCTIM)
    RETURN
 
 end subroutine OCDTIM
+
+end module swan_ocean_pack_init
+
 !*****************************************************************
 !                                                                *
 SUBROUTINE DTSTTI (IOPT, TIMSTR, DTTIME)

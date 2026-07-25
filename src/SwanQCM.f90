@@ -2701,6 +2701,7 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
     ! note: this subroutine makes use of geographical grid (regular, curvilinear or unstructured) and associated data
 
     use swcomm2
+   use swan_services, only: CVMESH
     use m_genarr
     use m_parall
     use SwanGriddata

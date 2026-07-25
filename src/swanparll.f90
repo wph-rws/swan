@@ -30,6 +30,20 @@
 !
 !****************************************************************
 
+module swan_parallel
+   implicit none
+   private
+!  The exchange routines are defined behind switch lines further down, so the
+!  end of this module lies at the end of the file. Only SWEXCHG has both a !JAC
+!  and a !WFR variant; SWRECVAC and SWSENDAC exist in the !WFR variant alone,
+!  and SWBLKCOL in the !JAC one, so those exports carry the same switch prefix
+!  as their definition.
+   public :: SWINITMPI, SWEXITMPI, SWSYNC, SWDECOMP, SWCOLLECT, SWCOLOUT
+   public :: SWEXCHG
+!WFR   public :: SWRECVAC, SWSENDAC
+!JAC   public :: SWBLKCOL
+contains
+
 SUBROUTINE SWINITMPI
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_service_interfaces, ONLY: MSGERR, TXPBLA
@@ -4532,6 +4546,7 @@ end subroutine SWCOLBLK
 !JAC!
 !JACSUBROUTINE SWBLKCOL ( MCOLR, KGRPNT )
 !JAC   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
+!JAC   USE swan_number_formatting, ONLY: INTSTR
 !JAC!
 !JAC!****************************************************************
 !JAC!
@@ -4787,3 +4802,5 @@ end subroutine SWCOLBLK
 !JAC
 !JAC   RETURN
 !JACend subroutine SWBLKCOL
+
+end module swan_parallel

@@ -16,6 +16,13 @@
 !     RETSTP
 !
 !************************************************************************
+
+module swan_input_processing
+   implicit none
+   private
+   public :: SPROUT, SVARTP, SWBOUN, RETSTP
+contains
+
 !                                                                      *
 SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, STPNOW
@@ -315,7 +322,8 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
    INTEGER   I, II, IK, INTD, INTE, INTV, IOSTAT, ISTAT
    INTEGER   IERR, IX1, IX2, IY1, IY2, JJ, KK, MIP, MIPR
    INTEGER   MXK, MXN, MYK, MYN, NATTR, NBMARK, NDIM, NDS, NVTX
-   INTEGER   SIRAY
+!  SIRAY is now a module procedure; the old local INTEGER declaration would
+!  turn the reference back into an external function and break linking.
    REAL      ALON, ALPCN, ALPK, ALTNP, ANG, ANGLE, COSA2, DP
    REAL      DXN, DYN, RDUM, SINA2, XF, XI, XNLEN, XP, XP1, XPCN
    REAL      XQ, XQ1, XX, YF, YI, YNLEN, YP, YP1, YPCN, YQ, YQ1, YY
@@ -1045,6 +1053,7 @@ end subroutine SWREPS
 !                                                                      *
 SUBROUTINE SWREOQ ( FOUND )
    USE swan_file_opening, ONLY: FOR
+   USE swan_services, ONLY: MKPATH
    USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
    USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, INCTIM, INITVD
 !                                                                      *
@@ -2539,6 +2548,7 @@ end subroutine SVARTP
 
 SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
    USE swan_coordinate_input, ONLY: READXY, REFIXY
+   USE swan_services, ONLY: CVMESH
    USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STPNOW, STRACE
    USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, WRNKEY
 
@@ -2666,7 +2676,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
    REAL      RLEN1,RDIST,RLEN2,XC1,YC1,XC2,YC2,W1
    REAL      DET, DXLOC, DYLOC, X1, Y1, X2, Y2, X3, Y3
 
-      LOGICAL :: LOCGRI, CCW, BPARF, BOUNPT, DONALL
+      LOGICAL :: LOCGRI, CCW, BPARF, DONALL
    LOGICAL   LFRST1, LFRST2, LFRST3
    LOGICAL, SAVE :: BNDDONE = .FALSE.
    LOGICAL   SwanPointinMesh
@@ -6045,6 +6055,7 @@ end function BOUNPT
 SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
 &SPCSIG, SPCDIR)
    USE swan_coordinate_input, ONLY: READXY, REFIXY
+   USE swan_services, ONLY: CVMESH
    USE swan_file_opening, ONLY: FOR
    USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
    USE swan_input_parser, ONLY: INCSTR, ININTG, INKEYW, KEYWIS, WRNKEY
@@ -6690,3 +6701,5 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
    RETURN
 !     end of subroutine RETSTP
 end subroutine RETSTP
+
+end module swan_input_processing

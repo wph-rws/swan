@@ -7,6 +7,7 @@ CONTAINS
 
 SUBROUTINE SINUPT (PSNAME, XP, YP, XCGRID, YCGRID, KGRPNT, KGRBND)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_services, ONLY: CVMESH
 !                                                                      *
 !************************************************************************
 
@@ -257,6 +258,7 @@ end function SINBTG
 
 LOGICAL FUNCTION SINCMP (XP, YP ,XCGRID ,YCGRID ,KGRPNT, KGRBND)
    USE swan_service_interfaces, ONLY: STRACE
+   USE swan_services, ONLY: CVMESH
 !                                                                      *
 !************************************************************************
 

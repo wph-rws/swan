@@ -5408,8 +5408,10 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV )
    ! ratio related to periodi
    ! energy exchange
    REAL, INTENT(IN)  :: DEP2(MCGRD)        ! depths at grid points
-   REAL, INTENT(IN)  :: RDX(MICMAX),&       ! geometric coeffs for
-   &RDY(MICMAX)        ! spatial derivatives
+!  RDX/RDY assumed-size: reached from the unstructured path with a 2-element
+!  array; only RDX(1:2) is ever read. See the SWTRCF note in swanser.
+   REAL, INTENT(IN)  :: RDX(*),&       ! geometric coeffs for
+   &RDY(*)             ! spatial derivatives
    REAL, INTENT(IN)  :: SPCSIG(MSC)        ! relative frequencies
 
 !  6. Local variables
@@ -5551,8 +5553,10 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
    REAL, INTENT(OUT) :: BIP                  ! unscaled biphase
    REAL, INTENT(IN)  :: BOTLV(MCGRD)         ! bottom levels
    REAL, INTENT(IN)  :: ECOS(MDC), ESIN(MDC) ! cos/sin of spectral di
-   REAL, INTENT(IN)  :: RDX(MICMAX),&         ! geometric coeffs for
-   &RDY(MICMAX)          ! spatial derivatives
+!  RDX/RDY assumed-size: reached from the unstructured path with a 2-element
+!  array; only RDX(1:2) is ever read. See the SWTRCF note in swanser.
+   REAL, INTENT(IN)  :: RDX(*),&         ! geometric coeffs for
+   &RDY(*)               ! spatial derivatives
    REAL, INTENT(IN)  :: SPCSIG(MSC)          ! relative frequencies
 
 !  5. Parameter variables

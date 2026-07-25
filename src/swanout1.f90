@@ -29,6 +29,7 @@ SUBROUTINE SWOUTP (AC2             ,&
 &KGRPNT          ,XCGRID  ,&
 &YCGRID          ,OURQT   )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, STPNOW
+   USE swan_services, ONLY: AC2TST
    USE swan_output_writers, ONLY: SWBLOK, SWBLKP, SWBLKV, SWSPEC, SWTABP
 !                                                                      *
 !************************************************************************
@@ -1154,6 +1155,7 @@ SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   ,&
 &XCGRID    ,YCGRID     ,&
 &CROSS                 )
    USE swan_service_interfaces, ONLY: STRACE
+   USE swan_services, ONLY: CVMESH, EVALF
 !                                                                      *
 !************************************************************************
 

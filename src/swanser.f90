@@ -53,6 +53,12 @@
 !                                                                      *
 !************************************************************************
 !                                                                      *
+module swan_services
+   implicit none
+   private
+   public :: AC2TST, CVCHEK, CVMESH, EVALF, SWOBST, SWTRCF, HSOBND, SWACC, MKPATH
+contains
+
 LOGICAL FUNCTION  INFRAM (XQQ, YQQ)
    USE swan_service_interfaces, ONLY: STRACE
 !                                                                      *
@@ -712,7 +718,7 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
 !     FINDXY   if True, Newton-Raphson procedure succeeded
 !     ONBND    if True, given point is on boundary
 
-   LOGICAL  INMESH ,FINDXY, ONBND
+   LOGICAL  FINDXY, ONBND
 
 !     DISMIN   minimal distance found
 !     XPC1     user coordinate of a computational grid point
@@ -1967,13 +1973,17 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 !     TSS2     input     sea-swell mean wave period in all grid points
 !     WLEV2    input     Water level in grid points
 
-   INTEGER  KGRPNT(MXC,MYC)
+!  KGRPNT/XCGRID/YCGRID are dereferenced only on the OPTG /= 5 branches below;
+!  unstructured callers omit them (see the KGRPNT history note in swancom2).
+   INTEGER, OPTIONAL :: KGRPNT(MXC,MYC)
    INTEGER  LINK(2)
    REAL     CHS(MCGRD), OBREDF(MDC,MSC,2), WLEV2(MCGRD), DEP2(MCGRD)
    REAL     :: AC2(MDC,MSC,MCGRD)
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint
    REAL     :: CAX(MDC,MSC,MICMAX), CAY(MDC,MSC,MICMAX)
-   REAL     :: REFLSO(MDC,MSC), RDX(MICMAX), RDY(MICMAX)
+!  RDX/RDY assumed-size: only RDX(1:2) is read (link_loop runs 1..2) and the
+!  unstructured caller passes a 2-element array.
+   REAL     :: REFLSO(MDC,MSC), RDX(*), RDY(*)
    REAL     :: SPCSIG(MSC), SPCDIR(MDC,6)
    REAL     :: CGO(MSC,MICMAX), KWAVE(MSC,MICMAX)
    REAL     :: HSS2(MCGRD), TSS2(MCGRD), DSS2(MCGRD)
@@ -2059,7 +2069,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
    REAL       SQRTREF
    LOGICAL    XONOBST
    LOGICAL :: REFLTST, CROSSING_FOUND
-   REAL       XCGRID(MXC,MYC), YCGRID(MXC,MYC)
+   REAL, OPTIONAL :: XCGRID(MXC,MYC), YCGRID(MXC,MYC)
    INTEGER    ICC, JJ
    REAL    :: XOBS(2), XV(2), YOBS(2), YV(2)
    LOGICAL :: SwanCrossObstacle
@@ -2602,7 +2612,7 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint
    REAL       :: CAX(MDC,MSC,MICMAX), CAY(MDC,MSC,MICMAX)
    REAL       :: REFLSO(MDC,MSC), OBREDF(MDC,MSC,2)
-   REAL       :: RDX(MICMAX), RDY(MICMAX)
+   REAL       :: RDX(*), RDY(*)   ! only RDX(1:2) is read; see SWTRCF
    REAL       :: FD1, FD2, FD3, FD4, SPCSIG(MSC), SPCDIR(MDC,6)
    REAL       :: REF0
    REAL       :: X1, X2, X3, X4, Y1, Y2, Y3, Y4
@@ -3150,6 +3160,118 @@ SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX)
 
    RETURN
 end subroutine SWACC
+!****************************************************************
+
+SUBROUTINE MKPATH ( PATH, IERR )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+
+!****************************************************************
+
+   USE OCPCOMM4
+
+   IMPLICIT NONE
+
+
+!   --|-----------------------------------------------------------|--
+!     | Delft University of Technology                            |
+!     | Faculty of Civil Engineering and Geosciences              |
+!     | Environmental Fluid Mechanics Section                     |
+!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
+!     |                                                           |
+!     | Programmer: Marcel Zijlema                                |
+!   --|-----------------------------------------------------------|--
+!
+!
+!     SWAN (Simulating WAves Nearshore); a third generation wave model
+!     Copyright (C) 1993-2024  Delft University of Technology
+!
+!     This program is free software: you can redistribute it and/or modify
+!     it under the terms of the GNU General Public License as published
+!     the Free Software Foundation, either version 3 of the License, or
+!     (at your option) any later version.
+!
+!     This program is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+!     GNU General Public License for more details.
+!
+!     You should have received a copy of the GNU General Public License
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!
+!
+!  0. Authors
+!
+!     41.95: Marcel Zijlema
+!
+!  1. Updates
+!
+!     41.95, Jul. 22: New subroutine
+!
+!  2. Purpose
+!
+!     Creates a directory on OS (e.g. Windows, Linux and macOS)
+!
+!  3. Method
+!
+!     Use of a Fortran 2008 standard EXECUTE_COMMAND_LINE
+!
+!  4. Argument variables
+!
+!     IERR  :     status error
+!                 =0 : creating path successful
+!                 /=0: creating path failed
+!     PATH  :     string to pass path
+
+   INTEGER          :: IERR
+   CHARACTER(LEN=*) :: PATH
+
+!  6. Local variables
+!
+!     CSTAT :     command status
+!     CMSG  :     command error message
+!     ESTAT :     exit status
+!     IENT  :     number of entries
+!     MSGSTR:     string to pass message
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER            :: CSTAT, ESTAT
+
+   CHARACTER(LEN=100) :: CMSG
+   CHARACTER(LEN=140) :: MSGSTR
+
+! 13. Source text
+
+   IF (LTRACE) CALL STRACE (IENT,'MKPATH')
+
+   IERR = 0
+
+   CALL EXECUTE_COMMAND_LINE('mkdir '//TRIM(PATH), EXITSTAT=ESTAT,&
+   &CMDSTAT=CSTAT, CMDMSG=CMSG)
+   IF (CSTAT.GT.0) THEN
+      WRITE (MSGSTR,'(A)') 'Command execution failed with error '//&
+      &TRIM(CMSG)
+      CALL MSGERR( 1, TRIM(MSGSTR) )
+      IERR = 1
+   ELSE IF (CSTAT.LT.0) THEN
+      CALL MSGERR( 2, ' Command execution not supported' )
+      IERR = 2
+   ELSE IF (ESTAT.NE.0) THEN
+      WRITE (MSGSTR, '(A,I5)')&
+      &'Error while creating path '//TRIM(PATH)//&
+      &' - exit status number is ', ESTAT
+      CALL MSGERR( 2, TRIM(MSGSTR) )
+      IERR = 3
+   END IF
+
+   RETURN
+end subroutine MKPATH
+
+end module swan_services
+
+! The timing (!TIMG), Matlab-binary (!MatL4) and TXPBLA procedures below stay
+! external on purpose: TXPBLA is declared in the swan_service_interfaces
+! interface block, and the switch-activated timers are called as externals
+! from dozens of files in the timg variant.
 !TIMG!****************************************************************
 !TIMG!
 !TIMGSUBROUTINE SWTSTA (ITIMER)
@@ -4376,108 +4498,3 @@ end subroutine TXPBLA
 !MatL4
 !MatL4   RETURN
 !MatL4end subroutine SWR2B
-!****************************************************************
-
-SUBROUTINE MKPATH ( PATH, IERR )
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE
-
-!****************************************************************
-
-   USE OCPCOMM4
-
-   IMPLICIT NONE
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     41.95: Marcel Zijlema
-!
-!  1. Updates
-!
-!     41.95, Jul. 22: New subroutine
-!
-!  2. Purpose
-!
-!     Creates a directory on OS (e.g. Windows, Linux and macOS)
-!
-!  3. Method
-!
-!     Use of a Fortran 2008 standard EXECUTE_COMMAND_LINE
-!
-!  4. Argument variables
-!
-!     IERR  :     status error
-!                 =0 : creating path successful
-!                 /=0: creating path failed
-!     PATH  :     string to pass path
-
-   INTEGER          :: IERR
-   CHARACTER(LEN=*) :: PATH
-
-!  6. Local variables
-!
-!     CSTAT :     command status
-!     CMSG  :     command error message
-!     ESTAT :     exit status
-!     IENT  :     number of entries
-!     MSGSTR:     string to pass message
-
-   INTEGER, SAVE :: IENT = 0
-   INTEGER            :: CSTAT, ESTAT
-
-   CHARACTER(LEN=100) :: CMSG
-   CHARACTER(LEN=140) :: MSGSTR
-
-! 13. Source text
-
-   IF (LTRACE) CALL STRACE (IENT,'MKPATH')
-
-   IERR = 0
-
-   CALL EXECUTE_COMMAND_LINE('mkdir '//TRIM(PATH), EXITSTAT=ESTAT,&
-   &CMDSTAT=CSTAT, CMDMSG=CMSG)
-   IF (CSTAT.GT.0) THEN
-      WRITE (MSGSTR,'(A)') 'Command execution failed with error '//&
-      &TRIM(CMSG)
-      CALL MSGERR( 1, TRIM(MSGSTR) )
-      IERR = 1
-   ELSE IF (CSTAT.LT.0) THEN
-      CALL MSGERR( 2, ' Command execution not supported' )
-      IERR = 2
-   ELSE IF (ESTAT.NE.0) THEN
-      WRITE (MSGSTR, '(A,I5)')&
-      &'Error while creating path '//TRIM(PATH)//&
-      &' - exit status number is ', ESTAT
-      CALL MSGERR( 2, TRIM(MSGSTR) )
-      IERR = 3
-   END IF
-
-   RETURN
-end subroutine MKPATH

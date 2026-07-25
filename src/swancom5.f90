@@ -5493,6 +5493,7 @@ end subroutine SWFLXD
 SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
 &CROSS , XCGRID, YCGRID, XYTST )
    USE swan_service_interfaces, ONLY: STRACE, EQREAL, STPNOW
+   USE swan_parallel, ONLY: SWEXCHG
    USE swan_wave_physics, ONLY: KSCIP1
 
 !****************************************************************

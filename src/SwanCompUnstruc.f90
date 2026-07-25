@@ -1,5 +1,7 @@
 subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   use swan_computation, only: SWPRSET, SINTGRL, SOLPRE, SOLMAT, SOLMT1, SOURCE, PHILIM, RESCALE, SWSIP
+   use swan_services, only: SWTRCF, SWACC
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1083,9 +1085,11 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
 
                             if ( link(1)/=0 .or. link(2)/=0 ) then
 
-                               call SWTRCF ( compda(1,JDP2), compda(1,JWLV2), compda(1,JHS)  , link, obredf    , ac2, reflso, idummy,         &
-                                             dummy         , dummy          , cax            , cay , rdx       , rdy, anybin, spcsig, spcdir, &
-                                             cgo           , kwave          , compda(1,JHSS2), compda(1,JTSS2) , compda(1,JDSS2) )
+                               ! KGRPNT/XCGRID/YCGRID omitted: only used on the OPTG/=5 branch, never for unstructured.
+                               call SWTRCF ( compda(1,JDP2), compda(1,JWLV2), compda(1,JHS)  , link, obredf    , ac2, reflso,         &
+                                             cax=cax       , cay=cay        , rdx=rdx        , rdy=rdy         , anybin=anybin,       &
+                                             spcsig=spcsig , spcdir=spcdir  , cgo=cgo        , kwave=kwave     ,                      &
+                                             hss2=compda(1,JHSS2), tss2=compda(1,JTSS2), dss2=compda(1,JDSS2) )
 
                             endif
 

@@ -15,6 +15,14 @@
 !     BACKUP
 !
 !************************************************************************
+
+module swan_command_reading
+   use swan_input_processing, only: SPROUT, SVARTP, SWBOUN, RETSTP
+   implicit none
+   private
+   public :: SWREAD
+contains
+
 !                                                                      *
 SUBROUTINE SWREAD (COMPUT)
    USE swan_array_copy, ONLY: SWCOPI
@@ -4729,6 +4737,8 @@ end subroutine SSFILL
 !                                                                      *
 SUBROUTINE CGINIT (LOGCOM)
    USE swan_array_copy, ONLY: SWCOPI
+   USE swan_parallel, ONLY: SWDECOMP
+!JAC   USE swan_parallel, ONLY: SWBLKCOL
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE, TXPBLA
 !                                                                      *
@@ -5005,6 +5015,7 @@ end subroutine CGINIT
 !                                                                      *
 SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
    USE swan_input_interpolation, ONLY: SVALQI
+   USE swan_services, ONLY: CVCHEK
    USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STRACE
 !                                                                      *
 !************************************************************************
@@ -6587,3 +6598,5 @@ SUBROUTINE BACKUP (AC2, SPCSIG, SPCDIR, KGRPNT,&
    RETURN
 !     end of subr BACKUP
 end subroutine BACKUP
+
+end module swan_command_reading

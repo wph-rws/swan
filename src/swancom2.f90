@@ -3033,7 +3033,9 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
    REAL, INTENT(IN)  :: BOTLV(MCGRD)         ! bottom depth
 
 !     RDX, RDY:  coefficients to obtain spatial derivatives
-   REAL, INTENT(IN)  :: RDX(MICMAX), RDY(MICMAX)
+!  RDX/RDY assumed-size: reached from the unstructured path with a 2-element
+!  array; only RDX(1:2) is ever read. See the SWTRCF note in swanser.
+   REAL, INTENT(IN)  :: RDX(*), RDY(*)
    REAL, INTENT(IN)  :: KWAVE(MSC,MICMAX)
    REAL, INTENT(IN)  :: FDIR ! represents first spectral direction
    INTEGER, INTENT(IN) :: IDDLOW, IDDTOP

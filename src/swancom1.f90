@@ -56,6 +56,15 @@ MODULE M_CONVERGENCE_SHARED
    INTEGER :: SWSTPC_IACCUR = 0
 END MODULE M_CONVERGENCE_SHARED
 
+module swan_computation
+   implicit none
+   private
+!  Entry points used by the driver (SWCOMP) and by the unstructured solver,
+!  which reuses the structured sweep building blocks.
+   public :: SWCOMP, SWPRSET, SINTGRL, SOLPRE, SOLMAT, SOLMT1, SOURCE
+   public :: PHILIM, RESCALE, SWSIP
+contains
+
 SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 &COMPDA     ,&
 &SPCDIR     ,SPCSIG     ,&
@@ -64,6 +73,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 &XCGRID     ,YCGRID     ,&
 &CROSS      )
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_parallel, ONLY: SWCOLLECT, SWEXCHG
+!  The remaining imports are used only from switch-hidden call sites, so each
+!  carries the prefix of the variant that calls it. Importing them
+!  unconditionally instead breaks the other variant: SWRECVAC and SWSENDAC do
+!  not exist in a !JAC build at all.
+!WFR   USE swan_parallel, ONLY: SWRECVAC, SWSENDAC
+!JAC   USE swan_parallel, ONLY: SWSYNC
    USE swan_propagation, ONLY: DIFPAR, SWAPRE
    USE swan_nonlinear_interactions, ONLY: FAC3WW, FAC4WW, SWBIPM, SWPRE4W
    USE swan_dissipation, ONLY: PLTSRC
@@ -2531,6 +2547,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &CAX1,CAY1&
                &)
    USE swan_service_interfaces, ONLY: STRACE
+   USE swan_services, ONLY: SWTRCF
    USE swan_propagation, ONLY: ADDDIS, DSPHER, SPREDT, SPROSD, SPROXY, SWAPAR, SWGEOM, SWPSEL
    USE swan_wind_source, ONLY: WINDP1, WINDP3
 
@@ -5538,7 +5555,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   REAL, INTENT(INOUT)  :: GAMBR(MCGRD)
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint
                   REAL, INTENT(IN)     :: KWAVE(MSC,MICMAX)
-                  REAL, INTENT(IN)     :: RDX(MICMAX), RDY(MICMAX)
+!  RDX/RDY assumed-size: SINTGRL only forwards them; the unstructured caller
+!  passes a 2-element array and the callees read RDX(1:2). See swanser.
+                  REAL, INTENT(IN)     :: RDX(*), RDY(*)
                   REAL, INTENT(IN)     :: SPCDIR(MDC,6)
 
                   REAL, INTENT(IN OUT) :: AC2(MDC,MSC,MCGRD)
@@ -11954,3 +11973,5 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   RETURN
                end subroutine SETUP2D
+
+end module swan_computation

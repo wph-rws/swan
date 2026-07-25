@@ -26,106 +26,23 @@
 !
 !************************************************************************
 !                                                                      *
-PROGRAM SWAN
-   USE swan_service_interfaces, ONLY: STPNOW
-!                                                                      *
-!************************************************************************
 
-   IMPLICIT NONE
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     30.72: IJsbrand Haagsma
-!     30.74: IJsbrand Haagsma (Include version)
-!     30.90: IJsbrand Haagsma (Equivalence version)
-!     32.01: Roeland Ris & Cor van der Schelde
-!     34.01: Jeroen Adema
-!     40.30: Marcel Zijlema
-!     40.31: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!            Jan. 94: transition from old pool to new pool structure
-!     30.72, Sept 97: INTEGER(KIND=SELECTED_INT_KIND(9)) replaced by INTEGER
-!     30.74, Nov. 97: Prepared for version with INCLUDE statements
-!     32.01, Jan. 98: Array WL initialised (project h3268)
-!     30.90, Oct. 98: Introduced EQUIVALENCE POOL-arrays
-!     34.01, Feb. 99: Introducing STPNOW
-!     40.30, Jan. 03: introduction distributed-memory approach using MPI
-!     40.31, Dec. 03: removing POOL mechanism and reconsidering
-!                     this main program
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     Main program
-!
-!  8. Subroutines used
-!
-!     SWEXITMPI
-!     SWINITMPI
-!     SWMAIN
-
-
-! 11. Remarks
-!
-!     In case of coupling with ADCIRC, this program will not be executed  41.20
-!     Instead, SWAN initialization and run will be done by PADCSWAN_INIT  41.20
-!     and PADCSWAN_RUN, respectively, as they will pass a time step to
-!     routine SWMAIN. See couple2swan.F
-!
-! 13. Source Code
-!
-!     --- initialize the MPI execution environment
-
-   CALL SWINITMPI
-   IF (.NOT. STPNOW()) THEN
-
-!     --- start SWAN run
-
-      CALL SWMAIN
-   END IF
-
-!     --- stop MPI
-
-   CALL SWEXITMPI
-
-!     --- end of MAIN PROGRAM
-
-end program SWAN
+module swan_driver
+   implicit none
+   private
+!  SWMAIN is the only entry point the main program needs; the eighteen
+!  remaining routines (initialisation, preparation, boundary and restart
+!  handling, clean-up) are implementation detail.
+   public :: SWMAIN
+contains
 !************************************************************************
 !                                                                      *
 SUBROUTINE SWMAIN
    USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
+   USE swan_computation, ONLY: SWCOMP
+   USE swan_parallel, ONLY: SWINITMPI, SWEXITMPI, SWSYNC, SWCOLLECT, SWCOLOUT
+   USE swan_services, ONLY: HSOBND
+   USE swan_command_reading, ONLY: SWREAD
    USE swan_output_orchestration, ONLY: SWOUTP
 !TIMG   USE swan_time, ONLY: DCUMTM, NCUMTM
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
@@ -768,6 +685,7 @@ end subroutine SWMAIN
 !                                                                      *
 SUBROUTINE SWINIT (INERR)
    USE swan_service_interfaces, ONLY: STPNOW
+   USE swan_ocean_pack_init, ONLY: OCPINI
 !                                                                      *
 !************************************************************************
 
@@ -3533,6 +3451,7 @@ end subroutine SWINIT
 SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
 &KGRPNT, KGRBND, SPCDIR, SPCSIG )
    USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
+   USE swan_services, ONLY: SWOBST
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_angle_conversions, ONLY: DEGCNV, ANGRAD, ANGDEG
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
@@ -8234,3 +8153,106 @@ SUBROUTINE SWCLME
 
    RETURN
 end subroutine SWCLME
+
+end module swan_driver
+
+!************************************************************************
+
+PROGRAM SWAN
+   USE swan_service_interfaces, ONLY: STPNOW
+   USE swan_driver, ONLY: SWMAIN
+   USE swan_parallel, ONLY: SWINITMPI, SWEXITMPI
+!                                                                      *
+!************************************************************************
+
+   IMPLICIT NONE
+
+
+!   --|-----------------------------------------------------------|--
+!     | Delft University of Technology                            |
+!     | Faculty of Civil Engineering and Geosciences              |
+!     | Environmental Fluid Mechanics Section                     |
+!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
+!     |                                                           |
+!     | Programmers: The SWAN team                                |
+!   --|-----------------------------------------------------------|--
+!
+!
+!     SWAN (Simulating WAves Nearshore); a third generation wave model
+!     Copyright (C) 1993-2024  Delft University of Technology
+!
+!     This program is free software: you can redistribute it and/or modify
+!     it under the terms of the GNU General Public License as published
+!     the Free Software Foundation, either version 3 of the License, or
+!     (at your option) any later version.
+!
+!     This program is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+!     GNU General Public License for more details.
+!
+!     You should have received a copy of the GNU General Public License
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!
+!
+!  0. Authors
+!
+!     30.72: IJsbrand Haagsma
+!     30.74: IJsbrand Haagsma (Include version)
+!     30.90: IJsbrand Haagsma (Equivalence version)
+!     32.01: Roeland Ris & Cor van der Schelde
+!     34.01: Jeroen Adema
+!     40.30: Marcel Zijlema
+!     40.31: Marcel Zijlema
+!     40.41: Marcel Zijlema
+!
+!  1. Updates
+!
+!            Jan. 94: transition from old pool to new pool structure
+!     30.72, Sept 97: INTEGER(KIND=SELECTED_INT_KIND(9)) replaced by INTEGER
+!     30.74, Nov. 97: Prepared for version with INCLUDE statements
+!     32.01, Jan. 98: Array WL initialised (project h3268)
+!     30.90, Oct. 98: Introduced EQUIVALENCE POOL-arrays
+!     34.01, Feb. 99: Introducing STPNOW
+!     40.30, Jan. 03: introduction distributed-memory approach using MPI
+!     40.31, Dec. 03: removing POOL mechanism and reconsidering
+!                     this main program
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!
+!  2. Purpose
+!
+!     Main program
+!
+!  8. Subroutines used
+!
+!     SWEXITMPI
+!     SWINITMPI
+!     SWMAIN
+
+
+! 11. Remarks
+!
+!     In case of coupling with ADCIRC, this program will not be executed  41.20
+!     Instead, SWAN initialization and run will be done by PADCSWAN_INIT  41.20
+!     and PADCSWAN_RUN, respectively, as they will pass a time step to
+!     routine SWMAIN. See couple2swan.F
+!
+! 13. Source Code
+!
+!     --- initialize the MPI execution environment
+
+   CALL SWINITMPI
+   IF (.NOT. STPNOW()) THEN
+
+!     --- start SWAN run
+
+      CALL SWMAIN
+   END IF
+
+!     --- stop MPI
+
+   CALL SWEXITMPI
+
+!     --- end of MAIN PROGRAM
+
+end program SWAN
