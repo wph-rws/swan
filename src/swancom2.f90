@@ -1385,6 +1385,7 @@ SUBROUTINE SICE (IMATDA, WINDOW, DISSC1, PLICE, AICELOC, HICELOC, SPCSIG, CG)
 
 !****************************************************************
 
+   USE swan_integer_powers, ONLY: power5, power6
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
    USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
@@ -1577,7 +1578,7 @@ SUBROUTINE SICE (IMATDA, WINDOW, DISSC1, PLICE, AICELOC, HICELOC, SPCSIG, CG)
          IF ( IICE.EQ.3 ) THEN ! R19
 !...for Sice method=IC4M2/R19, ki= C0*f^0 + C1*f^1 ... + C6*f^6
             KI(IS) = C0 + C1*FREQ    + C2*FREQ**2 + C3*FREQ**3 &
-               + C4*FREQ**4 + C5*FREQ**5 + C6*FREQ**6
+               + C4*FREQ**4 + C5*power5(FREQ) + C6*power6(FREQ)
          ELSEIF ( IICE.EQ.4 ) THEN ! D15
             KI(IS) = CHF * HICELOC * FREQ**2.13
          ELSEIF ( IICE.EQ.5 ) THEN ! M18

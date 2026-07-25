@@ -3017,6 +3017,7 @@ subroutine q_error(err_type,err_name,err_msg)
 end subroutine
 !------------------------------------------------------------------------------
 subroutine q_getlocus(ik1,ia1,ik3,ia3,ifnd)
+   USE swan_integer_powers, ONLY: power6
 !------------------------------------------------------------------------------
 !
 !   +-------+    ALKYON Hydraulic Consultancy & Research
@@ -3280,7 +3281,7 @@ subroutine q_getlocus(ik1,ia1,ik3,ia3,ifnd)
       end if
 
       j_lambda = 1./sqrt(lambda)
-      c_lambda = lambda**6
+      c_lambda = power6(lambda)
 
 !  compute combined scale factor
 
@@ -8581,7 +8582,7 @@ real function xc_hh(w1x0,w1y0,w2x0,w2y0,w3x0,w3y0,z4x,z4y,h)
 
    E=0.5/g *(dot23-som2*som3/gsq*(om2**2+om3**2+som2*som3))
 
-   p1=2.*(som1+som2+som3)*(om1**2.*omsq23/gsq-dot123)
+   p1=2.*(som1+som2+som3)*(om1**2*omsq23/gsq-dot123)
 
    p2=-som1*(k23)**2/(csz23)**2
 
@@ -8662,7 +8663,7 @@ real function xc_hh(w1x0,w1y0,w2x0,w2y0,w3x0,w3y0,z4x,z4y,h)
 
    E=0.5/g *(dot23-som2*som3/gsq *(om2**2+om3**2+som2*som3))
 
-   p1=2.*(som1+som2+som3)*(om1**2.*omsq23/gsq-dot123)
+   p1=2.*(som1+som2+som3)*(om1**2*omsq23/gsq-dot123)
 
    p2=-som1*(k23)**2/(csz23)**2
 
@@ -8743,7 +8744,7 @@ real function xc_hh(w1x0,w1y0,w2x0,w2y0,w3x0,w3y0,z4x,z4y,h)
 
    E=0.5/g *(dot23-som2*som3/gsq *(om2**2+om3**2+som2*som3))
 
-   p1=2.*(som1+som2+som3)*(om1**2.*omsq23/gsq-dot123)
+   p1=2.*(som1+som2+som3)*(om1**2*omsq23/gsq-dot123)
 
    p2=-som1*(k23)**2/(csz23)**2
 

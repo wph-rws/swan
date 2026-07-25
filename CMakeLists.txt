@@ -143,9 +143,11 @@ if( SWAN_RUNTIME_CHECKS )
   # Keep this on top of an optimizing build type. At -O0 GCC evaluates some
   # arithmetic differently from -O1 and up: X**N for a constant N above four
   # goes through libgcc's __powisf2 instead of the optimiser's product chain,
-  # and X**2. through powf instead of X*X, so the last bit can differ. Also,
-  # swancom1 and SdsBabanin compute the same at -O0, -O1 and -O2 but
-  # differently at -O3, and no single -O3-only flag is responsible.
+  # and X**2. through powf instead of X*X. Both are written out
+  # (src/swan_integer_powers.f90, X**2), so those products are the same at
+  # every level. What remains is -O3 being the odd one out: swancom1 and
+  # SdsBabanin compute the same at -O0, -O1 and -O2 but differently at -O3,
+  # and no single -O3-only flag is responsible.
   if( CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
     target_compile_options( swan_build_options INTERFACE -fcheck=all )
   elseif( CMAKE_Fortran_COMPILER_ID MATCHES "^(Intel|IntelLLVM)$" )

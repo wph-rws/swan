@@ -2310,13 +2310,13 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   , &
             ELSE
                CTOT = SQRT (0.5*MS/PI)/(1. - 0.25/MS)
             ENDIF
-            AIG   = HSS * TSS**2.
-            ACOEF = 1.2 * ALPHA**2. * (AIG/4.)**2.
+            AIG   = HSS * TSS**2
+            ACOEF = 1.2 * ALPHA**2 * (AIG/4.)**2
             DO IS = 1, MSC
 !                factor to convert back to N(sigma,theta)                 41.82
                SIG = SPCSIG(IS)
 !                shoaling factor                                          41.82
-               SFAC   = (KWAVE(IS,1)*GRAV**2.)/(CGO(IS,1)*SPCSIG(IS))
+               SFAC   = (KWAVE(IS,1)*GRAV**2)/(CGO(IS,1)*SPCSIG(IS))
 !                frequency distribution for FIG source                    41.82
                FRQD   = COBST%IGFRQD(IS)
 !                FIG source contribution according to the                 41.93

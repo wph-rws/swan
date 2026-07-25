@@ -73,6 +73,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
 
 !******************************************************************
 
+   USE swan_integer_powers, ONLY: power11
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_physics_selection
    USE swan_physical_settings
@@ -447,7 +448,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
 !     *** compute the radian frequency**11 for IS=1, MSC ***
 
    do IS=1, MSC
-      SNL4%frequency_power_11(IS) = ( SPCSIG(IS) / ( 2. * PI ) )**11
+      SNL4%frequency_power_11(IS) = power11( SPCSIG(IS) / ( 2. * PI ) )
    end do
 
 !     *** compute the radian frequency for the IS = MSC+1, ISHGH ***
@@ -455,7 +456,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
    FREQ   = SPCSIG(MSC) / ( 2. * PI )
    do IS = MSC+1, ISHGH
       FREQ   = FREQ * XIS
-      SNL4%frequency_power_11(IS) = FREQ**11
+      SNL4%frequency_power_11(IS) = power11(FREQ)
    end do
 
 !     *** compute the radian frequency for IS = 0, ISLOW ***
@@ -463,7 +464,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
    FREQ   = SPCSIG(1) / ( 2. * PI )
    do IS = 0, ISLOW, -1
       FREQ   = FREQ / XIS
-      SNL4%frequency_power_11(IS) = FREQ**11
+      SNL4%frequency_power_11(IS) = power11(FREQ)
    end do
 
 !     *** test output ***
@@ -680,6 +681,7 @@ end subroutine RANGE4
 SUBROUTINE SWPRE4W (XIS   ,SNLC1 , &
    DAL1  ,DAL2  ,DAL3  ,SPCSIG, &
    WWINT ,WWAWG ,WWSWG, SNL4  )
+   USE swan_integer_powers, ONLY: power11
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !********************************************************************
@@ -862,17 +864,17 @@ SUBROUTINE SWPRE4W (XIS   ,SNLC1 , &
       DEALLOCATE(SNL4%frequency_power_11)
    ALLOCATE (SNL4%frequency_power_11(MSC4MI:MSC4MA))
    DO IS = 1, MSC
-      SNL4%frequency_power_11(IS) = ( SPCSIG(IS) / ( 2. * PI ) )**11
+      SNL4%frequency_power_11(IS) = power11( SPCSIG(IS) / ( 2. * PI ) )
    ENDDO
    FREQ = SPCSIG(MSC) / ( 2. * PI )
    DO IS = MSC+1, MSC4MA
       FREQ = FREQ * XIS
-      SNL4%frequency_power_11(IS) = FREQ**11
+      SNL4%frequency_power_11(IS) = power11(FREQ)
    ENDDO
    FREQ = SPCSIG(1) / ( 2. * PI )
    DO IS = 0, MSC4MI, -1
       FREQ = FREQ / XIS
-      SNL4%frequency_power_11(IS) = FREQ**11
+      SNL4%frequency_power_11(IS) = power11(FREQ)
    ENDDO
 
 !     *** remember the exact cache identity and reusable scalar outputs

@@ -9,6 +9,7 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
 !                                                                      *
 !************************************************************************
 
+   USE swan_integer_powers, ONLY: power5
    USE swan_angle_conversions, ONLY: DEGCNV, ANGRAD, ANGDEG
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
    USE swan_wave_physics, ONLY: KSCIP1
@@ -289,7 +290,7 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
 !         *** LSHAPE = 1 : Pierson and Moskowitz ***
             SF = SPCSIG(IS) / PI2
             SF4 = SF**4
-            SF5 = SF**5
+            SF5 = power5(SF)
             RA = (SALPHA/SF5)*EXP(-(5.*FPK4)/(4.*SF4))/(PI2*SPCSIG(IS))
             ACLOC(MDC,IS) = RA
          ELSE IF (LSHAPE.EQ.2 .OR. LSHAPE.EQ.5) THEN
@@ -297,7 +298,7 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
 !         *** LSHAPE = 5 : TMA     ***
             SF = SPCSIG(IS)/(PI2)
             SF4 = SF**4
-            SF5 = SF**5
+            SF5 = power5(SF)
             CPSHAP = 1.25 * FPK4 / SF4
             IF (CPSHAP.GT.10.) THEN
                RA = 0.

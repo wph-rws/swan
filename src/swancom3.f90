@@ -2067,6 +2067,7 @@ SUBROUTINE SWIND4 (WINDOW, SPCSIG, WIND10, THETAW, XIS, DD, KWAVE, IMATRA, GENC0
 
 !******************************************************************
 
+   USE swan_integer_powers, ONLY: power6
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_run_mode
    USE swan_stencil, ONLY: MICMAX
@@ -2448,7 +2449,7 @@ SUBROUTINE SWIND4 (WINDOW, SPCSIG, WIND10, THETAW, XIS, DD, KWAVE, IMATRA, GENC0
 !           *** wave stress by integrating input source term in  ***
 !           *** x- and y direction respectively                  ***
 
-            FACHFR = SIGMAX**6 * AC2(ID,MSC,IGP) * COS2 / GRAV**2
+            FACHFR = power6(SIGMAX) * AC2(ID,MSC,IGP) * COS2 / GRAV**2
 
             SE1 = FACHFR * BETA1 / SIGHF1
             SE2 = FACHFR * BETA2 / SIGHF2

@@ -1089,7 +1089,7 @@ subroutine SWBRAGG1 (imatra, ac2, dep2, kwave, cgo, spcsig, WINDOW, ecos, esin, 
 
                fbdif = fbdxy(ida,id,is,IGP)
 
-               sbragg = sbragg + cosdif**2. * fbdif * edif
+               sbragg = sbragg + cosdif**2 * fbdif * edif
 
             enddo
 
@@ -1246,7 +1246,7 @@ subroutine SWBRAGG2 (imatra, ac2, dep2, kwave, cgo, fbd, spcsig, WINDOW, ecos, e
 
                fbdif = fbd(ida,id,is)
 
-               sbragg = sbragg + cosdif**2. * fbdif * edif
+               sbragg = sbragg + cosdif**2 * fbdif * edif
 
             enddo
 
@@ -1394,7 +1394,7 @@ subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin ,IG
 
                fbdif = fbd(ida,id,is)
 
-               sbragg = sbragg + cosdif**2. * fbdif * edif
+               sbragg = sbragg + cosdif**2 * fbdif * edif
 
             enddo
 
