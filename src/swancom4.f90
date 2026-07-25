@@ -1182,24 +1182,6 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, A
    SWG7 = DIA_WORKSPACE%WWSWG(7)
    SWG8 = DIA_WORKSPACE%WWSWG(8)
 
-!     *** Initialize auxiliary arrays per gridpoint ***
-
-   DO ID = MDC4MI, MDC4MA
-      DO IS = MSC4MI, MSC4MA
-         DIA_WORKSPACE%UE(IS,ID)   = 0.
-         DIA_WORKSPACE%SA1(IS,ID)  = 0.
-         DIA_WORKSPACE%SA2(IS,ID)  = 0.
-         DIA_WORKSPACE%SFNL(IS,ID) = 0.
-         DIA_WORKSPACE%DA1C(IS,ID) = 0.
-         DIA_WORKSPACE%DA1P(IS,ID) = 0.
-         DIA_WORKSPACE%DA1M(IS,ID) = 0.
-         DIA_WORKSPACE%DA2C(IS,ID) = 0.
-         DIA_WORKSPACE%DA2P(IS,ID) = 0.
-         DIA_WORKSPACE%DA2M(IS,ID) = 0.
-         DIA_WORKSPACE%DSNL(IS,ID) = 0.
-      ENDDO
-   ENDDO
-
 !     *** Calculate factor R(X) to calculate the NL wave-wave ***
 !     *** interaction for shallow water                       ***
 !     *** DIA_WORKSPACE%SNLC1 = 1/GRAV**4                                   ***
@@ -1230,6 +1212,28 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, A
       IDCHGH = IDHGH
    ENDIF
 
+!     Only low-frequency rows are read without first being assigned.
+!     DIA_WORKSPACE%SFNL and DIA_WORKSPACE%DSNL are assigned before use; the interaction and diagonal
+!     arrays are assigned over ISCLW:ISCHG below.
+
+   DO IDDUM = IDLOW - IIID, IDHGH + IIID
+      DO IS = MSC4MI, 0
+         DIA_WORKSPACE%UE(IS,IDDUM) = 0.
+      ENDDO
+   ENDDO
+   DO ID = IDLOW, IDHGH
+      DO IS = MSC4MI, 0
+         DIA_WORKSPACE%SA1(IS,ID)  = 0.
+         DIA_WORKSPACE%SA2(IS,ID)  = 0.
+         DIA_WORKSPACE%DA1C(IS,ID) = 0.
+         DIA_WORKSPACE%DA1P(IS,ID) = 0.
+         DIA_WORKSPACE%DA1M(IS,ID) = 0.
+         DIA_WORKSPACE%DA2C(IS,ID) = 0.
+         DIA_WORKSPACE%DA2P(IS,ID) = 0.
+         DIA_WORKSPACE%DA2M(IS,ID) = 0.
+      ENDDO
+   ENDDO
+
 !     *** Prepare auxiliary spectrum               ***
 !     *** set action original spectrum in array DIA_WORKSPACE%UE ***
 
@@ -1242,8 +1246,8 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, A
 
 !     *** set values in area 2 for IS > MSC+1  ***
 
-   DO IS = MSC+1, ISHGH
-      DO ID = IDLOW - IIID , IDHGH + IIID
+   DO ID = IDLOW - IIID , IDHGH + IIID
+      DO IS = MSC+1, ISHGH
          DIA_WORKSPACE%UE (IS,ID) = DIA_WORKSPACE%UE(IS-1,ID) * FACHFR
       ENDDO
    ENDDO
