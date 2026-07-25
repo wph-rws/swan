@@ -2037,17 +2037,6 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
    AWG7 = WWAWG(7)
    AWG8 = WWAWG(8)
 
-!     *** Initialize auxiliary arrays per gridpoint ***
-
-   DO ID = MDC4MI, MDC4MA
-      DO IS = MSC4MI, MSC4MA
-         UE(IS,ID)   = 0.
-         SA1(IS,ID)  = 0.
-         SA2(IS,ID)  = 0.
-         SFNL(IS,ID) = 0.
-      ENDDO
-   ENDDO
-
 !     *** Calculate prop. constant.                           ***
 !     *** Calculate factor R(X) to calculate the NL wave-wave ***
 !     *** interaction for shallow water                       ***
@@ -2060,6 +2049,18 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
    X2     = MAX ( -1.E15, SNLCS3*X)
    CONS   = SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
    JACOBI = 2. * PI
+
+!     Only the low-frequency rows can be read before assignment.
+!     UE is assigned for rows 1:ISHGH and SA1/SA2 for 1:ISCHG;
+!     SFNL is assigned directly by the source stencil.
+
+   DO ID = IDLOW, IDHGH
+      DO IS = MSC4MI, 0
+         UE(IS,ID)  = 0.
+         SA1(IS,ID) = 0.
+         SA2(IS,ID) = 0.
+      ENDDO
+   ENDDO
 
 !     *** extend the area with action density at periodic boundaries ***
 
