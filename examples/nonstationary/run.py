@@ -10,6 +10,9 @@ import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from reference_check import compare_with_reference  # noqa: E402
+
 
 CASES = {
     "regular": "nonstationary_regular",
@@ -93,6 +96,11 @@ def run_case(executable: Path, example_directory: Path, case: str) -> float:
     for suffix in ("_hs.blk", "_center.tbl"):
         if not (case_directory / f"{basename}{suffix}").is_file():
             raise RuntimeError(f"{case} case did not create {basename}{suffix}")
+
+    reference_directory = Path(__file__).resolve().parent / case / "reference"
+    names = tuple(f"{basename}{suffix}" for suffix in ("_center.tbl", "_hs.blk"))
+    if compare_with_reference(case_directory, reference_directory, names):
+        print(f"{case} results match the stored reference.")
     return elapsed
 
 

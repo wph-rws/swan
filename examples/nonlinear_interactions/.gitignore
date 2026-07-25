@@ -12,3 +12,8 @@
 /**/*.spc
 /**/*.bqf
 /**/xnl4v5.log
+
+#  De referentiemappen horen juist wel in versiebeheer: de patronen
+#  hierboven lijken op de namen van de referentiebestanden zelf.
+!**/reference/**
+!**/reference-*/**

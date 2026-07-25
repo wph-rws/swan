@@ -9,3 +9,8 @@ __pycache__/
 **/*.erf
 **/*_hs.blk
 **/*_center.tbl
+
+#  De referentiemappen horen juist wel in versiebeheer: de patronen
+#  hierboven lijken op de namen van de referentiebestanden zelf.
+!**/reference/**
+!**/reference-*/**

@@ -1,0 +1,15 @@
+{
+  "conversion-extra": 493,
+  "unused-variable": 259,
+  "compare-reals": 226,
+  "function-elimination": 163,
+  "maybe-uninitialized": 155,
+  "unused-dummy-argument": 99,
+  "conversion": 72,
+  "do-subscript": 37,
+  "character-truncation": 25,
+  "unused-parameter": 9,
+  "unused-function": 4,
+  "implicit-interface": 2,
+  "uninitialized": 2
+}

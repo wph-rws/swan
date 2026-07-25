@@ -10,6 +10,9 @@ import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from reference_check import compare_with_reference  # noqa: E402
+
 
 GENERATED_FILES = (
     "INPUT",
@@ -90,6 +93,11 @@ def run(
         raise RuntimeError(
             "SWAN did not create norm_end. Inspect quick_test.prt and quick_test.erf."
         )
+
+    reference_directory = Path(__file__).resolve().parent / "reference"
+    if compare_with_reference(case_directory, reference_directory,
+                              ("quick_test_center.tbl", "quick_test_hs.blk")):
+        print("Results match the stored reference.")
 
     print(f"Quick test completed normally in {elapsed:.2f} seconds.")
     print("Results: quick_test_center.tbl, quick_test_hs.blk, quick_test.prt")

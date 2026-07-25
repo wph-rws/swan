@@ -143,8 +143,8 @@ as follows:
 
 | Diagnostic inventory | Before | Interface layer | Current | Reduction |
 |---|---:|---:|---:|---:|
-| All warnings | 4,443 | 1,508 | 1,554 | 65% |
-| Implicit-interface warnings | 3,229 | 288 | 6 | 99.8% |
+| All warnings | 4,443 | 1,508 | 1,546 | 65% |
+| Implicit-interface warnings | 3,229 | 288 | 2 | 99.9% |
 
 The "interface layer" column is the state after explicit interfaces were added
 but before the monolithic source files became modules; "current" is after that
@@ -157,11 +157,10 @@ calls checkable exposes conversions that were previously invisible. The
 categories behind the current total are dominated by `-Wconversion-extra`
 (493), `-Wunused-variable` (256) and `-Wcompare-reals` (226).
 
-Six implicit-interface call sites remain. Two are `METIS_*` calls into the
-external C library and can never be Fortran interfaces; the other four are
-`LSPLIT` and `DTSTTI`/`DTTIST`, which stay external because of the parser cycle
-described below. Measure with a *clean* build — an incremental one only reports
-the files it recompiled.
+Two implicit-interface call sites remain, both `METIS_*` calls into the external
+C library, which can never be Fortran interfaces. That is the floor.
+`scripts/strict_diagnostics.py` enforces it. Measure with a *clean* build — an
+incremental one only reports the files it recompiled.
 
 The optimized LTO build now passes without the former
 `-fno-strict-aliasing` workaround. Its quick-test center table and significant
@@ -193,14 +192,14 @@ dependency-free module holding `MASTER`, `INODE`, `NPROC`, `IAMMASTER` and
 callers are checked against the real implementation without a single caller
 having to change.
 
-What deliberately stays external:
+The parser cycle has since been broken as well. `UPCASE` moved to the leaf
+module `swan_text_utilities`, which removed `DTSTTI`'s dependency on the parser;
+`DTSTTI` and `DTTIST` then became module procedures of `swan_time`, and `REPARM`
+and `LSPLIT` moved into `swan_input_helpers`, which sits above the parser rather
+than below it. `ocpmix.f90` no longer contains any procedure.
 
-- `REPARM` and `LSPLIT` in `ocpmix.f90`. They need the command parser, which
-  uses `swan_service_interfaces`, so moving them would recreate a cycle.
-- `DTSTTI` and `DTTIST` in `ocpids.f90`. `swan_time` declares them, but they
-  call `UPCASE` from `swan_input_parser`, which uses `swan_time`.
-- `TXPBLA`, kept in the interface block next to the switch-activated timing
-  routines it shares a file with.
+What deliberately stays external: `TXPBLA`, kept in the interface block next to
+the switch-activated timing routines it shares a file with.
 
 The same applies to the switch-activated timing (`!TIMG`) and Matlab-binary
 (`!MatL4`) routines, which are called as externals from many files.
