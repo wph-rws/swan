@@ -58,6 +58,7 @@
 !******************************************************************
 
 module swan_nonlinear_interactions
+   use swan_build_config, only: invariant_checks_enabled
    use swan_triad_state, only: triad_state_t
    use swan_snl4_tables, only: snl4_tables_t
    implicit none(type, external)
@@ -1623,17 +1624,6 @@ SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2
    AWG7 = WWAWG(7)
    AWG8 = WWAWG(8)
 
-!     *** Initialize auxiliary arrays per gridpoint ***
-
-   DO ID = MDC4MI, MDC4MA
-      DO IS = MSC4MI, MSC4MA
-         UE(IS,ID)   = 0.
-         SA1(IS,ID)  = 0.
-         SA2(IS,ID)  = 0.
-         SFNL(IS,ID) = 0.
-      ENDDO
-   ENDDO
-
 !     *** Calculate prop. constant.                           ***
 !     *** Calculate factor R(X) to calculate the NL wave-wave ***
 !     *** interaction for shallow water                       ***
@@ -1665,6 +1655,45 @@ SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2
       IDCHGH = IDHGH
    ENDIF
 
+!     Validate the bounds on which the limited initialization below relies.
+
+   IF (invariant_checks_enabled .AND. LTSTFL) THEN
+      IF (ISCLW.GT.1 .OR. ISCLW+ISM1.LT.MSC4MI .OR. &
+         ISCHG+ISP1.GT.ISHGH .OR. ISHGH.GT.MSC4MA) &
+         ERROR STOP 'SWSNL2 frequency-range invariant violated'
+      IF (IDLOW-IIID.LT.MDC4MI .OR. IDHGH+IIID.GT.MDC4MA) &
+         ERROR STOP 'SWSNL2 UE direction range exceeds workspace'
+      IF (IDCLOW-MAX(IDP1,IDM1).LT.IDLOW-IIID .OR. &
+         IDCHGH+MAX(IDP1,IDM1).GT.IDHGH+IIID) &
+         ERROR STOP 'SWSNL2 interaction direction hull is uninitialized'
+      IF (WINDOW%ISSTOP.GT.0) THEN
+         IF (1-ISP1.LT.MSC4MI .OR. WINDOW%ISSTOP-ISM1.GT.ISCHG) &
+            ERROR STOP 'SWSNL2 source stencil frequency range is invalid'
+         IF (MINVAL(WINDOW%IDCMIN(1:WINDOW%ISSTOP))-MAX(IDP1,IDM1).LT.MDC4MI .OR. &
+            MAXVAL(WINDOW%IDCMAX(1:WINDOW%ISSTOP))+MAX(IDP1,IDM1).GT.MDC4MA) &
+            ERROR STOP 'SWSNL2 source stencil direction range is invalid'
+      END IF
+   END IF
+
+!     *** Zero only the array parts that are read below without being ***
+!     *** assigned first: the frequency rows below the lowest         ***
+!     *** discrete bin (IS <= 0). UE is assigned for rows 1:ISHGH     ***
+!     *** over IDLOW-IIID:IDHGH+IIID, SA1/SA2 for rows 1:ISCHG over   ***
+!     *** IDLOW:IDHGH and reads stay within those column ranges;      ***
+!     *** SFNL is assigned before it is read                          ***
+
+   DO IDDUM = IDLOW - IIID, IDHGH + IIID
+      DO IS = MSC4MI, 0
+         UE(IS,IDDUM) = 0.
+      ENDDO
+   ENDDO
+   DO ID = IDLOW, IDHGH
+      DO IS = MSC4MI, 0
+         SA1(IS,ID) = 0.
+         SA2(IS,ID) = 0.
+      ENDDO
+   ENDDO
+
 !     *** Prepare auxiliary spectrum               ***
 !     *** set action original spectrum in array UE ***
 
@@ -1677,8 +1706,8 @@ SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2
 
 !     *** set values in the areas 2 for IS > MSC+1 ***
 
-   DO IS = MSC+1, ISHGH
-      DO ID = IDLOW - IIID , IDHGH + IIID
+   DO ID = IDLOW - IIID , IDHGH + IIID
+      DO IS = MSC+1, ISHGH
          UE (IS,ID) = UE(IS-1,ID) * FACHFR
       ENDDO
    ENDDO
@@ -1686,8 +1715,9 @@ SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2
 !     *** Calculate interactions      ***
 !     *** Energy at interacting bins  ***
 
-   DO IS = ISCLW, ISCHG
-      DO ID = IDCLOW , IDCHGH
+   DO ID = IDCLOW , IDCHGH
+      !$OMP SIMD
+      DO IS = ISCLW, ISCHG
          E00    =        UE(IS      ,ID      )
          EP1    = AWG1 * UE(IS+ISP1,ID+IDP1) + &
             AWG2 * UE(IS+ISP1,ID+IDP ) + &
@@ -1719,15 +1749,45 @@ SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2
 
          SA1 (IS,ID) = FACTOR * SA1B
          SA2 (IS,ID) = FACTOR * SA2B
+      ENDDO
+   ENDDO
 
-         IF (LTSTFL) THEN
+!     Keep diagnostic output out of the vectorizable production loop.
+!     The scalar quantities are recomputed only when detailed tracing is
+!     requested; SA1 and SA2 retain the values from the production loop.
+
+   IF (LTSTFL) THEN
+      DO IS = ISCLW, ISCHG
+         DO ID = IDCLOW , IDCHGH
+            E00    =        UE(IS      ,ID      )
+            EP1    = AWG1 * UE(IS+ISP1,ID+IDP1) + &
+               AWG2 * UE(IS+ISP1,ID+IDP ) + &
+               AWG3 * UE(IS+ISP ,ID+IDP1) + &
+               AWG4 * UE(IS+ISP ,ID+IDP )
+            EM1    = AWG5 * UE(IS+ISM1,ID-IDM1) + &
+               AWG6 * UE(IS+ISM1,ID-IDM ) + &
+               AWG7 * UE(IS+ISM ,ID-IDM1) + &
+               AWG8 * UE(IS+ISM ,ID-IDM )
+            EP2    = AWG1 * UE(IS+ISP1,ID-IDP1) + &
+               AWG2 * UE(IS+ISP1,ID-IDP ) + &
+               AWG3 * UE(IS+ISP ,ID-IDP1) + &
+               AWG4 * UE(IS+ISP ,ID-IDP )
+            EM2    = AWG5 * UE(IS+ISM1,ID+IDM1) + &
+               AWG6 * UE(IS+ISM1,ID+IDM ) + &
+               AWG7 * UE(IS+ISM ,ID+IDM1) + &
+               AWG8 * UE(IS+ISM ,ID+IDM )
+            FACTOR = CONS * AF11(IS) * E00
+            SA1A   = E00 * ( EP1*DAL1 + EM1*DAL2 ) * PQUAD(2)
+            SA1B   = SA1A - EP1*EM1*DAL3 * PQUAD(2)
+            SA2A   = E00 * ( EP2*DAL1 + EM2*DAL2 ) * PQUAD(2)
+            SA2B   = SA2A - EP2*EM2*DAL3 * PQUAD(2)
             WRITE(PRINTF,"(' E00 EP1 EM1 EP2 EM2  :',5E11.4)") E00,EP1,EM1,EP2,EM2
             WRITE(PRINTF,"(' SA1A SA1B SA2A SA2B  :',4E11.4)") SA1A,SA1B,SA2A,SA2B
             WRITE(PRINTF,"(' IS ID SA1() SA2()    :',2I4,2E12.4)") IS,ID,SA1(IS,ID),SA2(IS,ID)
             WRITE(PRINTF,"(' FACTOR ISLOW         : ',E12.4,I4)") FACTOR ,ISLOW
-         END IF
+         ENDDO
       ENDDO
-   ENDDO
+   END IF
 
 !     *** Fold interactions to side angles if spectral domain ***
 !     *** is periodic in directional space                    ***
@@ -1744,11 +1804,11 @@ SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2
       ENDDO
    ENDIF
 
-!     ***  Put source term together (To save space I=IS and J=ID ***
-!     ***  is used)                                              ***
+!     *** Put source term together. Keep this arithmetic stencil ***
+!     *** separate from the sign-dependent Patankar update below ***
+!     *** so the compiler can optimize both loops independently.  ***
 
    DO I = 1, WINDOW%ISSTOP
-      SIGPI = SPCSIG(I) * JACOBI
       DO J = WINDOW%IDCMIN(I), WINDOW%IDCMAX(I)
          ID = MOD ( J - 1 + MDC , MDC ) + 1
          SFNL(I,ID) =   - 2. * ( SA1(I,J) + SA2(I,J) ) &
@@ -1760,11 +1820,16 @@ SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2
             + AWG6 * ( SA1(I-ISM1,J+IDM ) + SA2(I-ISM1,J-IDM ) ) &
             + AWG7 * ( SA1(I-ISM ,J+IDM1) + SA2(I-ISM ,J-IDM1) ) &
             + AWG8 * ( SA1(I-ISM ,J+IDM ) + SA2(I-ISM ,J-IDM ) )
+      ENDDO
+   ENDDO
 
-!         *** store results in rhv ***
-!         *** store results in rhs and main diagonal according ***        40.23
-!         *** to Patankar-rules                                ***        40.23
+!     *** Store results in rhs and main diagonal according to ***
+!     *** Patankar rules.                                      ***
 
+   DO I = 1, WINDOW%ISSTOP
+      SIGPI = SPCSIG(I) * JACOBI
+      DO J = WINDOW%IDCMIN(I), WINDOW%IDCMAX(I)
+         ID = MOD ( J - 1 + MDC , MDC ) + 1
          IF(TESTFL) PLNL4S(ID,I,IPTST) =  SFNL(I,ID) / SIGPI
          IF (SFNL(I,ID).GT.0.) THEN
             IMATRA(ID,I) = IMATRA(ID,I) + SFNL(I,ID) / SIGPI

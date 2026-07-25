@@ -1,7 +1,7 @@
 module swan_build_config
    implicit none(type, external)
    private
-   public :: timing_enabled, jacobi_sweep_enabled
+   public :: timing_enabled, invariant_checks_enabled, jacobi_sweep_enabled
    public :: fixed_front_enabled
    public :: native_path_separator, alternate_path_separator
    public :: sequential_record_length, print_record_length
@@ -9,6 +9,7 @@ module swan_build_config
    public :: fork_identity, upstream_reference
 
    logical, parameter :: timing_enabled = @SWAN_TIMING_ENABLED@
+   logical, parameter :: invariant_checks_enabled = @SWAN_INVARIANT_CHECKS_ENABLED@
    logical, parameter :: jacobi_sweep_enabled = @SWAN_JACOBI_SWEEP_ENABLED@
    logical, parameter :: fixed_front_enabled = @SWAN_FIXED_FRONT_ENABLED@
    character(len=1), parameter :: native_path_separator = &
