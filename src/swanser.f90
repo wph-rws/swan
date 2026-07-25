@@ -54,6 +54,7 @@
 !************************************************************************
 !                                                                      *
 module swan_services
+   use swan_cross_obstacle, only: SwanCrossObstacle
    implicit none
    private
    public :: AC2TST, CVCHEK, CVMESH, EVALF, SWOBST, SWTRCF, HSOBND, SWACC, MKPATH
@@ -2072,7 +2073,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
    REAL, OPTIONAL :: XCGRID(MXC,MYC), YCGRID(MXC,MYC)
    INTEGER    ICC, JJ
    REAL    :: XOBS(2), XV(2), YOBS(2), YV(2)
-   LOGICAL :: SwanCrossObstacle
+!  (local LOGICAL declaration removed: SwanCrossObstacle is now a module function)
    TYPE(OBSTDAT), POINTER :: COBST
 
 !  8. Subroutines used

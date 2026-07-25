@@ -1,3 +1,9 @@
+module swan_transp_x
+   implicit none
+   private
+   public :: SwanTranspX
+contains
+
 subroutine SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
                          rdx    , rdy  , obredf, idcmin, idcmax, isslow, &
                          isstop , trac0, trac1 )
@@ -160,3 +166,5 @@ subroutine SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
     enddo
 
 end subroutine SwanTranspX
+
+end module swan_transp_x

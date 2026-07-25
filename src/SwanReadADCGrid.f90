@@ -1,3 +1,9 @@
+module swan_read_adc_grid
+   implicit none
+   private
+   public :: SwanReadADCGrid
+contains
+
 subroutine SwanReadADCGrid
    USE swan_file_opening, ONLY: FOR
    USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
@@ -208,3 +214,5 @@ contains
     end function read_failed
 
 end subroutine SwanReadADCGrid
+
+end module swan_read_adc_grid

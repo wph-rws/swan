@@ -1,3 +1,9 @@
+module swan_create_edges
+   implicit none
+   private
+   public :: SwanCreateEdges
+contains
+
 subroutine SwanCreateEdges
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
@@ -193,3 +199,5 @@ subroutine SwanCreateEdges
     deallocate(cntv1,cntv2,iflist1,iflist2)
 
 end subroutine SwanCreateEdges
+
+end module swan_create_edges

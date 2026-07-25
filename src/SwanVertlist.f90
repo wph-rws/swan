@@ -1,3 +1,9 @@
+module swan_vertlist
+   implicit none
+   private
+   public :: SwanVertlist
+contains
+
 subroutine SwanVertlist ( compda )
    USE swan_field_file_update, ONLY: FLFILE
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
@@ -495,3 +501,5 @@ contains
     end function SwanTreeWinner
 
 end subroutine SwanVertlist
+
+end module swan_vertlist

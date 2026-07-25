@@ -1,3 +1,9 @@
+module swan_bnd_struc
+   implicit none
+   private
+   public :: SwanBndStruc
+contains
+
 subroutine SwanBndStruc ( xcgrid, ycgrid )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL
 
@@ -221,3 +227,5 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
     endif
 
 end subroutine SwanBndStruc
+
+end module swan_bnd_struc

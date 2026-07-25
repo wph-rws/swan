@@ -1,3 +1,9 @@
+module swan_grad_depthor_k
+   implicit none
+   private
+   public :: SwanGradDepthorK
+contains
+
 subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
    USE swan_wave_physics, ONLY: KSCIP1, KSCIP2
@@ -406,3 +412,5 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
     endif
 
 end subroutine SwanGradDepthorK
+
+end module swan_grad_depthor_k

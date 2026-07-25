@@ -1,4 +1,5 @@
 MODULE swan_input_point_validation
+   use swan_find_point, only: SwanFindPoint
    IMPLICIT NONE
    PRIVATE
    PUBLIC :: SINUPT, SINBTG

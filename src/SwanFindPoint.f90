@@ -1,3 +1,10 @@
+module swan_find_point
+   use swan_pointin_mesh, only: SwanPointinMesh
+   implicit none
+   private
+   public :: SwanFindPoint
+contains
+
 subroutine SwanFindPoint ( x, y, kvert )
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -74,7 +81,7 @@ subroutine SwanFindPoint ( x, y, kvert )
     real                                  :: y1              ! y-coordinate of begin of boundary face
     real                                  :: y2              ! y-coordinate of end of boundary face
 
-    logical                               :: SwanPointinMesh ! indicate whether a point is inside mesh
+!  (local LOGICAL declaration removed: SwanPointinMesh is now a module function)
     logical                               :: usecache        ! boundary-face cache is available
 
     type(facetype), dimension(:), pointer :: face            ! datastructure for faces with their attributes
@@ -170,3 +177,5 @@ subroutine SwanFindPoint ( x, y, kvert )
     endif
 
 end subroutine SwanFindPoint
+
+end module swan_find_point

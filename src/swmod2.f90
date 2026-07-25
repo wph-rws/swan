@@ -1087,6 +1087,7 @@ MODULE M_GENARR
 end module M_GENARR
 
 MODULE M_PARALL
+   USE swan_parallel_state, ONLY: MASTER, INODE, NPROC, IAMMASTER, PARLL
    USE swan_service_interfaces, ONLY: MSGERR
 !MPI   USE MPI
 !
@@ -1191,7 +1192,7 @@ MODULE M_PARALL
 !JAC!               determining sequence of sweeps (=2,3,4,1)
 !     MASTER  : rank of master process
 
-   INTEGER, PARAMETER :: MASTER=1
+!  MASTER now comes from swan_parallel_state (re-exported below).
 !JAC   INTEGER, PARAMETER :: IRED=1, IYELOW=2, IGREEN=3, IBLACK=4,&
 !JAC   &IHALOX=1, IHALOY=1
 !WFR   INTEGER, PARAMETER :: IHALOX=3, IHALOY=3
@@ -1211,10 +1212,10 @@ MODULE M_PARALL
 !     SWREAL  : MPI datatype for reals
 !     SWSUM   : MPI collective summation
 
-   INTEGER INODE, NPROC
+!  INODE/NPROC now come from swan_parallel_state.
    INTEGER SWCHAR, SWINT, SWREAL
    INTEGER SWMAX, SWMIN, SWSUM
-   LOGICAL IAMMASTER, PARLL
+!  IAMMASTER/PARLL now come from swan_parallel_state.
 
 !     *** information related to global domain and subdomains
 !

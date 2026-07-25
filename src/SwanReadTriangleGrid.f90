@@ -1,3 +1,9 @@
+module swan_read_triangle_grid
+   implicit none
+   private
+   public :: SwanReadTriangleGrid
+contains
+
 subroutine SwanReadTriangleGrid ( basenm, lenfnm )
    USE swan_file_opening, ONLY: FOR
    USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
@@ -189,3 +195,5 @@ contains
     end function read_failed
 
 end subroutine SwanReadTriangleGrid
+
+end module swan_read_triangle_grid

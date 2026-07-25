@@ -1,3 +1,9 @@
+module swan_grid_face
+   implicit none
+   private
+   public :: SwanGridFace
+contains
+
 subroutine SwanGridFace ( nfaces, ncells, nverts, xcugrd, ycugrd, kvertf )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
@@ -440,3 +446,5 @@ subroutine SwanGridFace ( nfaces, ncells, nverts, xcugrd, ycugrd, kvertf )
     enddo
 
 end subroutine SwanGridFace
+
+end module swan_grid_face

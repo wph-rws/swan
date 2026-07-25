@@ -1,3 +1,13 @@
+module swan_grid_topology
+   use swan_grid_cell, only: SwanGridCell
+   use swan_grid_face, only: SwanGridFace
+   use swan_grid_vert, only: SwanGridVert
+   use swan_print_grid_info, only: SwanPrintGridInfo
+   implicit none
+   private
+   public :: SwanGridTopology
+contains
+
 subroutine SwanGridTopology
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
@@ -99,3 +109,5 @@ subroutine SwanGridTopology
     call SwanPrintGridInfo
 
 end subroutine SwanGridTopology
+
+end module swan_grid_topology

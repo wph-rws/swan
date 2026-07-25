@@ -17,6 +17,8 @@
 !************************************************************************
 
 module swan_output_orchestration
+   use swan_compute_force, only: SwanComputeForce
+   use swan_find_point, only: SwanFindPoint
    implicit none
    private
    public :: SWOUTP, SWOEXC

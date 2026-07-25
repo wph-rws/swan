@@ -4037,7 +4037,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
 &XC    , YC )
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_output_writers, ONLY: SBLKPT, SRAWPT, SWRMAT
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, EQREAL
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, EQREAL, TABHED
 
 !****************************************************************
 

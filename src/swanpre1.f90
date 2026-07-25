@@ -17,6 +17,10 @@
 !************************************************************************
 
 module swan_command_reading
+   use swan_create_edges, only: SwanCreateEdges
+   use swan_grid_topology, only: SwanGridTopology
+   use swan_init_comp_grid, only: SwanInitCompGrid
+   use swan_read_grid, only: SwanReadGrid
    use swan_input_processing, only: SPROUT, SVARTP, SWBOUN, RETSTP
    implicit none
    private

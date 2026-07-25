@@ -1,3 +1,9 @@
+module swan_vtk_write_header
+   implicit none
+   private
+   public :: SwanVTKWriteHeader
+contains
+
 subroutine SwanVTKWriteHeader ( uvtk, pstype, nvar, ivtyp, mxkf, mxkl, mykf, mykl )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
 
@@ -291,3 +297,5 @@ subroutine SwanVTKWriteHeader ( uvtk, pstype, nvar, ivtyp, mxkf, mxkl, mykf, myk
     endif
 
 end subroutine SwanVTKWriteHeader
+
+end module swan_vtk_write_header

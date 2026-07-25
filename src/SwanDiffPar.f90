@@ -1,3 +1,9 @@
+module swan_diff_par
+   implicit none
+   private
+   public :: SwanDiffPar
+contains
+
 subroutine SwanDiffPar ( ac2, dep2, spcsig )
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_wave_physics, ONLY: KSCIP1
@@ -460,3 +466,5 @@ subroutine SwanDiffPar ( ac2, dep2, spcsig )
     enddo vertexloop2
 
 end subroutine SwanDiffPar
+
+end module swan_diff_par

@@ -1170,7 +1170,7 @@ end subroutine INCSTR_CTX
 !                                                               *
 SUBROUTINE INCTIM_CTX (STATE, IOPTIM, NAAM, RV, KONT, RSTA)
    USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQDBLE
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
@@ -1271,7 +1271,7 @@ SUBROUTINE INCTIM_CTX (STATE, IOPTIM, NAAM, RV, KONT, RSTA)
 
 !     EQDBLE : logical function, True if arguments are equal
 
-   LOGICAL    EQDBLE, HAVE_CANDIDATE, KEEP_VALUE
+   LOGICAL    HAVE_CANDIDATE, KEEP_VALUE
 
 !  8. SUBROUTINE USED
 !

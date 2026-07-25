@@ -1,3 +1,9 @@
+module swan_grad_vel
+   implicit none
+   private
+   public :: SwanGradVel
+contains
+
 subroutine SwanGradVel ( dep2, ux2, uy2, duxdx, duxdy, duydx, duydy, ivert )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
@@ -256,3 +262,5 @@ subroutine SwanGradVel ( dep2, ux2, uy2, duxdx, duxdy, duydx, duydy, ivert )
     endif
 
 end subroutine SwanGradVel
+
+end module swan_grad_vel

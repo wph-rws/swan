@@ -1,3 +1,9 @@
+module swan_conv_stopc
+   implicit none
+   private
+   public :: SwanConvStopc
+contains
+
 subroutine SwanConvStopc ( accur, hscurr, hsprev, hsdifc, tmcurr, tmprev, tmdifc, delhs, deltm, xytst, spcsig, ac2 )
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -265,3 +271,5 @@ subroutine SwanConvStopc ( accur, hscurr, hsprev, hsdifc, tmcurr, tmprev, tmdifc
 
 
 end subroutine SwanConvStopc
+
+end module swan_conv_stopc

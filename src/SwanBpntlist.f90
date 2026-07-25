@@ -1,3 +1,9 @@
+module swan_bpntlist
+   implicit none
+   private
+   public :: SwanBpntlist
+contains
+
 subroutine SwanBpntlist
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
 
@@ -504,3 +510,5 @@ subroutine SwanBpntlist
     DEALLOCATE(IARR1)
 
 end subroutine SwanBpntlist
+
+end module swan_bpntlist

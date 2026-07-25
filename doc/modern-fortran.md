@@ -141,10 +141,27 @@ With GNU Fortran's `-Wall -Wextra -Wimplicit-interface -Wsurprising
 -Wconversion-extra -Wcharacter-truncation` diagnostics, the inventory changed
 as follows:
 
-| Diagnostic inventory | Before | Current | Reduction |
-|---|---:|---:|---:|
-| All warnings | 4,443 | 1,508 | 66% |
-| Implicit-interface warnings | 3,229 | 288 | 91% |
+| Diagnostic inventory | Before | Interface layer | Current | Reduction |
+|---|---:|---:|---:|---:|
+| All warnings | 4,443 | 1,508 | 1,554 | 65% |
+| Implicit-interface warnings | 3,229 | 288 | 6 | 99.8% |
+
+The "interface layer" column is the state after explicit interfaces were added
+but before the monolithic source files became modules; "current" is after that
+subsystem split, which also turned the standalone `Swan*.f90` files into
+modules and moved the diagnostic services into `swan_service_interfaces`. The
+total warning count rose slightly, which is expected rather than a regression:
+`-Wconversion-extra` and the argument diagnostics can only fire at a call site
+once the compiler knows the dummy argument types, so making several thousand
+calls checkable exposes conversions that were previously invisible. The
+categories behind the current total are dominated by `-Wconversion-extra`
+(493), `-Wunused-variable` (256) and `-Wcompare-reals` (226).
+
+Six implicit-interface call sites remain. Two are `METIS_*` calls into the
+external C library and can never be Fortran interfaces; the other four are
+`LSPLIT` and `DTSTTI`/`DTTIST`, which stay external because of the parser cycle
+described below. Measure with a *clean* build — an incremental one only reports
+the files it recompiled.
 
 The optimized LTO build now passes without the former
 `-fno-strict-aliasing` workaround. Its quick-test center table and significant
@@ -158,14 +175,40 @@ production scenario is covered.
 
 ## Remaining migration boundary
 
-The largest remaining issue is architectural rather than syntactic. A number
-of orchestration and solver procedures are still external program units
-collected in large source files, and 288 strict-build call sites still rely on
-implicit interfaces. The remaining hotspots cross broad shared-state
-boundaries—for example parallel synchronization, computational-grid
-orchestration, source-term dispatch and several output drivers—so blindly
-wrapping them would preserve the coupling instead of improving the design.
-They should be split into subsystem modules together with the state they own.
+The large collections of external procedures have since been split into
+subsystem modules: source terms (`swan_wind_source`, `swan_dissipation`,
+`swan_nonlinear_interactions`, `swan_propagation`), computation
+(`swan_computation`), input (`swan_command_reading`, `swan_input_processing`),
+output (`swan_output_orchestration`, `swan_output_writers`), services
+(`swan_services`), parallel synchronization (`swan_parallel`) and the driver
+(`swan_driver`). Each exports only the entry points its callers use, so a large
+number of previously global symbols are now implementation detail.
+
+The `MSGERR` cycle has since been broken. `swan_parallel_state` is a new
+dependency-free module holding `MASTER`, `INODE`, `NPROC`, `IAMMASTER` and
+`PARLL`; `M_PARALL` uses and re-exports it. With the flags reachable without
+`M_PARALL`, the diagnostic services could move out of `ocpmix.f90` into
+`swan_service_interfaces` itself: `STRACE`, `MSGERR`, `STPNOW`, `EQREAL`,
+`EQDBLE`, `TABHED` and `BUGFIX` are module procedures now, so their roughly 76
+callers are checked against the real implementation without a single caller
+having to change.
+
+What deliberately stays external:
+
+- `REPARM` and `LSPLIT` in `ocpmix.f90`. They need the command parser, which
+  uses `swan_service_interfaces`, so moving them would recreate a cycle.
+- `DTSTTI` and `DTTIST` in `ocpids.f90`. `swan_time` declares them, but they
+  call `UPCASE` from `swan_input_parser`, which uses `swan_time`.
+- `TXPBLA`, kept in the interface block next to the switch-activated timing
+  routines it shares a file with.
+
+The same applies to the switch-activated timing (`!TIMG`) and Matlab-binary
+(`!MatL4`) routines, which are called as externals from many files.
+
+The standalone `Swan*.f90` files (`SwanFindPoint`, `SwanReadGrid`,
+`SwanVertlist` and 34 others) are now modules too, named after the file in
+snake_case. Their `CONTAINS`-ed helpers became genuinely internal, and callers
+import them with an `ONLY` list at module level.
 
 Long-lived mutable data modules also remain extensive. The time and
 command-reader contexts establish the migration pattern, but the default

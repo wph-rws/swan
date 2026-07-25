@@ -1,3 +1,10 @@
+module swan_init_comp_grid
+   use swan_check_grid, only: SwanCheckGrid
+   implicit none
+   private
+   public :: SwanInitCompGrid
+contains
+
 subroutine SwanInitCompGrid ( logcom )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
@@ -102,3 +109,5 @@ subroutine SwanInitCompGrid ( logcom )
     MYCGL   = 1
 
 end subroutine SwanInitCompGrid
+
+end module swan_init_comp_grid

@@ -1,3 +1,9 @@
+module swan_disp_parm
+   implicit none
+   private
+   public :: SwanDispParm
+contains
+
 subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig )
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_wave_physics, ONLY: KSCIP1, KSCIP2
@@ -111,3 +117,5 @@ subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig )
     enddo
 
 end subroutine SwanDispParm
+
+end module swan_disp_parm

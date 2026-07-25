@@ -1,3 +1,9 @@
+module swan_vtkp_data_sets
+   implicit none
+   private
+   public :: SwanVTKPDataSets
+contains
+
 subroutine SwanVTKPDataSets ( upvt, pstype, nvar, ivtyp, mxk, myk, vtkfile, upvd, psname, iarr )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
 
@@ -304,3 +310,5 @@ subroutine SwanVTKPDataSets ( upvt, pstype, nvar, ivtyp, mxk, myk, vtkfile, upvd
     write(upvt,'(a)') trim(vtkline)
 
 end subroutine SwanVTKPDataSets
+
+end module swan_vtkp_data_sets

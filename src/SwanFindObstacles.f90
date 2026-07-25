@@ -1,3 +1,10 @@
+module swan_find_obstacles
+   use swan_cross_obstacle, only: SwanCrossObstacle
+   implicit none
+   private
+   public :: SwanFindObstacles
+contains
+
 subroutine SwanFindObstacles ( cross )
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -73,7 +80,7 @@ subroutine SwanFindObstacles ( cross )
     real, dimension(2)                    :: yobs              ! y-coordinate of obstacle point
     real, dimension(2)                    :: yv                ! y-coordinate of vertex of face
 
-    logical                               :: SwanCrossObstacle ! indicate whether a face cross an obstacle
+!  (local LOGICAL declaration removed: SwanCrossObstacle is now a module function)
 
     type(OBSTDAT), pointer                :: cobst             ! pointer to a considered obstacle
 
@@ -142,3 +149,5 @@ subroutine SwanFindObstacles ( cross )
     enddo
 
 end subroutine SwanFindObstacles
+
+end module swan_find_obstacles

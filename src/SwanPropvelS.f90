@@ -1,3 +1,9 @@
+module swan_propvel_s
+   implicit none
+   private
+   public :: SwanPropvelS
+contains
+
 subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
                           dep1  , dep2  , cax   , cay   , &
                           kwave , cgo   , spcsig, iddlow, &
@@ -334,3 +340,5 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
     endif
 
 end subroutine SwanPropvelS
+
+end module swan_propvel_s

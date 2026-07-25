@@ -1,3 +1,19 @@
+module swan_comp_unstruc
+   use swan_conv_accur, only: SwanConvAccur
+   use swan_conv_stopc, only: SwanConvStopc
+   use swan_diff_par, only: SwanDiffPar
+   use swan_disp_parm, only: SwanDispParm
+   use swan_grad_depthor_k, only: SwanGradDepthorK
+   use swan_grad_vel, only: SwanGradVel
+   use swan_propvel_s, only: SwanPropvelS
+   use swan_propvel_x, only: SwanPropvelX
+   use swan_sweep_sel, only: SwanSweepSel
+   use swan_transp_ac, only: SwanTranspAc
+   implicit none
+   private
+   public :: SwanCompUnstruc
+contains
+
 subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
    use swan_computation, only: SWPRSET, SINTGRL, SOLPRE, SOLMAT, SOLMT1, SOURCE, PHILIM, RESCALE, SWSIP
@@ -1679,3 +1695,5 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
 
 
 end subroutine SwanCompUnstruc
+
+end module swan_comp_unstruc

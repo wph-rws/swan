@@ -1,4 +1,5 @@
 module swan_point_interpolation
+   use swan_find_point, only: SwanFindPoint
    implicit none
    private
    public :: SwanInterpolatePoint

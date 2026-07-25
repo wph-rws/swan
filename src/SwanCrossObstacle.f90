@@ -1,3 +1,9 @@
+module swan_cross_obstacle
+   implicit none
+   private
+   public :: SwanCrossObstacle
+contains
+
 logical function SwanCrossObstacle ( xv, yv, xobs, yobs )
    USE swan_service_interfaces, ONLY: EQREAL, STRACE
 
@@ -111,3 +117,5 @@ logical function SwanCrossObstacle ( xv, yv, xobs, yobs )
     endif
 
 end function SwanCrossObstacle
+
+end module swan_cross_obstacle

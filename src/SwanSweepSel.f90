@@ -1,3 +1,9 @@
+module swan_sweep_sel
+   implicit none
+   private
+   public :: SwanSweepSel
+contains
+
 subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
                           iddlow, iddtop, idtot , isslow, isstop, &
                           istot , cax   , cay   , rdx   , rdy   , &
@@ -374,3 +380,5 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
     enddo
 
 end subroutine SwanSweepSel
+
+end module swan_sweep_sel

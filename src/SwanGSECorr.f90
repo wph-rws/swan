@@ -1,3 +1,9 @@
+module swan_gse_corr
+   implicit none
+   private
+   public :: SwanGSECorr
+contains
+
 subroutine SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, trac0 )
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -279,3 +285,5 @@ subroutine SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, 
     enddo
 
 end subroutine SwanGSECorr
+
+end module swan_gse_corr

@@ -16,6 +16,10 @@
 !************************************************************************
 
 module swan_output_writers
+   use swan_service_interfaces, only: MSGERR   ! used by the !MatL4/!MatL5 SWRMAT variants
+   use swan_vtk_write_data, only: SwanVTKWriteData
+   use swan_vtk_write_header, only: SwanVTKWriteHeader
+   use swan_vtkp_data_sets, only: SwanVTKPDataSets
    implicit none
    private
 !  SWTABP and SWRMAT are defined behind switch lines (!NCF/!NNCF, !MatL4/!MatL5)
@@ -28,7 +32,7 @@ contains
 SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 &MXK  , MYK , IRQ , VOQR , VOQ        )
    USE swan_file_opening, ONLY: FOR
-   USE swan_service_interfaces, ONLY: STRACE, TXPBLA, STPNOW
+   USE swan_service_interfaces, ONLY: STRACE, TXPBLA, STPNOW, TABHED
    USE swan_wave_physics, ONLY: KSCIP1
 !                                                                      *
 !************************************************************************

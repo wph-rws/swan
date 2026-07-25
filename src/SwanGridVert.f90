@@ -1,3 +1,9 @@
+module swan_grid_vert
+   implicit none
+   private
+   public :: SwanGridVert
+contains
+
 subroutine SwanGridVert ( nverts, xcugrd, ycugrd, vmark )
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -107,3 +113,5 @@ subroutine SwanGridVert ( nverts, xcugrd, ycugrd, vmark )
     enddo
 
 end subroutine SwanGridVert
+
+end module swan_grid_vert

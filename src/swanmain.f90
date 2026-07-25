@@ -28,6 +28,9 @@
 !                                                                      *
 
 module swan_driver
+   use swan_comp_unstruc, only: SwanCompUnstruc
+   use swan_prep_comp, only: SwanPrepComp
+   use swan_vertlist, only: SwanVertlist
    implicit none
    private
 !  SWMAIN is the only entry point the main program needs; the eighteen
@@ -684,7 +687,7 @@ end subroutine SWMAIN
 !************************************************************************
 !                                                                      *
 SUBROUTINE SWINIT (INERR)
-   USE swan_service_interfaces, ONLY: STPNOW
+   USE swan_service_interfaces, ONLY: STPNOW, BUGFIX
    USE swan_ocean_pack_init, ONLY: OCPINI
 !                                                                      *
 !************************************************************************

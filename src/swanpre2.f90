@@ -18,6 +18,10 @@
 !************************************************************************
 
 module swan_input_processing
+   use swan_bnd_struc, only: SwanBndStruc
+   use swan_bpntlist, only: SwanBpntlist
+   use swan_find_point, only: SwanFindPoint
+   use swan_pointin_mesh, only: SwanPointinMesh
    implicit none
    private
    public :: SPROUT, SVARTP, SWBOUN, RETSTP
@@ -2679,7 +2683,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
       LOGICAL :: LOCGRI, CCW, BPARF, DONALL
    LOGICAL   LFRST1, LFRST2, LFRST3
    LOGICAL, SAVE :: BNDDONE = .FALSE.
-   LOGICAL   SwanPointinMesh
+!  (local LOGICAL declaration removed: SwanPointinMesh is now a module function)
 
    INTEGER   NUMP
 

@@ -1,3 +1,9 @@
+module swan_vtk_write_data
+   implicit none
+   private
+   public :: SwanVTKWriteData
+contains
+
 subroutine SwanVTKWriteData ( uvtk, pstype, nvar, ivtyp, voqr, data, lenp, mxk, myk, ionod )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
@@ -206,3 +212,5 @@ subroutine SwanVTKWriteData ( uvtk, pstype, nvar, ivtyp, voqr, data, lenp, mxk, 
     endif
 
 end subroutine SwanVTKWriteData
+
+end module swan_vtk_write_data

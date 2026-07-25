@@ -1,3 +1,9 @@
+module swan_compute_force
+   implicit none
+   private
+   public :: SwanComputeForce
+contains
+
 subroutine SwanComputeForce ( fx, fy, ac2, dep2, hs, spcsig, spcdir )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
    USE swan_wave_physics, ONLY: KSCIP1
@@ -317,3 +323,5 @@ subroutine SwanComputeForce ( fx, fy, ac2, dep2, hs, spcsig, spcdir )
     deallocate(syy)
 
 end subroutine SwanComputeForce
+
+end module swan_compute_force

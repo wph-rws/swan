@@ -1,3 +1,12 @@
+module swan_read_grid
+   use swan_read_adc_grid, only: SwanReadADCGrid
+   use swan_read_easymesh_grid, only: SwanReadEasymeshGrid
+   use swan_read_triangle_grid, only: SwanReadTriangleGrid
+   implicit none
+   private
+   public :: SwanReadGrid
+contains
+
 subroutine SwanReadGrid ( basenm, lenfnm )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
@@ -130,3 +139,5 @@ subroutine SwanReadGrid ( basenm, lenfnm )
     YCLEN = YCGMAX - YCGMIN
 
 end subroutine SwanReadGrid
+
+end module swan_read_grid

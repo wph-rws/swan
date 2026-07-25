@@ -1,3 +1,9 @@
+module swan_read_easymesh_grid
+   implicit none
+   private
+   public :: SwanReadEasymeshGrid
+contains
+
 subroutine SwanReadEasymeshGrid ( basenm, lenfnm )
    USE swan_file_opening, ONLY: FOR
    USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
@@ -161,3 +167,5 @@ contains
     end function read_failed
 
 end subroutine SwanReadEasymeshGrid
+
+end module swan_read_easymesh_grid

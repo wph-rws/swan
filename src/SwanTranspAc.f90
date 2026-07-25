@@ -1,3 +1,11 @@
+module swan_transp_ac
+   use swan_gse_corr, only: SwanGSECorr
+   use swan_transp_x, only: SwanTranspX
+   implicit none
+   private
+   public :: SwanTranspAc
+contains
+
 subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
                           cgo   , cax   , cay   , cad   , cas   , &
                           anybin, rdx   , rdy   , spcsig, spcdir, &
@@ -178,3 +186,5 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
 !TIMG    call SWTSTO(141)
 
 end subroutine SwanTranspAc
+
+end module swan_transp_ac

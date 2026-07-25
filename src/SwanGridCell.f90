@@ -1,3 +1,9 @@
+module swan_grid_cell
+   implicit none
+   private
+   public :: SwanGridCell
+contains
+
 subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -355,3 +361,5 @@ subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
     enddo
 
 end subroutine SwanGridCell
+
+end module swan_grid_cell

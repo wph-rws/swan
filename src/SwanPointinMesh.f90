@@ -1,3 +1,9 @@
+module swan_pointin_mesh
+   implicit none
+   private
+   public :: SwanPointinMesh
+contains
+
 logical function SwanPointinMesh ( x, y )
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -140,3 +146,5 @@ logical function SwanPointinMesh ( x, y )
     endif
 
 end function SwanPointinMesh
+
+end module swan_pointin_mesh

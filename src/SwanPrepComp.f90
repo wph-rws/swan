@@ -1,3 +1,10 @@
+module swan_prep_comp
+   use swan_find_obstacles, only: SwanFindObstacles
+   implicit none
+   private
+   public :: SwanPrepComp
+contains
+
 subroutine SwanPrepComp ( cross )
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -93,3 +100,5 @@ subroutine SwanPrepComp ( cross )
     endif
 
 end subroutine SwanPrepComp
+
+end module swan_prep_comp

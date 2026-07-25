@@ -1,3 +1,9 @@
+module swan_print_grid_info
+   implicit none
+   private
+   public :: SwanPrintGridInfo
+contains
+
 subroutine SwanPrintGridInfo
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -166,3 +172,5 @@ subroutine SwanPrintGridInfo
 
 
 end subroutine SwanPrintGridInfo
+
+end module swan_print_grid_info

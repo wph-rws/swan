@@ -1,4 +1,5 @@
 module swan_action_interpolation
+   use swan_find_point, only: SwanFindPoint
    use swan_geometry, only: TCROSS
    implicit none
    private

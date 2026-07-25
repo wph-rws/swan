@@ -1,3 +1,9 @@
+module swan_conv_accur
+   implicit none
+   private
+   public :: SwanConvAccur
+contains
+
 subroutine SwanConvAccur ( accur, hscurr, tmcurr, delhs, deltm, xytst, spcsig, ac2 )
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -234,3 +240,5 @@ subroutine SwanConvAccur ( accur, hscurr, tmcurr, delhs, deltm, xytst, spcsig, a
 
 
 end subroutine SwanConvAccur
+
+end module swan_conv_accur

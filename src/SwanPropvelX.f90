@@ -1,3 +1,9 @@
+module swan_propvel_x
+   implicit none
+   private
+   public :: SwanPropvelX
+contains
+
 subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin )
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -115,3 +121,5 @@ subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin )
     enddo
 
 end subroutine SwanPropvelX
+
+end module swan_propvel_x

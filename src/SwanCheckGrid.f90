@@ -1,3 +1,9 @@
+module swan_check_grid
+   implicit none
+   private
+   public :: SwanCheckGrid
+contains
+
 subroutine SwanCheckGrid
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
@@ -174,3 +180,5 @@ subroutine SwanCheckGrid
 
 
 end subroutine SwanCheckGrid
+
+end module swan_check_grid
