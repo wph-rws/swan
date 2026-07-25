@@ -1,0 +1,432 @@
+module swan_grad_depthor_k
+   implicit none(type, external)
+   private
+   public :: SwanGradDepthorK
+contains
+
+subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_wave_physics, ONLY: KSCIP1, KSCIP2
+
+!   --|-----------------------------------------------------------|--
+!     | Delft University of Technology                            |
+!     | Faculty of Civil Engineering and Geosciences              |
+!     | Environmental Fluid Mechanics Section                     |
+!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
+!     |                                                           |
+!     | Programmer: Marcel Zijlema                                |
+!   --|-----------------------------------------------------------|--
+!
+!
+!     SWAN (Simulating WAves Nearshore); a third generation wave model
+!     Copyright (C) 1993-2024  Delft University of Technology
+!
+!     This program is free software: you can redistribute it and/or modify
+!     it under the terms of the GNU General Public License as published by
+!     the Free Software Foundation, either version 3 of the License, or
+!     (at your option) any later version.
+!
+!     This program is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+!     GNU General Public License for more details.
+!
+!     You should have received a copy of the GNU General Public License
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!
+!
+!   Authors
+!
+!   41.60: Marcel Zijlema
+!
+!   Updates
+!
+!   41.60, July 2015: New subroutine
+!
+!   Purpose
+!
+!   Computes gradients of depth or wave number in vertex
+!   meant for computing turning rate
+!
+!   Method
+!
+!   Application of the Green-Gauss theorem with the assumption of
+!   a constant gradient over the controle volume (centroid dual)
+!
+!   Modules used
+
+    USE swan_diagnostics_level
+    USE swan_coordinate_offset
+    USE swan_input_grids
+    use swan_physics_selection
+    use swan_numerics
+    use swan_physical_settings
+    use swan_spectral_grid
+    use swan_math_constants
+    USE swan_spherical_geometry
+    use SwanGriddata
+    use SwanGridobjects
+
+    implicit none(type, external)
+
+!   Argument variables
+
+    integer                , intent(in)   :: ivert  ! counter corresponding to current vertex
+
+    real, dimension(nverts), intent(in)   :: dep2   ! water depth at current time level
+    real                   , intent(out)  :: dhdx   ! derivative of depth in x-direction
+    real                   , intent(out)  :: dhdy   ! derivative of depth in y-direction
+    real, dimension(MSC)   , intent(out)  :: dkdx   ! derivative of wave number in x-direction
+    real, dimension(MSC)   , intent(out)  :: dkdy   ! derivative of wave number in y-direction
+    real, dimension(nverts), intent(in)   :: mudl2  ! mud layer at current time level
+    real, dimension(MSC)   , intent(in)   :: spcsig ! relative frequency bins
+
+!   Local variables
+
+    integer                               :: icell    ! index of present cell
+    integer, save                         :: ient = 0 ! number of entries in this subroutine
+    integer                               :: jc       ! loop counter
+    integer                               :: jcell    ! index of next cell
+
+    integer, dimension(3)                 :: v        ! vertices in present cell
+
+    REAL(KIND=KIND(0.0D0))                      :: area     ! twices the area of centroid dual around present vertex
+    real, dimension(MSC)                  :: arr      ! auxiliary array
+    real                                  :: cslat    ! cosine of latitude
+    real                                  :: dpmax    ! maximum depth found in centroid dual
+    real                                  :: dpmin    ! minimum depth found in centroid dual
+    real, dimension(3)                    :: dloc     ! local depth at vertices
+    real, dimension(3)                    :: dm       ! local mud layer at vertices
+    real                                  :: dmaxc    ! maximum depth found per cell of centroid dual
+    real                                  :: dminc    ! minimum depth found per cell of centroid dual
+    real                                  :: h0       ! depth in centroid of present cell
+    real                                  :: h1       ! depth in centroid of next cell
+    real, dimension(MSC)                  :: k0       ! wave number in centroid of present cell
+    real, dimension(MSC)                  :: k1       ! wave number in centroid of next cell
+    real, dimension(MSC,3)                :: kloc     ! local wave number at vertices
+    REAL(KIND=KIND(0.0D0))                      :: x0       ! x-coordinate of the centroid of present cell
+    REAL(KIND=KIND(0.0D0))                      :: x1       ! x-coordinate of the centroid of next cell
+    REAL(KIND=KIND(0.0D0))                      :: y0       ! y-coordinate of the centroid of present cell
+    REAL(KIND=KIND(0.0D0))                      :: y1       ! y-coordinate of the centroid of next cell
+
+    character(80)                         :: msgstr   ! string to pass message
+
+    type(celltype), dimension(:), pointer :: cell     ! datastructure for cells with their attributes
+    type(verttype), dimension(:), pointer :: vert     ! datastructure for vertices with their attributes
+
+!   Structure
+!
+!   Description of the pseudo code
+!
+!   Source text
+
+    if (ltrace) call strace (ient,'SwanGradDepthorK')
+
+    dhdx = 0.
+    dhdy = 0.
+
+    dkdx = 0.
+    dkdy = 0.
+
+    ! if no frequency shift and no refraction, return
+
+    if ( (ITFRE == 0 .or. ICUR == 0) .and. IREFR == 0 ) return
+
+    ! point to vertex and cell objects
+
+    vert => gridobject%vert_grid
+    cell => gridobject%cell_grid
+
+    if ( vert(ivert)%atti(VMARKER) == 1 ) return    ! boundary vertex
+
+    if ( (IREFR /= 0 .and. int(PNUMS(PNUMS_GRADK)) == 0) .or. (ITFRE /= 0 .and. ICUR /= 0) ) then
+       depth_gradient: do
+
+       area  =  0d0
+       dpmax = -99999.
+       dpmin =  99999.
+
+       ! loop over cells around considered vertex
+
+       do jc = 1, vert(ivert)%noc
+
+          ! get present cell and its vertices
+
+          icell = vert(ivert)%cell(jc)%atti(CELLID)
+
+          v(1) = cell(icell)%atti(CELLV1)
+          v(2) = cell(icell)%atti(CELLV2)
+          v(3) = cell(icell)%atti(CELLV3)
+
+          dloc(1) = dep2(v(1))
+          dloc(2) = dep2(v(2))
+          dloc(3) = dep2(v(3))
+
+          if ( dloc(1) <= DEPMIN .or. dloc(2) <= DEPMIN .or. dloc(3) <= DEPMIN ) then
+             dhdx = 0.
+             dhdy = 0.
+             exit depth_gradient
+          endif
+
+          dminc = min ( min( dloc(1), dloc(2) ), dloc(3) )
+          if ( dminc < dpmin ) dpmin = dminc
+
+          dmaxc = max ( max( dloc(1), dloc(2) ), dloc(3) )
+          if ( dmaxc > dpmax ) dpmax = dmaxc
+
+          ! determine centroid of present cell
+
+          x0 = cell(icell)%attr(CELLCX)
+          y0 = cell(icell)%attr(CELLCY)
+
+          ! determine depth in centroid in present cell
+
+          h0 = ( dloc(1) + dloc(2) + dloc(3) )/ 3.
+
+          ! get next cell in counterclockwise direction
+
+          jcell = vert(ivert)%cell(jc)%atti(NEXTCELL)
+
+          v(1) = cell(jcell)%atti(CELLV1)
+          v(2) = cell(jcell)%atti(CELLV2)
+          v(3) = cell(jcell)%atti(CELLV3)
+
+          dloc(1) = dep2(v(1))
+          dloc(2) = dep2(v(2))
+          dloc(3) = dep2(v(3))
+
+          if ( dloc(1) <= DEPMIN .or. dloc(2) <= DEPMIN .or. dloc(3) <= DEPMIN ) then
+             dhdx = 0.
+             dhdy = 0.
+             exit depth_gradient
+          endif
+
+          ! determine centroid of next cell
+
+          x1 = cell(jcell)%attr(CELLCX)
+          y1 = cell(jcell)%attr(CELLCY)
+
+          ! determine depth in centroid of next cell
+
+          h1 = ( dloc(1) + dloc(2) + dloc(3) )/ 3.
+
+          ! compute contribution to area of centroid dual
+
+          area = area + x0*y1 - x1*y0
+
+          ! compute contribution to x-gradient of depth
+
+          dhdx = dhdx + ( h0 + h1 ) * real( y1 - y0 )
+
+          ! compute contribution to y-gradient of depth
+
+          dhdy = dhdy + ( h0 + h1 ) * real( x1 - x0 )
+
+       enddo
+
+       ! if ratio between max and min depth is too large, set gradients to zero and skip to next vertex
+       !
+       ! (disabled upstream check; it left the depth_gradient block the same way the DEPMIN escape above does)
+       !
+       !if ( dpmax > drat * dpmin ) then
+       !   dhdx = 0.
+       !   dhdy = 0.
+       !   exit depth_gradient
+       !endif
+       !
+       ! if area is non-positive, give error and go to next vertex
+
+       if ( .not. area > 0d0 ) then
+          write (msgstr, '(a,i5)') ' Area of centroid dual is negative or zero in vertex ', ivert
+          call msgerr( 2, trim(msgstr) )
+          return
+       endif
+
+       dhdx =  dhdx/real(area)
+       dhdy = -dhdy/real(area)
+
+       ! in case of spherical coordinates, transform back to Cartesian coordinates
+
+       if ( KSPHER > 0 ) then
+
+          cslat = cos(DEGRAD*(vert(ivert)%attr(VERTY) + YOFFS))
+
+          dhdx = dhdx/(cslat * LENDEG)
+          dhdy = dhdy/LENDEG
+
+       endif
+
+       exit depth_gradient
+       end do depth_gradient
+
+    endif
+
+    if ( IREFR /= 0 .and. int(PNUMS(PNUMS_GRADK)) == 1 ) then
+       wave_number_gradient: do
+
+       area  =  0d0
+       dpmax = -99999.
+       dpmin =  99999.
+
+       ! loop over cells around considered vertex
+
+       do jc = 1, vert(ivert)%noc
+
+          ! get present cell and its vertices
+
+          icell = vert(ivert)%cell(jc)%atti(CELLID)
+
+          v(1) = cell(icell)%atti(CELLV1)
+          v(2) = cell(icell)%atti(CELLV2)
+          v(3) = cell(icell)%atti(CELLV3)
+
+          dloc(1) = dep2(v(1))
+          dloc(2) = dep2(v(2))
+          dloc(3) = dep2(v(3))
+
+          if ( dloc(1) <= DEPMIN .or. dloc(2) <= DEPMIN .or. dloc(3) <= DEPMIN ) then
+             dkdx = 0.
+             dkdy = 0.
+             exit wave_number_gradient
+          endif
+
+          dminc = min ( min( dloc(1), dloc(2) ), dloc(3) )
+          if ( dminc < dpmin ) dpmin = dminc
+
+          dmaxc = max ( max( dloc(1), dloc(2) ), dloc(3) )
+          if ( dmaxc > dpmax ) dpmax = dmaxc
+
+          ! determine centroid of present cell
+
+          x0 = cell(icell)%attr(CELLCX)
+          y0 = cell(icell)%attr(CELLCY)
+
+          ! compute wave numbers for all frequencies
+
+          call KSCIP1 (MSC, spcsig, dloc(1), kloc(1,1))
+          call KSCIP1 (MSC, spcsig, dloc(2), kloc(1,2))
+          call KSCIP1 (MSC, spcsig, dloc(3), kloc(1,3))
+
+          if ( IMUD == 1 ) then
+
+             if (VARMUD) then
+                dm(1) = mudl2(v(1))
+                dm(2) = mudl2(v(2))
+                dm(3) = mudl2(v(3))
+             else
+                dm(1) = PMUD(1)
+                dm(2) = PMUD(1)
+                dm(3) = PMUD(1)
+             endif
+
+             call KSCIP2 (MSC, spcsig, dloc(1), kloc(1,1), mud_depth=dm(1))
+             call KSCIP2 (MSC, spcsig, dloc(2), kloc(1,2), mud_depth=dm(2))
+             call KSCIP2 (MSC, spcsig, dloc(3), kloc(1,3), mud_depth=dm(3))
+
+          endif
+
+          ! determine wave number in centroid in present cell
+
+          k0(:) = ( kloc(:,1) + kloc(:,2) + kloc(:,3) )/ 3.
+
+          ! get next cell in counterclockwise direction
+
+          jcell = vert(ivert)%cell(jc)%atti(NEXTCELL)
+
+          v(1) = cell(jcell)%atti(CELLV1)
+          v(2) = cell(jcell)%atti(CELLV2)
+          v(3) = cell(jcell)%atti(CELLV3)
+
+          dloc(1) = dep2(v(1))
+          dloc(2) = dep2(v(2))
+          dloc(3) = dep2(v(3))
+
+          if ( dloc(1) <= DEPMIN .or. dloc(2) <= DEPMIN .or. dloc(3) <= DEPMIN ) then
+             dkdx = 0.
+             dkdy = 0.
+             exit wave_number_gradient
+          endif
+
+          ! determine centroid of next cell
+
+          x1 = cell(jcell)%attr(CELLCX)
+          y1 = cell(jcell)%attr(CELLCY)
+
+          ! compute wave numbers for all frequencies
+
+          call KSCIP1 (MSC, spcsig, dloc(1), kloc(1,1))
+          call KSCIP1 (MSC, spcsig, dloc(2), kloc(1,2))
+          call KSCIP1 (MSC, spcsig, dloc(3), kloc(1,3))
+
+          if ( IMUD == 1 ) then
+
+             if (VARMUD) then
+                dm(1) = mudl2(v(1))
+                dm(2) = mudl2(v(2))
+                dm(3) = mudl2(v(3))
+             endif
+
+             call KSCIP2 (MSC, spcsig, dloc(1), kloc(1,1), mud_depth=dm(1))
+             call KSCIP2 (MSC, spcsig, dloc(2), kloc(1,2), mud_depth=dm(2))
+             call KSCIP2 (MSC, spcsig, dloc(3), kloc(1,3), mud_depth=dm(3))
+
+          endif
+
+          ! determine wave number in centroid of next cell
+
+          k1(:) = ( kloc(:,1) + kloc(:,2) + kloc(:,3) )/ 3.
+
+          ! compute contribution to area of centroid dual
+
+          area = area + x0*y1 - x1*y0
+
+          ! compute contribution to x-gradient of wave number
+
+          dkdx(:) = dkdx(:) + ( k0(:) + k1(:) ) * real( y1 - y0 )
+
+          ! compute contribution to y-gradient of wave number
+
+          dkdy(:) = dkdy(:) + ( k0(:) + k1(:) ) * real( x1 - x0 )
+
+       enddo
+
+       ! if ratio between max and min depth is too large, set gradients to zero and skip to next vertex
+       !
+       ! (disabled upstream check; it left the wave_number_gradient block the same way the DEPMIN escape above does)
+       !
+       !if ( dpmax > drat * dpmin ) then
+       !   dkdx = 0.
+       !   dkdy = 0.
+       !   exit wave_number_gradient
+       !endif
+       !
+       ! if area is non-positive, give error and go to next vertex
+
+       if ( .not. area > 0d0 ) then
+          write (msgstr, '(a,i5)') ' Area of centroid dual is negative or zero in vertex ', ivert
+          call msgerr( 2, trim(msgstr) )
+          return
+       endif
+
+       dkdx(:) =  dkdx(:)/real(area)
+       dkdy(:) = -dkdy(:)/real(area)
+
+       ! in case of spherical coordinates, transform back to Cartesian coordinates
+
+       if ( KSPHER > 0 ) then
+
+          cslat = cos(DEGRAD*(vert(ivert)%attr(VERTY) + YOFFS))
+
+          dkdx(:) = dkdx(:)/(cslat * LENDEG)
+          dkdy(:) = dkdy(:)/LENDEG
+
+       endif
+
+       exit wave_number_gradient
+       end do wave_number_gradient
+
+    endif
+
+end subroutine SwanGradDepthorK
+
+end module swan_grad_depthor_k

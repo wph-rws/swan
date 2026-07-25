@@ -3,21 +3,12 @@ if( NOT MPI )
   return()
 endif()
 
-# define switches
-if( WIN32 )
-  set( HSWITCH -dos -cvis )
-elseif( UNIX )
-  set( HSWITCH -unix )
-endif()
-
-# set switches
-if( PERL_FOUND )
-  execute_process( COMMAND ${PERL_EXECUTABLE} ${CMAKE_SOURCE_DIR}/switch.pl ${HSWITCH} ${SRC}/hcat/swanhcat.ftn )
-else()
-  message( FATAL_ERROR "-- Cannot build hcat without Perl" )
-endif()
+# Find MPI in this directory scope as well.  CMake imported targets created in
+# src/ are not visible to this sibling subdirectory.
+find_package( MPI REQUIRED COMPONENTS Fortran )
 
 # build and install the executable
-set( swanhcat ${SRC}/hcat/swanhcat.${EXTF} )
+set( swanhcat ${SRC}/hcat/swanhcat.f90 )
 add_executable( ${HEXE} ${swanhcat} )
+target_link_libraries( ${HEXE} PRIVATE swan_build_options MPI::MPI_Fortran )
 install( TARGETS ${HEXE} RUNTIME DESTINATION bin )

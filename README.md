@@ -1,4 +1,12 @@
-# Welcome to the SWAN git repository
+# Welcome to the SWAN git repository — `wph-rws/swan` fork
+
+> **About this fork.** This is the Rijkswaterstaat development line
+> [`github.com/wph-rws/swan`](https://github.com/wph-rws/swan), based on
+> SWAN 41.51. The reference is TU Delft
+> [`gitlab.tudelft.nl/citg/wavemodels/swan`](https://gitlab.tudelft.nl/citg/wavemodels/swan)
+> (upstream, stable 41.51). The features described below (CMake build options,
+> choice of back ends, Fortran 2018 modules) describe **this fork**, not the
+> unchanged upstream code.
 
 [![release](https://img.shields.io/badge/release%20-%20v41.51%20-%20brightgreen?color=success)]()
 [![site](https://img.shields.io/badge/sourceforge%20-%20site%20-%20blue?logo=sourceforge&color=informational)](https://swanmodel.sourceforge.io)
@@ -18,6 +26,7 @@
 - [getting started](#getting-started)
   - [run modes](#run-modes)
   - [how to run](#how-to-run)
+  - [has a stationary run converged?](#has-a-stationary-run-converged)
 - [documentation](#documentation)
 - [bugs and questions](#bugs-and-questions)
 
@@ -49,32 +58,43 @@ There are installers available for Windows, Linux and macOS. See the
 The way it works is very similar to GNU make (or NMAKE for Windows); for example, it does not rebuild things that are already up to date.
 Ninja can be downloaded from its [git repository](https://github.com/ninja-build/ninja/releases).
 
-In addition to the build tools, a Perl package must be available on your local computer.
-Usually, it is available for macOS, Linux and a UNIX-like operating system. Check it by typing `perl -v`.
-You can download Perl for MS Windows from [Strawberry Perl](https://strawberryperl.com).
-The Perl version should be at least 5.0.0 or higher.
+In addition to the build tools, Python 3 and the double-precision FFTW3
+development library must be available on your local computer. On Ubuntu and
+Debian, FFTW can be installed with:
 
-Finally, SWAN also requires a Fortran90 compiler to be present in your environment.
+```bash
+sudo apt install libfftw3-dev
+```
+
+Check it by typing `python3 --version` on Linux or macOS, or `python --version`
+on Windows. Python runs `switch.py`, which translates the historical build
+switches; build capabilities themselves are selected directly by CMake.
+
+Finally, SWAN also requires a Fortran compiler with Fortran 2018 support to be present in your environment.
 Popular Fortran compilers are [gfortran](https://gcc.gnu.org/fortran/) and
 [Intel<sup>&reg;</sup> Fortran Compiler Classic](https://www.intel.com/content/www/us/en/developer/articles/tool/oneapi-standalone-components.html#fortran)
 (as part of the Intel<sup>&reg;</sup> oneAPI HPC Toolkit) and both support the OpenMP standard.
 Please check this [page](https://fortran-lang.org/learn/os_setup/install_gfortran) for the installation of gfortran on your platform.
 
-Due to the use of ANSI standard Fortran90 the SWAN source code can be ported to various architectures (e.g., Windows, Linux, macOS and Unix-like systems).
-Currently, the build scripts support the following Fortran compilers:
-
-1. GNU
-1. Intel<sup>&reg;</sup>
-1. Portland Group
-1. Lahey
-1. IBM XL Fortran
+Because the source code uses standard Fortran 2018, SWAN can be ported to
+various architectures (e.g., Windows, Linux, macOS and Unix-like systems).
+Qualified in this fork is GNU Fortran: the reference compiler is gfortran
+16.2, for every build including MPI and netCDF. The build also recognises Intel `ifx`/`ifort`, Flang, IBM XL
+and Fujitsu, but those routes are not qualified; Lahey and PGI/NVFortran are
+outside scope.
 
 #### instructions
 
 ##### 1. clone the repo and navigate to the top level source directory
 
 ```bash
-git clone https://gitlab.tudelft.nl/citg/wavemodels/swan.git && cd swan
+git clone https://github.com/wph-rws/swan.git && cd swan
+```
+
+To compare with upstream (read only):
+
+```bash
+git remote add upstream https://gitlab.tudelft.nl/citg/wavemodels/swan.git
 ```
 
 ##### 2. create the build directory
@@ -163,14 +183,47 @@ where `<value>` is a string or a boolean, depending on the specified option. The
 
 |  option                  | value type |               description                 | default value           |
 |:------------------------:|:-----------|:------------------------------------------|:-----------------------:|
-| `CMAKE_INSTALL_PREFIX`   | string     | user-defined installation path            | `../wavemodels/swan`    |
+| `CMAKE_INSTALL_PREFIX`   | string     | user-defined installation path            | `$HOME/wavemodels/swan` |
 | `CMAKE_PREFIX_PATH`      | string     | semicolon-separated list of library paths | empty                   |
 | `CMAKE_Fortran_COMPILER` | string     | full path to the Fortran compiler         | determined by CMake     |
+| `CMAKE_BUILD_TYPE`       | string     | build configuration                       | `Release`               |
 | `MPI`                    | boolean    | enable build with MPI                     | `OFF`                   |
+| `COH`                    | boolean    | leave MPI lifecycle to coherent coupling  | `OFF`                   |
+| `ESMF`                   | boolean    | enable ESMF wind-input coupling state     | `OFF`                   |
+| `ADCIRC`                 | boolean    | accept the historical ADCIRC selector     | `OFF`                   |
 | `OPENMP`                 | boolean    | enable build with OpenMP                  | `OFF`                   |
 | `METIS`                  | boolean    | enable build with Metis                   | `OFF`                   |
 | `NETCDF`                 | boolean    | enable build with netCDF                  | `OFF`                   |
+| `TIMG`                   | boolean    | enable internal timing instrumentation    | `OFF`                   |
+| `MATL4`                  | boolean    | enable MATLAB version 4 output            | `OFF`                   |
+| `SWAN_NATIVE`            | boolean    | optimize for the CPU performing the build | `OFF`                   |
+| `SWAN_LTO`               | boolean    | enable link-time optimization             | `OFF`                   |
+| `SWAN_DEBUG_INVARIANTS`  | boolean    | enable diagnostic runtime invariant checks | `OFF`                   |
+| `SWAN_RUNTIME_CHECKS`    | boolean    | compiler runtime checks (bounds, allocation) | `OFF`                 |
+| `JAC`                    | boolean    | Jacobi instead of wavefront sweep exchange (MPI) | `OFF`             |
+| `FFRO`                   | boolean    | fixed-front vertex ordering (unstructured, OpenMP) | `OFF`           |
 | `CMAKE_VERBOSE_MAKEFILE` | boolean    | provide verbose output of the build       | `OFF`                   |
+
+For an optimized, portable OpenMP build, use:
+
+```bash
+cmake .. -GNinja -DOPENMP=ON
+cmake --build . --parallel
+```
+
+`SWAN_NATIVE` and `SWAN_LTO` are optional, toolchain-dependent optimizations
+that should be benchmarked on representative cases before use. `SWAN_NATIVE`
+may produce an executable that does not run on older or different CPU models.
+Leave it disabled when distributing binaries. Neither option enables unsafe
+floating-point transformations such as `-ffast-math`.
+
+`SWAN_DEBUG_INVARIANTS` enables additional internal consistency checks for
+development and validation builds. Leave it disabled for production runs,
+because the checks can alter compiler optimization and reduce performance.
+
+The source is compiled in standard Fortran 2018 mode. Every collector file has
+been split into subsystem modules, so the compiler checks every call; the
+METIS C calls go through an explicit `BIND(C)` interface.
 
 For example, the following commands
 
@@ -212,6 +265,10 @@ The system default Fortran compiler (e.g., f77, g95) can be overwritten as follo
 ```bash
 cmake .. [options] -DCMAKE_Fortran_COMPILER=/path/to/the/desired/compiler/including/the/name/of/compiler
 ```
+
+Choose the reference compiler
+explicitly, for instance `-DCMAKE_Fortran_COMPILER=gfortran-16` (16.2);
+another compiler version can shift some outputs in the last digits.
 
 Finally, if CMake fails to configure your project, then execute
 
@@ -266,16 +323,24 @@ For faster simulation on a cluster, replace the run command by
 mpirun -np <n> swan.exe
 ```
 
-with `<n>` the number of desired nodes.
+with `<n>` the number of desired MPI processes.
 
 The above procedure can be done automatically using the script `/bin/swanrun` (or `\bin\swanrun.bat` in case of Windows), provided that the
 environment variable `PATH` has been adapted by including the path of the `/bin` directory.
 
 For more details, consult the [Implementation manual](https://swanmodel.sourceforge.io/online_doc/swanimp/node12.html).
 
+#### has a stationary run converged?
+
+Upstream supports both `ACCUR` and the default criterion `STOPC`. Both judge
+how the iterations progress; `STOPC` also takes the curvature into account.
+Small changes do not guarantee that the final solution has been reached.
+Raising `MXITST` alone does not prevent an early stop.
+
 ## documentation
 
 See
+
 1. the [SWAN website](https://swanmodel.sourceforge.io/) for general information
 1. the [SWAN documentation](https://delftwaves.github.io/swan-docs/) that provides the user manual, scientific/technical documentation and many more
 1. the [SWAN settings](https://swanmodel.sourceforge.io/settings/settings.htm) page for an overview of the source term packages

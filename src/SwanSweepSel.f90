@@ -1,0 +1,378 @@
+module swan_sweep_sel
+   implicit none(type, external)
+   private
+   public :: SwanSweepSel
+contains
+
+subroutine SwanSweepSel (WINDOW, anybin, idtot, isslow, istot, cax, cay, rdx, rdy, spcsig, icmax)
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+
+!   --|-----------------------------------------------------------|--
+!     | Delft University of Technology                            |
+!     | Faculty of Civil Engineering and Geosciences              |
+!     | Environmental Fluid Mechanics Section                     |
+!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
+!     |                                                           |
+!     | Programmer: Marcel Zijlema                                |
+!   --|-----------------------------------------------------------|--
+!
+!
+!     SWAN (Simulating WAves Nearshore); a third generation wave model
+!     Copyright (C) 1993-2024  Delft University of Technology
+!
+!     This program is free software: you can redistribute it and/or modify
+!     it under the terms of the GNU General Public License as published by
+!     the Free Software Foundation, either version 3 of the License, or
+!     (at your option) any later version.
+!
+!     This program is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+!     GNU General Public License for more details.
+!
+!     You should have received a copy of the GNU General Public License
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!
+!
+!   Authors
+!
+!   40.80: Marcel Zijlema
+!
+!   Updates
+!
+!   40.80, July 2007: New subroutine
+!
+!   Purpose
+!
+!   computes frequency-dependent counters in directional space
+!   and the active bins for considered sweep
+!
+!   Method
+!
+!   In order to have stable computation without a CFL restriction
+!   certain directional bins lying in the domain of dependence
+!   of present vertex are determined. These bins belong to the
+!   sweep which is being processed.
+!
+!   The domain of dependence is enclosed by the two upwave faces
+!   of the present vertex in the considered cell. The following
+!   set of criterions determine which directional bin belongs to
+!   the domain of dependence:
+!
+!   Cx * rdx(1) + Cy * rdy(1) >= 0 and
+!
+!   Cx * rdx(2) + Cy * rdy(2) >= 0
+!
+!   Geometrically, these criterions ensure that the propagation
+!   direction towards the present vertex is enclosed between
+!   the upwave faces of that vertex in the considered cell.
+!
+!   The counters of the directional space are frequency dependent.
+!   Particularly, the higher frequencies are modified by the ambient
+!   current. The lower frequencies (due to the larger wave transport
+!   velocity) are less modified by the current.
+!
+!   Next, it is detemined whether a certain bin lies within a specific
+!   sector enclosure of the considered sweep. This is denoted by a
+!   logical array anybin.
+!
+!   Modules used
+
+    USE swan_diagnostics_level
+    use swan_physics_selection
+    use swan_spectral_grid
+    use SwanGriddata
+
+    implicit none(type, external)
+
+   TYPE(spectral_window_t) :: WINDOW
+
+!   Argument variables
+
+    integer, intent(out)                       :: idtot  ! maximum number of bins in directional space for considered sweep
+    integer, intent(out)                       :: isslow ! minimum frequency that is propagated within a sweep
+    integer, intent(out)                       :: istot  ! maximum number of bins in frequency space for considered sweep
+    integer, intent(in)                        :: icmax  ! number of active stencil points
+
+
+    real, dimension(MDC,MSC,ICMAX), intent(in) :: cax    ! wave transport velocity in x-direction
+    real, dimension(MDC,MSC,ICMAX), intent(in) :: cay    ! wave transport velocity in y-direction
+    real, dimension(2), intent(in)             :: rdx    ! first component of contravariant base vector rdx(b) = a^(b)_1
+    real, dimension(2), intent(in)             :: rdy    ! second component of contravariant base vector rdy(b) = a^(b)_2
+    real, dimension(MSC), intent(in)           :: spcsig ! relative frequency bins
+
+    logical, dimension(MDC,MSC), intent(out)   :: anybin ! true if bin is active in considered sweep
+
+!   Local variables
+
+    integer       :: id       ! loop counter over direction bins
+    integer       :: idclow   ! minimum counter in directional space for given frequency bin
+    integer       :: idchgh   ! maximum counter in directional space for given frequency bin
+    integer       :: iddum    ! counter in directional space for considered sweep
+    integer       :: idsum    ! total active bins in directional space for given frequency bin
+    integer, save :: ient = 0 ! number of entries in this subroutine
+    integer       :: is       ! loop counter over frequency bins
+    integer       :: isclow   ! minimum counter in frequency space for given directional bin
+    integer       :: ischgh   ! maximum counter in frequency space for given directional bin
+
+    real          :: caxloc   ! local wave transport velocity in x-direction at present vertex
+    real          :: cayloc   ! local wave transport velocity in y-direction at present vertex
+
+    logical       :: lowbin   ! indicates presence of lowest bin in directional space for given frequency bin
+    logical       :: hghbin   ! indicates presence of highest bin in directional space for given frequency bin
+
+!   Structure
+!
+!   Description of the pseudo code
+!
+!   Source text
+
+    if (ltrace) call strace (ient,'SwanSweepSel')
+
+    ! initialize parameters and arrays
+
+    WINDOW%IDDLOW =  9999
+    WINDOW%IDDTOP = -9999
+    idtot  =     1
+
+    isslow =  9999
+    WINDOW%ISSTOP = -9999
+    istot  =     1
+
+    WINDOW%IDCMIN = 0
+    WINDOW%IDCMAX = 0
+    anybin = .false.
+
+    WINDOW%ISCMIN = 1
+    WINDOW%ISCMAX = 1
+
+    ! loop over all frequency bins
+
+    do is = 1, MSC
+
+       ! determine which bin belongs to considered sweep for propagation
+
+       idsum = 0
+
+       if ( is == 1 .or. ICUR /= 0 ) then
+
+          do id = 1, MDC
+
+             caxloc = cax(id,is,1)*rdx(1) + cay(id,is,1)*rdy(1)
+             cayloc = cax(id,is,1)*rdx(2) + cay(id,is,1)*rdy(2)
+
+             if ( caxloc >= 0. .and. cayloc >= 0. ) then
+
+                anybin(id,is) = .true.
+                idsum         = idsum + 1
+                isslow        = min(is,isslow)
+                WINDOW%ISSTOP        = max(is,WINDOW%ISSTOP)
+
+             endif
+
+          enddo
+
+       else
+
+          do id = 1, MDC
+
+             ! in case of no current, when first frequency bin is in considered sweep,
+             ! other bins for given direction are in this sweep as well
+
+             anybin(id,is) = anybin(id,1)
+
+             if ( anybin(id,1) ) then
+                idsum  = idsum + 1
+                WINDOW%ISSTOP = max(is,WINDOW%ISSTOP)
+             endif
+
+          enddo
+
+       endif
+
+       ! determine sector enclosure in directional space for considered sweep
+
+       idclow = 0
+       idchgh = 0
+
+       do id = 1, MDC
+
+          lowbin = .false.
+          hghbin = .false.
+
+          if ( anybin(id,is) ) then
+
+             if ( id == 1 ) then
+
+                if ( FULCIR ) then
+                   if ( .not.anybin(MDC,is) ) lowbin = .true.
+                else
+                   lowbin = .true.
+                endif
+
+             else
+
+                if ( .not.anybin(id-1,is) ) lowbin = .true.
+
+             endif
+
+             if ( id == MDC ) then
+
+                if ( FULCIR ) then
+                   if ( .not.anybin(1,is) ) hghbin = .true.
+                else
+                  hghbin = .true.
+                endif
+
+             else
+
+                if ( .not.anybin(id+1,is) ) hghbin = .true.
+
+             endif
+
+          endif
+
+          if ( lowbin ) idclow = id
+          if ( hghbin ) idchgh = id
+
+       enddo
+
+       ! set minimum and maximum counters in directional space for considered sweep
+
+       WINDOW%IDCMIN(is) = 1
+       WINDOW%IDCMAX(is) = MDC
+
+       if ( idsum == 0 ) then
+
+          WINDOW%IDCMIN(is) =  9
+          WINDOW%IDCMAX(is) = -9
+
+       elseif ( idsum /= MDC ) then
+
+          if ( idclow > idchgh ) idclow = idclow - MDC
+          WINDOW%IDCMIN(is) = idclow
+          WINDOW%IDCMAX(is) = idchgh
+
+       endif
+
+       if ( idsum /= 0 ) then
+          WINDOW%IDDLOW = min ( WINDOW%IDDLOW , WINDOW%IDCMIN(is) )
+          WINDOW%IDDTOP = max ( WINDOW%IDDTOP , WINDOW%IDCMAX(is) )
+       endif
+
+    enddo
+
+    ! compute maximum number of bins in directional space for considered sweep
+
+    if ( WINDOW%IDDLOW /= 9999 ) then
+
+       if ( WINDOW%IDDTOP == -9999 ) then
+          call msgerr ( 4, 'inconsistency found in SwanSweepSel: no maximum direction bin ' )
+          return
+       endif
+
+       idtot = WINDOW%IDDTOP - WINDOW%IDDLOW + 1
+
+       if ( ICUR > 0 ) then
+
+          if ( idtot < 3 ) then
+             WINDOW%IDDTOP = WINDOW%IDDTOP + 1
+             if ( idtot == 1 ) WINDOW%IDDLOW = WINDOW%IDDLOW - 1
+             idtot = 3
+          endif
+
+       endif
+    else
+
+       if ( WINDOW%IDDTOP /= -9999 ) then
+          call msgerr ( 4, 'inconsistency found in SwanSweepSel: no minimum direction bin ' )
+          return
+       endif
+
+       idtot = 0
+
+    endif
+
+    if ( idtot > MDC ) then
+       WINDOW%IDDLOW = 1
+       WINDOW%IDDTOP = MDC
+       idtot  = MDC
+    endif
+
+    ! compute maximum number of bins in frequency space for considered sweep
+
+    if ( isslow /= 9999 ) then
+
+       if ( WINDOW%ISSTOP == -9999 ) then
+          call msgerr ( 4, 'inconsistency found in SwanSweepSel: no maximum frequency bin ' )
+          return
+       endif
+
+       !if ( isslow /= 1 ) then
+       !   call msgerr ( 4, 'inconsistency found in SwanSweepSel: isslow <> 1 ' )
+       !   return
+       !endif
+
+       isslow = 1
+
+       if ( ICUR > 0 ) WINDOW%ISSTOP = max(min(4,MSC),WINDOW%ISSTOP)
+
+       istot = WINDOW%ISSTOP - isslow + 1
+
+    else
+
+       if ( WINDOW%ISSTOP /= -9999 ) then
+          call msgerr ( 4, 'inconsistency found in SwanSweepSel: no minimum frequency bin ' )
+          return
+       endif
+
+       istot = 0
+
+       if ( idtot /= 0 ) then
+          call msgerr ( 4, 'inconsistency found in SwanSweepSel: istot = 0 and idtot <> 0 ' )
+          return
+       endif
+
+    endif
+
+    ! loop over all direction bins
+
+    do iddum = WINDOW%IDDLOW, WINDOW%IDDTOP
+       id = mod ( iddum - 1 + MDC , MDC ) + 1
+
+       lowbin = .false.
+
+       do is = 1, MSC
+          if ( anybin(id,is) ) then
+             if ( .not.lowbin ) then
+                isclow = is
+                lowbin = .true.
+             endif
+             ischgh = is
+          endif
+       enddo
+
+       ! set minimum and maximum counters in frequency space for considered sweep
+
+       if ( lowbin ) then
+
+          if ( isclow < isslow .or. ischgh > WINDOW%ISSTOP ) then
+             call msgerr ( 4, 'inconsistency found in SwanSweepSel: minimum and maximum counters of frequencies not correct ' )
+             return
+          endif
+
+          WINDOW%ISCMIN(id) = isclow
+          WINDOW%ISCMAX(id) = ischgh
+
+       else                     ! no frequency bins fall within considered sweep
+
+          WINDOW%ISCMIN(id) = 0
+          WINDOW%ISCMAX(id) = 0
+
+       endif
+
+    enddo
+
+end subroutine SwanSweepSel
+
+end module swan_sweep_sel

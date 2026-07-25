@@ -1,0 +1,108 @@
+module swan_spectral_grid
+!
+!     The discretisation of the spectrum: how many frequencies and directions
+!     the action density is resolved on, and how they are spaced.
+!
+!     MSC and MDC are the two most-used symbols in the whole of SWCOMM3 -- 38
+!     and 35 of its 56 importers -- because every routine that touches a
+!     spectrum needs its shape. They came with the grid geometry, the physics
+!     settings and the source-term coefficients attached.
+!
+!     Fixed by the CGRID command before the computation starts and read-only
+!     from then on.
+!
+   implicit none(type, external)
+   private
+
+   public :: MSC, MDC, MTC
+   public :: DDIR, FRINTF, FRINTH
+   public :: SPDIR1, SPDIR2, FULCIR, SLOW, SHIG
+   public :: MSC4MI, MSC4MA, MDC4MI, MDC4MA
+   public :: spectral_window_t
+   public :: sweep_window_covers_active_bins
+
+!     Non-owning view of the active part of the spectrum for one sweep.
+!     The solvers retain ownership of the thread-local arrays and counters;
+!     grouping their aliases here lets propagation and source-term kernels
+!     receive the window as one compiler-checked value.  The four dynamic
+!     bounds remain pointer views; the scalar sweep counters live in the view
+!     itself so they cannot outlive a stack target.
+   type :: spectral_window_t
+      integer, pointer, contiguous :: idcmin(:) => null()
+      integer, pointer, contiguous :: idcmax(:) => null()
+      integer, pointer, contiguous :: iscmin(:) => null()
+      integer, pointer, contiguous :: iscmax(:) => null()
+      integer :: isstop
+      integer :: iddlow
+      integer :: iddtop
+      integer :: idwmin
+      integer :: idwmax
+   end type spectral_window_t
+
+!     MSC : number of frequencies
+!     MDC : number of directions
+!     MTC : number of time steps in a nonstationary run
+   integer :: MSC, MDC, MTC
+
+!     DDIR   : mesh size in theta-direction, (SPDIR2-SPDIR1)/MDC
+!     FRINTF : frequency integration factor, ln(sigma(i+1)/sigma(i))
+!     FRINTH : sqrt of the frequency ratio between neighbouring bins
+   real :: DDIR, FRINTF, FRINTH
+
+!     SPDIR1, SPDIR2 : first and last direction of the spectral grid
+!     FULCIR : whether the directional grid covers the full circle
+   real :: SPDIR1, SPDIR2
+   logical :: FULCIR
+
+!     SLOW, SHIG : lowest and highest sigma of the spectral grid, 2*PI times
+!                  the lowest and highest frequency. FRINTF is derived from
+!                  their ratio, so the three belong together.
+   real :: SLOW, SHIG
+
+!     Bounds of the extended frequency and direction range the quadruplet
+!     routines work on: the interactions reach outside the computed grid, so
+!     their arrays run from MSC4MI to MSC4MA rather than from 1 to MSC.
+   integer :: MSC4MI, MSC4MA, MDC4MI, MDC4MA
+
+contains
+
+!  Whether every active bin of the sweep lies inside IDCMIN..IDCMAX.
+!
+!  Source-term kernels accumulate over IS = 1, ISSTOP and the directional
+!  sector IDCMIN(IS)..IDCMAX(IS), while ADDDIS reads every bin for which
+!  ANYBIN is set.  The two sets are not the same everywhere: SWPSEL widens the
+!  sector to the full circle as soon as it counts more than one, but
+!  SwanSweepSel keeps only the last pair of boundaries, so with a current an
+!  unstructured sweep can leave active bins outside the sector.  Any consumer
+!  that wants to touch only the sector must ask this first and fall back to the
+!  full spectrum when it is false.  The test is made against ANYBIN itself, so
+!  it stays valid whatever a sweep selector does.  SOURCE once cleared its
+!  budgets per sector behind this check; it clears them whole again because
+!  that is cheaper, so there is no caller at present.  The function stays
+!  because the pitfall it guards against does.
+   logical function sweep_window_covers_active_bins(WINDOW, ANYBIN) result(covers)
+      type(spectral_window_t), intent(in) :: WINDOW
+      logical, intent(in) :: ANYBIN(MDC,MSC)
+
+      integer :: id, is, lo, hi
+
+      covers = .false.
+      do is = 1, MSC
+         if ( is > WINDOW%isstop ) then
+!           the sector loop does not reach this frequency at all
+            if ( any(ANYBIN(1:MDC,is)) ) return
+            cycle
+         end if
+         lo = WINDOW%idcmin(is)
+         hi = WINDOW%idcmax(is)
+         do id = 1, MDC
+            if ( .not.ANYBIN(id,is) ) cycle
+            if ( id     >= lo .and. id     <= hi ) cycle
+            if ( id-MDC >= lo .and. id-MDC <= hi ) cycle
+            return
+         end do
+      end do
+      covers = .true.
+   end function sweep_window_covers_active_bins
+
+end module swan_spectral_grid
