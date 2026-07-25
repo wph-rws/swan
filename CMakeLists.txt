@@ -173,6 +173,14 @@ if( BUILD_TESTING )
   target_link_libraries( test_contexts PRIVATE swan${VERSION} )
   add_test( NAME contexts COMMAND test_contexts )
 
+  add_executable( test_leaf_modules tests/test_leaf_modules.f90 )
+  target_link_libraries( test_leaf_modules PRIVATE swan${VERSION} )
+  add_test( NAME leaf_modules COMMAND test_leaf_modules )
+
+  add_executable( test_physics_kernels tests/test_physics_kernels.f90 )
+  target_link_libraries( test_physics_kernels PRIVATE swan${VERSION} )
+  add_test( NAME physics_kernels COMMAND test_physics_kernels )
+
   add_test(
     NAME quick_test
     COMMAND ${Python3_EXECUTABLE}

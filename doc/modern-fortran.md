@@ -162,6 +162,40 @@ C library, which can never be Fortran interfaces. That is the floor.
 `scripts/strict_diagnostics.py` enforces it. Measure with a *clean* build — an
 incremental one only reports the files it recompiled.
 
+## Guarding the result
+
+Two mechanisms keep this from eroding, both of which were checked in each
+direction before being relied on — a gate that cannot fail is worse than no
+gate.
+
+- **The results themselves are pinned.** The quick test and both nonstationary
+  cases compare their table and block output against references generated from
+  a build of 23 July 2026, before any of this work. The current build reproduces all
+  six files. Text has to match exactly apart from trailing blanks, which the MPI
+  output path strips; numbers are compared to a relative tolerance of 1e-3. See
+  `examples/reference_check.py`.
+- **The diagnostic inventory cannot grow.** `scripts/strict_diagnostics.py`
+  builds clean with the strict warning set and fails when any category exceeds
+  its recorded budget. Shrinking a category is a deliberate act ending in
+  `--update-budget`.
+
+Verification runs in four configurations: serial, MPI (including a two-process
+case), netCDF and OpenMP.
+
+### Why the numeric comparison is not bit-exact
+
+The unstructured solver is **not bit-reproducible under OpenMP**. The thread
+count determines the order of summation, so the same binary can print a
+different last digit from one run to the next — a spread of about 2e-4
+relative, in the unstructured case only; the regular grid is stable.
+
+This predates the modernization: a build of 23 July 2026 behaves identically, so it
+is a property of the solver rather than a consequence of the restructuring. It
+does mean two runs cannot be compared bit for bit to prove a change was inert.
+Do that serially or with MPI, which are reproducible.
+
+## Behaviour preservation
+
 The optimized LTO build now passes without the former
 `-fno-strict-aliasing` workaround. Its quick-test center table and significant
 wave-height block are byte-identical to the baseline and ordinary Release
@@ -196,7 +230,8 @@ The parser cycle has since been broken as well. `UPCASE` moved to the leaf
 module `swan_text_utilities`, which removed `DTSTTI`'s dependency on the parser;
 `DTSTTI` and `DTTIST` then became module procedures of `swan_time`, and `REPARM`
 and `LSPLIT` moved into `swan_input_helpers`, which sits above the parser rather
-than below it. `ocpmix.f90` no longer contains any procedure.
+than below it. That file holds only `swan_input_helpers` now, and is named
+after it.
 
 What deliberately stays external: `TXPBLA`, kept in the interface block next to
 the switch-activated timing routines it shares a file with.
@@ -209,12 +244,28 @@ The standalone `Swan*.f90` files (`SwanFindPoint`, `SwanReadGrid`,
 snake_case. Their `CONTAINS`-ed helpers became genuinely internal, and callers
 import them with an `ONLY` list at module level.
 
-Long-lived mutable data modules also remain extensive. The time and
-command-reader contexts establish the migration pattern, but the default
-singletons intentionally preserve compatibility for the current top-level
-driver. The parser's input unit and diagnostic streams also still come from
-the shared Ocean Pack runtime, so a reader is state-isolated but not yet a
-self-contained I/O object. Further contexts should be introduced subsystem by
-subsystem with dedicated numerical fixtures. Until those steps are complete,
-the accurate description is “standard Fortran 2018 with a substantially
-modernized and tested interface layer,” not “everything is modern Fortran.”
+### How modules are named
+
+Two styles sit side by side, and the difference carries meaning:
+
+- A module holding **one** upstream procedure takes its name from the file, in
+  snake_case: `SwanDispParm.f90` → `swan_disp_parm` → `SwanDispParm`. The
+  procedure names come from TU Delft, so keeping the chain aligned means a
+  reader who sees `use swan_disp_parm` knows which file to open, and an upstream
+  import still lands where it should.
+- A module that **groups** several upstream procedures has no such name to
+  inherit and gets a descriptive one: `swan_dissipation` covers SBOT, SVEG,
+  SSURF, SWCAP and seven others.
+
+### What remains shared
+
+Long-lived mutable data modules are still extensive. The contexts cover the
+clock, the command parser, the I/O streams and the diagnostic status: a reader
+can own its input file, its log and its error state, and the file opener draws
+from its unit range. The computational state has not moved. Grid and spectral
+dimensions, physics settings and output request tables live in sixteen shared
+data modules, so SWAN runs one case per process.
+
+The accurate description is therefore “standard Fortran 2018 with a modular,
+compiler-checked interface layer over a still-shared computational state,” not
+“everything is modern Fortran.”

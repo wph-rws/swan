@@ -92,6 +92,6 @@ ${SWAN_GENERATED_SRC}/SwanVTKWriteData.f90
 ${SWAN_GENERATED_SRC}/SwanVTKPDataSets.f90
 ${SWAN_GENERATED_SRC}/ocpids.f90
 ${SWAN_GENERATED_SRC}/ocpcre.f90
-${SWAN_GENERATED_SRC}/ocpmix.f90
+${SWAN_GENERATED_SRC}/swan_input_helpers.f90
 ${SWAN_GENERATED_SRC}/fftw_compat.f90
 )

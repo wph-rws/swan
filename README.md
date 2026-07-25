@@ -203,10 +203,11 @@ floating-point transformations such as `-ffast-math`.
 development and validation builds. Leave it disabled for production runs,
 because the checks can alter compiler optimization and reduce performance.
 
-The source is compiled in standard Fortran 2018 mode, while the migration from
-legacy external procedures and global state is still ongoing. See
+The source is compiled in standard Fortran 2018 mode. Every collector file has
+been split into subsystem modules, so the compiler now checks all but two calls
+(both into the METIS C library). See
 [Modern Fortran status](doc/modern-fortran.md) for concrete before/after
-examples, measured diagnostic improvements and the remaining boundary.
+examples and the measured diagnostic improvements.
 
 For example, the following commands
 
