@@ -1,4 +1,6 @@
 module swn_outnc
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STPNOW, STRACE
 !
 !   --|-----------------------------------------------------------|--
 !     | BMT ARGOSS                                                |
@@ -8,7 +10,7 @@ module swn_outnc
 !     |                                                           |
 !     | Programmer: A.Th.C. Hulst                                 |
 !   --|-----------------------------------------------------------|--
-!
+
 !
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
@@ -49,21 +51,31 @@ module swn_outnc
 !   AGIONCMD        : Set of utilities for writing (metocean) data to netcdf
 !   NCTABLEMD       : description table for metocean parameters
    use agioncmd
-   use M_PARALL
+   use swan_parallel_state, only: IAMMASTER, INODE, NPROC, PARLL
+   use swan_global_grid
    use NETCDF
    use nctablemd, only: nctable, nctable_record, get_nctable_record
    use OUTP_DATA, only: ORQDAT, MAX_OUTP_REQ, LCOMPGRD, OUTP_FILES, NREOQ
-   use OCPCOMM2,  only: PROJNR, PROJID, VERTXT
-   use OCPCOMM4
-   use SWCOMM1,   only: CHTIME, OVEXCV
-   use SWCOMM2,   only: XOFFS, YOFFS, OPTG, EXCFLD
-   use SWCOMM3,   only: NSTATC, NSTATM, ALPC, MDC, MSC, MCGRD, MXC, MYC, DNORTH, &
-                        PI2, ICUR, BNAUT
-   use SWCOMM4
-   use TIMECOMM,  only: TFINC, TIMCO, TINIC, DT
-!
-   implicit none
-!
+   use swan_diagnostics_level
+   use swan_io_units
+   use swan_output_variables, only: OVEXCV
+   use swan_coordinate_offset, only: XOFFS, YOFFS
+   use swan_computational_grid_kind, only: OPTG
+   use swan_input_grids, only: EXCFLD
+   use swan_physics_selection, only: ICUR
+   use swan_numerics, only: NSTATC, NSTATM
+   use swan_physical_settings, only: DNORTH, BNAUT
+   use swan_computational_grid, only: ALPC, MCGRD, MXC, MYC
+   use swan_spectral_grid, only: MDC, MSC
+   use swan_math_constants, only: PI2
+   use swan_time, only: default_time_context
+   use swan_spherical_geometry, only: KSPHER
+
+   use swan_output_variables, only: OVEXCV, OVLNAM
+   use swan_project_metadata, only: PROJID, PROJNR, VERTXT
+   use swan_time, only: CHTIME
+   implicit none(type, external)
+
 !   Module parameters
 !
 !      oqi(1)       :   saved alias for nref
@@ -74,7 +86,7 @@ module swn_outnc
 !      oqr(2)       :   delta
 !
 !   Module variables
-   character*40                :: STNAMES(171,2) = ''
+   CHARACTER(LEN=40)                :: STNAMES(171,2) = ''
    logical                     :: stnames_initialized = .false., &
                                   skip_range_error = .true.
    type(recordaxe_type), save  :: recordaxe(MAX_OUTP_REQ)
@@ -90,15 +102,12 @@ module swn_outnc
       integer                                  :: mip = 0, ndir = 0, nfreq = 0
    end type spcaux_type
 
-!
 !   Source text
-!
 
 contains
 subroutine swn_outnc_spec(RTYPE, OQI, OQR, MIP, VOQR, VOQ, AC2, &
                           SPCSIG, SPCDIR, DEP2, KGRPNT, CROSS, IONOD)
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | BMT ARGOSS                                                |
 !     | Voorsterweg 28, 8316 PT Vollenhove                        |
@@ -164,20 +173,20 @@ subroutine swn_outnc_spec(RTYPE, OQI, OQR, MIP, VOQR, VOQ, AC2, &
 ! i   AC2    real   MDC,MSC,    2D spectra
 !                   MCGRD
 ! i   DEP2   real   MCGRD
-!
+
+   integer,              intent(   in) :: MIP
    real,                 intent(   in) :: SPCDIR(MDC,6), SPCSIG(MSC)
    logical,              intent(   in) :: CROSS(1:4,1:MIP)
    character (len=*),    intent(   in) :: RTYPE
    integer,              intent(   in) :: VOQR(*), &
-                                          KGRPNT(MXC,MYC), IONOD(*), &
-                                          MIP
+                                          KGRPNT(MXC,MYC), IONOD(*)
    integer,              intent(inout) :: OQI(4)
-   real*8,               intent(   in) :: OQR(2)
+   REAL(KIND=KIND(0.0D0)),               intent(   in) :: OQR(2)
    real,                 intent(   in) :: VOQ(MIP,*), AC2(MDC,MSC,MCGRD), &
                                           DEP2(MCGRD)
-!
+
 !  5. Local variables
-!
+
    integer                             :: irq
    integer, save                       :: IENT=0
    type(spcaux_type)                   :: spcaux
@@ -189,9 +198,7 @@ subroutine swn_outnc_spec(RTYPE, OQI, OQR, MIP, VOQR, VOQ, AC2, &
 !     nccheck
 !     nf90_close
 !     swn_outnc_deallocate_spcaux
-!
-   logical STPNOW
-!
+
 !  9. Subroutines calling
 !
 !     SWOUTP (SWAN/OUTP)
@@ -212,7 +219,7 @@ subroutine swn_outnc_spec(RTYPE, OQI, OQR, MIP, VOQR, VOQ, AC2, &
 !      d. close ncfile
 !
 ! 13. Source text
-!
+
    if (LTRACE) call STRACE (IENT,'swn_outnc_spec')
    irq = OQI(2)
    call swn_outnc_spcaux(RTYPE, OQI, MIP, VOQR, VOQ, AC2, &
@@ -220,9 +227,8 @@ subroutine swn_outnc_spec(RTYPE, OQI, OQR, MIP, VOQR, VOQ, AC2, &
                          spcaux)
    if (STPNOW()) return
 
-!
 ! b. open / create netcdf file (generic output file)
-!
+
    if ( .not.PARLL ) then
 
       ! opening / creating the netcdf file. Sets module variable recordaxe(irq)
@@ -241,10 +247,9 @@ subroutine swn_outnc_spec(RTYPE, OQI, OQR, MIP, VOQR, VOQ, AC2, &
 end subroutine swn_outnc_spec
 
 subroutine swn_outnc_colspc ( RTYPE, OQI, OQR, MIP, KGRPGL )
-   use SWCOMM2, only: optg
+   use swan_computational_grid_kind, only: optg
    use SwanGriddata, only: xcugrdgl, ycugrdgl, nverts
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | BMT ARGOSS                                                |
 !     | Voorsterweg 28, 8316 PT Vollenhove                        |
@@ -287,11 +292,11 @@ subroutine swn_outnc_colspc ( RTYPE, OQI, OQR, MIP, KGRPGL )
 !     ---
 !
 !  4. Argument variables
-   character (len=*),    intent(   in) :: RTYPE * 4
+   character(len=*), intent(in) :: RTYPE
    integer,              intent(inout) :: OQI(4)
-   real*8,               intent(   in) :: OQR(2)
+   REAL(KIND=KIND(0.0D0)),               intent(   in) :: OQR(2)
    integer,              intent(   in) :: MIP, KGRPGL(MXCGL,MYCGL)
-!
+
 ! IO..name....type...size.......description
 ! i   RTYPE   char   *          type of output request: 'SPEC' for 2-D spectral
 !                                                       'SPE1' for 1-D freq. spectrum
@@ -299,19 +304,17 @@ subroutine swn_outnc_colspc ( RTYPE, OQI, OQR, MIP, KGRPGL )
 ! i   MIP    int    1           number of output points
 !
 !  5. Local variables
-!
-   logical                             :: lopen, file_exists, &
-                                          EQREAL, STPNOW
+
+   logical                             :: lopen, file_exists
    integer                             :: ip, ierr, otype, xpctime2, &
                                           i, tmip, binnr, irq, &
                                           tip, ips(MIP), iproc, nref, ilpos
    integer, save                       :: IENT=0
-   character*80                        :: binfile, ncfile, basefile
-   character*256                       :: errmsg
+   CHARACTER(LEN=80)                        :: binfile, ncfile, basefile
+   CHARACTER(LEN=256)                       :: errmsg
    type(spcaux_type)                   :: spcaux, lspcaux
    real                                :: xref, yref
 
-!
 !  9. Subroutines calling
 !
 !     SWCOLOUT
@@ -326,12 +329,12 @@ subroutine swn_outnc_colspc ( RTYPE, OQI, OQR, MIP, KGRPGL )
 !
 !
 ! 13. Source text
-!
+
    if (LTRACE) call STRACE (IENT,'swn_outnc_colspc')
    ierr    = 0
-!
+
 ! a. Prepare spectra/auxilary data struct
-!
+
    irq        = OQI(2)
    spcaux%mip = MIP
    allocate(spcaux%hs(MIP), spcaux%depth(MIP), spcaux%ux(MIP), spcaux%uy(MIP), &
@@ -362,9 +365,9 @@ subroutine swn_outnc_colspc ( RTYPE, OQI, OQR, MIP, KGRPGL )
    spcaux%ndir  = MDC
 
    allocate( spcaux%f(MSC), spcaux%theta(MDC))
-!
+
 ! open and read binary files
-!
+
    binfile = OUTP_FILES(irq)
 
    ! nref is unitnr set while writing the binary file.
@@ -388,7 +391,7 @@ subroutine swn_outnc_colspc ( RTYPE, OQI, OQR, MIP, KGRPGL )
       end if
       inquire(unit=binnr, opened=lopen)
       if ( .not. lopen ) then
-         write(errmsg,'("unit ",I3," is NOT open")'), binnr
+         write(errmsg,'("unit ",I3," is NOT open")') binnr
          call MSGERR(4, errmsg)
          return
       end if
@@ -437,14 +440,13 @@ subroutine swn_outnc_colspc ( RTYPE, OQI, OQR, MIP, KGRPGL )
          end if
       end do ! points
    end do !nproc
-   !
+
    ! MPI with a cold start shows some interesting initial values
    ! remove them
-   !
+
    where(spcaux%E < epsilon(1.)) spcaux%E = 0.
-!
+
 ! b. netcdf IO
-!
 
    ncfile = outp_files(irq)
    ilpos  = index(ncfile, '-0')
@@ -459,7 +461,7 @@ subroutine swn_outnc_colspc ( RTYPE, OQI, OQR, MIP, KGRPGL )
 
    call swn_outnc_deallocate_spcaux( spcaux )
 
-   if ( NSTATM == 0 .or. TIMCO >= TFINC ) then
+   if ( NSTATM == 0 .or. default_time_context%TIMCO >= default_time_context%TFINC ) then
       ! The end time is reached in each computation block. See
       ! SWCOLOUT structure.
       call close_ncfile(OQI(1) + ncoffset(irq) )
@@ -476,10 +478,9 @@ end subroutine swn_outnc_colspc
 subroutine swn_outnc_spcaux(RTYPE, OQI, MIP, VOQR, VOQ, AC2, &
                           SPCSIG, SPCDIR, DEP2, KGRPNT, CROSS, IONOD, &
                           lspcaux)
-   USE OCPCOMM2
-   USE TIMECOMM, only: TINIC, TFINC, TIMCO
-!
-!
+   use swan_spectrum_output, only: SWCMSP
+   use swan_time, only: default_time_context
+
 !   --|-----------------------------------------------------------|--
 !     | BMT ARGOSS                                                |
 !     | Voorsterweg 28, 8316 PT Vollenhove                        |
@@ -544,32 +545,30 @@ subroutine swn_outnc_spcaux(RTYPE, OQI, MIP, VOQR, VOQ, AC2, &
 ! i   AC2    real   MDC,MSC,    2D spectra
 !                   MCGRD
 ! i   DEP2   real   MCGRD
-!
+
+   integer,                         intent(   in) :: MIP
    real,                            intent(   in) :: SPCDIR(MDC,6), SPCSIG(MSC)
    logical,                         intent(   in) :: CROSS(1:4,1:MIP)
    character (len=*),               intent(   in) :: RTYPE
    integer,                         intent(   in) :: OQI(4), VOQR(*), &
-                                                     KGRPNT(MXC,MYC), IONOD(*), &
-                                                     MIP
+                                                     KGRPNT(MXC,MYC), IONOD(*)
    real,                            intent(   in) :: VOQ(MIP,*), AC2(MDC,MSC,MCGRD), &
                                                      DEP2(MCGRD)
    type(spcaux_type),               intent(  out) :: lspcaux
-!
+
 !  5. Local variables
-!
-   logical                                        :: EQREAL, lopen, do_open_files, write_header
+
+   LOGICAL :: lopen, do_open_files, write_header
    integer                                        :: ip, ierr, otype, xpctmp(2), xpctime, &
                                                      pnr, ri, i, tmip, irq, ips(MIP), iproc, &
                                                      binnr, xi, yi, npnts, kgrpnt1d(MXC*MYC)
    integer, save                                  :: IENT=0
-   character*80                                   :: outfile
-   character*256                                  :: errmsg
+   CHARACTER(LEN=80)                                   :: outfile
+   CHARACTER(LEN=256)                                  :: errmsg
 !  8. Subroutines used
 !
 !     SWCMSP
-!
-   logical STPNOW
-!
+
 !  9. Subroutines calling
 !
 !     SWOUTP (SWAN/OUTP)
@@ -592,24 +591,24 @@ subroutine swn_outnc_spcaux(RTYPE, OQI, MIP, VOQR, VOQ, AC2, &
 !      f.2. if PARLL spectra and auxillary data to unformatted binary file
 !
 ! 13. Source text
-!
+
    iproc = INODE
    if (LTRACE) call STRACE (IENT,'swn_outnc_spcaux')
    lspcaux%mip = MIP
    allocate(lspcaux%hs(MIP), lspcaux%depth(MIP), lspcaux%ux(MIP), lspcaux%uy(MIP), &
             lspcaux%wndx(MIP), lspcaux%wndy(MIP), lspcaux%xc(MIP), lspcaux%yc(MIP), &
             lspcaux%xp(MIP), lspcaux%yp(MIP))
-!
+
 ! a. decide wether relative and 2D spectra are required
-!
+
    irq      = OQI(2)
    ierr     = 0
 
    if (RTYPE(3:3) .eq. 'R') lspcaux%relative = .true.
    if (RTYPE(4:4) .eq. 'C') lspcaux%is2d     = .true.
-!
+
 ! b. collect auxillary data / set default (task e. set hs and wind values)
-!
+
    lspcaux%depth = VOQ(:,VOQR(4))
    lspcaux%hs    = 0
    lspcaux%wndx  = 0
@@ -653,14 +652,14 @@ subroutine swn_outnc_spcaux(RTYPE, OQI, MIP, VOQR, VOQ, AC2, &
    else
       lspcaux%theta = SPCDIR(:,1)
    end if
-!
+
 ! c if PARLL open unformatted binary if not already opened
-!
+
    if ( PARLL ) then
       if ( oqi(1) == 0 ) then
          call FOR(oqi(1), OUTP_FILES(irq), 'UU', ierr)
          if ( ierr > 0 ) then
-            write(errmsg,'("File ", A, " open returned IOSTAT ", I3)'), trim(OUTP_FILES(irq)), ierr
+            write(errmsg,'("File ", A, " open returned IOSTAT ", I3)') trim(OUTP_FILES(irq)), ierr
             call MSGERR(4, errmsg)
             return
          end if
@@ -768,7 +767,7 @@ subroutine swn_outnc_spcaux_on_wetnodes( lkgrpnt, lspcaux, spcaux )
 
    integer                                        :: ip, indx, npnts, ix, iy
    integer, save                                  :: IENT=0
-   character*256                                  :: errmsg
+   CHARACTER(LEN=256)                                  :: errmsg
    if (LTRACE) call STRACE(IENT,'swn_outnc_spcaux_on_wetnodes')
 
    npnts = MCGRDGL - 1
@@ -846,9 +845,7 @@ subroutine swn_outnc_deallocate_spcaux( lspcaux )
 end subroutine swn_outnc_deallocate_spcaux
 
 subroutine swn_outnc_appendspc(oqi, spcaux, xpctime2)
-   USE OCPCOMM2
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | BMT ARGOSS                                                |
 !     | Voorsterweg 28, 8316 PT Vollenhove                        |
@@ -893,16 +890,16 @@ subroutine swn_outnc_appendspc(oqi, spcaux, xpctime2)
 !  4. Argument variables
 !
 ! IO..name....type...size.......description
-!
+
    integer,                      intent(   in) :: oqi(4)
    type(spcaux_type), target,    intent(inout) :: spcaux
    integer,           optional,  intent(   in) :: xpctime2
-!
+
 !  5. Local variables
-!
+
    integer                             :: ierr, xpctmp(2), xpctime, pnr, ri, irq, i, &
                                           ncid
-   character*256                       :: errmsg
+   CHARACTER(LEN=256)                       :: errmsg
    integer, save                       :: IENT=0
    logical                             :: spc_as_map, wetnode_list, noaux
    type(spcaux_type), target           :: lspcaux
@@ -911,9 +908,7 @@ subroutine swn_outnc_appendspc(oqi, spcaux, xpctime2)
 !  8. Subroutines used
 !
 !     SWCMSP
-!
-   logical STPNOW
-!
+
 !  9. Subroutines calling
 !
 !     SWOUTP (SWAN/OUTP)
@@ -932,16 +927,15 @@ subroutine swn_outnc_appendspc(oqi, spcaux, xpctime2)
 !    c. add auxilary variables (depth, current and Hs) to ncfile
 !
 ! 13. Source text
-!
+
    if (LTRACE) call STRACE (IENT,'swn_outnc_appendspc')
    irq  = oqi(2)
    ncid = oqi(1) + ncoffset(irq)
 
    call swn_outnc_spcflags(oqi(4), spc_as_map, wetnode_list, spcaux, noaux=noaux)
 
-!
 ! Determine the index in the record axe
-!
+
    if ( recordaxe(irq)%nstatm ) then
       READ (chtime, '(I8,1X,I6)') (xpctmp(i), i=1,2)
       xpctime = seconds_since_epoch(xpctmp(1), xpctmp(2))
@@ -985,9 +979,8 @@ subroutine swn_outnc_appendspc(oqi, spcaux, xpctime2)
       pspcaux => spcaux
    end if
 
-!
 ! add spectra
-!
+
    where(pspcaux%E < epsilon(1.)) pspcaux%E = 0.
    if ( pspcaux%is2d ) then
       ! factor 2*PI to account for transition from rad/s to Hz
@@ -999,7 +992,7 @@ subroutine swn_outnc_appendspc(oqi, spcaux, xpctime2)
                                       pspcaux%E(2*MSC+1:3*MSC,:), &
                                       spc_as_map)
    end if
-!
+
 ! add auxilary variables (depth, current and Hs).
 !
 !     hs is provided so that user can check his integration routines. His / hers
@@ -1033,7 +1026,7 @@ subroutine swn_outnc_appendspc(oqi, spcaux, xpctime2)
 end subroutine swn_outnc_appendspc
 
 subroutine swn_outnc_openspecfile(ncfile, spcaux, oqi, oqr)
-!
+
 ! Structure:
 !
 !    1) input arguments
@@ -1062,17 +1055,17 @@ subroutine swn_outnc_openspecfile(ncfile, spcaux, oqi, oqr)
 !    7) open file in write mode
 !
 ! 1) input arguments
-!
-   character*80,                  intent(   in) :: ncfile
+
+   CHARACTER(LEN=80),                  intent(   in) :: ncfile
    type(spcaux_type), target,     intent(   in) :: spcaux
    integer,                       intent(   in) :: oqi(4)
-   real*8,                        intent(   in) :: oqr(2)
-!
+   REAL(KIND=KIND(0.0D0)),                        intent(   in) :: oqr(2)
+
 ! 2) local variables
-!
+
    logical                               :: file_exists, nc_debug, &
                                             Escale, monthly, spc_as_map, &
-                                            wetnode_list, STPNOW, noaux
+                                            wetnode_list, noaux
    integer                               :: ncid, xpctmp(2), i, irq
    type(spcgrid_type)                    :: spcgrid
    type(mapgrid_type)                    :: mapgrid
@@ -1093,13 +1086,12 @@ subroutine swn_outnc_openspecfile(ncfile, spcaux, oqi, oqr)
 
    inquire( FILE=ncfile, EXIST=file_exists )
 
-!
 ! if file does not exists
-!
+
    if ( .not. file_exists) then
-!
+
 ! 3) Define new record axe (run or time) and spectral grid
-!
+
       allocate(recordaxe(irq)%content(1))
       recordaxe(irq)%ncontent = 1
 
@@ -1110,7 +1102,7 @@ subroutine swn_outnc_openspecfile(ncfile, spcaux, oqi, oqr)
          if ( NSTATC == 0 ) then
             recordaxe(irq)%delta   = oqr(2)
          else
-            recordaxe(irq)%delta   = maxval((/oqr(2), DT/))
+            recordaxe(irq)%delta   = maxval((/oqr(2), default_time_context%DT/))
          endif
          recordaxe(irq)%nstatm     = .true.
       else
@@ -1137,9 +1129,9 @@ subroutine swn_outnc_openspecfile(ncfile, spcaux, oqi, oqr)
       end if
 
       spcgrid%relative  = spcaux%relative
-!
+
 ! If spectra requested on COMPGRID
-!
+
       if ( spc_as_map .and. OPTG /= 5 ) then
          ! COMPGRID is a special case. By specifying this spectra are 4D
          ! written to the netcdf instead of only the wet points
@@ -1148,9 +1140,9 @@ subroutine swn_outnc_openspecfile(ncfile, spcaux, oqi, oqr)
 !
          ! XGRDGL, YGRDGL, MXCGL and MYCGL from M_PARALL
          if ( abs(ALPC) < epsilon(1.) .and. OPTG == 1 ) then
-!
+
 ! 4.a) define mapgrid with 1D coordinate axes
-!
+
             allocate (mapgrid%longitude(MXCGL,1))
             allocate (mapgrid%latitude (1,MYCGL))
             if ( PARLL ) then
@@ -1163,9 +1155,9 @@ subroutine swn_outnc_openspecfile(ncfile, spcaux, oqi, oqr)
             mapgrid%mdc  = .false.
             mapgrid%alpc = 0.
          else
-!
+
 ! 4.b) define mapgrid with 2D coordinate axes
-!
+
             allocate (mapgrid%longitude(MXCGL, MYCGL))
             allocate (mapgrid%latitude (MXCGL, MYCGL))
             if ( PARLL ) then
@@ -1189,17 +1181,16 @@ subroutine swn_outnc_openspecfile(ncfile, spcaux, oqi, oqr)
 
          mapgrid%nx = MXCGL
          mapgrid%ny = MYCGL
-!
+
 ! 4.c) create ncfile
-!
 
          ! Definition mode
          call create_ncfile(ncfile, ncid, recordaxe(irq), spcgrid=spcgrid, mapgrid=mapgrid, Escale=Escale, nautical=BNAUT)
 
       else
-!
+
 ! 5.a) define pntgrid, eg, spectra along a point list
-!
+
          if ( wetnode_list ) then
             ! remove dry points
             call swn_outnc_spcaux_on_wetnodes(KGRPGL, spcaux, lspcaux )
@@ -1226,25 +1217,23 @@ subroutine swn_outnc_openspecfile(ncfile, spcaux, oqi, oqr)
 
          if ( KSPHER == 0 ) pntgrid%lunit = 'meter'
 
-!
 ! 5.b) create point list ncfile
 !
          ! Definition mode
          call create_ncfile(ncfile, ncid, recordaxe(irq), spcgrid=spcgrid, pntgrid=pntgrid, Escale=Escale, nautical=BNAUT)
 
       end if
-!
+
 ! 6.a) add global attributes
-!
+
       call nccheck ( nf90_put_att( ncid, NF90_GLOBAL, 'project', PROJID) )
       call nccheck ( nf90_put_att( ncid, NF90_GLOBAL, 'model',   VERTXT) )
       if ( NSTATM > 0 ) then
          call nccheck ( nf90_put_att( ncid, NF90_GLOBAL, 'run', PROJNR) )
       end if
 
-!
 ! 6.b) create variables
-!
+
       if ( .not.noaux ) call create_auxvariables(ncid, spc_as_map)
 
 ! 6.c) close define mode and reopen write
@@ -1253,9 +1242,9 @@ subroutine swn_outnc_openspecfile(ncfile, spcaux, oqi, oqr)
       ! variable is updated by open_ncfile
       call close_ncfile(ncid)
       call open_ncfile( ncfile, "write", ncid, recordaxe(irq), monthly)
-!
+
 ! 6.d) fill dimension variables and close
-!
+
       call agnc_set_spcgrid (ncid, spcgrid)
       if ( spc_as_map .and. OPTG /= 5 ) then
          call agnc_set_mapgrid (ncid, mapgrid)
@@ -1266,9 +1255,9 @@ subroutine swn_outnc_openspecfile(ncfile, spcaux, oqi, oqr)
       ! close the freshly created file so all dimension variable data is written
       call close_ncfile(ncid)
    end if
-!
+
 ! 7) open file in write mode
-!
+
    call open_ncfile( ncfile, "write", ncid, recordaxe(irq))
 
    ! if only only record found, set delta to delta specified in command file (or 1 on stationary)
@@ -1277,7 +1266,7 @@ subroutine swn_outnc_openspecfile(ncfile, spcaux, oqi, oqr)
          if ( NSTATC == 0 ) then
             recordaxe(irq)%delta = oqr(2)
          else
-            recordaxe(irq)%delta = maxval((/oqr(2), DT/))
+            recordaxe(irq)%delta = maxval((/oqr(2), default_time_context%DT/))
          endif
       else
          recordaxe(irq)%delta = 1
@@ -1391,7 +1380,7 @@ subroutine swn_outnc_close_on_end(nref, irq)
    ! otherwise data is buffered during the entire computation,
    ! increasing the chance on file corruption
    if (LTRACE) call STRACE (IENT,'swn_outnc_close_on_end')
-   if ( nstatm == 0 .or. TIMCO >= TFINC ) then
+   if ( nstatm == 0 .or. default_time_context%TIMCO >= default_time_context%TFINC ) then
       ncoffset(irq) = 0
       call close_ncfile(ncid)
    else
@@ -1425,9 +1414,9 @@ subroutine record_index(ncid, recordaxe, xpctime, ri)
       recordaxe%content(1:recordaxe%ncontent) = tmp_time
       recordaxe%content(recordaxe%ncontent+1) = xpctime
       recordaxe%ncontent = recordaxe%ncontent+1
-      !
+
       ! Update netcdf file with new time axe
-      !
+
       call agnc_set_recordaxe (ncid, recordaxe)
       ri = recordaxe%ncontent
 
@@ -1437,11 +1426,11 @@ end subroutine record_index
 
 subroutine swn_outnc_openblockfile(ncfile, myk, mxk, ovlnam, xgrdgl, &
                                    ygrdgl, oqi, oqr, ivtyp ,  irq  )
-   character*80,           intent(   in) :: ncfile
+   CHARACTER(LEN=80),           intent(   in) :: ncfile
    integer,                intent(   in) :: myk, mxk, irq
    integer, dimension(:),  intent(   in) :: oqi, ivtyp
-   real*8,  dimension(:),  intent(   in) :: oqr
-   character*40,           intent(   in) :: ovlnam(:)
+   REAL(KIND=KIND(0.0D0)),  dimension(:),  intent(   in) :: oqr
+   CHARACTER(LEN=40),           intent(   in) :: ovlnam(:)
    real,                   intent(   in) :: xgrdgl(mxk, myk), &
                                             ygrdgl(mxk, myk)
 
@@ -1477,7 +1466,7 @@ subroutine swn_outnc_openblockfile(ncfile, myk, mxk, ovlnam, xgrdgl, &
          if ( NSTATC == 0 ) then
             recordaxe(irq)%delta   = oqr(2)
          else
-            recordaxe(irq)%delta   = maxval((/oqr(2), DT/))
+            recordaxe(irq)%delta   = maxval((/oqr(2), default_time_context%DT/))
          endif
          recordaxe(irq)%nstatm     = .true.
       else
@@ -1515,7 +1504,7 @@ subroutine swn_outnc_openblockfile(ncfile, myk, mxk, ovlnam, xgrdgl, &
          ! Regular mesh. Depending on the angle of the computational grid,
          ! longitude and latitude can be a vector or a matrix
          ! curvilinear grids always have multi-dimension coordinate fields
-
+         !
          ! Definition mode
          if ( abs(ALPC) < epsilon(1.) .and. OPTG == 1 ) then
             allocate (mapgrid%longitude(mxk,1))
@@ -1580,7 +1569,7 @@ subroutine swn_outnc_openblockfile(ncfile, myk, mxk, ovlnam, xgrdgl, &
          if ( NSTATC == 0 ) then
             recordaxe(irq)%delta = oqr(2)
          else
-            recordaxe(irq)%delta = maxval((/oqr(2), DT/))
+            recordaxe(irq)%delta = maxval((/oqr(2), default_time_context%DT/))
          endif
       else
          recordaxe(irq)%delta = 1
@@ -1593,7 +1582,7 @@ subroutine create_auxvariables(ncid, spc_as_map)
    integer,                intent( in) :: ncid
    logical,                intent( in) :: spc_as_map
    integer                             :: ivtyp(4)
-   character*40                        :: dummy(4)
+   CHARACTER(LEN=40)                        :: dummy(4)
 
    ivtyp = (/4, 5, 10, 26/)
    call create_variables(ncid, ivtyp, dummy, spc_as_map)
@@ -1603,11 +1592,11 @@ end subroutine create_auxvariables
 subroutine create_variables(ncid, ivtyp, ovlnam, spc_as_map)
    integer,                intent( in) :: ncid
    integer,dimension(:),   intent( in) :: ivtyp
-   character*40,           intent( in) :: ovlnam(:)
+   CHARACTER(LEN=40),           intent( in) :: ovlnam(:)
    logical,                intent( in) :: spc_as_map
    integer                             :: i
 
-   character*40                        :: stname
+   CHARACTER(LEN=40)                        :: stname
    integer, save                       :: IENT=0
    if (LTRACE) call STRACE (IENT,'create_variables')
 

@@ -9,10 +9,9 @@
 !        PT_FLD     (incremental flooding algorithm)
 !        FIFO_ADD, FIFO_EMPTY, FIFO_FIRST  (queue management)
 !        PTMEAN     (compute mean parameters)
-!
+
 MODULE W3ODATMD
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -60,9 +59,9 @@ MODULE W3ODATMD
 !  4. Modules used
 !
 !     ---
-!
-   IMPLICIT NONE
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !  5. Argument variables
 !
 !     ---
@@ -77,25 +76,23 @@ MODULE W3ODATMD
 !     name. These pointers are defined as :
 !
 !      Name      Type  Scope    Description
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !      IHMAX     Int.  Public   Number of discrete spectral levels.
 !      HSPMIN    Real  Public   Minimum significant height per part.
 !      WSMULT    Real  Public   Multiplier for wind sea boundary.
 !      WSCUT     Real  Public   Cut-off wind factor for wind seas.
 !      FLCOMB    Log.  Public   Flag for combining wind seas.
-!     ----------------------------------------------------------------
-!
+!     ----------------------------------------------------------------    40.17
+
    PUBLIC
 
-   INTEGER               :: IHMAX
-   REAL                  :: HSPMIN, WSMULT, WSCUT
-   LOGICAL               :: FLCOMB
+   INTEGER, PARAMETER :: IHMAX=100
+   REAL, PARAMETER    :: HSPMIN=0.05, WSMULT=1.7, WSCUT=0.333
+   LOGICAL, PARAMETER :: FLCOMB=.FALSE.
 
    ! These hardcoded values (from ww3_grid.ftn) can be made
    ! user-defined with the OUTPUT command
-   PARAMETER             (IHMAX=100, HSPMIN=0.05, WSMULT=1.7, &
-                          WSCUT=0.333, FLCOMB=.FALSE.)
-!
+
 !  8. Subroutines and functions used
 !
 !     ---
@@ -120,12 +117,13 @@ MODULE W3ODATMD
 !
 !      CONTAINS
 
-END MODULE W3ODATMD
+end module W3ODATMD
 
 MODULE SWPARTMD
-!
+   USE swan_service_interfaces, ONLY: STRACE
+
    USE W3ODATMD, ONLY: IHMAX, HSPMIN, WSMULT
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -173,9 +171,10 @@ MODULE SWPARTMD
 !  4. Modules used
 !
 !     ---
-!
-   IMPLICIT NONE
-!
+
+   use swan_output_settings, only: OUTPAR
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !  5. Argument variables
 !
 !     ---
@@ -187,17 +186,17 @@ MODULE SWPARTMD
 !  7. Local variables
 !
 !      Name      Type  Scope    Description
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !      MK, MTH   Int.  Private  Dimensions of stored neighour array
 !      NEIGH     I.A.  Private  Nearest Neighbor array
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !      Note: IHMAX, HSPMIN, WSMULT, WSCUT and FLCOMB used from W3ODATMD
-!
+
    PUBLIC
-!
+
    INTEGER, PRIVATE              :: MK = -1, MTH = -1
    INTEGER, ALLOCATABLE, PRIVATE :: NEIGH(:,:)
-!
+
 !  8. Subroutines and functions used
 !
 !     ---
@@ -219,21 +218,20 @@ MODULE SWPARTMD
 !     ---
 !
 ! 13. Source text
-!
+
 CONTAINS
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWPART ( SPEC, UABS, UDIR, DEPTH, WN, SPCSIG, SPCDIR, &
-                    NP, XP, DIMXP )
+   NP, XP, DIMXP )
 !                                                                      *
-!***********************************************************************
-!
+!************************************************************************
+
    USE W3ODATMD, ONLY: WSCUT, FLCOMB
-   USE SWCOMM3 , ONLY: MSC, MDC
-   USE OCPCOMM4, ONLY: PRINTF
-!
-!
+   USE swan_spectral_grid, ONLY: MSC, MDC
+   USE swan_io_units, ONLY: PRINTF
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -282,9 +280,9 @@ SUBROUTINE SWPART ( SPEC, UABS, UDIR, DEPTH, WN, SPCSIG, SPCDIR, &
 !  4. Modules used
 !
 !     ---
-!
-   IMPLICIT NONE
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !  5. Argument variables
 !
 !       SPEC    R.A.   I   2D spectrum E(f,theta)
@@ -305,27 +303,27 @@ SUBROUTINE SWPART ( SPEC, UABS, UDIR, DEPTH, WN, SPCSIG, SPCDIR, &
    INTEGER, INTENT(OUT)          :: NP
    INTEGER, INTENT(IN)           :: DIMXP
    REAL, INTENT(IN)              :: SPEC(MSC,MDC), WN(MSC), UABS, &
-                                    UDIR, DEPTH
+      UDIR, DEPTH
    REAL, INTENT(OUT)             :: XP(7,0:DIMXP)
    REAL, INTENT(IN)              :: SPCDIR(MDC,6)
    REAL, INTENT(IN)              :: SPCSIG(MSC)
-!
+
 !  6. Parameter variables
 !
 !     ---
 !
 !  7. Local variables
 
-   INTEGER                 :: IENT, ITH, IMI(MSC*MDC), IMD(MSC*MDC), &
-                              IMO(MSC*MDC), IND(MSC*MDC), NP_MAX, &
-                              IP, IT(1), INDEX(DIMXP), NWS, &
-                              IPW, IPT, ISP
+   INTEGER, SAVE :: IENT = 0
+   INTEGER                 :: ITH, IMI(MSC*MDC), IMD(MSC*MDC), &
+      IMO(MSC*MDC), IND(MSC*MDC), NP_MAX, &
+      IP, IT(1), INDEX(DIMXP), NWS, &
+      IPW, IPT, ISP
    INTEGER                 :: PMAP(DIMXP)
    REAL                    :: ZP(MSC*MDC), ZMIN, ZMAX, Z(MSC*MDC), &
-                              FACT, WSMAX, HSMAX
+      FACT, WSMAX, HSMAX
    REAL                    :: TP(7,DIMXP)
 
-!
 !  8. Subroutines and functions used
 !
 !     ---
@@ -349,67 +347,65 @@ SUBROUTINE SWPART ( SPEC, UABS, UDIR, DEPTH, WN, SPCSIG, SPCDIR, &
 !
 ! 13. Source text
 !
-
+!
 !/ ------------------------------------------------------------------- /
 ! 0.  Initializations
-!
-   SAVE IENT
-   DATA IENT /0/
+
    CALL STRACE (IENT, 'SWPART')
-!
+
    NP     = 0
    XP     = 0.
-!
+
 ! -------------------------------------------------------------------- /
 ! 1.  Process input spectrum
 ! 1.a 2-D to 1-D spectrum
-!
+
    DO ITH=1, MDC
       ZP(1+(ITH-1)*MSC:ITH*MSC) = SPEC(:,ITH)
    END DO
-!
+
 ! 1.b Invert spectrum and 'digitize'
-!
+
    ZMIN   = MINVAL ( ZP )
    ZMAX   = MAXVAL ( ZP )
    IF ( ZMAX-ZMIN .LT. 1.E-9 ) RETURN
-!
+
    Z      = ZMAX - ZP
-!
+
    FACT   = REAL(IHMAX-1) / ( ZMAX - ZMIN )
    IMI    = MAX ( 1 , MIN ( IHMAX , NINT ( 1. + Z*FACT ) ) )
-!
+
 ! 1.c Sort digitized image
-!
+
    CALL PTSORT ( IMI, IND, IHMAX )
-!
+
 ! -------------------------------------------------------------------- /
 ! 2.  Perform partitioning
 ! 2.a Update nearest neighbor info as needed
-!
+
    CALL PTNGHB
-!
+
 ! 2.b Incremental flooding
-!
+
    CALL PT_FLD ( IMI, IND, IMO, ZP, NP_MAX )
-!
+
 ! 2.c Compute parameters per partition
 !     NP and NX initialized inside routine
-!
+
    CALL PTMEAN ( NP_MAX, IMO, ZP, DEPTH, UABS, UDIR, WN, &
-                 SPCSIG, SPCDIR, NP, XP, DIMXP, PMAP )
-!
+      SPCSIG, SPCDIR, NP, XP, DIMXP, PMAP )
+
 ! -------------------------------------------------------------------- /
 ! 3.  Sort and recombine wind seas as needed
 ! 3.a Sort by wind sea fraction
-!
+
    IF ( NP .LE. 1 ) RETURN
-!
+
    TP(:,1:NP)  = XP(:,1:NP)
    XP(:,1:NP)  = 0.
    INDEX(1:NP) = 0
    NWS         = 0
-!
+
    DO IP=1, NP
       IT          = MAXLOC(TP(6,1:NP))
       INDEX(IP)   = IT(1)
@@ -417,9 +413,9 @@ SUBROUTINE SWPART ( SPEC, UABS, UDIR, DEPTH, WN, SPCSIG, SPCDIR, &
       IF ( TP(6,IT(1)) .GE. WSCUT ) NWS = NWS + 1
       TP(6,IT(1)) = -1.
    END DO
-!
+
 ! 3.b Combine wind seas as needed and resort
-!
+
    IF ( NWS.GT.1 .AND. FLCOMB ) THEN
       IPW    = PMAP(INDEX(1))
       DO IP=2, NWS
@@ -428,16 +424,16 @@ SUBROUTINE SWPART ( SPEC, UABS, UDIR, DEPTH, WN, SPCSIG, SPCDIR, &
             IF ( IMO(ISP) .EQ. IPT ) IMO(ISP) = IPW
          END DO
       END DO
-!
+
       CALL PTMEAN ( NP_MAX, IMO, ZP, DEPTH, UABS, UDIR, WN, &
-                    SPCSIG, SPCDIR, NP, XP, DIMXP, PMAP )
+         SPCSIG, SPCDIR, NP, XP, DIMXP, PMAP )
       IF ( NP .LE. 1 ) RETURN
-!
+
       TP(:,1:NP)  = XP(:,1:NP)
       XP(:,1:NP)  = 0.
       INDEX(1:NP) = 0
       NWS         = 0
-!
+
       DO IP=1, NP
          IT          = MAXLOC(TP(6,1:NP))
          INDEX(IP)   = IT(1)
@@ -445,22 +441,22 @@ SUBROUTINE SWPART ( SPEC, UABS, UDIR, DEPTH, WN, SPCSIG, SPCDIR, &
          IF ( TP(6,IT(1)) .GE. WSCUT ) NWS = NWS + 1
          TP(6,IT(1)) = -1.
       END DO
-!
+
    END IF
-!
+
 ! 3.c Sort remaining fields by wave height
-!
+
    NWS    = MIN ( 1 , NWS )
-!
+
    TP(:,1:NP)  = XP(:,1:NP)
    XP(:,1:NP)  = 0.
-!
+
    IF ( NWS .GT. 0 ) THEN
       XP(:,1) = TP(:,1)
       TP(1,1) = -1.
       NWS     = 1
    END IF
-!
+
    DO IP=NWS+1, NP
       IT          = MAXLOC(TP(1,1:NP))
       XP(:,IP)    = TP(:,IT(1))
@@ -471,20 +467,20 @@ SUBROUTINE SWPART ( SPEC, UABS, UDIR, DEPTH, WN, SPCSIG, SPCDIR, &
 !
 ! -------------------------------------------------------------------- /
 ! 4.  End of routine
-!
-   RETURN
-!
-!     end of subroutine SWPART
-END SUBROUTINE SWPART
 
-!***********************************************************************
+   RETURN
+
+!     end of subroutine SWPART
+end subroutine SWPART
+
+!************************************************************************
 !                                                                      *
 SUBROUTINE PTSORT ( IMI, IND, IHMAX )
 !                                                                      *
-!***********************************************************************
-!
-   USE SWCOMM3, ONLY: MSC, MDC
-!
+!************************************************************************
+
+   USE swan_spectral_grid, ONLY: MSC, MDC
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -533,28 +529,28 @@ SUBROUTINE PTSORT ( IMI, IND, IHMAX )
 !  4. Modules used
 !
 !     ---
-!
-   IMPLICIT NONE
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !  5. Argument variables
 !
 !       IMI     I.A.   I   Input discretized spectrum
 !       IND     I.A.   O   Sorted data
 !       IHMAX   Int.   I   Number of integer levels
-!
+
    INTEGER, INTENT(IN)      :: IHMAX, IMI(MSC*MDC)
    INTEGER, INTENT(OUT)     :: IND(MSC*MDC)
-!
+
 !  6. Parameter variables
 !
 !     ---
 !
 !  7. Local variables
-!
+
    INTEGER                 :: I, IN, IV
    INTEGER                 :: NUMV(IHMAX), IADDR(IHMAX), &
-                              IORDER(MSC*MDC)
-!
+      IORDER(MSC*MDC)
+
 !  8. Subroutines and functions used
 !
 !     ---
@@ -579,50 +575,50 @@ SUBROUTINE PTSORT ( IMI, IND, IHMAX )
 !
 ! -------------------------------------------------------------------- /
 ! a.  Occurences per height
-!
+
    NUMV   = 0
    DO I=1, MSC*MDC
       NUMV(IMI(I)) = NUMV(IMI(I)) + 1
    END DO
-!
+
 ! -------------------------------------------------------------------- /
 ! b.  Starting address per height
-!
+
    IADDR(1) = 1
    DO I=1, IHMAX-1
       IADDR(I+1) = IADDR(I) + NUMV(I)
    END DO
-!
+
 ! -------------------------------------------------------------------- /
 ! c.  Order points
-!
+
    DO I=1, MSC*MDC
       IV        = IMI(I)
       IN        = IADDR(IV)
       IORDER(I) = IN
       IADDR(IV) = IN + 1
    END DO
-!
+
 ! -------------------------------------------------------------------- /
 ! d.  Sort points
-!
+
    DO I=1, MSC*MDC
       IND(IORDER(I)) = I
    END DO
-!
+
    RETURN
 !     end of subroutine PTSORT
-END SUBROUTINE PTSORT
+end subroutine PTSORT
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE PTNGHB
 !                                                                      *
-!***********************************************************************
-!
-   USE SWCOMM3, ONLY: MSC, MDC
-   USE OCPCOMM4, ONLY: PRINTF
-!
+!************************************************************************
+
+   USE swan_spectral_grid, ONLY: MSC, MDC
+   USE swan_io_units, ONLY: PRINTF
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -672,9 +668,9 @@ SUBROUTINE PTNGHB
 !  4. Modules used
 !
 !     ---
-!
-   IMPLICIT NONE
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !  5. Argument variables
 !
 !       IMI     I.A.   I   Input discretized spectrum
@@ -689,9 +685,10 @@ SUBROUTINE PTNGHB
 !     ---
 !
 !  7. Local variables
-!
-   INTEGER                 :: IENT, N, J, I, K
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER                 :: N, J, I, K
+
 !  8. Subroutines and functions used
 !
 !     ---
@@ -713,148 +710,145 @@ SUBROUTINE PTNGHB
 !     ---
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT /0/
+
    CALL STRACE (IENT, 'PTNGHB')
 ! -------------------------------------------------------------------- /
 ! a.  Check on need of processing
-!
+
    IF ( MK.EQ.MSC .AND. MTH.EQ.MDC ) RETURN
-!
+
    IF ( MK.GT.0 ) DEALLOCATE ( NEIGH )
    ALLOCATE ( NEIGH(9,MSC*MDC) )
    MK     = MSC
    MTH    = MDC
-!
+
 ! -------------------------------------------------------------------- /
 ! b.  Build map
-!
+
    NEIGH  = 0
-!
+
 ! ... Base loop
-!
+
    DO N = 1, MSC*MDC
-!
+
       J      = (N-1) / MSC + 1
       I      = N - (J-1) * MSC
       K      = 0
-!
+
 ! ... Point at the left(1)
-!
+
       IF ( I .NE. 1 ) THEN
          K           = K + 1
          NEIGH(K, N) = N - 1
       END IF
-!
+
 ! ... Point at the right (2)
-!
+
       IF ( I .NE. MSC ) THEN
          K           = K + 1
          NEIGH(K, N) = N + 1
       END IF
-!
+
 ! ... Point at the bottom(3)
-!
+
       IF ( J .NE. 1 ) THEN
          K           = K + 1
          NEIGH(K, N) = N - MSC
       END IF
-!
+
 ! ... ADD Point at bottom_wrap to top
-!
+
       IF ( J .EQ. 1 ) THEN
          K          = K + 1
          NEIGH(K,N) = MSC*MDC - (MSC-I)
       END IF
-!
+
 ! ... Point at the top(4)
-!
+
       IF ( J .NE. MDC ) THEN
          K           = K + 1
          NEIGH(K, N) = N + MSC
       END IF
-!
+
 ! ... ADD Point to top_wrap to bottom
-!
+
       IF ( J .EQ. MDC ) THEN
          K          = K + 1
          NEIGH(K,N) = N - (MDC-1) * MSC
       END IF
-!
+
 ! ... Point at the bottom, left(5)
-!
+
       IF ( (I.NE.1) .AND. (J.NE.1) ) THEN
          K           = K + 1
          NEIGH(K, N) = N - MSC - 1
       END IF
-!
+
 ! ... Point at the bottom, left with wrap.
-!
+
       IF ( (I.NE.1) .AND. (J.EQ.1) ) THEN
          K          = K + 1
          NEIGH(K,N) = N - 1 + MSC * (MDC-1)
       END IF
-!
+
 ! ... Point at the bottom, right(6)
-!
+
       IF ( (I.NE.MSC) .AND. (J.NE.1) ) THEN
          K           = K + 1
          NEIGH(K, N) = N - MSC + 1
       END IF
-!
+
 ! ... Point at the bottom, right with wrap
-!
+
       IF ( (I.NE.MSC) .AND. (J.EQ.1) ) THEN
          K           = K + 1
          NEIGH(K,N) = N + 1 + MSC * (MDC - 1)
       END  IF
-!
+
 ! ... Point at the top, left(7)
-!
+
       IF ( (I.NE.1) .AND. (J.NE.MDC) ) THEN
          K           = K + 1
          NEIGH(K, N) = N + MSC - 1
       END IF
-!
+
 ! ... Point at the top, left with wrap
-!
+
       IF ( (I.NE.1) .AND. (J.EQ.MDC) ) THEN
          K           = K + 1
          NEIGH(K,N) = N - 1 - (MSC) * (MDC-1)
       END IF
-!
+
 ! ... Point at the top, right(8)
-!
+
       IF ( (I.NE.MSC) .AND. (J.NE.MDC) ) THEN
          K           = K + 1
          NEIGH(K, N) = N + MSC + 1
       END IF
-!
+
 ! ... Point at top, right with wrap
-!
+
       IF ( (I.NE.MSC) .AND. (J.EQ.MDC) ) THEN
          K           = K + 1
          NEIGH(K,N) = N + 1 - (MSC) * (MDC-1)
       END IF
-!
+
       NEIGH(9,N) = K
-!
+
    END DO
-!
+
    RETURN
 !     end of subroutine PTNGHB
-END SUBROUTINE PTNGHB
+end subroutine PTNGHB
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE PT_FLD ( IMI, IND, IMO, ZP, NPART )
 !                                                                      *
-!***********************************************************************
-!
-   USE SWCOMM3, ONLY: MSC, MDC
-!
-!
+!************************************************************************
+
+   USE swan_spectral_grid, ONLY: MSC, MDC
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -902,9 +896,9 @@ SUBROUTINE PT_FLD ( IMI, IND, IMO, ZP, NPART )
 !  4. Modules used
 !
 !     ---
-!
-   IMPLICIT NONE
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !  5. Argument variables
 !
 !       IMI     I.A.   I   Input discretized spectrum
@@ -912,24 +906,25 @@ SUBROUTINE PT_FLD ( IMI, IND, IMO, ZP, NPART )
 !       IMO     I.A.   O   Output partitioned spectrum
 !       ZP      R.A.   I   Spectral array
 !       NPART   Int.   O   Number of partitions found
-!
+
    INTEGER, INTENT(IN)     :: IMI(MSC*MDC), IND(MSC*MDC)
    INTEGER, INTENT(OUT)    :: IMO(MSC*MDC), NPART
    REAL, INTENT(IN)        :: ZP(MSC*MDC)
-!
+
 !  6. Parameter variables
 !
 !     ---
 !
 !  7. Local variables
-!
-   INTEGER                 :: IENT, MASK, INIT, IWSHED, IMD(MSC*MDC), &
-                              IC_LABEL, IFICT_PIXEL, M, IH, MSAVE, &
-                              IP, I, IPP, IC_DIST, IEMPTY, IPPP, &
-                              JL, JN, IPT, J
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER                 :: MASK, INIT, IWSHED, IMD(MSC*MDC), &
+      IC_LABEL, IFICT_PIXEL, M, IH, MSAVE, &
+      IP, I, IPP, IC_DIST, IEMPTY, IPPP, &
+      JL, JN, IPT, J
    INTEGER                 :: IQ(MSC*MDC), IQ_START, IQ_END
    REAL                    :: ZPMAX, EP1, DIFF
-!
+
 !  8. Subroutines and functions used
 !
 !     ---
@@ -951,13 +946,11 @@ SUBROUTINE PT_FLD ( IMI, IND, IMO, ZP, NPART )
 !     ---
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT /0/
+
    CALL STRACE (IENT, 'PT_FLD')
 ! -------------------------------------------------------------------- /
 ! 0.  Initializations
-!
+
    MASK        = -2
    INIT        = -1
    IWSHED      =  0
@@ -965,33 +958,33 @@ SUBROUTINE PT_FLD ( IMI, IND, IMO, ZP, NPART )
    IC_LABEL    =  0
    IMD         =  0
    IFICT_PIXEL = -100
-!
+
    IQ_START    =  1
    IQ_END      =  1
-!
+
    ZPMAX       = MAXVAL ( ZP )
-!
+
 ! -------------------------------------------------------------------- /
 ! 1.  Loop over levels
-!
+
    M      =  1
-!
+
    DO IH=1, IHMAX
       MSAVE  = M
-!
+
 ! 1.a Pixels at level IH
-!
+
       DO
          IP     = IND(M)
          IF ( IMI(IP) .NE. IH ) EXIT
-!
+
 !     Flag the point, if it stays flagge, it is a separate minimum
-!
+
          IMO(IP) = MASK
-!
+
 !     Consider neighbors
 !     If there is neighbor, set distance and add to queue
-!
+
          DO I=1, NEIGH(9,IP)
             IPP    = NEIGH(I,IP)
             IF ( (IMO(IPP).GT.0) .OR. (IMO(IPP).EQ.IWSHED) ) THEN
@@ -1000,25 +993,25 @@ SUBROUTINE PT_FLD ( IMI, IND, IMO, ZP, NPART )
                EXIT
             END IF
          END DO
-!
+
          IF ( M+1 .GT. MSC*MDC ) THEN
             EXIT
          ELSE
             M = M + 1
          END IF
-!
+
       END DO
-!
+
 ! 1.b Process the queue
-!
+
       IC_DIST = 1
       CALL FIFO_ADD (IFICT_PIXEL)
-!
+
       DO
          CALL FIFO_FIRST (IP)
-!
+
 !     Check for end of processing
-!
+
          IF ( IP .EQ. IFICT_PIXEL ) THEN
             CALL FIFO_EMPTY (IEMPTY)
             IF ( IEMPTY .EQ. 1 ) THEN
@@ -1029,67 +1022,67 @@ SUBROUTINE PT_FLD ( IMI, IND, IMO, ZP, NPART )
                CALL FIFO_FIRST (IP)
             END IF
          END IF
-!
+
 !     Process queue
-!
+
          DO I=1, NEIGH(9,IP)
             IPP = NEIGH(I,IP)
-!
+
 !     Check for labeled watersheds or basins
-!
+
             IF ( (IMD(IPP).LT.IC_DIST) .AND. ( (IMO(IPP).GT.0) .OR. &
-                 (IMO(IPP).EQ.IWSHED))) THEN
-!
+               (IMO(IPP).EQ.IWSHED))) THEN
+
                IF ( IMO(IPP) .GT. 0 ) THEN
-!
+
                   IF ((IMO(IP) .EQ. MASK) .OR. (IMO(IP) .EQ. &
-                      IWSHED)) THEN
+                     IWSHED)) THEN
                      IMO(IP) = IMO(IPP)
                   ELSE IF (IMO(IP) .NE. IMO(IPP)) THEN
                      IMO(IP) = IWSHED
                   END IF
-!
+
                ELSE IF (IMO(IP) .EQ. MASK) THEN
-!
+
                   IMO(IP) = IWSHED
-!
+
                END IF
-!
+
             ELSE IF ( (IMO(IPP).EQ.MASK) .AND. (IMD(IPP).EQ.0) ) THEN
-!
+
                IMD(IPP) = IC_DIST + 1
                CALL FIFO_ADD (IPP)
-!
+
             END IF
-!
+
          END DO
-!
+
       END DO
-!
+
 ! 1.c Check for mask values in IMO to identify new basins
-!
+
       M = MSAVE
-!
+
       DO
          IP     = IND(M)
          IF ( IMI(IP) .NE. IH ) EXIT
          IMD(IP) = 0
-!
+
          IF (IMO(IP) .EQ. MASK) THEN
-!
+
 ! ... New label for pixel
-!
+
             IC_LABEL = IC_LABEL + 1
             CALL FIFO_ADD (IP)
             IMO(IP) = IC_LABEL
-!
+
 ! ... and all connected to it ...
-!
+
             DO
                CALL FIFO_EMPTY (IEMPTY)
                IF ( IEMPTY .EQ. 1 ) EXIT
                CALL FIFO_FIRST (IPP)
-!
+
                DO I=1, NEIGH(9,IPP)
                   IPPP   = NEIGH(I,IPP)
                   IF ( IMO(IPPP) .EQ. MASK ) THEN
@@ -1097,26 +1090,26 @@ SUBROUTINE PT_FLD ( IMI, IND, IMO, ZP, NPART )
                      IMO(IPPP) = IC_LABEL
                   END IF
                END DO
-!
+
             END DO
-!
+
          END IF
-!
+
          IF ( M + 1 .GT. MSC*MDC ) THEN
             EXIT
          ELSE
             M = M + 1
          END IF
-!
+
       END DO
-!
+
    END DO
-!
+
 ! -------------------------------------------------------------------- /
 ! 2.  Find nearest neighbor of 0 watershed points and replace
 !     use original input to check which group to affiliate with 0
 !     Soring changes first in IMD to assure symetry in adjustment
-!
+
    DO J=1, 5
       IMD    = IMO
       DO JL=1 , MSC*MDC
@@ -1136,71 +1129,71 @@ SUBROUTINE PT_FLD ( IMI, IND, IMO, ZP, NPART )
       IMO    = IMD
       IF ( MINVAL(IMO) .GT. 0 ) EXIT
    END DO
-!
+
    NPART = IC_LABEL
-!
+
    RETURN
-!
+
 CONTAINS
 !/ ------------------------------------------------------------------- /
 SUBROUTINE FIFO_ADD ( IV )
-!
+
 !     Add point to FIFO queue
-!
+
    INTEGER, INTENT(IN)      :: IV
-!
+
    IQ(IQ_END) = IV
-!
+
    IQ_END = IQ_END + 1
    IF ( IQ_END .GT. MSC*MDC ) IQ_END = 1
-!
+
    RETURN
-END SUBROUTINE
+end subroutine FIFO_ADD
 !/ ------------------------------------------------------------------- /
 SUBROUTINE FIFO_EMPTY ( IEMPTY )
-!
+
 !     Check if queue is empty
-!
+
    INTEGER, INTENT(OUT)     :: IEMPTY
-!
+
    IF ( IQ_START .NE. IQ_END ) THEN
       IEMPTY = 0
    ELSE
       IEMPTY = 1
    END IF
-!
+
    RETURN
-END SUBROUTINE
+end subroutine FIFO_EMPTY
 !/ ------------------------------------------------------------------- /
 SUBROUTINE FIFO_FIRST ( IV )
-!
+
 !     Get point out of queue
-!
+
    INTEGER, INTENT(OUT)     :: IV
-!
+
    IV = IQ(IQ_START)
-!
+
    IQ_START = IQ_START + 1
    IF ( IQ_START .GT. MSC*MDC ) IQ_START = 1
-!
+
    RETURN
-END SUBROUTINE
+end subroutine FIFO_FIRST
 
 !     end of subroutine PT_FLD
-END SUBROUTINE PT_FLD
+end subroutine PT_FLD
 
-!***********************************************************************
+!************************************************************************
 !                                                                      *
 SUBROUTINE PTMEAN ( NPI, IMO, ZP, DEPTH, UABS, UDIR, WN, &
-                    SPCSIG, SPCDIR, NPO, XP, DIMXP, PMAP )
+   SPCSIG, SPCDIR, NPO, XP, DIMXP, PMAP )
 !                                                                      *
-!***********************************************************************
-!
-   USE SWCOMM3, ONLY: MSC, MDC, DDIR, PI2, DEGRAD, FRINTF
-   USE SWCOMM1, ONLY: OUTPAR
-   USE OCPCOMM4, ONLY: PRINTF
-!
-!
+!************************************************************************
+
+   USE swan_spectral_grid, ONLY: MSC, MDC, DDIR, FRINTF
+   USE swan_math_constants, ONLY: PI2, DEGRAD
+   USE swan_math_constants
+   USE swan_io_units, ONLY: PRINTF
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1248,9 +1241,9 @@ SUBROUTINE PTMEAN ( NPI, IMO, ZP, DEPTH, UABS, UDIR, WN, &
 !  4. Modules used
 !
 !     ---
-!
-   IMPLICIT NONE
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !  5. Argument variables
 !
 !       NPI     Int.   I   Number of partitions found
@@ -1266,31 +1259,32 @@ SUBROUTINE PTMEAN ( NPI, IMO, ZP, DEPTH, UABS, UDIR, WN, &
 !       XP      R.A.   O   Array with output parameters
 !       DIMXP   int.   I   Second dimesion of XP
 !       PMAP    I.A.   O   Mapping between orig. and combined partitions
-!
+
    INTEGER, INTENT(IN)     :: NPI, IMO(MSC*MDC), DIMXP
    INTEGER, INTENT(OUT)    :: NPO, PMAP(DIMXP)
    REAL, INTENT(IN)        :: ZP(MSC*MDC), DEPTH, UABS, UDIR, WN(MSC)
    REAL, INTENT(OUT)       :: XP(7,0:DIMXP)
    REAL, INTENT(IN)        :: SPCDIR(MDC,6)
    REAL, INTENT(IN)        :: SPCSIG(MSC)
-!
+
 !  6. Parameter variables
 !
 !     ---
 !
 !  7. Local variables
-!
-   INTEGER                 :: IENT, IS, ITH, ISP, IP, IFPMAX(0:NPI)
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER                 :: IS, ITH, ISP, IP, IFPMAX(0:NPI)
    REAL                    :: SUMF(0:MSC+1,0:NPI), SUMFW(MSC,0:NPI), &
-                              SUMFX(MSC,0:NPI), SUMFY(MSC,0:NPI), &
-                              SUME(0:NPI), SUMEW(0:NPI), &
-                              SUMEX(0:NPI), SUMEY(0:NPI), &
-                              EFPMAX(0:NPI), FCDIR(MDC)
+      SUMFX(MSC,0:NPI), SUMFY(MSC,0:NPI), &
+      SUME(0:NPI), SUMEW(0:NPI), &
+      SUMEX(0:NPI), SUMEY(0:NPI), &
+      EFPMAX(0:NPI), FCDIR(MDC)
    REAL                    :: SUMFK(MSC,0:NPI), SUMEK(0:NPI)
    REAL                    :: HS, XL, XH, XL2, XH2, EL, EH, DENOM, &
-                              SIGP, WNP, CGP, UPAR, C(MSC), RD, FACT
+      SIGP, WNP, CGP, UPAR, C(MSC), RD, FACT
    REAL                    :: DS, FTE
-!
+
 !  8. Subroutines and functions used
 !
 !     ---
@@ -1312,21 +1306,19 @@ SUBROUTINE PTMEAN ( NPI, IMO, ZP, DEPTH, UABS, UDIR, WN, &
 !     ---
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT /0/
+
    CALL STRACE (IENT, 'PTMEAN')
 ! -------------------------------------------------------------------- /
 ! 1.  Check on need of processing
-!
+
    NPO    = 0
    XP     = 0.
-!
+
    IF ( NPI .EQ. 0 ) RETURN
-!
+
 ! -------------------------------------------------------------------- /
 ! 2.  Initialize arrays
-!
+
    SUMF   = 0.
    SUMFW  = 0.
    SUMFX  = 0.
@@ -1339,11 +1331,11 @@ SUBROUTINE PTMEAN ( NPI, IMO, ZP, DEPTH, UABS, UDIR, WN, &
    SUMEK  = 0.
    IFPMAX = 0
    EFPMAX = 0.
-!
+
    DO IS=1, MSC
       C(IS)  = SPCSIG(IS) / WN(IS)
    END DO
-!
+
    DO ITH=1, MDC
       UPAR   = WSMULT * UABS * MAX(0.,COS(SPCDIR(ITH,1)-DEGRAD*UDIR))
       IF ( UPAR .LT. C(MSC) ) THEN
@@ -1360,12 +1352,12 @@ SUBROUTINE PTMEAN ( NPI, IMO, ZP, DEPTH, UABS, UDIR, WN, &
          FCDIR(ITH) = RD*SPCSIG(IS+1) + (1.-RD)*SPCSIG(IS)
       END IF
    END DO
-!
+
 ! -------------------------------------------------------------------- /
 ! 3.  Spectral integrals and preps
 ! 3.a Integrals
 !     NOTE: Factor DDIR only used in Hs computation
-!
+
    DO IS=2, MSC
       DO ITH=1, MDC
          ISP    = IS + (ITH-1)*MSC
@@ -1387,7 +1379,7 @@ SUBROUTINE PTMEAN ( NPI, IMO, ZP, DEPTH, UABS, UDIR, WN, &
       END DO
    END DO
 !>      SUMF(MSC+1,:) = SUMF(MSC,:) * FACHFE                                41.62 !Tail addition deativated
-!
+
    DO IP=0, NPI
       DO IS=2, MSC
          DS = SPCSIG(IS) * FRINTF
@@ -1397,32 +1389,32 @@ SUBROUTINE PTMEAN ( NPI, IMO, ZP, DEPTH, UABS, UDIR, WN, &
 !          SUMEY(IP) = SUMEY(IP) + SUMFY(IS,IP) * DS
          !Replaced original with more accurate trapezoidal rule
          SUME (IP) = SUME (IP) + 0.5*(SPCSIG(IS)*SUMF(IS,IP) + &
-                                 SPCSIG(IS-1)*SUMF(IS-1,IP))*DS
+            SPCSIG(IS-1)*SUMF(IS-1,IP))*DS
          SUMEW(IP) = SUMEW(IP) + 0.5*(SPCSIG(IS)*SUMFW(IS,IP) + &
-                                 SPCSIG(IS-1)*SUMFW(IS-1,IP))*DS
+            SPCSIG(IS-1)*SUMFW(IS-1,IP))*DS
          SUMEX(IP) = SUMEX(IP) + 0.5*(SPCSIG(IS)*SUMFX(IS,IP) + &
-                                 SPCSIG(IS-1)*SUMFX(IS-1,IP))*DS
+            SPCSIG(IS-1)*SUMFX(IS-1,IP))*DS
          SUMEY(IP) = SUMEY(IP) + 0.5*(SPCSIG(IS)*SUMFY(IS,IP) + &
-                                 SPCSIG(IS-1)*SUMFY(IS-1,IP))*DS
+            SPCSIG(IS-1)*SUMFY(IS-1,IP))*DS
          SUMEK(IP) = SUMEK(IP) + 0.5*(SPCSIG(IS)*SUMFK(IS,IP) + &
-                                 SPCSIG(IS-1)*SUMFK(IS-1,IP))*DS
+            SPCSIG(IS-1)*SUMFK(IS-1,IP))*DS
          IF ( SUMF(IS,IP) .GT. EFPMAX(IP) ) THEN
             IFPMAX(IP) = IS
             EFPMAX(IP) = SUMF(IS,IP)
          END IF
       END DO
    END DO
-!
+
 ! -------------------------------------------------------------------- /
 ! 4.  Compute pars
-!
+
    NPO    = -1
-!
+
    DO IP=0, NPI
-!
+
       HS     = 4. * SQRT ( SUME(IP) * DDIR )
       IF ( HS .LT. HSPMIN ) CYCLE
-!
+
       XL     = 1./(1+FRINTF) - 1.
       XH     = FRINTF
       XL2    = XL**2
@@ -1431,9 +1423,12 @@ SUBROUTINE PTMEAN ( NPI, IMO, ZP, DEPTH, UABS, UDIR, WN, &
       EH     = SUMF(IFPMAX(IP)+1,IP) - SUMF(IFPMAX(IP),IP)
       DENOM  = XL*EH - XH*EL
       SIGP   = SPCSIG(IFPMAX(IP)) * ( 1. + 0.5 * ( XL2*EH - XH2*EL ) &
-                     / SIGN ( MAX(ABS(DENOM),1.E-15) , DENOM ) )
-!
-      IF ( NPO .GE. DIMXP ) GOTO 2000
+         / SIGN ( MAX(ABS(DENOM),1.E-15) , DENOM ) )
+
+      IF ( NPO .GE. DIMXP ) THEN
+         WRITE (PRINTF,"(/' *** ERROR IN PTMEAN :'/ '     XP ARRAY TOO SMALL AT PARTITION',I6/)") NPO+1
+         RETURN
+      END IF
       NPO       = NPO + 1
       IF (IP.GT.0) PMAP(NPO) = IP
       XP(1,NPO) = HS
@@ -1446,32 +1441,23 @@ SUBROUTINE PTMEAN ( NPI, IMO, ZP, DEPTH, UABS, UDIR, WN, &
       END IF
       XP(4,NPO) = MOD( 630.-ATAN2(SUMEY(IP),SUMEX(IP))/DEGRAD , 360. )
       XP(5,NPO) = (1/DEGRAD) * SQRT ( MAX ( 0. , 2. * ( 1. - SQRT ( &
-              MAX(0.,(SUMEX(IP)**2+SUMEY(IP)**2)/SUME(IP)**2) ) ) ) )
+         MAX(0.,(SUMEX(IP)**2+SUMEY(IP)**2)/SUME(IP)**2) ) ) ) )
       XP(6,NPO) = SUMEW(IP) / SUME(IP)
       IF ( XP(3,NPO) .GT. 0. ) THEN
          XP(7,NPO) = HS / XP(3,NPO)
       ELSE
          XP(7,NPO) = 0.
       END IF
-!
+
    END DO
-!
+
    RETURN
-!
-! Escape locations read errors --------------------------------------- *
-!
-2000 CONTINUE
-   WRITE (PRINTF,1000) NPO+1
-   RETURN
-!
+
 ! Formats
-!
-1000 FORMAT (/' *** ERROR IN PTMEAN :'/ &
-              '     XP ARRAY TOO SMALL AT PARTITION',I6/)
 
 !     end of subroutine PTMEAN
-END SUBROUTINE PTMEAN
-!
+end subroutine PTMEAN
+
 ! End of module SWPARTMD
-!
-END MODULE SWPARTMD
+
+end module SWPARTMD

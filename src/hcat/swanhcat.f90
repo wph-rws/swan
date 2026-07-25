@@ -4,16 +4,12 @@
 !     Program take hotfiles created from SWAN parallel runs and compiles them
 !     into a single file.
 !
-!     Read command line arguments (only in case of Fortran 2003)
 !     HotConcat [-v] [-s] [-h halosize] <basefile>
 !     <basefile> refers to the base file name used for hotfiles
 !     [-v]           verbose mode: program reports non-error information
 !     [-h halosize]  optional argument which changes the overlap halo from default value
 !     [-s]           stomp over existing basefile
 !     [help] [-help] display above information
-!
-!     In case of non-Fortran 2003, read arguments via arg_nml namelist from
-!     hcat.nml file.
 !
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
 !     Copyright (C) 1993-2024  Delft University of Technology
@@ -30,30 +26,23 @@
 !
 !     You should have received a copy of the GNU General Public License
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
 
 program HotConcat
 
    implicit none
    character(1024) RLINE
-   character*128 arg_str, basefile, tmp
-   integer ios,i,j,k,l,numfiles, sum, halo,haloindex, mxc, myc
+   CHARACTER(LEN=128) arg_str, basefile, tmp
+   integer arg_count, ios, i, j, k, l, numfiles, sum, halo, haloindex, mxc, myc
    integer prevsource,freq,cdir, version, ival, ival2, indx
    real    rval
-   character  rprojid*16, rprojnr*4, rvertxt*20, rchtime*20
+   character(len=16) :: rprojid
+   character(len=4)  :: rprojnr
+   character(len=20) :: rvertxt, rchtime
    logical ydivide, verbose, haloflag, exists, stomp, nonstat, kspher
    logical free
    real, allocatable :: x(:,:),y(:,:), ac2(:,:)
    integer, allocatable :: locations(:),index(:), source(:)
    integer, allocatable :: ownlocat(:)
-   namelist /arg_nml/ basefile,free,halo,verbose,stomp
-
-33 FORMAT('-',I3.3,A)
-35 FORMAT(A)
-36 FORMAT(F14.4,F14.4)
-37 FORMAT(F12.6,F12.6)
-38 FORMAT(I8,2I6,A)
-
 !.....Set command-line argument defaults
    basefile = 'NULL'
    free = .TRUE.
@@ -61,53 +50,55 @@ program HotConcat
    verbose = .FALSE.
    stomp = .FALSE.
 
-!.....Aquire arguments via arg_nml namelist read from hcat.nml file (non-Fortran 2003)
-   OPEN(10,FILE='hcat.nml',STATUS='OLD')
-   READ(10,NML=arg_nml)
-   CLOSE(10)
+!.....Process command-line arguments
+   haloflag = .false.
+   arg_count = command_argument_count()
+   if (arg_count < 1) then
+      print *, 'HotConcat [-v] [-s] [-h halosize] <basefile>'
+      stop 1
+   end if
 
-!.....Process command-line arguments (Fortran 2003)
-!     haloflag = .FALSE.
-!     IF(COMMAND_ARGUMENT_COUNT()<1 .OR.
-!    &     COMMAND_ARGUMENT_COUNT()>4) THEN
-!        PRINT *, 'HotConcat [-v] [-h halosize] <basefile>'
-!       RETURN
-!     ELSE
-!        DO i=1,COMMAND_ARGUMENT_COUNT()
-!           CALL GET_COMMAND_ARGUMENT(NUMBER=i,VALUE=arg_str)
-!           IF (arg_str == 'help' .OR. arg_str == '-help') THEN
-!              PRINT *,'HotConcat [-v] [-s] [-h halosize] <basefile>'
-!              PRINT *,'[-v]           verbose mode: program reports ',
-!    &                 'non-error information'
-!              PRINT *,'[-h halosize]  optional argument which changes',
-!    &                 ' the overlap halo from defualt value of 3'
-!              PRINT *,'[-s]           stomp over existing basefile'
-!              PRINT *,'[help] [-help] display above information'
-!              STOP
-!           ELSE IF (haloflag) THEN
-!              READ (arg_str,'(I10)'), halo
-!              haloflag = .FALSE.
-!           ELSE IF (arg_str == '-h') THEN
-!              haloflag = .TRUE.
-!           ELSE IF (arg_str == '-v') THEN
-!              verbose = .TRUE.
-!           ELSE IF (arg_str == '-s') THEN
-!              stomp = .TRUE.
-!           ELSE IF (arg_str == '-sv' .OR. arg_str == '-vs') THEN
-!              stomp = .TRUE. ; verbose = .TRUE.
-!           ELSE IF (arg_str == '-sh' .OR. arg_str == '-hs') THEN
-!              stomp = .TRUE. ; haloflag = .TRUE.
-!           ELSE IF (arg_str == '-vh' .OR. arg_str == '-hv') THEN
-!              verbose = .TRUE. ; haloflag = .TRUE.
-!           ELSE IF (arg_str == '-svh' .OR. arg_str == '-shv' .OR.
-!    &               arg_str == '-vsh' .OR. arg_str == '-vhs' .OR.
-!    &               arg_str == '-hsv' .OR. arg_str == '-hvs') THEN
-!              stomp = .TRUE. ; verbose = .TRUE. ;  haloflag = .TRUE.
-!           ELSE
-!              basefile=arg_str
-!           ENDIF
-!        ENDDO
-!     ENDIF
+   do i = 1, arg_count
+      call get_command_argument(number=i, value=arg_str)
+      if (arg_str == 'help' .or. arg_str == '-help' .or. arg_str == '--help') then
+         print *, 'HotConcat [-v] [-s] [-h halosize] <basefile>'
+         print *, '[-v]           report non-error information'
+         print *, '[-h halosize]  change the overlap halo from its default of 3'
+         print *, '[-s]           overwrite an existing basefile'
+         stop
+      else if (haloflag) then
+         read (arg_str, *, iostat=ios) halo
+         if (ios /= 0 .or. halo < 0) error stop 'Invalid halo size'
+         haloflag = .false.
+      else if (arg_str == '-h') then
+         haloflag = .true.
+      else if (arg_str == '-v') then
+         verbose = .true.
+      else if (arg_str == '-s') then
+         stomp = .true.
+      else if (arg_str == '-sv' .or. arg_str == '-vs') then
+         stomp = .true.
+         verbose = .true.
+      else if (arg_str == '-sh' .or. arg_str == '-hs') then
+         stomp = .true.
+         haloflag = .true.
+      else if (arg_str == '-vh' .or. arg_str == '-hv') then
+         verbose = .true.
+         haloflag = .true.
+      else if (arg_str == '-svh' .or. arg_str == '-shv' .or. &
+               arg_str == '-vsh' .or. arg_str == '-vhs' .or. &
+               arg_str == '-hsv' .or. arg_str == '-hvs') then
+         stomp = .true.
+         verbose = .true.
+         haloflag = .true.
+      else if (basefile == 'NULL') then
+         basefile = arg_str
+      else
+         error stop 'More than one basefile specified'
+      end if
+   end do
+
+   if (haloflag) error stop 'Missing halo size after -h'
 
 !.....Error trap
    IF(basefile=='NULL') THEN
@@ -124,14 +115,14 @@ program HotConcat
          OPEN(unit=10, file=TRIM(basefile), iostat=ios)
       ELSE
          OPEN(unit=10, file=TRIM(basefile), form='UNFORMATTED', &
-              iostat=ios)
+            iostat=ios)
       ENDIF
    ELSE
       IF (free) THEN
          OPEN(unit=10, file=TRIM(basefile), iostat=ios, STATUS='NEW')
       ELSE
          OPEN(unit=10, file=TRIM(basefile), form='UNFORMATTED', &
-              iostat=ios, STATUS='NEW')
+            iostat=ios, STATUS='NEW')
       ENDIF
    ENDIF
    IF ( ios /= 0 ) then
@@ -140,9 +131,10 @@ program HotConcat
    ENDIF
 
 !.....Identify subdomain files
+   numfiles = 0
    DO i=1,1000
       tmp = trim(basefile)
-      WRITE(tmp(LEN_TRIM(tmp)+1:LEN_TRIM(tmp)+4),33) i
+      WRITE(tmp(LEN_TRIM(tmp)+1:LEN_TRIM(tmp)+4),"('-',I3.3,A)") i
       INQUIRE(FILE=tmp,EXIST=exists)
       IF(exists) THEN
          numfiles = i
@@ -163,12 +155,12 @@ program HotConcat
 !.....Open subdomain files
    DO i=1,numfiles
       tmp = trim(basefile)
-      WRITE(tmp(LEN_TRIM(tmp)+1:LEN_TRIM(tmp)+4),33) i
+      WRITE(tmp(LEN_TRIM(tmp)+1:LEN_TRIM(tmp)+4),"('-',I3.3,A)") i
       IF (free) THEN
          OPEN(unit=10+i, file=tmp, status='old', iostat=ios)
       ELSE
          OPEN(unit=10+i, file=tmp, form='unformatted', status='old', &
-              iostat=ios)
+            iostat=ios)
       ENDIF
       IF ( ios /= 0 ) THEN
          PRINT *,'Unable to open',TRIM(tmp)
@@ -183,34 +175,35 @@ program HotConcat
    allocate(locations(0:numfiles))
    IF (free) THEN
       DO i=1,numfiles
-         READ (10+i,35) RLINE
-         IF(i==1) WRITE(10,35) TRIM(RLINE)
+         READ (10+i,"(A)") RLINE
+         IF(i==1) WRITE(10,"(A)") TRIM(RLINE)
          READ(RLINE,'(A4,I5)') tmp,version
          IF(tmp /= 'SWAN') THEN
             tmp = trim(basefile)
-            WRITE(tmp(LEN_TRIM(tmp)+1:LEN_TRIM(tmp)+4),33) i
+            WRITE(tmp(LEN_TRIM(tmp)+1:LEN_TRIM(tmp)+4),"('-',I3.3,A)") i
             PRINT *,trim(tmp), &
-                 'is not a proper hotfile missing header SWAN'
+               'is not a proper hotfile missing header SWAN'
             STOP
          ENDIF
          IF (version /= 1) THEN
             tmp = trim(basefile)
-            WRITE(tmp(LEN_TRIM(tmp)+1:LEN_TRIM(tmp)+4),33) i
+            WRITE(tmp(LEN_TRIM(tmp)+1:LEN_TRIM(tmp)+4),"('-',I3.3,A)") i
             PRINT *,trim(tmp),'is verion',version, &
-                      'only version 1 is supported'
+               'only version 1 is supported'
             STOP
          ENDIF
-110      READ (10+i,35) RLINE
-         IF(i==1) WRITE(10,35) TRIM(RLINE)
-         IF (RLINE(1:4)=='TIME') nonstat=.TRUE.
-         IF (RLINE(1:6).NE.'LONLAT' .AND. RLINE(1:4).NE.'LOCA') &
-            GOTO 110
+         DO
+            READ (10+i,"(A)") RLINE
+            IF(i==1) WRITE(10,"(A)") TRIM(RLINE)
+            IF (RLINE(1:4)=='TIME') nonstat=.TRUE.
+            IF (RLINE(1:6)=='LONLAT' .OR. RLINE(1:4)=='LOCA') EXIT
+         END DO
          IF (RLINE(1:6).EQ.'LONLAT') THEN
             kspher = .TRUE.
          ELSE IF (RLINE(1:4).EQ.'LOCA') THEN
             kspher = .FALSE.
          ENDIF
-         READ (10+i,38) locations(i),mxc,myc,RLINE
+         READ (10+i,"(I8,2I6,A)") locations(i),mxc,myc,RLINE
          IF(verbose) PRINT *,'File',i,'has',locations(i),'locations'
       ENDDO
    ELSE
@@ -251,13 +244,13 @@ program HotConcat
       IF (.not.kspher) THEN
          DO i=1,numfiles
             DO j=1,locations(i)
-               READ (10+i,36) x(i,j),y(i,j)
+               READ (10+i,"(F14.4,F14.4)") x(i,j),y(i,j)
             ENDDO
          ENDDO
       ELSE
          DO i=1,numfiles
             DO j=1,locations(i)
-               READ (10+i,37) x(i,j),y(i,j)
+               READ (10+i,"(F12.6,F12.6)") x(i,j),y(i,j)
             ENDDO
          ENDDO
       ENDIF
@@ -301,7 +294,7 @@ program HotConcat
             ELSEIF (index(i)<=locations(i)) THEN
                haloindex=0
                DO WHILE(x(i,index(i))<=x(i+1,index(i+1)) .AND. &
-                          haloindex<halo)
+                  haloindex<halo)
                   x(0,index(0))=x(i,index(i))
                   y(0,index(0))=y(i,index(i))
                   source(index(0))=i
@@ -332,12 +325,12 @@ program HotConcat
             ELSE
                haloindex=0
                DO WHILE(x(i,index(i))<=x(i+1,index(i+1)) .AND. &
-                    haloindex<halo)
+                  haloindex<halo)
                   x(0,index(0))=x(i,index(i))
                   y(0,index(0))=y(i,index(i))
                   source(index(0))=i
                   IF( x(i,index(i)) == x(i+1,index(i+1)) .AND. &
-                      y(i,index(i)) == y(i+1,index(i+1)) ) THEN
+                     y(i,index(i)) == y(i+1,index(i+1)) ) THEN
                      IF (y(i+1,index(i+1))>y(i+1,index(i+1)+1)) THEN
                         haloindex=haloindex+1
                      ENDIF
@@ -376,7 +369,7 @@ program HotConcat
 
 !.....Write total number of locations to basefile
    IF (free) THEN
-      WRITE (10,38) locations(0),mxc,myc,TRIM(RLINE)
+      WRITE (10,"(I8,2I6,A)") locations(0),mxc,myc,TRIM(RLINE)
    ELSE
       WRITE (10) locations(0),mxc,myc
    ENDIF
@@ -385,11 +378,11 @@ program HotConcat
    IF (free) THEN
       IF (.not.kspher) THEN
          DO i=1,locations(0)
-            WRITE (10,36) x(0,i),y(0,i)
+            WRITE (10,"(F14.4,F14.4)") x(0,i),y(0,i)
          ENDDO
       ELSE
          DO i=1,locations(0)
-            WRITE (10,37) x(0,i),y(0,i)
+            WRITE (10,"(F12.6,F12.6)") x(0,i),y(0,i)
          ENDDO
       ENDIF
    ELSE
@@ -401,15 +394,15 @@ program HotConcat
 !.....Process FREQ
    IF (free) THEN
       DO i=1,numfiles
-         READ (10+i,35) RLINE
-         IF (i==1) WRITE(10,35) TRIM(RLINE)
-         READ (10+i,35) RLINE
+         READ (10+i,"(A)") RLINE
+         IF (i==1) WRITE(10,"(A)") TRIM(RLINE)
+         READ (10+i,"(A)") RLINE
          READ (RLINE,*) freq
-         IF (i==1) WRITE(10,35) TRIM(RLINE)
+         IF (i==1) WRITE(10,"(A)") TRIM(RLINE)
          IF(verbose) PRINT *,'File',i,'has',freq,'frequencies'
          DO j=1,freq
-            READ (10+i,35) RLINE
-            IF (i==1) WRITE(10,35) TRIM(RLINE)
+            READ (10+i,"(A)") RLINE
+            IF (i==1) WRITE(10,"(A)") TRIM(RLINE)
          ENDDO
       ENDDO
    ELSE
@@ -427,15 +420,15 @@ program HotConcat
 !.....Process DIR
    IF (free) THEN
       DO i=1,numfiles
-         READ (10+i,35) RLINE
-         IF (i==1) WRITE(10,35) TRIM(RLINE)
-         READ (10+i,35) RLINE
+         READ (10+i,"(A)") RLINE
+         IF (i==1) WRITE(10,"(A)") TRIM(RLINE)
+         READ (10+i,"(A)") RLINE
          READ (RLINE,*) cdir
-         IF (i==1) WRITE(10,35) TRIM(RLINE)
+         IF (i==1) WRITE(10,"(A)") TRIM(RLINE)
          IF(verbose) PRINT *,'File',i,'has',cdir,'directions'
          DO j=1,cdir
-            READ (10+i,35) RLINE
-            IF (i==1) WRITE(10,35) TRIM(RLINE)
+            READ (10+i,"(A)") RLINE
+            IF (i==1) WRITE(10,"(A)") TRIM(RLINE)
          ENDDO
       ENDDO
    ELSE
@@ -457,8 +450,8 @@ program HotConcat
    IF (free) THEN
       DO i=1,numfiles
          DO j=1,5
-            READ (10+i,35) RLINE
-            IF (i==numfiles) WRITE(10,35) TRIM(RLINE)
+            READ (10+i,"(A)") RLINE
+            IF (i==numfiles) WRITE(10,"(A)") TRIM(RLINE)
          ENDDO
       ENDDO
    ENDIF
@@ -467,8 +460,8 @@ program HotConcat
    IF (nonstat) THEN
       IF (free) THEN
          DO i=1,numfiles
-            READ (10+i,35) RLINE
-            IF (i==numfiles) WRITE(10,35) TRIM(RLINE)
+            READ (10+i,"(A)") RLINE
+            IF (i==numfiles) WRITE(10,"(A)") TRIM(RLINE)
          ENDDO
       ELSE
          DO i=1,numfiles
@@ -496,10 +489,10 @@ program HotConcat
                IF(j .NE. 1) THEN
                   IF (free) THEN
                      DO k=1,halo
-                        READ (10+j,35,IOSTAT=ios) RLINE
+                        READ (10+j,"(A)",IOSTAT=ios) RLINE
                         IF (RLINE(1:6).EQ.'FACTOR' .and. ios==0) THEN
                            DO l=1,freq+1
-                              READ (10+j,35,IOSTAT=ios) RLINE
+                              READ (10+j,"(A)",IOSTAT=ios) RLINE
                            ENDDO
                            index(j)=index(j)+1
                         ELSE IF(RLINE(1:4).EQ.'ZERO'.and.ios==0) THEN
@@ -531,21 +524,21 @@ program HotConcat
 !.................Write out grid point data as long as the source doesn't change
                DO WHILE(source(index(0))==j)
                   IF (free) THEN
-                     READ (10+j,35,IOSTAT=ios) RLINE
+                     READ (10+j,"(A)",IOSTAT=ios) RLINE
                      IF (RLINE(1:6).EQ.'FACTOR' .and. ios==0) THEN
-                        WRITE(10,35) TRIM(RLINE)
+                        WRITE(10,"(A)") TRIM(RLINE)
                         DO l=1,freq+1
-                           READ (10+j,35,IOSTAT=ios) RLINE
-                           WRITE(10,35) TRIM(RLINE)
+                           READ (10+j,"(A)",IOSTAT=ios) RLINE
+                           WRITE(10,"(A)") TRIM(RLINE)
                         ENDDO
                         index(j)=index(j)+1
                         index(0)=index(0)+1
                      ELSE IF(RLINE(1:4).EQ.'ZERO' .and. ios==0) THEN
-                        WRITE(10,35) TRIM(RLINE)
+                        WRITE(10,"(A)") TRIM(RLINE)
                         index(j)=index(j)+1
                         index(0)=index(0)+1
                      ELSE IF(RLINE(1:6).EQ.'NODATA' .and. ios==0) THEN
-                        WRITE(10,35) TRIM(RLINE)
+                        WRITE(10,"(A)") TRIM(RLINE)
                         index(j)=index(j)+1
                         index(0)=index(0)+1
                      ELSE
@@ -577,10 +570,10 @@ program HotConcat
                IF(j .NE. numfiles) THEN
                   IF (free) THEN
                      DO k=1,halo
-                        READ (10+j,35,IOSTAT=ios) RLINE
+                        READ (10+j,"(A)",IOSTAT=ios) RLINE
                         IF (RLINE(1:6).EQ.'FACTOR'.and.ios==0) THEN
                            DO l=1,freq+1
-                              READ (10+j,35,IOSTAT=ios) RLINE
+                              READ (10+j,"(A)",IOSTAT=ios) RLINE
                            ENDDO
                            index(j)=index(j)+1
                         ELSE IF(RLINE(1:4).EQ.'ZERO'.and.ios==0) THEN
@@ -618,10 +611,10 @@ program HotConcat
 !                     DO WHILE (index(j-1)<=ownlocat(j-1))
                   DO WHILE (index(j-1)<=locations(j-1))
                      IF (free) THEN
-                        READ (10+j,35,IOSTAT=ios) RLINE
+                        READ (10+j,"(A)",IOSTAT=ios) RLINE
                         IF (RLINE(1:6).EQ.'FACTOR' .and. ios==0)THEN
                            DO l=1,freq+1
-                              READ (10+j,35,IOSTAT=ios) RLINE
+                              READ (10+j,"(A)",IOSTAT=ios) RLINE
                            ENDDO
                            index(j-1)=index(j-1)+1
                            index(j)=index(j)+1
@@ -664,21 +657,21 @@ program HotConcat
 !.................Write out grid point data as long as the source doesn't change
                DO WHILE(source(index(0))==j)
                   IF (free) THEN
-                     READ (10+j,35,IOSTAT=ios) RLINE
+                     READ (10+j,"(A)",IOSTAT=ios) RLINE
                      IF (RLINE(1:6).EQ.'FACTOR' .and. ios==0) THEN
-                        WRITE(10,35) TRIM(RLINE)
+                        WRITE(10,"(A)") TRIM(RLINE)
                         DO l=1,freq+1
-                           READ (10+j,35,IOSTAT=ios) RLINE
-                           WRITE(10,35) TRIM(RLINE)
+                           READ (10+j,"(A)",IOSTAT=ios) RLINE
+                           WRITE(10,"(A)") TRIM(RLINE)
                         ENDDO
                         index(j)=index(j)+1
                         index(0)=index(0)+1
                      ELSE IF(RLINE(1:4).EQ.'ZERO' .and. ios==0) THEN
-                        WRITE(10,35) TRIM(RLINE)
+                        WRITE(10,"(A)") TRIM(RLINE)
                         index(j)=index(j)+1
                         index(0)=index(0)+1
                      ELSE IF(RLINE(1:6).EQ.'NODATA' .and. ios==0) THEN
-                        WRITE(10,35) TRIM(RLINE)
+                        WRITE(10,"(A)") TRIM(RLINE)
                         index(j)=index(j)+1
                         index(0)=index(0)+1
                      ELSE IF (ios/=0) THEN
@@ -725,4 +718,4 @@ program HotConcat
       CLOSE (unit=10+i)
    ENDDO
 
-END PROGRAM HotConcat
+end program HotConcat

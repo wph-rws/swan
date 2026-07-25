@@ -1,4 +1,4 @@
-!
+
 !     SWAN/COMPU    file 5 of 5
 !
 !
@@ -30,20 +30,35 @@
 !     DIFPAR  ( compute diffraction parameter and its derivatives )       40.21
 !
 !****************************************************************
-!
-SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
-!
+
+module swan_propagation
+   use swan_diffraction_state, only: diffraction_state_t
+   use swan_output_settings, only: ERRPTS
+   implicit none(type, external)
+   private
+   public :: SWGEOM, SWPSEL, SPROXY, SPROSD, DSPHER, STRSXY, SORDUP, SANDL
+   public :: STRSSI, STRSSB, STRSD, SPREDT, SWAPAR, SWAPRE, ADDDIS, SWFLXD, DIFPAR
+contains
+
+SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR, st_ix, st_iy, st_kc, st_n, st_cos )
+
 !****************************************************************
-!
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_coordinate_offset
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_computational_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_spherical_geometry
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+!  Stencil context passed explicitly by SWOMPU; latitude factors returned.
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -98,14 +113,23 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
 !     RDY         contains derivatives of (ksi,eta) to y-direction
 !                 (i.e. second component of contravariant base
 !                  vector RDY(b) = a^(b)_2)
+!     ST_COS      cosine of the latitude in each point of the stencil
+!                 (output; only computed in spherical coordinates)
+!     ST_IX       x-index of each point of the stencil
+!     ST_IY       y-index of each point of the stencil
+!     ST_KC       index in the computational grid of each point of the
+!                 stencil (1 if the point is not valid)
+!     ST_N        number of points in the stencil
 !     SWPDIR      sweep direction
 !     XCGRID      coordinates of computational grid in x-direction
 !     YCGRID      coordinates of computational grid in y-direction
-!
+
+   INTEGER, INTENT(IN) :: st_ix(MICMAX), st_iy(MICMAX), st_kc(MICMAX), st_n
+   REAL, INTENT(OUT) :: st_cos(MICMAX)
    INTEGER SWPDIR
    REAL    XCGRID(MXC,MYC), YCGRID(MXC,MYC), &
-           RDX(MICMAX)    , RDY(MICMAX)
-!
+      RDX(MICMAX)    , RDY(MICMAX)
+
 !  6. Local variables
 !
 !     DET   :     determinant or volume of cell
@@ -117,10 +141,11 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
 !     IENT  :     number of entries
 !     IXY   :     counter
 !     VIRT  :     indicates virtual point for 1D mode
-!
-   INTEGER IC, IENT, IXY
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER IC, IXY
    REAL    VIRT, DET, DX1, DX2, DY1, DY2
-!
+
 !  7. Common blocks used
 !
 !
@@ -133,11 +158,9 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
 !     SWOMPU
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWGEOM')
-!
+
    IF (KREPTX.GT.0) THEN
 !       repeating x-axis (only regular grids)
       IF (SWPDIR.EQ.1 .OR. SWPDIR.EQ.4) THEN
@@ -167,8 +190,8 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
          ENDIF
       ENDIF
    ELSE
-      DX1 = XCGRID(IXCGRD(1),IYCGRD(1)) - XCGRID(IXCGRD(2),IYCGRD(2))
-      DY1 = YCGRID(IXCGRD(1),IYCGRD(1)) - YCGRID(IXCGRD(2),IYCGRD(2))
+      DX1 = XCGRID(st_ix(1),st_iy(1)) - XCGRID(st_ix(2),st_iy(2))
+      DY1 = YCGRID(st_ix(1),st_iy(1)) - YCGRID(st_ix(2),st_iy(2))
       IF  ( ONED ) THEN
 !         *** Inclusion of virtual point ***                              32.02
          VIRT = 1.E6
@@ -180,75 +203,72 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
             DY2 = -VIRT * DX1
          ENDIF
       ELSE
-         DX2 = XCGRID(IXCGRD(1),IYCGRD(1))-XCGRID(IXCGRD(3),IYCGRD(3))
-         DY2 = YCGRID(IXCGRD(1),IYCGRD(1))-YCGRID(IXCGRD(3),IYCGRD(3))
+         DX2 = XCGRID(st_ix(1),st_iy(1))-XCGRID(st_ix(3),st_iy(3))
+         DY2 = YCGRID(st_ix(1),st_iy(1))-YCGRID(st_ix(3),st_iy(3))
       ENDIF
    ENDIF
-!
+
    DET    =  DY2*DX1 - DY1*DX2
    RDX(1) =  DY2/DET
    RDY(1) = -DX2/DET
    RDX(2) = -DY1/DET
    RDY(2) =  DX1/DET
-!
+
 !     in case of spherical coordinates determine cos of latitude
 !     note: latitude is in degrees
-!
+
    IF (KSPHER.GT.0) THEN
-      DO IC = 1, ICMAX
-         IF ( KCGRD(IC).EQ.1 ) CYCLE ! if point is not valid, then cycle
-         COSLAT(IC) = &
-            COS(DEGRAD*(YCGRID(IXCGRD(IC),IYCGRD(IC))+YOFFS))
+      DO IC = 1, st_n
+         IF ( st_kc(IC).EQ.1 ) CYCLE ! if point is not valid, then cy
+         st_cos(IC) = &
+            COS(DEGRAD*(YCGRID(st_ix(IC),st_iy(IC))+YOFFS))
       ENDDO
       DO IXY = 1, 2
          RDY(IXY) = RDY(IXY) / LENDEG
-         RDX(IXY) = RDX(IXY) / (COSLAT(1) * LENDEG)
+         RDX(IXY) = RDX(IXY) / (st_cos(1) * LENDEG)
       ENDDO
    ENDIF
-!
+
    IF (TESTFL .AND. ITEST .GE. 30) THEN
-      WRITE(PRINTF,186)
-186   FORMAT(' ...POINTS IN STENCIL IN SUBROUTINE SWGEOM...', &
-         /,'Point: IC,  Ix,  Iy, INDEX,        Xc,        Yc')
+      WRITE(PRINTF,"(' ...POINTS IN STENCIL IN SUBROUTINE SWGEOM...', /,'Point: IC,  Ix,  Iy, INDEX,        Xc,        Yc')")
       DO IC = 1, 3
-         WRITE(PRINTF,187) IC, IXCGRD(IC)+MXF-1, IYCGRD(IC)+MYF-1, &
-                           KCGRD(IC), &
-            XCGRID(IXCGRD(IC),IYCGRD(IC)),YCGRID(IXCGRD(IC),IYCGRD(IC))
-187      FORMAT(3(1X,I4),3X,I5,5X,F10.2,4X,F10.2)
+         WRITE(PRINTF,"(3(1X,I4),3X,I5,5X,F10.2,4X,F10.2)") IC, st_ix(IC)+MXF-1, st_iy(IC)+MYF-1, &
+            st_kc(IC), &
+            XCGRID(st_ix(IC),st_iy(IC)),YCGRID(st_ix(IC),st_iy(IC))
       ENDDO
-      WRITE(PRINTF,188) DET,RDX(1),RDX(2),RDY(1),RDY(2)
-188   FORMAT('  DET,       RDX1,      RDX2,      RDY1,     RDY2',/, &
-         5(E10.4,1X))
+      WRITE(PRINTF,"('  DET,       RDX1,      RDX2,      RDY1,     RDY2',/, 5(E10.4,1X))") DET,RDX(1),RDX(2),RDY(1),RDY(2)
    ENDIF
 
    RETURN
-END
-!
+end subroutine SWGEOM
+
 !******************************************************************
-!
-SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    , &
-                  IDCMAX    ,CAX       , &
-                  CAY       ,ANYBIN    , &
-                             ISCMIN    , &
-                  ISCMAX    ,IDTOT     ,ISTOT     , &
-                  IDDLOW    ,IDDTOP    ,ISSTOP    , &
-                  DEP2      ,UX2       ,UY2       , &
-                  SPCDIR    ,RDX       ,RDY       , &
-                  KGRPNT &
-                                                   )
-!
+
+SUBROUTINE SWPSEL(SWPDIR    ,WINDOW    ,CAX       , &
+   CAY       ,ANYBIN    , &
+   IDTOT     ,ISTOT     , &
+   DEP2      ,UX2       ,UY2       , &
+   SPCDIR    ,RDX       ,RDY       , &
+   KGRPNT &
+   ,kc1,ix1,iy1 &
+   )
+
 !******************************************************************
-!
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE M_PARALL
 
-   IMPLICIT NONE
-!
-!
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -402,9 +422,9 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    , &
 !             (*,4); cosine^2 of spectral directions                      30.82
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
-!
+
    REAL    SPCDIR(MDC,6)
-!
+
 !     INTEGERS:
 !     --------------------------------------------------------------
 !     IS                Counter of relative frequency band
@@ -439,9 +459,9 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    , &
 !     SPCDIR  1D  spectral directions                                     20.44
 !     RDX,RDY 1D  array  containing spatial derivative coeff
 !                 (determined in routine SWGEOM)                          40.41
-!
+
    INTEGER, INTENT(IN)  :: KGRPNT(1:MXC,1:MYC) ! grid addresses
-!
+
 !  6. Local variables
 !
 !  7. Common blocks used
@@ -487,62 +507,59 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    , &
 !     --------------------------------------------------------
 !
 ! 13. Source text
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER, INTENT(IN) :: kc1, ix1, iy1
+   TYPE(spectral_window_t), INTENT(INOUT) :: WINDOW
    INTEGER   IS    ,ID    ,                     SWPDIR, &
-                    IDSUM ,IDCLOW,IDCHGH, &
-             IDTOT ,ISTOT , &
-             IDDLOW,IDDTOP,ISSLOW,ISSTOP, &
-             IENT, IDDUM, ISCLOW, ISCHGH, IX, IY ,IC
-!
+      IDSUM ,IDCLOW,IDCHGH, &
+      IDTOT ,ISTOT , &
+      ISSLOW, &
+      IDDUM, ISCLOW, ISCHGH, IX, IY ,IC
+
    REAL      CAXMID,CAYMID, &
-             GROUP, UABS, THDIR
-!
-   INTEGER   IDCMIN(MSC)     , &
-             IDCMAX(MSC)     , &
-             ISCMIN(MDC)     , &
-             ISCMAX(MDC)     , &
-             SECTOR(MSC)
-!
+      GROUP, UABS, THDIR
+
+   INTEGER   SECTOR(MSC)
+
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint   40.22
    REAL  ::  CAX(MDC,MSC,MICMAX)
    REAL  ::  CAY(MDC,MSC,MICMAX)
    REAL  ::  DEP2(MCGRD)         , &
-             UX2(MCGRD)          , &
-             UY2(MCGRD)          , &
-             RDX(MICMAX), RDY(MICMAX)
-!
+      UX2(MCGRD)          , &
+      UY2(MCGRD)          , &
+      RDX(MICMAX), RDY(MICMAX)
+
    LOGICAL   ANYBIN(MDC,MSC)     , &
-             LOWEST, LOWBIN, HGHBIN
-!
-   SAVE IENT
-   DATA IENT/0/
+      LOWEST, LOWBIN, HGHBIN
+
    CALL STRACE (IENT,'SWPSEL')
-!
+
 !     *** initialize array's in theta direction ***
-!
-   DO 50 IS = 1, MSC
-      IDCMIN(IS) = 0
-      IDCMAX(IS) = 0
+
+   do IS = 1, MSC
+      WINDOW%IDCMIN(IS) = 0
+      WINDOW%IDCMAX(IS) = 0
       SECTOR(IS) = 0
-      DO 49 ID = 1, MDC
+      do ID = 1, MDC
          ANYBIN(ID,IS) = .FALSE.
-49    CONTINUE
-50 CONTINUE
-!
+      end do
+   end do
+
 !     *** initialize arrays in frequency direction ***
-!
-   DO 48 ID = 1, MDC
-      ISCMIN(ID) = 1
-      ISCMAX(ID) = 1
-48 CONTINUE
-!
+
+   do ID = 1, MDC
+      WINDOW%ISCMIN(ID) = 1
+      WINDOW%ISCMAX(ID) = 1
+   end do
+
 !     *** set variables ***
-!
+
    IDTOT  =     1
    ISTOT  =     1
    ISSLOW =  9999
-   ISSTOP = -9999
-!
+   WINDOW%ISSTOP = -9999
+
 !     --- part of computation of RDXs and RDYs moved to routine SWGEOM    40.41
 !
 !     *** For curvilinear version we do not distinguish if      ***
@@ -554,7 +571,7 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    , &
 !
 !     *** DO LOOP totally organized for curvilinear 30.21       ***
 
-   DO 500 IS = 1, MSC
+   do IS = 1, MSC
       IDCLOW  = 0
       IDCHGH  = 0
       IDSUM   = 0
@@ -566,24 +583,23 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    , &
                ANYBIN(ID,IS) = .TRUE.
                IDSUM = IDSUM + 1
                ISSLOW = MIN(IS,ISSLOW)
-               ISSTOP = MAX(IS,ISSTOP)
+               WINDOW%ISSTOP = MAX(IS,WINDOW%ISSTOP)
             ENDIF
             IF (TESTFL .AND. ITEST .GE. 190) &
-               WRITE(PRINTF,333) IS,ID,CAXMID,CAYMID,ANYBIN(ID,IS)
-333         FORMAT( ' IS ID CXM CYM ANYBIN :',2(1X,I4),2(1X,E11.4),L2)
+               WRITE(PRINTF,"( ' IS ID CXM CYM ANYBIN :',2(1X,I4),2(1X,E11.4),L2)") IS,ID,CAXMID,CAYMID,ANYBIN(ID,IS)
          ELSE
 !           no current: if bin IS=1 is in sweep, all with same ID are     40.13
             ANYBIN(ID,IS) = ANYBIN(ID,1)
             IF (ANYBIN(ID,1)) THEN
                IDSUM = IDSUM + 1
-               ISSTOP = MAX(IS,ISSTOP)
+               WINDOW%ISSTOP = MAX(IS,WINDOW%ISSTOP)
             ENDIF
          ENDIF
       ENDDO
-!
+
 !       determine boundaries of sector and array SECTOR
-!
-      DO 400 ID = 1, MDC
+
+      do ID = 1, MDC
          LOWBIN = .FALSE.
          HGHBIN = .FALSE.
          IF (ANYBIN(ID,IS)) THEN
@@ -616,60 +632,59 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    , &
             SECTOR(IS) = SECTOR(IS) + 1
             IDCHGH = ID
          ENDIF
-400   CONTINUE
+      end do
 !       check value of SECTOR
-      IF (SECTOR(IS).EQ.1 .OR. SECTOR(IS).EQ.3) WRITE (PRTEST, 410) &
-              SWPDIR, IS, SECTOR(IS), IDSUM, IDCLOW, IDCHGH
-410   FORMAT (' error SWPSEL directions ', 6I6)
+      IF (SECTOR(IS).EQ.1 .OR. SECTOR(IS).EQ.3) WRITE (PRTEST, "(' error SWPSEL directions ', 6I6)") &
+         SWPDIR, IS, SECTOR(IS), IDSUM, IDCLOW, IDCHGH
 !        *** set the minimum and maximum counters for a sweep ***
-!
+
       IF ( IDSUM .EQ. MDC ) THEN
-         IF (FULCIR .AND. SECTOR(IS).NE.0) WRITE (PRTEST, 410) &
-               SWPDIR, IS, SECTOR(IS), IDSUM, IDCLOW, IDCHGH
-         IDCMIN(IS) = 1
-         IDCMAX(IS) = MDC
+         IF (FULCIR .AND. SECTOR(IS).NE.0) WRITE (PRTEST, "(' error SWPSEL directions ', 6I6)") &
+            SWPDIR, IS, SECTOR(IS), IDSUM, IDCLOW, IDCHGH
+         WINDOW%IDCMIN(IS) = 1
+         WINDOW%IDCMAX(IS) = MDC
          SECTOR(IS) = 1
       ELSE IF ( IDSUM .EQ. 0 ) THEN
 !         for this IS there are no active bins
-         IF (SECTOR(IS).NE.0) WRITE (PRTEST, 410) SWPDIR, IS, &
-               SECTOR(IS), IDSUM, IDCLOW, IDCHGH
+         IF (SECTOR(IS).NE.0) WRITE (PRTEST, "(' error SWPSEL directions ', 6I6)") SWPDIR, IS, &
+            SECTOR(IS), IDSUM, IDCLOW, IDCHGH
 !         new values assigned because old ones cause problems in SWSNL2   40.13
-         IDCMIN(IS) = 9
-         IDCMAX(IS) = -9
+         WINDOW%IDCMIN(IS) = 9
+         WINDOW%IDCMAX(IS) = -9
          SECTOR(IS) = 0
       ELSE
          IF ( IDCLOW .GT. IDCHGH ) IDCLOW = IDCLOW - MDC
-         IDCMIN(IS) = IDCLOW
-         IDCMAX(IS) = IDCHGH
+         WINDOW%IDCMIN(IS) = IDCLOW
+         WINDOW%IDCMAX(IS) = IDCHGH
       END IF
-!
+
 !       *** if 4 sectors are present then set counters ***
-!
+
       IF ( SECTOR(IS) .GT. 2 ) THEN
-         IDCMIN(IS) = 1
-         IDCMAX(IS) = MDC
+         WINDOW%IDCMIN(IS) = 1
+         WINDOW%IDCMAX(IS) = MDC
       END IF
-!
-500 CONTINUE
-!
+
+   end do
+
 !     *** calculate minimum and maximum counters in frequency ***
 !     *** space if a current is present: ISCMIN and ISCMAX    ***
-!
-   IDDLOW =  9999
-   IDDTOP = -9999
+
+   WINDOW%IDDLOW =  9999
+   WINDOW%IDDTOP = -9999
    DO IS = 1 , MSC
       IF ( SECTOR(IS) .GT. 0 ) THEN
-         IDDLOW = MIN ( IDDLOW , IDCMIN(IS) )
-         IDDTOP = MAX ( IDDTOP , IDCMAX(IS) )
+         WINDOW%IDDLOW = MIN ( WINDOW%IDDLOW , WINDOW%IDCMIN(IS) )
+         WINDOW%IDDTOP = MAX ( WINDOW%IDDTOP , WINDOW%IDCMAX(IS) )
       END IF
    ENDDO
-!
+
 !     *** Determine counters for a certain sweep ***
-!
-   DO 530 IDDUM = IDDLOW, IDDTOP
+
+   do IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
       LOWEST = .TRUE.
-      DO 430 IS = 1, MSC
+      do IS = 1, MSC
          IF (ANYBIN(ID,IS)) THEN
             IF ( LOWEST ) THEN
                ISCLOW = IS
@@ -677,194 +692,184 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    , &
             ENDIF
             ISCHGH = IS
          END IF
-430   CONTINUE
-!
+      end do
+
 !       *** set the minimum and maximum counters in arrays ***
-!
+
       IF (.NOT.LOWEST) THEN
-         ISCMIN(ID) = ISCLOW
-         ISCMAX(ID) = ISCHGH
-         IF (ISCMIN(ID).LT.ISSLOW) WRITE (PRINTF,*) &
-            ' error SWPSEL, ISSLOW=', ISSLOW, 'ISCMIN=', ISCMIN(ID), &
+         WINDOW%ISCMIN(ID) = ISCLOW
+         WINDOW%ISCMAX(ID) = ISCHGH
+         IF (WINDOW%ISCMIN(ID).LT.ISSLOW) WRITE (PRINTF,*) &
+            ' error SWPSEL, ISSLOW=', ISSLOW, 'ISCMIN=', WINDOW%ISCMIN(ID), &
             ' for ID=', ID
-         IF (ISCMAX(ID).GT.ISSTOP) WRITE (PRINTF,*) &
-            ' error SWPSEL, ISSTOP=', ISSTOP, 'ISCMAX=', ISCMAX(ID), &
+         IF (WINDOW%ISCMAX(ID).GT.WINDOW%ISSTOP) WRITE (PRINTF,*) &
+            ' error SWPSEL, ISSTOP=', WINDOW%ISSTOP, 'ISCMAX=', WINDOW%ISCMAX(ID), &
             ' for ID=', ID
       ELSE
 !         *** no frequencies fall within the sweep ***
-         ISCMIN(ID) = 0
-         ISCMAX(ID) = 0
+         WINDOW%ISCMIN(ID) = 0
+         WINDOW%ISCMAX(ID) = 0
       ENDIF
-!
-530 CONTINUE
-!
+
+   end do
+
 !     *** calculate the maximum number of counters in both ***
 !     *** directional space and frequency space            ***
-!
-   IF (IDDLOW.NE.9999) THEN
-      IF (IDDTOP.EQ.-9999) WRITE (PRTEST, 545) IDDLOW, IDDTOP
-545   FORMAT (' error SWPSEL min & max dir ', 5I7)
-      IDTOT = ( IDDTOP - IDDLOW ) + 1
+
+   IF (WINDOW%IDDLOW.NE.9999) THEN
+      IF (WINDOW%IDDTOP.EQ.-9999) WRITE (PRTEST, "(' error SWPSEL min max dir ', 5I7)") WINDOW%IDDLOW, WINDOW%IDDTOP
+      IDTOT = ( WINDOW%IDDTOP - WINDOW%IDDLOW ) + 1
       IF (ICUR .EQ. 1) THEN
          IF (IDTOT.LT.3) THEN
-            IDDTOP = IDDTOP + 1
-            IF (IDTOT.EQ.1) IDDLOW = IDDLOW - 1
+            WINDOW%IDDTOP = WINDOW%IDDTOP + 1
+            IF (IDTOT.EQ.1) WINDOW%IDDLOW = WINDOW%IDDLOW - 1
             IDTOT = 3
          ENDIF
       ENDIF
    ELSE
-      IF (IDDTOP.NE.-9999) WRITE (PRTEST, 545) IDDLOW, IDDTOP
+      IF (WINDOW%IDDTOP.NE.-9999) WRITE (PRTEST, "(' error SWPSEL min max dir ', 5I7)") WINDOW%IDDLOW, WINDOW%IDDTOP
       IDTOT = 0
    ENDIF
-!
+
    IF (ISSLOW.NE.9999) THEN
       IF (ITEST.GE.20) THEN
-         IF (ISSLOW.NE.1 .OR. ISSTOP.EQ.-9999) &
-            WRITE (PRTEST, 555) IXCGRD(1)-1, IYCGRD(1)-1, ISSLOW, ISSTOP
-555      FORMAT (' error SWPSEL in:', 2I5,',  min & max freq ', 5I7)
+         IF (ISSLOW.NE.1 .OR. WINDOW%ISSTOP.EQ.-9999) &
+            WRITE (PRTEST, "(' error SWPSEL in:', 2I5,', min max freq ', 5I7)") ix1-1, iy1-1, ISSLOW, WINDOW%ISSTOP
       ENDIF
       ISSLOW = 1
 !       minimal value of ISSTOP is 4 (or MSC if MSC<4)                    40.13
-      IF (ICUR.GT.0) ISSTOP = MAX(MIN(4,MSC),ISSTOP)
-      ISTOT = ( ISSTOP - ISSLOW ) + 1
+      IF (ICUR.GT.0) WINDOW%ISSTOP = MAX(MIN(4,MSC),WINDOW%ISSTOP)
+      ISTOT = ( WINDOW%ISSTOP - ISSLOW ) + 1
    ELSE
-      IF (ISSTOP.NE.-9999) WRITE (PRTEST, 555) IXCGRD(1)-1, &
-                  IYCGRD(1)-1, ISSLOW, ISSTOP
+      IF (WINDOW%ISSTOP.NE.-9999) WRITE (PRTEST, "(' error SWPSEL in:', 2I5,', min max freq ', 5I7)") ix1-1, &
+         iy1-1, ISSLOW, WINDOW%ISSTOP
       ISTOT = 0
-      IF (IDTOT.NE.0) WRITE (PRTEST, 556) IXCGRD(1)-1, &
-                  IYCGRD(1)-1, ISSLOW, ISSTOP, IDDLOW, IDDTOP
-556   FORMAT (' error SWPSEL in:', 2I5,'  min&max freq&dir ', 5I7)
+      IF (IDTOT.NE.0) WRITE (PRTEST, "(' error SWPSEL in:', 2I5,' min max freq dir ', 5I7)") ix1-1, &
+         iy1-1, ISSLOW, WINDOW%ISSTOP, WINDOW%IDDLOW, WINDOW%IDDTOP
    ENDIF
-!
+
 !     *** check if IDTOT is less then MDC ***
-!
+
    IF ( IDTOT .GT. MDC ) THEN
-      IDDLOW = 1
-      IDDTOP = MDC
+      WINDOW%IDDLOW = 1
+      WINDOW%IDDTOP = MDC
       IDTOT  = MDC
    END IF
-!
+
 !     *** check if the lowest frequency is not blocked !    ***
 !     *** this can occur in real cases if the depth is very ***
 !     *** small and the current velocity is large           ***
 !     *** the propagation velocity Cg = sqrt (gd) < U       ***
-!
+
    IF (ICUR .EQ. 1 .AND. FULCIR .AND. &
-       ISSLOW.NE.1 .AND. ISSLOW.NE.9999) THEN
+      ISSLOW.NE.1 .AND. ISSLOW.NE.9999) THEN
       CALL MSGERR (2,'The lowest freqency is blocked')
-      WRITE (PRINTF, 612) ' at point:', IXCGRD(1)+MXF-2, &
-                                        IYCGRD(1)+MYF-2, &
-          ' dep=', DEP2(KCGRD(1)), &
-          '  U=', UX2(KCGRD(1)), UY2(KCGRD(1))
-612   FORMAT (A, 2I4, A, F6.2, A, 2F6.2)
+      WRITE (PRINTF, "(A, 2I4, A, F6.2, A, 2F6.2)") ' at point:', ix1+MXF-2, &
+         iy1+MYF-2, &
+         ' dep=', DEP2(kc1), &
+         '  U=', UX2(kc1), UY2(kc1)
       IF (ITEST.GE.10) THEN
-         WRITE (PRINTF, 614) ' spectral limits:', ISTOT, ISSLOW, &
-            ISSTOP, IDTOT, IDDLOW, IDDTOP, ' sweep=',SWPDIR
-614      FORMAT (A, 6I8,A,I1)
+         WRITE (PRINTF, "(A, 6I8,A,I1)") ' spectral limits:', ISTOT, ISSLOW, &
+            WINDOW%ISSTOP, IDTOT, WINDOW%IDDLOW, WINDOW%IDDTOP, ' sweep=',SWPDIR
          IF (ITEST.GE.60) THEN
-            IF (IXCGRD(1).GT.1 .AND. IXCGRD(1).LT.MXC .AND. &
-                IYCGRD(1).GT.1 .AND. IYCGRD(1).LT.MYC) THEN
+            IF (ix1.GT.1 .AND. ix1.LT.MXC .AND. &
+               iy1.GT.1 .AND. iy1.LT.MYC) THEN
                WRITE (PRINTF, *) ' surrounding points'
                DO IY=-1,1
-                  WRITE (PRINTF, 621) &
-                     (KGRPNT(IXCGRD(1)+IX,IYCGRD(1)+IY), IX=-1,1), &
-                     (DEP2(KGRPNT(IXCGRD(1)+IX,IYCGRD(1)+IY)), IX=-1,1), &
-                     (UX2(KGRPNT(IXCGRD(1)+IX,IYCGRD(1)+IY)), IX=-1,1), &
-                     (UY2(KGRPNT(IXCGRD(1)+IX,IYCGRD(1)+IY)), IX=-1,1)
-621               FORMAT (1X, 3I6, 3(' | ', 3F9.2))
+                  WRITE (PRINTF, "(1X, 3I6, 3(' | ', 3F9.2))") &
+                     (KGRPNT(ix1+IX,iy1+IY), IX=-1,1), &
+                     (DEP2(KGRPNT(ix1+IX,iy1+IY)), IX=-1,1), &
+                     (UX2(KGRPNT(ix1+IX,iy1+IY)), IX=-1,1), &
+                     (UY2(KGRPNT(ix1+IX,iy1+IY)), IX=-1,1)
                ENDDO
             ENDIF
          ENDIF
       ENDIF
 !       write this point to ERRPTS file (BLOCKed option)                  40.13
       IF (ERRPTS.GT.0.AND.IAMMASTER) THEN
-         WRITE(ERRPTS,7002) IXCGRD(1)+MXF-1, IYCGRD(1)+MYF-1, 3
+         WRITE(ERRPTS,"(I4, 1X, I4, 1X, I2)") ix1+MXF-1, iy1+MYF-1, 3
       END IF
-7002  FORMAT (I4, 1X, I4, 1X, I2)
       IC = 1
-      GROUP = SQRT ( GRAV * DEP2(KCGRD(IC)) )
-      UABS  = SQRT ( UX2(KCGRD(IC))**2 + UY2(KCGRD(IC))**2 )
+      GROUP = SQRT ( GRAV * DEP2(kc1) )
+      UABS  = SQRT ( UX2(kc1)**2 + UY2(kc1)**2 )
       IF ( UABS .GT. GROUP ) THEN
-         WRITE(PRINTF,1002) IXCGRD(IC)-1, IYCGRD(1)-1, UABS, GROUP
-1002     FORMAT(' warning, at point:',2I4,' |U|=',F8.2,' > Cg=',F8.2)
+         WRITE(PRINTF,"(' warning, at point:',2I4,' |U|=',F8.2,' > Cg=',F8.2)") ix1-1, iy1-1, UABS, GROUP
       ENDIF
    ENDIF
-!
+
 !     *** test output ***
-!
+
    IF ( TESTFL .AND. ITEST .GE. 30 ) THEN
       IC = 1
-      WRITE (PRTEST,6020) KCGRD(IC),SWPDIR,ICUR
-6020  FORMAT (' subr SWPSEL: Point  SWPDIR ICUR :',3I5 )
-      WRITE (PRTEST,6220) IDDLOW, IDDTOP ,ISSLOW, ISSTOP
-6220  FORMAT ('      IDDLOW IDDTOP ISSLOW ISSTOP:',4I4 )
-      WRITE (PRTEST,6320) IDTOT , ISTOT
-6320  FORMAT ('      IDTOT ISTOT                :',4I4 )
+      WRITE (PRTEST,"(' subr SWPSEL: Point  SWPDIR ICUR :',3I5 )") kc1,SWPDIR,ICUR
+      WRITE (PRTEST,"('      IDDLOW IDDTOP ISSLOW ISSTOP:',4I4 )") WINDOW%IDDLOW, WINDOW%IDDTOP ,ISSLOW, WINDOW%ISSTOP
+      WRITE (PRTEST,"('      IDTOT ISTOT                :',4I4 )") IDTOT , ISTOT
       IF (ITEST.GE.120) THEN
          WRITE(PRTEST,*) ' Counters in directional space '
          WRITE(PRTEST,*) '       IS     IDCMIN  IDCMAX  SECTOR'
-         DO IS = ISSLOW, ISSTOP
-            WRITE(PRTEST,509) IS, IDCMIN(IS), IDCMAX(IS) , SECTOR(IS)
-509         FORMAT(2X,I5,3X,3I8)
+         DO IS = ISSLOW, WINDOW%ISSTOP
+            WRITE(PRTEST,"(2X,I5,3X,3I8)") IS, WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS) , SECTOR(IS)
          ENDDO
          WRITE(PRTEST,*) ' Counters in frequency space '
          WRITE(PRTEST,*) '       ID     ISCMIN  ISCMAX  THETA'
-         DO IDDUM = IDDTOP, IDDLOW, -1
+         DO IDDUM = WINDOW%IDDTOP, WINDOW%IDDLOW, -1
             ID = MOD ( IDDUM - 1 + MDC, MDC) + 1
             THDIR = SPCDIR(ID,1) * 180. / PI
-            WRITE(PRTEST,519) ID, ISCMIN(ID), ISCMAX(ID), THDIR
-519         FORMAT(2X,I5,3X,2I8,3X,F8.2)
+            WRITE(PRTEST,"(2X,I5,3X,2I8,3X,F8.2)") ID, WINDOW%ISCMIN(ID), WINDOW%ISCMAX(ID), THDIR
          ENDDO
          WRITE(PRTEST,*)
       ENDIF
       IF (IDTOT.GT.0) THEN
          IF (ITEST.GE.90) THEN
-            WRITE(PRTEST,122) IDDLOW, IDDTOP
-122         FORMAT (' Active bins in spectral space -> ID: ', &
-                    I3,' to ',I3)
-            DO IDDUM = IDDTOP+1, IDDLOW-1, -1
+            WRITE(PRTEST,"(' Active bins in spectral space -> ID: ', I3,' to ',I3)") WINDOW%IDDLOW, WINDOW%IDDTOP
+            DO IDDUM = WINDOW%IDDTOP+1, WINDOW%IDDLOW-1, -1
                ID = MOD ( IDDUM - 1 + MDC, MDC) + 1
-               WRITE(PRTEST,124) &
-                   ID, (ANYBIN(ID,IS),IS=ISSLOW, MIN(ISSTOP,25))
-124            FORMAT(I4,25L3)
+               WRITE(PRTEST,"(I4,25L3)") &
+                  ID, (ANYBIN(ID,IS),IS=ISSLOW, MIN(WINDOW%ISSTOP,25))
             ENDDO
-            WRITE(PRTEST,125)(IS, IS=ISSLOW+4, MIN(ISSTOP,25), 5 )
-125         FORMAT(6X,'1',9X,5(I3,12X))
+            WRITE(PRTEST,"(6X,'1',9X,5(I3,12X))")(IS, IS=ISSLOW+4, MIN(WINDOW%ISSTOP,25), 5 )
             WRITE(PRTEST,*)
          ENDIF
       ELSE
-         WRITE(PRTEST,123) SWPDIR
-123      FORMAT (' No active bins in sweep', I2)
+         WRITE(PRTEST,"(' No active bins in sweep', I2)") SWPDIR
       ENDIF
       IF ( ICUR .EQ. 0 ) THEN
-         WRITE (PRTEST,615) IDDLOW, IDDTOP
-615      FORMAT (' SWPSEL: IDDLOW IDDTOP  :',5(1X,I3))
+         WRITE (PRTEST,"(' SWPSEL: IDDLOW IDDTOP  :',5(1X,I3))") WINDOW%IDDLOW, WINDOW%IDDTOP
       END IF
    END IF
-!
+
 !     End of the subroutine SWPSEL
-!
+
    RETURN
-END
-!
+end subroutine SWPSEL
+
 !****************************************************************
-!
+
 SUBROUTINE SPROXY (CAX        , &
-                   CAY        ,CGO        ,ECOS       , &
-                   ESIN       ,UX2        ,UY2        , &
-                   SWPDIR &
-                                                      )
-!
+   CAY        ,CGO        ,ECOS       , &
+   ESIN       ,UX2        ,UY2        , &
+   SWPDIR     ,DIFFR &
+   ,st_kc,st_n &
+   )
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-   USE M_DIFFR
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
+   INTEGER, INTENT(IN) :: st_kc(MICMAX), st_n
+
+!  Stencil addresses and width passed explicitly by SWOMPU.
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1039,116 +1044,120 @@ SUBROUTINE SPROXY (CAX        , &
 !     10. SOURCE
 !
 !************************************************************************
-!
-   INTEGER  IENT, IP, IC    ,IS    ,ID    ,SWPDIR
-!
-   REAL     CAX(MDC,MSC,ICMAX)          , &
-            CAY(MDC,MSC,ICMAX)          , &
-            CGO(MSC,ICMAX)              , &
-            ECOS(MDC)                   , &
-            ESIN(MDC)                   , &
-            UX2(MCGRD)                , &
-            UY2(MCGRD)
-!
-   SAVE IENT
-   DATA IENT/0/
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER  IP, IC    ,IS    ,ID    ,SWPDIR
+
+   REAL     CAX(MDC,MSC,MICMAX)          , &
+      CAY(MDC,MSC,MICMAX)          , &
+      CGO(MSC,MICMAX)              , &
+      ECOS(MDC)                   , &
+      ESIN(MDC)                   , &
+      UX2(MCGRD)                , &
+      UY2(MCGRD)
+
    IF (LTRACE) CALL STRACE (IENT,'SPROXY')
-!
-   IF (TESTFL .AND. ITEST .GE. 5 ) WRITE (PRTEST,2)SWPDIR,KCGRD(1)
-2  FORMAT (' Start SPROXY ', 4I5)
-!
-   DO IC = 1, ICMAX
-      IF ( KCGRD(IC) .LE. 1 ) THEN
-         DO 50 IS = 1, MSC
-            DO 40 ID = 1 , MDC
+
+   IF (TESTFL .AND. ITEST .GE. 5 ) WRITE (PRTEST,"(' Start SPROXY ', 4I5)")SWPDIR,st_kc(1)
+
+   DO IC = 1, st_n
+      IF ( st_kc(IC) .LE. 1 ) THEN
+         do IS = 1, MSC
+            do ID = 1 , MDC
                CAX(ID,IS,IC) = 0.
                CAY(ID,IS,IC) = 0.
-40          CONTINUE
-50       CONTINUE
+            end do
+         end do
       ELSE
-!
-         DO 70 IS = 1, MSC
-            DO 60 ID = 1, MDC
+
+         do IS = 1, MSC
+            do ID = 1, MDC
                CAX(ID,IS,IC) = CGO(IS,IC) * ECOS(ID)
                CAY(ID,IS,IC) = CGO(IS,IC) * ESIN(ID)
-60          CONTINUE
-70       CONTINUE
-!
+            end do
+         end do
+
 !         --- adapt the velocities in case of diffraction
-!
+
          IF (IDIFFR.EQ.1 .AND. PDIFFR(3).NE.0.) THEN
-            DO 90 IS = 1, MSC
-               DO 80 ID = 1 ,MDC
-                  CAX(ID,IS,IC) = CAX(ID,IS,IC)*DIFPARAM(KCGRD(IC))
-                  CAY(ID,IS,IC) = CAY(ID,IS,IC)*DIFPARAM(KCGRD(IC))
-80             CONTINUE
-90          CONTINUE
+            do IS = 1, MSC
+               do ID = 1 ,MDC
+                  CAX(ID,IS,IC) = CAX(ID,IS,IC)*diffr%param(st_kc(IC))
+                  CAY(ID,IS,IC) = CAY(ID,IS,IC)*diffr%param(st_kc(IC))
+               end do
+            end do
          END IF
-!
+
 !         --- ambient currents added
-!
+
          IF (ICUR.EQ.1)  THEN
-            DO 110 IS = 1, MSC
-               DO 100 ID = 1, MDC
-                  CAX(ID,IS,IC) = CAX(ID,IS,IC) + UX2(KCGRD(IC))
-                  CAY(ID,IS,IC) = CAY(ID,IS,IC) + UY2(KCGRD(IC))
-100            CONTINUE
-110         CONTINUE
+            do IS = 1, MSC
+               do ID = 1, MDC
+                  CAX(ID,IS,IC) = CAX(ID,IS,IC) + UX2(st_kc(IC))
+                  CAY(ID,IS,IC) = CAY(ID,IS,IC) + UY2(st_kc(IC))
+               end do
+            end do
          END IF
-!
+
       ENDIF
-!
+
 !       *** test output ***
-!
+
       IF ( IC .EQ. 1 .AND. TESTFL .AND. ITEST .GE. 120 ) THEN
-         DO IP = 1, ICMAX
-            WRITE(PRINTF,6018) IP,KCGRD(IP), &
-                               UX2(KCGRD(IP)),UY2(KCGRD(IP))
+         DO IP = 1, st_n
+            WRITE(PRINTF,"(' SPROXY: IC INDEX UX2 UY2       :', 2I5, '  UX,UY:', 2(1X,E12.4))") IP, &
+                  st_kc(IP),UX2(st_kc(IP)),UY2(st_kc(IP))
          ENDDO
-6018     FORMAT(' SPROXY: IC INDEX UX2 UY2       :', 2I5, &
-                '  UX,UY:', 2(1X,E12.4))
          IF (ITEST.GE.220) THEN
-            DO 6002 IS = 1, MSC
-               DO 6001 ID = 1, MDC
-                  WRITE(PRINTF,6020) IS, ID, &
-                       (CAX(ID,IS,IP), CAY(ID,IS,IP), IP=1,ICMAX)
-6020              FORMAT(' IS ID <CAX CAY>:',2I4,10(1X,2E11.4))
-6001           CONTINUE
-6002        CONTINUE
+            do IS = 1, MSC
+               do ID = 1, MDC
+                  WRITE(PRINTF,"(' IS ID <CAX CAY>:',2I4,10(1X,2E11.4))") IS, ID, &
+                     (CAX(ID,IS,IP), CAY(ID,IS,IP), IP=1,st_n)
+               end do
+            end do
          ENDIF
       ENDIF
    ENDDO ! end loop over IC
-!
+
    RETURN
-END subroutine SPROXY
-!
+end subroutine SPROXY
+
 !****************************************************************
-!
+
 SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
-                   CAD        ,CGO        , &
-                   DEP2       ,DEP1       ,ECOS       , &
-                   ESIN       ,UX2        ,UY2        , &
-                   COSCOS     ,SINSIN     ,SINCOS     , &
-                   RDX        ,RDY        , &
-                   CAX        ,CAY        , &
-                   XCGRID     ,YCGRID     , &
-                   IDDLOW     ,IDDTOP &
-                                                      )
-!
+   CAD        ,CGO        , &
+   DEP2       ,DEP1       ,ECOS       , &
+   ESIN       ,UX2        ,UY2        , &
+   COSCOS     ,SINSIN     ,SINCOS     , &
+   RDX        ,RDY        , &
+   CAX        ,CAY        , &
+   XCGRID     ,YCGRID     ,WINDOW     ,DIFFR &
+   ,st_kc5,st_ix1,st_iy1 &
+   )
+
 !****************************************************************
-!
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-   USE TIMECOMM
-   USE OCPCOMM4
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_coordinate_offset
+   USE swan_run_mode
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_time, ONLY: default_time_context
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE M_PARALL
-   USE M_DIFFR
    USE SwanIEM, ONLY: ntf, dfiem, sflog
-!
-   IMPLICIT NONE
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+!  Stencil context passed explicitly by SWOMPU.
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1201,7 +1210,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 !                     proper side of the grid point.
 !                     argument KGRPNT added.
 !                     argument IC removed (is always 1)
-!                     argument DT removed, TIMECOMM.INC included
+!                     argument DT removed, shared time state used
 !                     code completely revised
 !     40.02, Jan. 00: Introduction limiter dependent on Cx, Cy, Dx and Dy
 !     40.02, Sep. 00: Corrected order of handling sweeps
@@ -1252,11 +1261,14 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 !
 !  4. Argument variables
 !
-!     IDDLOW: minimum direction that is propagated within a sweep         40.61
-!     IDDTOP: maximum direction that is propagated within a sweep         40.61
-!
-   INTEGER, INTENT(IN) :: IDDLOW, IDDTOP
-!
+!     WINDOW: spectral window of the grid point; used here are the minimum
+!             and maximum direction that is propagated within a sweep
+!             (IDDLOW, IDDTOP)
+
+   TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
+   INTEGER, INTENT(IN) :: st_kc5(5), st_ix1, st_iy1
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
+
 !     CAS   : Wave transport velocity in S-direction, function of (ID,IS,IC)
 !     CAD   : Wave transport velocity in D-dirctiion, function of (ID,IS,IC)
 !     CAX   : Wave transport velocity in X-direction, function of (ID,IS,IC)
@@ -1273,7 +1285,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 !     UY2   : Y-component of current velocity of X and Y at time T+1
 !     XCGRID: x-coordinate of comput. grid points
 !     YCGRID: y-coordinate of comput. grid points
-!
+
    REAL  :: SPCSIG(MSC)
    REAL  :: XCGRID(MXC,MYC), YCGRID(MXC,MYC)
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint   40.22
@@ -1283,19 +1295,19 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
    REAL  :: CAY(MDC,MSC,MICMAX)
    REAL  :: CGO(MSC,MICMAX)
    REAL  :: DEP2(MCGRD)                 , &
-            DEP1(MCGRD)                 , &
-            ECOS(MDC)                   , &
-            ESIN(MDC)                   , &
-            COSCOS(MDC)                 , &
-            SINSIN(MDC)                 , &
-            SINCOS(MDC)
+      DEP1(MCGRD)                 , &
+      ECOS(MDC)                   , &
+      ESIN(MDC)                   , &
+      COSCOS(MDC)                 , &
+      SINSIN(MDC)                 , &
+      SINCOS(MDC)
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint   40.22
    REAL  :: KWAVE(MSC,MICMAX)
    REAL  :: UX2(MCGRD)                  , &
-            UY2(MCGRD)                  , &
-            RDX(MICMAX)                 , &
-            RDY(MICMAX)
-!
+      UY2(MCGRD)                  , &
+      RDX(MICMAX)                 , &
+      RDY(MICMAX)
+
 !     variables from common
 !
 !        ICUR    Indicator for current
@@ -1309,8 +1321,8 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 !        RDTIM   1/DT                                                     30.80
 !
 !     local integer variables :
-!
-   INTEGER  :: IENT ! tracing variable
+
+   INTEGER, SAVE :: IENT = 0
    INTEGER  :: IS ! Counter of relative frequency band    !
    INTEGER  :: ID ,ID1   ,ID2 ! Counter of directions  !
    INTEGER  :: IDDUM ! aux. counter of directions !
@@ -1318,9 +1330,9 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
    INTEGER  :: KCG2  ,KCG3 , KCG4, KCG5 ! grid addresses of neighbouring grid points   !
    INTEGER  :: IX1 ! IX1   Counter of gridpoints in x-direction  !
    INTEGER  :: IY1 ! IY1   Counter of gridpoints in y-direction  !
-!
+
 !     local real variables :
-!
+
    REAL  :: KD1 ! KD1           wavenumber * depth
    REAL  :: VLSINH ! VLSINH        sinh of KD1
    REAL  :: COEF ! COEF          aux. quantity
@@ -1335,13 +1347,13 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
    REAL  :: KLOC1, KLOC2, KLOC3, KLOC4, KLOC5 ! wavenumbers at active and neighbouring grid points !
    REAL  :: UXLOC1, UXLOC2, UXLOC3, UXLOC4, UXLOC5 ! Ux at active and neighbouring grid points !
    REAL  :: UYLOC1, UYLOC2, UYLOC3, UYLOC4, UYLOC5 ! Uy at active and neighbouring grid points !
-!
+
    REAL  :: ALPHA ! upper limit of CFL restriction !
    REAL  :: FAC ! a factor ! 41.06
    REAL  :: FAC2 ! another factor !
    REAL  :: FRLIM ! frequency range in which limit on Ctheta is applied !
    REAL  :: PP ! power of the frequency dependent limiter on refraction !
-!
+
 !  8. Remarks
 !
 !  Motivation for using @C/@x instead of @h/@x :                                                                                     40.59
@@ -1352,7 +1364,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 !  Further, using @C/@x allows for adding refraction by additional variables included in dispersion relation.                        40.59
 !     Specifically, non-rigid seafloor (mud) can cause refraction even when water layer thickness (i.e. depths) are uniform.         40.59
 !     Obviously, this type of refraction does require the mud to be non-uniform.                                                     40.59
-
+!
 !  Motivation for using centered scheme instead of upwind scheme :                                                                   40.59
 !  Similar to above, the difference is only in numerics; experimental results suggest                                                40.59
 !     better representation of unknown true solution via centered scheme.                                                            40.59
@@ -1361,15 +1373,15 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 !     keep track of results from neighboring sweeps. This involved large amounts of additional code, which is obviously undesirable. 40.59
 !     The utility of this sweeping is not known to this author, since it does not seem to be strictly required by the upwind scheme. 40.59
 !     As evidence, note that v30.75 used the upwind scheme, but did not have additional code for sweeping in SPROSD.                 40.59
-
+!
 !  Note that since we are using a centered scheme now, we stop before we get to the last grid point.                                 40.59
 !  It would be possible to have separate code for falling back to the upwind scheme,                                                 40.59
 !  but this may require sweeping, which would mean much additional code, see e.g. code of public release v40.51                      40.59
-
+!
 !  Note: RDX and RDY are unavailable for P5-P2 and P4-P3, so we use as approximation, 0.5*RDX(1), etc.                               40.59
 !  Experience with implementation of more precise calculations of RDX,RDY, specifically with the SORDUP scheme,                      40.59
 !      yielded imperceptible change in results. However, this could be added later if sufficiently motivated.                        40.59
-
+!
 !  The depth refraction limitation procedure (i.e. IREFR=-1) has been removed, because it is basically a "dirty fix" which           40.59
 !      we hope/expect has been made unnecessary by the other changes here. If we are wrong about this, the "dirty fix" can be        40.59
 !      restored, but this is not straightforward, since C is computed from k, which is an input argument not affected by IREFR.      40.59
@@ -1397,8 +1409,6 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 !
 !************************************************************************
 
-   SAVE IENT
-   DATA IENT/0/
    IF (LTRACE) CALL STRACE (IENT,'SPROSD')
 
    CAST1 = 0.
@@ -1410,31 +1420,31 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
    DHDX = 0.
    DHDY = 0.
 
-   KCG1 = KCGRD(1)
-   KCG2 = KCGRD(2)
-   KCG3 = KCGRD(3)
-   KCG4 = KCGRD(4)
-   KCG5 = KCGRD(5)
-!
+   KCG1 = st_kc5(1)
+   KCG2 = st_kc5(2)
+   KCG3 = st_kc5(3)
+   KCG4 = st_kc5(4)
+   KCG5 = st_kc5(5)
+
 !     Refraction and frequency shift are not defined for points
 !     neighbouring to landpoints
-!
+
    IF ( (KCG1.EQ.1).OR.(DEP1(KCG1).LE.DEPMIN).OR. &
-        (KCG2.EQ.1).OR.(DEP1(KCG2).LE.DEPMIN).OR. &
-        (KCG3.EQ.1).OR.(DEP1(KCG3).LE.DEPMIN).OR. &
-        (KCG4.EQ.1).OR.(DEP1(KCG4).LE.DEPMIN).OR. &
-        (KCG5.EQ.1).OR.(DEP1(KCG5).LE.DEPMIN) ) THEN
+      (KCG2.EQ.1).OR.(DEP1(KCG2).LE.DEPMIN).OR. &
+      (KCG3.EQ.1).OR.(DEP1(KCG3).LE.DEPMIN).OR. &
+      (KCG4.EQ.1).OR.(DEP1(KCG4).LE.DEPMIN).OR. &
+      (KCG5.EQ.1).OR.(DEP1(KCG5).LE.DEPMIN) ) THEN
       DO IS = 1, MSC
          DO ID = 1, MDC
             CAD(ID,IS,1) = 0.
             CAS(ID,IS,1) = 0.
          ENDDO
       ENDDO
-      GOTO 900
+      RETURN
    ENDIF
 
-   IX1  = IXCGRD(1)
-   IY1  = IYCGRD(1)
+   IX1  = st_ix1
+   IY1  = st_iy1
 
    DLOC1 = DEP2(KCG1)
    DLOC2 = DEP2(KCG2)
@@ -1457,30 +1467,29 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
       UYLOC5 = UY2(KCG5)
 
    ENDIF
-!
+
 !     *** test output ***
-!
+
    IF (TESTFL .AND. ITEST .GE. 100 ) THEN
-      WRITE(PRINTF, 211) IX1+MXF-2, IY1+MYF-2, &
-                         XCGRID(IX1,IY1)+XOFFS, YCGRID(IX1,IY1)+YOFFS, &
-                         DLOC1
-211   FORMAT(' test SPROSD, location:',2I5,2e12.4,', depth:',F9.2)
+      WRITE(PRINTF, "(' test SPROSD, location:',2I5,2e12.4,', depth:',F9.2)") IX1+MXF-2, IY1+MYF-2, &
+         XCGRID(IX1,IY1)+XOFFS, YCGRID(IX1,IY1)+YOFFS, &
+         DLOC1
    ENDIF
-!
+
 !     *** set some terms = 0 ***
-!
+
    DUXDX = 0.
    DUYDY = 0.
    DUYDX = 0.
    DUXDY = 0.
-!
+
 !     *** compute the derivatives of the depth and the current velocity ***
 !
 ! old upwind scheme:   1DX USING P1-P2
 !                      1DY USING P1-P3
 ! new centered scheme: 2DX USING P5-P2
 !                      2DY USING P4-P3
-
+!
 !     *** @D/@X ***
 !      DHDX = 1.0*RDX(1) * (DLOC1-DLOC2) + 1.0*RDX(2) * (DLOC1-DLOC3) ! upwind scheme
    DHDX = 0.5*RDX(1) * (DLOC5-DLOC2) + 0.5*RDX(2) * (DLOC4-DLOC3) ! centered scheme
@@ -1489,27 +1498,27 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
    DHDY = 0.5*RDY(1) * (DLOC5-DLOC2) + 0.5*RDY(2) * (DLOC4-DLOC3) ! centered scheme
 
    IF ( ICUR .EQ. 1 .AND. IQCM.EQ.0 ) THEN !           *** current is on ***
-!
+
 !     *** @Ux/@X ***
 !         DUXDX = 1.0*RDX(1) * (UXLOC1 - UXLOC2) +
 !     &           1.0*RDX(2) * (UXLOC1 - UXLOC3)
       DUXDX = 0.5*RDX(1) * (UXLOC5 - UXLOC2) + &
-              0.5*RDX(2) * (UXLOC4 - UXLOC3)
+         0.5*RDX(2) * (UXLOC4 - UXLOC3)
 !     *** @Ux/@Y ***
 !         DUXDY = 1.0*RDY(1) * (UXLOC1 - UXLOC2) +
 !     &           1.0*RDY(2) * (UXLOC1 - UXLOC3)
       DUXDY = 0.5*RDY(1) * (UXLOC5 - UXLOC2) + &
-              0.5*RDY(2) * (UXLOC4 - UXLOC3)
+         0.5*RDY(2) * (UXLOC4 - UXLOC3)
 !     *** @Uy/@X ***
 !         DUYDX = 1.0*RDX(1) * (UYLOC1 - UYLOC2) +
 !     &           1.0*RDX(2) * (UYLOC1 - UYLOC3)
       DUYDX = 0.5*RDX(1) * (UYLOC5 - UYLOC2) + &
-              0.5*RDX(2) * (UYLOC4 - UYLOC3)
+         0.5*RDX(2) * (UYLOC4 - UYLOC3)
 !     *** @Uy/@Y ***
 !         DUYDY = 1.0*RDY(1) * (UYLOC1 - UYLOC2) +
 !     &           1.0*RDY(2) * (UYLOC1 - UYLOC3)
       DUYDY = 0.5*RDY(1) * (UYLOC5 - UYLOC2) + &
-              0.5*RDY(2) * (UYLOC4 - UYLOC3)
+         0.5*RDY(2) * (UYLOC4 - UYLOC3)
 
       CAST3 = UXLOC1 * DHDX
       CAST4 = UYLOC1 * DHDY
@@ -1524,22 +1533,19 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
       CAST4 = 0.
 
    ENDIF
-!
+
 !      *** test output ***
-!
+
    IF (TESTFL .AND. ITEST .GE. 100 ) THEN
       IF (ICUR .EQ. 1) THEN
-         WRITE(PRINTF, 412) UXLOC1,UXLOC2,UXLOC3,UYLOC1,UYLOC2,UYLOC3
-412      FORMAT(10X, 'UX:',3(1X,F8.3),/, 10X, 'UY:',3(1X,F8.3))
+         WRITE(PRINTF, "(10X, 'UX:',3(1X,F8.3),/, 10X, 'UY:',3(1X,F8.3))") UXLOC1,UXLOC2,UXLOC3,UYLOC1,UYLOC2,UYLOC3
       ENDIF
-      WRITE(PRINTF, 413) RDX(1),RDX(2),RDY(1),RDY(2)
-413   FORMAT(10X, 'RDX etc.:',4(1X,E12.4))
-      WRITE(PRINTF, 414) DHDX,  DHDY
-414   FORMAT(10x, 'DHDX,DHDY:',2(1X,E12.4))
+      WRITE(PRINTF, "(10X, 'RDX etc.:',4(1X,E12.4))") RDX(1),RDX(2),RDY(1),RDY(2)
+      WRITE(PRINTF, "(10x, 'DHDX,DHDY:',2(1X,E12.4))") DHDX,  DHDY
    ENDIF
-!
+
 !      *** coefficients for CAS -> function of IX and IY only ***
-!
+
    IF ( NSTATC.EQ.0 .OR. .NOT.DYNDEP) THEN
       !       *** stationary calculation ***
       CAST2 = 0.
@@ -1582,15 +1588,15 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 
 !       loop over spectral directions
 
-      DO IDDUM = IDDLOW-1, IDDTOP+1 !            40.61 40.03
+      DO IDDUM = WINDOW%IDDLOW-1, WINDOW%IDDTOP+1 !            40.61 40.03
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
 !          *** computation of CAS and CAD ***
 
-         IF ( INT(PNUMS(32)).EQ.0 ) THEN
+         IF ( INT(PNUMS(PNUMS_GRADK)).EQ.0 ) THEN
             ! @h/@x method, currents not included , Christoffersen, Tolman, Ris, Won et al.
             CAD_TMP=COEF*(ESIN(ID)*DHDX-ECOS(ID)*DHDY)
-         ELSE IF ( INT(PNUMS(32)).EQ.1 ) THEN
+         ELSE IF ( INT(PNUMS(PNUMS_GRADK)).EQ.1 ) THEN
             CAD_TMP=(CGLOC1/CLOC1)*(ESIN(ID)*DCDX-ECOS(ID)*DCDY) ! @C/@x method, currents not included, Young method (1999, p. 45)
 !             CAD_TMP=(CGLOC1/KLOC1)*(-1.0)*(ESIN(ID)*DKDX-ECOS(ID)*DKDY)   ! @k/@x method, differs only very slightly from @C/dx
          ENDIF
@@ -1606,47 +1612,47 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 
 !            --- adapt the velocity in case of diffraction                40.21
             IF (IDIFFR.EQ.1) THEN
-               CAD(ID,IS,1) = DIFPARAM(KCG1)*CAD(ID,IS,1) &
-                            - DIFPARDX(KCG1)*CGO(IS,1)*ESIN(ID) &
-                            + DIFPARDY(KCG1)*CGO(IS,1)*ECOS(ID)
+               CAD(ID,IS,1) = diffr%param(KCG1)*CAD(ID,IS,1) &
+                  - diffr%dpardx(KCG1)*CGO(IS,1)*ESIN(ID) &
+                  + diffr%dpardy(KCG1)*CGO(IS,1)*ECOS(ID)
             ENDIF
 
          ELSE
             IF (IDIFFR.EQ.0) THEN
                CAS(ID,IS,1) = CAST1*(CAST2+CAST3+CAST4) - &
-                              CAST5* &
-                               (COSCOS(ID)*DUXDX + &
-                                SINCOS(ID)*(DUXDY+DUYDX) + &
-                                SINSIN(ID)*DUYDY)
+                  CAST5* &
+                  (COSCOS(ID)*DUXDX + &
+                  SINCOS(ID)*(DUXDY+DUYDX) + &
+                  SINSIN(ID)*DUYDY)
 
                CAD(ID,IS,1) = CAD_TMP + &
-                              SINCOS(ID)*(DUXDX-DUYDY) + &
-                              SINSIN(ID)*DUYDX - &
-                              COSCOS(ID)*DUXDY ! add currents, Christoffersen, Tolman, Ris, et al.
+                  SINCOS(ID)*(DUXDX-DUYDY) + &
+                  SINSIN(ID)*DUYDX - &
+                  COSCOS(ID)*DUXDY ! add currents, Christof
             ELSE IF (IDIFFR.EQ.1) THEN
                CAS(ID,IS,1) = CAST1*(CAST2+CAST3+CAST4) - &
-                              DIFPARAM(KCG1)*CAST5* &
-                             (COSCOS(ID)*DUXDX + &
-                              SINCOS(ID)*(DUXDY+DUYDX) + &
-                              SINSIN(ID)*DUYDY)
+                  diffr%param(KCG1)*CAST5* &
+                  (COSCOS(ID)*DUXDX + &
+                  SINCOS(ID)*(DUXDY+DUYDX) + &
+                  SINSIN(ID)*DUYDY)
 
-               CAD(ID,IS,1) = DIFPARAM(KCG1)*CAD_TMP - &
-                              DIFPARDX(KCG1)*CGO(IS,1)*ESIN(ID) + &
-                              DIFPARDY(KCG1)*CGO(IS,1)*ECOS(ID) + &
-                              SINCOS(ID)*(DUXDX-DUYDY) + &
-                              SINSIN(ID)*DUYDX - &
-                              COSCOS(ID)*DUXDY
+               CAD(ID,IS,1) = diffr%param(KCG1)*CAD_TMP - &
+                  diffr%dpardx(KCG1)*CGO(IS,1)*ESIN(ID) + &
+                  diffr%dpardy(KCG1)*CGO(IS,1)*ECOS(ID) + &
+                  SINCOS(ID)*(DUXDX-DUYDY) + &
+                  SINSIN(ID)*DUYDX - &
+                  COSCOS(ID)*DUXDY
             ENDIF
          ENDIF
 
       ENDDO
    ENDDO
-!
+
 !     *** for most cases CAS and CAD will be activated. Therefore ***
 !     *** for IREFR is set 0 (no refraction) or ITFRE = 0 (no     ***
 !     *** frequency shift) we have put the IF statement outside   ***
 !     *** the internal loop above                                 ***
-!
+
    IF (ITFRE .EQ. 0) THEN
       DO IS = 1, MSC
          DO ID = 1, MDC
@@ -1654,7 +1660,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
          ENDDO
       ENDDO
    ENDIF
-!
+
    IF (IREFR .EQ. 0) THEN
       DO IS = 1, MSC
          DO ID = 1, MDC
@@ -1662,12 +1668,12 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
          ENDDO
       ENDDO
    ENDIF
-!
+
 !     --- limit Ctheta in some frequency range if requested
-!
-   IF ( INT(PNUMS(29)).EQ.1 ) THEN
-      FRLIM = PI2*PNUMS(26)
-      PP    =     PNUMS(27)
+
+   IF ( INT(PNUMS(PNUMS_LCTON)).EQ.1 ) THEN
+      FRLIM = PI2*PNUMS(PNUMS_LCTFRQ)
+      PP    =     PNUMS(PNUMS_LCTPP)
       DO IS = 1, MSC
          FAC = MIN(1.,(SPCSIG(IS)/FRLIM)**PP)
          DO ID = 1, MDC
@@ -1675,102 +1681,106 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
          ENDDO
       ENDDO
    ENDIF
-!
+
 !     --- limit Csigma using Courant number
-!
-   IF ( INT(PNUMS(33)).EQ.1 ) THEN
-      !
-      ALPHA = PNUMS(34)
-      !
+
+   IF ( INT(PNUMS(PNUMS_LCSON)).EQ.1 ) THEN
+
+      ALPHA = PNUMS(PNUMS_LCSAL)
+
       DO IS = 1, MSC
-         !
+
          IF ( LSRFB .AND. ntf.GT.0 .AND. .NOT.sflog ) THEN
             FAC2 = ALPHA * 2. * PI * dfiem
          ELSE
             FAC2 = ALPHA * FRINTF * SPCSIG(IS)
          ENDIF
-         !
-         DO IDDUM = IDDLOW-1, IDDTOP+1
+
+         DO IDDUM = WINDOW%IDDLOW-1, WINDOW%IDDTOP+1
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-            !
+
             FAC = FAC2 * ( ABS((RDX(1)+RDX(2))*CAX(ID,IS,1)) + &
-                           ABS((RDY(1)+RDY(2))*CAY(ID,IS,1)) )
-            !
+               ABS((RDY(1)+RDY(2))*CAY(ID,IS,1)) )
+
             IF ( ABS(CAS(ID,IS,1)) > FAC ) THEN
                CAS(ID,IS,1) = CAS(ID,IS,1) * FAC / ABS(CAS(ID,IS,1))
             ENDIF
-            !
+
          ENDDO
-         !
+
       ENDDO
-      !
+
    ENDIF
-!
+
 !     --- limit Ctheta using Courant number
-!
-   IF ( INT(PNUMS(35)) == 1 ) THEN
-      !
-      ALPHA = PNUMS(36)
-      !
+
+   IF ( INT(PNUMS(PNUMS_LCTCON)) == 1 ) THEN
+
+      ALPHA = PNUMS(PNUMS_LCTAL)
+
       FAC2 = ALPHA * DDIR
-      !
+
       DO IS = 1, MSC
-         !
-         DO IDDUM = IDDLOW-1, IDDTOP+1
+
+         DO IDDUM = WINDOW%IDDLOW-1, WINDOW%IDDTOP+1
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-            !
+
             FAC = FAC2 * ( ABS((RDX(1)+RDX(2))*CAX(ID,IS,1)) + &
-                           ABS((RDY(1)+RDY(2))*CAY(ID,IS,1)) )
-            !
+               ABS((RDY(1)+RDY(2))*CAY(ID,IS,1)) )
+
             IF ( ABS(CAD(ID,IS,1)) > FAC ) THEN
                CAD(ID,IS,1) = CAD(ID,IS,1) * FAC / ABS(CAD(ID,IS,1))
             ENDIF
-            !
+
          ENDDO
-         !
+
       ENDDO
-      !
+
    ENDIF
-!
+
 !     *** test output ***
-!
+
    IF (TESTFL .AND. ITEST.GE.140) THEN
       IF (DYNDEP .OR. ICUR.GT.0) THEN
          WRITE(PRINTF, *) ' IS ID1 ID2        values of CAS'
          DO IS = 1, MSC
-            ID1 = IDDLOW-1
-            ID2 = IDDTOP+1
-            WRITE(PRINTF, 619) IS, ID1, ID2, &
-                  (CAS(MOD(IDDUM-1+MDC,MDC)+1, IS, 1), IDDUM=ID1,ID2)
-619         FORMAT(3I4, 2X, 600E12.4)
+            ID1 = WINDOW%IDDLOW-1
+            ID2 = WINDOW%IDDTOP+1
+            WRITE(PRINTF, "(3I4, 2X, 600E12.4)") IS, ID1, ID2, &
+               (CAS(MOD(IDDUM-1+MDC,MDC)+1, IS, 1), IDDUM=ID1,ID2)
          ENDDO
       ENDIF
       WRITE(PRINTF, *) ' IS ID1 ID2        values of CAD'
       DO IS = 1, MSC
-         ID1 = IDDLOW-1
-         ID2 = IDDTOP+1
-         WRITE(PRINTF,619) IS, ID1, ID2, &
-               (CAD(MOD(IDDUM-1+MDC,MDC)+1, IS, 1), IDDUM=ID1,ID2)
+         ID1 = WINDOW%IDDLOW-1
+         ID2 = WINDOW%IDDTOP+1
+         WRITE(PRINTF,"(3I4, 2X, 600E12.4)") IS, ID1, ID2, &
+            (CAD(MOD(IDDUM-1+MDC,MDC)+1, IS, 1), IDDUM=ID1,ID2)
       ENDDO
    ENDIF
-!
+
 !     end of the subroutine SPROSD
-900 RETURN
-END subroutine SPROSD
+   RETURN
+end subroutine SPROSD
 !****************************************************************
-!
-SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
-!
+
+SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN, st_ix1, st_iy1)
+
 !****************************************************************
-!
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_coordinate_offset
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_spherical_geometry
+   USE swan_diagnostics_level
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+!  Stencil context passed explicitly by SWOMPU.
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1844,9 +1854,10 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
 !
 !     i  ANYBIN 2D    if True the spectral component (ID,IS) is to be
 !                     computed
-!
+
+   INTEGER, INTENT(IN) :: st_ix1, st_iy1
    LOGICAL  ANYBIN(MDC,MSC)
-!
+
 !     o  CAD    3D    Wave transport velocity in D-direction, function of
 !                     (ID,IS,IC)
 !     i  CAX    3D    propagation velocity in X-direction (CGO+UX)
@@ -1864,20 +1875,19 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
    REAL  :: YCGRID(MXC,MYC)
    REAL  :: ECOS(MDC)
    REAL  :: ESIN(MDC)
-!
-!
+
 !  4. Local variables
 !
 !        IX, IY       grid indices
 !        ID, IS       spectral indices
-!
+
    INTEGER :: IS    ,ID     ,IX    ,IY
-!
+
 !        TANLAT       tan of latitude
 !        CTTMP        temp. value used to compute contribution to Ctheta
-!
+
    REAL     TANLAT, CTTMP
-!
+
 !     5. SUBROUTINES CALLING
 !
 !        ACTION
@@ -1905,43 +1915,54 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
 !     10. SOURCE
 !
 !************************************************************************
-!
+
    INTEGER, SAVE :: IENT=0
    IF (LTRACE) CALL STRACE (IENT,'DSPHER')
-!
+
 !     *** TANLAT is Tan of Latitude
-!
-   IX     = IXCGRD(1)
-   IY     = IYCGRD(1)
+
+   IX     = st_ix1
+   IY     = st_iy1
    TANLAT = TAN(DEGRAD*(YCGRID(IX,IY)+YOFFS))
-!
+
    DO ID = 1, MDC
       CTTMP = ECOS(ID) * TANLAT / REARTH
       DO IS = 1, MSC
          CAD(ID,IS,1) = CAD(ID,IS,1) - &
-                (CAX(ID,IS,1)*ECOS(ID) + CAY(ID,IS,1)*ESIN(ID)) * CTTMP
+            (CAX(ID,IS,1)*ECOS(ID) + CAY(ID,IS,1)*ESIN(ID)) * CTTMP
       ENDDO
    ENDDO
-!
+
 !     end of the subroutine DSPHER
    RETURN
-END
-!
+end subroutine DSPHER
+
 !****************************************************************
-!
-SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     , &
-                   CAY     ,AC2     ,AC1     ,IMATRA  ,IMATDA  , &
-                            RDX     ,RDY     , &
-                   OBREDF  ,TRAC0   ,TRAC1   )
-!
+
+SUBROUTINE STRSXY (         WINDOW  ,CAX     , &
+   CAY     ,AC2     ,AC1     ,IMATRA  ,IMATDA  , &
+   RDX     ,RDY     , &
+   OBREDF  ,TRAC0   ,TRAC1   ,st_kc   ,st_cos)
+
 !****************************************************************
-!
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_run_mode
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+   USE swan_spherical_geometry
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   REAL, INTENT(IN) :: st_cos(MICMAX)
+   INTEGER, INTENT(IN) :: st_kc(MICMAX)
+
+!  Stencil addresses and latitude factors passed explicitly by ACTION.
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2083,103 +2104,96 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     , &
 !            ---------------------------------------------------
 !            Store the terms in arrays IMATRA and IMATDA
 !   ------------------------------------------------------------
-!
-   INTEGER  IS      ,ID      , &
-            IDDUM   ,ISSTOP
-!
-   REAL     FXY1 ,FXY2
-!
+
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
+   INTEGER  IC, IND2, IND3, IS, ID, IDDUM
+
+   REAL     ACOLD, FXY1, FXY2, TCF1, TCF2
+
    REAL  :: AC1(MDC,MSC,MCGRD) ,AC2(MDC,MSC,MCGRD)
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint   40.22
    REAL  :: CAX(MDC,MSC,MICMAX) ,CAY(MDC,MSC,MICMAX)
    REAL  :: IMATRA(MDC,MSC)    ,IMATDA(MDC,MSC)            , &
-            RDX(MICMAX)        ,RDY(MICMAX)                , &
-            TRSCF(3)            , &
-            OBREDF(MDC,MSC,2)
+      RDX(MICMAX)        ,RDY(MICMAX)                , &
+      TRSCF(3)            , &
+      OBREDF(MDC,MSC,2)
    REAL  :: TRAC0(MDC,MSC,MTRNP)
    REAL  :: TRAC1(MDC,MSC,MTRNP)
-!
-   INTEGER  IDCMIN(MSC)                , &
-            IDCMAX(MSC)
-!
-   INTEGER IENT
-   SAVE IENT
-   DATA IENT/0/
+
+   INTEGER, SAVE :: IENT = 0
    IF (LTRACE) CALL STRACE (IENT,'STRSXY')
-!
+
    IF (TESTFL .AND. ITEST .GE. 120) THEN
       WRITE(PRINTF,*) ' Initial matrix coefficients at STRSXY : '
       WRITE(PRINTF,*) &
          'IS ID IDDUM     IMATDA    IMATRA'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-            WRITE(PRINTF,2102) IS,IDDUM,ID, &
-                       IMATDA(ID,IS), IMATRA(ID,IS)
+            WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID, &
+               IMATDA(ID,IS), IMATRA(ID,IS)
          ENDDO
       ENDDO
    END IF
-!
-   DO 200 IS = 1, ISSTOP
+
+   do IS = 1, WINDOW%ISSTOP
 !       test output     ver 30.50
-!
-      IND2 = KCGRD(2)
-      IND3 = KCGRD(3)
-!
-!
-      DO 100 IDDUM = IDCMIN(IS), IDCMAX(IS)
+
+      IND2 = st_kc(2)
+      IND3 = st_kc(3)
+
+      do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 !         test output     ver 30.50
-!
+
          IF (NUMOBS .GT. 0) THEN
             TCF1 = OBREDF(ID,IS,1)
             TCF2 = OBREDF(ID,IS,2)
             IF (TESTFL .AND. ITEST.GE.80) THEN
-               WRITE(PRINTF,10) KCGRD(1),ID,IS,TCF1,TCF2
-10             FORMAT(' STRSXY obst ',3(1X,I5),2(1X,E10.4))
+               WRITE(PRINTF,"(' STRSXY obst ',3(1X,I5),2(1X,E10.4))") st_kc(1),ID,IS,TCF1,TCF2
             ENDIF
          ELSE
             TCF1 = 1.
             TCF2 = 1.
          ENDIF
-!
+
          FXY1 = 0.
          FXY2 = 0.
-!
+
          FXY1 =   (RDX(1)+RDX(2)) * CAX(ID,IS,1) &
-                + (RDY(1)+RDY(2)) * CAY(ID,IS,1)
-!
+            + (RDY(1)+RDY(2)) * CAY(ID,IS,1)
+
          IF (KSPHER.EQ.0) THEN
-!
+
             FXY2 =  RDX(1) * CAX(ID,IS,2)* TCF1 * AC2(ID,IS,IND2) &
-                  + RDX(2) * CAX(ID,IS,3)* TCF2 * AC2(ID,IS,IND3) &
-                  + RDY(1) * CAY(ID,IS,2)* TCF1 * AC2(ID,IS,IND2) &
-                  + RDY(2) * CAY(ID,IS,3)* TCF2 * AC2(ID,IS,IND3)
+               + RDX(2) * CAX(ID,IS,3)* TCF2 * AC2(ID,IS,IND3) &
+               + RDY(1) * CAY(ID,IS,2)* TCF1 * AC2(ID,IS,IND2) &
+               + RDY(2) * CAY(ID,IS,3)* TCF2 * AC2(ID,IS,IND3)
          ELSE
 !           spherical coordinates                                         33.09
-!
+
             TRSCF(2) = TCF1
             TRSCF(3) = TCF2
             DO IC = 2, 3
                FXY2 = FXY2 + &
-                     RDX(IC-1) * CAX(ID,IS,IC) * TRSCF(IC) * &
-                     AC2(ID,IS,KCGRD(IC)) &
-                   + RDY(IC-1) * CAY(ID,IS,IC) * TRSCF(IC) * &
-                     AC2(ID,IS,KCGRD(IC)) * COSLAT(IC) / COSLAT(1)
+                  RDX(IC-1) * CAX(ID,IS,IC) * TRSCF(IC) * &
+                  AC2(ID,IS,st_kc(IC)) &
+                  + RDY(IC-1) * CAY(ID,IS,IC) * TRSCF(IC) * &
+                  AC2(ID,IS,st_kc(IC)) * st_cos(IC) / st_cos(1)
             ENDDO
          ENDIF
-!
+
 !         *** the term FXY2 is known, store in IMATRA ***
 !         *** the term FXY1 is unknown, store in IMATDA ***
 !
 !         This business of doing rollback regardless of ITERMX was an artifact 40.08
 !         and has been removed. Thus, the code reverts to its form in v40.01   40.08
-!
+
          IF (NSTATC.EQ.1) THEN
             IF (ITERMX.EQ.1) THEN
-               ACOLD = AC2(ID,IS,KCGRD(1))
+               ACOLD = AC2(ID,IS,st_kc(1))
             ELSE
-               ACOLD = AC1(ID,IS,KCGRD(1))
+               ACOLD = AC1(ID,IS,st_kc(1))
             ENDIF
             IMATRA(ID,IS) = IMATRA(ID,IS) + FXY2 + ACOLD*RDTIM
             IMATDA(ID,IS) = IMATDA(ID,IS) + FXY1 + RDTIM
@@ -2204,51 +2218,59 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     , &
 !          ENDIF
 !
 !         *** test output ***
-!
+
          IF ( ITEST .GE. 150 .AND. TESTFL ) THEN
             IF (NSTATC.EQ.1) THEN
-               WRITE(PRINTF,6021) ID, FXY1, FXY2, ACOLD
-6021           FORMAT (' - ID FXY1 FXY2 ACOLD:', I4, 3(1X,E12.4))
+               WRITE(PRINTF,"(' - ID FXY1 FXY2 ACOLD:', I4, 3(1X,E12.4))") ID, FXY1, FXY2, ACOLD
             ELSE
-               WRITE(PRINTF,6022) ID, FXY1, FXY2
-6022           FORMAT (' - ID FXY1 FXY2:', I4, 2(1X,E12.4))
+               WRITE(PRINTF,"(' - ID FXY1 FXY2:', I4, 2(1X,E12.4))") ID, FXY1, FXY2
             ENDIF
          ENDIF
-!
-100   CONTINUE
-200 CONTINUE
-!
+
+      end do
+   end do
+
    IF (TESTFL .AND. ITEST .GE. 100) THEN
       WRITE(PRINTF,*) '  matrix coefficients at STRSXY : '
       WRITE(PRINTF,*) &
          'IS ID IDDUM     IMATDA    IMATRA'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-            WRITE(PRINTF,2102) IS,IDDUM,ID, &
-                       IMATDA(ID,IS), IMATRA(ID,IS)
-2102        FORMAT(3I3,2E12.4)
+            WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID, &
+               IMATDA(ID,IS), IMATRA(ID,IS)
          ENDDO
       ENDDO
    END IF
 !     End of subroutine STRSXY
    RETURN
-END
+end subroutine STRSXY
 !****************************************************************
-!
-SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     , &
-                   CAY     ,AC2     ,IMATRA  ,IMATDA  , &
-                            RDX     ,RDY     ,TRAC0   ,TRAC1   )
-!
+
+SUBROUTINE SORDUP (         WINDOW  ,CAX     , &
+   CAY     ,AC2     ,IMATRA  ,IMATDA  , &
+   RDX     ,RDY     ,TRAC0   ,TRAC1   ,st_kc   ,st_cos)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+   USE swan_spherical_geometry
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+   REAL, INTENT(IN) :: st_cos(MICMAX)
+   INTEGER, INTENT(IN) :: st_kc(MICMAX)
+
+!  Stencil addresses and latitude factors passed explicitly by ACTION.
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2396,28 +2418,28 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     , &
 !            ---------------------------------------------------
 !            Store the terms in arrays IMATRA and IMATDA
 !   ------------------------------------------------------------
-!
-   INTEGER  IS,ID,IDDUM,ISSTOP &
-            ,IND2,IND3,IND6,IND7
-!
+
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
+   INTEGER  IS,ID,IDDUM &
+      ,IND2,IND3,IND6,IND7
+
    REAL  :: FXY1 ,FXY2
-!
+
    REAL  :: AC2(MDC,MSC,MCGRD)
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint   40.22
    REAL  :: CAX(MDC,MSC,MICMAX) ,CAY(MDC,MSC,MICMAX)
    REAL  :: IMATRA(MDC,MSC)    ,IMATDA(MDC,MSC)            , &
-            RDX(MICMAX)        ,RDY(MICMAX)                , &
-            XMU(7)             ,YMU(7)
+      RDX(MICMAX)        ,RDY(MICMAX)                , &
+      XMU(7)             ,YMU(7)
    REAL  :: TRAC0(MDC,MSC,MTRNP)
    REAL  :: TRAC1(MDC,MSC,MTRNP)
 
-   INTEGER  IDCMIN(MSC), IDCMAX(MSC), IENT, IXY
+   INTEGER, SAVE :: IENT = 0
+   INTEGER  IXY
    LOGICAL  XNUM
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SORDUP')
-!
+
    IF(NSTATC.EQ.1)THEN
       CALL MSGERR (3, 'SORDUP scheme is for stationary mode only.')
    END IF
@@ -2425,21 +2447,21 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     , &
       WRITE(PRINTF,*) ' Initial matrix coefficients at SORDUP : '
       WRITE(PRINTF,*) &
          'IS ID IDDUM     IMATDA    IMATRA'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-            WRITE(PRINTF,2102) IS,IDDUM,ID, &
-                       IMATDA(ID,IS), IMATRA(ID,IS)
+            WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID, &
+               IMATDA(ID,IS), IMATRA(ID,IS)
          ENDDO
       ENDDO
    END IF
 
-   DO 200 IS = 1, ISSTOP
-      IND2 = KCGRD(2)
-      IND3 = KCGRD(3)
-      IND6 = KCGRD(6)
-      IND7 = KCGRD(7)
-      DO 100 IDDUM = IDCMIN(IS), IDCMAX(IS)
+   do IS = 1, WINDOW%ISSTOP
+      IND2 = st_kc(2)
+      IND3 = st_kc(3)
+      IND6 = st_kc(6)
+      IND7 = st_kc(7)
+      do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 !         find Courant number values: XMU, YMU                            40.08
 !         depending on relative size of XMU and YMU, XNUM is true or      40.08
@@ -2469,12 +2491,12 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     , &
 
             IF (KSPHER.EQ.0) THEN
 !             Cartesian coordinates
-
+!
 !             the known, rhs part FXY2                                    33.08
                FXY2 = AC2(ID,IS,IND2) * 2.0*XMU(2) &
-                     -AC2(ID,IS,IND6) * 0.5*XMU(6) &
-                     +AC2(ID,IS,IND3) * 2.0*YMU(3) &
-                     -AC2(ID,IS,IND7) * 0.5*YMU(7)
+                  -AC2(ID,IS,IND6) * 0.5*XMU(6) &
+                  +AC2(ID,IS,IND3) * 2.0*YMU(3) &
+                  -AC2(ID,IS,IND7) * 0.5*YMU(7)
 
             ELSE
 !             Spherical coordinates
@@ -2486,11 +2508,11 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     , &
                   -AC2(ID,IS,IND6) * CAX(ID,IS,6) * RDX(1) * 0.5 &
                   +AC2(ID,IS,IND3) * CAX(ID,IS,3) * RDX(2) * 2.0 &
                   -AC2(ID,IS,IND7) * CAX(ID,IS,7) * RDX(2) * 0.5 &
-                  +(AC2(ID,IS,IND2) * CAY(ID,IS,2) * RDY(1) * COSLAT(2) * 2.0 &
-                  -AC2(ID,IS,IND6) * CAY(ID,IS,6) * RDY(1) * COSLAT(6) * 0.5 &
-                  +AC2(ID,IS,IND3) * CAY(ID,IS,3) * RDY(2) * COSLAT(3) * 2.0 &
-                  -AC2(ID,IS,IND7) * CAY(ID,IS,7) * RDY(2) * COSLAT(7) * 0.5 &
-                  ) / COSLAT(1) !33.10
+                  +(AC2(ID,IS,IND2) * CAY(ID,IS,2) * RDY(1) * st_cos(2) * 2.0 &
+                  -AC2(ID,IS,IND6) * CAY(ID,IS,6) * RDY(1) * st_cos(6) * 0.5 &
+                  +AC2(ID,IS,IND3) * CAY(ID,IS,3) * RDY(2) * st_cos(3) * 2.0 &
+                  -AC2(ID,IS,IND7) * CAY(ID,IS,7) * RDY(2) * st_cos(7) * 0.5 &
+                  ) / st_cos(1) !33.10
             ENDIF
 
          ELSE ! switch 2<==>3, 6<==>7 and YMU<==>XMU
@@ -2500,87 +2522,95 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     , &
 
             IF (KSPHER.EQ.0) THEN
 !             Cartesian coordinates
-
+!
 !             the known, rhs part  FXY2                                   33.08
                FXY2 = AC2(ID,IS,IND3) * 2.0*YMU(3) &
-                     -AC2(ID,IS,IND7) * 0.5*YMU(7) &
-                     +AC2(ID,IS,IND2) * 2.0*XMU(2) &
-                     -AC2(ID,IS,IND6) * 0.5*XMU(6)
+                  -AC2(ID,IS,IND7) * 0.5*YMU(7) &
+                  +AC2(ID,IS,IND2) * 2.0*XMU(2) &
+                  -AC2(ID,IS,IND6) * 0.5*XMU(6)
 
             ELSE
 !             Spherical coordinates
-
+!
 !             the known, rhs part  FXY2                                   33.08
                FXY2 = &
                   AC2(ID,IS,IND2) * CAX(ID,IS,2) * RDX(1) * 2.0 &
                   -AC2(ID,IS,IND6) * CAX(ID,IS,6) * RDX(1) * 0.5 &
                   +AC2(ID,IS,IND3) * CAX(ID,IS,3) * RDX(2) * 2.0 &
                   -AC2(ID,IS,IND7) * CAX(ID,IS,7) * RDX(2) * 0.5 &
-                  +(AC2(ID,IS,IND2) * CAY(ID,IS,2) * RDY(1) * COSLAT(2) * 2.0 &
-                  -AC2(ID,IS,IND6) * CAY(ID,IS,6) * RDY(1) * COSLAT(6) * 0.5 &
-                  +AC2(ID,IS,IND3) * CAY(ID,IS,3) * RDY(2) * COSLAT(3) * 2.0 &
-                  -AC2(ID,IS,IND7) * CAY(ID,IS,7) * RDY(2) * COSLAT(7) * 0.5 &
-                  )/ COSLAT(1)
+                  +(AC2(ID,IS,IND2) * CAY(ID,IS,2) * RDY(1) * st_cos(2) * 2.0 &
+                  -AC2(ID,IS,IND6) * CAY(ID,IS,6) * RDY(1) * st_cos(6) * 0.5 &
+                  +AC2(ID,IS,IND3) * CAY(ID,IS,3) * RDY(2) * st_cos(3) * 2.0 &
+                  -AC2(ID,IS,IND7) * CAY(ID,IS,7) * RDY(2) * st_cos(7) * 0.5 &
+                  )/ st_cos(1)
             ENDIF
          END IF
 
-         IF (TESTFL .AND. ITEST.GE.120) WRITE (PRTEST, 28) ID, IS, &
+         IF (TESTFL .AND. ITEST.GE.120) WRITE (PRTEST, "(2I3, 6(1X,E12.4))") ID, IS, &
             CAX(ID,IS,2), CAY(ID,IS,2), AC2(ID,IS,IND2), &
             CAX(ID,IS,3), CAY(ID,IS,3), AC2(ID,IS,IND3)
-28       FORMAT (2I3, 6(1X,E12.4))
-!
+
 !         *** the term FXY2 is known, store in IMATRA ***
 !         *** the term FXY1 is unknown, store in IMATDA ***
-!
+
          IMATRA(ID,IS) = IMATRA(ID,IS) + FXY2
          IMATDA(ID,IS) = IMATDA(ID,IS) + FXY1
          TRAC0(ID,IS,1) = TRAC0(ID,IS,1) - FXY2
          TRAC1(ID,IS,1) = TRAC1(ID,IS,1) + FXY1
-!
+
 !         *** test output ***
          IF ( ITEST .GE. 150 .AND. TESTFL ) THEN
-            WRITE(PRINTF,6022) ID, FXY1, FXY2
-6022        FORMAT (' - ID FXY1 FXY2:', I4, 2(1X,E12.4))
+            WRITE(PRINTF,"(' - ID FXY1 FXY2:', I4, 2(1X,E12.4))") ID, FXY1, FXY2
          ENDIF
-!
-100   CONTINUE
-200 CONTINUE
-!
+
+      end do
+   end do
+
    IF (TESTFL .AND. ITEST .GE. 100) THEN
       WRITE(PRINTF,*) '  matrix coefficients at SORDUP : '
       WRITE(PRINTF,*) &
          'IS ID IDDUM     IMATDA    IMATRA'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-            WRITE(PRINTF,2102) IS,IDDUM,ID, &
-                       IMATDA(ID,IS), IMATRA(ID,IS)
-2102        FORMAT(3I3,2E12.4)
+            WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID, &
+               IMATDA(ID,IS), IMATRA(ID,IS)
          ENDDO
       ENDDO
    END IF
 !     End of subroutine SORDUP
    RETURN
-END
+end subroutine SORDUP
 !****************************************************************
-!
-SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     , &
-                   CAY     ,AC2     ,AC1     ,IMATRA  ,IMATDA  , &
-                   RDX     ,RDY     ,CAX1    ,CAY1    ,SPCDIR  , &
-                   TRAC0   ,TRAC1   )
-!
+
+SUBROUTINE SANDL ( WINDOW  ,CGO     ,CAX     , &
+   CAY     ,AC2     ,AC1     ,IMATRA  ,IMATDA  , &
+   RDX     ,RDY     ,CAX1    ,CAY1    ,SPCDIR  , &
+   TRAC0   ,TRAC1   ,st_kc   ,st_cos)
+
 !****************************************************************
-!
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-   USE TIMECOMM
-!
-   IMPLICIT NONE
-!
-!
-!
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_run_mode
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+   USE swan_propagation_scheme
+   USE swan_spherical_geometry
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_time, ONLY: default_time_context
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+   REAL, INTENT(IN) :: st_cos(MICMAX)
+   INTEGER, INTENT(IN) :: st_kc(MICMAX)
+
+!  Stencil addresses and latitude factors passed explicitly by ACTION.
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2671,22 +2701,23 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     , &
 !        @[CAX AC2]
 !        --------- =
 !            @x
-
+!
 !       (1/4DX)*(CAX1(KCGRD(5))*AC1(KCGRD(5))-CAX1(KCGRD(2))*AC1(KCGRD(2)))          33.08
 !       +(1/12DX)*( 10*CAX(KCGRD(1))*AC2(KCGRD(1))-15*CAX(KCGRD(2))*AC2(KCGRD(2))    33.08
 !       +6*CAX(KCGRD(6))*AC2(KCGRD(6))-1*CAX(KCGRD(8))*AC2(KCGRD(8)) )               33.08
-
+!
+!
 !        @[CAY AC2]
 !        --------- =
 !            @y
-
+!
 !       (1/4DY)*(CAY1(KCGRD(4))*AC1(KCGRD(4))-CAY1(KCGRD(3))*AC1(KCGRD(3)))          33.08
 !       +(1/12DY)*( 10*CAY(KCGRD(1))*AC2(KCGRD(1))-15*CAY(KCGRD(3))*AC2(KCGRD(3))    33.08
 !       +6*CAY(KCGRD(7))*AC2(KCGRD(7))-1*CAY(KCGRD(9))*AC2(KCGRD(9)) )               33.08
-
+!
 !        in diagonal matrix: 1/DT + (5./6.)*(RDX(1)+RDX(2)) * CAX(ID,IS,1)           33.08
 !                                 + (5./6.)*(RDY(1)+RDY(2)) * CAY(ID,IS,1)           33.08
-
+!
 !        in r.h.s.: AC1/DT + RDX(1)*CAX(ID,IS,2)*AC2(ID,IS,KCGRD(2))                 33.08
 !                  +(5./4.) *RDY(2)*CAY(ID,IS,3)*AC2(ID,IS,KCGRD(3))                 33.08
 !                  -(1./2.) *RDX(1)*CAX(ID,IS,6)*AC2(ID,IS,KCGRD(6))                 33.08
@@ -2790,14 +2821,15 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     , &
 !            ---------------------------------------------------
 !            Store the terms in arrays IMATRA and IMATDA
 !   ------------------------------------------------------------
-!
-   INTEGER  IS      ,ID      ,IDDUM   ,ISSTOP  ,IC    , &
-            IND1,IND2,IND3,IND4,IND5,IND6,IND7,IND8,IND9,IND10, &
-            IND11,IND12,IND13
-!
+
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
+   INTEGER  IS      ,ID      ,IDDUM   ,IC    , &
+      IND1,IND2,IND3,IND4,IND5,IND6,IND7,IND8,IND9,IND10, &
+      IND11,IND12,IND13
+
    REAL     FXY1 ,FXY2, ACOLD, &
-            DSS, DNN, D11AC, D12AC, D22AC
-!
+      DSS, DNN, D11AC, D12AC, D22AC
+
    REAL  :: TRAC0(MDC,MSC,MTRNP)
    REAL  :: TRAC1(MDC,MSC,MTRNP)
    REAL  :: AC1(MDC,MSC,MCGRD) ,AC2(MDC,MSC,MCGRD)
@@ -2811,48 +2843,45 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     , &
    REAL  :: DCG, SPCDIR(MDC,6), DXX, DYY, DXY
    REAL  :: MYU,DX1DUM,DY1DUM,DX2DUM,DY2DUM,DXMYU,DYMYU
    LOGICAL, SAVE :: NOWARN = .FALSE.
-!
-   INTEGER :: IDCMIN(MSC), IDCMAX(MSC)
-!
+
    INTEGER, SAVE :: IENT=0
    IF (LTRACE) CALL STRACE (IENT,'SANDL')
-!
+
    IF (TESTFL .AND. ITEST .GE. 120) THEN
       WRITE(PRINTF,*) ' Initial matrix coefficients at SANDL : '
       WRITE(PRINTF,*) &
          'IS ID IDDUM     IMATDA    IMATRA'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-            WRITE(PRINTF,2102) IS,IDDUM,ID, &
-                       IMATDA(ID,IS), IMATRA(ID,IS)
+            WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID, &
+               IMATDA(ID,IS), IMATRA(ID,IS)
          ENDDO
       ENDDO
    END IF
 
-   IND1  = KCGRD(1)
-   IND2  = KCGRD(2)
-   IND3  = KCGRD(3)
-   IND4  = KCGRD(4)
-   IND5  = KCGRD(5)
-   IND6  = KCGRD(6)
-   IND7  = KCGRD(7)
-   IND8  = KCGRD(8)
-   IND9  = KCGRD(9)
-   IND10 = KCGRD(10)
-   IND11 = KCGRD(11)
-   IND12 = KCGRD(12)
-   IND13 = KCGRD(13)
+   IND1  = st_kc(1)
+   IND2  = st_kc(2)
+   IND3  = st_kc(3)
+   IND4  = st_kc(4)
+   IND5  = st_kc(5)
+   IND6  = st_kc(6)
+   IND7  = st_kc(7)
+   IND8  = st_kc(8)
+   IND9  = st_kc(9)
+   IND10 = st_kc(10)
+   IND11 = st_kc(11)
+   IND12 = st_kc(12)
+   IND13 = st_kc(13)
 
    IF (TESTFL .AND. KSPHER.GT.0 .AND. ITEST.GE.60) THEN
-      WRITE (PRTEST, 92) (COSLAT(IC), IC=1, 10)
-92    FORMAT (' Cos(Lat) ',10(1X,F7.4))
+      WRITE (PRTEST, "(' Cos(Lat) ',10(1X,F7.4))") (st_cos(IC), IC=1, 10)
    ENDIF
    IF (WAVAGE.GT.0. .AND. ITEST.GE.120 .AND. TESTFL) THEN
       WRITE (PRTEST, *) '  ID  IS  DSS    DNN   ', &
          '  DXX   DXY   DYY    D11AC   D12AC   D22AC'
    ENDIF
-!
+
 !     --- I have tested this code with Cartesian, curvilinear, and        40.08
 !         spherical coords (Erick Rogers).                                40.08
 !         Note that this might be improved by only performing the         40.08
@@ -2886,31 +2915,31 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     , &
 !     --- Even if KSPHER=1, dx and dy are already in meters               40.08
    DXMYU=SQRT(DY1DUM**2+DX1DUM**2)
    DYMYU=SQRT(DY2DUM**2+DX2DUM**2)
-   MYU=ABS(DT*CGO(1,1)/MIN(DXMYU,DYMYU))
+   MYU=ABS(default_time_context%DT*CGO(1,1)/MIN(DXMYU,DYMYU))
 !     --- Since there is no hard stability limit, we use a nonexact       40.08
 !         definition of CFL. I only check IS=1, since that is the         40.08
 !         fastest wave.                                                   40.08
    IF(MYU.GT.10.0.AND..NOT.NOWARN)THEN
       CALL MSGERR(2,'It is inadvisable to use the higher order '// &
-           'scheme for nonstationary computation with '    // &
-           'CFL greater than 10. Consider using PROP BSBT.'// &
-           ' If you are having this problem because you '  // &
-           'are trying to run a high resolution model '    // &
-           'with a large (e.g. 1 hour) time step and '     // &
-           'COMP NONSTAT: Note that for smaller domains, ' // &
-           'you can avoid this problem by using MODE '     // &
-           'NONSTAT with multiple COMP STAT lines. (COMP ' // &
-           'STAT is often ok when domain is less than '    // &
-           '100km or 1 deg on a side, as a rule of thumb)')
+         'scheme for nonstationary computation with '    // &
+         'CFL greater than 10. Consider using PROP BSBT.'// &
+         ' If you are having this problem because you '  // &
+         'are trying to run a high resolution model '    // &
+         'with a large (e.g. 1 hour) time step and '     // &
+         'COMP NONSTAT: Note that for smaller domains, ' // &
+         'you can avoid this problem by using MODE '     // &
+         'NONSTAT with multiple COMP STAT lines. (COMP ' // &
+         'STAT is often ok when domain is less than '    // &
+         '100km or 1 deg on a side, as a rule of thumb)')
 !        --- Note that code will stop even without this line              40.08
 !            (at beginning of next time step).                            40.08
 !         IF(MAXERR.LT.2) STOP                                            40.08
       NOWARN=.TRUE.
    END IF
-!
-   DO 200 IS = 1, ISSTOP
 
-      DO 100 IDDUM = IDCMIN(IS), IDCMAX(IS)
+   do IS = 1, WINDOW%ISSTOP
+
+      do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
          IF (WAVAGE.GT.0.) THEN
@@ -2920,7 +2949,7 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     , &
             IF (IS.EQ.1) THEN
                DCG = ABS(CGO(IS+1,IC)-CGO(IS,IC))
 
-            ELSE IF (IS.EQ.ISSTOP) THEN
+            ELSE IF (IS.EQ.WINDOW%ISSTOP) THEN
                DCG = ABS(CGO(IS,IC)-CGO(IS-1,IC))
 
             ELSE
@@ -2938,15 +2967,15 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     , &
 !         the unknown, diagonal part:                                     33.08
 
          FXY1 = 0.83333*(RDX(1)+RDX(2)) * CAX(ID,IS,1) &
-              + 0.83333*(RDY(1)+RDY(2)) * CAY(ID,IS,1)
+            + 0.83333*(RDY(1)+RDY(2)) * CAY(ID,IS,1)
          IF (KSPHER.EQ.0) THEN
 !           Cartesian coordinates
-
+!
 !           the known, rhs part                                           33.08
-
+!
 !
 !         To avoid violation of the ANSI standard this statement is split 40.02
-!
+
             FXY2 = &
                +1.25   * RDX(1) * CAX(ID,IS,2) * AC2(ID,IS,IND2) &
                +1.25   * RDY(1) * CAY(ID,IS,2) * AC2(ID,IS,IND2) &
@@ -2984,99 +3013,102 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     , &
                +(0.25*RDX(2))*(CAX1(ID,IS,3)*AC1(ID,IS,IND3) &
                -               CAX1(ID,IS,4)*AC1(ID,IS,IND4))
             FXY2 = FXY2 + ( &
-               +1.25   * RDY(1)*CAY(ID,IS,2)*AC2(ID,IS,IND2)*COSLAT(2) &
-               +1.25   * RDY(2)*CAY(ID,IS,3)*AC2(ID,IS,IND3)*COSLAT(3) &
-               -0.5    * RDY(1)*CAY(ID,IS,6)*AC2(ID,IS,IND6)*COSLAT(6) &
-               -0.5    * RDY(2)*CAY(ID,IS,7)*AC2(ID,IS,IND7)*COSLAT(7) &
-               +0.08333* RDY(1)*CAY(ID,IS,8)*AC2(ID,IS,IND8)*COSLAT(8) &
-               +0.08333* RDY(2)*CAY(ID,IS,9)*AC2(ID,IS,IND9)*COSLAT(9) &
-               +(0.25*RDY(1))*(CAY1(ID,IS,2)*AC1(ID,IS,IND2)*COSLAT(2) &
-               -               CAY1(ID,IS,5)*AC1(ID,IS,IND5)*COSLAT(5)) &
-               +(0.25*RDY(2))*(CAY1(ID,IS,3)*AC1(ID,IS,IND3)*COSLAT(3) &
-               -               CAY1(ID,IS,4)*AC1(ID,IS,IND4)*COSLAT(4)) &
-               ) / COSLAT(1)
+               +1.25   * RDY(1)*CAY(ID,IS,2)*AC2(ID,IS,IND2)*st_cos(2) &
+               +1.25   * RDY(2)*CAY(ID,IS,3)*AC2(ID,IS,IND3)*st_cos(3) &
+               -0.5    * RDY(1)*CAY(ID,IS,6)*AC2(ID,IS,IND6)*st_cos(6) &
+               -0.5    * RDY(2)*CAY(ID,IS,7)*AC2(ID,IS,IND7)*st_cos(7) &
+               +0.08333* RDY(1)*CAY(ID,IS,8)*AC2(ID,IS,IND8)*st_cos(8) &
+               +0.08333* RDY(2)*CAY(ID,IS,9)*AC2(ID,IS,IND9)*st_cos(9) &
+               +(0.25*RDY(1))*(CAY1(ID,IS,2)*AC1(ID,IS,IND2)*st_cos(2) &
+               -               CAY1(ID,IS,5)*AC1(ID,IS,IND5)*st_cos(5)) &
+               +(0.25*RDY(2))*(CAY1(ID,IS,3)*AC1(ID,IS,IND3)*st_cos(3) &
+               -               CAY1(ID,IS,4)*AC1(ID,IS,IND4)*st_cos(4)) &
+               ) / st_cos(1)
          ENDIF
 
          IF (WAVAGE.GT.0.0) THEN ! add the anti-GSE stuff
             D11AC = AC1(ID,IS,IND5) - 2.*AC1(ID,IS,IND1) + &
-                    AC1(ID,IS,IND2)
+               AC1(ID,IS,IND2)
 !           old method
 !           D12AC = AC1(ID,IS,IND1) - AC1(ID,IS,IND2) -                   33.08
 !    &              AC1(ID,IS,IND3) + AC1(ID,IS,IND10)                    33.08
 !           new method
             D12AC = 0.25*(AC1(ID,IS,IND12) - AC1(ID,IS,IND11) &
-                         -AC1(ID,IS,IND13) + AC1(ID,IS,IND10))
+               -AC1(ID,IS,IND13) + AC1(ID,IS,IND10))
             D22AC = AC1(ID,IS,IND4) - 2.*AC1(ID,IS,IND1) + &
-                    AC1(ID,IS,IND3)
+               AC1(ID,IS,IND3)
             FXY2 = FXY2 + &
-                DXX * (RDX(1)*RDX(1)*D11AC + 2.*RDX(1)*RDX(2)*D12AC + &
-                       RDX(2)*RDX(2)*D22AC) + &
-                2.*DXY * (RDX(1)*RDY(1)*D11AC + RDX(2)*RDY(2)*D22AC + &
-                      (RDX(1)*RDY(2)+RDX(2)*RDY(1))*D12AC) + &
-                DYY * (RDY(1)*RDY(1)*D11AC + 2.*RDY(1)*RDY(2)*D12AC + &
-                       RDY(2)*RDY(2)*D22AC)
-            IF (ITEST.GE.120 .AND. TESTFL) WRITE (PRTEST, 6014) &
+               DXX * (RDX(1)*RDX(1)*D11AC + 2.*RDX(1)*RDX(2)*D12AC + &
+               RDX(2)*RDX(2)*D22AC) + &
+               2.*DXY * (RDX(1)*RDY(1)*D11AC + RDX(2)*RDY(2)*D22AC + &
+               (RDX(1)*RDY(2)+RDX(2)*RDY(1))*D12AC) + &
+               DYY * (RDY(1)*RDY(1)*D11AC + 2.*RDY(1)*RDY(2)*D12AC + &
+               RDY(2)*RDY(2)*D22AC)
+            IF (ITEST.GE.120 .AND. TESTFL) WRITE (PRTEST, "(1X, 2I4, 1X, 2E12.4, 1X, 3E12.4, 1X, 4E12.4)") &
                ID, IS, DSS, DNN, DXX, DXY, DYY, D11AC, D12AC, D22AC
-6014        FORMAT (1X, 2I4, 1X, 2E12.4, 1X, 3E12.4, 1X, 4E12.4)
          END IF
-!
+
 !         *** the term FXY2 is known, store in IMATRA ***
 !         *** the term FXY1 is unknown, store in IMATDA ***
-
+!
 !         This business of doing rollback regardless of ITERMX is an      40.08
 !         artifact and has been removed.                                  40.08
          IF (ITERMX.EQ.1) THEN
-            ACOLD = AC2(ID,IS,KCGRD(1))
+            ACOLD = AC2(ID,IS,st_kc(1))
          ELSE
-            ACOLD = AC1(ID,IS,KCGRD(1))
+            ACOLD = AC1(ID,IS,st_kc(1))
          ENDIF
          IMATRA(ID,IS) = IMATRA(ID,IS) + FXY2 + ACOLD*RDTIM
          IMATDA(ID,IS) = IMATDA(ID,IS) + FXY1 + RDTIM
 !         TRACx represent material derivative of action density
          TRAC0(ID,IS,1) = TRAC0(ID,IS,1) - FXY2 - ACOLD*RDTIM
          TRAC1(ID,IS,1) = TRAC1(ID,IS,1) + FXY1 + RDTIM
-!
+
 !         *** test output ***
-!
+
          IF ( ITEST .GE. 150 .AND. TESTFL ) THEN
-            WRITE(PRINTF,6021) ID, FXY1, FXY2, ACOLD
-6021        FORMAT (' - ID FXY1 FXY2 ACOLD:', I4, 3(1X,E12.4))
+            WRITE(PRINTF,"(' - ID FXY1 FXY2 ACOLD:', I4, 3(1X,E12.4))") ID, FXY1, FXY2, ACOLD
          ENDIF
-!
-100   CONTINUE
-200 CONTINUE
-!
+
+      end do
+   end do
+
    IF (TESTFL .AND. ITEST .GE. 100) THEN
       WRITE(PRINTF,*) '  matrix coefficients at SANDL : '
       WRITE(PRINTF,*) &
          'IS ID IDDUM     IMATDA    IMATRA'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-            WRITE(PRINTF,2102) IS,IDDUM,ID, &
-                       IMATDA(ID,IS), IMATRA(ID,IS)
-2102        FORMAT(3I3,2E12.4)
+            WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID, &
+               IMATDA(ID,IS), IMATRA(ID,IS)
          ENDDO
       ENDDO
    END IF
 !     End of subroutine SANDL
    RETURN
-END
-!
+end subroutine SANDL
+
 !****************************************************************
-!
+
 SUBROUTINE STRSSI(SPCSIG  , &
-                  CAS     ,IMAT5L  ,IMATDA  ,IMAT6U  ,ANYBIN  , &
-                  IMATRA  ,AC2     ,ISCMIN  ,ISCMAX  ,IDDLOW  , &
-                  IDDTOP  ,TRAC0   ,TRAC1                     )
-!
+   CAS     ,IMAT5L  ,IMATDA  ,IMAT6U  ,ANYBIN  , &
+   IMATRA  ,AC2     ,WINDOW  , &
+   TRAC0   ,TRAC1   ,st_kc1  ,st_n    )
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+!  Stencil point and width passed explicitly by ACTION/SwanTranspAc.
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -3149,10 +3181,11 @@ SUBROUTINE STRSSI(SPCSIG  , &
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
+
+   INTEGER, INTENT(IN) :: st_kc1, st_n
    REAL    SPCSIG(MSC)
-!
+
 !        IC          Dummy variable: ICode gridpoint:
 !                      IC = 1  Top or Bottom gridpoint
 !                      IC = 2  Left or Right gridpoint
@@ -3220,38 +3253,35 @@ SUBROUTINE STRSSI(SPCSIG  , &
 !     10. SOURCE
 !
 !****************************************************************
-!
-   INTEGER  IENT, IS      ,ID      ,IDDLOW  ,IDDTOP  ,IDDUM
-!
+
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
+   INTEGER, SAVE :: IENT = 0
+   INTEGER  IS      ,ID      ,IDDUM
+
    REAL     DS      ,PNH     ,PN1     ,PN2     ,C1      ,C2      , &
-            C3      ,A1      ,A3      ,PCD1    ,PCD2    ,RHS12   , &
-            RHS23   ,DIAG12  ,DIAG23
+      C3      ,A1      ,A3      ,PCD1    ,PCD2    ,PCD3, RHS12   , &
+      RHS23   ,DIAG12  ,DIAG23
    REAL     TC12    ,TC23    ,S1      ,S3
-!
+
    LOGICAL  BIN1    ,BIN3
-!
+
    REAL     AC2(MDC,MSC,MCGRD)         , &
-            CAS(MDC,MSC,ICMAX)         , &
-            IMAT5L(MDC,MSC)            , &
-            IMATDA(MDC,MSC)            , &
-            IMAT6U(MDC,MSC)            , &
-            IMATRA(MDC,MSC)
+      CAS(MDC,MSC,st_n)         , &
+      IMAT5L(MDC,MSC)            , &
+      IMATDA(MDC,MSC)            , &
+      IMAT6U(MDC,MSC)            , &
+      IMATRA(MDC,MSC)
    REAL  :: TRAC0(MDC,MSC,MTRNP)
    REAL  :: TRAC1(MDC,MSC,MTRNP)
-!
-   INTEGER  ISCMIN(MDC)                , &
-            ISCMAX(MDC)
-!
+
    LOGICAL  ANYBIN(MDC,MSC)
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'STRSSI')
-!
-   DO 500 IDDUM = IDDLOW, IDDTOP
+
+   direction_loop: do IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-      IF (ISCMIN(ID).EQ.0) GOTO 500
-      DO 400 IS = ISCMIN(ID), ISCMAX(ID)
+      IF (WINDOW%ISCMIN(ID).EQ.0) CYCLE direction_loop
+      do IS = WINDOW%ISCMIN(ID), WINDOW%ISCMAX(ID)
          A1 = 0.
          A3 = 0.
          C2 = CAS(ID,IS,1)
@@ -3261,14 +3291,14 @@ SUBROUTINE STRSSI(SPCSIG  , &
             BIN1 = .FALSE.
             C3   = CAS(ID,IS+1,1)
             BIN3 = ANYBIN(ID,IS+1)
-            IF (.NOT.BIN3) A3 = AC2(ID,IS+1,KCGRD(1))
+            IF (.NOT.BIN3) A3 = AC2(ID,IS+1,st_kc1)
             DS   = SPCSIG(IS+1) - SPCSIG(IS)
             S1 = 0.
             S3 = SPCSIG(IS+1)
          ELSE IF ( IS .EQ. MSC ) THEN
             C1   = CAS(ID,IS-1,1)
             BIN1 = ANYBIN(ID,IS-1)
-            IF (.NOT.BIN1) A1 = AC2(ID,IS-1,KCGRD(1))
+            IF (.NOT.BIN1) A1 = AC2(ID,IS-1,st_kc1)
             C3   = C2
             A3   = 0.
             BIN3 = .FALSE.
@@ -3280,19 +3310,19 @@ SUBROUTINE STRSSI(SPCSIG  , &
             C3   = CAS(ID,IS+1,1)
             BIN1 = ANYBIN(ID,IS-1)
             BIN3 = ANYBIN(ID,IS+1)
-            IF (.NOT.BIN1) A1 = AC2(ID,IS-1,KCGRD(1))
-            IF (.NOT.BIN3) A3 = AC2(ID,IS+1,KCGRD(1))
+            IF (.NOT.BIN1) A1 = AC2(ID,IS-1,st_kc1)
+            IF (.NOT.BIN3) A3 = AC2(ID,IS+1,st_kc1)
             DS   = 0.5 * ( SPCSIG(IS+1) - SPCSIG(IS-1) )
             S1 = SPCSIG(IS-1)
             S3 = SPCSIG(IS+1)
          END IF
-!
+
          PNH = 1. / (2. * DS)
-         PN1 =  (1. - PNUMS(7) ) * PNH
-         PN2 =  (1. + PNUMS(7) ) * PNH
-!
+         PN1 =  (1. - PNUMS(PNUMS_CSS) ) * PNH
+         PN2 =  (1. + PNUMS(PNUMS_CSS) ) * PNH
+
 !         *** fill the lower diagonal and the diagonal ***
-!
+
          IF ( C1 .GT. 1.E-8 .AND. C2 .GT. 1.E-8 ) THEN
             PCD1 = PN2 * C1
             PCD2 = PN1 * C2
@@ -3303,7 +3333,7 @@ SUBROUTINE STRSSI(SPCSIG  , &
             PCD1 = PNH * C1
             PCD2 = PNH * C2
          END IF
-!
+
          RHS12 = 0.
          TC12  = 0.
          IF ( IS .EQ. 1 .AND. C2.LT.0.) THEN
@@ -3318,7 +3348,7 @@ SUBROUTINE STRSSI(SPCSIG  , &
                TC12  = RHS12* S1
             ENDIF
          ENDIF
-!
+
          IF ( C2 .GT. 1.E-8 .AND. C3 .GT. 1.E-8 ) THEN
             PCD2 = PN2 * C2
             PCD3 = PN1 * C3
@@ -3329,7 +3359,7 @@ SUBROUTINE STRSSI(SPCSIG  , &
             PCD2 = PNH * C2
             PCD3 = PNH * C3
          END IF
-!
+
          RHS23 = 0.
          TC23  = 0.
          IF (IS .EQ. MSC .AND. C2.GT.0.) THEN
@@ -3348,53 +3378,55 @@ SUBROUTINE STRSSI(SPCSIG  , &
          IMATRA(ID,IS) = IMATRA(ID,IS) + RHS12 + RHS23
          TRAC0(ID,IS,3) = TRAC0(ID,IS,3) - TC12 - TC23
          TRAC1(ID,IS,3) = TRAC1(ID,IS,3) + DIAG12 + DIAG23
-400   CONTINUE
-500 CONTINUE
-!
+      end do
+   end do direction_loop
+
 !     *** test output ***
-!
+
    IF ( TESTFL .AND. ITEST .GE. 35 ) THEN
-      WRITE(PRINTF,111) KCGRD(1), IDDLOW, IDDTOP
-111   FORMAT(' STRSSI: POINT IDDLOW IDDTOP  :',3I5)
-      WRITE(PRINTF,131) PNUMS(7)
-131   FORMAT(' STRSSI: CSS                  :',2E12.4)
+      WRITE(PRINTF,"(' STRSSI: POINT IDDLOW IDDTOP  :',3I5)") st_kc1, WINDOW%IDDLOW, WINDOW%IDDTOP
+      WRITE(PRINTF,"(' STRSSI: CSS                  :',2E12.4)") PNUMS(PNUMS_CSS)
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) ' matrix coefficients in STRSSI'
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) &
          '   IS   ID    IMAT5L       IMATDA       IMAT6U    IMATRA    CAS'
-      DO IDDUM = IDDLOW, IDDTOP
+      DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-         IF (ISCMIN(ID).GT.0) THEN
-            DO IS = ISCMIN(ID), ISCMAX(ID)
-               WRITE(PRINTF,2101) IS, ID, IMAT5L(ID,IS),IMATDA(ID,IS), &
-                                IMAT6U(ID,IS),IMATRA(ID,IS),CAS(ID,IS,1)
-2101           FORMAT(1X,2I4,4X,4E12.4,E10.2)
+         IF (WINDOW%ISCMIN(ID).GT.0) THEN
+            DO IS = WINDOW%ISCMIN(ID), WINDOW%ISCMAX(ID)
+               WRITE(PRINTF,"(1X,2I4,4X,4E12.4,E10.2)") IS, ID, IMAT5L(ID,IS),IMATDA(ID,IS), &
+                  IMAT6U(ID,IS),IMATRA(ID,IS),CAS(ID,IS,1)
             ENDDO
          ENDIF
       ENDDO
    END IF
-!
+
 !     End of subroutine STRSSI
    RETURN
-END
-!
+end subroutine STRSSI
+
 !****************************************************************
-!
-SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  , &
-                   IDCMIN  ,IDCMAX  ,ISSTOP  ,CAX     ,CAY     , &
-                   CAS     ,AC2     ,SPCSIG  ,IMATRA  , &
-                   ANYBLK  ,RDX     ,RDY     ,TRAC0            )
-!
+
+SUBROUTINE STRSSB (WINDOW  ,CAX     ,CAY     , &
+   CAS     ,AC2     ,SPCSIG  ,IMATRA  , &
+   ANYBLK  ,RDX     ,RDY     ,TRAC0   ,st_kc1  ,st_n)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+!  Stencil point and width passed explicitly by ACTION/SwanTranspAc.
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -3528,10 +3560,11 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  , &
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
+
+   INTEGER, INTENT(IN) :: st_kc1, st_n
    REAL    SPCSIG(MSC)
-!
+
 !        IC          Dummy variable: ICode gridpoint:
 !                      IC = 1  Top or Bottom gridpoint
 !                      IC = 2  Left or Right gridpoint
@@ -3603,47 +3636,46 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  , &
 !     10. SOURCE
 !
 !************************************************************************
-!
-   INTEGER  IENT, IS      ,ID      ,ISSTOP  , &
-            IDDLOW  ,IDDTOP  ,IDDUM
-!
+
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
+   INTEGER, SAVE :: IENT = 0
+   INTEGER  IS      ,ID      ,IDDUM
+
    REAL     FSA     ,FLEFT   ,FRGHT   ,DS      ,CFLMAX  ,CFLCEN  , &
-            CAXCEN  ,CAYCEN  ,CASCEN  ,TX      ,TY      ,TS      , &
-            CASL    ,CASR    ,PN1     ,PN2
-!
-   REAL     CAS(MDC,MSC,ICMAX)       , &
-            CAX(MDC,MSC,ICMAX)       , &
-            CAY(MDC,MSC,ICMAX)       , &
-            AC2(MDC,MSC,MCGRD)       , &
-            IMATRA(MDC,MSC)          , &
-            RDX(MICMAX)              , &
-            RDY(MICMAX)
+      CAXCEN  ,CAYCEN  ,CASCEN  ,TX      ,TY      ,TS      , &
+      CASL    ,CASR    ,PN1     ,PN2
+
+   REAL     CAS(MDC,MSC,st_n)       , &
+      CAX(MDC,MSC,st_n)       , &
+      CAY(MDC,MSC,st_n)       , &
+      AC2(MDC,MSC,MCGRD)       , &
+      IMATRA(MDC,MSC)          , &
+      RDX(*)                   , &
+      RDY(*)
+!  RDX/RDY assumed-size: the unstructured caller passes a 2-element array and
+!  STRSSB only reads RDX(1:2). The module's explicit interface rejected the old
+!  RDX(MICMAX) declaration against that shorter actual argument.
    REAL  :: TRAC0(MDC,MSC,MTRNP)
-!
-   INTEGER  IDCMIN(MSC)              , &
-            IDCMAX(MSC)
-!
+
    LOGICAL  ANYBLK(MDC,MSC)
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'STRSSB')
-!
+
 !     --- determine blending factor
-!
-   PN1 = 0.5*(1.+PNUMS(7))
-   PN2 = 0.5*(1.-PNUMS(7))
-!
+
+   PN1 = 0.5*(1.+PNUMS(PNUMS_CSS))
+   PN2 = 0.5*(1.-PNUMS(PNUMS_CSS))
+
 !     *** initialization of ANYBLK and CFLMAX value ***
-!
+
    DO IS = 1, MSC
       DO ID = 1, MDC
          ANYBLK(ID,IS) = .FALSE.
       ENDDO
    ENDDO
-   CFLMAX = PNUMS(19)
-!
-   DO IS = 1, ISSTOP
+   CFLMAX = PNUMS(PNUMS_CFLFR)
+
+   DO IS = 1, WINDOW%ISSTOP
       IF ( IS .EQ. 1 ) THEN
          DS = SPCSIG(IS+1) - SPCSIG(IS)
       ELSE IF ( IS .EQ. MSC ) THEN
@@ -3651,39 +3683,39 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  , &
       ELSE
          DS = 0.5 * ( SPCSIG(IS+1) - SPCSIG(IS-1) )
       END IF
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
          CAXCEN = ABS ( CAX(ID,IS,1) )
          CAYCEN = ABS ( CAY(ID,IS,1) )
          CASCEN = ABS ( CAS(ID,IS,1) )
-!
+
          TX     = RDX(1) * CAXCEN + RDX(2) * CAXCEN
          TY     = RDY(1) * CAYCEN + RDY(2) * CAYCEN
-!
+
          TS     = CASCEN / DS
          CFLCEN = TS / MAX( 1.E-20 , ( TX + TY ) )
          FRGHT = 0.
          FLEFT = 0.
-!
+
 !         *** check if a bin can be propagated or if it is blocked ***
-!
+
          IF ( CFLCEN .GT. CFLMAX ) THEN
-!
+
 !           *** de-activate bin in solver by ANYBLK ***
-!
+
             ANYBLK(ID,IS) = .TRUE.
-!
+
          ELSE
-!
+
 !           *** calculate transport in frequency space ***
-!
+
             IF ( IS .EQ. 1 ) THEN
 !             *** for first point an upwind scheme is used ***
                CASR  = 0.5 * ( CAS(ID,IS,1) + CAS(ID,IS+1,1) )
                IF ( CASR .LT. 0. ) THEN
-                  FRGHT = CASR * AC2(ID,IS+1,KCGRD(1))
+                  FRGHT = CASR * AC2(ID,IS+1,st_kc1)
                ELSE
-                  FRGHT = CASR * AC2(ID,IS  ,KCGRD(1))
+                  FRGHT = CASR * AC2(ID,IS  ,st_kc1)
                END IF
                FLEFT = 0.
             ELSE IF ( IS .EQ. MSC ) THEN
@@ -3692,99 +3724,100 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  , &
                CASL = CAS(ID,IS-1,1)
                CASR = CAS(ID,IS  ,1)
                IF ( CASL .LT. 0. ) THEN
-                  FLEFT = CASL * AC2(ID,IS  ,KCGRD(1))
+                  FLEFT = CASL * AC2(ID,IS  ,st_kc1)
                ELSE
-                  FLEFT = CASL * AC2(ID,IS-1,KCGRD(1))
+                  FLEFT = CASL * AC2(ID,IS-1,st_kc1)
                END IF
                IF ( CASR .LT. 0. ) THEN
 !               *** assumption has been made that the flux is ***
 !               *** zero for the bin beyond MSC               ***
                   FRGHT = 0.
                ELSE
-                  FRGHT = CASR * AC2(ID,IS,KCGRD(1))
+                  FRGHT = CASR * AC2(ID,IS,st_kc1)
                END IF
             ELSE
 !             *** point in frequency range ***
                CASL  = 0.5 * ( CAS(ID,IS,1) + CAS(ID,IS-1,1) )
                CASR  = 0.5 * ( CAS(ID,IS,1) + CAS(ID,IS+1,1) )
                IF ( CASL .LT. 0. ) THEN
-                  FLEFT = CASL * ( PN1*AC2(ID,IS  ,KCGRD(1)) + &
-                                   PN2*AC2(ID,IS-1,KCGRD(1)) )
+                  FLEFT = CASL * ( PN1*AC2(ID,IS  ,st_kc1) + &
+                     PN2*AC2(ID,IS-1,st_kc1) )
                ELSE
-                  FLEFT = CASL * ( PN1*AC2(ID,IS-1,KCGRD(1)) + &
-                                   PN2*AC2(ID,IS  ,KCGRD(1)) )
+                  FLEFT = CASL * ( PN1*AC2(ID,IS-1,st_kc1) + &
+                     PN2*AC2(ID,IS  ,st_kc1) )
                END IF
                IF ( CASR .LT. 0. ) THEN
-                  FRGHT = CASR * ( PN1*AC2(ID,IS+1,KCGRD(1)) + &
-                                   PN2*AC2(ID,IS  ,KCGRD(1)) )
+                  FRGHT = CASR * ( PN1*AC2(ID,IS+1,st_kc1) + &
+                     PN2*AC2(ID,IS  ,st_kc1) )
                ELSE
-                  FRGHT = CASR * ( PN1*AC2(ID,IS  ,KCGRD(1)) + &
-                                   PN2*AC2(ID,IS+1,KCGRD(1)) )
+                  FRGHT = CASR * ( PN1*AC2(ID,IS  ,st_kc1) + &
+                     PN2*AC2(ID,IS+1,st_kc1) )
                END IF
             END IF
-!
+
             FSA  = ( FRGHT - FLEFT ) / DS
-!
+
 !           *** all the terms are known, store in IMATRA ***
-!
+
             IMATRA(ID,IS) = IMATRA(ID,IS) - FSA
             TRAC0(ID,IS,3) = TRAC0(ID,IS,3) + FSA
          ENDIF
-!
+
 !         *** test output ***
 
          IF ( ITEST .GE. 50 .AND. TESTFL ) THEN
-            WRITE(PRINTF,670) IS,ID,FRGHT,FLEFT,CFLCEN,ANYBLK(ID,IS)
-670         FORMAT(' STRSSB: FR FL CFLC ANYBLK:',2I3,3E12.4,L3)
+            WRITE(PRINTF,"(' STRSSB: FR FL CFLC ANYBLK:',2I3,3E12.4,L3)") IS,ID,FRGHT,FLEFT,CFLCEN,ANYBLK(ID,IS)
          END IF
 
-!
       ENDDO
    ENDDO
-!
+
 !     *** test output ***
-!
+
    IF ( ITEST .GE. 50 .AND. TESTFL ) THEN
-      WRITE(PRINTF,200) MDC,MSC,MCGRD
-200   FORMAT(' BLOCKB : MDC MSC MCGRD    : ',3I5)
-      WRITE(PRINTF,300) KCGRD(1), ISSTOP, CFLMAX
-300   FORMAT(' BLOCKB : POINT ISSTOP CFLMAX: ',2I5,F8.4)
-      WRITE(PRINTF,400) IDDLOW, IDDTOP
-400   FORMAT (' Active bins within a sweep  -> ID: ',I3,' to ',I3)
+      WRITE(PRINTF,"(' BLOCKB : MDC MSC MCGRD    : ',3I5)") MDC,MSC,MCGRD
+      WRITE(PRINTF,"(' BLOCKB : POINT ISSTOP CFLMAX: ',2I5,F8.4)") st_kc1, WINDOW%ISSTOP, CFLMAX
+      WRITE(PRINTF,"(' Active bins within a sweep  -> ID: ',I3,' to ',I3)") WINDOW%IDDLOW, WINDOW%IDDTOP
       WRITE(PRINTF,*)
       WRITE(PRINTF,*)(' Propagation of bin if blocking can occur')
       WRITE(PRINTF,*)('   1) No blocking of bin -> ANYBLK = .F.')
       WRITE(PRINTF,*)('   2) Blocking of bin    -> ANYBLK = .T.')
       WRITE(PRINTF,*)
-      DO IDDUM = IDDTOP+1, IDDLOW-1, -1
+      DO IDDUM = WINDOW%IDDTOP+1, WINDOW%IDDLOW-1, -1
          ID = MOD ( IDDUM - 1 + MDC, MDC) + 1
-         WRITE(PRINTF,500) ID, (ANYBLK(ID,IS),IS=1,MIN(ISSTOP,25))
-500      FORMAT(I4,25L3)
+         WRITE(PRINTF,"(I4,25L3)") ID, (ANYBLK(ID,IS),IS=1,MIN(WINDOW%ISSTOP,25))
       ENDDO
-      WRITE(PRINTF,600)(IS, IS=1+4, MIN(ISSTOP,25), 5 )
-600   FORMAT(6X,'1',9X,5(I3,12X))
+      WRITE(PRINTF,"(6X,'1',9X,5(I3,12X))")(IS, IS=1+4, MIN(WINDOW%ISSTOP,25), 5 )
       WRITE(PRINTF,*)
-!
+
    ENDIF
-!
+
 !     End of subroutine STRSSB
    RETURN
-END
-!
-!****************************************************************
-!
-SUBROUTINE STRSD (DD      ,IDCMIN  , &
-                  IDCMAX  ,CAD     ,IMATLA  ,IMATDA  ,IMATUA  , &
-                  IMATRA  ,AC2     ,ISSTOP  , &
-                  ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1            )
+end subroutine STRSSB
 
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-!
+
+SUBROUTINE STRSD (DD      ,WINDOW  , &
+   CAD     ,IMATLA  ,IMATDA  ,IMATUA  , &
+   IMATRA  ,AC2     , &
+   ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1   ,st_kc1  ,st_n)
+
+!****************************************************************
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   INTEGER, INTENT(IN) :: st_kc1, st_n
+
+!  Stencil point and width passed explicitly by ACTION/SwanTranspAc.
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -3916,39 +3949,36 @@ SUBROUTINE STRSD (DD      ,IDCMIN  , &
 !     10. SOURCE
 !
 !****************************************************************
-!
+
    LOGICAL  BIN1, BIN2, BIN3
-!
-   INTEGER  IENT  ,IS    ,ID    ,IIDM  ,IIDP  , &
-            ISSTOP,IDDUM
-!
-   REAL     DD    ,PNH   ,PN1   ,PN2
-!
+
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
+   INTEGER, SAVE :: IENT = 0
+   INTEGER  IS    ,ID    ,IIDM  ,IIDP  ,IDDUM
+
+   REAL     DD, PNH, PN1, PN2, A1, A3, C1, C2, C3
+   REAL     DIAG12, DIAG23, PCD1, PCD2, PCD3, RHS12, RHS23
+
    REAL     AC2(MDC,MSC,MCGRD)         , &
-            CAD(MDC,MSC,ICMAX)         , &
-            IMATLA(MDC,MSC)            , &
-            IMATDA(MDC,MSC)            , &
-            IMATUA(MDC,MSC)            , &
-            IMATRA(MDC,MSC)            , &
-            LEAKC1(MDC,MSC)
+      CAD(MDC,MSC,st_n)         , &
+      IMATLA(MDC,MSC)            , &
+      IMATDA(MDC,MSC)            , &
+      IMATUA(MDC,MSC)            , &
+      IMATRA(MDC,MSC)            , &
+      LEAKC1(MDC,MSC)
    REAL  :: TRAC0(MDC,MSC,MTRNP)
    REAL  :: TRAC1(MDC,MSC,MTRNP)
-!
-   INTEGER  IDCMIN(MSC)                , &
-            IDCMAX(MSC)
-!
+
    LOGICAL  ANYBIN(MDC,MSC)
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'STRSD')
-!
+
    PNH = 1. / (2. * DD)
-   PN1 =  (1. - PNUMS(6) ) * PNH
-   PN2 =  (1. + PNUMS(6) ) * PNH
-!
-   DO 200 IS = 1, ISSTOP
-      DO 100 IDDUM = IDCMIN(IS), IDCMAX(IS)
+   PN1 =  (1. - PNUMS(PNUMS_CDD) ) * PNH
+   PN2 =  (1. + PNUMS(PNUMS_CDD) ) * PNH
+
+   do IS = 1, WINDOW%ISSTOP
+      do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD (IDDUM-1+MDC, MDC) + 1
          C2 = CAD(ID,IS,1)
          BIN2 = ANYBIN(ID,IS)
@@ -3957,7 +3987,7 @@ SUBROUTINE STRSD (DD      ,IDCMIN  , &
                IIDM = MOD (IDDUM-2+MDC, MDC) + 1
                C1   = CAD(IIDM,IS,1)
                BIN1 = ANYBIN(IIDM,IS)
-               IF (.NOT.BIN1) A1 = AC2(IIDM,IS,KCGRD(1))
+               IF (.NOT.BIN1) A1 = AC2(IIDM,IS,st_kc1)
             ELSE
                IIDM = 0
                C1   = C2
@@ -3968,16 +3998,16 @@ SUBROUTINE STRSD (DD      ,IDCMIN  , &
                IIDP = MOD (IDDUM+MDC, MDC) + 1
                C3   = CAD(IIDP,IS,1)
                BIN3 = ANYBIN(IIDP,IS)
-               IF (.NOT.BIN3) A3 = AC2(IIDP,IS,KCGRD(1))
+               IF (.NOT.BIN3) A3 = AC2(IIDP,IS,st_kc1)
             ELSE
                IIDP = 0
                C3   = C2
                BIN3 = .FALSE.
                A3   = 0.
             ENDIF
-!
+
 !           *** fill the lower diagonal and the diagonal ***
-!
+
             IF ( C1 .GT. 1.E-8 .AND. C2 .GT. 1.E-8 ) THEN
                PCD1 = PN2 * C1
                PCD2 = PN1 * C2
@@ -3988,7 +4018,7 @@ SUBROUTINE STRSD (DD      ,IDCMIN  , &
                PCD1 = PNH * C1
                PCD2 = PNH * C2
             END IF
-!
+
             RHS12 = 0.
             IF (IIDM.EQ.0 .AND. C2.LT.0.) THEN
 !             fully upwind approximation at the boundary of the directional
@@ -4003,7 +4033,7 @@ SUBROUTINE STRSD (DD      ,IDCMIN  , &
                   RHS12 = PCD1 * A1
                ENDIF
             ENDIF
-!
+
             IF ( C2 .GT. 1.E-8 .AND. C3 .GT. 1.E-8 ) THEN
                PCD2 = PN2 * C2
                PCD3 = PN1 * C3
@@ -4014,7 +4044,7 @@ SUBROUTINE STRSD (DD      ,IDCMIN  , &
                PCD2 = PNH * C2
                PCD3 = PNH * C3
             END IF
-!
+
             RHS23 = 0.
             IF (IIDP.EQ.0 .AND. C2.GT.0.) THEN
 !             full upwind approximation at the boundary
@@ -4033,292 +4063,54 @@ SUBROUTINE STRSD (DD      ,IDCMIN  , &
             TRAC0(ID,IS,2) = TRAC0(ID,IS,2) - RHS12 - RHS23
             TRAC1(ID,IS,2) = TRAC1(ID,IS,2) + DIAG12 + DIAG23
          ENDIF
-!
-100   CONTINUE
-200 CONTINUE
-!
+
+      end do
+   end do
+
 !     *** test output
-!
+
    IF ( ITEST .GE. 80 .AND. TESTFL ) THEN
-      WRITE(PRINTF,5001) FULCIR
-5001  FORMAT (' FULL CIRCLE                   ',L4)
-      WRITE(PRINTF,6021) KCGRD(1), ISSTOP, PNUMS(6)
-6021  FORMAT (' STRSD :POINT ISTOP CDD      :',2I5,E12.4)
-      WRITE(PRINTF,5021) PN1, PN2, PNH ,DD
-5021  FORMAT (' STRSD : PN1 PN2 PNH DD      :',4E12.4)
+      WRITE(PRINTF,"(' FULL CIRCLE                   ',L4)") FULCIR
+      WRITE(PRINTF,"(' STRSD :POINT ISTOP CDD      :',2I5,E12.4)") st_kc1, WINDOW%ISSTOP, PNUMS(PNUMS_CDD)
+      WRITE(PRINTF,"(' STRSD : PN1 PN2 PNH DD      :',4E12.4)") PN1, PN2, PNH ,DD
    END IF
-!
+
 !     End of subroutine STRSD
    RETURN
-END
-!
+end subroutine STRSD
+
 !****************************************************************
-!
-SUBROUTINE STRSDFV (DD      ,IDCMIN  , &
-                    IDCMAX  ,CAD     ,IMATLA  ,IMATDA  ,IMATUA  , &
-                    IMATRA  ,AC2     ,ISSTOP  , &
-                    ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1            )
-!
-!****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.23: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!     40.85: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.23, Nov. 02: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!     40.85, Aug. 08: store theta-propagation for output purposes
-!
-!  2. Purpose
-!
-!     computation of @[CAD AC2]/@D based on finite volume method
-!
-!  4. Argument variables
-!
-!     AC2         action density
-!     ANYBIN      logical: indicate whether current bin is selected
-!     CAD         wave transport velocity in D-direction
-!     DD          width of spectral direction band
-!     IDCMAX      frequency dependent counter
-!     IDCMIN      frequency dependent counter
-!     IMATDA      coefficients of diagonal of matrix
-!     IMATLA      coefficients of lower diagonal of matrix
-!     IMATRA      coefficients of right hand side
-!     IMATUA      coefficients of upper diagonal of matrix
-!     ISSTOP      maximum frequency counter in a sweep
-!     LEAKC1      leak coefficient
-!     TRAC0       transport coefficient for output
-!     TRAC1       transport coefficient for output
-!
-   INTEGER ISSTOP
-   INTEGER IDCMIN(MSC), IDCMAX(MSC)
-   REAL    DD
-   REAL    AC2(MDC,MSC,MCGRD), &
-           CAD(MDC,MSC,ICMAX), &
-           IMATLA(MDC,MSC)   , &
-           IMATDA(MDC,MSC)   , &
-           IMATUA(MDC,MSC)   , &
-           IMATRA(MDC,MSC)   , &
-           LEAKC1(MDC,MSC)
-   REAL    TRAC0(MDC,MSC,MTRNP)
-   REAL    TRAC1(MDC,MSC,MTRNP)
-   LOGICAL ANYBIN(MDC,MSC)
-!
-!  6. Local variables
-!
-!     ACM   :     lower action
-!     ACP   :     upper action
-!     BINM  :     indicate whether lower bin is selected
-!     BINP  :     indicate whether upper bin is selected
-!     CADM  :     lower wave transport velocity
-!     CADP  :     upper wave transport velocity
-!     CAN   :     negative wave transport velocity
-!     CAP   :     positive wave transport velocity
-!     CAV   :     averaged wave transport velocity; may be
-!                 regarded as flux velocity
-!     DDI   :     inverse of width of spectral direction band
-!     ID    :     counter
-!     IDDUM :     loop counter
-!     IDM   :     index of point ID-1
-!     IDP   :     index of point ID+1
-!     IENT  :     number of entries
-!     IS    :     loop counter
-!     MU    :     blending parameter in between 0 and 1
-!                 =0; central differences
-!                 =1; first order upwind
-!
-   INTEGER IENT, ID, IDM, IDP, IDDUM, IS
-   REAL    ACM, ACP, CADM, CADP, &
-           CAN, CAP, CAV, DDI, MU
-   LOGICAL BINM, BINP
-!
-!  8. Subroutines used
-!
-!     STRACE           Tracing routine for debugging
-!
-!  9. Subroutines calling
-!
-!     ACTION (in SWANCOM1)
-!
-! 12. Structure
-!
-!     For every S and D-direction in direction of sweep do
-!
-!        Compute the derivative in D-direction and
-!        store the results of this calculation in the
-!        arrays IMATDA, IMATLA, IMATUA and IMATRA
-!
-! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
-   IF (LTRACE) CALL STRACE (IENT,'STRSDFV')
 
-   DDI = 1./DD
-   MU  = PNUMS(6)
-
-   DO 20 IS = 1, ISSTOP
-
-      DO 10 IDDUM = IDCMIN(IS), IDCMAX(IS)
-         ID = MOD (IDDUM-1+MDC, MDC) + 1
-
-         IF ( ANYBIN(ID,IS) ) THEN
-
-            IF ( IDDUM.EQ.IDCMIN(IS) ) THEN
-
-               IF ( FULCIR .OR. ID.GT.1 ) THEN
-                  IDM  = MOD (IDDUM-2+MDC, MDC) + 1
-                  CADM = CAD(IDM,IS,1)
-                  BINM = ANYBIN(IDM,IS)
-                  IF (.NOT.BINM) ACM = AC2(IDM,IS,KCGRD(1))
-               ELSE
-                  IDM  = 0
-                  CADM = CAD(ID,IS,1)
-                  BINM = .FALSE.
-                  ACM  = 0.
-               END IF
-
-               CAV = 0.5*(CAD(ID,IS,1) + CADM)
-               CAP = 0.5*(CAV + ABS(CAV))
-               CAN = 0.5*(CAV - ABS(CAV))
-!
-!                 put them in blended form
-               CAP = CAP*MU + 0.5*CAV*(1.-MU)
-               CAN = CAN*MU + 0.5*CAV*(1.-MU)
-
-               IF ( .NOT.BINM ) THEN
-                  IMATDA(ID,IS) = IMATDA(ID,IS)  - DDI * CAN
-                  IMATRA(ID,IS) = IMATRA(ID,IS)  + DDI * CAP * ACM
-                  TRAC0(ID,IS,2) = TRAC0(ID,IS,2) - DDI * CAP * ACM
-                  TRAC1(ID,IS,2) = TRAC1(ID,IS,2) - DDI * CAN
-               END IF
-
-               IF ( IDM.EQ.0 ) LEAKC1(ID,IS) = -CAN
-
-            END IF
-
-            IF ( FULCIR .OR. ID.LT.MDC ) THEN
-               IDP  = MOD (IDDUM+MDC, MDC) + 1
-               CADP = CAD(IDP,IS,1)
-               BINP = ANYBIN(IDP,IS)
-               IF (.NOT.BINP) ACP = AC2(IDP,IS,KCGRD(1))
-            ELSE
-               IDP  = 0
-               CADP = CAD(ID,IS,1)
-               BINP = .FALSE.
-               ACP  = 0.
-            END IF
-
-            CAV = 0.5*(CAD(ID,IS,1) + CADP)
-            CAP = 0.5*(CAV + ABS(CAV))
-            CAN = 0.5*(CAV - ABS(CAV))
-!
-!              put them in blended form
-            CAP = CAP*MU + 0.5*CAV*(1.-MU)
-            CAN = CAN*MU + 0.5*CAV*(1.-MU)
-
-            IF ( BINP ) THEN
-               IMATDA(ID ,IS) = IMATDA(ID ,IS) + DDI * CAP
-               IMATUA(ID ,IS) = IMATUA(ID ,IS) + DDI * CAN
-               IMATDA(IDP,IS) = IMATDA(IDP,IS) - DDI * CAN
-               IMATLA(IDP,IS) = IMATLA(IDP,IS) - DDI * CAP
-               TRAC1(ID ,IS,2) = TRAC1(ID ,IS,2) + DDI * CAP
-               TRAC1(IDP,IS,2) = TRAC1(IDP,IS,2) - DDI * CAN
-            ELSE
-               IMATDA(ID,IS) = IMATDA(ID,IS) + DDI * CAP
-               IMATRA(ID,IS) = IMATRA(ID,IS) - DDI * CAN * ACP
-               TRAC0(ID,IS,2) = TRAC0(ID,IS,2) + DDI * CAN * ACP
-               TRAC1(ID,IS,2) = TRAC1(ID,IS,2) + DDI * CAP
-            END IF
-
-            IF ( IDP.EQ.0 ) LEAKC1(ID,IS) = CAP
-
-         END IF
-
-10    CONTINUE
-20 CONTINUE
-!
-!     --- test output
-!
-   IF ( TESTFL .AND. ITEST.GE.80 ) THEN
-      WRITE(PRINTF,111) KCGRD(1), ISSTOP
-111   FORMAT(' STRSDFV: POINT  ISSTOP  :',2I5)
-      WRITE(PRINTF,222) PNUMS(6)
-222   FORMAT(' STRSDFV: CDD            :',E12.4)
-      WRITE(PRINTF,*)
-      WRITE(PRINTF,*) ' matrix coefficients in STRSDFV'
-      WRITE(PRINTF,*)
-      WRITE(PRINTF,*) &
-         '   IS ID      IMATLA      IMATDA      IMATUA      IMATRA     CAD'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
-            ID = MOD (IDDUM-1+MDC, MDC) + 1
-            WRITE(PRINTF,333) IS, ID, IMATLA(ID,IS),IMATDA(ID,IS), &
-                             IMATUA(ID,IS),IMATRA(ID,IS),CAD(ID,IS,1)
-333         FORMAT(1X,2I4,4X,4E12.4,E10.2)
-         END DO
-      END DO
-   END IF
-
-   RETURN
-END
-!
-!****************************************************************
-!
 SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       , &
-                   CAY        ,IDCMIN     ,IDCMAX    , &
-                   ISSTOP     ,ANYBIN     , &
-                   XCGRID     ,YCGRID     , &
-                   RDX        ,RDY        ,OBREDF    )
-!
+   CAY        ,WINDOW     , &
+   ANYBIN     , &
+   XCGRID     ,YCGRID     , &
+   RDX        ,RDY        ,OBREDF    ,IGP &
+   ,st_ix1,st_iy1,st_ix2,st_iy2,st_ix3,st_iy3,st_kc2,st_kc3)
+
 !****************************************************************
-!
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_spherical_geometry
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+   INTEGER, INTENT(IN) :: IGP
+   INTEGER, INTENT(IN) :: st_ix1, st_iy1, st_ix2, st_iy2
+   INTEGER, INTENT(IN) :: st_ix3, st_iy3, st_kc2, st_kc3
+
+!  Stencil neighbours passed explicitly by both solvers.
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -4478,80 +4270,81 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       , &
 !     10. SOURCE
 !
 !************************************************************************
-!
+
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
    INTEGER  IS    ,ID    , &
-            SWPDIR,IDDUM ,ISSTOP
-!
+      SWPDIR,IDDUM
+
    REAL     FAC_A ,FAC_B, WEIG1, WEIG2, TCF1, TCF2, CDEN, CNUM
-!
+
    REAL  :: AC2(MDC,MSC,MCGRD)
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint   40.22
    REAL  :: CAX(MDC,MSC,MICMAX)
    REAL  :: CAY(MDC,MSC,MICMAX)
-   REAL  :: RDX(MICMAX),  RDY(MICMAX), &
-            OBREDF(MDC,MSC,2)
-   REAL  :: XCGRID(MXC,MYC), YCGRID(MXC,MYC)
-!
-   INTEGER  IDCMIN(MSC)              , &
-            IDCMAX(MSC)
-!
+!  RDX/RDY assumed-size: unstructured callers pass a 2-element array; SPREDT
+!  only reads RDX(1:2). XCGRID/YCGRID are OPTIONAL because they are dereferenced
+!  only on the OPTG==3 (curvilinear) branch below, which unstructured (OPTG==5)
+!  never reaches. Passing under-sized/scalar placeholders here was a latent
+!  mismatch that the module's explicit interface now rejects.
+   REAL  :: RDX(*),  RDY(*), &
+      OBREDF(MDC,MSC,2)
+   REAL, OPTIONAL  :: XCGRID(MXC,MYC), YCGRID(MXC,MYC)
+
    LOGICAL  ANYBIN(MDC,MSC)
-!
+
    INTEGER  IDIR, IDCUM, IDMIN, IDMAX, NCURID, NID(4)
    REAL     IDX, IDY, CLAT
-!
-   INTEGER IENT
-   SAVE IENT
-   DATA IENT/0/
+
+   INTEGER, SAVE :: IENT = 0
    IF (LTRACE) CALL STRACE (IENT,'SPREDT')
-!
+
    IF ( OPTG.EQ.3 .AND. CCURV ) THEN
-!
+
 !        --- curvilinear grid                                             41.53
 !            consider the equation on a rectangular grid                  41.53
 !            so that all bins will be filled                              41.53
-!
-      IDX=1./(XCGRID(IXCGRD(1),IYCGRD(1))-XCGRID(IXCGRD(2),IYCGRD(2)))
-      IDY=1./(YCGRID(IXCGRD(1),IYCGRD(1))-YCGRID(IXCGRD(3),IYCGRD(3)))
-!
+
+      IDX=1./(XCGRID(st_ix1,st_iy1)-XCGRID(st_ix2,st_iy2))
+      IDY=1./(YCGRID(st_ix1,st_iy1)-YCGRID(st_ix3,st_iy3))
+
       IF ( KSPHER.GT.0 ) THEN
-         CLAT = COS(DEGRAD*(YCGRID(IXCGRD(1),IYCGRD(1))+YOFFS))
+         CLAT = COS(DEGRAD*(YCGRID(st_ix1,st_iy1)+YOFFS))
          IDX  = IDX / (CLAT * LENDEG)
          IDY  = IDY / LENDEG
       ENDIF
-!
+
       IDCUM = 0
       DO IDIR = 1, 4
          NID(IDIR) = (MDC*IDIR)/4 - IDCUM
          IDCUM     = (MDC*IDIR)/4
       ENDDO
-      !
+
       ! determine loop bounds in spectral space for current sweep
-      !
+
       IDMIN = MDC+1
       IDMAX = 0
-      !
+
       IDIR   = 1
       NCURID = 0
-      !
+
       DO ID = 1, MDC
-         !
+
          IF ( IDIR.EQ.SWPDIR ) THEN
             IDMIN = MIN(ID,IDMIN)
             IDMAX = MAX(ID,IDMAX)
          ENDIF
          NCURID = NCURID + 1
-         !
+
          IF ( NCURID.GE.NID(IDIR) ) THEN
             IDIR   = IDIR + 1
             NCURID = 0
          ENDIF
-         !
+
       ENDDO
-!
+
       DO IS = 1, MSC
          DO ID = IDMIN, IDMAX
-!
+
             IF ( NUMOBS.GT.0 ) THEN
                TCF1 = OBREDF(ID,IS,1)
                TCF2 = OBREDF(ID,IS,2)
@@ -4559,31 +4352,31 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       , &
                TCF1 = 1.
                TCF2 = 1.
             ENDIF
-!
+
             CDEN = IDX * CAX(ID,IS,1) + IDY * CAY(ID,IS,1)
-!
-            CNUM = IDX * CAX(ID,IS,2) * TCF1 * AC2(ID,IS,KCGRD(2)) + &
-                   IDY * CAY(ID,IS,3) * TCF2 * AC2(ID,IS,KCGRD(3))
-!
-            IF (ACUPDA) AC2(ID,IS,KCGRD(1)) = CNUM / CDEN
-!
+
+            CNUM = IDX * CAX(ID,IS,2) * TCF1 * AC2(ID,IS,st_kc2) + &
+               IDY * CAY(ID,IS,3) * TCF2 * AC2(ID,IS,st_kc3)
+
+            IF (ACUPDA) AC2(ID,IS,IGP) = CNUM / CDEN
+
          ENDDO
       ENDDO
-!
+
    ELSE
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
             IF ( ANYBIN(ID,IS) ) THEN
-!
+
 !             *** Computation of weighting coefs WEIG1 AND WEIG2 ***
-!
+
                CDEN = RDX(1) * CAX(ID,IS,1) + RDY(1) * CAY(ID,IS,1)
                CNUM =  (RDX(1) + RDX(2)) * CAX(ID,IS,1) &
-                     + (RDY(1) + RDY(2)) * CAY(ID,IS,1)
+                  + (RDY(1) + RDY(2)) * CAY(ID,IS,1)
                WEIG1 = CDEN/CNUM
                WEIG2 = 1. - WEIG1
-!
+
                IF (NUMOBS .GT. 0) THEN
                   TCF1 = OBREDF(ID,IS,1)
                   TCF2 = OBREDF(ID,IS,2)
@@ -4591,49 +4384,52 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       , &
                   TCF1 = 1.
                   TCF2 = 1.
                ENDIF
-               FAC_A = TCF1 * WEIG1 * AC2(ID,IS,KCGRD(2))
-               FAC_B = TCF2 * WEIG2 * AC2(ID,IS,KCGRD(3))
-!
+               FAC_A = TCF1 * WEIG1 * AC2(ID,IS,st_kc2)
+               FAC_B = TCF2 * WEIG2 * AC2(ID,IS,st_kc3)
+
                IF (ACUPDA) &
-                  AC2(ID,IS,KCGRD(1)) = MAX ( 0. , (FAC_A + FAC_B))
-!
+                  AC2(ID,IS,IGP) = MAX ( 0. , (FAC_A + FAC_B))
+
             END IF
          END DO
       END DO
    END IF
-!
+
    IF ( ITEST .GE. 140 .AND. TESTFL ) THEN
-      WRITE(PRINTF,6019) KCGRD(1), SWPDIR
-6019  FORMAT(' PREDT : POINT INDX  SWPDIR         :',2I5)
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS)-1, IDCMAX(IS)+1
+      WRITE(PRINTF,"(' PREDT : POINT INDX  SWPDIR         :',2I5)") IGP, SWPDIR
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS)-1, WINDOW%IDCMAX(IS)+1
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-            WRITE (PRINTF,6020) IS, ID, AC2(ID,IS,KCGRD(1)), &
-                                AC2(ID,IS,KCGRD(2)), &
-                                AC2(ID,IS,KCGRD(3)), &
-                                ANYBIN(ID,IS)
-6020        FORMAT ('       : IS ID AC2 AC2(2) AC2(3) ANYBIN   :', &
-                    2I5,3(E12.4),L4)
+            WRITE (PRINTF,"('       : IS ID AC2 AC2(2) AC2(3) ANYBIN   :', 2I5,3(E12.4),L4)") IS, &
+                  ID, AC2(ID,IS,IGP),AC2(ID,IS,st_kc2),AC2(ID,IS,st_kc3),ANYBIN(ID,IS)
          END DO
       END DO
    END IF
-!
+
 !     End of the subroutine SPREDT
    RETURN
-END
-!
+end subroutine SPREDT
+
 !****************************************************************
-!
-SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
-!
+
+SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG, st_kc, st_n )
+
 !****************************************************************
-!
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_wave_physics, ONLY: KSCIP1, KSCIP2
+   USE swan_input_grids
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE m_propcache, ONLY: prop_cache_valid, prop_kwave, &
+      prop_cgo, prop_dmw
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -4706,10 +4502,10 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
+
    REAL    SPCSIG(MSC)
-!
+
 !        INTEGERS:
 !        ---------
 !
@@ -4779,91 +4575,171 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
 !                    Whether which value IC has, depends of the sweep
 !                    If necessary IC can be enlarged by increasing
 !                    the array size of ICMAX
-   INTEGER      IC    ,IS    ,ID
-   REAL      :: N(1:MSC), ND(1:MSC)
-!
+   INTEGER      IC, IS, ID, INDX
+   REAL         DEPLOC, DM
+   REAL      :: SWAPAR_REFRACTIVE_INDEX(1:MSC)
+   REAL      :: SWAPAR_REFRACTIVE_DERIVATIVE(1:MSC)
+
    REAL         DEP(MCGRD)         , &
-                MUDL(MCGRD)        , &
-                KWAVE(MSC,ICMAX)   , &
-                CGO(MSC,ICMAX)     , &
-                DMW(MSC,ICMAX)
-!
-!
+      MUDL(MCGRD)        , &
+      KWAVE(MSC,MICMAX)  , &
+      CGO(MSC,MICMAX)    , &
+      DMW(MSC,MICMAX)
+
    INTEGER, SAVE :: IENT=0
+!  Stencil addresses and width passed explicitly by SWOMPU.
+   INTEGER, INTENT(IN) :: st_kc(MICMAX), st_n
    IF (LTRACE) CALL STRACE (IENT,'SWAPAR')
-!
-   DO IC = 1, ICMAX
-      INDX   = KCGRD(IC)
+
+   DO IC = 1, st_n
+      INDX   = st_kc(IC)
       DEPLOC = DEP(INDX)
-      IF (VARMUD) THEN
-         DM = MUDL(INDX)
+      IF ( prop_cache_valid ) THEN
+         KWAVE(1:MSC,IC) = prop_kwave(1:MSC,INDX)
+         CGO  (1:MSC,IC) = prop_cgo  (1:MSC,INDX)
+         DMW  (1:MSC,IC) = prop_dmw  (1:MSC,INDX)
       ELSE
-         DM = PMUD(1)
-      ENDIF
-      IF ( DEPLOC .LE. DEPMIN) THEN
+         IF (VARMUD) THEN
+            DM = MUDL(INDX)
+         ELSE
+            DM = PMUD(1)
+         ENDIF
+         IF ( DEPLOC .LE. DEPMIN) THEN
 !         *** depth is negative ***
-         DO 50 IS = 1, MSC
-            KWAVE(IS,IC) = -1.
-            CGO(IS,IC)   = 0.
-            DMW(IS,IC)   = 0.
-50       CONTINUE
-      ELSE
+            do IS = 1, MSC
+               KWAVE(IS,IC) = -1.
+               CGO(IS,IC)   = 0.
+               DMW(IS,IC)   = 0.
+            end do
+         ELSE
 !       *** call KSCIP1 to compute KWAVE and CGO ***
-         CALL KSCIP1 (MSC, SPCSIG, DEPLOC, KWAVE(1,IC) , &
-                      CGO(1,IC), N, ND)
-         IF (IMUD.EQ.1) THEN
+            CALL KSCIP1 (MSC, SPCSIG, DEPLOC, KWAVE(1,IC) , &
+               CGO(1,IC), SWAPAR_REFRACTIVE_INDEX, &
+               SWAPAR_REFRACTIVE_DERIVATIVE)
+            IF (IMUD.EQ.1) THEN
 !         *** call KSCIP2 to compute KWAVE, CGO and DMW ***
-            CALL KSCIP2 (MSC, SPCSIG, DEPLOC, KWAVE(1,IC) , &
-                         CGO(1,IC), N, ND, DMW(1,IC), DM)
+               CALL KSCIP2 (MSC, SPCSIG, DEPLOC, KWAVE(1,IC) , &
+                  CGO(1,IC), SWAPAR_REFRACTIVE_INDEX, &
+                  SWAPAR_REFRACTIVE_DERIVATIVE, DMW(1,IC), DM)
+            ELSE
+               DMW(1:MSC,IC) = 0.
+            ENDIF
          ENDIF
       ENDIF
-!
+
       IF ( TESTFL .AND. IC .EQ. 1 .AND. ITEST.GE. 100 ) THEN
-         WRITE(PRINTF,6021) DEP(KCGRD(IC))
-6021     FORMAT(' SWAPAR :                   DEP :',E12.4, /, &
-                '   IS          K           CGO                 :')
-         DO 105 IS = 1, MSC
-            WRITE(PRINTF,6019) IS, KWAVE(IS,IC), CGO(IS,IC)
-6019        FORMAT(I4, 2E12.4)
-105      CONTINUE
+         WRITE(PRINTF, &
+               "(' SWAPAR :                   DEP :',E12.4, /, '   IS          K           CGO                 :')") DEP(st_kc(IC))
+         do IS = 1, MSC
+            WRITE(PRINTF,"(I4, 2E12.4)") IS, KWAVE(IS,IC), CGO(IS,IC)
+         end do
       END IF
    ENDDO
-!
+
 !     end of subroutine SWAPAR
    RETURN
-END
-!
+end subroutine SWAPAR
+
+!*******************************************************************
+
+SUBROUTINE SWAPRE ( DEP, MUDL, SPCSIG )
+   USE swan_service_interfaces, ONLY: MSGERR
+   USE swan_wave_physics, ONLY: KSCIP1, KSCIP2
+
 !*******************************************************************
 !
+!     Precompute dispersion quantities for a stationary computation.
+!     The resulting module arrays are read-only inside the OpenMP sweeps
+
+   USE swan_input_grids
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE m_propcache, ONLY: prop_cache_valid, prop_kwave, &
+      prop_cgo, prop_dmw, prop_cache_reset
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+   REAL DEP(MCGRD), MUDL(MCGRD), SPCSIG(MSC)
+   INTEGER IP, ISTAT
+   REAL DEPLOC, DM
+   REAL SWAPRE_REFRACTIVE_INDEX(MSC)
+   REAL SWAPRE_REFRACTIVE_DERIVATIVE(MSC)
+
+   CALL prop_cache_reset()
+   ISTAT = 0
+   ALLOCATE(prop_kwave(MSC,MCGRD), prop_cgo(MSC,MCGRD), &
+      prop_dmw(MSC,MCGRD), STAT=ISTAT)
+   IF ( ISTAT.NE.0 ) THEN
+      CALL prop_cache_reset()
+      CALL MSGERR (4, &
+         'Allocation problem in SWAPRE: propagation cache')
+      RETURN
+   ENDIF
+
+   DO IP = 1, MCGRD
+      DEPLOC = DEP(IP)
+      IF ( DEPLOC.LE.DEPMIN ) THEN
+         prop_kwave(:,IP) = -1.
+         prop_cgo(:,IP)   = 0.
+         prop_dmw(:,IP)   = 0.
+      ELSE
+         CALL KSCIP1 (MSC, SPCSIG, DEPLOC, prop_kwave(1,IP), &
+            prop_cgo(1,IP), SWAPRE_REFRACTIVE_INDEX, &
+            SWAPRE_REFRACTIVE_DERIVATIVE)
+         IF ( IMUD.EQ.1 ) THEN
+            IF ( VARMUD ) THEN
+               DM = MUDL(IP)
+            ELSE
+               DM = PMUD(1)
+            ENDIF
+            CALL KSCIP2 (MSC, SPCSIG, DEPLOC, prop_kwave(1,IP), &
+               prop_cgo(1,IP), SWAPRE_REFRACTIVE_INDEX, &
+               SWAPRE_REFRACTIVE_DERIVATIVE, prop_dmw(1,IP), DM)
+         ELSE
+            prop_dmw(:,IP) = 0.
+         ENDIF
+      ENDIF
+   ENDDO
+   prop_cache_valid = .TRUE.
+
+   RETURN
+end subroutine SWAPRE
+
+!*******************************************************************
+
 SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
-                   AC2        ,ANYBIN     , &
-                   DISC0      ,DISC1      , &
-                   GENC0      ,GENC1      , &
-                   REDC0      ,REDC1      , &
-                   TRAC0      ,TRAC1      , &
-                   IMATLA     ,IMATUA     , &
-                   IMAT5L     ,IMAT6U     , &
-                   DSXBOT     , &
-                   DSXSRF     , &
-                   DSXWCP     , &
-                   DSXVEG     ,DSXTUR     , &
-                   DSXMUD     , &
-                   DSXICE     , &
-                   DSXSWL     , &
-                   GSXWND     ,GENRXY     , &
-                   RSXQUA     ,RSXTRI     , &
-                   RSXBRA     ,RSXSQC     ,REDSXY     , &
-                   TSXGEO     ,TSXSPT     , &
-                   TSXSPS     ,TRANXY     , &
-                   LEAKC1     ,RADSXY     ,SPCSIG     )
-!
+   AC2        ,ANYBIN     , &
+   DISC0      ,DISC1      , &
+   GENC0      ,GENC1      , &
+   REDC0      ,REDC1      , &
+   TRAC0      ,TRAC1      , &
+   IMATLA     ,IMATUA     , &
+   IMAT5L     ,IMAT6U     , &
+   DSXBOT     , &
+   DSXSRF     , &
+   DSXWCP     , &
+   DSXVEG     ,DSXTUR     , &
+   DSXMUD     , &
+   DSXICE     , &
+   DSXSWL     , &
+   GSXWND     ,GENRXY     , &
+   RSXQUA     ,RSXTRI     , &
+   RSXBRA     ,RSXSQC     ,REDSXY     , &
+   TSXGEO     ,TSXSPT     , &
+   TSXSPS     ,TRANXY     , &
+   LEAKC1     ,RADSXY     ,SPCSIG     ,IGP)
+
 !*******************************************************************
-!
-   USE SWCOMM3
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -4920,10 +4796,12 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+!     IGP   : index of the grid point in the computational grid
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
+
+   INTEGER, INTENT(IN) :: IGP
    REAL    SPCSIG(MSC)
-!
+
 !     IX          Counter of gridpoints in x-direction
 !     IY          Counter of gridpoints in y-direction
 !     MXC         Maximum counter of gridppoints in x-direction
@@ -4975,32 +4853,32 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
 !     -------------------------------------------------------------
 !
 ! 13. Source text
-!
+
    INTEGER :: II ! counter
    REAL    :: ADISSIP(1:MDISP)
    REAL    :: AGENERT(1:MGENR)
    REAL    :: AREDIST(1:MREDS)
    REAL    :: ATRANSP(1:MTRNP)
    REAL     DISSXY(MCGRD)    ,LEAKXY(MCGRD)      , &
-            DSXBOT(MCGRD)      , &
-            DSXSRF(MCGRD)      , &
-            DSXWCP(MCGRD)      , &
-            DSXMUD(MCGRD)      , &
-            DSXVEG(MCGRD)      , &
-            DSXTUR(MCGRD)      , &
-            DSXICE(MCGRD)      , &
-            DSXSWL(MCGRD)      , &
-            GSXWND(MCGRD)      , &
-            RSXQUA(MCGRD)      , &
-            RSXTRI(MCGRD)      , &
-            RSXBRA(MCGRD)      , &
-            RSXSQC(MCGRD)      , &
-            TSXGEO(MCGRD)      , &
-            TSXSPT(MCGRD)      , &
-            TSXSPS(MCGRD)      , &
-            GENRXY(MCGRD)      ,REDSXY(MCGRD)    ,TRANXY(MCGRD), &
-            RADSXY(MCGRD)      , &
-            LEAKC1(MDC,MSC)  ,AC2(MDC,MSC,MCGRD)
+      DSXBOT(MCGRD)      , &
+      DSXSRF(MCGRD)      , &
+      DSXWCP(MCGRD)      , &
+      DSXMUD(MCGRD)      , &
+      DSXVEG(MCGRD)      , &
+      DSXTUR(MCGRD)      , &
+      DSXICE(MCGRD)      , &
+      DSXSWL(MCGRD)      , &
+      GSXWND(MCGRD)      , &
+      RSXQUA(MCGRD)      , &
+      RSXTRI(MCGRD)      , &
+      RSXBRA(MCGRD)      , &
+      RSXSQC(MCGRD)      , &
+      TSXGEO(MCGRD)      , &
+      TSXSPT(MCGRD)      , &
+      TSXSPS(MCGRD)      , &
+      GENRXY(MCGRD)      ,REDSXY(MCGRD)    ,TRANXY(MCGRD), &
+      RADSXY(MCGRD)      , &
+      LEAKC1(MDC,MSC)  ,AC2(MDC,MSC,MCGRD)
    REAL :: DISC0(1:MDC,1:MSC,1:MDISP) ! dissipation coeff.
    REAL :: DISC1(1:MDC,1:MSC,1:MDISP) ! dissipation coeff.
    REAL :: GENC0(1:MDC,1:MSC,1:MGENR) ! generation coeff.
@@ -5010,166 +4888,170 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
    REAL :: TRAC0(1:MDC,1:MSC,1:MTRNP) ! transport coeff.
    REAL :: TRAC1(1:MDC,1:MSC,1:MTRNP) ! transport coeff.
    REAL    IMATLA(MDC,MSC)           , &
-           IMATUA(MDC,MSC)           , &
-           IMAT5L(MDC,MSC)           , &
-           IMAT6U(MDC,MSC)
-!
+      IMATUA(MDC,MSC)           , &
+      IMAT5L(MDC,MSC)           , &
+      IMAT6U(MDC,MSC)
+
    REAL  ARADSTR, DSDD, SDSDD, S1, ACT1, S2
    REAL  ACT2, S3, ACT3, ACT4, ACT5, ACONTR
    INTEGER ISC, IDC, IDM, IDP
-!
+
    LOGICAL  ANYBIN(MDC,MSC)
    INTEGER, SAVE :: IENT=0
    CALL STRACE (IENT, 'ADDDIS')
-!
+
    ADISSIP(1:MDISP) = 0.
    AGENERT(1:MGENR) = 0.
    AREDIST(1:MREDS) = 0.
    ATRANSP(1:MTRNP) = 0.
    ARADSTR          = 0.
-   DO 100 ISC = 1, MSC
+   do ISC = 1, MSC
       DSDD  = DDIR * FRINTF * SPCSIG(ISC)
       SDSDD = DSDD * SPCSIG(ISC)
-      DO 90 IDC = 1, MDC
+      do IDC = 1, MDC
          IDM = MOD ( IDC - 2 + MDC , MDC ) + 1
          IDP = MOD ( IDC     + MDC , MDC ) + 1
-!
+
          S1   = SPCSIG(ISC)
-         ACT1 = AC2(IDC,ISC,KCGRD(1))
+         ACT1 = AC2(IDC,ISC,IGP)
          IF (ISC.EQ.1) THEN
             S2   = 0.
             ACT2 = 0.
          ELSE
             S2   = SPCSIG(ISC-1)
-            ACT2 = AC2(IDC,ISC-1,KCGRD(1))
+            ACT2 = AC2(IDC,ISC-1,IGP)
          ENDIF
          IF (ISC.EQ.MSC) THEN
             S3   = 0.
             ACT3 = 0.
          ELSE
             S3   = SPCSIG(ISC+1)
-            ACT3 = AC2(IDC,ISC+1,KCGRD(1))
+            ACT3 = AC2(IDC,ISC+1,IGP)
          ENDIF
          IF (.NOT.FULCIR .AND. IDC.EQ.1) THEN
             ACT4 = 0.
          ELSE
-            ACT4 = AC2(IDM,ISC,KCGRD(1))
+            ACT4 = AC2(IDM,ISC,IGP)
          ENDIF
          IF (.NOT.FULCIR .AND. IDC.EQ.MDC) THEN
             ACT5 = 0.
          ELSE
-            ACT5 = AC2(IDP,ISC,KCGRD(1))
+            ACT5 = AC2(IDP,ISC,IGP)
          ENDIF
-!
+
          IF (ANYBIN(IDC,ISC)) THEN
-            LEAKXY(KCGRD(1)) = LEAKXY(KCGRD(1)) + SDSDD* &
-                            LEAKC1(IDC,ISC) * AC2(IDC,ISC,KCGRD(1))
-!
+            LEAKXY(IGP) = LEAKXY(IGP) + SDSDD* &
+               LEAKC1(IDC,ISC) * AC2(IDC,ISC,IGP)
+
 !           --- compute for each dissipation term                         40.61
-!
+
             DO II = 1, MDISP
                ACONTR= SDSDD*(DISC0(IDC,ISC,II) + DISC1(IDC,ISC,II)*ACT1)
                ADISSIP(II) = ADISSIP(II) + ACONTR
                ARADSTR     = ARADSTR     - ACONTR
             ENDDO
-!
+
 !           --- compute for each generation term                          40.85
-!
+
             DO II = 1, MGENR
                ACONTR= SDSDD*(GENC0(IDC,ISC,II) + GENC1(IDC,ISC,II)*ACT1)
                AGENERT(II) = AGENERT(II) + ACONTR
                ARADSTR     = ARADSTR     + ACONTR
             ENDDO
-!
+
 !           --- compute for each redistribution term                      40.85
-!
+
             DO II = 1, MREDS
                ACONTR= SDSDD*(REDC0(IDC,ISC,II) + REDC1(IDC,ISC,II)*ACT1)
                AREDIST(II) = AREDIST(II) + ABS(ACONTR)
                ARADSTR     = ARADSTR     + ACONTR
             ENDDO
-!
+
 !           --- compute for each propagation term
-!
+
             ACONTR = SDSDD* (TRAC0(IDC,ISC,1) + TRAC1(IDC,ISC,1)*ACT1)
             ATRANSP(1) = ATRANSP(1) + ABS(ACONTR)
             ARADSTR    = ARADSTR    - ACONTR
-!
+
             ACONTR = SDSDD* (TRAC0(IDC,ISC,2)      + &
-                             TRAC1(IDC,ISC,2)*ACT1 + &
-                             IMATLA(IDC,ISC) *ACT4 + &
-                             IMATUA(IDC,ISC) *ACT5 )
+               TRAC1(IDC,ISC,2)*ACT1 + &
+               IMATLA(IDC,ISC) *ACT4 + &
+               IMATUA(IDC,ISC) *ACT5 )
             ATRANSP(2) = ATRANSP(2) + ABS(ACONTR)
             ARADSTR    = ARADSTR    - ACONTR
-!
+
             ACONTR = DSDD * (TRAC0(IDC,ISC,3)           + &
-                             TRAC1(IDC,ISC,3)* S1 *ACT1 + &
-                             IMAT5L(IDC,ISC) * S2 *ACT2 + &
-                             IMAT6U(IDC,ISC) * S3 *ACT3 )
+               TRAC1(IDC,ISC,3)* S1 *ACT1 + &
+               IMAT5L(IDC,ISC) * S2 *ACT2 + &
+               IMAT6U(IDC,ISC) * S3 *ACT3 )
             ATRANSP(3) = ATRANSP(3) + ABS(ACONTR)
             ARADSTR    = ARADSTR    - ACONTR
-!
+
             ARADSTR    = ABS(ARADSTR)
          ENDIF
-90    CONTINUE
-100 CONTINUE
-!
-   DSXWCP(KCGRD(1)) = DSXWCP(KCGRD(1)) + ADISSIP(1) ! whitecapping
-   DSXSRF(KCGRD(1)) = DSXSRF(KCGRD(1)) + ADISSIP(2) ! surf break
-   DSXBOT(KCGRD(1)) = DSXBOT(KCGRD(1)) + ADISSIP(3) ! bottom fric
-   DSXSWL(KCGRD(1)) = DSXSWL(KCGRD(1)) + ADISSIP(4) ! swell dissip
-   DSXVEG(KCGRD(1)) = DSXVEG(KCGRD(1)) + ADISSIP(5) ! vegetation
-   DSXTUR(KCGRD(1)) = DSXTUR(KCGRD(1)) + ADISSIP(6) ! turbulence
-   DSXMUD(KCGRD(1)) = DSXMUD(KCGRD(1)) + ADISSIP(7) ! mud dissip
-   DSXICE(KCGRD(1)) = DSXICE(KCGRD(1)) + ADISSIP(8) ! ice dissip
-!
-   DISSXY(KCGRD(1)) = DISSXY(KCGRD(1)) + SUM(ADISSIP) ! total dissip
-!
-   GSXWND(KCGRD(1)) = GSXWND(KCGRD(1)) + AGENERT(1) ! wind input
-   GENRXY(KCGRD(1)) = GENRXY(KCGRD(1)) + SUM(AGENERT) ! total generation
-!
-   RSXQUA(KCGRD(1)) = RSXQUA(KCGRD(1)) + AREDIST(1) ! quadruplets
-   RSXTRI(KCGRD(1)) = RSXTRI(KCGRD(1)) + AREDIST(2) ! triads
-   RSXBRA(KCGRD(1)) = RSXBRA(KCGRD(1)) + AREDIST(3) ! Bragg scattering
-   RSXSQC(KCGRD(1)) = RSXSQC(KCGRD(1)) + AREDIST(4) ! QC scattering
-   REDSXY(KCGRD(1)) = REDSXY(KCGRD(1)) + SUM(AREDIST) ! total redistribution
-!
-   TSXGEO(KCGRD(1)) = TSXGEO(KCGRD(1)) + ATRANSP(1) ! xy-propagation
-   TSXSPT(KCGRD(1)) = TSXSPT(KCGRD(1)) + ATRANSP(2) ! theta-propagation
-   TSXSPS(KCGRD(1)) = TSXSPS(KCGRD(1)) + ATRANSP(3) ! sigma-propagation
-   TRANXY(KCGRD(1)) = TRANXY(KCGRD(1)) + SUM(ATRANSP) ! total propagation
-!
+      end do
+   end do
+
+   DSXWCP(IGP) = DSXWCP(IGP) + ADISSIP(1) ! whitecappin
+   DSXSRF(IGP) = DSXSRF(IGP) + ADISSIP(2) ! surf break
+   DSXBOT(IGP) = DSXBOT(IGP) + ADISSIP(3) ! bottom fric
+   DSXSWL(IGP) = DSXSWL(IGP) + ADISSIP(4) ! swell dissi
+   DSXVEG(IGP) = DSXVEG(IGP) + ADISSIP(5) ! vegetation
+   DSXTUR(IGP) = DSXTUR(IGP) + ADISSIP(6) ! turbulence
+   DSXMUD(IGP) = DSXMUD(IGP) + ADISSIP(7) ! mud dissip
+   DSXICE(IGP) = DSXICE(IGP) + ADISSIP(8) ! ice dissip
+
+   DISSXY(IGP) = DISSXY(IGP) + SUM(ADISSIP) ! total dissi
+
+   GSXWND(IGP) = GSXWND(IGP) + AGENERT(1) ! wind input
+   GENRXY(IGP) = GENRXY(IGP) + SUM(AGENERT) ! total gener
+
+   RSXQUA(IGP) = RSXQUA(IGP) + AREDIST(1) ! quadruplets
+   RSXTRI(IGP) = RSXTRI(IGP) + AREDIST(2) ! triads
+   RSXBRA(IGP) = RSXBRA(IGP) + AREDIST(3) ! Bragg scatt
+   RSXSQC(IGP) = RSXSQC(IGP) + AREDIST(4) ! QC scatteri
+   REDSXY(IGP) = REDSXY(IGP) + SUM(AREDIST) ! total redis
+
+   TSXGEO(IGP) = TSXGEO(IGP) + ATRANSP(1) ! xy-propagat
+   TSXSPT(IGP) = TSXSPT(IGP) + ATRANSP(2) ! theta-propa
+   TSXSPS(IGP) = TSXSPS(IGP) + ATRANSP(3) ! sigma-propa
+   TRANXY(IGP) = TRANXY(IGP) + SUM(ATRANSP) ! total propa
+
 !       energy transfer between waves and currents due to radiation stress, see page 439 of
 !       the ICCE paper of Holthuijsen, L.H., Zijlema, M. and Van der Ham, P.J. (2009)
 !       Wave physics in a tidal inlet, in: J.M. Smith (Ed.), Proc. 31st Int. Conf. on Coast. Engng.,
 !       ASCE, World Scientific Publishing, Singapore, pp. 437-448
-!
-   RADSXY(KCGRD(1)) = RADSXY(KCGRD(1)) + ARADSTR
-!
+
+   RADSXY(IGP) = RADSXY(IGP) + ARADSTR
+
    IMATLA = 0.
    IMATUA = 0.
    IMAT5L = 0.
    IMAT6U = 0.
-!
+
    RETURN
-END SUBROUTINE ADDDIS
-!
+end subroutine ADDDIS
+
 !****************************************************************
-!
+
 SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA, &
-                   AC2   , DD    , ANYBIN, LEAKC1, IDCMIN, &
-                   IDCMAX, ISSTOP)
-!
+   AC2   , DD    , ANYBIN, LEAKC1, WINDOW, &
+   st_kc1, st_n)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+!  Stencil point and width passed explicitly by ACTION/SwanTranspAc.
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -5223,27 +5105,29 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA, &
 !     ANYBIN      logical: indicate whether current bin is selected
 !     CAD         wave transport velocity in D-direction
 !     DD          width of spectral direction band
-!     IDCMAX      frequency dependent counter
-!     IDCMIN      frequency dependent counter
 !     IMATDA      coefficients of diagonal of matrix
 !     IMATLA      coefficients of lower diagonal of matrix
 !     IMATRA      coefficients of right hand side
 !     IMATUA      coefficients of upper diagonal of matrix
-!     ISSTOP      maximum frequency counter in a sweep
 !     LEAKC1      leak coefficient
-!
-   INTEGER ISSTOP
-   INTEGER IDCMIN(MSC), IDCMAX(MSC)
+!     ST_KC1      index of the grid point in the computational grid
+!     ST_N        number of points in the stencil (last dimension of CAD)
+!     WINDOW      spectral window of the grid point: frequency dependent
+!                 counters in directional space (IDCMIN, IDCMAX) and the
+!                 maximum frequency counter in a sweep (ISSTOP)
+
+   INTEGER, INTENT(IN) :: st_kc1, st_n
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
    REAL    DD
    REAL    AC2(MDC,MSC,MCGRD), &
-           CAD(MDC,MSC,ICMAX), &
-           IMATLA(MDC,MSC)   , &
-           IMATDA(MDC,MSC)   , &
-           IMATUA(MDC,MSC)   , &
-           IMATRA(MDC,MSC)   , &
-           LEAKC1(MDC,MSC)
+      CAD(MDC,MSC,st_n), &
+      IMATLA(MDC,MSC)   , &
+      IMATDA(MDC,MSC)   , &
+      IMATUA(MDC,MSC)   , &
+      IMATRA(MDC,MSC)   , &
+      LEAKC1(MDC,MSC)
    LOGICAL ANYBIN(MDC,MSC)
-!
+
 !  6. Local variables
 !
 !     ACM   :     lower action
@@ -5275,13 +5159,14 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA, &
 !     XKAP  :     control parameter meant for the kappa-scheme
 !     XLIMN :     flux-limiter i.c. negative velocity
 !     XLIMP :     flux-limiter i.c. positive velocity
-!
-   INTEGER IENT, ID, IDM, IDP, IDDUM, IS
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER ID, IDM, IDP, IDDUM, IS
    REAL    ACM, ACP, ACT0, ACT1, ACT2, ACT3, CADM, CADP, &
-           CAN, CAP, CAV, DDI, DFCOR, FACT, RAN, RAP, XKAP, &
-           XLIMN, XLIMP
+      CAN, CAP, CAV, DDI, DFCOR, FACT, RAN, RAP, XKAP, &
+      XLIMN, XLIMP
    LOGICAL BINM, BINP
-!
+
 !  8. Subroutines used
 !
 !     STRACE           Tracing routine for debugging
@@ -5299,28 +5184,26 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA, &
 !        arrays IMATDA, IMATLA, IMATUA and IMATRA
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWFLXD')
 
    DDI  = 1./DD
-   XKAP = PNUMS(6)
+   XKAP = PNUMS(PNUMS_CDD)
 
-   DO 20 IS = 1, ISSTOP
+   do IS = 1, WINDOW%ISSTOP
 
-      DO 10 IDDUM = IDCMIN(IS), IDCMAX(IS)
+      do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD (IDDUM-1+MDC, MDC) + 1
 
          IF ( ANYBIN(ID,IS) ) THEN
 
-            IF ( IDDUM.EQ.IDCMIN(IS) ) THEN
+            IF ( IDDUM.EQ.WINDOW%IDCMIN(IS) ) THEN
 
                IF ( FULCIR .OR. ID.GT.1 ) THEN
                   IDM  = MOD (IDDUM-2+MDC, MDC) + 1
                   CADM = CAD(IDM,IS,1)
                   BINM = ANYBIN(IDM,IS)
-                  IF (.NOT.BINM) ACM = AC2(IDM,IS,KCGRD(1))
+                  IF (.NOT.BINM) ACM = AC2(IDM,IS,st_kc1)
                ELSE
                   IDM  = 0
                   CADM = CAD(ID,IS,1)
@@ -5333,18 +5216,18 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA, &
                CAN = 0.5*(CAV - ABS(CAV))
 
                IF ( FULCIR .OR. ID.GT.1 ) THEN
-                  ACT0 = AC2(MOD(IDDUM-2+MDC,MDC)+1,IS,KCGRD(1))
+                  ACT0 = AC2(MOD(IDDUM-2+MDC,MDC)+1,IS,st_kc1)
                ELSE
                   ACT0 = 0.
                END IF
                IF ( FULCIR .OR. ID.GT.2 ) THEN
-                  ACT1 = AC2(MOD(IDDUM-3+MDC,MDC)+1,IS,KCGRD(1))
+                  ACT1 = AC2(MOD(IDDUM-3+MDC,MDC)+1,IS,st_kc1)
                ELSE
                   ACT1 = 0.
                END IF
-               ACT2 = AC2(ID,IS,KCGRD(1))
+               ACT2 = AC2(ID,IS,st_kc1)
                IF ( FULCIR .OR. ID.LT.MDC ) THEN
-                  ACT3 = AC2(MOD(IDDUM+MDC,MDC)+1,IS,KCGRD(1))
+                  ACT3 = AC2(MOD(IDDUM+MDC,MDC)+1,IS,st_kc1)
                ELSE
                   ACT3 = 0.
                END IF
@@ -5359,13 +5242,13 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA, &
                XLIMN = MAX( 0., MIN(2.*RAN,FACT) )
 
                DFCOR = 0.5*(CAP*XLIMP*(ACT0 - ACT1) - &
-                            CAN*XLIMN*(ACT3 - ACT2))
+                  CAN*XLIMN*(ACT3 - ACT2))
 
                IF ( .NOT.BINM ) THEN
                   IMATDA(ID,IS) = IMATDA(ID,IS) - DDI * CAN
                   IMATRA(ID,IS) = IMATRA(ID,IS) + DDI * CAP * ACM
                   IF (IDM.NE.0) &
-                      IMATRA(ID,IS) = IMATRA(ID,IS) + DDI * DFCOR
+                     IMATRA(ID,IS) = IMATRA(ID,IS) + DDI * DFCOR
                END IF
 
                IF ( IDM.EQ.0 ) LEAKC1(ID,IS) = -CAN
@@ -5376,7 +5259,7 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA, &
                IDP  = MOD (IDDUM+MDC, MDC) + 1
                CADP = CAD(IDP,IS,1)
                BINP = ANYBIN(IDP,IS)
-               IF (.NOT.BINP) ACP = AC2(IDP,IS,KCGRD(1))
+               IF (.NOT.BINP) ACP = AC2(IDP,IS,st_kc1)
             ELSE
                IDP  = 0
                CADP = CAD(ID,IS,1)
@@ -5388,19 +5271,19 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA, &
             CAP = 0.5*(CAV + ABS(CAV))
             CAN = 0.5*(CAV - ABS(CAV))
 
-            ACT0 = AC2(ID,IS,KCGRD(1))
+            ACT0 = AC2(ID,IS,st_kc1)
             IF ( FULCIR .OR. ID.GT.1 ) THEN
-               ACT1 = AC2(MOD(IDDUM-2+MDC,MDC)+1,IS,KCGRD(1))
+               ACT1 = AC2(MOD(IDDUM-2+MDC,MDC)+1,IS,st_kc1)
             ELSE
                ACT1 = 0.
             END IF
             IF ( FULCIR .OR. ID.LT.MDC ) THEN
-               ACT2 = AC2(MOD(IDDUM+MDC,MDC)+1,IS,KCGRD(1))
+               ACT2 = AC2(MOD(IDDUM+MDC,MDC)+1,IS,st_kc1)
             ELSE
                ACT2 = 0.
             END IF
             IF ( FULCIR .OR. ID.LT.MDC-1 ) THEN
-               ACT3 = AC2(MOD(IDDUM+1+MDC,MDC)+1,IS,KCGRD(1))
+               ACT3 = AC2(MOD(IDDUM+1+MDC,MDC)+1,IS,st_kc1)
             ELSE
                ACT3 = 0.
             END IF
@@ -5427,57 +5310,63 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA, &
                IMATDA(ID,IS) = IMATDA(ID,IS) + DDI * CAP
                IMATRA(ID,IS) = IMATRA(ID,IS) - DDI * CAN * ACP
                IF (IDP.NE.0) &
-                   IMATRA(ID,IS) = IMATRA(ID,IS) - DDI * DFCOR
+                  IMATRA(ID,IS) = IMATRA(ID,IS) - DDI * DFCOR
             END IF
 
             IF ( IDP.EQ.0 ) LEAKC1(ID,IS) = CAP
 
          END IF
 
-10    CONTINUE
-20 CONTINUE
-!
+      end do
+   end do
+
 !     --- test output
-!
+
    IF ( TESTFL .AND. ITEST.GE.80 ) THEN
-      WRITE(PRINTF,111) KCGRD(1), ISSTOP
-111   FORMAT(' SWFLXD: POINT  ISSTOP  :',2I5)
-      WRITE(PRINTF,222) PNUMS(6)
-222   FORMAT(' SWFLXD: CDD            :',E12.4)
+      WRITE(PRINTF,"(' SWFLXD: POINT  ISSTOP  :',2I5)") st_kc1, WINDOW%ISSTOP
+      WRITE(PRINTF,"(' SWFLXD: CDD            :',E12.4)") PNUMS(PNUMS_CDD)
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) ' matrix coefficients in SWFLXD'
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) &
          '   IS ID      IMATLA      IMATDA      IMATUA      IMATRA     CAD'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD (IDDUM-1+MDC, MDC) + 1
-            WRITE(PRINTF,333) IS, ID, IMATLA(ID,IS),IMATDA(ID,IS), &
-                             IMATUA(ID,IS),IMATRA(ID,IS),CAD(ID,IS,1)
-333         FORMAT(1X,2I4,4X,4E12.4,E10.2)
+            WRITE(PRINTF,"(1X,2I4,4X,4E12.4,E10.2)") IS, ID, IMATLA(ID,IS),IMATDA(ID,IS), &
+               IMATUA(ID,IS),IMATRA(ID,IS),CAD(ID,IS,1)
          END DO
       END DO
    END IF
 
    RETURN
-END
+end subroutine SWFLXD
 !****************************************************************
-!
-SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
-                   CROSS , XCGRID, YCGRID, XYTST )
-!
+
+SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , DIFFR , &
+   CROSS , XCGRID, YCGRID, XYTST )
+
 !****************************************************************
-!
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-   USE M_DIFFR
+
+   USE swan_service_interfaces, ONLY: STRACE, EQREAL, STPNOW
+   USE swan_sweep_exchange_backend, ONLY: exchange_swan_field
+   USE swan_wave_physics, ONLY: KSCIP1
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_spherical_geometry
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE M_PARALL
 
-   IMPLICIT NONE
-!
-!
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -5532,7 +5421,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
 !     Parameters governing numerical computation of diffraction
 !     coefficient and its spatial derivatives:
 !
-!     DIFPARAM=SQRT(1+delta)
+!     diffr%param=SQRT(1+delta)
 !
 !     Near land and obstacles derivatives are assumed to be zero
 !
@@ -5542,21 +5431,24 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
 !     CROSS       integer array indicating obstacle crossing
 !                 (0=no, 1=yes)
 !     DEP2        current total depth
+!     DIFFR       diffraction parameter and its x- and y-derivatives in
+!                 each grid point, computed here
 !     KGRPNT      indirect address for grid points
 !     SPCSIG      relative frequencies in sigma-space
 !     XCGRID      x-coordinate of computational grid
 !     YCGRID      y-coordinate of computational grid
 !     XYTST       grid indices of test points
-!
+
+   TYPE(diffraction_state_t), INTENT(INOUT) :: DIFFR
    INTEGER, INTENT(IN)    :: KGRPNT(MXC,MYC)
    REAL   , INTENT(IN)    :: SPCSIG(MSC)
    REAL   , INTENT(INOUT) :: AC2(MDC,MSC,MCGRD)
    REAL   , INTENT(IN)    :: DEP2(MCGRD)
-   REAL   , INTENT(IN)    :: CROSS(2,MCGRD)
+   INTEGER, INTENT(IN)    :: CROSS(2,MCGRD)
    REAL   , INTENT(IN)    :: XCGRID(MXC,MYC)
    REAL   , INTENT(IN)    :: YCGRID(MXC,MYC)
    INTEGER, INTENT(IN)    :: XYTST(*)
-!
+
 !  6. Local variables
 !
 !     IENT  :     number of entries
@@ -5565,8 +5457,9 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
 !     IY1   :     lower index in y-direction
 !     IY2   :     upper index in y-direction
 !     NOOBST:     indicates obstacles in the model (FALSE) or not (TRUE)
-!
-   INTEGER           :: IS, ISM, IENT
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER           :: IS, ISM
    INTEGER           :: IX, IY, IND, INDL, INDR, INDB, INDT
    INTEGER           :: IX1, IX2, IY1, IY2, IXB, IXE, IYB, IYE
    INTEGER           :: MXCL, MYCL, IXX, IYY, IXXL, IXXR, IYYB, IYYT
@@ -5574,12 +5467,13 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
    REAL              :: ETOT, EKTOTL, ECGTOT, TMP
    REAL              :: EAD, TMP_X, TMP_Y, CSLAT
    REAL              :: DXLOC, DYLOC
-   REAL              :: KLOC(1:MSC), CGLOC(1:MSC), N(1:MSC), &
-                        ND(1:MSC)
+   REAL, ALLOCATABLE :: KLOC(:), CGLOC(:)
+   REAL, ALLOCATABLE :: REFRACTIVE_INDEX(:)
+   REAL, ALLOCATABLE :: REFRACTIVE_DERIVATIVE(:)
    REAL, ALLOCATABLE :: EN(:), LAPE(:), DENOM(:), K(:), CG(:)
    REAL, ALLOCATABLE :: ENTMP(:,:)
    LOGICAL           :: NOOBST
-!
+
 !  8. Subroutines used
 !
 !     EQREAL           logical function, true if arguments are equal
@@ -5587,10 +5481,8 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
 !     STPNOW           Logical indicating whether program must
 !                      terminated or not
 !     STRACE           Tracing routine for debugging
-!     SWEXCHG          exchanges some data at subdomain boundaries
-!
-   LOGICAL EQREAL, STPNOW
-!
+!     exchange_swan_field exchanges some data at subdomain boundaries
+
 !  9. Subroutines calling
 !
 !     ---
@@ -5608,12 +5500,12 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
 !     ---
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'DIFPAR')
 
 !     --- allocate arrays
+   ALLOCATE (KLOC(1:MSC), CGLOC(1:MSC))
+   ALLOCATE (REFRACTIVE_INDEX(1:MSC), REFRACTIVE_DERIVATIVE(1:MSC))
    ALLOCATE (EN(1:MCGRD), LAPE(1:MCGRD), DENOM(1:MCGRD))
    ALLOCATE (K(1:MCGRD), CG(1:MCGRD))
 
@@ -5641,7 +5533,8 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
    DO IND = 2, MCGRD
       IF (DEP2(IND).GE.DEPMIN) THEN
 !           --- compute Cg and wave number for all spectral frequencies
-         CALL KSCIP1( MSC, SPCSIG, DEP2(IND), KLOC, CGLOC, N, ND )
+         CALL KSCIP1( MSC, SPCSIG, DEP2(IND), KLOC, CGLOC, &
+            REFRACTIVE_INDEX, REFRACTIVE_DERIVATIVE )
          ETOT   = 0.
          EKTOTL = 0.
          ECGTOT = 0.
@@ -5715,12 +5608,12 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
                NOOBST=.FALSE.
             END IF
             IF (NOOBST &
-                .AND. DEP2(IND ) .GT. DEPMIN &
-                .AND. DEP2(INDL) .GT. DEPMIN &
-                .AND. (.NOT.LMXF.OR.IX.NE.1) &
-                .AND. (.NOT.LMYF.OR.IY.NE.1) ) THEN
+               .AND. DEP2(IND ) .GT. DEPMIN &
+               .AND. DEP2(INDL) .GT. DEPMIN &
+               .AND. (.NOT.LMXF.OR.IX.NE.1) &
+               .AND. (.NOT.LMYF.OR.IY.NE.1) ) THEN
                EN(IND) = ENTMP(IX,IY) - &
-                                   TMP*(ENTMP(IX,IY)-ENTMP(IX-1,IY))
+                  TMP*(ENTMP(IX,IY)-ENTMP(IX-1,IY))
             END IF
             IF (NUMOBS.EQ.0) THEN
                NOOBST=.TRUE.
@@ -5730,10 +5623,10 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
                NOOBST=.FALSE.
             END IF
             IF (NOOBST &
-                .AND. DEP2(IND ) .GT. DEPMIN &
-                .AND. DEP2(INDR) .GT. DEPMIN &
-                .AND. (.NOT.LMXL.OR.IX.NE.MXCL) &
-                .AND. (.NOT.LMYF.OR.IY.NE.1   ) ) THEN
+               .AND. DEP2(IND ) .GT. DEPMIN &
+               .AND. DEP2(INDR) .GT. DEPMIN &
+               .AND. (.NOT.LMXL.OR.IX.NE.MXCL) &
+               .AND. (.NOT.LMYF.OR.IY.NE.1   ) ) THEN
                EN(IND) = EN(IND) - TMP*(ENTMP(IX,IY)-ENTMP(IX+1,IY))
             END IF
             IF (NUMOBS.EQ.0) THEN
@@ -5744,10 +5637,10 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
                NOOBST=.FALSE.
             END IF
             IF (NOOBST &
-                .AND. DEP2(IND ) .GT. DEPMIN &
-                .AND. DEP2(INDB) .GT. DEPMIN &
-                .AND. (.NOT.LMYF.OR.IY.NE.1) &
-                .AND. (.NOT.LMXF.OR.IX.NE.1) ) THEN
+               .AND. DEP2(IND ) .GT. DEPMIN &
+               .AND. DEP2(INDB) .GT. DEPMIN &
+               .AND. (.NOT.LMYF.OR.IY.NE.1) &
+               .AND. (.NOT.LMXF.OR.IX.NE.1) ) THEN
                EN(IND) = EN(IND) - TMP*(ENTMP(IX,IY)-ENTMP(IX,IY-1))
             END IF
             IF (NUMOBS.EQ.0) THEN
@@ -5758,16 +5651,15 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
                NOOBST=.FALSE.
             END IF
             IF (NOOBST &
-                .AND. DEP2(IND ) .GT. DEPMIN &
-                .AND. DEP2(INDT) .GT. DEPMIN &
-                .AND. (.NOT.LMYL.OR.IY.NE.MYCL) &
-                .AND. (.NOT.LMXF.OR.IX.NE.1   ) ) THEN
+               .AND. DEP2(IND ) .GT. DEPMIN &
+               .AND. DEP2(INDT) .GT. DEPMIN &
+               .AND. (.NOT.LMYL.OR.IY.NE.MYCL) &
+               .AND. (.NOT.LMXF.OR.IX.NE.1   ) ) THEN
                EN(IND) = EN(IND) - TMP*(ENTMP(IX,IY)-ENTMP(IX,IY+1))
             END IF
          END DO
       END DO
-!WFR      CALL SWEXCHG(EN,KGRPNT)
-!JAC      CALL SWEXCHG(EN,0,KGRPNT)
+      CALL exchange_swan_field(EN,KGRPNT)
       IF (STPNOW()) RETURN
    END DO
 
@@ -5775,12 +5667,12 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
    EN(1:MCGRD) = SQRT(MAX(EN(1:MCGRD),0.))
 
 !     --- compute Laplacian of SQRT(energy) in each computational grid point
-
+!
 !     --- initially, set all values to zero
    DENOM(1:MCGRD) = 0.
    LAPE (1:MCGRD) = 0.
-   DIFPARDX(1:MCGRD) = 0.
-   DIFPARDY(1:MCGRD) = 0.
+   diffr%dpardx(1:MCGRD) = 0.
+   diffr%dpardy(1:MCGRD) = 0.
 
 !     --- loop over all X-connections
    DO IX = MAX(IX1,2), MIN(IX2+1,MXC)
@@ -5795,8 +5687,8 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
             NOOBST=.FALSE.
          END IF
          IF (NOOBST &
-             .AND.DEP2(IND ).GT.DEPMIN &
-             .AND.DEP2(INDL).GT.DEPMIN) THEN
+            .AND.DEP2(IND ).GT.DEPMIN &
+            .AND.DEP2(INDL).GT.DEPMIN) THEN
             IF ( OPTG.EQ.1 ) THEN
                DXLOC = DX
                DYLOC = DY
@@ -5808,7 +5700,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
                   DYLOC = YCGRID(IX,IY) - YCGRID(IX,IY-1)
                ELSE
                   DYLOC = 0.5*( YCGRID(IX,IY+1) - &
-                                YCGRID(IX,IY-1) )
+                     YCGRID(IX,IY-1) )
                END IF
             END IF
             IF ( KSPHER.GT.0 ) THEN
@@ -5821,7 +5713,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
             IF (EQREAL(DXLOC,0.)) DXLOC = 0.01
             IF (EQREAL(DYLOC,0.)) DYLOC = 0.01
             TMP = 0.5*(CG(INDL)/K(INDL)+CG(IND)/K(IND)) * &
-                      DYLOC * (EN(IND)-EN(INDL)) / DXLOC
+               DYLOC * (EN(IND)-EN(INDL)) / DXLOC
             EAD = DXLOC * DYLOC * EN(IND)*CG(IND)*K(IND)
             LAPE (INDL) = LAPE (INDL) + TMP
             LAPE (IND ) = LAPE (IND ) - TMP
@@ -5843,8 +5735,8 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
             NOOBST=.FALSE.
          END IF
          IF (NOOBST &
-             .AND.DEP2(IND ).GT.DEPMIN &
-             .AND.DEP2(INDB).GT.DEPMIN) THEN
+            .AND.DEP2(IND ).GT.DEPMIN &
+            .AND.DEP2(INDB).GT.DEPMIN) THEN
             IF ( OPTG.EQ.1 ) THEN
                DXLOC = DX
                DYLOC = DY
@@ -5856,7 +5748,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
                   DXLOC = XCGRID(IX,IY) - XCGRID(IX-1,IY)
                ELSE
                   DXLOC = 0.5*( XCGRID(IX+1,IY) - &
-                                XCGRID(IX-1,IY) )
+                     XCGRID(IX-1,IY) )
                END IF
             END IF
             IF ( KSPHER.GT.0 ) THEN
@@ -5869,7 +5761,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
             IF (EQREAL(DXLOC,0.)) DXLOC = 0.01
             IF (EQREAL(DYLOC,0.)) DYLOC = 0.01
             TMP = 0.5*(CG(INDB)/K(INDB)+CG(IND)/K(IND)) * &
-                      DXLOC * (EN(IND)-EN(INDB)) / DYLOC
+               DXLOC * (EN(IND)-EN(INDB)) / DYLOC
             EAD = DXLOC * DYLOC * EN(IND)*CG(IND)*K(IND)
             LAPE (INDB) = LAPE (INDB) + TMP
             LAPE (IND ) = LAPE (IND ) - TMP
@@ -5887,17 +5779,16 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
          TMP = 0.
       END IF
       IF (TMP.LT.-1.) THEN
-         DIFPARAM(IND) = 0.
+         diffr%param(IND) = 0.
       ELSE
-         DIFPARAM(IND) = SQRT(1.+TMP)
+         diffr%param(IND) = SQRT(1.+TMP)
       END IF
    END DO
-!WFR   CALL SWEXCHG(DIFPARAM(:),KGRPNT)
-!JAC   CALL SWEXCHG(DIFPARAM(:),0,KGRPNT)
+   CALL exchange_swan_field(diffr%param(:),KGRPNT)
    IF (STPNOW()) RETURN
 
-!     --- calculate spatial derivatives of DIFPARAM
-
+!     --- calculate spatial derivatives of diffr%param
+!
 !     --- loop over all X-connections
    DO IX = MAX(IX1,2), MIN(IX2,MXC-1)
       DO IY = IY1, IY2
@@ -5912,9 +5803,9 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
             NOOBST=.FALSE.
          END IF
          IF (NOOBST &
-             .AND. DEP2(IND ).GT.DEPMIN &
-             .AND. DEP2(INDL).GT.DEPMIN &
-             .AND. DEP2(INDR).GT.DEPMIN) THEN
+            .AND. DEP2(IND ).GT.DEPMIN &
+            .AND. DEP2(INDL).GT.DEPMIN &
+            .AND. DEP2(INDR).GT.DEPMIN) THEN
             IF ( OPTG.EQ.1 ) THEN
                DXLOC = DX
             ELSE IF ( OPTG.EQ.3 ) THEN
@@ -5926,8 +5817,8 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
             ENDIF
             DXLOC = ABS(DXLOC)
             IF (EQREAL(DXLOC,0.)) DXLOC=0.01
-            TMP = (DIFPARAM(INDR) - DIFPARAM(INDL))/(2.*DXLOC)
-            DIFPARDX(IND) = DIFPARDX(IND) + TMP
+            TMP = (diffr%param(INDR) - diffr%param(INDL))/(2.*DXLOC)
+            diffr%dpardx(IND) = diffr%dpardx(IND) + TMP
          END IF
       END DO
    END DO
@@ -5946,9 +5837,9 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
             NOOBST=.FALSE.
          END IF
          IF (NOOBST &
-             .AND. DEP2(IND ).GT.DEPMIN &
-             .AND. DEP2(INDB).GT.DEPMIN &
-             .AND. DEP2(INDT).GT.DEPMIN) THEN
+            .AND. DEP2(IND ).GT.DEPMIN &
+            .AND. DEP2(INDB).GT.DEPMIN &
+            .AND. DEP2(INDT).GT.DEPMIN) THEN
             IF ( OPTG.EQ.1 ) THEN
                DYLOC = DY
             ELSE IF ( OPTG.EQ.3 ) THEN
@@ -5957,8 +5848,8 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
             IF ( KSPHER.GT.0 ) DYLOC = DYLOC * LENDEG
             DYLOC = ABS(DYLOC)
             IF (EQREAL(DYLOC,0.)) DYLOC=0.01
-            TMP = (DIFPARAM(INDT) - DIFPARAM(INDB))/(2.*DYLOC)
-            DIFPARDY(IND) = DIFPARDY(IND) + TMP
+            TMP = (diffr%param(INDT) - diffr%param(INDB))/(2.*DYLOC)
+            diffr%dpardy(IND) = diffr%dpardy(IND) + TMP
          END IF
       END DO
    END DO
@@ -5968,34 +5859,33 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , &
 
    IF ( OPTG.EQ.1 ) THEN
       DO IND = 1, MCGRD
-         TMP_X = DIFPARDX(IND)
-         TMP_Y = DIFPARDY(IND)
-         DIFPARDX(IND) = COSPC * TMP_X - SINPC * TMP_Y
-         DIFPARDY(IND) = SINPC * TMP_X + COSPC * TMP_Y
+         TMP_X = diffr%dpardx(IND)
+         TMP_Y = diffr%dpardy(IND)
+         diffr%dpardx(IND) = COSPC * TMP_X - SINPC * TMP_Y
+         diffr%dpardy(IND) = SINPC * TMP_X + COSPC * TMP_Y
       END DO
    END IF
 
 !     --- test output
    IF (NPTST .GT. 0) THEN
-      WRITE (PRTEST, 81) IDIFFR
-81    FORMAT (' test DIFPAR, IDIFFR=',I1, &
-             /, '     ampl        laplacian ', &
-                '     difpar      @/@x         @/@y')
+      WRITE (PRTEST, "(' test DIFPAR, IDIFFR=',I1, /, '     ampl        laplacian ', '     difpar      @/@x         @/@y')") IDIFFR
       DO IS = 1, NPTST
          IX  = XYTST(2*IS-1)
          IY  = XYTST(2*IS)
          IND = KGRPNT(IX,IY)
-         WRITE (PRTEST, 82) EN(IND), LAPE(IND), &
-                          DIFPARAM(IND), &
-                          DIFPARDX(IND), DIFPARDY(IND)
-82       FORMAT (10(1X,E12.4))
+         WRITE (PRTEST, "(10(1X,E12.4))") EN(IND), LAPE(IND), &
+            diffr%param(IND), &
+            diffr%dpardx(IND), diffr%dpardy(IND)
       END DO
    END IF
 
 !     --- deallocate arrays
+   DEALLOCATE (KLOC, CGLOC, REFRACTIVE_INDEX, REFRACTIVE_DERIVATIVE)
    DEALLOCATE (EN, LAPE, DENOM, K, CG)
    DEALLOCATE (ENTMP)
 
 !     End of subroutine DIFPAR
    RETURN
-END
+end subroutine DIFPAR
+
+end module swan_propagation

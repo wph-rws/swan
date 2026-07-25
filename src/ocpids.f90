@@ -4,17 +4,40 @@
 !
 !*****************************************************************
 !                                                                *
+
+module swan_ocean_pack_init
+   use swan_build_config, only: alternate_path_separator, &
+      native_path_separator, print_record_length, default_maximum_unit, &
+      default_free_unit_start
+   use swan_file_open_backend, only: open_swan_file
+   use swan_time, only: DTSTTI, DTTIST
+   use swan_io_limits, only: LENFNM
+   use swan_project_metadata, only: INST
+   use swan_path_separators, only: DIRCH1, DIRCH2
+   implicit none(type, external)
+   private
+!  OCPINI is the only entry point the driver needs; OCDTIM (processor-time
+!  formatting) is used only from here.
+!  DTSTTI and DTTIST stay external below on purpose: swan_time declares them in
+!  its interface block, and they call UPCASE from swan_input_parser, which in
+!  turn uses swan_time -- moving them into swan_time would create a cycle.
+   public :: OCPINI
+contains
+
 SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
 !                                                                *
 !*****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
+
+   USE swan_input_parser, ONLY: RDINIT
+   USE swan_parallel, ONLY: SWSYNC
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, TXPBLA
+   USE swan_input_parser, ONLY: default_command_reader
+   USE swan_io_units
+   USE swan_time
    USE M_PARALL
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -80,78 +103,102 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
 !  4. Argument variables
 !
 !     INERR : output     Number of the initialisation error
-!
-   INTEGER INERR
-!
+
+   INTEGER :: INERR
+
 !     INIFIL  inp  char  name of initialisation file
 !     LREAD   inp  log   if True: command input file must be opened
 !                        and command reading must be initialised
-!
-   LOGICAL    LREAD, FILEXI
-   CHARACTER  INPFIL *40, OUTFIL *40, INIFIL *(*), TSTFIL *40, &
-              PLTOPT *4, TIMSTR *24, &
-              INPFO *40, OUTFO *40, TSTFO *40, TXT*120
-   CHARACTER (LEN=LENFNM) SCRFIL
-   INTEGER    PRCTIM(6), INIVER, INIVEF
-   INTEGER    PFROPT
-   REAL       PLPARM(10)
-   INTEGER    NUMM(10)
-   LOGICAL    STPNOW
-   DATA PRCTIM /0,0,0,0,0,0/
-!
+
+   LOGICAL :: LREAD, FILEXI
+   CHARACTER(LEN=40) :: INPFIL, OUTFIL, TSTFIL
+   CHARACTER(LEN=*) :: INIFIL
+   CHARACTER(LEN=4) :: PLTOPT
+   CHARACTER(LEN=24) :: TIMSTR
+   CHARACTER(LEN=40) :: INPFO, OUTFO, TSTFO
+   CHARACTER(LEN=120) :: TXT
+   CHARACTER(LEN=LENFNM) :: SCRFIL
+   INTEGER, SAVE :: PRCTIM(6) = [0, 0, 0, 0, 0, 0]
+   INTEGER :: IF, II, IL, ILPOS, INIVER, INIVEF, IPOS, IW, J, JJ, K, NPLP, IOSTAT
+   INTEGER :: PFROPT
+   REAL :: PLPARM(10)
+   INTEGER :: NUMM(10)
+
 !     version of initialisation file                                      10.16
    INIVER = 4
    INIVEF = -1
    INERR  = 0
-!
+
    IF (PARLL) THEN
       IF (.NOT.ALLOCATED(IWEIG)) ALLOCATE(IWEIG(NPROC))
       IWEIG = 100
    END IF
-!
+
 !     see whether initialisation file exists
-!
+
    INQUIRE (FILE=INIFIL, EXIST=FILEXI)
    IF (FILEXI) THEN
-!
+
 !       read initialisation file
-!
-      OPEN (11, FILE=INIFIL, STATUS='OLD', &
-!CVIS            SHARED, &
-            ERR=950)
-      READ (11, *, ERR=930, END=930) INIVEF
-      IF (INIVEF.GT.INIVER .OR. INIVEF.LE.0) GOTO 935
-      READ (11, 120, ERR=930, END=930) INST
-      READ (11, *,   ERR=930, END=930) INPUTF
-      READ (11, 120, ERR=930, END=930) INPFIL
-      READ (11, *,   ERR=930, END=930) PRINTF
-      READ (11, 120, ERR=930, END=930) OUTFIL
-      READ (11, *,   ERR=930, END=930) PRTEST
-      READ (11, 120, ERR=930, END=930) TSTFIL
-      READ (11, *,   ERR=930, END=930) SCREEN
-      READ (11, *,   ERR=930, END=930) IUNMAX
-      READ (11, 130, ERR=930, END=930) COMID
-      READ (11, 130, ERR=930, END=930) TABC
+
+      call open_swan_file(unit=11, iostat=IOSTAT, filename=INIFIL, &
+         status='OLD')
+      IF (initialisation_open_failed(IOSTAT)) RETURN
+      READ (11, *, IOSTAT=IOSTAT) INIVEF
+      IF (initialisation_read_failed(IOSTAT)) RETURN
+      IF (INIVEF.GT.INIVER .OR. INIVEF.LE.0) THEN
+         INERR=935
+         IF ( IAMMASTER ) WRITE(*,*) 'Incorrect version of initialisation file '
+         RETURN
+      END IF
+      READ (11, "(A40)", IOSTAT=IOSTAT) INST
+      IF (initialisation_read_failed(IOSTAT)) RETURN
+      READ (11, *, IOSTAT=IOSTAT) INPUTF
+      IF (initialisation_read_failed(IOSTAT)) RETURN
+      READ (11, "(A40)", IOSTAT=IOSTAT) INPFIL
+      IF (initialisation_read_failed(IOSTAT)) RETURN
+      READ (11, *, IOSTAT=IOSTAT) PRINTF
+      IF (initialisation_read_failed(IOSTAT)) RETURN
+      READ (11, "(A40)", IOSTAT=IOSTAT) OUTFIL
+      IF (initialisation_read_failed(IOSTAT)) RETURN
+      READ (11, *, IOSTAT=IOSTAT) PRTEST
+      IF (initialisation_read_failed(IOSTAT)) RETURN
+      READ (11, "(A40)", IOSTAT=IOSTAT) TSTFIL
+      IF (initialisation_read_failed(IOSTAT)) RETURN
+      READ (11, *, IOSTAT=IOSTAT) SCREEN
+      IF (initialisation_read_failed(IOSTAT)) RETURN
+      READ (11, *, IOSTAT=IOSTAT) IUNMAX
+      IF (initialisation_read_failed(IOSTAT)) RETURN
+      READ (11, "(A1)", IOSTAT=IOSTAT) default_command_reader%COMID
+      IF (initialisation_read_failed(IOSTAT)) RETURN
+      READ (11, "(A1)", IOSTAT=IOSTAT) default_command_reader%TABC
+      IF (initialisation_read_failed(IOSTAT)) RETURN
       IF (INIVEF.GE.2) THEN
-         READ (11, 130, ERR=930, END=930) DIRCH1
-         READ (11, 130, ERR=930, END=930) DIRCH2
+         READ (11, "(A1)", IOSTAT=IOSTAT) DIRCH1
+         IF (initialisation_read_failed(IOSTAT)) RETURN
+         READ (11, "(A1)", IOSTAT=IOSTAT) DIRCH2
+         IF (initialisation_read_failed(IOSTAT)) RETURN
       ELSE
-!DOS         DIRCH1 = CHAR(47)
-!DOS         DIRCH2 = CHAR(92)
-!UNIX         DIRCH1 = CHAR(92)
-!UNIX         DIRCH2 = CHAR(47)
+         DIRCH1 = alternate_path_separator
+         DIRCH2 = native_path_separator
       ENDIF
       IF (INIVEF.LT.3) THEN
-         READ (11, 140, ERR=930, END=930) PLTOPT
-         READ (11, *,   ERR=930, END=930) NPLP
-         READ (11, *,   ERR=930, END=930) (PLPARM(II),II=1,NPLP)
-         READ (11, *,   ERR=930, END=930) PFROPT
+         READ (11, "(A4)", IOSTAT=IOSTAT) PLTOPT
+         IF (initialisation_read_failed(IOSTAT)) RETURN
+         READ (11, *, IOSTAT=IOSTAT) NPLP
+         IF (initialisation_read_failed(IOSTAT)) RETURN
+         READ (11, *, IOSTAT=IOSTAT) (PLPARM(II),II=1,NPLP)
+         IF (initialisation_read_failed(IOSTAT)) RETURN
+         READ (11, *, IOSTAT=IOSTAT) PFROPT
+         IF (initialisation_read_failed(IOSTAT)) RETURN
       END IF
-      READ (11, *,   ERR=930, END=930) ITMOPT
+      READ (11, *, IOSTAT=IOSTAT) ITMOPT
+      IF (initialisation_read_failed(IOSTAT)) RETURN
       IF (INIVEF.GT.3) THEN
          IF (PARLL) THEN
             DO JJ = 1, NPROC
-               READ (11, 145, ERR=150, END=150) IW, TXT
+               READ (11, "(I5,A)", IOSTAT=IOSTAT) IW, TXT
+               IF (IOSTAT.NE.0) EXIT
                CALL TXPBLA(TXT,IF,IL)
                IPOS = 0
                DO II = IF, IL
@@ -169,15 +216,11 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
             END DO
          END IF
       END IF
-120   FORMAT (A40)
-130   FORMAT (A1)
-140   FORMAT (A4)
-145   FORMAT (I5,A)
-150   CLOSE (11)
+      CLOSE (11)
    ELSE
-!
+
 !       REFERENCE NUMBERS AND NAMES OF STANDARD FILES
-!
+
       INPUTF = 3
       INPFIL = 'INPUT'
       PRINTF = 4
@@ -187,22 +230,19 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
       PRTEST = PRINTF
       TSTFIL = '    '
       SCREEN = 6
-      IUNMAX = 99999
-!/SGI      IUNMAX = 199
+      IUNMAX = default_maximum_unit
 !       TABC is the Tab character (interpreted as blank in command reading)
-      TABC = CHAR(9)
+      default_command_reader%TABC = CHAR(9)
 !       COMID is the comment identifier (usually $)
-      COMID  = '$'
+      default_command_reader%COMID  = '$'
 !       DIRCH1 is directory separation character as appears in input file
 !       DIRCH2 is directory separation character replacing DIRCH1         40.00
-!DOS      DIRCH1 =  CHAR(47)
-!DOS      DIRCH2 =  CHAR(92)
-!UNIX      DIRCH1 =  CHAR(92)
-!UNIX      DIRCH2 =  CHAR(47)
+      DIRCH1 = alternate_path_separator
+      DIRCH2 = native_path_separator
 !       INST = name of institute, max. 40 characters
       INST = 'Delft University of Technology'
       ITMOPT = 1
-!
+
    ENDIF
    INPFO = INPFIL
    OUTFO = OUTFIL
@@ -214,129 +254,132 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
    IF (PARLL) THEN
       ILPOS = INDEX ( OUTFIL, ' ' )-1
       IF (ILPOS.GT.0) THEN
-         WRITE(OUTFIL(ILPOS+1:ILPOS+4),180) INODE
+         WRITE(OUTFIL(ILPOS+1:ILPOS+4),"('-',I3.3)") INODE
       ELSE
-         GOTO 920
+         INERR=920
+         IF ( IAMMASTER ) WRITE(*,*) 'Cannot open PRINT file '
+         RETURN
       END IF
       ILPOS = INDEX ( TSTFIL, ' ' )-1
       IF (ILPOS.GT.0) THEN
-         WRITE(TSTFIL(ILPOS+1:ILPOS+4),180) INODE
+         WRITE(TSTFIL(ILPOS+1:ILPOS+4),"('-',I3.3)") INODE
       END IF
-180   FORMAT('-',I3.3)
       CALL SWSYNC
       IF (STPNOW()) RETURN
    END IF
 
    IF (INIVEF.LT.INIVER) THEN
-!
+
 !       write initialisation file
-!
+
       IF ( IAMMASTER ) THEN
-         OPEN  (12, FILE=INIFIL, STATUS='UNKNOWN', FORM='FORMATTED', &
-                    ERR=950)
-         WRITE (12, 210) INIVER, 'version of initialisation file'
-         WRITE (12, 220) INST,   'name of institute'
-         WRITE (12, 210) INPUTF, 'command file ref. number'
-         WRITE (12, 220) INPFO,  'command file name'
-         WRITE (12, 210) PRINTF, 'print file ref. number'
-         WRITE (12, 220) OUTFO,  'print file name'
-         WRITE (12, 210) PRTEST, 'test file ref. number'
-         WRITE (12, 220) TSTFO,  'test file name'
-         WRITE (12, 210) SCREEN, 'screen ref. number'
-         WRITE (12, 210) IUNMAX, 'highest file ref. number'
-         WRITE (12, 230) COMID,  'comment identifier'
-         WRITE (12, 230) TABC,   'TAB character'
-         WRITE (12, 230) DIRCH1, 'dir sep char in input file'
-         WRITE (12, 230) DIRCH2, 'dir sep char replacing previous one'
-         WRITE (12, 210) ITMOPT, 'default time coding option'
+         OPEN  (12, FILE=INIFIL, STATUS='UNKNOWN', FORM='FORMATTED', IOSTAT=IOSTAT)
+         IF (initialisation_open_failed(IOSTAT)) RETURN
+         WRITE (12, "(I5, T41, A)") INIVER, 'version of initialisation file'
+         WRITE (12, "(A40, A)") INST,   'name of institute'
+         WRITE (12, "(I5, T41, A)") INPUTF, 'command file ref. number'
+         WRITE (12, "(A40, A)") INPFO,  'command file name'
+         WRITE (12, "(I5, T41, A)") PRINTF, 'print file ref. number'
+         WRITE (12, "(A40, A)") OUTFO,  'print file name'
+         WRITE (12, "(I5, T41, A)") PRTEST, 'test file ref. number'
+         WRITE (12, "(A40, A)") TSTFO,  'test file name'
+         WRITE (12, "(I5, T41, A)") SCREEN, 'screen ref. number'
+         WRITE (12, "(I5, T41, A)") IUNMAX, 'highest file ref. number'
+         WRITE (12, "(A1, T41, A)") default_command_reader%COMID,  'comment identifier'
+         WRITE (12, "(A1, T41, A)") default_command_reader%TABC,   'TAB character'
+         WRITE (12, "(A1, T41, A)") DIRCH1, 'dir sep char in input file'
+         WRITE (12, "(A1, T41, A)") DIRCH2, 'dir sep char replacing previous one'
+         WRITE (12, "(I5, T41, A)") ITMOPT, 'default time coding option'
          IF (PARLL) THEN
             DO II = 1, NPROC
-               WRITE (12, 240) IWEIG(II), 'speed of processor ',II
+               WRITE (12, "(I5, T41, A19, I3)") IWEIG(II), 'speed of processor ',II
             END DO
          END IF
          CLOSE (12)
       ENDIF
-210   FORMAT (I5, T41, A)
-220   FORMAT (A40, A)
-230   FORMAT (A1, T41, A)
-240   FORMAT (I5, T41, A19, I3)
    ENDIF
-!
+
    IUNMIN = 0
-   FUNLO = 21
-!/SGI   FUNLO = 103
+   FUNLO = default_free_unit_start
    FUNHI = IUNMAX
-!
+
    CALL OCDTIM (PRCTIM)
-!
+
 !     initialise command reader
-!
+
    IF (OUTFIL.NE.'    ') THEN
 !       WRITE (*,*) ' Open print file ', PRINTF, OUTFIL
-      OPEN (UNIT=PRINTF, FILE=OUTFIL, STATUS='UNKNOWN', &
-         FORM='FORMATTED', &
-!/Cray         RECL=2000, &
-!/SGI         RECL=2000, &
-         ERR=920)
+      call open_swan_file(unit=PRINTF, iostat=IOSTAT, filename=OUTFIL, &
+         status='UNKNOWN', form='FORMATTED', &
+         record_length=print_record_length)
+      IF (IOSTAT.NE.0) THEN
+         INERR = 920
+         IF (IAMMASTER) WRITE(*,*) 'Cannot open PRINT file '
+         RETURN
+      ENDIF
 !       WRITE (*,*) ' Print file opened ', PRINTF, OUTFIL
       CALL DTTIST (ITMOPT, TIMSTR, PRCTIM)
-      WRITE (PRINTF, 12) TIMSTR
-12    FORMAT ('1',//,20X, 'Execution started at ',A, //)
+      WRITE (PRINTF, "('1',//,20X, 'Execution started at ',A, //)") TIMSTR
    ENDIF
    IF (PRTEST.NE.PRINTF) THEN
-      OPEN (UNIT=PRTEST, FILE=TSTFIL, ERR=922)
+      OPEN (UNIT=PRTEST, FILE=TSTFIL, IOSTAT=IOSTAT)
+      IF (IOSTAT.NE.0) THEN
+         CALL MSGERR(4,'Cannot open test file: '//TSTFIL)
+         RETURN
+      ENDIF
    ENDIF
    IF (SCREEN.NE.6) THEN
       SCRFIL = 'screen'
-      OPEN (UNIT=SCREEN, FILE=SCRFIL, ERR=960)
+      OPEN (UNIT=SCREEN, FILE=SCRFIL, IOSTAT=IOSTAT)
+      IF (IOSTAT.NE.0) THEN
+         CALL MSGERR(4,'Error opening output file: screen')
+         RETURN
+      ENDIF
    ENDIF
    IF (LREAD) THEN
       IF (INPFIL.NE.'    ') THEN
-         OPEN (UNIT=INPUTF, FILE=INPFIL, STATUS='OLD', &
-!CVIS               SHARED, &
-               ERR=910)
+         call open_swan_file(unit=INPUTF, iostat=IOSTAT, filename=INPFIL, &
+            status='OLD')
+         IF (IOSTAT.NE.0) THEN
+            CALL MSGERR(4,'Input file missing')
+            RETURN
+         ENDIF
       ENDIF
       CALL RDINIT
    ENDIF
-!
+
    RETURN
-!
-910 CALL MSGERR(4,'Input file missing')
-   RETURN
-!
-920 INERR=920
-   IF ( IAMMASTER ) &
-      WRITE(*,*) 'Cannot open PRINT file '
-   RETURN
-!
-922 CALL MSGERR(4,'Cannot open test file: '//TSTFIL)
-   RETURN
-!
-930 INERR=930
-   IF ( IAMMASTER ) &
-      WRITE(*,*) 'Error reading initialisation file '
-   RETURN
-!
-935 INERR=935
-   IF ( IAMMASTER ) &
-      WRITE(*,*) 'Incorrect version of initialisation file '
-   RETURN
-!
-950 INERR=950
-   IF ( IAMMASTER ) &
-      WRITE(*,*) 'Error opening initialisation file '
-   RETURN
-!
-960 CALL MSGERR(4,'Error opening output file: screen')
-   RETURN
-!
-END
+
+CONTAINS
+
+LOGICAL FUNCTION initialisation_read_failed(status)
+   INTEGER, INTENT(IN) :: status
+
+   initialisation_read_failed = status.NE.0
+   IF (.NOT.initialisation_read_failed) RETURN
+   INERR = 930
+   IF (IAMMASTER) WRITE(*,*) 'Error reading initialisation file '
+END FUNCTION initialisation_read_failed
+
+LOGICAL FUNCTION initialisation_open_failed(status)
+   INTEGER, INTENT(IN) :: status
+
+   initialisation_open_failed = status.NE.0
+   IF (.NOT.initialisation_open_failed) RETURN
+   INERR = 950
+   IF (IAMMASTER) WRITE(*,*) 'Error opening initialisation file '
+END FUNCTION initialisation_open_failed
+
+end subroutine OCPINI
 !*****************************************************************
 !                                                                *
 SUBROUTINE OCDTIM (PRCTIM)
 !                                                                *
 !*****************************************************************
 !
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -412,254 +455,22 @@ SUBROUTINE OCDTIM (PRCTIM)
 !       ---------------------------------------------------------
 !
 !  8. SOURCE TEXT
-!
-   INTEGER PRCTIM(6)
-!
+
+   INTEGER :: PRCTIM(6)
+
 !     Call DATE and TIME routines
 !
 !     --------Fortran 90 date-time routines --------
-!
-   CHARACTER TIMSTR *24, CDUMMY *5
-   INTEGER   IDUMMY(8)
-!
+
+   CHARACTER(LEN=24) :: TIMSTR
+   CHARACTER(LEN=5) :: CDUMMY
+   INTEGER :: IDUMMY(8)
+
    CALL DATE_AND_TIME (TIMSTR(1:8), TIMSTR(10:20), CDUMMY, IDUMMY)
    CALL DTSTTI (1, TIMSTR, PRCTIM)
 
    RETURN
 
-END SUBROUTINE OCDTIM
-!*****************************************************************
-!                                                                *
-SUBROUTINE DTSTTI (IOPT, TIMSTR, DTTIME)
-!                                                                *
-!*****************************************************************
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!     Updates
-!
-!       ver 30.70, Sep 1997 by N.Booij: adaptation in view year 2000
-!       40.89, Nico Booij: integer Jumpyear introduced to prevent problems
-!                          with 2-digit year code
-!
-!     Function:
-!
-!       transform time string into integer time array
-!
-!     Argument list:
-!
-!       IOPT    input  int   option number
-!                            1: ISO notation   19870530.153000
-!                            2: (HP compiler): 30-May-87 15:30:00
-!                            3: (old Lahey)    05/30/87 15:30:00          30.70
-!                            4:                         15:30:00
-!                            5:                87/05/30 15:30:00
-!                            6: WAM            8705301530
-!
-!       TIMSTR  input  char  time string
-!       DTTIME  outp   int   time array: elements: year, month, day,
-!                            hour, minute, second
-!
-!    Remarks:
-!     Options can be added by the user
-!     existing options should not be changed
-!
-!     Source:
-!
-   INTEGER :: JUMPYEAR = 30 ! Used in interpretation of 2-digit year code
-   INTEGER    IOPT, DTTIME(6)
-   CHARACTER    MONC(12) *3, MONCI *3
-   CHARACTER(*) TIMSTR
-   DATA MONC /'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', &
-              'AUG', 'SEP', 'OCT', 'NOV', 'DEC'/
-!
-   IF (IOPT.EQ.1) THEN
-      READ (TIMSTR, '(I4,I2,I2,1X,3I2)', ERR=98) (DTTIME(II), II=1,6)
-   ELSE IF (IOPT.EQ.2) THEN
-      READ (TIMSTR, '(I2,1X,A3,1X,I2,3(1X,I2))', ERR=98) &
-         DTTIME(3), MONCI, DTTIME(1), (DTTIME(II), II=4,6)
-      IF (DTTIME(1).LT.JUMPYEAR) THEN
-         DTTIME(1) = 2000 + DTTIME(1)
-      ELSE
-         DTTIME(1) = 1900 + DTTIME(1)
-      ENDIF
-      DTTIME(2) = 0
-      DO 20 IMM = 1, 12
-         CALL UPCASE (MONCI)
-         IF (MONCI.NE.MONC(IMM)) GOTO 20
-         DTTIME(2) = IMM
-         GOTO 90
-20    CONTINUE
-      CALL MSGERR (2, 'incorrect month string: '//MONCI)
-   ELSE IF (IOPT.EQ.3) THEN
-      READ (TIMSTR, '(I2,5(1X,I2))', ERR=98) &
-         DTTIME(2), DTTIME(3), DTTIME(1), (DTTIME(II), II=4,6)
-      IF (DTTIME(1).LT.JUMPYEAR) THEN
-         DTTIME(1) = 2000 + DTTIME(1)
-      ELSE
-         DTTIME(1) = 1900 + DTTIME(1)
-      ENDIF
-   ELSE IF (IOPT.EQ.4) THEN
-      READ (TIMSTR, '(I2,2(1X,I2))', ERR=98) (DTTIME(II), II=4,6)
-      DO 40 II = 1, 3
-         DTTIME(II) = 0
-40    CONTINUE
-   ELSE IF (IOPT.EQ.5) THEN
-      READ (TIMSTR, '(I2,5(1X,I2))', ERR=98) (DTTIME(II), II=1,6)
-      IF (DTTIME(1).LT.JUMPYEAR) THEN
-         DTTIME(1) = 2000 + DTTIME(1)
-      ELSE
-         DTTIME(1) = 1900 + DTTIME(1)
-      ENDIF
-   ELSE IF (IOPT.EQ.6) THEN
-      READ (TIMSTR, '(5I2)', ERR=98) (DTTIME(II), II=1,5)
-      DTTIME(6) = 0.
-      IF (DTTIME(1).LT.JUMPYEAR) THEN
-         DTTIME(1) = 2000 + DTTIME(1)
-      ELSE
-         DTTIME(1) = 1900 + DTTIME(1)
-      ENDIF
-   ELSE
-      CALL MSGERR (2, 'wrong time coding option in subroutine DTSTTI')
-   ENDIF
-90 RETURN
-98 CALL MSGERR (2, 'time string unreadable: '//TIMSTR)
-   RETURN
-END
-!*****************************************************************
-!                                                                *
-SUBROUTINE DTTIST (IOPT, TIMSTR, DTTIME)
-!                                                                *
-!*****************************************************************
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!     Updates
-!
-!       ver 30.70, Sep 1997 by N.Booij: adaptation in view year 2000
-!
-!     Function:
-!
-!       transform integer time array into time string
-!
-!     Argument list:
-!
-!       IOPT    input  int   option number (see subr. DTSTTI)
-!       TIMSTR  outp   char  time string
-!       DTTIME  input  int   time array: elements: year, month, day,
-!                            hour, minute, second
-!
-!     Source:
-!
-   INTEGER    IOPT, DTTIME(6)
-   CHARACTER  TIMSTR *24, MONC(12) *3
-   DATA MONC /'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', &
-              'Aug', 'Sep', 'Oct', 'Nov', 'Dec'/
-!
-   TIMSTR = '    '
-   IF (IOPT.EQ.1) THEN
-      WRITE (TIMSTR, 12) (DTTIME(II), II=1,6)
-12    FORMAT (I4,I2,I2,'.',3I2)
-      LTS = 15
-   ELSE IF (IOPT.EQ.2) THEN
-      IF (DTTIME(1).GE.2000) THEN
-         DTTIME(1) = DTTIME(1) - 2000
-      ELSE
-         DTTIME(1) = DTTIME(1) - 1900
-      ENDIF
-      WRITE (TIMSTR, 22) DTTIME(3), MONC(DTTIME(2)), DTTIME(1), &
-         (DTTIME(II), II=4,6)
-22    FORMAT (I2,'-',A3,'-',I2,'.',I2,':',I2,':',I2)
-      LTS = 18
-   ELSE IF (IOPT.EQ.3) THEN
-      IF (DTTIME(1).GE.2000) THEN
-         DTTIME(1) = DTTIME(1) - 2000
-      ELSE
-         DTTIME(1) = DTTIME(1) - 1900
-      ENDIF
-      WRITE (TIMSTR, 32) &
-         DTTIME(2), DTTIME(3), DTTIME(1), (DTTIME(II), II=4,6)
-32    FORMAT (I2,'/',I2,'/',I2,'.',I2,':',I2,':',I2)
-      LTS = 17
-   ELSE IF (IOPT.EQ.4) THEN
-      WRITE (TIMSTR, 42) (DTTIME(II), II=4,6)
-42    FORMAT (I2,':',I2,':',I2)
-      LTS = 8
-   ELSE IF (IOPT.EQ.5) THEN
-      IF (DTTIME(1).GE.2000) THEN
-         DTTIME(1) = DTTIME(1) - 2000
-      ELSE
-         DTTIME(1) = DTTIME(1) - 1900
-      ENDIF
-      WRITE (TIMSTR, 52) (DTTIME(II), II= 1,6)
-52    FORMAT (I2,'/',I2,'/',I2,'.',I2,':',I2,':',I2)
-      LTS = 17
-   ELSE IF (IOPT.EQ.6) THEN
-      IF (DTTIME(1).GE.2000) THEN
-         DTTIME(1) = DTTIME(1) - 2000
-      ELSE
-         DTTIME(1) = DTTIME(1) - 1900
-      ENDIF
-      WRITE (TIMSTR, 62) (DTTIME(II), II=1,5)
-62    FORMAT (5I2)
-      LTS = 10
-   ELSE
-      CALL MSGERR (2, 'wrong time coding option in subroutine DTTIST')
-   ENDIF
-!
-   DO 94 IC = 1, LTS
-      IF (TIMSTR(IC:IC).EQ.' ') TIMSTR(IC:IC) = '0'
-94 CONTINUE
-!
-   RETURN
-END
+end subroutine OCDTIM
+
+end module swan_ocean_pack_init

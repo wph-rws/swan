@@ -2,140 +2,15 @@
 !
 !     Contents of this file
 !
-!     M_WCAP             information for whitecapping
 !     OUTP_DATA          information for output data
-!     M_SNL4             information for quadruplets
-!     M_SNL3             information for triads
 !     M_BNDSPEC          information for boundary conditions
 !     M_OBSTA            information for obstacles
 !     M_GENARR           contains a number of general arrays
 !     M_PARALL           information for parallelisation with MPI
 !     M_DIFFR            information for diffraction
-!
-MODULE M_WCAP
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.02: IJsbrand Haagsma
-!
-!  1. Updates
-!
-!     Sep. 00: New Module
-!
-!  2. Purpose
-!
-!     Create global variables used in whitecapping and integral parameter
-!     subroutines
-!
-!  3. Method
-!
-!     MODULE construct
-!
-!  4. Modules used
-!
-!     ---
-!
-   IMPLICIT NONE
-!
-!  5. Argument variables
-!
-!     ---
-!
-!  6. Parameter variables
-!
-!     ---
-!
-!  7. Local variables
-!
-!     ACTOT  : Total action density per gridpoint
-!     EDRKTOT: Zeroth moment of energy / SQRT(wavenumber)
-!     EKTOT  : Zeroth moment of energy * wavenumber
-!     ETOT1  : First moment of the energy density
-!     ETOT2  : Second moment of the energy density
-!     ETOT4  : Fourth moment of the energy density
-!     KM_WAM : Mean wavenumber according to the WAM-formulation
-!     KM01   : Mean wavenumber according to first and zeroth order moments
-!     SIGM_10: Mean frequency according to zeroth and first order moments
-!     SIGM01 : Mean frequency according to first and zeroth order moments
-!
-   REAL, SAVE    :: ACTOT
-   REAL, SAVE    :: EDRKTOT
-   REAL, SAVE    :: EKTOT
-   REAL, SAVE    :: ETOT1
-   REAL, SAVE    :: ETOT2
-   REAL, SAVE    :: ETOT4
-   REAL, SAVE    :: KM_WAM
-   REAL, SAVE    :: KM01
-   REAL, SAVE    :: SIGM_WAM
-   REAL, SAVE    :: SIGM_10
-   REAL, SAVE    :: SIGM01
-!
-   !$OMP THREADPRIVATE(ACTOT, EDRKTOT, EKTOT, ETOT1, ETOT2, ETOT4, &
-      !$OMP KM_WAM, KM01, SIGM_WAM, &
-      !$OMP SIGM_10, SIGM01)
-!
-!     SIGPOW : contains powers of relative frequencies
-!              second dimension indicates power of sigma
-!
-   REAL, SAVE, ALLOCATABLE :: SIGPOW(:,:)
-!
-!  8. Subroutines and functions used
-!
-!     ---
-!
-!  9. Subroutines and functions calling
-!
-!     SSFILL :
-!     SINTGRL: Calculating integral paramters
-!     SWCAP  : Calculating whitecapping source term
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!     ---
-!
-! 13. Source text
-!
-END MODULE M_WCAP
 
 MODULE OUTP_DATA
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -187,11 +62,10 @@ MODULE OUTP_DATA
 !     MODULE construct
 !
 !  4. Modules used
-!
-   USE OCPCOMM2
-!
-   IMPLICIT NONE
-!
+
+   use swan_io_limits, only: LENFNM
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !  5. Argument variables
 !
 !     ---
@@ -204,86 +78,51 @@ MODULE OUTP_DATA
 
    INTEGER, PARAMETER :: MAX_OUTP_REQ = 250 ! max. number of output requests
 
-   CHARACTER (LEN=1)  :: OUT_COMMENT = '%' ! comment sign for heading lines
-
-   LOGICAL            :: LCOMPGRD
-
-   ! formats for output:
-   CHARACTER (LEN=40) :: FLT_BLOCK = '(6E12.4)' ! floating point block
-   CHARACTER (LEN=40) :: FLT_TABLE = '(E11.4)' ! floating point table
-   CHARACTER (LEN=40) :: FIX_SPEC  = '(200(1X,I4))' ! spectral output
-
-!     format for block output per process in case of collecting data
-   CHARACTER (LEN=40) :: FLT_BLKP = '(6E17.9)'
-
-   INTEGER :: FLD_TABLE = 12 ! field length for fixed-point table
-   INTEGER :: DEC_BLOCK =  4 ! number of decimals for fixed-point block
-   INTEGER :: DEC_SPEC  =  4 ! number of decimals for spectral output
+   LOGICAL            :: LCOMPGRD = .FALSE.
 
 !     longer filenames for output requests
-   CHARACTER (LEN=LENFNM) :: OUTP_FILES(1:MAX_OUTP_REQ)
+   CHARACTER (LEN=LENFNM) :: OUTP_FILES(1:MAX_OUTP_REQ) = ''
    ! filenames for output; index is output request sequence number
 
    INTEGER, SAVE :: NREOQ = 0 ! actual number of requests saved
 
-!     unit number PVD files
-   INTEGER :: UPVDF(1:MAX_OUTP_REQ)
-
-!     timestep counter for time-varying VTK files
-   INTEGER, SAVE :: NTVTK(1:MAX_OUTP_REQ) = -1
-
-!     output directory containing a series of time-varying VTK files
-   CHARACTER (LEN=LENFNM) :: VTKDIR(1:MAX_OUTP_REQ)
-
-!     textline containing VTK line in XML format
-   CHARACTER(LEN=1024) :: VTKLINE
-
-!     XML header lines
-   CHARACTER(LEN=25) :: XMLLIN1 = '<?xml version="1.0"?>'
-   CHARACTER(LEN= 5) :: XMLLIN2 = '<!--'
-   CHARACTER(LEN= 5) :: XMLLIN3 = '-->'
-
-!     default lines of PVD file
-   CHARACTER(LEN=80) :: PVDLIN1 = '<VTKFile type="Collection" '// &
-                           'version="0.1" byte_order="LittleEndian">'
-   CHARACTER(LEN=15) :: PVDLIN2 = '  <Collection>'
-   CHARACTER(LEN=15) :: PVDLIN3 = '  </Collection>'
-   CHARACTER(LEN=10) :: PVDLIN4 = '</VTKFile>'
-
    TYPE OPSDAT
-      CHARACTER (LEN=1)     :: PSTYPE ! type (F, C, P, ...)
-      CHARACTER (LEN=8)     :: PSNAME ! name of point set
-      INTEGER               :: OPI(2) ! integer coefficients
-      REAL                  :: OPR(5) ! real coefficients
-      INTEGER               :: MIP ! number of points
-      REAL, POINTER         :: XP(:), YP(:), XQ(:), YQ(:) ! point coordinates
-      TYPE(OPSDAT), POINTER :: NEXTOPS
-   END TYPE OPSDAT
+      CHARACTER (LEN=1)     :: PSTYPE = '' ! type (F,
+      CHARACTER (LEN=8)     :: PSNAME = '' ! name of p
+      INTEGER               :: OPI(2) = 0 ! integer c
+      REAL                  :: OPR(5) = 0.0 ! real coef
+      INTEGER               :: MIP = 0 ! number of
+      REAL, POINTER         :: XP(:) => NULL(), YP(:) => NULL()
+      REAL, POINTER         :: XQ(:) => NULL(), YQ(:) => NULL()
+      TYPE(OPSDAT), POINTER :: NEXTOPS => NULL()
+   end type OPSDAT
 
    TYPE(OPSDAT), SAVE, TARGET  :: FOPS
-   TYPE(OPSDAT), SAVE, POINTER :: COPS
+   TYPE(OPSDAT), SAVE, POINTER :: COPS => NULL()
    LOGICAL, SAVE :: LOPS = .FALSE.
 
    TYPE ORQDAT
-      CHARACTER (LEN=4)      :: RQTYPE ! type (BLK, TAB, SPC ...)
-      CHARACTER (LEN=8)      :: PSNAME ! name of point set
-      INTEGER                :: OQI(4) ! integer coefficients
-      REAL*8                 :: OQR(2) ! real coefficients
-      INTEGER, POINTER       :: IVTYP(:) ! type of output variable
-      REAL, POINTER          :: FAC(:) ! multiplication factor of block output
-      TYPE(ORQDAT), POINTER  :: NEXTORQ
-   END TYPE ORQDAT
+      CHARACTER (LEN=4)      :: RQTYPE = '' ! type (BLK, TAB, SPC ...)
+      CHARACTER (LEN=8)      :: PSNAME = '' ! name of point set
+      INTEGER                :: OQI(4) = 0 ! integer coefficients
+      REAL(KIND=KIND(0.0D0)) :: OQR(2) = 0.0D0 ! real coefficients
+      INTEGER, POINTER       :: IVTYP(:) => NULL() ! type of output variable
+      REAL, POINTER          :: FAC(:) => NULL() ! multiplication factor of b
+      TYPE(ORQDAT), POINTER  :: NEXTORQ => NULL()
+   end type ORQDAT
 
    TYPE(ORQDAT), SAVE, TARGET  :: FORQ
    LOGICAL, SAVE :: LORQ = .FALSE.
-!
+
 !  8. Subroutines and functions used
-!
+
    INTERFACE DELETE
       MODULE PROCEDURE DELETEOPS
       MODULE PROCEDURE DELETEORQ
-   END INTERFACE
-!
+   end interface DELETE
+
+   PUBLIC :: CLEAR_OUTPUT_STATE, OUTPUT_STATE_IS_CLEAR
+
 !  9. Subroutines and functions calling
 !
 !     SWREAD : reads data (command OUTPut OPTions)
@@ -303,9 +142,9 @@ MODULE OUTP_DATA
 !     ---
 !
 ! 13. Source text
-!
+
 CONTAINS
-!
+
 RECURSIVE SUBROUTINE DELETEOPS ( OPS )
 
    TYPE(OPSDAT) :: OPS
@@ -334,8 +173,8 @@ RECURSIVE SUBROUTINE DELETEOPS ( OPS )
       ENDIF
    ENDIF
 
-END SUBROUTINE
-!
+end subroutine DELETEOPS
+
 RECURSIVE SUBROUTINE DELETEORQ ( ORQ )
 
    TYPE(ORQDAT) :: ORQ
@@ -356,224 +195,35 @@ RECURSIVE SUBROUTINE DELETEORQ ( ORQ )
       ENDIF
    ENDIF
 
-END SUBROUTINE
+end subroutine DELETEORQ
 
-END MODULE OUTP_DATA
+SUBROUTINE CLEAR_OUTPUT_STATE ()
+   CALL DELETEOPS ( FOPS )
+   CALL DELETEORQ ( FORQ )
+   FOPS = OPSDAT()
+   FORQ = ORQDAT()
+   NULLIFY(COPS)
+   LOPS = .FALSE.
+   LORQ = .FALSE.
+   LCOMPGRD = .FALSE.
+   NREOQ = 0
+   OUTP_FILES = ''
+END SUBROUTINE CLEAR_OUTPUT_STATE
 
-MODULE M_SNL4
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.17: IJsbrand Haagsma
-!
-!  1. Updates
-!
-!     Feb. 01: New Module
-!
-!  2. Purpose
-!
-!     Create global variables used in quadruplet subroutines
-!
-!  3. Method
-!
-!     MODULE construct
-!
-!  4. Modules used
-!
-!     ---
-!
-   IMPLICIT NONE
-!
-!  5. Argument variables
-!
-!     ---
-!
-!  6. Parameter variables
-!
-!     ---
-!
-!  7. Local variables
+LOGICAL FUNCTION OUTPUT_STATE_IS_CLEAR ()
+   OUTPUT_STATE_IS_CLEAR = .NOT.LOPS .AND. .NOT.LORQ .AND. &
+      .NOT.LCOMPGRD .AND. NREOQ.EQ.0 .AND. .NOT.ASSOCIATED(COPS) .AND. &
+      .NOT.ASSOCIATED(FOPS%XP) .AND. .NOT.ASSOCIATED(FOPS%YP) .AND. &
+      .NOT.ASSOCIATED(FOPS%XQ) .AND. .NOT.ASSOCIATED(FOPS%YQ) .AND. &
+      .NOT.ASSOCIATED(FOPS%NEXTOPS) .AND. &
+      .NOT.ASSOCIATED(FORQ%IVTYP) .AND. .NOT.ASSOCIATED(FORQ%FAC) .AND. &
+      .NOT.ASSOCIATED(FORQ%NEXTORQ) .AND. ALL(OUTP_FILES.EQ.'')
+END FUNCTION OUTPUT_STATE_IS_CLEAR
 
-!     MDIA  : Number of quadruplets in the MDIA formulation
-
-   INTEGER, PUBLIC, SAVE           :: MDIA = 1
-
-!     AF11  : Contains the scaling frequency for the DIA.
-!     CNL4_1: Contains the values for C1 in the MDIA formulation.
-!     CNL4_2: Contains the values for C2 in the MDIA formulation.
-!     LAMBDA: Contains the values for lambda in the MDIA formulation.
-
-   REAL, PUBLIC, SAVE, ALLOCATABLE :: AF11(:)
-   REAL, PUBLIC, SAVE, ALLOCATABLE :: CNL4_1(:)
-   REAL, PUBLIC, SAVE, ALLOCATABLE :: CNL4_2(:)
-   REAL, PUBLIC, SAVE, ALLOCATABLE :: LAMBDA(:)
-
-!  8. Subroutines and functions used
-!
-!     ---
-!
-!  9. Subroutines and functions calling
-!
-!     ---
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!     ---
-!
-! 13. Source text
-!
-END MODULE M_SNL4
-
-MODULE M_SNL3
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     42.01: Marcel Zijlema
-!
-!  1. Updates
-!
-!     November 2022: New module
-!
-!  2. Purpose
-!
-!     creates variables and arrays used for triad interactions
-!
-!  3. Method
-!
-!     MODULE construct
-!
-!  4. Modules used
-!
-!     ---
-!
-   IMPLICIT NONE
-!
-!  5. Argument variables
-!
-!     ---
-!
-!  6. Parameter variables
-!
-!     ---
-!
-!  7. Local variables
-!
-!     BPHTMP: store unfiltered De Wit's biphase temporarily
-!     ISM   : negative range for IS
-!     ISM1  : negative range for IS
-!     ISP   : positive range for IS
-!     ISP1  : positive range for IS
-!     MSC4D : dimension for QTRI arrays
-!     QTRI1 : frequency-dependent interpolation data
-!     QTRI2 : frequency- and space-dependent scaling factors
-!     TCOLL : true if collinear, otherwise noncollinear
-!     WISM  : interpolation weight factor corresponding to lower harmonic
-!     WISM1 : interpolation weight factor corresponding to lower harmonic
-!     WISP  : interpolation weight factor corresponding to higher harmonic
-!     WISP1 : interpolation weight factor corresponding to higher harmonic
-!
-   INTEGER MSC4D
-!
-   INTEGER  ISM(3,2),  ISM1(3,2),  ISP(3),  ISP1(3)
-   REAL    WISM(3,2), WISM1(3,2), WISP(3), WISP1(3)
-!
-   REAL   , DIMENSION(:)    , SAVE, ALLOCATABLE :: BPHTMP
-   REAL   , DIMENSION(:,:)  , SAVE, ALLOCATABLE :: QTRI1
-   REAL   , DIMENSION(:,:,:), SAVE, ALLOCATABLE :: QTRI2
-!
-   LOGICAL :: TCOLL
-
-!  8. Subroutines and functions used
-!
-!     ---
-!
-!  9. Subroutines and functions calling
-!
-!     ---
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!     ---
-!
-! 13. Source text
-!
-END MODULE M_SNL3
+end module OUTP_DATA
 
 MODULE M_BNDSPEC
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -623,9 +273,9 @@ MODULE M_BNDSPEC
 !  4. Modules used
 !
 !     ---
-!
-   IMPLICIT NONE
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !  5. Argument variables
 !
 !     ---
@@ -667,45 +317,47 @@ MODULE M_BNDSPEC
 !               3: average wave direction
 !               4: directional distribution coefficient
 
-   LOGICAL :: ALOBND
+   LOGICAL :: ALOBND = .FALSE.
 
    TYPE BSPCDAT
-      INTEGER                :: BFILED(20)
-      INTEGER, POINTER       :: BSPLOC(:)
-      REAL, POINTER          :: BSPDIR(:), BSPFRQ(:)
-      TYPE(BSPCDAT), POINTER :: NEXTBSPC
-   END TYPE BSPCDAT
+      INTEGER                :: BFILED(20) = 0
+      INTEGER, POINTER       :: BSPLOC(:) => NULL()
+      REAL, POINTER          :: BSPDIR(:) => NULL(), BSPFRQ(:) => NULL()
+      TYPE(BSPCDAT), POINTER :: NEXTBSPC => NULL()
+   end type BSPCDAT
 
    TYPE(BSPCDAT), SAVE, TARGET :: FBNDFIL
    LOGICAL, SAVE :: LBFILS = .FALSE.
 
    TYPE BSDAT
-      INTEGER                :: NBS
-      INTEGER                :: FSHAPE, DSHAPE
-      REAL                   :: SPPARM(4)
-      TYPE(BSDAT), POINTER   :: NEXTBS
-   END TYPE BSDAT
+      INTEGER                :: NBS = 0
+      INTEGER                :: FSHAPE = 0, DSHAPE = 0
+      REAL                   :: SPPARM(4) = 0.0
+      TYPE(BSDAT), POINTER   :: NEXTBS => NULL()
+   end type BSDAT
 
    TYPE(BSDAT), SAVE, TARGET :: FBS
    LOGICAL, SAVE :: LBS = .FALSE.
 
    TYPE BGPDAT
-      INTEGER                :: BGP(6)
-      TYPE(BGPDAT), POINTER  :: NEXTBGP
-   END TYPE BGPDAT
+      INTEGER                :: BGP(6) = 0
+      TYPE(BGPDAT), POINTER  :: NEXTBGP => NULL()
+   end type BGPDAT
 
    TYPE(BGPDAT), SAVE, TARGET  :: FBGP
-   TYPE(BGPDAT), SAVE, POINTER :: CUBGP
+   TYPE(BGPDAT), SAVE, POINTER :: CUBGP => NULL()
    LOGICAL, SAVE :: LBGP = .FALSE.
 
 !  8. Subroutines and functions used
-!
+
    INTERFACE DELETE
       MODULE PROCEDURE DELETEBSPC
       MODULE PROCEDURE DELETEBS
       MODULE PROCEDURE DELETEBGP
-   END INTERFACE
-!
+   end interface DELETE
+
+   PUBLIC :: CLEAR_BOUNDARY_STATE, BOUNDARY_STATE_IS_CLEAR
+
 !  9. Subroutines and functions calling
 !
 !     ---
@@ -723,9 +375,9 @@ MODULE M_BNDSPEC
 !     ---
 !
 ! 13. Source text
-!
+
 CONTAINS
-!
+
 RECURSIVE SUBROUTINE DELETEBSPC ( BSPC )
 
    TYPE(BSPCDAT) :: BSPC
@@ -750,8 +402,8 @@ RECURSIVE SUBROUTINE DELETEBSPC ( BSPC )
       ENDIF
    ENDIF
 
-END SUBROUTINE
-!
+end subroutine DELETEBSPC
+
 RECURSIVE SUBROUTINE DELETEBS ( BS )
 
    TYPE(BSDAT) :: BS
@@ -764,8 +416,8 @@ RECURSIVE SUBROUTINE DELETEBS ( BS )
       ENDIF
    ENDIF
 
-END SUBROUTINE
-!
+end subroutine DELETEBS
+
 RECURSIVE SUBROUTINE DELETEBGP ( BGP )
 
    TYPE(BGPDAT) :: BGP
@@ -778,13 +430,37 @@ RECURSIVE SUBROUTINE DELETEBGP ( BGP )
       ENDIF
    ENDIF
 
-END SUBROUTINE
+end subroutine DELETEBGP
 
-END MODULE M_BNDSPEC
+SUBROUTINE CLEAR_BOUNDARY_STATE ()
+   CALL DELETEBSPC ( FBNDFIL )
+   CALL DELETEBS ( FBS )
+   CALL DELETEBGP ( FBGP )
+   FBNDFIL = BSPCDAT()
+   FBS = BSDAT()
+   FBGP = BGPDAT()
+   NULLIFY(CUBGP)
+   LBFILS = .FALSE.
+   LBS = .FALSE.
+   LBGP = .FALSE.
+   ALOBND = .FALSE.
+END SUBROUTINE CLEAR_BOUNDARY_STATE
+
+LOGICAL FUNCTION BOUNDARY_STATE_IS_CLEAR ()
+   BOUNDARY_STATE_IS_CLEAR = .NOT.ALOBND .AND. .NOT.LBFILS .AND. &
+      .NOT.LBS .AND. .NOT.LBGP .AND. .NOT.ASSOCIATED(CUBGP) .AND. &
+      .NOT.ASSOCIATED(FBNDFIL%BSPLOC) .AND. &
+      .NOT.ASSOCIATED(FBNDFIL%BSPDIR) .AND. &
+      .NOT.ASSOCIATED(FBNDFIL%BSPFRQ) .AND. &
+      .NOT.ASSOCIATED(FBNDFIL%NEXTBSPC) .AND. &
+      .NOT.ASSOCIATED(FBS%NEXTBS) .AND. &
+      .NOT.ASSOCIATED(FBGP%NEXTBGP)
+END FUNCTION BOUNDARY_STATE_IS_CLEAR
+
+end module M_BNDSPEC
 
 MODULE M_OBSTA
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -831,9 +507,9 @@ MODULE M_OBSTA
 !  4. Modules used
 !
 !     ---
-!
-   IMPLICIT NONE
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !  5. Argument variables
 !
 !     ---
@@ -865,23 +541,24 @@ MODULE M_OBSTA
 !     XCRP    : x-coordinate of corner point
 !     YCRP    : y-coordinate of corner point
 
-   LOGICAL, SAVE             :: OBSTDONE
-!
+   LOGICAL, SAVE             :: OBSTDONE = .FALSE.
+
    TYPE OBSTDAT
-      INTEGER                :: TRTYPE
-      REAL                   :: TRCOEF(3)
-      REAL, POINTER          :: TRCF1D(:), TRCF2D(:,:)
-      INTEGER                :: RFTYP1, RFTYP2, RFTYP3
-      REAL                   :: RFCOEF(6)
-      INTEGER                :: FBTYP1, FBTYP2
-      REAL                   :: FBCOEF(3)
-      INTEGER                :: IGTYP
-      REAL                   :: IGCOEF(7)
-      REAL, POINTER          :: IGFRQD(:)
-      INTEGER                :: NCRPTS
-      REAL, POINTER          :: XCRP(:), YCRP(:)
-      TYPE(OBSTDAT), POINTER :: NEXTOBST
-   END TYPE OBSTDAT
+      INTEGER                :: TRTYPE = 0
+      REAL                   :: TRCOEF(3) = 0.0
+      REAL, POINTER          :: TRCF1D(:) => NULL()
+      REAL, POINTER          :: TRCF2D(:,:) => NULL()
+      INTEGER                :: RFTYP1 = 0, RFTYP2 = 0, RFTYP3 = 0
+      REAL                   :: RFCOEF(6) = 0.0
+      INTEGER                :: FBTYP1 = 0, FBTYP2 = 0
+      REAL                   :: FBCOEF(3) = 0.0
+      INTEGER                :: IGTYP = 0
+      REAL                   :: IGCOEF(7) = 0.0
+      REAL, POINTER          :: IGFRQD(:) => NULL()
+      INTEGER                :: NCRPTS = 0
+      REAL, POINTER          :: XCRP(:) => NULL(), YCRP(:) => NULL()
+      TYPE(OBSTDAT), POINTER :: NEXTOBST => NULL()
+   end type OBSTDAT
 
    TYPE(OBSTDAT), SAVE, TARGET  :: FOBSTAC
 
@@ -906,12 +583,45 @@ MODULE M_OBSTA
 !     ---
 !
 ! 13. Source text
-!
-END MODULE M_OBSTA
+
+   PUBLIC :: CLEAR_OBSTACLE_STATE, OBSTACLE_STATE_IS_CLEAR
+
+CONTAINS
+
+RECURSIVE SUBROUTINE CLEAR_OBSTACLE_NODE ( NODE )
+   TYPE(OBSTDAT), INTENT(INOUT) :: NODE
+
+   IF ( ASSOCIATED(NODE%NEXTOBST) ) THEN
+      CALL CLEAR_OBSTACLE_NODE ( NODE%NEXTOBST )
+      DEALLOCATE(NODE%NEXTOBST)
+   END IF
+   IF ( ASSOCIATED(NODE%TRCF1D) ) DEALLOCATE(NODE%TRCF1D)
+   IF ( ASSOCIATED(NODE%TRCF2D) ) DEALLOCATE(NODE%TRCF2D)
+   IF ( ASSOCIATED(NODE%IGFRQD) ) DEALLOCATE(NODE%IGFRQD)
+   IF ( ASSOCIATED(NODE%XCRP) )   DEALLOCATE(NODE%XCRP)
+   IF ( ASSOCIATED(NODE%YCRP) )   DEALLOCATE(NODE%YCRP)
+   NODE = OBSTDAT()
+END SUBROUTINE CLEAR_OBSTACLE_NODE
+
+SUBROUTINE CLEAR_OBSTACLE_STATE ()
+   CALL CLEAR_OBSTACLE_NODE ( FOBSTAC )
+   OBSTDONE = .FALSE.
+END SUBROUTINE CLEAR_OBSTACLE_STATE
+
+LOGICAL FUNCTION OBSTACLE_STATE_IS_CLEAR ()
+   OBSTACLE_STATE_IS_CLEAR = .NOT.OBSTDONE .AND. &
+      .NOT.ASSOCIATED(FOBSTAC%TRCF1D) .AND. &
+      .NOT.ASSOCIATED(FOBSTAC%TRCF2D) .AND. &
+      .NOT.ASSOCIATED(FOBSTAC%IGFRQD) .AND. &
+      .NOT.ASSOCIATED(FOBSTAC%XCRP) .AND. &
+      .NOT.ASSOCIATED(FOBSTAC%YCRP) .AND. &
+      .NOT.ASSOCIATED(FOBSTAC%NEXTOBST)
+END FUNCTION OBSTACLE_STATE_IS_CLEAR
+
+end module M_OBSTA
 
 MODULE M_GENARR
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -974,9 +684,9 @@ MODULE M_GENARR
 !  4. Modules used
 !
 !     ---
-!
-   IMPLICIT NONE
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !  5. Argument variables
 !
 !     ---
@@ -1018,30 +728,23 @@ MODULE M_GENARR
 !     WLEVL : input field of water level
 !     WXI   : input field of wind U-velocity (contravariant)
 !     WYI   : input field of wind V-velocity (contravariant)
-!     XCGRID: Coordinates of computational grid in x-direction
+!     XCGRID: Coordinates of computational grid in x-direction            30.72
 !     XYTST : Grid point indices of test points
-!     YCGRID: Coordinates of computational grid in y-direction
+!     YCGRID: Coordinates of computational grid in y-direction            30.72
 
    INTEGER, SAVE, ALLOCATABLE :: KGRPNT(:,:), KGRBND(:)
    INTEGER, SAVE, ALLOCATABLE :: XYTST(:)
    REAL   , SAVE, ALLOCATABLE :: AC2(:,:,:)
    REAL   , SAVE, ALLOCATABLE :: XCGRID(:,:), YCGRID(:,:)
    REAL   , SAVE, ALLOCATABLE :: SPCSIG(:)  , SPCDIR(:,:)
-   REAL   , SAVE, ALLOCATABLE :: DEPTH(:) , FRIC(:)
-   REAL   , SAVE, ALLOCATABLE :: UXB(:)   , UYB(:)
-   REAL   , SAVE, ALLOCATABLE :: WXI(:)   , WYI(:)
-   REAL   , SAVE, ALLOCATABLE :: WLEVL(:) , ASTDF(:)
-   REAL   , SAVE, ALLOCATABLE :: MUDLF(:)
-   REAL   , SAVE, ALLOCATABLE :: NPLAF(:) , TURBF(:)
-   REAL   , SAVE, ALLOCATABLE :: AICEF(:) , HICEF(:)
-   REAL   , SAVE, ALLOCATABLE :: LAYH(:), VEGDIL(:), VEGDRL(:), &
-                                 VEGNSL(:)
-   REAL   , SAVE, ALLOCATABLE :: HSSF(:)  , TSSF(:), DSSF(:)
-!ESMF!
-!ESMF!     added to save Sin exponential growth term for coupling
-!ESMF   LOGICAL, SAVE :: SAVE_SINBAC
-!ESMF   REAL   , SAVE, ALLOCATABLE :: SINBAC(:,:,:)
-
+!
+!     Exponential wind-input state exposed for ESMF coupling. The selected
+!     coupling backend is a no-op unless ESMF support is enabled.
+!     The coupler allocates SINBAC and sets SAVE_SINBAC; it owns them,
+!     so SWAN leaves both in place after a run, just as upstream.
+   LOGICAL, SAVE :: SAVE_SINBAC = .FALSE.
+   REAL   , SAVE, ALLOCATABLE :: SINBAC(:,:,:)
+!
 !  8. Subroutines and functions used
 !
 !     ---
@@ -1063,10 +766,50 @@ MODULE M_GENARR
 !     ---
 !
 ! 13. Source text
-!
-END MODULE M_GENARR
+
+   PUBLIC :: CLEAR_GENERAL_ARRAY_STATE, GENERAL_ARRAY_STATE_IS_CLEAR
+
+contains
+
+SUBROUTINE CLEAR_GENERAL_ARRAY_STATE ()
+   IF (ALLOCATED(KGRPNT)) DEALLOCATE(KGRPNT)
+   IF (ALLOCATED(KGRBND)) DEALLOCATE(KGRBND)
+   IF (ALLOCATED(XYTST )) DEALLOCATE(XYTST )
+   IF (ALLOCATED(AC2   )) DEALLOCATE(AC2   )
+   IF (ALLOCATED(XCGRID)) DEALLOCATE(XCGRID)
+   IF (ALLOCATED(YCGRID)) DEALLOCATE(YCGRID)
+   IF (ALLOCATED(SPCSIG)) DEALLOCATE(SPCSIG)
+   IF (ALLOCATED(SPCDIR)) DEALLOCATE(SPCDIR)
+END SUBROUTINE CLEAR_GENERAL_ARRAY_STATE
+
+LOGICAL FUNCTION GENERAL_ARRAY_STATE_IS_CLEAR ()
+   GENERAL_ARRAY_STATE_IS_CLEAR = .NOT.ALLOCATED(KGRPNT) .AND. &
+      .NOT.ALLOCATED(KGRBND) .AND. .NOT.ALLOCATED(XYTST) .AND. &
+      .NOT.ALLOCATED(AC2) .AND. .NOT.ALLOCATED(XCGRID) .AND. &
+      .NOT.ALLOCATED(YCGRID) .AND. .NOT.ALLOCATED(SPCSIG) .AND. &
+      .NOT.ALLOCATED(SPCDIR)
+END FUNCTION GENERAL_ARRAY_STATE_IS_CLEAR
+
+end module M_GENARR
 
 MODULE M_PARALL
+   USE swan_build_config, ONLY: jacobi_sweep_enabled
+   USE swan_parallel_state, ONLY: MASTER, INODE, NPROC, IAMMASTER, PARLL
+   USE swan_mpi_backend, ONLY: mpi_backend_broadcast_character, &
+      mpi_backend_broadcast_integer_array, &
+      mpi_backend_broadcast_integer_matrix, &
+      mpi_backend_broadcast_integer_scalar, &
+      mpi_backend_broadcast_real_array, mpi_backend_broadcast_real_matrix, &
+      mpi_backend_broadcast_real_scalar, &
+      mpi_backend_broadcast_real_tensor3, &
+      mpi_backend_broadcast_real_tensor4, mpi_backend_gather_counts, &
+      mpi_backend_gatherv_integer_i12, mpi_backend_gatherv_integer_i21, &
+      mpi_backend_gatherv_real, mpi_backend_receive_real_matrix, &
+      mpi_backend_receive_real_vector, mpi_backend_reduce_integer_array, &
+      mpi_backend_reduce_integer_scalar, mpi_backend_reduce_real_array, &
+      mpi_backend_reduce_real_scalar, mpi_backend_send_real_matrix, &
+      mpi_backend_send_real_vector, swan_mpi_error_count, swan_mpi_success
+   USE swan_service_interfaces, ONLY: MSGERR
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -1118,37 +861,82 @@ MODULE M_PARALL
 !  4. Modules used
 !
 !     ---
-!
-   IMPLICIT NONE
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+   PRIVATE :: jacobi_sweep_enabled
+   PRIVATE :: MSGERR
+   PRIVATE :: mpi_backend_broadcast_character
+   PRIVATE :: mpi_backend_broadcast_integer_array
+   PRIVATE :: mpi_backend_broadcast_integer_matrix
+   PRIVATE :: mpi_backend_broadcast_integer_scalar
+   PRIVATE :: mpi_backend_broadcast_real_array
+   PRIVATE :: mpi_backend_broadcast_real_matrix
+   PRIVATE :: mpi_backend_broadcast_real_scalar
+   PRIVATE :: mpi_backend_broadcast_real_tensor3
+   PRIVATE :: mpi_backend_broadcast_real_tensor4
+   PRIVATE :: mpi_backend_gather_counts
+   PRIVATE :: mpi_backend_gatherv_integer_i12
+   PRIVATE :: mpi_backend_gatherv_integer_i21
+   PRIVATE :: mpi_backend_gatherv_real
+   PRIVATE :: mpi_backend_receive_real_matrix, mpi_backend_receive_real_vector
+   PRIVATE :: mpi_backend_reduce_integer_array
+   PRIVATE :: mpi_backend_reduce_integer_scalar
+   PRIVATE :: mpi_backend_reduce_real_array, mpi_backend_reduce_real_scalar
+   PRIVATE :: mpi_backend_send_real_matrix, mpi_backend_send_real_vector
+   PRIVATE :: swan_mpi_error_count, swan_mpi_success
+
+!     Type-safe interfaces for collective communication.  The legacy
+!     implementations receive a typed first element and a count; callers
+!     no longer pass an MPI datatype that can disagree with the Fortran
+!     datatype of the actual argument.
+   INTERFACE SWREDUCE
+      MODULE PROCEDURE SWREDUCE_I0, SWREDUCE_I1
+      MODULE PROCEDURE SWREDUCE_R0, SWREDUCE_R1
+   end interface SWREDUCE
+
+   INTERFACE SWBROADC
+      MODULE PROCEDURE SWBROADC_I0, SWBROADC_I1, SWBROADC_I2
+      MODULE PROCEDURE SWBROADC_R0, SWBROADC_R1, SWBROADC_R2
+      MODULE PROCEDURE SWBROADC_R3, SWBROADC_R4
+      MODULE PROCEDURE SWBROADC_C0
+   end interface SWBROADC
+
+   INTERFACE SWSENDNB
+      MODULE PROCEDURE SWSENDNB_R1, SWSENDNB_R2
+   end interface SWSENDNB
+
+   INTERFACE SWRECVNB
+      MODULE PROCEDURE SWRECVNB_R1, SWRECVNB_R2
+   end interface SWRECVNB
+
+   INTERFACE SWGATHER
+      MODULE PROCEDURE SWGATHER_I21, SWGATHER_I12
+      MODULE PROCEDURE SWGATHER_R11
+   end interface SWGATHER
+
 !  5. Argument variables
 !
 !     ---
 !
 !  6. Parameter variables
 !
-!JAC!     IBLACK  : integer used to colour subdomains 'black' for
-!JAC!               determining sequence of sweeps (=4,1,2,3)
-!JAC!     IGREEN  : integer used to colour subdomains 'green' for
-!JAC!               determining sequence of sweeps (=3,4,1,2)
+!     IBLACK  : integer used to colour subdomains 'black' for
+!               determining sequence of sweeps (=4,1,2,3)
+!     IGREEN  : integer used to colour subdomains 'green' for
+!               determining sequence of sweeps (=3,4,1,2)
 !     IHALOX  : width of halo area in x-direction
 !     IHALOY  : width of halo area in y-direction
-!JAC!     IRED    : integer used to colour subdomains 'red' for
-!JAC!               determining sequence of sweeps (=1,2,3,4)
-!JAC!     IYELOW  : integer used to colour subdomains 'yellow' for
-!JAC!               determining sequence of sweeps (=2,3,4,1)
+!     IRED    : integer used to colour subdomains 'red' for
+!               determining sequence of sweeps (=1,2,3,4)
+!     IYELOW  : integer used to colour subdomains 'yellow' for
+!               determining sequence of sweeps (=2,3,4,1)
 !     MASTER  : rank of master process
-!
-   INTEGER MASTER
-!JAC   INTEGER IRED, IYELOW, IGREEN, IBLACK
-   INTEGER IHALOX, IHALOY
-   PARAMETER (MASTER = 1 &
-!JAC             ,IRED   = 1, IYELOW = 2, &
-!JAC              IGREEN = 3, IBLACK = 4, &
-!JAC              IHALOX = 1, IHALOY = 1 &
-!WFR             ,IHALOX = 3, IHALOY = 3 &
-             )
-!
+
+!  MASTER now comes from swan_parallel_state (re-exported below).
+   INTEGER, PARAMETER :: IRED=1, IYELOW=2, IGREEN=3, IBLACK=4
+   INTEGER, PARAMETER :: IHALOX=MERGE(1,3,jacobi_sweep_enabled)
+   INTEGER, PARAMETER :: IHALOY=MERGE(1,3,jacobi_sweep_enabled)
+
 !  7. Local variables
 !
 !     *** variables for parallel process with MPI:
@@ -1163,15 +951,15 @@ MODULE M_PARALL
 !     SWMIN   : MPI collective minimum operation
 !     SWREAL  : MPI datatype for reals
 !     SWSUM   : MPI collective summation
-!
-   INTEGER INODE, NPROC
+
+!  INODE/NPROC now come from swan_parallel_state.
    INTEGER SWCHAR, SWINT, SWREAL
    INTEGER SWMAX, SWMIN, SWSUM
-   LOGICAL IAMMASTER, PARLL
-!
+!  IAMMASTER/PARLL now come from swan_parallel_state.
+
 !     *** information related to global domain and subdomains
 !
-!JAC!     IBCOL   : integer indicating the color of own subdomain
+!     IBCOL   : integer indicating the color of own subdomain
 !     IBLKAD  : administration array for subdomain interfaces
 !               contents:
 !               pos. 1                     number of neighbouring subdomains
@@ -1221,10 +1009,8 @@ MODULE M_PARALL
 !     XGRDGL  : x-coordinate of computational grid in global domain
 !     YGRDGL  : y-coordinate of computational grid in global domain
 !
-!JAC   INTEGER IBCOL
-   INTEGER MCGRDGL, MXCGL, MYCGL
+   INTEGER IBCOL
    INTEGER MXF, MXL, MYF, MYL
-   INTEGER NGRBGL, NBGGL
    REAL    XCLMAX, XCLMIN, YCLMAX, YCLMIN
 
    INTEGER :: LENSPO = 1000
@@ -1233,9 +1019,7 @@ MODULE M_PARALL
 
    INTEGER, SAVE, ALLOCATABLE :: IBLKAD(:)
    INTEGER, SAVE, ALLOCATABLE :: IWEIG(:)
-   INTEGER, SAVE, ALLOCATABLE :: KGRPGL(:,:), KGRBGL(:)
-   REAL   , SAVE, ALLOCATABLE :: XGRDGL(:,:), YGRDGL(:,:)
-!
+
 !  8. Subroutines and functions used
 !
 !     ---
@@ -1257,105 +1041,307 @@ MODULE M_PARALL
 !     ---
 !
 ! 13. Source text
-!
-END MODULE M_PARALL
 
-MODULE M_DIFFR
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.21: Agnieszka Herman, Nico Booij
-!
-!  1. Updates
-!
-!     Aug. 01: New Module
-!
-!  2. Purpose
-!
-!     Contains global variables used in diffraction procedure
-!
-!  3. Method
-!
-!     MODULE construct
-!
-!  4. Modules used
-!
-!     ---
-!
-   IMPLICIT NONE
-!
-!  5. Argument variables
-!
-!     ---
-!
-!  6. Parameter variables
-!
-!     ---
-!
-!  7. Local variables
-!
-!     DIFPARAM: contains diffraction parameter (second derivative of Hs)
-!     DIFPARDX: derivative of DIFPARAM in x-direction
-!     DIFPARDY: derivative of DIFPARAM in y-direction
+CONTAINS
 
-   REAL, SAVE, ALLOCATABLE :: DIFPARAM(:)
-   REAL, SAVE, ALLOCATABLE :: DIFPARDX(:)
-   REAL, SAVE, ALLOCATABLE :: DIFPARDY(:)
+SUBROUTINE SWREDUCE_I0 ( VALUE, ILEN, ITYPRD )
+   INTEGER, INTENT(INOUT) :: VALUE
+   INTEGER, INTENT(IN)    :: ILEN, ITYPRD
+   INTEGER                :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, 1, 'SWREDUCE')) RETURN
+   CALL mpi_backend_reduce_integer_scalar(VALUE, ILEN, SWINT, ITYPRD, &
+      IERR)
+   CALL SWMPI_CHECK(IERR, 'MPI_ALLREDUCE')
+end subroutine SWREDUCE_I0
 
-!  8. Subroutines and functions used
-!
-!     ---
-!
-!  9. Subroutines and functions calling
-!
-!     DIFPAR :   calculates the above arrays DIFPARAM, DIFPARDX, DIFPARDY
-!     SPROSD :   computes propagation velocity in (x,y,theta) based on
-!                arrays DIFPARAM, DIFPARDX, DIFPARDY
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!     ---
-!
-! 13. Source text
-!
-END MODULE M_DIFFR
+SUBROUTINE SWREDUCE_I1 ( VALUES, ILEN, ITYPRD )
+   INTEGER, INTENT(INOUT) :: VALUES(:)
+   INTEGER, INTENT(IN)    :: ILEN, ITYPRD
+   INTEGER                :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWREDUCE')) RETURN
+   CALL mpi_backend_reduce_integer_array(VALUES, ILEN, SWINT, ITYPRD, &
+      IERR)
+   CALL SWMPI_CHECK(IERR, 'MPI_ALLREDUCE')
+end subroutine SWREDUCE_I1
 
-!MPI!/impi MODULE MPI
-!MPI!/impi   INCLUDE 'mpif.h'
-!MPI!/impi END MODULE MPI
+SUBROUTINE SWREDUCE_R0 ( VALUE, ILEN, ITYPRD )
+   REAL, INTENT(INOUT) :: VALUE
+   INTEGER, INTENT(IN) :: ILEN, ITYPRD
+   INTEGER             :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, 1, 'SWREDUCE')) RETURN
+   CALL mpi_backend_reduce_real_scalar(VALUE, ILEN, SWREAL, ITYPRD, IERR)
+   CALL SWMPI_CHECK(IERR, 'MPI_ALLREDUCE')
+end subroutine SWREDUCE_R0
+
+SUBROUTINE SWREDUCE_R1 ( VALUES, ILEN, ITYPRD )
+   REAL, INTENT(INOUT) :: VALUES(:)
+   INTEGER, INTENT(IN) :: ILEN, ITYPRD
+   INTEGER             :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWREDUCE')) RETURN
+   CALL mpi_backend_reduce_real_array(VALUES, ILEN, SWREAL, ITYPRD, IERR)
+   CALL SWMPI_CHECK(IERR, 'MPI_ALLREDUCE')
+end subroutine SWREDUCE_R1
+
+SUBROUTINE SWBROADC_I0 ( VALUE, ILEN )
+   INTEGER, INTENT(INOUT) :: VALUE
+   INTEGER, INTENT(IN)    :: ILEN
+   INTEGER                :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, 1, 'SWBROADC')) RETURN
+   CALL mpi_backend_broadcast_integer_scalar(VALUE, ILEN, SWINT, &
+      MASTER-1, IERR)
+   CALL SWBROADC_CHECK(IERR)
+end subroutine SWBROADC_I0
+
+SUBROUTINE SWBROADC_I1 ( VALUES, ILEN )
+   INTEGER, INTENT(INOUT)             :: VALUES(*)
+   INTEGER, INTENT(IN)                :: ILEN
+   INTEGER                            :: IERR
+   IF (.NOT.PARLL) RETURN
+   CALL mpi_backend_broadcast_integer_array(VALUES, ILEN, SWINT, &
+      MASTER-1, IERR)
+   CALL SWBROADC_CHECK(IERR)
+end subroutine SWBROADC_I1
+
+SUBROUTINE SWBROADC_I2 ( VALUES, ILEN )
+   INTEGER, CONTIGUOUS, INTENT(INOUT) :: VALUES(:,:)
+   INTEGER, INTENT(IN)                :: ILEN
+   INTEGER                            :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWBROADC')) RETURN
+   CALL mpi_backend_broadcast_integer_matrix(VALUES, ILEN, SWINT, &
+      MASTER-1, IERR)
+   CALL SWBROADC_CHECK(IERR)
+end subroutine SWBROADC_I2
+
+SUBROUTINE SWBROADC_R0 ( VALUE, ILEN )
+   REAL, INTENT(INOUT) :: VALUE
+   INTEGER, INTENT(IN) :: ILEN
+   INTEGER             :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, 1, 'SWBROADC')) RETURN
+   CALL mpi_backend_broadcast_real_scalar(VALUE, ILEN, SWREAL, MASTER-1, &
+      IERR)
+   CALL SWBROADC_CHECK(IERR)
+end subroutine SWBROADC_R0
+
+SUBROUTINE SWBROADC_R1 ( VALUES, ILEN )
+   REAL, INTENT(INOUT)             :: VALUES(*)
+   INTEGER, INTENT(IN)             :: ILEN
+   INTEGER                         :: IERR
+   IF (.NOT.PARLL) RETURN
+   CALL mpi_backend_broadcast_real_array(VALUES, ILEN, SWREAL, MASTER-1, &
+      IERR)
+   CALL SWBROADC_CHECK(IERR)
+end subroutine SWBROADC_R1
+
+SUBROUTINE SWBROADC_R2 ( VALUES, ILEN )
+   REAL, CONTIGUOUS, INTENT(INOUT) :: VALUES(:,:)
+   INTEGER, INTENT(IN)             :: ILEN
+   INTEGER                         :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWBROADC')) RETURN
+   CALL mpi_backend_broadcast_real_matrix(VALUES, ILEN, SWREAL, MASTER-1, &
+      IERR)
+   CALL SWBROADC_CHECK(IERR)
+end subroutine SWBROADC_R2
+
+SUBROUTINE SWBROADC_R3 ( VALUES, ILEN )
+   REAL, CONTIGUOUS, INTENT(INOUT) :: VALUES(:,:,:)
+   INTEGER, INTENT(IN)             :: ILEN
+   INTEGER                         :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWBROADC')) RETURN
+   CALL mpi_backend_broadcast_real_tensor3(VALUES, ILEN, SWREAL, &
+      MASTER-1, IERR)
+   CALL SWBROADC_CHECK(IERR)
+end subroutine SWBROADC_R3
+
+SUBROUTINE SWBROADC_R4 ( VALUES, ILEN )
+   REAL, CONTIGUOUS, INTENT(INOUT) :: VALUES(:,:,:,:)
+   INTEGER, INTENT(IN)             :: ILEN
+   INTEGER                         :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWBROADC')) RETURN
+   CALL mpi_backend_broadcast_real_tensor4(VALUES, ILEN, SWREAL, &
+      MASTER-1, IERR)
+   CALL SWBROADC_CHECK(IERR)
+end subroutine SWBROADC_R4
+
+SUBROUTINE SWBROADC_C0 ( VALUE, ILEN )
+   CHARACTER(LEN=*), INTENT(INOUT) :: VALUE
+   INTEGER, INTENT(IN)             :: ILEN
+   INTEGER                         :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, LEN(VALUE), 'SWBROADC')) RETURN
+   CALL mpi_backend_broadcast_character(VALUE, ILEN, SWCHAR, MASTER-1, &
+      IERR)
+   CALL SWBROADC_CHECK(IERR)
+end subroutine SWBROADC_C0
+
+SUBROUTINE SWBROADC_CHECK ( IERR )
+   INTEGER, INTENT(IN) :: IERR
+   CHARACTER(LEN=80) :: MSGSTR
+   IF (IERR.NE.swan_mpi_success) THEN
+      WRITE(MSGSTR,'(A,I0)') &
+         'MPI_BCAST failed with return code ', IERR
+      CALL MSGERR(4, MSGSTR)
+   END IF
+end subroutine SWBROADC_CHECK
+
+SUBROUTINE SWSENDNB_R1 ( VALUES, ILEN, IDEST, ITAG )
+   REAL, CONTIGUOUS, INTENT(IN) :: VALUES(:)
+   INTEGER, INTENT(IN)          :: ILEN, IDEST, ITAG
+   INTEGER                      :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWSENDNB')) RETURN
+   CALL mpi_backend_send_real_vector(VALUES, ILEN, SWREAL, IDEST-1, &
+      ITAG, IERR)
+   CALL SWMPI_CHECK(IERR, 'MPI_SEND')
+end subroutine SWSENDNB_R1
+
+SUBROUTINE SWSENDNB_R2 ( VALUES, ILEN, IDEST, ITAG )
+   REAL, CONTIGUOUS, INTENT(IN) :: VALUES(:,:)
+   INTEGER, INTENT(IN)          :: ILEN, IDEST, ITAG
+   INTEGER                      :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWSENDNB')) RETURN
+   CALL mpi_backend_send_real_matrix(VALUES, ILEN, SWREAL, IDEST-1, &
+      ITAG, IERR)
+   CALL SWMPI_CHECK(IERR, 'MPI_SEND')
+end subroutine SWSENDNB_R2
+
+SUBROUTINE SWRECVNB_R1 ( VALUES, ILEN, ISOURCE, ITAG )
+   REAL, CONTIGUOUS, INTENT(OUT) :: VALUES(:)
+   INTEGER, INTENT(IN)           :: ILEN, ISOURCE, ITAG
+   INTEGER                       :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWRECVNB')) RETURN
+   CALL mpi_backend_receive_real_vector(VALUES, ILEN, SWREAL, ISOURCE-1, &
+      ITAG, IERR)
+   CALL SWMPI_CHECK(IERR, 'MPI_RECV')
+end subroutine SWRECVNB_R1
+
+SUBROUTINE SWRECVNB_R2 ( VALUES, ILEN, ISOURCE, ITAG )
+   REAL, CONTIGUOUS, INTENT(OUT) :: VALUES(:,:)
+   INTEGER, INTENT(IN)            :: ILEN, ISOURCE, ITAG
+   INTEGER                        :: IERR
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWRECVNB')) RETURN
+   CALL mpi_backend_receive_real_matrix(VALUES, ILEN, SWREAL, ISOURCE-1, &
+      ITAG, IERR)
+   CALL SWMPI_CHECK(IERR, 'MPI_RECV')
+end subroutine SWRECVNB_R2
+
+SUBROUTINE SWGATHER_I21 ( OUTPUT, IOLEN, INPUT, IILEN )
+   INTEGER, INTENT(OUT) :: OUTPUT(:,:)
+   INTEGER, INTENT(IN)  :: INPUT(:)
+   INTEGER, INTENT(IN)  :: IOLEN, IILEN
+   INTEGER              :: IERR
+   INTEGER, ALLOCATABLE :: ICOUNT(:), IDSPLC(:)
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(IOLEN, SIZE(OUTPUT), 'SWGATHER')) RETURN
+   IF (.NOT.SWVALID_COUNT(IILEN, SIZE(INPUT), 'SWGATHER')) RETURN
+   CALL SWGATHER_LAYOUT ( IILEN, IOLEN, ICOUNT, IDSPLC, IERR )
+   IF (IERR.EQ.swan_mpi_success) &
+      CALL mpi_backend_gatherv_integer_i21(INPUT, IILEN, OUTPUT, ICOUNT, &
+         IDSPLC, SWINT, MASTER-1, IERR)
+   CALL SWMPI_CHECK(IERR, 'MPI_GATHERV')
+   DEALLOCATE(ICOUNT,IDSPLC)
+end subroutine SWGATHER_I21
+
+SUBROUTINE SWGATHER_I12 ( OUTPUT, IOLEN, INPUT, IILEN )
+   INTEGER, INTENT(OUT) :: OUTPUT(:)
+   INTEGER, INTENT(IN)  :: INPUT(:,:)
+   INTEGER, INTENT(IN)  :: IOLEN, IILEN
+   INTEGER              :: IERR
+   INTEGER, ALLOCATABLE :: ICOUNT(:), IDSPLC(:)
+   IF (.NOT.PARLL) RETURN
+   IF (.NOT.SWVALID_COUNT(IOLEN, SIZE(OUTPUT), 'SWGATHER')) RETURN
+   IF (.NOT.SWVALID_COUNT(IILEN, SIZE(INPUT), 'SWGATHER')) RETURN
+   CALL SWGATHER_LAYOUT ( IILEN, IOLEN, ICOUNT, IDSPLC, IERR )
+   IF (IERR.EQ.swan_mpi_success) &
+      CALL mpi_backend_gatherv_integer_i12(INPUT, IILEN, OUTPUT, ICOUNT, &
+         IDSPLC, SWINT, MASTER-1, IERR)
+   CALL SWMPI_CHECK(IERR, 'MPI_GATHERV')
+   DEALLOCATE(ICOUNT,IDSPLC)
+end subroutine SWGATHER_I12
+
+SUBROUTINE SWGATHER_R11 ( OUTPUT, IOLEN, INPUT, IILEN )
+   REAL, INTENT(OUT)    :: OUTPUT(*)
+   REAL, INTENT(IN)     :: INPUT(*)
+   INTEGER, INTENT(IN)  :: IOLEN, IILEN
+   INTEGER              :: IERR
+   INTEGER, ALLOCATABLE :: ICOUNT(:), IDSPLC(:)
+   IF (.NOT.PARLL) RETURN
+   CALL SWGATHER_LAYOUT ( IILEN, IOLEN, ICOUNT, IDSPLC, IERR )
+   IF (IERR.EQ.swan_mpi_success) &
+      CALL mpi_backend_gatherv_real(INPUT, IILEN, OUTPUT, ICOUNT, &
+         IDSPLC, SWREAL, MASTER-1, IERR)
+   CALL SWMPI_CHECK(IERR, 'MPI_GATHERV')
+   DEALLOCATE(ICOUNT,IDSPLC)
+end subroutine SWGATHER_R11
+
+SUBROUTINE SWGATHER_LAYOUT ( IILEN, IOLEN, ICOUNT, IDSPLC, &
+   IERR )
+   INTEGER, INTENT(IN)                 :: IILEN, IOLEN
+   INTEGER, ALLOCATABLE, INTENT(OUT)   :: ICOUNT(:), IDSPLC(:)
+   INTEGER, INTENT(OUT)                :: IERR
+   INTEGER                             :: I
+   ALLOCATE(ICOUNT(0:NPROC-1),IDSPLC(0:NPROC-1))
+   ICOUNT = 0
+   IDSPLC = 0
+   IERR = 0
+   CALL mpi_backend_gather_counts(IILEN, ICOUNT, SWINT, MASTER-1, IERR)
+   IF (IERR.NE.swan_mpi_success) RETURN
+   IF (IAMMASTER) THEN
+      IF ( SUM(ICOUNT).GT.IOLEN ) THEN
+         CALL MSGERR ( 4, &
+            'Not enough space allocated for gathered data' )
+         IERR = swan_mpi_error_count
+         RETURN
+      END IF
+      DO I = 1, NPROC-1
+         IDSPLC(I) = ICOUNT(I-1) + IDSPLC(I-1)
+      END DO
+   END IF
+end subroutine SWGATHER_LAYOUT
+
+SUBROUTINE SWMPI_CHECK ( IERR, ROUTINE_NAME )
+   INTEGER, INTENT(IN)          :: IERR
+   CHARACTER(LEN=*), INTENT(IN) :: ROUTINE_NAME
+   CHARACTER(LEN=80)         :: MSGSTR
+   IF (IERR.NE.swan_mpi_success) THEN
+      WRITE(MSGSTR,'(A,A,A,I0)') TRIM(ROUTINE_NAME), &
+         ' failed on this process with return code ', '', IERR
+      CALL MSGERR(4, MSGSTR)
+   END IF
+end subroutine SWMPI_CHECK
+
+LOGICAL FUNCTION SWVALID_COUNT ( COUNT, AVAILABLE, ROUTINE_NAME )
+   INTEGER, INTENT(IN)          :: COUNT, AVAILABLE
+   CHARACTER(LEN=*), INTENT(IN) :: ROUTINE_NAME
+   CHARACTER(LEN=160)           :: MSGSTR
+
+   SWVALID_COUNT = COUNT >= 0 .AND. COUNT <= AVAILABLE
+   IF (SWVALID_COUNT) RETURN
+
+   WRITE(MSGSTR,'(A,A,I0,A,I0)') TRIM(ROUTINE_NAME), &
+      ' received an invalid element count ', COUNT, &
+      ' for a buffer of size ', AVAILABLE
+   CALL MSGERR ( 4, TRIM(MSGSTR) )
+end function SWVALID_COUNT
+
+SUBROUTINE CLEAR_PARALLEL_STORAGE ()
+   IF (ALLOCATED(IBLKAD)) DEALLOCATE(IBLKAD)
+END SUBROUTINE CLEAR_PARALLEL_STORAGE
+
+LOGICAL FUNCTION PARALLEL_STORAGE_IS_CLEAR ()
+   PARALLEL_STORAGE_IS_CLEAR = .NOT.ALLOCATED(IBLKAD)
+END FUNCTION PARALLEL_STORAGE_IS_CLEAR
+
+end module M_PARALL

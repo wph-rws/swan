@@ -1,4 +1,4 @@
-!
+
 !     SWAN/COMPU   file 3 of 5
 !
 !     PROGRAM SWANCOM3.FOR
@@ -26,22 +26,31 @@
 !             frequency range that extend to the high frequencies
 !
 !****************************************************************
-!
-SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX, &
-                   DEP2  ,WIND10,GENC0 ,GENC1 , &
-                   THETAW,AC2   ,KWAVE ,IMATRA,IMATDA, &
-                   SPCSIG,CGO   ,ALIMW ,GROWW ,ETOTW , &
-                   PLWNDS,PLWNDD,SPCDIR,ITER,AICELOC    )
-!
+
+module swan_wind_source
+   implicit none(type, external)
+   private
+   public :: WNDPAR, WINDP1, WINDP3, SWIND0, SWIND3, SWIND4, SWIND5
+contains
+
+SUBROUTINE WNDPAR (WINDOW, DEP2, WIND10, GENC0, GENC1, THETAW, AC2, KWAVE, IMATRA, IMATDA, SPCSIG, &
+      CGO, ALIMW, GROWW, ETOTW, PLWNDS, PLWNDD, SPCDIR, ITER, AICELOC, IGP)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -177,20 +186,28 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX, &
 !             (*,4); cosine^2 of spectral directions                      30.82
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
-! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
+! i   IGP   : Grid address of the point being computed (KCGRD(1) in upstream)
+! i   WINDOW: Spectral window of the grid point: the minimum and maximum
+!             counter in the wind sector (IDWMIN, IDWMAX), the minimum
+!             and maximum counter in directional space per frequency
+!             (IDCMIN, IDCMAX) and the counter for the maximum frequency
+!             of all directions (ISSTOP)
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
-!
+
 !  6. Local variables
 !
 !     IENT  : Number of entries into this subroutine
-!
-   INTEGER IENT
-!
+
+   INTEGER, SAVE :: IENT = 0
+
    REAL  :: FPM ! Pierson-Moskowitz frequency
    REAL  :: SWIND_EXP, SWIND_IMP ! explicit and implicit part of wind source
-!
+
 !        INTEGERS:
 !        ---------
 !        IDWMIN      Minimum counter for spectral wind direction
@@ -316,19 +333,18 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX, &
 !
 !     10. SOURCE
 !
-!***********************************************************************
-!
-   INTEGER  IS    ,ID    ,ITER  , &
-            IDWMIN,IDWMAX,IDDUM ,ISSTOP
-!
+!************************************************************************
+
+   INTEGER :: IS, ID, ITER, IDDUM
+
    REAL     WIND10,THETA ,THETAW,EDML  ,ARG1  ,ARG2  , &
-            ALPM  ,ALPMD ,TEMP1 ,TEMP2 ,FACTA ,FACTB , &
-            ADUM  ,BDUM  ,CINV  ,SIGTPI,SIGMA ,TWOPI ,TAUINV, &
-            SIGPK ,SIGPKD,DND   ,ETOTW ,ALIM1D, &
-            CTW   ,STW   ,COSDIF, &
-            DIRDIS,AC2CEN,DTHETA
+      ALPM  ,ALPMD ,TEMP1 ,TEMP2 ,FACTA ,FACTB , &
+      ADUM  ,BDUM  ,CINV  ,SIGTPI,SIGMA ,TWOPI ,TAUINV, &
+      SIGPK ,SIGPKD,DND   ,ETOTW ,ALIM1D, &
+      CTW   ,STW   ,COSDIF, &
+      DIRDIS,AC2CEN,DTHETA
    REAL, INTENT(IN) :: AICELOC
-!
+
    REAL  :: AC2(MDC,MSC,MCGRD)
    REAL  :: ALIMW(MDC,MSC)
    REAL  :: IMATDA(MDC,MSC), IMATRA(MDC,MSC)
@@ -342,31 +358,26 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX, &
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint   40.22
    REAL  :: CGO(MSC,MICMAX)
    REAL  :: FACTOR_ON_SIN ! See remarks.
-!
-   INTEGER  IDCMIN(MSC)           , &
-            IDCMAX(MSC)
-!
+
    LOGICAL  GROWW(MDC,MSC)
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'WNDPAR')
-!
+
 !     *** initialization of arrays ***
-!
+
    DO IS = 1, MSC
       DO ID = 1, MDC
          GROWW(ID,IS) = .FALSE.
          ALIMW(ID,IS) = 0.
       ENDDO
    ENDDO
-!
+
 !     *** calculate the adapted shallow water peak frequency         ***
 !     *** according to Bretschneider (1973) using the nondimensional ***
 !     *** depth DND                                                  ***
-!
+
    TWOPI  = 2. * PI
-   DND    = MIN( 50. , GRAV * DEP2(KCGRD(1)) / WIND10**2 )
+   DND    = MIN( 50. , GRAV * DEP2(IGP) / WIND10**2 )
    SIGPK  = TWOPI * 0.13 * GRAV / WIND10
    SIGPKD = SIGPK / TANH(0.833*DND**0.375)
    FPM    = SIGPKD
@@ -374,66 +385,64 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX, &
    STW    = SIN(THETAW)
 
    FACTOR_ON_SIN = (1.-AICELOC*(1.-ICEWIND))
-!
+
    IF ( IWIND .EQ. 1 ) THEN
-!
+
 !       *** first generation model ***
-!
+
       ALPM = 0.0081
-!
+
    ELSE IF (IWIND .EQ. 2 ) THEN
-!
+
 !       *** second generation model ***
 !
 !       *** Determine the proportionality constant alpha on the basis ***
 !       *** of the total energy in the wind sea part of the spectrum  ***
 !       *** output of subroutine (WINDP2) is ETOTW                    ***
-!
-      CALL WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     , &
-                   ETOTW   , &
-                   AC2     ,SPCSIG  ,         WIND10               )
+
+      CALL WINDP2 (WINDOW, SIGPKD, FPM, ETOTW, AC2, SPCSIG, WIND10, IGP)
 
       EDML = MIN ( PWIND(10) , (GRAV**2 * ETOTW) / WIND10**4 )
       EDML = MAX ( 1.E-25 , EDML )
-!
+
       ARG1 = ABS(PWIND(6))
       ALPM = MAX( 0.0081, (PWIND(5) * (1./EDML)**ARG1) )
-!
+
    ENDIF
-!
+
 !     *** Take into account depth effects for proportionality ***
 !     *** constant alpha through the nondimensional depth DND ***
-!
+
    ALPMD  = 0.0081 + ( 0.013 - 0.0081 ) * EXP ( -1. * DND )
    ALPM   = MIN ( 0.155  ,  MAX ( ALPMD , ALPM ) )
-!
+
 !     *** Calculate the limiting spectrum in terms of action density   ***
 !     *** for the wind sea part (centered around the local wind        ***
 !     *** direction). For conversion of f^-5 --> k^-3 and coefficients ***
 !     *** see Kitaigorodskii et al. 1975                               ***
-!
-   DO IS = 1, ISSTOP
+
+   DO IS = 1, WINDOW%ISSTOP
       TEMP1  = ALPM / ( 2. * KWAVE(IS,1)**3 * CGO(IS,1) )
       ARG2   = MIN ( 2. , SIGPKD / SPCSIG(IS) )
       TEMP2  = EXP ( (-5./4.) * ARG2**4 )
       ALIM1D = TEMP1 * TEMP2 / SPCSIG(IS)
-      DO IDDUM = IDWMIN, IDWMAX
+      DO IDDUM = WINDOW%IDWMIN, WINDOW%IDWMAX
          ID     = MOD ( IDDUM - 1 + MDC, MDC ) + 1
          THETA  = SPCDIR(ID,1)
          COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
-!
+
 !     For better convergence the first guess of the directional spreading 32.06
 !     is modified in third generation mode. The new formulation better    32.06
 !     fits the directional spreading of the deep water growth curves.     32.06
-!
+
          IF ((ITER.EQ.1).AND.(IGEN.EQ.3)) THEN
             DIRDIS = 0.434917 * (MAX(0., COSDIF))**0.6
          ELSE
             DIRDIS = (2./PI) * COSDIF**2
          END IF
-!
+
          ALIMW(ID,IS) = ALIM1D * DIRDIS
-         AC2CEN       = AC2(ID,IS,KCGRD(1))
+         AC2CEN       = AC2(ID,IS,IGP)
          IF ( AC2CEN .LE. ALIMW(ID,IS) ) THEN
             GROWW(ID,IS) = .TRUE.
          ELSE
@@ -442,31 +451,28 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX, &
       ENDDO
 !       *** test output ***
       IF ( TESTFL .AND. ITEST .GE. 10 ) THEN
-         WRITE(PRINTF,2002) IS, SPCSIG(IS), KWAVE(IS,1), CGO(IS,1)
-2002     FORMAT(' WNDPAR: IS SPCSIG KWAVE CGO :',I3,3E12.4)
-         WRITE(PRINTF,2003) TEMP1, TEMP2, ARG2
-2003     FORMAT(' WNDPAR: TEMP1 TEMP2 ARG2    :',3X,3E12.4)
+         WRITE(PRINTF,"(' WNDPAR: IS SPCSIG KWAVE CGO :',I3,3E12.4)") IS, SPCSIG(IS), KWAVE(IS,1), CGO(IS,1)
+         WRITE(PRINTF,"(' WNDPAR: TEMP1 TEMP2 ARG2    :',3X,3E12.4)") TEMP1, TEMP2, ARG2
       END IF
    ENDDO
-!
+
 !     *** Calculate the wind input (linear term A and exponential  ***
 !     *** term B) in wave generating conditions or disspation term ***
 !     *** if energy in bin is larger than limiting spectrum        ***
-!
-!
+
    FACTA = PWIND(1) * PI * PWIND(9)**2 * PWIND(11)**2 / GRAV**2
-!
-   DO IS = 1, ISSTOP
+
+   DO IS = 1, WINDOW%ISSTOP
       SIGMA   = SPCSIG(IS)
       SIGTPI  = SIGMA * TWOPI
       CINV    = KWAVE(IS,1) / SIGMA
       FACTB = PWIND(2) * PWIND(9) * SIGMA / TWOPI
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID     = MOD ( IDDUM - 1 + MDC, MDC ) + 1
          DTHETA = SPCDIR(ID,1) - THETAW
          COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
-         AC2CEN = AC2(ID,IS,KCGRD(1))
-!
+         AC2CEN = AC2(ID,IS,IGP)
+
          SWIND_EXP = 0.
          SWIND_IMP = 0.
 
@@ -480,97 +486,86 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX, &
             END IF
 !           *** term B; Note that BDUM is multiplied with a factor 5 ***
 !           *** as in the DOLPHIN-B model                            ***
-!
+
             BDUM = MAX( 0., ((WIND10 * CINV) * COSDIF-PWIND(3)))
             BDUM = FACTB * BDUM * 5.
             SWIND_EXP = ADUM + BDUM * AC2CEN
-!
+
          ELSE IF ( .NOT. GROWW(ID,IS) .AND. AC2CEN .GT. 0. ) THEN
-!
+
 !           *** for no energy dissipation outside the wind field     ***
 !           *** TAUINV is set equal zero (as in the DOLPHIN-B model) ***
-!
+
             IF ( COSDIF .LT. 0. ) THEN
                TAUINV = 0.
             ELSE
                TAUINV = ( SIGMA**2 * WIND10 * ABS(COSDIF) ) / &
-                        ( PWIND(4) * GRAV * TWOPI**2 )
+                  ( PWIND(4) * GRAV * TWOPI**2 )
             ENDIF
             SWIND_EXP = TAUINV * ALIMW(ID,IS)
             SWIND_IMP = TAUINV
             ADUM = ALIMW(ID,IS)
             BDUM = TAUINV
          END IF
-!
+
          IF ( AICELOC.GT.0. ) THEN
             SWIND_EXP = SWIND_EXP * FACTOR_ON_SIN
             SWIND_IMP = SWIND_IMP * FACTOR_ON_SIN
          ENDIF
-!
+
 !         *** store results in IMATDA and IMATRA ***
-!
+
          IMATRA(ID,IS) = IMATRA(ID,IS) + SWIND_EXP
          IMATDA(ID,IS) = IMATDA(ID,IS) + SWIND_IMP
          IF (TESTFL) PLWNDS(ID,IS,IPTST) = SWIND_EXP
          IF (TESTFL) PLWNDD(ID,IS,IPTST) = -1.*SWIND_IMP
          GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWIND_EXP
          GENC1(ID,IS,1) = GENC1(ID,IS,1) - SWIND_IMP
-!
+
 !         *** test output ***
 !
 !         Value of ITEST changed from 10 to 110 to reduce test output     40.13
          IF ( TESTFL .AND. ITEST .GE. 110 ) THEN
-            WRITE(PRINTF,2004) IS, ID, GROWW(ID,IS), ADUM, BDUM
-2004        FORMAT(' WNDPAR: IS ID GROWW ADUM BDUM     :', &
-                   2I3,2X,L1,2X,2E12.4)
+            WRITE(PRINTF,"(' WNDPAR: IS ID GROWW ADUM BDUM     :', 2I3,2X,L1,2X,2E12.4)") IS, ID, GROWW(ID,IS), ADUM, BDUM
          END IF
       ENDDO
    ENDDO
-!
+
 !     *** test output ***
 !
 !     Value of ITEST changed from 10 to 60 to reduce test output          40.13
    IF ( TESTFL .AND. ITEST .GE. 60 ) THEN
       WRITE(PRINTF,*)
-      WRITE(PRINTF,6051) IDWMIN, IDWMAX
-6051  FORMAT(' WNDPAR : IDWMIN IDWMAX     :',2I5)
-      WRITE(PRINTF,6052) THETAW,WIND10,SIGPK,SIGPKD
-6052  FORMAT(' WNDPAR : Tw U10 Spk Spk,d   :',4E12.4)
-      WRITE(PRINTF,7050) ETOTW, EDML, ALPM, ALPMD
-7050  FORMAT(' WNDPAR: ETOW EDML ALPM ALPMD:',4E12.4)
+      WRITE(PRINTF,"(' WNDPAR : IDWMIN IDWMAX     :',2I5)") WINDOW%IDWMIN, WINDOW%IDWMAX
+      WRITE(PRINTF,"(' WNDPAR : Tw U10 Spk Spk,d   :',4E12.4)") THETAW,WIND10,SIGPK,SIGPKD
+      WRITE(PRINTF,"(' WNDPAR: ETOW EDML ALPM ALPMD:',4E12.4)") ETOTW, EDML, ALPM, ALPMD
    ENDIF
-!
+
    RETURN
 !     end of subroutine WNDPAR
-END
-!
+end subroutine WNDPAR
+
 !****************************************************************
-!
-SUBROUTINE WINDP1 (WIND10     ,THETAW     , &
-                   IDWMIN     ,IDWMAX     , &
-                   FPM        ,UFRIC      , &
-                   WX2        ,WY2        , &
-                   ANYWND     ,SPCDIR     , &
-                   UX2        ,UY2        , &
-                   SPCSIG     ,AC2 &
-                  ,GENC0      ,KWAVE &
-                  )
-!
+
+SUBROUTINE WINDP1 (WIND10, THETAW, WINDOW, FPM, UFRIC, WX2, WY2, ANYWND, SPCDIR, UX2, UY2, SPCSIG, AC2, GENC0, KWAVE, IGP, icmax)
+
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_input_grids
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
    USE SDSBABANIN
-!
-   IMPLICIT NONE
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -678,11 +673,15 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     , &
 !             (*,4); cosine^2 of spectral directions                      30.82
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
-! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.82
-!
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
+!  Stencil width passed explicitly by the solver; forwarded to the drag law.
+   INTEGER, INTENT(IN) :: icmax
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
-!
+
 !        IDWMIN           Minimum counter for spectral wind direction
 !        IDWMAX           Maximum counter for spectral wind direction
 !        IX               Counter of gridpoints in x-direction
@@ -748,45 +747,41 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     , &
 !
 !     10. SOURCE
 !
-!***********************************************************************
-!
-   INTEGER      IDWMIN ,IDWMAX
-   INTEGER      IENT   ,ID    ,IDDUM, IS
-!
+!************************************************************************
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER      ID    ,IDDUM, IS
+
    REAL         WIND10 ,THETAW , &
-                UFRIC  ,FPM    ,CDRAG  ,SDMEAN
-!
-   REAL         UREF   ,UTL    ,PP, QQ, RR
-   PARAMETER (UREF=31.5, PP=0.55, QQ=2.97, RR=-1.49)
-   REAL         UREF1, UTL1, NSL1, NSH1, CS, CA,CB,CC, NA,NB,NC, &
-                UREF2, UTL2, NSL2, NSH2,     CD,CE,    ND,NE
-   PARAMETER (UREF1=27.5,NA=1.05,NB=1.25,NC=1.4,CA=0.7,CB=1.1,CC=6., &
-              NSL1=30.,NSH1=80.,CS=50., &
-              UREF2=54.,ND=2.3,NE=10.,CD=8.2,CE=2.5, &
-              NSL2=45.,NSH2=55.)
+      UFRIC  ,FPM    ,CDRAG  ,SDMEAN
+
+   REAL :: UTL, UTL1, UTL2
+   REAL, PARAMETER :: UREF=31.5, PP=0.55, QQ=2.97, RR=-1.49
+   REAL, PARAMETER :: UREF1=27.5, NA=1.05, NB=1.25, NC=1.4
+   REAL, PARAMETER :: CA=0.7, CB=1.1, CC=6., NSL1=30., NSH1=80., CS=50.
+   REAL, PARAMETER :: UREF2=54., ND=2.3, NE=10., CD=8.2, CE=2.5
+   REAL, PARAMETER :: NSL2=45., NSH2=55.
    REAL         A, B, C, D, E
    REAL         ETOTS ,EEX   ,EEY   , EAD   ,SIGMA1, &
-                COSDIR,SINDIR,DETOT , FAC   ,DSPR
-!
+      COSDIR,SINDIR,DETOT , FAC   ,DSPR
+
    REAL         WX2(MCGRD)   , &
-                WY2(MCGRD)   , &
-                UX2(MCGRD)   , &
-                UY2(MCGRD)
+      WY2(MCGRD)   , &
+      UX2(MCGRD)   , &
+      UY2(MCGRD)
    REAL         AC2(MDC,MSC,MCGRD)
    REAL         KWAVE(MSC,MICMAX)
    REAL         GENC0(MDC,MSC,MGENR)
-!
+
    LOGICAL      ANYWND(MDC)
-!
+
    REAL         AWX, AWY, RWX, RWY
-   SAVE IENT
-   DATA IENT/0/
    IF (LTRACE) CALL STRACE (IENT,'WINDP1')
-!
+
 !     compute absolute wind velocity                                      30.70
    IF (VARWI) THEN
-      AWX = WX2(KCGRD(1))
-      AWY = WY2(KCGRD(1))
+      AWX = WX2(IGP)
+      AWY = WY2(IGP)
    ELSE
       AWX = U10 * COS(WDIC)
       AWY = U10 * SIN(WDIC)
@@ -796,8 +791,8 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     , &
       RWX = AWX
       RWY = AWY
    ELSE
-      RWX = AWX - UX2(KCGRD(1))
-      RWY = AWY - UY2(KCGRD(1))
+      RWX = AWX - UX2(IGP)
+      RWY = AWY - UY2(IGP)
    ENDIF
 !     compute absolute value of relative wind velocity                    30.70
    WIND10 = SQRT(RWX**2+RWY**2)
@@ -807,7 +802,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     , &
    ELSE
       THETAW = 0.
    ENDIF
-!
+
 !     *** compute the minimum and maximum counter for the active  ***
 !     *** wind field :                                            ***
 !     ***                                   .                     ***
@@ -827,54 +822,52 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     , &
    SDMEAN = 0.5 * (SPCDIR(1,1) + SPCDIR(MDC,1))
    IF (THETAW .LT. SDMEAN - PI) THETAW = THETAW + 2.*PI
    IF (THETAW .GT. SDMEAN + PI) THETAW = THETAW - 2.*PI
-!
+
    IF ( (THETAW - 0.5 * PI) .LE. SPCDIR(1,1) ) THEN
       IF ( (THETAW + 1.5 * PI) .GE. SPCDIR(MDC,1) ) THEN
-         IDWMIN = 1
+         WINDOW%IDWMIN = 1
       ELSE
-         IDWMIN = NINT ( (THETAW + 1.5*PI - SPCDIR(1,1)) / DDIR ) + 1
+         WINDOW%IDWMIN = NINT ( (THETAW + 1.5*PI - SPCDIR(1,1)) / DDIR ) + 1
       ENDIF
    ELSE
-      IDWMIN = NINT ( (THETAW - 0.5*PI - SPCDIR(1,1)) / DDIR ) + 1
+      WINDOW%IDWMIN = NINT ( (THETAW - 0.5*PI - SPCDIR(1,1)) / DDIR ) + 1
    END IF
-!
+
    IF ( (THETAW + 0.5 * PI) .GE. SPCDIR(MDC,1) ) THEN
       IF ( (THETAW - 1.5 * PI) .LE. SPCDIR(1,1) ) THEN
-         IDWMAX = MDC
+         WINDOW%IDWMAX = MDC
       ELSE
-         IDWMAX = NINT ( (THETAW - 1.5 * PI - SPCDIR(1,1)) / DDIR ) + 1
+         WINDOW%IDWMAX = NINT ( (THETAW - 1.5 * PI - SPCDIR(1,1)) / DDIR ) + 1
       ENDIF
    ELSE
-      IDWMAX = NINT ( (THETAW + 0.5 * PI - SPCDIR(1,1)) / DDIR ) + 1
+      WINDOW%IDWMAX = NINT ( (THETAW + 0.5 * PI - SPCDIR(1,1)) / DDIR ) + 1
    ENDIF
-!
-   IF ( IDWMIN .GT. IDWMAX) IDWMAX = MDC + IDWMAX
-!
+
+   IF ( WINDOW%IDWMIN .GT. WINDOW%IDWMAX) WINDOW%IDWMAX = MDC + WINDOW%IDWMAX
+
 !     *** determine for which bin the wind input is active ***
 !     *** initialize array for active wind input           ***
-!
+
    DO ID = 1, MDC
       ANYWND(ID) = .FALSE.
    ENDDO
-!
+
    IF ( TESTFL .AND. ITEST .GE. 30 ) THEN
-      WRITE(PRINTF,500) IDWMIN, IDWMAX
-500   FORMAT(' WINDP1: IDWMIN IDWMAX :',2I15)
+      WRITE(PRINTF,"(' WINDP1: IDWMIN IDWMAX :',2I15)") WINDOW%IDWMIN, WINDOW%IDWMAX
    ENDIF
-!
-   DO IDDUM = IDWMIN , IDWMAX
+
+   DO IDDUM = WINDOW%IDWMIN , WINDOW%IDWMAX
       ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
       ANYWND(ID) = .TRUE.
-!
+
       IF ( TESTFL .AND. ITEST .GE. 40 ) THEN
-         WRITE(PRINTF,400) IDDUM, ID, ANYWND(ID)
-400      FORMAT(' WINDP1: IDDUM ID ANYWND :',2I5,L4)
+         WRITE(PRINTF,"(' WINDP1: IDDUM ID ANYWND :',2I5,L4)") IDDUM, ID, ANYWND(ID)
       ENDIF
-!
+
    ENDDO
-!
+
 !     --- determine directional spreading for cross swell
-!
+
    IF ( IDRAG.EQ.3 ) THEN
       EEX   = 0.
       EEY   = 0.
@@ -883,7 +876,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     , &
          EAD = 0.
          DO IS = 1, MSC
             SIGMA1 = SPCSIG(IS)
-            DETOT  = SIGMA1**2 * AC2(ID,IS,KCGRD(1))
+            DETOT  = SIGMA1**2 * AC2(ID,IS,IGP)
             EAD    = EAD + DETOT
          ENDDO
          ETOTS = ETOTS + EAD
@@ -900,19 +893,19 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     , &
       ENDIF
       DSPR = DSPR * 180. / PI
    ENDIF
-!
+
 !     *** compute the Pierson Moskowitz frequency ***
-!
+
    IF ( IWIND .EQ. 1 .OR. IWIND .EQ. 2 ) THEN
-!
+
 !       *** first and second generation wind wave model ***
-!
+
       IF ( WIND10 .LT. PWIND(12) ) WIND10 = PWIND(12)
       FPM = 2. * PI * PWIND(13) * GRAV / WIND10
-!
+
 !       *** determine U friction in case predictor is obtained ***
 !       *** with second genaration wave model                  ***
-!
+
       IF ( IDRAG.EQ.1 ) THEN
 !          Wu (1982) drag formulation
          IF ( WIND10 .GT. 7.5 ) THEN
@@ -930,7 +923,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     , &
 !          drag based on swell
          UTL1  = WIND10/UREF1
          UTL2  = WIND10/UREF2
-!
+
          IF ( DSPR.NE.CS ) THEN
 !             no swell, opposing or following swell
             A = NA
@@ -967,28 +960,28 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     , &
             D = CD
             E = CE
          ENDIF
-!
+
          CDRAG = MIN ( A+B*UTL1**C, D*(1-UTL2**E) )
          CDRAG = MAX ( 0.7  , CDRAG )
          CDRAG = CDRAG * 0.001
          CDRAG = MIN ( CDCAP, CDRAG )
       ENDIF
-!
+
       UFRIC = SQRT ( CDRAG ) * WIND10
-!
+
 !     Reformulation of the wind speed in terms of friction velocity.      32.06
 !     This formulation is based on Bouws (1986) and described in Delft    32.06
 !     Hydraulics report H3515 (1999)                                      32.06
-!
+
       WIND10 = WIND10 * SQRT(((0.8 + 0.065 * WIND10) * 0.001) / &
-                             ((0.8 + 0.065 * 15.   ) * 0.001))
-!
+         ((0.8 + 0.065 * 15.   ) * 0.001))
+
    ELSE IF (IWIND .GE. 3 ) THEN
-!
+
 !       *** Calculate the wind friction velocity  ***
 !       *** based on wind drag formulation        ***
 !       *** apply cd-cap if appropriate           ***
-!
+
       IF ( IDRAG.EQ.1 ) THEN
 !          Wu (1982) drag formulation
          IF ( WIND10 .GT. 7.5 ) THEN
@@ -1013,7 +1006,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     , &
 !          drag based on swell
          UTL1  = WIND10/UREF1
          UTL2  = WIND10/UREF2
-!
+
          IF ( DSPR.NE.CS ) THEN
 !             no swell, opposing or following swell
             A = NA
@@ -1050,7 +1043,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     , &
             D = CD
             E = CE
          ENDIF
-!
+
          CDRAG = MIN ( A+B*UTL1**C, D*(1-UTL2**E) )
          CDRAG = MAX ( 0.7  , CDRAG )
          CDRAG = CDRAG * 0.001
@@ -1072,7 +1065,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     , &
          UFRIC = SQRT ( CDRAG ) * WIND10
          IF ( WIND10.GT.50.33 ) UFRIC = 2.02558
          UFRIC = MIN(USCAP,UFRIC) * SQRT(CDFAC)
-!
+
       ELSE IF (IDRAG.EQ.5) THEN
 !          Fan et al (2012) drag formulation
          CALL SURF_ROUGH_FAN (FPI, WIND10, UFRIC, CDRAG)
@@ -1080,55 +1073,47 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     , &
       ELSE IF (IDRAG.EQ.6) THEN
 !          ECMWF drag formulation
          CALL SURF_ROUGH_ECMWF(WIND10, UFRIC, GENC0, SPCSIG, &
-                               KWAVE, CDRAG)
+            KWAVE, CDRAG, icmax)
       END IF
-!
+
 !       *** adapted wind friction velocity and PM-frequency ***
-!
+
       IF (IDRAG.LT.5) THEN
          UFRIC = MAX ( 1.E-15 , UFRIC)
          FPM =  GRAV / ( 28.0 * UFRIC )
       END IF
 
    END IF
-!
+
 !     *** test output ***
-!
+
    IF ( TESTFL .AND. ITEST .GE. 50 ) THEN
-      WRITE(PRINTF,6050) KCGRD(1), MDC, MCGRD, IWIND
-6050  FORMAT(' WINDP1:INDEX MDC MCGRD IWND:',4I5)
-      WRITE(PRINTF,6052) THETAW,WIND10,WDIC,U10
-6052  FORMAT('       : THAW WIND10 WDIC U10 :',4E12.4)
-      WRITE(PRINTF,6054) GRAV, PI, DDIR, VARWI
-6054  FORMAT('       : GRAV PI DDIR VARWI     :',3E12.4,L6)
-      WRITE(PRINTF,6056) IDWMIN,IDWMAX,FPM, UFRIC
-6056  FORMAT('       : IDWMIN IDWMAX FPM UFR:',2I4,2E12.4)
+      WRITE(PRINTF,"(' WINDP1:INDEX MDC MCGRD IWND:',4I5)") IGP, MDC, MCGRD, IWIND
+      WRITE(PRINTF,"('       : THAW WIND10 WDIC U10 :',4E12.4)") THETAW,WIND10,WDIC,U10
+      WRITE(PRINTF,"('       : GRAV PI DDIR VARWI     :',3E12.4,L6)") GRAV, PI, DDIR, VARWI
+      WRITE(PRINTF,"('       : IDWMIN IDWMAX FPM UFR:',2I4,2E12.4)") WINDOW%IDWMIN,WINDOW%IDWMAX,FPM, UFRIC
       WRITE(PRINTF,*)
    END IF
-!
+
    RETURN
 !     end of subroutine WINDP1
-END
-!
+end subroutine WINDP1
+
 !****************************************************************
-!
-SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     , &
-                   ETOTW   , &
-                   AC2     ,SPCSIG  , &
-                   WIND10                                      )
-!
+
+SUBROUTINE WINDP2 (WINDOW, SIGPKD, FPM, ETOTW, AC2, SPCSIG, WIND10, IGP)
+
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1218,10 +1203,13 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     , &
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
+
+   TYPE(spectral_window_t) :: WINDOW
+
+   INTEGER, INTENT(IN) :: IGP
    REAL    SPCSIG(MSC)
-!
+
 !        ISFPM       Counter in point just for the Pierson Moskowitz
 !                    frequency
 !        IDWMIN      Minimum counter for spectral wind direction
@@ -1286,24 +1274,21 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     , &
 !
 !     10. SOURCE
 !
-!***********************************************************************
-!
-!
-   INTEGER  IDWMIN  ,IDWMAX  , &
-            IDDUM   ,ID      ,IS      ,ISFPM
-!
-   REAL     ETOTW   ,FPM     ,SIG     ,ATOTD
+!************************************************************************
+
+   INTEGER :: IDDUM, ID, IS, ISFPM
+
+   REAL     ETOTW, FPM, SIG, ATOTD, FACINT, SIGPKD, WIND10
 
    REAL     AC2(MDC,MSC,MCGRD)
-!
-   SAVE IENT
-   DATA IENT/0/
+   INTEGER, SAVE :: IENT = 0
+
    IF (LTRACE) CALL STRACE (IENT,'WINDP2')
-!
+
 !     *** compute wind sea energy spectrum for IS > 0.7 FPM       ***
 !     *** minimum FPM is equal : 2 * pi * 0.13 * grav / pwind(12) ***
 !     *** is equal 8 rad/s = 1.27 Hz                              ***
-!
+
    ISFPM = MSC
    FACINT = 0.
    DO IS = 1, MSC
@@ -1311,21 +1296,20 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     , &
       IF (FRINTH * SIG .GT. (0.7 * FPM) ) THEN
          ISFPM =  IS
          FACINT = (FRINTH - 0.7*FPM/SIG) / (FRINTH - 1./FRINTH)
-         GOTO 11
+         EXIT
       END IF
    ENDDO
-11 CONTINUE
-!
+
 !     *** calculate the energy in the wind sea part of the spectrum ***
 !     *** from ISFPM.                                               ***
-!
+
    ETOTW = 0.
    DO IS = ISFPM, MSC
       SIG = SPCSIG(IS)
       ATOTD = 0.
-      DO IDDUM = IDWMIN, IDWMAX
+      DO IDDUM = WINDOW%IDWMIN, WINDOW%IDWMAX
          ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
-         ATOTD = ATOTD + AC2(ID,IS,KCGRD(1))
+         ATOTD = ATOTD + AC2(ID,IS,IGP)
       ENDDO
       IF (IS.EQ.ISFPM) THEN
          ETOTW = ETOTW + FACINT * FRINTF * SIG**2 * DDIR * ATOTD
@@ -1335,31 +1319,31 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     , &
    ENDDO
 !     add high-frequency tail:
    ETOTW = ETOTW + PWTAIL(6) * SIG**2 * DDIR * ATOTD
-!
+
 !     *** test output ***
-!
+
    IF ( TESTFL .AND. ITEST .GE. 70 ) THEN
       WRITE(PRINTF,*)
-      WRITE(PRINTF,6050) IWIND,IDWMIN,IDWMAX, ISFPM, ETOTW
-6050  FORMAT(' WINDP2: IWND IDWMIN IDWMAX ISFPM ETOTW:',4I6,1X,E12.4)
+      WRITE(PRINTF,"(' WINDP2: IWND IDWMIN IDWMAX ISFPM ETOTW:',4I6,1X,E12.4)") IWIND,WINDOW%IDWMIN,WINDOW%IDWMAX, ISFPM, ETOTW
    END IF
-!
+
    RETURN
 !     end of subroutine WINDP2
-END
-!
+end subroutine WINDP2
+
 !********************************************************************
-!
-SUBROUTINE WINDP3 (ISSTOP  ,ALIMW   ,AC2     , &
-                   GROWW   ,IDCMIN  ,IDCMAX  )
-!
+
+SUBROUTINE WINDP3 (WINDOW, ALIMW, AC2, GROWW, IGP)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1473,71 +1457,69 @@ SUBROUTINE WINDP3 (ISSTOP  ,ALIMW   ,AC2     , &
 !
 !     10. SOURCE
 !
-!***********************************************************************
-!
-   INTEGER     IS      ,ID      ,ISSTOP  ,IDDUM
-!
-   INTEGER     IDCMIN(MSC)       , &
-               IDCMAX(MSC)
-!
+!************************************************************************
+
+   TYPE(spectral_window_t) :: WINDOW
+
+   INTEGER, INTENT(IN) :: IGP
+   INTEGER, SAVE :: IENT = 0
+   INTEGER :: IS, ID, IDDUM
+
    REAL        AC2CEN
-!
+
    REAL        AC2(MDC,MSC,MCGRD)    , &
-               ALIMW(MDC,MSC)
-!
+      ALIMW(MDC,MSC)
+
    LOGICAL     GROWW(MDC,MSC)
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'WINDP3')
-!
+
 !     *** limit the action density spectrum ***
-!
-   DO IS = 1, ISSTOP
-      DO IDDUM = IDCMIN(IS) , IDCMAX(IS)
+
+   DO IS = 1, WINDOW%ISSTOP
+      DO IDDUM = WINDOW%IDCMIN(IS) , WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
-         AC2CEN = AC2(ID,IS,KCGRD(1))
+         AC2CEN = AC2(ID,IS,IGP)
          IF ( GROWW(ID,IS) .AND. AC2CEN .GT. ALIMW(ID,IS) ) &
-            AC2(ID,IS,KCGRD(1)) = ALIMW(ID,IS)
+            AC2(ID,IS,IGP) = ALIMW(ID,IS)
          IF ( .NOT. GROWW(ID,IS) .AND. AC2CEN .LT. ALIMW(ID,IS) ) &
-            AC2(ID,IS,KCGRD(1)) = ALIMW(ID,IS)
-!
+            AC2(ID,IS,IGP) = ALIMW(ID,IS)
+
          IF (TESTFL .AND. ITEST .GE. 50) THEN
-            WRITE(PRINTF,300) IS,ID,GROWW(ID,IS),AC2CEN,ALIMW(ID,IS)
-300         FORMAT(' WINDP3 : IS ID GROWW AC2CEN ALIM:',2I4,L4,2E12.4)
+            WRITE(PRINTF,"(' WINDP3 : IS ID GROWW AC2CEN ALIM:',2I4,L4,2E12.4)") IS,ID,GROWW(ID,IS),AC2CEN,ALIMW(ID,IS)
          END IF
-!
+
       ENDDO
    ENDDO
-!
+
 !     *** test output ***
-!
+
    IF (TESTFL .AND. ITEST .GE. 50) THEN
-      WRITE(PRINTF,4000) KCGRD(1),ISSTOP,MSC,MDC,MCGRD
-4000  FORMAT(' WINDP3 : POINT ISSTOP MSC MDC MCGRD :',5I5)
+      WRITE(PRINTF,"(' WINDP3 : POINT ISSTOP MSC MDC MCGRD :',5I5)") IGP,WINDOW%ISSTOP,MSC,MDC,MCGRD
    END IF
-!
+
    RETURN
 !     end of subroutine WINDP3
-END
-!
+end subroutine WINDP3
+
 !****************************************************************
-!
-SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  , &
-                   SPCSIG  ,THETAW  ,ANYWND  , &
-                   UFRIC   ,FPM     ,PLWNDS  , &
-                   IMATRA  ,SPCDIR  ,GENC0   , &
-                   KWAVE   ,AICELOC )
-!
+
+SUBROUTINE SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, FPM, PLWNDS, IMATRA, SPCDIR, GENC0, KWAVE, AICELOC, IGP)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1621,11 +1603,13 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  , &
 !             (*,4); cosine^2 of spectral directions                      30.82
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
-! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
-!
+
 !        IDWMIN      Minimum counter for spectral wind direction
 !        IDWMAX      Maximum counter for spectral wind direction
 !        IS          Counter of relative frequency band
@@ -1716,34 +1700,30 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  , &
 !
 !     10. SOURCE
 !
-!***********************************************************************
-!
-   INTEGER  IENT, IDDUM   ,ID      ,IS      ,ISSTOP
-!
+!************************************************************************
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER :: IDDUM, ID, IS
+
    REAL     FPM     ,UFRIC   ,THETA   ,THETAW  , &
-            SWINEA  ,SIGMA   ,TEMP1   ,TEMP2   , &
-            CTW     ,STW     ,COSDIF  , &
-            TEMP3   ,FILTER  ,ARGU    ,REDUC   ,FREQ1
+      SWINEA  ,SIGMA   ,TEMP1   ,TEMP2   , &
+      CTW     ,STW     ,COSDIF  , &
+      TEMP3   ,FILTER  ,ARGU    ,REDUC   ,FREQ1
    REAL     TAUX    ,TAUY    ,CINV2   ,CTH     ,STH
    REAL, INTENT(IN) :: AICELOC
-!
+
    REAL    IMATRA(MDC,MSC)      , &
-           PLWNDS(MDC,MSC,NPTST)
+      PLWNDS(MDC,MSC,NPTST)
    REAL    GENC0(MDC,MSC,MGENR)
    REAL    KWAVE(MSC,MICMAX)
    REAL    FACTOR_ON_SIN ! See remarks.
-!
-   INTEGER IDCMIN(MSC)          , &
-           IDCMAX(MSC)
-!
+
    LOGICAL ANYWND(MDC)
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWIND0')
-!
+
 !     *** calculate linear wind input term ***
-!
+
    CTW = COS(THETAW)
    STW = SIN(THETAW)
    FPM =  GRAV / ( 28.0 * UFRIC )
@@ -1752,9 +1732,9 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  , &
       FACTOR_ON_SIN = (1.-AICELOC*(1.-ICEWIND))
       TEMP1 = TEMP1 * FACTOR_ON_SIN
    ENDIF
-   DO IS = 1, ISSTOP
+   DO IS = 1, WINDOW%ISSTOP
       SIGMA  = SPCSIG(IS)
-!
+
 !       ****            ARGU   =  FPM / SIGMA                     ***
 !       **** the value of ARGU was change for MIN () because for  ***
 !       **** values of fpm/sigma too small could be some problems ***
@@ -1764,7 +1744,7 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  , &
 !       note that SIGMA below is not in eq A-2 of Ris (1997)
 !       thus, we are calculating "A/sigma" here, not "A"
       TEMP2  = TEMP1 / SIGMA
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
          IF ( ANYWND(ID) .AND. SIGMA .GE. (0.7 * FPM) ) THEN
             THETA  = SPCDIR(ID,1)
@@ -1782,17 +1762,15 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  , &
             IMATRA(ID,IS) = IMATRA(ID,IS) + SWINEA
             IF(TESTFL) PLWNDS(ID,IS,IPTST) = SWINEA
             GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEA
-!
+
 !           *** test output ***
-!
-            IF (ITEST .GE. 80 .AND. TESTFL ) &
-               WRITE (PRTEST, 333) ID, IS, FILTER, SWINEA
-333         FORMAT (' ID IS FILTER  WIND SOURCE (IMATRA)', &
-                     2I4, 1X, 2(1X,E11.4))
+
+            IF (ITEST .GE. 80 .AND. TESTFL )WRITE (PRTEST, &
+                  "(' ID IS FILTER  WIND SOURCE (IMATRA)', 2I4, 1X, 2(1X,E11.4))") ID, IS, FILTER, SWINEA
          END IF
       ENDDO
    ENDDO
-!
+
 ! calculate stress (test point only)
    IF (ITEST.GE.40.AND.TESTFL) THEN
       TAUX=0.
@@ -1804,57 +1782,56 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  , &
             STH = SPCDIR(ID,3) ! new local variable = sin(theta)
 ! SPCSIG(IS) replaces "EN" as used in SWIND_Donelan: Thus, factor AC2 is removed, EN=sig*ac2
             TAUX   =TAUX +CTH*CINV2*PLWNDS(ID,IS,IPTST) &
-                    *SPCSIG(IS)*DDIR*FRINTF*SPCSIG(IS)
+               *SPCSIG(IS)*DDIR*FRINTF*SPCSIG(IS)
             TAUY   =TAUY +STH*CINV2*PLWNDS(ID,IS,IPTST) &
-                    *SPCSIG(IS)*DDIR*FRINTF*SPCSIG(IS)
+               *SPCSIG(IS)*DDIR*FRINTF*SPCSIG(IS)
          ENDDO
       ENDDO
       TAUX=TAUX*PWIND(17)*GRAV
       TAUY=TAUY*PWIND(17)*GRAV
       WRITE(PRINTF,*)'SWIND0: TAUX,TAUY = ',TAUX,TAUY
    ENDIF
-!
+
 !     *** test output ***
-!
+
    IF (ITEST.GE.60.AND.TESTFL) THEN
-      WRITE(PRINTF,400) KCGRD(1), THETAW*180./PI
-400   FORMAT(' SWIND0: POINT  THETAW       :',I5,E12.4)
-      WRITE(PRINTF,500) TEMP1, FPM, UFRIC
-500   FORMAT(' SWIND0: TEMP1 FPM UFRC     :',3E12.4)
+      WRITE(PRINTF,"(' SWIND0: POINT  THETAW       :',I5,E12.4)") IGP, THETAW*180./PI
+      WRITE(PRINTF,"(' SWIND0: TEMP1 FPM UFRC     :',3E12.4)") TEMP1, FPM, UFRIC
       WRITE(PRINTF,*)
       IF (ITEST.GE. 120.AND.TESTFL) THEN
-         DO IS = 1, ISSTOP
-            DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IS = 1, WINDOW%ISSTOP
+            DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
                ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
-               WRITE(PRINTF,100) IS,ID,ANYWND(ID)
-100            FORMAT(' IS ID ANYWND : ', 2I5,1X,L2)
+               WRITE(PRINTF,"(' IS ID ANYWND : ', 2I5,1X,L2)") IS,ID,ANYWND(ID)
             ENDDO
          ENDDO
       ENDIF
    END IF
-!
+
    RETURN
 !     end of subroutine SWIND0
-END
-!
+end subroutine SWIND0
+
 !****************************************************************
-!
-SUBROUTINE SWIND3 (SPCSIG  ,THETAW  , &
-                   KWAVE   ,IMATRA  ,GENC0   , &
-                   IDCMIN  ,IDCMAX  ,AC2     ,UFRIC   , &
-                   FPM     ,PLWNDS  ,ISSTOP  ,SPCDIR  , &
-                   ANYWND  ,AICELOC )
-!
+
+SUBROUTINE SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, GENC0, WINDOW, AC2, UFRIC, FPM, PLWNDS, SPCDIR, ANYWND, AICELOC, IGP)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1945,12 +1922,14 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  , &
 !             (*,4); cosine^2 of spectral directions                      30.82
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
-! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
    REAL, INTENT(IN) :: AICELOC
-!
+
 !        IS          Counter of relative frequency band
 !        ID          Counter of directional distribution
 !        MSC         Maximum counter of relative frequency
@@ -2012,32 +1991,28 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  , &
 !
 !     10. SOURCE
 !
-!***********************************************************************
-!
-   INTEGER  IENT, IDDUM ,ID    ,IS    ,ISSTOP
-!
+!************************************************************************
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER :: IDDUM, ID, IS
+
    REAL     FPM   ,UFRIC ,THETA ,THETAW,SIGMA ,SWINEB,TEMP1, &
-            CTW   ,STW   ,COSDIF, &
-            TEMP2 ,TEMP3 ,CINV
-!
+      CTW   ,STW   ,COSDIF, &
+      TEMP2 ,TEMP3 ,CINV
+
    REAL    AC2(MDC,MSC,MCGRD)   , &
-           IMATRA(MDC,MSC)      , &
-           KWAVE(MSC,MICMAX)    , &
-           PLWNDS(MDC,MSC,NPTST)
+      IMATRA(MDC,MSC)      , &
+      KWAVE(MSC,MICMAX)    , &
+      PLWNDS(MDC,MSC,NPTST)
    REAL  :: GENC0(MDC,MSC,MGENR)
    REAL  :: FACTOR_ON_SIN ! See remarks.
-!
-   INTEGER IDCMIN(MSC)          , &
-           IDCMAX(MSC)
-!
+
    LOGICAL  ANYWND(MDC)
-!
+
 !/T      LOGICAL  IMP_EXP
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWIND3')
-!
+
    CTW   = COS(THETAW)
    STW   = SIN(THETAW)
    TEMP1 = 0.25 * PWIND(9)
@@ -2046,69 +2021,68 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  , &
       TEMP1 = TEMP1 * FACTOR_ON_SIN
    ENDIF
    TEMP2 = 28.0 * UFRIC
-   DO IS = 1, ISSTOP
+   DO IS = 1, WINDOW%ISSTOP
       SIGMA = SPCSIG(IS)
       CINV  = KWAVE(IS,1) / SIGMA
       TEMP3 = TEMP2 * CINV
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
          IF ( ANYWND(ID) ) THEN
             THETA  = SPCDIR(ID,1)
             COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
             SWINEB = TEMP1 * ( TEMP3 * COSDIF - 1.0 )
             SWINEB = MAX ( 0. , SWINEB * SIGMA )
-!
-            IMATRA(ID,IS) = IMATRA(ID,IS) + SWINEB * AC2(ID,IS,KCGRD(1))
+
+            IMATRA(ID,IS) = IMATRA(ID,IS) + SWINEB * AC2(ID,IS,IGP)
             IF (TESTFL) PLWNDS(ID,IS,IPTST) = PLWNDS(ID,IS,IPTST) + &
-                                              SWINEB*AC2(ID,IS,KCGRD(1))
-            GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEB*AC2(ID,IS,KCGRD(1))
-!ESMF            IF (SAVE_SINBAC) SINBAC(ID,IS,KCGRD(1)) = &
-!ESMF               SINBAC(ID,IS,KCGRD(1)) + SWINEB*AC2(ID,IS,KCGRD(1))
-!
+               SWINEB*AC2(ID,IS,IGP)
+            GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEB*AC2(ID,IS,IGP)
+            CALL accumulate_exponential_wind_input(ID, IS, IGP, &
+               SWINEB*AC2(ID,IS,IGP))
+
          END IF
       ENDDO
    ENDDO
-!
+
 !     *** test output ***
-!
+
    IF (ITEST.GE. 80.AND.TESTFL) THEN
-      WRITE(PRTEST,6000) KCGRD(1), THETAW*180./PI
-6000  FORMAT(' SWIND3: POINT  THETAW        :',I5,E12.4)
-      WRITE(PRTEST,6100) TEMP1, FPM, UFRIC
-6100  FORMAT(' SWIND3: TEMP1 FPM UFRC     :',3E12.4, /, &
-             '  IS ID1 ID2       Wind source term')
+      WRITE(PRTEST,"(' SWIND3: POINT  THETAW        :',I5,E12.4)") IGP, THETAW*180./PI
+      WRITE(PRTEST,"(' SWIND3: TEMP1 FPM UFRC     :',3E12.4, /, '  IS ID1 ID2       Wind source term')") TEMP1, FPM, UFRIC
       DO IS = 1, MSC
-         WRITE(PRTEST,6200) IS, IDCMIN(IS), IDCMAX(IS), &
-            (PLWNDS(ID,IS,IPTST), ID=IDCMIN(IS), IDCMAX(IS))
-6200     FORMAT(3I4, 600e12.4)
+         WRITE(PRTEST,"(3I4, 600e12.4)") IS, WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS), &
+            (PLWNDS(ID,IS,IPTST), ID=WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS))
       ENDDO
       WRITE(PRTEST,*)
    END IF
-!
+
    RETURN
 !     end of subroutine SWIND3
-END
-!
+end subroutine SWIND3
+
 !****************************************************************
-!
-SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  , &
-                   SPCSIG  ,WIND10  ,THETAW  ,XIS     , &
-                   DD      ,KWAVE   ,IMATRA  ,GENC0   , &
-                   IDCMIN  ,IDCMAX  ,AC2     ,UFRIC   , &
-                   PLWNDS  ,ISSTOP  ,ITER    ,USTAR   ,ZELEN   , &
-                   SPCDIR  ,ANYWND  ,IT      ,TAUWV   ,AICELOC )
-!
+
+SUBROUTINE SWIND4 (WINDOW, SPCSIG, WIND10, THETAW, XIS, DD, KWAVE, IMATRA, GENC0, AC2, UFRIC, &
+      PLWNDS, ITER, USTAR, ZELEN, SPCDIR, ANYWND, IT, TAUWV, AICELOC, IGP)
+
 !******************************************************************
-!
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_run_mode
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2194,11 +2168,13 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  , &
 !             (*,4); cosine^2 of spectral directions                      30.82
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
-! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
-!
+
 !        IDWMIN      Minimum counter for spectral wind direction
 !        IDWMAX      Maximum counter for spectral wind direction
 !        IS          Counter of relative frequency band
@@ -2270,50 +2246,45 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  , &
 !     10. SOURCE
 !
 !
-!***********************************************************************
-!
-   INTEGER  IDWMAX  ,IDWMIN  ,IDDUM   ,ID      ,ISSTOP  ,IS
-!
+!************************************************************************
+
+   INTEGER :: IDDUM, ID, IS
+
    REAL     THETA  ,THETAW ,DD     ,SWINEB ,WIND10 , &
-            ZO     ,ZE     ,BETA1  ,BETA2  ,UFRIC  ,UFRIC2 ,DS     , &
-            ZARG   ,ZLOG1  ,ZLOG2  ,ZCN1   ,ZCN2   ,ZCN    ,XIS    , &
-            SIGMA  ,SIGMA1 ,SIGMA2 ,WAVEN  ,WAVEN1 ,WAVEN2 ,TAUW   , &
-            TAUTOT ,TAUDIR ,COS1   ,COS2   ,CW1    ,RHOA   ,RHOW   , &
-            RHOAW  ,ALPHA  ,XKAPPA ,F1     ,TAUWX  ,TAUWY  ,SE1    , &
-            CTW    ,STW    ,COSDIF , &
-            SE2    ,SINWAV ,COSWAV
+      ZO     ,ZE     ,BETA1  ,BETA2  ,UFRIC  ,UFRIC2 ,DS     , &
+      ZARG   ,ZLOG1  ,ZLOG2  ,ZCN1   ,ZCN2   ,ZCN    ,XIS    , &
+      SIGMA  ,SIGMA1 ,SIGMA2 ,WAVEN  ,WAVEN1 ,WAVEN2 ,TAUW   , &
+      TAUTOT ,TAUDIR ,COS1   ,COS2   ,CW1    ,RHOA   ,RHOW   , &
+      RHOAW  ,ALPHA  ,XKAPPA ,F1     ,TAUWX  ,TAUWY  ,SE1    , &
+      CTW    ,STW    ,COSDIF , &
+      SE2    ,SINWAV ,COSWAV
    REAL     ZALP
-!
+
    REAL    AC2(MDC,MSC,MCGRD)   , &
-           IMATRA(MDC,MSC)      , &
-           KWAVE(MSC,MICMAX)    , &
-           PLWNDS(MDC,MSC,NPTST), &
-           USTAR(MCGRD)         , &
-           ZELEN(MCGRD)         , &
-           TAUWV(MCGRD)
+      IMATRA(MDC,MSC)      , &
+      KWAVE(MSC,MICMAX)    , &
+      PLWNDS(MDC,MSC,NPTST), &
+      USTAR(MCGRD)         , &
+      ZELEN(MCGRD)         , &
+      TAUWV(MCGRD)
    REAL    GENC0(MDC,MSC,MGENR)
-!
+
    REAL, INTENT(IN) :: AICELOC
    REAL    FACTOR_ON_SIN ! See remarks.
-!
-   INTEGER IDCMIN(MSC)          , &
-           IDCMAX(MSC)
-!
+
    LOGICAL ANYWND(MDC)
-!
-   INTEGER IENT , ITER,  IT,   J,  II
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER ITER,  IT,   J,  II
    REAL ZTEN,  RATIO,  BETAMX,  TXHFR,  TYHFR,  CW2,  X1,  X2, &
       ZARG1,  ZARG2,  GAMHF,  SIGMAX,  SIGHF1,  SIGHF2,  ZCNHF1, &
       ZCNHF2,  AUX,  COS3,  ZAHF1,  ZAHF2,  FACHFR, FA, FB, FC, FD, FE, &
       FCEN, FF1, FF2, FF3, DCEN, TAUNEW, XFAC2, BETA, ZLOG
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWIND4')
-!
-!
+
 !     *** initialization ***
-!
+
    ALPHA  = PWIND(14)
    XKAPPA = PWIND(15)
    RHOA   = PWIND(16)
@@ -2327,54 +2298,54 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  , &
    CTW    = COS(THETAW)
    STW    = SIN(THETAW)
    FACTOR_ON_SIN = (1.-AICELOC*(1.-ICEWIND))
-!
+
    IF ( NSTATC.EQ.1 .AND. IT.EQ.1 ) THEN
-!
+
 !        *** nonstationary and first time step (the number of        ***
 !        *** iterations however still can increase per time step     ***
-!
+
       ZO     = ALPHA * UFRIC * UFRIC / GRAV
       ZE     = ZO / SQRT( 1. - RATIO )
-      USTAR(KCGRD(1)) = UFRIC
-      ZELEN(KCGRD(1)) = ZE
+      USTAR(IGP) = UFRIC
+      ZELEN(IGP) = ZE
    ELSE IF ( NSTATC.EQ.0 .AND. ICOND.EQ.4 .AND. ITER .EQ. 1 ) THEN
-!
+
 !        *** non-first stationary computations and first iteration   ***
-!
+
       ZO     = ALPHA * UFRIC * UFRIC / GRAV
       ZE     = ZO / SQRT( 1. - RATIO )
-      USTAR(KCGRD(1)) = UFRIC
-      ZELEN(KCGRD(1)) = ZE
+      USTAR(IGP) = UFRIC
+      ZELEN(IGP) = ZE
    ELSE IF ( NSTATC.EQ.0 .AND. ICOND.NE.4 .AND. ITER .EQ. 2 ) THEN
-!
+
 !        *** first stationary computation (this subroutine is never ***
 !        *** excecuted anyway, this subroutine in entered after 1   ***
 !        *** iteration) and thus calculate ZO and ZE as a first     ***
 !        *** prediction only and only in the second sweep           ***
-!
+
       ZO     = ALPHA * UFRIC * UFRIC / GRAV
       ZE     = ZO / SQRT( 1. - RATIO )
-      USTAR(KCGRD(1)) = UFRIC
-      ZELEN(KCGRD(1)) = ZE
+      USTAR(IGP) = UFRIC
+      ZELEN(IGP) = ZE
    ELSE
-!
+
 !       *** calculate wave stress using the value of the  ***
 !       *** velocity U* and roughness length Ze from the  ***
 !       *** previous iteration                            ***
-!
-      UFRIC = USTAR(KCGRD(1))
-      ZE    = ZELEN(KCGRD(1))
-!
+
+      UFRIC = USTAR(IGP)
+      ZE    = ZELEN(IGP)
+
       TAUW   = 0.
       TAUWX  = 0.
       TAUWY  = 0.
       TXHFR  = 0.
       TYHFR  = 0.
-!
+
 !       *** use old friction velocity to calculate wave stress ***
-!
+
       UFRIC2 = UFRIC * UFRIC
-!
+
       DO IS = 1, MSC-1
          SIGMA1 = SPCSIG(IS)
          SIGMA2 = SPCSIG(IS+1)
@@ -2387,7 +2358,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  , &
          ZCN2   = ALOG ( GRAV * ZE / CW2**2 )
          X1     = (UFRIC/CW1 + ZALP)**2
          X2     = (UFRIC/CW2 + ZALP)**2
-         DO IDDUM = IDWMIN, IDWMAX
+         DO IDDUM = WINDOW%IDWMIN, WINDOW%IDWMAX
             ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
             THETA  = SPCDIR(ID,1)
             COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
@@ -2397,9 +2368,9 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  , &
             COS2   = COS1 * COS1
             BETA1  = 0.
             BETA2  = 0.
-!
+
 !           *** Miles constant Beta ***
-!
+
             IF ( COS1 .GT. 0.01 ) THEN
                ZARG1 = XKAPPA / ( (UFRIC / CW1 + ZALP ) * COS1 )
                ZARG2 = XKAPPA / ( (UFRIC / CW2 + ZALP ) * COS1 )
@@ -2408,43 +2379,40 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  , &
                IF (ZLOG1.LT.0.) BETA1 = F1 * X1 * EXP (ZLOG1) * ZLOG1**4
                IF (ZLOG2.LT.0.) BETA2 = F1 * X2 * EXP (ZLOG2) * ZLOG2**4
             ENDIF
-!
+
 !           *** calculate wave stress by integrating input source ***
 !           *** term in x- and y direction respectively           ***
-!
-            SE1 = BETA1 * SIGMA1**3 * AC2(ID,IS  ,KCGRD(1))
-            SE2 = BETA2 * SIGMA2**3 * AC2(ID,IS+1,KCGRD(1))
-!
+
+            SE1 = BETA1 * SIGMA1**3 * AC2(ID,IS  ,IGP)
+            SE2 = BETA2 * SIGMA2**3 * AC2(ID,IS+1,IGP)
+
             TAUWX = TAUWX + 0.5 * ( SE1 + SE2 ) * DS * COSWAV * COS2
             TAUWY = TAUWY + 0.5 * ( SE1 + SE2 ) * DS * SINWAV * COS2
-!
+
 !           *** test output ***
-!
+
             IF (ITEST.GE. 40 .AND. TESTFL) THEN
-               WRITE(PRINTF,105) IS, ID, UFRIC, ZE
-105            FORMAT(' SW4: IS ID UFRIC ZE     :',2I4,2E12.4)
-               WRITE(PRINTF,106) ZLOG1, ZLOG2, BETA1, BETA2
-106            FORMAT(' SW4: ZOLG1-2 BETA1 BETA2:',4E12.4)
+               WRITE(PRINTF,"(' SW4: IS ID UFRIC ZE     :',2I4,2E12.4)") IS, ID, UFRIC, ZE
+               WRITE(PRINTF,"(' SW4: ZOLG1-2 BETA1 BETA2:',4E12.4)") ZLOG1, ZLOG2, BETA1, BETA2
                IF (ABS(TAUWX).GT.0. .OR. ABS(TAUWY).GT.0.) THEN
                   TAUDIR = ATAN2 ( TAUWX, TAUWY )
                ELSE
                   TAUDIR = 0.
                ENDIF
                TAUDIR = MOD ( (TAUDIR + 2. * PI) , (2. * PI) )
-               WRITE(PRINTF,107) TAUWX, TAUWY, TAUDIR*180./PI
-107            FORMAT(' SW4: TAUWX TAUWY TAUDIR :',3E12.4)
+               WRITE(PRINTF,"(' SW4: TAUWX TAUWY TAUDIR :',3E12.4)") TAUWX, TAUWY, TAUDIR*180./PI
             ENDIF
-!
+
          ENDDO
       ENDDO
-!
+
 !       *** determine effect of high frequency tail to wave stress ***
 !       *** assuming deep water conditions                         ***
-!
+
       GAMHF =  XKAPPA * GRAV / UFRIC
       SIGMAX = SPCSIG(MSC)
       SIGHF1 = SIGMAX
-      DO J=1, 50
+      frequency_tail_loop: DO J=1, 50
          SIGHF2 = XIS * SIGHF1
          DS     = SIGHF2 - SIGHF1
          ZCNHF1 = ALOG ( ZE * SIGHF1**2 / GRAV )
@@ -2453,7 +2421,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  , &
          SIGHF1 = SIGMAX
          CW1    = GRAV/SIGHF1
          CW2    = GRAV/SIGHF2
-         DO IDDUM = IDWMIN, IDWMAX
+         DO IDDUM = WINDOW%IDWMIN, WINDOW%IDWMAX
             ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
             THETA  = SPCDIR(ID,1)
             COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
@@ -2464,7 +2432,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  , &
             COS3   = COS2 * COS1
             BETA1  = 0.0
             BETA2  = 0.0
-!
+
             IF ( COS1 .GT. 0.01 ) THEN
 !             *** beta is independent of direction ! ***
                ZAHF1 = XKAPPA / ( UFRIC / CW1 + ZALP )
@@ -2475,42 +2443,38 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  , &
                IF ( ZLOG2 .LT. 0. ) BETA2 = F1 * EXP (ZLOG2) * ZLOG2**4
                AUX = AUX + BETA1 + BETA2
             ENDIF
-!
+
 !           *** calculate contribution of high frequency tail to ***
 !           *** wave stress by integrating input source term in  ***
 !           *** x- and y direction respectively                  ***
-!
-            FACHFR = SIGMAX**6 * AC2(ID,MSC,KCGRD(1)) * COS2 / GRAV**2
+
+            FACHFR = SIGMAX**6 * AC2(ID,MSC,IGP) * COS2 / GRAV**2
 
             SE1 = FACHFR * BETA1 / SIGHF1
             SE2 = FACHFR * BETA2 / SIGHF2
-!
+
             TXHFR = TXHFR + 0.5 * ( SE1 + SE2 ) * DS * COSWAV
             TYHFR = TYHFR + 0.5 * ( SE1 + SE2 ) * DS * SINWAV
-!
+
 !           *** if coeffcient BETA = 0. for a frequency over ***
 !           *** all directions is zero skip loop             ***
-!
-            IF ( AUX .EQ. 0. ) GOTO 5000
-!
+
+            IF ( AUX .EQ. 0. ) EXIT frequency_tail_loop
+
          ENDDO
-!
+
          IF (ITEST.GE. 45 ) THEN
-            WRITE(PRINTF,407) XIS, SIGHF1, SIGHF2, J
-407         FORMAT(' SW4: XIS SIGHF1 SIGHF2 J :',3E12.4,I4)
-            WRITE(PRINTF,437) TXHFR, TYHFR, BETA1, BETA2
-437         FORMAT(' SW4: TXHFR TYHFR BETA1,2 :',4E12.4)
+            WRITE(PRINTF,"(' SW4: XIS SIGHF1 SIGHF2 J :',3E12.4,I4)") XIS, SIGHF1, SIGHF2, J
+            WRITE(PRINTF,"(' SW4: TXHFR TYHFR BETA1,2 :',4E12.4)") TXHFR, TYHFR, BETA1, BETA2
          ENDIF
-!
+
          SIGHF1 = SIGHF2
-      ENDDO
-5000  CONTINUE
-!
+      ENDDO frequency_tail_loop
+
       IF ( ITEST .GE. 45 ) THEN
-         WRITE(PRINTF,321) TAUWX, TAUWY, TXHFR, TYHFR
-321      FORMAT(' SW4: Twx Twy Thfx Thfy:',4E12.4)
+         WRITE(PRINTF,"(' SW4: Twx Twy Thfx Thfy:',4E12.4)") TAUWX, TAUWY, TXHFR, TYHFR
       ENDIF
-!
+
       TAUTOT = RHOA * UFRIC2
 !       *** wave stress ***
       TAUWX  = TAUWX + TXHFR * UFRIC2
@@ -2523,13 +2487,12 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  , &
       TAUDIR = MOD ( (TAUDIR + 2. * PI) , (2. * PI) )
       TAUW   = RHOA * DD * SQRT ( TAUWX**2 + TAUWY**2 )
       TAUW   = MIN ( TAUW , 0.999 * TAUTOT )
-!
+
       IF ( ITEST .GE. 45 ) THEN
          RATIO = TAUW / TAUTOT
-         WRITE(PRINTF,301) TAUW, TAUTOT, RATIO, KCGRD(1)
-301      FORMAT(' SW4: Tauw Taut  ratio :',3E12.4,' in ',I5)
+         WRITE(PRINTF,"(' SW4: Tauw Taut  ratio :',3E12.4,' in ',I5)") TAUW, TAUTOT, RATIO, IGP
       ENDIF
-!
+
       DO II = 1, 20
 !         *** start iteration process ***
          FA = SQRT ( 1. - TAUW / TAUTOT )
@@ -2537,69 +2500,63 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  , &
          FC = FA * ( FB / TAUTOT  - 1. )
          FD = SQRT ( TAUTOT )
          FE = ALOG ( FC + 1. )
-!
+
 !         *** calculate function value and derivative in ***
 !         *** numerical point considered                 ***
-!
+
          FCEN = FD * FE - SQRT(RHOA) * WIND10 * XKAPPA
          FF1  = 0.5 * FE / FD
          FF2  = 0.5 * TAUW * FC / FA - FA * FB
          FF3  = TAUTOT**1.5 * ( FC + FA )
          DCEN = FF1 + FF2 / FF3
-!
+
 !         *** new total stress ***
-!
+
          TAUNEW = TAUTOT - FCEN / DCEN
-!
+
          IF ( ITEST .GT. 30 .AND. TESTFL ) THEN
-            WRITE(PRINTF,440) TAUTOT, TAUNEW, FCEN, DCEN, II
-440         FORMAT(' SW4: Tt Tnew Fcn DFcn II:',4E12.4,I2)
-            WRITE(PRINTF,450) FA, FB, FC, FD
-450         FORMAT(' SW4: FA FB FC FD        :',4E12.4)
-            WRITE(PRINTF,460) FE, FF1, FF2, FF3
-460         FORMAT(' SW4: FE FF1 FF2 FF3     :',4E12.4)
+            WRITE(PRINTF,"(' SW4: Tt Tnew Fcn DFcn II:',4E12.4,I2)") TAUTOT, TAUNEW, FCEN, DCEN, II
+            WRITE(PRINTF,"(' SW4: FA FB FC FD        :',4E12.4)") FA, FB, FC, FD
+            WRITE(PRINTF,"(' SW4: FE FF1 FF2 FF3     :',4E12.4)") FE, FF1, FF2, FF3
          ENDIF
-!
+
          IF ( TAUNEW .LE. TAUW ) TAUNEW = .5 * (TAUTOT + TAUW)
-         IF ( ABS ( TAUNEW - TAUTOT ) .LE. 1.E-5 ) GOTO 3000
-!
+         IF ( ABS ( TAUNEW - TAUTOT ) .LE. 1.E-5 ) EXIT
+
          TAUTOT = TAUNEW
       ENDDO
-3000  CONTINUE
-!
+
       UFRIC  = SQRT ( TAUTOT / RHOA )
-!
+
       IF ( ITEST .GE. 20 .AND. TESTFL ) THEN
-         WRITE(PRINTF,200) KCGRD(1)
-200      FORMAT(' SW4: Values after Newton-Raphson in point:',I5)
-         WRITE(PRINTF,206) TAUW, TAUTOT, TAUW/TAUTOT, UFRIC
-206      FORMAT(' SW4: Tauw Taut rat Us :',4E12.4)
+         WRITE(PRINTF,"(' SW4: Values after Newton-Raphson in point:',I5)") IGP
+         WRITE(PRINTF,"(' SW4: Tauw Taut rat Us :',4E12.4)") TAUW, TAUTOT, TAUW/TAUTOT, UFRIC
          WRITE(PRINTF,*)
       ENDIF
-!
+
       ZO     = ALPHA * UFRIC * UFRIC / GRAV
       ZE     = ZO / SQRT ( 1. - TAUW / TAUTOT )
-!
-      USTAR(KCGRD(1)) = UFRIC
-      ZELEN(KCGRD(1)) = ZE
-      TAUWV(KCGRD(1)) = TAUW
-!
+
+      USTAR(IGP) = UFRIC
+      ZELEN(IGP) = ZE
+      TAUWV(IGP) = TAUW
+
    ENDIF
-!
+
 ! ----->
 !
 !     *** calculate critical height and Miles parameter and  ***
 !     *** calculate input source term B for with the updated ***
 !     *** values of UFRIC and ZE                             ***
-!
+
    UFRIC2 = UFRIC * UFRIC
-!
-   DO IS = 1, ISSTOP
+
+   DO IS = 1, WINDOW%ISSTOP
       SIGMA  = SPCSIG(IS)
       WAVEN  = KWAVE(IS,1)
       CW1    = SIGMA / WAVEN
       ZCN    = ALOG ( GRAV * ZE / CW1**2 )
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
          IF ( ANYWND(ID) )  THEN
             THETA  = SPCDIR(ID,1)
@@ -2613,73 +2570,69 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  , &
                ZLOG = ZCN + ZARG
                IF ( ZLOG .LT. 0. ) BETA = F1 * EXP (ZLOG) * ZLOG**4
             ENDIF
-!
+
 !           *** compute the factor B and store result in array ***
-!
+
             SWINEB = RHOAW * BETA * XFAC2 * COS2 * SIGMA
             IF ( AICELOC.GT.0. ) THEN
                SWINEB = SWINEB * FACTOR_ON_SIN
             ENDIF
-            IMATRA(ID,IS) = IMATRA(ID,IS) + SWINEB * AC2(ID,IS,KCGRD(1))
+            IMATRA(ID,IS) = IMATRA(ID,IS) + SWINEB * AC2(ID,IS,IGP)
             IF (TESTFL) PLWNDS(ID,IS,IPTST) = PLWNDS(ID,IS,IPTST) + &
-                                              SWINEB*AC2(ID,IS,KCGRD(1))
-            GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEB*AC2(ID,IS,KCGRD(1))
-!ESMF            IF (SAVE_SINBAC) SINBAC(ID,IS,KCGRD(1)) = &
-!ESMF               SINBAC(ID,IS,KCGRD(1)) + SWINEB*AC2(ID,IS,KCGRD(1))
+               SWINEB*AC2(ID,IS,IGP)
+            GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEB*AC2(ID,IS,IGP)
+            CALL accumulate_exponential_wind_input(ID, IS, IGP, &
+               SWINEB*AC2(ID,IS,IGP))
 !
 !           *** test output ***
-!
+
             IF (ITEST.GE. 30 .AND. TESTFL) THEN
-               WRITE(PRINTF,101) ZARG,ZLOG,ID,IS
-101            FORMAT(' SW4: ZARG ZLOG ID IS  :',2E12.4,' in',2I3)
-               WRITE(PRINTF,102) COS1, COS2, XFAC2, BETA
-102            FORMAT(' SW4: COS1/2 XFAC BETA :',4E12.4)
+               WRITE(PRINTF,"(' SW4: ZARG ZLOG ID IS  :',2E12.4,' in',2I3)") ZARG,ZLOG,ID,IS
+               WRITE(PRINTF,"(' SW4: COS1/2 XFAC BETA :',4E12.4)") COS1, COS2, XFAC2, BETA
             ENDIF
 
          ENDIF
       ENDDO
-!
+
       IF (ITEST.GE. 20 .AND. TESTFL) THEN
-         WRITE(PRINTF,1102)  SIGMA, WAVEN, CW1, ZCN
-1102     FORMAT(' SW4: SIG WAV CW1 ZCN :',4E12.4)
+         WRITE(PRINTF,"(' SW4: SIG WAV CW1 ZCN :',4E12.4)")  SIGMA, WAVEN, CW1, ZCN
       ENDIF
    ENDDO
-!
+
 !     *** test output ***
-!
+
    IF (ITEST.GE. 20.AND.TESTFL) THEN
-      WRITE(PRINTF,9001) KCGRD(1), IDWMIN, IDWMAX
-9001  FORMAT(' SW4: POINT IDWMIN IDWMAX :',3I5)
-      WRITE(PRINTF,6053) WIND10,UFRIC,THETAW*180./PI
-6053  FORMAT(' SW4: WIND10 UFRIC THETAW :',3E12.4)
-      WRITE(PRINTF,7136) PWIND(9), PWIND(16), PWIND(17)
-7136  FORMAT(' SW4: RHOAW  RHOA  RHOW   :',3E12.4)
-      WRITE(PRINTF,7126) PWIND(14), PWIND(15), ZTEN
-7126  FORMAT(' SW4: ALPHA XKAPPA ZTEN   :',3E12.4)
+      WRITE(PRINTF,"(' SW4: POINT IDWMIN IDWMAX :',3I5)") IGP, WINDOW%IDWMIN, WINDOW%IDWMAX
+      WRITE(PRINTF,"(' SW4: WIND10 UFRIC THETAW :',3E12.4)") WIND10,UFRIC,THETAW*180./PI
+      WRITE(PRINTF,"(' SW4: RHOAW  RHOA  RHOW   :',3E12.4)") PWIND(9), PWIND(16), PWIND(17)
+      WRITE(PRINTF,"(' SW4: ALPHA XKAPPA ZTEN   :',3E12.4)") PWIND(14), PWIND(15), ZTEN
 
    END IF
-!
+
    RETURN
 !     end of subroutine SWIND4
-END
-!
+end subroutine SWIND4
+
 !****************************************************************
-!
-SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  , &
-                   UFRIC   ,KWAVE   ,IMATRA  ,IDCMIN  , &
-                   IDCMAX  ,AC2     ,ANYWND  ,PLWNDS  , &
-                   SPCDIR  ,GENC0   ,AICELOC          )
-!
+
+SUBROUTINE SWIND5 (SPCSIG, THETAW, WINDOW, UFRIC, KWAVE, IMATRA, AC2, ANYWND, PLWNDS, SPCDIR, GENC0, AICELOC, IGP)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2758,11 +2711,13 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  , &
 !             (*,4); cosine^2 of spectral directions                      30.82
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
-! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
-!
+
 !        IS          Counter of relative frequency band
 !        ID          Counter of directional distribution
 !        MSC         Maximum counter of relative frequency
@@ -2818,57 +2773,53 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  , &
 !
 !     10. SOURCE
 !
-!***********************************************************************
-!
-   INTEGER  IENT, IDDUM  ,ID     ,IS     ,ISSTOP
-!
+!************************************************************************
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER :: IDDUM, ID, IS
+
    REAL     UFRIC  ,THETA  ,THETAW ,SIGMA  ,SWINEB , TEMP3, &
-            CTW    ,STW    ,COSDIF , &
-            USTAC1 ,USTAC2 ,COF1   ,COF2   ,COF3   ,COF4
-!
+      CTW    ,STW    ,COSDIF , &
+      USTAC1 ,USTAC2 ,COF1   ,COF2   ,COF3   ,COF4
+
    REAL    AC2(MDC,MSC,MCGRD)   , &
-           IMATRA(MDC,MSC)      , &
-           KWAVE(MSC,MICMAX)    , &
-           PLWNDS(MDC,MSC,NPTST)
+      IMATRA(MDC,MSC)      , &
+      KWAVE(MSC,MICMAX)    , &
+      PLWNDS(MDC,MSC,NPTST)
    REAL    GENC0(MDC,MSC,MGENR)
-!
+
    REAL, INTENT(IN) :: AICELOC
    REAL    FACTOR_ON_SIN ! See remarks.
-!
-   INTEGER IDCMIN(MSC)          , &
-           IDCMAX(MSC)
-!
+
    LOGICAL  ANYWND(MDC)
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWIND5')
-!
+
 !     *** input according to Yan (1987) ***
-!
+
    COF1 = 0.04
    COF2 = 0.00544
    COF3 = 0.000055
    COF4 = 0.00031
-!
+
 !     adapted Yan fit for use of Alves and Banner method                  40.53
-!
+
    IF (IWCAP.EQ.7) THEN
       COF1 = 0.04
       COF2 = 0.00552
       COF3 = 0.000052
       COF4 = 0.000302
    END IF
-!
+
    CTW  = COS(THETAW)
    STW  = SIN(THETAW)
    FACTOR_ON_SIN = (1.-AICELOC*(1.-ICEWIND))
-   DO IS = 1, ISSTOP
+   DO IS = 1, WINDOW%ISSTOP
       SIGMA  = SPCSIG(IS)
       USTAC1 = ( UFRIC * KWAVE(IS,1) ) / SIGMA
       USTAC2 = USTAC1 * USTAC1
       TEMP3  = ( COF1 * USTAC2 + COF2 * USTAC1 + COF3)
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
          IF ( ANYWND(ID) ) THEN
             THETA  = SPCDIR(ID,1)
@@ -2878,27 +2829,26 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  , &
             IF ( AICELOC.GT.0. ) THEN
                SWINEB = SWINEB * FACTOR_ON_SIN
             ENDIF
-            IMATRA(ID,IS) = IMATRA(ID,IS) + SWINEB * AC2(ID,IS,KCGRD(1))
+            IMATRA(ID,IS) = IMATRA(ID,IS) + SWINEB * AC2(ID,IS,IGP)
             IF (TESTFL) PLWNDS(ID,IS,IPTST) = PLWNDS(ID,IS,IPTST) + &
-                                              SWINEB*AC2(ID,IS,KCGRD(1))
-            GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEB*AC2(ID,IS,KCGRD(1))
-!ESMF            IF (SAVE_SINBAC) SINBAC(ID,IS,KCGRD(1)) = &
-!ESMF               SINBAC(ID,IS,KCGRD(1)) + SWINEB*AC2(ID,IS,KCGRD(1))
+               SWINEB*AC2(ID,IS,IGP)
+            GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEB*AC2(ID,IS,IGP)
+            CALL accumulate_exponential_wind_input(ID, IS, IGP, &
+               SWINEB*AC2(ID,IS,IGP))
          END IF
       ENDDO
    ENDDO
-!
+
 !     *** test output ***
-!
+
    IF (ITEST.GE. 60.AND.TESTFL) THEN
-      WRITE(PRINTF,6000) KCGRD(1), THETAW*180./PI, UFRIC
-6000  FORMAT(' SWIND5: POINT THETAW UFRIC  :',I5,2E12.4)
-      WRITE(PRINTF,6100) COF1, COF2, COF3, COF4
-6100  FORMAT(' SWIND5: COF1 COF2 COF3 COF4 :',4E12.4)
+      WRITE(PRINTF,"(' SWIND5: POINT THETAW UFRIC  :',I5,2E12.4)") IGP, THETAW*180./PI, UFRIC
+      WRITE(PRINTF,"(' SWIND5: COF1 COF2 COF3 COF4 :',4E12.4)") COF1, COF2, COF3, COF4
       WRITE(PRINTF,*)
    END IF
-!
+
    RETURN
 !     end of subroutine SWIND5
-END
-!
+end subroutine SWIND5
+
+end module swan_wind_source

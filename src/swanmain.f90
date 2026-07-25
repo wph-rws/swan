@@ -1,4 +1,4 @@
-!
+
 !     SWAN main program and miscellaneous routines
 !
 !     Contents of this file:
@@ -13,7 +13,6 @@
 !     SINUPT
 !     SINBTG
 !     SINCMP
-!     WRTEST
 !     ERRCHK
 !     SNEXTI
 !     RBFILE: Read boundary spectra from one file                         40.00
@@ -24,131 +23,91 @@
 !     SWINCO
 !     SWCLME: Clean memory
 !
-!***********************************************************************
+!************************************************************************
 !                                                                      *
-PROGRAM SWAN
-!                                                                      *
-!***********************************************************************
-!
-   IMPLICIT NONE
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     30.72: IJsbrand Haagsma
-!     30.74: IJsbrand Haagsma (Include version)
-!     30.90: IJsbrand Haagsma (Equivalence version)
-!     32.01: Roeland Ris & Cor van der Schelde
-!     34.01: Jeroen Adema
-!     40.30: Marcel Zijlema
-!     40.31: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!            Jan. 94: transition from old pool to new pool structure
-!     30.72, Sept 97: INTEGER*4 replaced by INTEGER
-!     30.74, Nov. 97: Prepared for version with INCLUDE statements
-!     32.01, Jan. 98: Array WL initialised (project h3268)
-!     30.90, Oct. 98: Introduced EQUIVALENCE POOL-arrays
-!     34.01, Feb. 99: Introducing STPNOW
-!     40.30, Jan. 03: introduction distributed-memory approach using MPI
-!     40.31, Dec. 03: removing POOL mechanism and reconsidering
-!                     this main program
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     Main program
-!
-!  8. Subroutines used
-!
-!     SWEXITMPI                                                           40.30
-!     SWINITMPI                                                           40.30
-!     SWMAIN
-!
-   LOGICAL STPNOW
-!
-! 11. Remarks
-!
-!     In case of coupling with ADCIRC, this program will not be executed  41.20
-!     Instead, SWAN initialization and run will be done by PADCSWAN_INIT  41.20
-!     and PADCSWAN_RUN, respectively, as they will pass a time step to    41.20
-!     routine SWMAIN. See couple2swan.F                                   41.20
-!
-! 13. Source Code
-!
-!     --- initialize the MPI execution environment                        40.30
 
-   CALL SWINITMPI
-   IF (STPNOW()) GOTO 999
-
-!     --- start SWAN run
-
-   CALL SWMAIN
-
-999 CONTINUE
-
-!     --- stop MPI                                                        40.30
-
-   CALL SWEXITMPI
-!
-!     --- end of MAIN PROGRAM
-!
-END
-!***********************************************************************
+module swan_driver
+   use swan_build_config, only: timing_enabled
+   use swan_diffraction_state, only: diffraction_state_t
+   use swan_triad_state, only: triad_state_t
+   use swan_snl4_tables, only: snl4_tables_t
+   use swan_spectral_powers, only: spectral_powers_t
+   use swan_source_workspaces, only: thread_workspaces_t
+   use swan_input_helpers, only: LSPLIT
+   use swan_comp_unstruc, only: SwanCompUnstruc
+   use swan_prep_comp, only: SwanPrepComp
+   use swan_vertlist, only: SwanVertlist
+   use swan_io_limits, only: LENFNM
+   use swan_output_variables, only: NMOVAR, OVEXCV, OVHEXP, OVKEYW, OVLEXP, OVLLIM, OVLNAM, OVSNAM, OVSVTY, OVULIM, OVUNIT
+   use swan_output_quadrature, only: ALPQ, COSPQ, SINPQ, XPQ, XQLEN, YPQ, YQLEN
+   use swan_project_metadata, only: PROJID, PROJNR, PROJT1, PROJT2, PROJT3, VERTXT
+   use swan_output_variables, only: UF, UP, UST, UT
+   use swan_time, only: CHTIME
+   use swan_output_settings, only: ERRPTS, INRHOG, IUBOTR, OUTPAR, SNAME
+   implicit none(type, external)
+!  Used across several procedures of this module and nowhere else; moved out
+!  of the central shared state.
+   INTEGER :: JDP3
+   INTEGER :: JVX3
+   INTEGER :: JVY3
+   INTEGER :: JWLV1
+   INTEGER :: JWLV3
+   REAL :: SY0
+   private
+!  SWMAIN is the only entry point the main program needs; the eighteen
+!  remaining routines (initialisation, preparation, boundary and restart
+!  handling, clean-up) are implementation detail.
+   public :: SWMAIN
+contains
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWMAIN
 !                                                                      *
-!***********************************************************************
-!
-   USE TIMECOMM
-   USE OCPCOMM2
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+!************************************************************************
+
+   USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
+   USE swan_computation, ONLY: SWCOMP
+   USE swan_parallel, ONLY: SWINITMPI, SWEXITMPI, SWSYNC, SWCOLLECT, SWCOLOUT
+   USE swan_services, ONLY: HSOBND
+   USE swan_command_reading, ONLY: SWREAD
+   USE swan_output_orchestration, ONLY: SWOUTP
+   USE swan_time, ONLY: DCUMTM, NCUMTM
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: MSGERR, TXPBLA, STPNOW, SWTSTA, SWTSTO, SWPRTI
+   USE swan_time, ONLY: default_time_context
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_time
+   USE swan_number_formatting
+   USE swan_computational_grid_kind
+   USE swan_boundary_counters
+   USE swan_run_mode
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_test_output
+   USE swan_propagation_scheme
    USE OUTP_DATA
+   USE swan_vtk_output
    USE M_GENARR
+   USE swan_input_fields
    USE M_BNDSPEC
    USE M_PARALL
+   USE swan_global_grid
    USE SwanIEM
    USE SwanBraggScat
    USE SwanQCM
    USE SwanGriddata
-!METIS   USE SwanParallel
-!
-   IMPLICIT NONE
-!
-!
+   USE swan_metis_partition_backend, ONLY: metis_copy_ownership
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+!  The diffraction state belongs to the run; the driver owns it and passes
+!  it explicitly to preparation, computation, output and clean-up.
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -209,7 +168,7 @@ SUBROUTINE SWMAIN
 !
 !            10 FEB   Subroutine SWMAIN introduced
 !     30.60, Aug. 97: argument list of ERRCHK changed
-!     30.72, Sept 97: INTEGER*4 replaced by INTEGER
+!     30.72, Sept 97: INTEGER(KIND=SELECTED_INT_KIND(9)) replaced by INTEGER
 !     30.72, Nov. 97: declaration of ITERMX removed because it is a common
 !                     variable, which is declared in the INCLUDE file
 !     30.72, Nov. 97: PWTAIL(3) is made dependent on PWTAIL(1), also in the
@@ -279,14 +238,21 @@ SUBROUTINE SWMAIN
 !     IUNIT :     counter for file unit numbers                           34.01
 !     LOPEN :     indicates whether a file is open                        34.01
 !     MSGSTR:     string to pass message to call MSGERR                   40.41
-!
+
+   CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+   TYPE(diffraction_state_t) :: DIFFRACTION
+   TYPE(triad_state_t) :: TRIADS
+   TYPE(snl4_tables_t) :: SNL4
+   TYPE(spectral_powers_t) :: SPECTRAL_POWERS
+   TYPE(thread_workspaces_t) :: THREAD_WORKSPACES
    INTEGER   IUNIT
    INTEGER   IOSTAT, IT0, IT, SAVITE, ILEN
+   INTEGER   IGRID, IVT, IVTYPE, MXOUTAR
    INTEGER   INERR
    INTEGER   ISTAT, IF1, IL1
-   CHARACTER COMPUT *4, DTTIWR*18
-   CHARACTER*20 NUMSTR, CHARS(1)
-   CHARACTER*80 MSGSTR
+   CHARACTER(LEN=4)  :: COMPUT
+   CHARACTER(LEN=20) CHARS(1)
+   CHARACTER(LEN=80) MSGSTR
    LOGICAL   LOPEN
    INTEGER   IRQ, UPVD
 
@@ -294,10 +260,10 @@ SUBROUTINE SWMAIN
    INTEGER, ALLOCATABLE :: BGRIDP(:)
    REAL   , ALLOCATABLE :: BSPECS(:,:,:,:)
    REAL   , ALLOCATABLE :: AC1(:,:,:), COMPDA(:,:)
-!
+
    REAL, ALLOCATABLE    :: BLKND(:), BLKNDC(:)
-   REAL*8, ALLOCATABLE  :: OURQT(:)
-!
+   REAL(KIND=KIND(0.0D0)), ALLOCATABLE  :: OURQT(:)
+
 !  7. Common blocks used
 !
 !
@@ -319,15 +285,13 @@ SUBROUTINE SWMAIN
 !     HSOBND: Generates warning if comp. and prescr. Hs differ more than  32.01
 !             a fraction HSRERR at the up-wave boundary                   32.01
 !     SWOUTP
-!TIMG!     SWPRTI                                                              40.23
-!TIMG!     SWTSTA                                                              40.23
-!TIMG!     SWTSTO                                                              40.23
+!     SWPRTI
+!     SWTSTA
+!     SWTSTO
 !     MSGERR : Handles error messages according to severity               40.41
 !     NUMSTR : Converts integer/real to string                            40.41
 !     TXPBLA : Removes leading and trailing blanks in string              40.41
-!
-   LOGICAL STPNOW
-!
+
 !  9. Subroutines calling
 !
 !     MAIN program SWAN
@@ -345,7 +309,7 @@ SUBROUTINE SWMAIN
 !
 ! 12. Structure
 !
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !     Call SWINIT to initialize various common data
 !     Repeat                                                              40.00
 !         Call SWREAD to read and process user commands
@@ -364,15 +328,15 @@ SUBROUTINE SWMAIN
 !             ---------------------------------------------------------
 !             Call SWOUTP to postprocess the results and create output
 !             Update time
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !
 ! 13. Source text
 !
 !     --- initialize various data
 
-!TIMG   DCUMTM(:,1:2) = 0D0
-!TIMG   NCUMTM(:)     = 0
-!TIMG   CALL SWTSTA(1)
+   DCUMTM(:,1:2) = 0D0
+   NCUMTM(:)     = 0
+   IF (timing_enabled) CALL SWTSTA(1)
 
    LEVERR=0
    MAXERR=1
@@ -380,24 +344,24 @@ SUBROUTINE SWMAIN
    INERR =0
    ISTAT =0
 
-!TIMG   CALL SWTSTA(2)
-   CALL SWINIT (INERR)
-!TIMG   CALL SWTSTO(2)
+   IF (timing_enabled) CALL SWTSTA(2)
+   CALL SWINIT (INERR, SNL4)
+   IF (timing_enabled) CALL SWTSTO(2)
    IF (INERR.GT.0) RETURN
    IF (STPNOW()) RETURN
-!
+
    COMPUT = '    '
    RUNMADE=.FALSE.
 
 !     --- repeat
 
-   DO
+   main_loop: DO
 
 !       --- read and process user commands
-
-!TIMG      CALL SWTSTA(3)
-      CALL SWREAD (COMPUT)
-!TIMG      CALL SWTSTO(3)
+!
+      IF (timing_enabled) CALL SWTSTA(3)
+      CALL SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
+      IF (timing_enabled) CALL SWTSTO(3)
       IF (STPNOW()) RETURN
 
 !       --- if last command was STOP then exit from repeat
@@ -408,12 +372,12 @@ SUBROUTINE SWMAIN
          FILENM = 'norm_end'
          CALL FOR (IUNIT, FILENM, 'UF', IOSTAT)
          WRITE (IUNIT, *) ' Normal end of run ', PROJNR
-         GOTO 900
+         EXIT main_loop
       ENDIF
-!
+
 !       --- surfbeat: initialize variables and arrays for 2nd COMPUTE     41.85
-!
-      IF ( ntf.GT.0 ) CALL SwanIEMinitig
+
+      IF ( ntf.GT.0 ) CALL SwanIEMinitig(SPECTRAL_POWERS)
 
 !       --- allocate some arrays meant for computation                    40.31
 
@@ -435,15 +399,15 @@ SUBROUTINE SWMAIN
       IF (.NOT.ALLOCATED(BGRIDP)) ALLOCATE(BGRIDP(6*NBGRPT))
 
 !       --- do some preparations before computation                       40.31
-
-!TIMG      CALL SWTSTA(4)
+!
+      IF (timing_enabled) CALL SWTSTA(4)
       CALL SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID, YCGRID, KGRPNT, &
-                    KGRBND, SPCDIR, SPCSIG )
+         KGRBND, SPCDIR, SPCSIG, DIFFRACTION, TRIADS )
       IF (OPTG.EQ.5) CALL SwanPrepComp ( CROSS )
       IF (STPNOW()) RETURN
       ALOBND = .FALSE.
-!TIMG      CALL SWTSTO(4)
-
+      IF (timing_enabled) CALL SWTSTO(4)
+!
 !       --- check all possible flags and if necessary change
 !           if option is not correct
 
@@ -468,15 +432,15 @@ SUBROUTINE SWMAIN
          CHARS(1) = NUMSTR(ISTAT,RNAN,'(I6)')
          CALL TXPBLA(CHARS(1),IF1,IL1)
          MSGSTR = &
-             'Allocation problem: array COMPDA and return code is '// &
-             CHARS(1)(IF1:IL1)
+            'Allocation problem: array COMPDA and return code is '// &
+            CHARS(1)(IF1:IL1)
          CALL MSGERR ( 4, MSGSTR )
          RETURN
       END IF
 
-!TIMG      CALL SWTSTA(5)
+      IF (timing_enabled) CALL SWTSTA(5)
       CALL SWRBC(COMPDA)
-!TIMG      CALL SWTSTO(5)
+      IF (timing_enabled) CALL SWTSTO(5)
 
       IF ( IBRAG.NE.0 ) THEN
 !          arrays dpmean and botspc are temporary, can be de-allocated
@@ -486,7 +450,7 @@ SUBROUTINE SWMAIN
 !          --- compute bed elevation spectrum at wave number difference   41.80
 !              for the whole computational grid                           41.80
          IF (IBRAG.EQ.1) CALL SWFBXY(COMPDA(1,JDP2), COMPDA(1,JMUDL2), &
-                                     SPCSIG        , SPCDIR          )
+            SPCSIG        , SPCDIR          )
          IF (STPNOW()) RETURN
       ENDIF
 
@@ -508,8 +472,8 @@ SUBROUTINE SWMAIN
             CHARS(1) = NUMSTR(ISTAT,RNAN,'(I6)')
             CALL TXPBLA(CHARS(1),IF1,IL1)
             MSGSTR = &
-                'Allocation problem: array AC1 and return code is '// &
-                CHARS(1)(IF1:IL1)
+               'Allocation problem: array AC1 and return code is '// &
+               CHARS(1)(IF1:IL1)
             CALL MSGERR ( 4, MSGSTR )
             RETURN
          END IF
@@ -520,15 +484,11 @@ SUBROUTINE SWMAIN
 
       IF (LEVERR.GT.MAXERR) THEN
 
-         WRITE (PRINTF, 6010) LEVERR
-         IF (LEVERR.LT.4) WRITE (PRINTF, 6011)
-6010     FORMAT(' ** No start of computation because of error level:' &
-            ,I3)
-6011     FORMAT(' ** To ignore this error, change [maxerr] with the', &
-                ' SET command')
+         WRITE (PRINTF, "(' ** No start of computation because of error level:' ,I3)") LEVERR
+         IF (LEVERR.LT.4) WRITE (PRINTF, "(' ** To ignore this error, change [maxerr] with the', ' SET command')")
 
       ELSE
-!
+
          IF (ITEST.GE.40) THEN
             IF (NSTATC.EQ.1) THEN
                WRITE (PRINTF, '(" Type of computation: dynamic")')
@@ -540,17 +500,17 @@ SUBROUTINE SWMAIN
                ENDIF
             ENDIF
          ENDIF
-!
+
          IF (NSTATC.EQ.1) THEN
             IT0 = 0
             IF (ICOND.EQ.1) THEN
-!
+
 !             --- compute default initial conditions
 !
-!TIMG               CALL SWTSTA(6)
+               IF (timing_enabled) CALL SWTSTA(6)
                CALL SWINCO ( AC2   , COMPDA, XCGRID, YCGRID, &
-                             KGRPNT, SPCDIR, SPCSIG, XYTST )
-!TIMG               CALL SWTSTO(6)
+                  KGRPNT, SPCDIR, SPCSIG, XYTST )
+               IF (timing_enabled) CALL SWTSTO(6)
 !
 !             --- reset ICOND to prevent second computation of
 !                 initial condition
@@ -568,13 +528,11 @@ SUBROUTINE SWMAIN
 
 !         --- loop over time steps                                        40.00
 
-         DO 500 IT = IT0, MTC
-!
+         do IT = IT0, MTC
+
             IF (LEVERR.GT.MAXERR) THEN
-               WRITE (PRINTF, 6030) LEVERR
-               IF (LEVERR.LT.4) WRITE (PRINTF, 6011)
-6030           FORMAT(' ** No continuation of computation because ', &
-                      'of error level:',I3)
+               WRITE (PRINTF, "(' ** No continuation of computation because ', 'of error level:',I3)") LEVERR
+               IF (LEVERR.LT.4) WRITE (PRINTF, "(' ** To ignore this error, change [maxerr] with the', ' SET command')")
                EXIT
             ENDIF
 
@@ -582,26 +540,26 @@ SUBROUTINE SWMAIN
 
             CALL SWSYNC
             IF (STPNOW()) RETURN
-!
+
 !           --- update boundary conditions and input fields
 !
-!TIMG            CALL SWTSTA(7)
+            IF (timing_enabled) CALL SWTSTA(7)
             CALL SNEXTI ( BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
-                          SPCSIG, SPCDIR, XCGRID, YCGRID, KGRPNT, &
-                          XYTST , DEPTH , WLEVL , FRIC  , UXB   , &
-                          UYB   , NPLAF , TURBF , MUDLF , WXI   , &
-                          AICEF , HICEF , HSSF  , TSSF  , DSSF  , &
-                          WYI   )
-!TIMG            CALL SWTSTO(7)
+               SPCSIG, SPCDIR, XCGRID, YCGRID, KGRPNT, &
+               XYTST , DEPTH , WLEVL , FRIC  , UXB   , &
+               UYB   , NPLAF , TURBF , MUDLF , WXI   , &
+               AICEF , HICEF , HSSF  , TSSF  , DSSF  , &
+               WYI   )
+            IF (timing_enabled) CALL SWTSTO(7)
             IF (STPNOW()) RETURN
-!
+
 !           --- initialize quasi-coherent modelling framework             41.90
 !               note: data of incident spectrum is required
 
             IF ( IQCM.NE.0 .AND. IT.EQ.IT0 ) &
-                                        CALL SWQCINIT ( BGRIDP, COMPDA )
+               CALL SWQCINIT ( BGRIDP, COMPDA )
             IF (STPNOW()) RETURN
-!
+
 !           --- synchronize nodes
 
             CALL SWSYNC
@@ -611,59 +569,61 @@ SUBROUTINE SWMAIN
 
                SAVITE = ITEST
                IF (ICOTES .GT. ITEST) ITEST = ICOTES
-!
+
 !             --- compute action density for current time step
 !
-!TIMG               CALL SWTSTA(8)
+               IF (timing_enabled) CALL SWTSTA(8)
                IF (OPTG.NE.5) THEN
 !                structured grid                                          40.80
                   CALL SWCOMP( AC1   , AC2   , COMPDA, SPCDIR, SPCSIG, &
-                               XYTST , IT    , KGRPNT, XCGRID, YCGRID, &
-                               CROSS )
+                     XYTST , IT    , KGRPNT, XCGRID, YCGRID, &
+                     CROSS , DIFFRACTION, TRIADS, SNL4, SPECTRAL_POWERS, &
+                     THREAD_WORKSPACES )
                ELSE
 !                unstructured grid                                        40.80
                   CALL SwanCompUnstruc ( AC2   , AC1   , COMPDA, &
-                                         SPCSIG, SPCDIR, XYTST , &
-                                         CROSS , IT    )
+                     SPCSIG, SPCDIR, XYTST , &
+                     CROSS , IT    , DIFFRACTION, TRIADS, SNL4, &
+                     SPECTRAL_POWERS, THREAD_WORKSPACES )
                ENDIF
-!TIMG               CALL SWTSTO(8)
+               IF (timing_enabled) CALL SWTSTO(8)
                IF (STPNOW()) RETURN
-!
+
 !             --- set ICOND=4 for stationary computation, for next
 !                 (stationary) COMPUTE command                            40.13
                ICOND = 4
-!
+
 !             --- check whether computed significant wave height at       32.01
 !                 boundary differs from prescribed value given in         32.01
 !                 boundary command values of incident Hs                  32.01
-!
+
                IF ( BNDCHK ) THEN
                   CALL HSOBND ( AC2, SPCSIG, COMPDA(1,JHSIBC), KGRPNT )
                ENDIF
-!
+
 !             --- compute surfbeat based on IEM, if appropriate           41.85
-!
+
                IF ( LSRFB .AND. ntf.LT.0 ) THEN
-                  !
+
                   CALL SwanIEMmeanwav ( AC2, COMPDA(1,JHSIBC), SPCSIG, &
-                                        KGRPNT, COMPDA(1,JHS) )
+                     KGRPNT, COMPDA(1,JHS) )
                   CALL SwanIEMncalc
                   IF ( STPNOW() ) RETURN
                   CALL SwanIEMsrfbeat ( COMPDA(1,JHS ), AC2, &
-                                        COMPDA(1,JDP2), &
-                                        SPCDIR, SPCSIG, KGRPNT )
-                  !
+                     COMPDA(1,JDP2), &
+                     SPCDIR, SPCSIG, KGRPNT )
+
                ENDIF
-!
+
                ITEST = SAVITE
 
             ENDIF
-!
+
             IF ( IT.EQ.IT0 .AND. .NOT.ALLOCATED(OURQT) ) THEN
                ALLOCATE (OURQT(MAX_OUTP_REQ))
                OURQT = -9999.
             ENDIF
-!
+
             SAVITE = ITEST
             IF (IOUTES .GT. ITEST) ITEST = IOUTES
 
@@ -673,13 +633,13 @@ SUBROUTINE SWMAIN
             IF (STPNOW()) RETURN
 
 !           --- carry out the output requests
-
-!TIMG            CALL SWTSTA(9)
-            CALL SWOUTP ( AC2   , SPCSIG, SPCDIR, COMPDA, XYTST , &
-                          KGRPNT, XCGRID, YCGRID, OURQT )
-!TIMG            CALL SWTSTO(9)
-            IF (STPNOW()) RETURN
 !
+            IF (timing_enabled) CALL SWTSTA(9)
+            CALL SWOUTP ( AC2   , SPCSIG, SPCDIR, COMPDA, XYTST , &
+               KGRPNT, XCGRID, YCGRID, OURQT , DIFFRACTION )
+            IF (timing_enabled) CALL SWTSTO(9)
+            IF (STPNOW()) RETURN
+
             IF (ERRPTS.GT.0) REWIND(ERRPTS)
             ITEST = SAVITE
 
@@ -687,27 +647,24 @@ SUBROUTINE SWMAIN
 
             IF (NSTATC.EQ.1) THEN
                IF (IT.LT.MTC) THEN
-                  TIMCO = TIMCO + DT
-                  CHTIME = DTTIWR(ITMOPT, TIMCO)
-                  WRITE (PRINTF, 222) CHTIME, TIMCO
+                  default_time_context%TIMCO = default_time_context%TIMCO + default_time_context%DT
+                  CHTIME = DTTIWR(ITMOPT, default_time_context%TIMCO)
+                  WRITE (PRINTF, "(' Time of computation ->  ',A,' in sec:', F12.0)") CHTIME, default_time_context%TIMCO
                ENDIF
-222            FORMAT(' Time of computation ->  ',A,' in sec:', F12.0)
             ENDIF
 
-500      CONTINUE
+         end do
 
-         IF (LEVERR.GT.MAXERR) GOTO 900
+         IF (LEVERR.GT.MAXERR) EXIT main_loop
 
       END IF
 
-   END DO
-!
-900 CONTINUE
-!
-!TIMG   CALL SWTSTO(1)
+   END DO main_loop
+
+   IF (timing_enabled) CALL SWTSTO(1)
 !
 !     finalize PVD collection files
-!
+
    DO IRQ = 1, MAX_OUTP_REQ
       UPVD=UPVDF(IRQ)
       IF (UPVD.GT.0) THEN
@@ -715,18 +672,18 @@ SUBROUTINE SWMAIN
          WRITE(UPVD,'(A)') TRIM(PVDLIN4)
       ENDIF
    ENDDO
-!
+
    DO IUNIT=1,HIOPEN
       INQUIRE ( UNIT=IUNIT, OPENED=LOPEN, NAME=FILENM )
       IF (LOPEN.AND.IUNIT.NE.PRINTF.AND. &
-          FILENM.NE.'CONOUT$'.AND.FILENM.NE.'CONIN$') CLOSE(IUNIT)
+         FILENM.NE.'CONOUT$'.AND.FILENM.NE.'CONIN$') CLOSE(IUNIT)
    END DO
 
 !     --- collect contents of individual process files for                40.30
 !         output requests in case of parallel computation                 40.30
 
    CALL SWSYNC
-!TIMG   CALL SWTSTA(9)
+   IF (timing_enabled) CALL SWTSTA(9)
    IF ( PARLL ) THEN
       IF (OPTG.NE.5) THEN
          ALLOCATE (BLKND(MXC*MYC))
@@ -740,20 +697,20 @@ SUBROUTINE SWMAIN
          CALL SWCOLLECT ( BLKNDC, BLKND, .TRUE. )
          IF (STPNOW()) RETURN
       ELSE
-!METIS         BLKNDC = REAL(ipown)
+         CALL metis_copy_ownership(BLKNDC)
       ENDIF
       IF ( IAMMASTER ) THEN
          CALL SWCOLOUT ( OURQT, BLKNDC )
          DEALLOCATE(BLKNDC)
       END IF
    END IF
-!TIMG   CALL SWTSTO(9)
+   IF (timing_enabled) CALL SWTSTO(9)
 !
-!TIMG   CALL SWPRTI
-!
+   IF (timing_enabled) CALL SWPRTI
+
    INQUIRE(UNIT=PRINTF,OPENED=LOPEN)
    IF (LOPEN) CLOSE(PRINTF)
-!
+
 !     --- deallocate all allocated arrays                                 40.31
 
    IF (ALLOCATED(AC1   )) DEALLOCATE(AC1   )
@@ -763,35 +720,53 @@ SUBROUTINE SWMAIN
    IF (ALLOCATED(CROSS )) DEALLOCATE(CROSS )
    IF (ALLOCATED(OURQT )) DEALLOCATE(OURQT )
    IF (ALLOCATED(BLKND )) DEALLOCATE(BLKND )
-   CALL SWCLME
-!
+   CALL SWCLME (DIFFRACTION, TRIADS, SNL4, SPECTRAL_POWERS, &
+      THREAD_WORKSPACES)
+
    RETURN
 !     end of subroutine SWMAIN
-END
-!***********************************************************************
+end subroutine SWMAIN
+!************************************************************************
 !                                                                      *
-SUBROUTINE SWINIT (INERR)
+SUBROUTINE SWINIT (INERR, SNL4)
 !                                                                      *
-!***********************************************************************
+!************************************************************************
 
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-   USE TIMECOMM
-   USE OUTP_DATA, ONLY: NREOQ, LOPS, LORQ, UPVDF
-   USE M_SNL4
+   USE swan_service_interfaces, ONLY: STPNOW, BUGFIX
+   USE swan_ocean_pack_init, ONLY: OCPINI
+   USE swan_input_parser, ONLY: default_command_reader
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_boundary_counters
+   USE swan_run_mode
+   USE swan_input_grids
+   USE swan_input_field_files
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_math_constants
+   USE swan_integer_powers, ONLY: power9
+   USE swan_test_output
+   USE swan_propagation_scheme
+   USE swan_spherical_geometry
+   USE swan_time, ONLY: default_time_context
+   USE OUTP_DATA, ONLY: NREOQ, LOPS, LORQ
+   USE swan_vtk_output, ONLY: UPVDF
+   USE M_GENARR, ONLY: XYTST
+   USE swan_input_fields, ONLY: DEPTH, FRIC, UXB, UYB, WXI, WYI, WLEVL, ASTDF, MUDLF, NPLAF, TURBF, AICEF, HICEF, HSSF, TSSF, DSSF
+   USE swan_vegetation_layers, ONLY: LAYH, VEGDIL, VEGDRL, VEGNSL
    USE M_BNDSPEC
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
    USE SwanIEM, only: sflog
    USE SwanQCM
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -859,7 +834,7 @@ SUBROUTINE SWINIT (INERR)
 !     30.60, July 97: initialisation of array EXCVAL
 !     30.60, Aug. 97: initialisation of MCGRD
 !     30.62, Aug. 97: initialisation of PSURF(3) (gamd=1. for HISWA)
-!     30.72, Sept 97: INTEGER*4 replaced by INTEGER
+!     30.72, Sept 97: INTEGER(KIND=SELECTED_INT_KIND(9)) replaced by INTEGER
 !     30.72, Nov. 97: updated units in OVUNIT
 !     30.72, Jan. 98: made default values for quadruplets and PNUMS(20)
 !                     (=GRWMX) according the command GEN3 KOM
@@ -925,18 +900,39 @@ SUBROUTINE SWINIT (INERR)
 !  4. Argument variables
 !
 !     INERR : Number of the initialisation error
-!
-   INTEGER INERR
-!
+!     SNL4  : tables for the quadruplet interactions; on return they hold
+!             the default coefficients of the multiple DIA (MDIA) (output)
+
+!   The version number is only needed to render VERTXT, so it is a named
+!   constant here instead of a mutable module variable.
+   TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
+   REAL, PARAMETER :: SWAN_VERSION_NUMBER = 41.51
+   INTEGER :: INERR, IGRID, IVT, IVTYPE, MXOUTAR
+
 !  6. Local variables
+!
+   CHARACTER(LEN=36) :: FBCL
+   CHARACTER(LEN=36) :: FBCR
+   CHARACTER(LEN=36) :: FNEST
+   CHARACTER(LEN=6) :: UAP
+   CHARACTER(LEN=6) :: UDI
+   CHARACTER(LEN=6) :: UDL
+   CHARACTER(LEN=6) :: UET
+   CHARACTER(LEN=6) :: UH
+   CHARACTER(LEN=6) :: UL
+   CHARACTER(LEN=6) :: UV
+   INTEGER :: JSTP
+   INTEGER :: ICOMP
+   INTEGER :: IDIF
+   INTEGER :: IINC
+   INTEGER :: NCOR
+!
 !
 !  7. Common blocks used
 !
 !
 !  8. Subroutines used
-!
-   LOGICAL STPNOW
-!
+
 !  9. Subroutines calling
 !
 !     SWREAD
@@ -951,46 +947,41 @@ SUBROUTINE SWINIT (INERR)
 !
 ! 12. Structure
 !
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !     Call OCPINI to initialize installation dependent constants
 !     Call VERSION to get valid version number
 !     Give unit references initial value
 !     Write heading above echo of input
 !     Give common variables initial value
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !
 ! 13. Source text
-!
-   VERTXT = BLANK
-   VERNUM = 41.51
-   WRITE (VERTXT, '(F5.2)') VERNUM
+
+   VERTXT = default_command_reader%BLANK
+   WRITE (VERTXT, '(F5.2)') SWAN_VERSION_NUMBER
    CALL BUGFIX ('A')
    CALL BUGFIX ('B')
-!
+
    CALL OCPINI ('swaninit', .TRUE.,INERR)
    IF (INERR.GT.0) RETURN
    IF (STPNOW()) RETURN
-!
-   WRITE (PRINTF, 6010) VERTXT
-6010 FORMAT (/,20X,'---------------------------------------', &
-             /,20X,'                 SWAN', &
-             /,20X,'SIMULATION OF WAVES IN NEAR SHORE AREAS', &
-             /,20X,'         VERSION NUMBER ', A, &
-             /,20X,'---------------------------------------',//)
-!
-   IF (SCREEN.NE.PRINTF.AND.IAMMASTER) WRITE (SCREEN,6020)
-6020 FORMAT (/, ' SWAN is preparing computation',/)
-!
+
+   WRITE (PRINTF, "(/,20X,'---------------------------------------', /,20X,'                 SWAN',&
+         & /,20X,'SIMULATION OF WAVES IN NEAR SHORE AREAS', /,20X,'         VERSION NUMBER ', A, /,&
+         &20X,'---------------------------------------',//)") VERTXT
+
+   IF (SCREEN.NE.PRINTF.AND.IAMMASTER) WRITE (SCREEN,"(/, ' SWAN is preparing computation',/)")
+
 !     ***** initial values for common variables *****
 !     ***** names *****
    PROJID = 'SWAN'
-   PROJNR = BLANK
-   PROJT1 = BLANK
-   PROJT2 = BLANK
-   PROJT3 = BLANK
-   FNEST  = BLANK
-   FBCR   = BLANK
-   FBCL   = BLANK
+   PROJNR = default_command_reader%BLANK
+   PROJT1 = default_command_reader%BLANK
+   PROJT2 = default_command_reader%BLANK
+   PROJT3 = default_command_reader%BLANK
+   FNEST  = default_command_reader%BLANK
+   FBCR   = default_command_reader%BLANK
+   FBCL   = default_command_reader%BLANK
    UH     = 'm'
    UV     = 'm/s'
    UT     = 'sec'
@@ -1008,11 +999,7 @@ SUBROUTINE SWINIT (INERR)
    CASTD  = 0. ! const. air-sea temp diff
    CDCAP  = 99999.
    USCAP  = 99999.
-   PI     = 4.*ATAN(1.)
-   PI2    = 2.*PI
-   UNDFLW = 1.E-15
    DNORTH = 90.
-   DEGRAD = PI/180.
    RHO    = 1025.
 !     power of tail in spectrum, 1: E with f, 2: E with k,
 !                                3: A with f, 4: A with k
@@ -1029,7 +1016,7 @@ SUBROUTINE SWINIT (INERR)
    ncells  = 0
    nfaces  = 0
 !     time of computation                                                 40.00
-   TIMCO = -1.E10
+   default_time_context%TIMCO = -1.E10
    CHTIME = '    '
 !     boundary conditions                                                 40.00
    NBFILS = 0
@@ -1042,7 +1029,7 @@ SUBROUTINE SWINIT (INERR)
    PSHAPE(2) = 0.1
    ALOBND = .FALSE.
 !     ***** input grids *****
-   DO 80 IGRID = 1, NUMGRD
+   do IGRID = 1, NUMGRD
       XPG(IGRID)    = 0.
       YPG(IGRID)    = 0.
       ALPG(IGRID)   = 0.
@@ -1058,7 +1045,7 @@ SUBROUTINE SWINIT (INERR)
       EXCFLD(IGRID) = -1.E20
       IFLDYN(IGRID) = 0
       IFLTIM(IGRID) = -1.E20
-80 CONTINUE
+   end do
 !     ***** computational grid *****
    OPTG   = 1
    MXC    = 0
@@ -1081,46 +1068,44 @@ SUBROUTINE SWINIT (INERR)
    usort  = -999.
    nsweep = -999
    CCURV  = .FALSE.
-!     number of points needed in computational stencil:
-   ICMAX  = 5
 !     ***** numerical scheme *****
    NCOR   = 1
    NSTATM = -1
    NSTATC = -1
    NCOMPT = 0
-!
+
 !     initialise number of iterations stationary and nonstationary        40.03
    MXITST = 50
    MXITNS = 1
    ITERMX = MXITST
-   ICUR   = 0
+   ICUR = ICUR_OFF
    IDIF   = 0
    IINC   = 0
-!
+
 !     --- meaning IREFR:                                                  40.31
 !         IREFR = -1: limiter on Ctheta activated                         30.80
 !         IREFR =  1: No limiter on Ctheta                                30.80
 !         IREFR =  0: No refraction                                       30.80
-!
-   IREFR  = 1
-   ITFRE  = 1
-   IWIND  = 0
+
+   IREFR = IREFR_NO_LIMITER
+   ITFRE = ITFRE_ON
+   IWIND = IWIND_OFF
 !     when coupled with ADCIRC, the default is to use ADCIRC drag formulation
-   IDRAG  = 1
-   IGEN   = 3
-   IQUAD  = 2
-   IWCAP  = 7
-   ISURF  = 1
-   IBOT   = 0
-   ITRIAD = 0
-   IBIPH  = 0
-   IMUD   = 0
-   IVEG   = 0
-   ITURBV = 0
-   IICE   = 0
+   IDRAG = IDRAG_WU
+   IGEN = IGEN_GEN3
+   IQUAD = IQUAD_DIA_WAM
+   IWCAP = IWCAP_AB
+   ISURF = ISURF_CON
+   IBOT = IBOT_OFF
+   ITRIAD = ITRIAD_OFF
+   IBIPH = IBIPH_OFF
+   IMUD = IMUD_OFF
+   IVEG = IVEG_OFF
+   ITURBV = ITURBV_OFF
+   IICE = IICE_OFF
    ICEWIND= 0.
-   IBRAG  = 0
-   IQCM   = 0
+   IBRAG = IBRAG_OFF
+   IQCM = IQCM_OFF
    VARWI  = .FALSE.
    VARFR  = .FALSE.
    VARWLV = .FALSE.
@@ -1145,24 +1130,26 @@ SUBROUTINE SWINIT (INERR)
    DYNDEP = .FALSE.
    LWDATE = 0
    MXOUTAR = 0
-!
+
    FBS%NBS = -999
    LOPS    = .FALSE.
    LORQ    = .FALSE.
-!
+
 !     Set the defaults for the MDIA:                                      40.17
 
-   MDIA  = 6
-   ALLOCATE(LAMBDA(MDIA),CNL4_1(MDIA),CNL4_2(MDIA))
-   LAMBDA = (/0.08,0.09,0.11,0.15,0.16,0.29/)
-   CNL4_1 = (/8.77,-13.82,10.02,-15.92,14.41,0.65/)
-   CNL4_2 = CNL4_1
-   CNL4_1 = CNL4_1 * ((2.*PI)**9)
-   CNL4_2 = CNL4_2 * ((2.*PI)**9)
-!
+   SNL4%quadruplet_count = 6
+   ALLOCATE(SNL4%lambda(SNL4%quadruplet_count), &
+      SNL4%coefficient_1(SNL4%quadruplet_count), &
+      SNL4%coefficient_2(SNL4%quadruplet_count))
+   SNL4%lambda = (/0.08,0.09,0.11,0.15,0.16,0.29/)
+   SNL4%coefficient_1 = (/8.77,-13.82,10.02,-15.92,14.41,0.65/)
+   SNL4%coefficient_2 = SNL4%coefficient_1
+   SNL4%coefficient_1 = SNL4%coefficient_1 * power9(2.*PI)
+   SNL4%coefficient_2 = SNL4%coefficient_2 * power9(2.*PI)
+
 !     *** Initial conditions ***
    ICOND = 0
-!
+
    BNAUT  = .FALSE.
    BNDCHK = .TRUE.
    BRESCL = .TRUE.
@@ -1172,9 +1159,9 @@ SUBROUTINE SWINIT (INERR)
    LADDS  = .FALSE.
    LSPNAR = .FALSE.
    HSRERR = 0.1
-!
+
 !     higher order propagation and spherical coordinates                  33.08
-!
+
    PROJ_METHOD = 0
    PROPSS = 2
    PROPSN = 3
@@ -1186,58 +1173,54 @@ SUBROUTINE SWINIT (INERR)
    KREPTX = 0
    REARTH = 2.E7/PI
    LENDEG = 2.E7/180.
-!
+
 !     *** setup flag ***                                                  32.02
    LSETUP = 0
-!
-!     *** flag for setup convergence                                      30.82
-!
-   CSETUP = .TRUE.
-!
+
 !     PSETUP(1) is currently unused, but can be used as setup nesting flag
 !     PSETUP(2) is the user defined correction for the level of the setup
-!
+
    PSETUP(1) = 0.0
    PSETUP(2) = 0.0
-!
+
 !     flag for frequency dependent surf breaking                          41.06
-!
-   IFRSRF = 0
-!
+
+   IFRSRF = IFRSRF_OFF
+
 !     flag for wave directionality in surf breaking                       41.47
-!
-   IDISRF = 0
-!
+
+   IDISRF = IDISRF_OFF
+
 !     surfbeat model
-!
+
    LSRFB = .FALSE.
    sflog = .FALSE.
-!
+
 !     *** ACCURACY criterion ***
 !
 !     *** relative error in significant wave height and mean period ***
-   PNUMS(1)  = 0.01
+   PNUMS(PNUMS_DREL)  = 0.01
 !     *** absolute error in significant wave heigth (m) ***
-   PNUMS(2)  = -1.
+   PNUMS(PNUMS_DABS)  = -1.
 !     *** absolute error in mean wave period (s) ***
 !      PNUMS(3)  = 0.3
-   PNUMS(3)  = 1000.
+   PNUMS(PNUMS_DTABS)  = 1000.
 !     *** total number of wet gridpoints were accuracy has ***
 !     *** been reached                                     ***
-   PNUMS(4)  = 99.50
-!
+   PNUMS(PNUMS_NPNTS)  = 99.50
+
 !     *** DIFFUSION schemes ***
 !
 !     *** Numerical diffusion over theta ***
-   PNUMS(6)  = 0.5
+   PNUMS(PNUMS_CDD)  = 0.5
 !     *** Numerical diffusion over sigma ***
-   PNUMS(7)  = 0.5
+   PNUMS(PNUMS_CSS)  = 0.5
 !     *** Explicit or implicit scheme in frequency space ***
 !     *** default = implicit : PNUMS(8) = 1              ***
-   PNUMS(8) = -999.
+   PNUMS(PNUMS_SCHEMEFR) = -999.
 !     *** diffusion coefficient for explicit scheme ***
-   PNUMS(9) = 0.01
-!
+   PNUMS(PNUMS_CEXPL) = 0.01
+
 !     *** parameters for the SIP solver                        ***
 !
 !     *** Required accuracy to terminate the solver            ***
@@ -1255,123 +1238,123 @@ SUBROUTINE SWINIT (INERR)
 !     ***           concerning the iteration process           ***
 !
 !     *** PNUMS(14) : maximum number of iterations             ***
-!
-   PNUMS(12) = 1.E-4
-   PNUMS(13) = 0.
-   PNUMS(14) = 20.
-!
+
+   PNUMS(PNUMS_EPS2) = 1.E-4
+   PNUMS(PNUMS_SIPPRN) = 0.
+   PNUMS(PNUMS_SIPMAX) = 20.
+
 !     For the setup calculation, next parameters for the solver are used:
 !
 !     PNUMS(23) : required accuracy to terminate the solver
 !     PNUMS(24) : output for the solver (see PNUMS(13) for meanings)
 !     PNUMS(25) : maximum number of iterations
-!
-   PNUMS(23) = 1.E-6
-   PNUMS(24) = 0.
-   PNUMS(25) = 1000.
-!
+
+   PNUMS(PNUMS_SUPEPS) = 1.E-6
+   PNUMS(PNUMS_SUPPRN) = 0.
+   PNUMS(PNUMS_SUPMAX) = 1000.
+
 !     Maximum growth in spectral bin
 !     The value is the default in the command GEN3 KOM
-!
-   PNUMS(20) = 0.1
-!
+
+   PNUMS(PNUMS_LIMGRW) = 0.1
+
 !     Added coefficient for use with limiter on action (Qb switch)        40.16
-!
-   PNUMS(28) = 1.
-!
+
+   PNUMS(PNUMS_QBCOEF) = 1.
+
 !     *** set the values of PNUMS that are not used equal 0. ***
-!
-   PNUMS(5)  = 0.
-!
+
+   PNUMS(PNUMS_NOTUSED)  = 0.
+
 !     The allowed global errors in the iteration procedure:               30.82
 !     PNUMS(15) for Hs and PNUMS(16) for Tm01                             30.82
 !
 !      PNUMS(15) = 0.02                                                    30.82
 !      PNUMS(16) = 0.02                                                    30.82
 !     The next two values are meant for STOPC command
-   PNUMS(15) = 0.005
-   PNUMS(16) = 1000.
-!
+   PNUMS(PNUMS_TOLHS) = 0.005
+   PNUMS(PNUMS_TOLTM) = 1000.
+
 !     coefficient for limitation of Ctheta                                30.80
 !     default no limitation on refraction                                 40.02
-!
-   PNUMS(17) = -999.
-!
+
+   PNUMS(PNUMS_CDLIM) = -999.
+
 !     Limitation on Froude number; current velocity is reduced if greater
 !     than Pnums(18)*Sqrt(grav*depth)
-!
-   PNUMS(18) = 0.8
-!
+
+   PNUMS(PNUMS_FROUDE) = 0.8
+
 !     *** CFL criterion for explicit scheme in frequency space ***
-!
-   PNUMS(19) = 0.5 * sqrt (2.)
-!
+
+   PNUMS(PNUMS_CFLFR) = 0.5 * sqrt (2.)
+
 !     --- coefficient for type stopping criterion                         40.41
-!
-   PNUMS(21) = 1.
-!
+
+   PNUMS(PNUMS_STOPTY) = 1.
+
 !     --- under-relaxation factor
-!
-   PNUMS(30) = 0.00
-!
+
+   PNUMS(PNUMS_ALFA) = 0.00
+
 !     --- parameters for limiting Ctheta
-!
-   PNUMS(26) = 0.2
-   PNUMS(27) = 2.0
-   PNUMS(29) = 0.0
-!
+
+   PNUMS(PNUMS_LCTFRQ) = 0.2
+   PNUMS(PNUMS_LCTPP) = 2.0
+   PNUMS(PNUMS_LCTON) = 0.0
+
 !     --- computation of Ctheta based on wave number
-!
-   PNUMS(32) = 1.
-!
+
+   PNUMS(PNUMS_GRADK) = 1.
+
 !     --- parameters for limiting Csigma and Ctheta
-!
-   PNUMS(33) = 0.0
-   PNUMS(34) = 0.9
-   PNUMS(35) = 0.0
-   PNUMS(36) = 0.9
-!
+
+   PNUMS(PNUMS_LCSON) = 0.0
+   PNUMS(PNUMS_LCSAL) = 0.9
+   PNUMS(PNUMS_LCTCON) = 0.0
+   PNUMS(PNUMS_LCTAL) = 0.9
+
 !     --- parameter for BKD surf breaking
-!
-   PNUMS(37) = 95.
-!
+
+   PNUMS(PNUMS_BKDACC) = 95.
+
 !     *** (1) and (2): Komen et al. (1984) formulation ***
-!
+
    PWCAP(1)  = 2.36E-5
    PWCAP(2)  = 3.02E-3
    PWCAP(9)  = 2.
 !     note that delta has been set to 1 since version 40.91A              41.41
    PWCAP(10) = 1.
    PWCAP(11) = 1.
-!
+
 !     *** (3): Coefficient for Janssen(1989,1991) formulation ***
 !     ** according to Komen et al. (1994) ***
-!
+
    PWCAP(3)  = 4.5
    PWCAP(4)  = 0.5
-!
+
 !     *** (5): Coefficient for Longuet-Higgins ***
-!
+
    PWCAP(5) = 1.
-!
+
 !     *** (6): ALPHA in Battjes/Janssen ***
-!
+
    PWCAP(6) = 0.88
    PWCAP(7) = 1.
    PWCAP(8) = 0.75
-!
+
 !     *** Alves and Banner formulation ***
-!
+
    PWCAP(12) = 1.75E-3
-!
+
 !     flag for current-induced wave dissipation                           42.04
-!
-   IWCCUR = 0
-!
+
+   IWCCUR = IWCCUR_OFF
+
 !     *** (14): coefficient for enhanced current-induced dissipation      42.04
-!
+
    PWCAP(14) = 0.8
-!
+
 !       parameters to be used for Babanin physics and swell               40.88
    A1SDS       = 2.8E-6
    A2SDS       = 3.5E-5
@@ -1390,7 +1373,7 @@ SUBROUTINE SWINIT (INERR)
    ARDHUIN     = .TRUE.
    ZIEGER      = .FALSE.
    FPI         = 1.
-!
+
    PBOT(1)   = 0.0
    PBOT(2)   = 0.015
    PBOT(3)   = 0.038
@@ -1398,40 +1381,40 @@ SUBROUTINE SWINIT (INERR)
    PBOT(5)   = 0.05
    PBOT(6)   = 2.65
    PBOT(7)   = 0.0001
-!
+
    PSURF(1)  = 1.0
    PSURF(2)  = 0.73
-!
+
    PMUD(1)   = 0.
    PMUD(2)   = 1300.
    PMUD(3)   = 0.0076
    PMUD(4)   = RHO
    PMUD(5)   = 1.3E-6
-!
+
 !     parameters for Bragg scattering                                     41.80
    PBRAG = 0.
    PBRAG(2) = 5.
-!
+
 !     parameters for QC scattering                                        41.90
    PSCAT = 0.
    PSCAT(1) = 1.
    PSCAT(2) = 99999.
    PSCAT(7) = 1.
-!
+
 !     work arrays for QC scattering
    ncoz   = 0
    lenwft = 0
    lensav = 0
-!
+
 !     wave number space is initially void
    mkxc = -1
    mkyc = -1
-!
+
 !     parameters for dissipation by sea ice: all values (1:8) set to zero
    PSICE    = 0.
 !     parameters for uniform ice fields all values (1:2) set to zero
    PICE    = 0.
-!
+
 !     triad interactions
    PTRIAD(1)  = 1.0
    PTRIAD(2)  = 2.5
@@ -1448,14 +1431,14 @@ SUBROUTINE SWINIT (INERR)
    PTRIAD(7)  = 0.
    PTRIAD(8)  = 60.
    PTRIAD(10) = -1.
-!
+
 !     quadruplet interactions
    PQUAD(1) = 0.25
    PQUAD(2) = 3.E7
    PQUAD(3) = 5.5
    PQUAD(4) = 0.833
    PQUAD(5) = -1.25
-!
+
    PWIND(1)  = 188.0
    PWIND(2)  = 0.59
    PWIND(3)  = 0.12
@@ -1482,19 +1465,19 @@ SUBROUTINE SWINIT (INERR)
 !     Coefficient in front of A term in 3d gen. growth term
 !     default is 0; can be made non-zero in command GEN3 or GROWTH
    PWIND(31) = 0.
-!
+
 !     for DBYB wind input term, decide whether to integrate stress as a
 !     vector (true) or a scalar (false)
    VECTOR_TAU = .TRUE.
 !     also for DBYB wind input term, decide whether to use U10 as given
 !     in DBYB or use 28*ustar as a proxy
    TRUE_U10 = .FALSE.
-!
+
 !     --- coefficients for diffraction approximation                      40.21
-!
-   IDIFFR    = 0
+
+   IDIFFR = IDIFFR_OFF
    PDIFFR(:) = 0.
-!
+
 !     pointers in array COMPDA
    JDISS = 2
    JUBOT = 3
@@ -1547,18 +1530,18 @@ SUBROUTINE SWINIT (INERR)
    JTURB3= 1
 !     added for breaker index                                             41.96
    JGAMMA= 1
-!
+
 !     added for ice input fields                                          41.75
    JAICE2= 1
    JAICE3= 1
    JHICE2= 1
    JHICE3= 1
-!
+
 !     *** added for wave setup ***                                        32.01
-!
+
    JSETUP = 1
    JDPSAV = 1
-!
+
 !     added for sea-swell wave input fields                               41.82
    JHSS2= 1
    JHSS3= 1
@@ -1566,9 +1549,9 @@ SUBROUTINE SWINIT (INERR)
    JTSS3= 1
    JDSS2= 1
    JDSS3= 1
-!
+
 !     --- added for output purposes                                       40.65
-!
+
    JPBOT  = 1
    JDSXB  = 1
    JDSXS  = 1
@@ -1590,9 +1573,9 @@ SUBROUTINE SWINIT (INERR)
    JTSXT  = 1
    JTSXS  = 1
    JRADS  = 1
-!
+
 !     Next pointers are for the plot of the source terms (SWTSDA)         40.31
-!
+
    JPWNDS = 1
    JPWNDD = 2
    JPWCAP = 3
@@ -1609,7 +1592,7 @@ SUBROUTINE SWINIT (INERR)
    JPQCS  = 15
    MTSVAR = 15
    JPSWEL = 1
-!
+
 !     ***** test output control *****
    ITEST  = 1
    INTES  = 0
@@ -1621,8 +1604,6 @@ SUBROUTINE SWINIT (INERR)
    NPTSTA = 1
    LXDMP  = -1
    LYDMP  = 0
-   NEGMES = 0
-   MAXMES = 200
    IFPAR = 0
    IFS1D = 0
    IFS2D = 0
@@ -1633,13 +1614,13 @@ SUBROUTINE SWINIT (INERR)
    NREOQ  = 0
    UPVDF  = 0
 !     ***** plot output *****
-!
+
    DO IVT = 1, NMOVAR
       OVKEYW(IVT) = 'XXXX'
    ENDDO
-!
+
 !     properties of output variables
-!
+
    IVTYPE = 1
 !     keyword used in SWAN command
    OVKEYW(IVTYPE) = 'XP'
@@ -1659,7 +1640,7 @@ SUBROUTINE SWINIT (INERR)
    OVHEXP(IVTYPE) = 1.E10
 !     exception value
    OVEXCV(IVTYPE) = -1.E10
-!
+
    IVTYPE = 2
    OVKEYW(IVTYPE) = 'YP'
    OVSNAM(IVTYPE) = 'Yp'
@@ -1671,7 +1652,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = -1.E10
    OVHEXP(IVTYPE) = 1.E10
    OVEXCV(IVTYPE) = -1.E10
-!
+
    IVTYPE = 3
    OVKEYW(IVTYPE) = 'DIST'
    OVSNAM(IVTYPE) = 'Dist'
@@ -1683,7 +1664,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.E10
    OVEXCV(IVTYPE) = -99.
-!
+
    IVTYPE = 4
    OVKEYW(IVTYPE) = 'DEP'
    OVSNAM(IVTYPE) = 'Depth'
@@ -1695,7 +1676,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = -100.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -99.
-!
+
    IVTYPE = 5
    OVKEYW(IVTYPE) = 'VEL'
    OVSNAM(IVTYPE) = 'Vel'
@@ -1707,7 +1688,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = -2.
    OVHEXP(IVTYPE) = 2.
    OVEXCV(IVTYPE) = 0.
-!
+
    IVTYPE = 6
    OVKEYW(IVTYPE) = 'UBOT'
    OVSNAM(IVTYPE) = 'Ubot'
@@ -1719,7 +1700,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -10.
-!
+
    IVTYPE = 7
    OVKEYW(IVTYPE) = 'DISS'
    OVSNAM(IVTYPE) = 'Dissip'
@@ -1731,7 +1712,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 8
    OVKEYW(IVTYPE) = 'QB'
    OVSNAM(IVTYPE) = 'Qb'
@@ -1743,7 +1724,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -1.
-!
+
    IVTYPE = 9
    OVKEYW(IVTYPE) = 'LEA'
    OVSNAM(IVTYPE) = 'Leak'
@@ -1755,7 +1736,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 10
    OVKEYW(IVTYPE) = 'HS'
    OVSNAM(IVTYPE) = 'Hsig'
@@ -1767,7 +1748,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!                                                                         modified 10.09
+
    IVTYPE = 11
    OVKEYW(IVTYPE) = 'TM01'
    OVSNAM(IVTYPE) = 'Tm01'
@@ -1779,7 +1760,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 12
    OVKEYW(IVTYPE) = 'RTP'
    OVSNAM(IVTYPE) = 'RTpeak'
@@ -1791,7 +1772,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 13
    OVKEYW(IVTYPE) = 'DIR'
    OVSNAM(IVTYPE) = 'Dir'
@@ -1803,7 +1784,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 360.
    OVEXCV(IVTYPE) = -999.
-!
+
    IVTYPE = 14
    OVKEYW(IVTYPE) = 'PDI'
    OVSNAM(IVTYPE) = 'PkDir'
@@ -1815,7 +1796,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 360.
    OVEXCV(IVTYPE) = -999.
-!
+
    IVTYPE = 15
    OVKEYW(IVTYPE) = 'TDI'
    OVSNAM(IVTYPE) = 'TDir'
@@ -1827,7 +1808,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 360.
    OVEXCV(IVTYPE) = -999.
-!
+
    IVTYPE = 16
    OVKEYW(IVTYPE) = 'DSPR'
    OVSNAM(IVTYPE) = 'Dspr'
@@ -1839,7 +1820,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 60.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 17
    OVKEYW(IVTYPE) = 'WLEN'
    OVSNAM(IVTYPE) = 'Wlen'
@@ -1851,7 +1832,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 200.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 18
    OVKEYW(IVTYPE) = 'STEE'
    OVSNAM(IVTYPE) = 'Steepn'
@@ -1863,7 +1844,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 19
    OVKEYW(IVTYPE) = 'TRA'
    OVSNAM(IVTYPE) = 'Transp'
@@ -1875,7 +1856,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = -10.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = 0.
-!
+
    IVTYPE = 20
    OVKEYW(IVTYPE) = 'FOR'
    OVSNAM(IVTYPE) = 'WForce'
@@ -1887,7 +1868,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = -10.
    OVHEXP(IVTYPE) =  10.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 21
    OVKEYW(IVTYPE) = 'AAAA'
    OVSNAM(IVTYPE) = 'AcDens'
@@ -1899,7 +1880,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -99.
-!
+
    IVTYPE = 22
    OVKEYW(IVTYPE) = 'EEEE'
    OVSNAM(IVTYPE) = 'EnDens'
@@ -1911,7 +1892,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -99.
-!
+
    IVTYPE = 23
    OVKEYW(IVTYPE) = 'AAAA'
    OVSNAM(IVTYPE) = 'Aux'
@@ -1923,7 +1904,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = -1.E10
    OVHEXP(IVTYPE) = 1.E10
    OVEXCV(IVTYPE) = -1.E10
-!
+
    IVTYPE = 24
    OVKEYW(IVTYPE) = 'XC'
    OVSNAM(IVTYPE) = 'Xc'
@@ -1935,7 +1916,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 25
    OVKEYW(IVTYPE) = 'YC'
    OVSNAM(IVTYPE) = 'Yc'
@@ -1947,7 +1928,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 26
    OVKEYW(IVTYPE) = 'WIND'
    OVSNAM(IVTYPE) = 'Windv'
@@ -1959,7 +1940,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = -50.
    OVHEXP(IVTYPE) = 50.
    OVEXCV(IVTYPE) = 0.
-!
+
    IVTYPE = 27
    OVKEYW(IVTYPE) = 'FRC'
    OVSNAM(IVTYPE) = 'FrCoef'
@@ -1983,7 +1964,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 29
    OVKEYW(IVTYPE) = 'EEEE'
    OVSNAM(IVTYPE) = 'EnDens'
@@ -1995,7 +1976,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -99.
-!
+
    IVTYPE = 30
    OVKEYW(IVTYPE) = 'DHS'
    OVSNAM(IVTYPE) = 'dHs'
@@ -2007,7 +1988,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 31
    OVKEYW(IVTYPE) = 'DRTM01'
    OVSNAM(IVTYPE) = 'dTm'
@@ -2019,7 +2000,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 2.
    OVEXCV(IVTYPE) = -9.
-!                                                                         20.61
+
    IVTYPE = 32
    OVKEYW(IVTYPE) = 'TM02'
    OVSNAM(IVTYPE) = 'Tm02'
@@ -2031,7 +2012,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!                                                                         20.61
+
    IVTYPE = 33
    OVKEYW(IVTYPE) = 'FSPR'
    OVSNAM(IVTYPE) = 'FSpr'
@@ -2043,7 +2024,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 34
    OVKEYW(IVTYPE) = 'URMS'
    OVSNAM(IVTYPE) = 'Urms'
@@ -2055,7 +2036,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 35
    OVKEYW(IVTYPE) = 'UFRI'
    OVSNAM(IVTYPE) = 'Ufric'
@@ -2067,7 +2048,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 36
    OVKEYW(IVTYPE) = 'ZLEN'
    OVSNAM(IVTYPE) = 'Zlen'
@@ -2079,7 +2060,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 37
    OVKEYW(IVTYPE) = 'TAUW'
    OVSNAM(IVTYPE) = 'TauW'
@@ -2091,7 +2072,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 38
    OVKEYW(IVTYPE) = 'CDRAG'
    OVSNAM(IVTYPE) = 'Cdrag'
@@ -2103,9 +2084,9 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
 !     *** wave-induced setup ***                                          32.02
-!
+
    IVTYPE = 39
    OVKEYW(IVTYPE) = 'SETUP'
    OVSNAM(IVTYPE) = 'Setup'
@@ -2117,7 +2098,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = -1.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 40
    OVKEYW(IVTYPE) = 'TIME'
    OVSNAM(IVTYPE) = 'Time'
@@ -2129,7 +2110,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -99999.
-!
+
    IVTYPE = 41
    OVKEYW(IVTYPE) = 'TSEC'
    OVSNAM(IVTYPE) = 'Tsec'
@@ -2165,7 +2146,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 44
    OVKEYW(IVTYPE) = 'HSWE'
    OVSNAM(IVTYPE) = 'Hswell'
@@ -2177,7 +2158,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 45
    OVKEYW(IVTYPE) = 'URSELL'
    OVSNAM(IVTYPE) = 'Ursell'
@@ -2189,7 +2170,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 46
    OVKEYW(IVTYPE) = 'ASTD'
    OVSNAM(IVTYPE) = 'ASTD'
@@ -2201,7 +2182,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = -10.
    OVHEXP(IVTYPE) =  10.
    OVEXCV(IVTYPE) = -99.
-!
+
    IVTYPE = 47
    OVKEYW(IVTYPE) = 'TMM10'
    OVSNAM(IVTYPE) = 'Tm_10'
@@ -2213,7 +2194,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 48
    OVKEYW(IVTYPE) = 'RTMM10'
    OVSNAM(IVTYPE) = 'RTm_10'
@@ -2225,7 +2206,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 49
    OVKEYW(IVTYPE) = 'DIFPAR'
    OVSNAM(IVTYPE) = 'DifPar'
@@ -2237,7 +2218,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = -10.
    OVHEXP(IVTYPE) =  10.
    OVEXCV(IVTYPE) = -99.
-!
+
    IVTYPE = 50
    OVKEYW(IVTYPE) = 'TMBOT'
    OVSNAM(IVTYPE) = 'TmBot'
@@ -2249,7 +2230,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 51
    OVKEYW(IVTYPE) = 'WATL'
    OVSNAM(IVTYPE) = 'Watlev'
@@ -2261,7 +2242,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = -100.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -99.
-!
+
    IVTYPE = 52
    OVKEYW(IVTYPE) = 'BOTL'
    OVSNAM(IVTYPE) = 'Botlev'
@@ -2273,7 +2254,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = -100.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -99.
-!
+
    IVTYPE = 53
    OVKEYW(IVTYPE) = 'TPS'
    OVSNAM(IVTYPE) = 'TPsmoo'
@@ -2285,7 +2266,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 54
    OVKEYW(IVTYPE) = 'DISB'
    OVSNAM(IVTYPE) = 'Sfric'
@@ -2297,7 +2278,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 55
    OVKEYW(IVTYPE) = 'DISSU'
    OVSNAM(IVTYPE) = 'Ssurf'
@@ -2309,7 +2290,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 56
    OVKEYW(IVTYPE) = 'DISW'
    OVSNAM(IVTYPE) = 'Swcap'
@@ -2321,7 +2302,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 57
    OVKEYW(IVTYPE) = 'DISV'
    OVSNAM(IVTYPE) = 'Sveg'
@@ -2333,7 +2314,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 58
    OVKEYW(IVTYPE) = 'QP'
    OVSNAM(IVTYPE) = 'Qp'
@@ -2345,7 +2326,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 59
    OVKEYW(IVTYPE) = 'BFI'
    OVSNAM(IVTYPE) = 'BFI'
@@ -2357,7 +2338,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1000.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 60
    OVKEYW(IVTYPE) = 'GENE'
    OVSNAM(IVTYPE) = 'Genera'
@@ -2369,7 +2350,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 61
    OVKEYW(IVTYPE) = 'GENW'
    OVSNAM(IVTYPE) = 'Swind'
@@ -2381,7 +2362,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 62
    OVKEYW(IVTYPE) = 'REDI'
    OVSNAM(IVTYPE) = 'Redist'
@@ -2393,7 +2374,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 63
    OVKEYW(IVTYPE) = 'REDQ'
    OVSNAM(IVTYPE) = 'Snl4'
@@ -2405,7 +2386,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 64
    OVKEYW(IVTYPE) = 'REDT'
    OVSNAM(IVTYPE) = 'Snl3'
@@ -2417,7 +2398,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 65
    OVKEYW(IVTYPE) = 'PROPA'
    OVSNAM(IVTYPE) = 'Propag'
@@ -2429,7 +2410,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 66
    OVKEYW(IVTYPE) = 'PROPX'
    OVSNAM(IVTYPE) = 'Propxy'
@@ -2441,7 +2422,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 67
    OVKEYW(IVTYPE) = 'PROPT'
    OVSNAM(IVTYPE) = 'Propth'
@@ -2453,7 +2434,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 68
    OVKEYW(IVTYPE) = 'PROPS'
    OVSNAM(IVTYPE) = 'Propsi'
@@ -2465,7 +2446,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 69
    OVKEYW(IVTYPE) = 'RADS'
    OVSNAM(IVTYPE) = 'Radstr'
@@ -2477,7 +2458,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 70
    OVKEYW(IVTYPE) = 'NPL'
    OVSNAM(IVTYPE) = 'Nplant'
@@ -2489,7 +2470,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 71
    OVKEYW(IVTYPE) = 'LWAVP'
    OVSNAM(IVTYPE) = 'Lwavp'
@@ -2501,7 +2482,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 200.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 72
    OVKEYW(IVTYPE) = 'DISTU'
    OVSNAM(IVTYPE) = 'Stur'
@@ -2513,7 +2494,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 73
    OVKEYW(IVTYPE) = 'TURB'
    OVSNAM(IVTYPE) = 'Turb'
@@ -2525,7 +2506,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -99.
-!
+
    IVTYPE = 74
    OVKEYW(IVTYPE) = 'DISM'
    OVSNAM(IVTYPE) = 'Smud'
@@ -2537,7 +2518,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 75
    OVKEYW(IVTYPE) = 'DISSW'
    OVSNAM(IVTYPE) = 'Sswell'
@@ -2549,7 +2530,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 76
    OVKEYW(IVTYPE)  = 'DISI'
    OVSNAM(IVTYPE)  = 'Sice'
@@ -2561,7 +2542,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE)  = 0.
    OVHEXP(IVTYPE)  = 0.1
    OVEXCV(IVTYPE)  = -9.
-!
+
    IVTYPE = 77
    OVKEYW(IVTYPE)  = 'AICE'
    OVSNAM(IVTYPE)  = 'aice'
@@ -2573,7 +2554,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE)  = 0.
    OVHEXP(IVTYPE)  = 1.0
    OVEXCV(IVTYPE)  = -9.
-!
+
    IVTYPE = 78
    OVKEYW(IVTYPE)  = 'HICE'
    OVSNAM(IVTYPE)  = 'hice'
@@ -2585,7 +2566,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE)  = 0.
    OVHEXP(IVTYPE)  = 10.
    OVEXCV(IVTYPE)  = -9.
-!
+
    IVTYPE = 79
    OVKEYW(IVTYPE) = 'REDB'
    OVSNAM(IVTYPE) = 'Sbragg'
@@ -2597,7 +2578,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 80
    OVKEYW(IVTYPE) = 'REDC'
    OVSNAM(IVTYPE) = 'Sqc'
@@ -2609,7 +2590,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 81
    OVKEYW(IVTYPE) = 'HBIG'
    OVSNAM(IVTYPE) = 'HBig'
@@ -2621,7 +2602,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 82
    OVKEYW(IVTYPE) = 'GAMMA'
    OVSNAM(IVTYPE) = 'Gamma'
@@ -2633,7 +2614,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 83
    OVKEYW(IVTYPE) = 'BIPH'
    OVSNAM(IVTYPE) = 'Biph'
@@ -2645,7 +2626,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 60.
    OVEXCV(IVTYPE) = -999.
-!
+
    IVTYPE = 100
    OVKEYW(IVTYPE) = 'PTHS'
    OVSNAM(IVTYPE) = 'HsPT01'
@@ -2657,7 +2638,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 101
    OVKEYW(IVTYPE) = 'PT02HS'
    OVSNAM(IVTYPE) = 'HsPT02'
@@ -2669,7 +2650,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 102
    OVKEYW(IVTYPE) = 'PT03HS'
    OVSNAM(IVTYPE) = 'HsPT03'
@@ -2681,7 +2662,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 103
    OVKEYW(IVTYPE) = 'PT04HS'
    OVSNAM(IVTYPE) = 'HsPT04'
@@ -2693,7 +2674,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 104
    OVKEYW(IVTYPE) = 'PT05HS'
    OVSNAM(IVTYPE) = 'HsPT05'
@@ -2705,7 +2686,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 105
    OVKEYW(IVTYPE) = 'PT06HS'
    OVSNAM(IVTYPE) = 'HsPT06'
@@ -2717,7 +2698,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 106
    OVKEYW(IVTYPE) = 'PT07HS'
    OVSNAM(IVTYPE) = 'HsPT07'
@@ -2729,7 +2710,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 107
    OVKEYW(IVTYPE) = 'PT08HS'
    OVSNAM(IVTYPE) = 'HsPT08'
@@ -2741,7 +2722,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 108
    OVKEYW(IVTYPE) = 'PT09HS'
    OVSNAM(IVTYPE) = 'HsPT09'
@@ -2753,7 +2734,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 109
    OVKEYW(IVTYPE) = 'PT10HS'
    OVSNAM(IVTYPE) = 'HsPT10'
@@ -2765,7 +2746,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 110
    OVKEYW(IVTYPE) = 'PTRTP'
    OVSNAM(IVTYPE) = 'TpPT01'
@@ -2777,7 +2758,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 111
    OVKEYW(IVTYPE) = 'PT02RTP'
    OVSNAM(IVTYPE) = 'TpPT02'
@@ -2789,7 +2770,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 112
    OVKEYW(IVTYPE) = 'PT03RTP'
    OVSNAM(IVTYPE) = 'TpPT03'
@@ -2801,7 +2782,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 113
    OVKEYW(IVTYPE) = 'PT04RTP'
    OVSNAM(IVTYPE) = 'TpPT04'
@@ -2813,7 +2794,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 114
    OVKEYW(IVTYPE) = 'PT05RTP'
    OVSNAM(IVTYPE) = 'TpPT05'
@@ -2825,7 +2806,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 115
    OVKEYW(IVTYPE) = 'PT06RTP'
    OVSNAM(IVTYPE) = 'TpPT06'
@@ -2837,7 +2818,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 116
    OVKEYW(IVTYPE) = 'PT07RTP'
    OVSNAM(IVTYPE) = 'TpPT07'
@@ -2849,7 +2830,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 117
    OVKEYW(IVTYPE) = 'PT08RTP'
    OVSNAM(IVTYPE) = 'TpPT08'
@@ -2861,7 +2842,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 118
    OVKEYW(IVTYPE) = 'PT09RTP'
    OVSNAM(IVTYPE) = 'TpPT09'
@@ -2873,7 +2854,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 119
    OVKEYW(IVTYPE) = 'PT10RTP'
    OVSNAM(IVTYPE) = 'TpPT10'
@@ -2885,7 +2866,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 100.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 120
    OVKEYW(IVTYPE) = 'PTWLEN'
    OVSNAM(IVTYPE) = 'WlPT01'
@@ -2897,7 +2878,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 200.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 121
    OVKEYW(IVTYPE) = 'PT02WLEN'
    OVSNAM(IVTYPE) = 'WlPT02'
@@ -2909,7 +2890,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 200.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 122
    OVKEYW(IVTYPE) = 'PT03WLEN'
    OVSNAM(IVTYPE) = 'WlPT03'
@@ -2921,7 +2902,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 200.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 123
    OVKEYW(IVTYPE) = 'PT04WLEN'
    OVSNAM(IVTYPE) = 'WlPT04'
@@ -2933,7 +2914,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 200.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 124
    OVKEYW(IVTYPE) = 'PT05WLEN'
    OVSNAM(IVTYPE) = 'WlPT05'
@@ -2945,7 +2926,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 200.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 125
    OVKEYW(IVTYPE) = 'PT06WLEN'
    OVSNAM(IVTYPE) = 'WlPT06'
@@ -2957,7 +2938,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 200.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 126
    OVKEYW(IVTYPE) = 'PT07WLEN'
    OVSNAM(IVTYPE) = 'WlPT07'
@@ -2969,7 +2950,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 200.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 127
    OVKEYW(IVTYPE) = 'PT08WLEN'
    OVSNAM(IVTYPE) = 'WlPT08'
@@ -2981,7 +2962,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 200.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 128
    OVKEYW(IVTYPE) = 'PT09WLEN'
    OVSNAM(IVTYPE) = 'WlPT09'
@@ -2993,7 +2974,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 200.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 129
    OVKEYW(IVTYPE) = 'PT10WLEN'
    OVSNAM(IVTYPE) = 'WlPT10'
@@ -3005,7 +2986,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 200.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 130
    OVKEYW(IVTYPE) = 'PTDIR'
    OVSNAM(IVTYPE) = 'DrPT01'
@@ -3017,7 +2998,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 360.
    OVEXCV(IVTYPE) = -999.
-!
+
    IVTYPE = 131
    OVKEYW(IVTYPE) = 'PT02DIR'
    OVSNAM(IVTYPE) = 'DrPT02'
@@ -3029,7 +3010,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 360.
    OVEXCV(IVTYPE) = -999.
-!
+
    IVTYPE = 132
    OVKEYW(IVTYPE) = 'PT03DIR'
    OVSNAM(IVTYPE) = 'DrPT03'
@@ -3041,7 +3022,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 360.
    OVEXCV(IVTYPE) = -999.
-!
+
    IVTYPE = 133
    OVKEYW(IVTYPE) = 'PT04DIR'
    OVSNAM(IVTYPE) = 'DrPT04'
@@ -3053,7 +3034,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 360.
    OVEXCV(IVTYPE) = -999.
-!
+
    IVTYPE = 134
    OVKEYW(IVTYPE) = 'PT05DIR'
    OVSNAM(IVTYPE) = 'DrPT05'
@@ -3065,7 +3046,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 360.
    OVEXCV(IVTYPE) = -999.
-!
+
    IVTYPE = 135
    OVKEYW(IVTYPE) = 'PT06DIR'
    OVSNAM(IVTYPE) = 'DrPT06'
@@ -3077,7 +3058,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 360.
    OVEXCV(IVTYPE) = -999.
-!
+
    IVTYPE = 136
    OVKEYW(IVTYPE) = 'PT07DIR'
    OVSNAM(IVTYPE) = 'DrPT07'
@@ -3089,7 +3070,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 360.
    OVEXCV(IVTYPE) = -999.
-!
+
    IVTYPE = 137
    OVKEYW(IVTYPE) = 'PT08DIR'
    OVSNAM(IVTYPE) = 'DrPT08'
@@ -3101,7 +3082,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 360.
    OVEXCV(IVTYPE) = -999.
-!
+
    IVTYPE = 138
    OVKEYW(IVTYPE) = 'PT09DIR'
    OVSNAM(IVTYPE) = 'DrPT09'
@@ -3113,7 +3094,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 360.
    OVEXCV(IVTYPE) = -999.
-!
+
    IVTYPE = 139
    OVKEYW(IVTYPE) = 'PT10DIR'
    OVSNAM(IVTYPE) = 'DrPT10'
@@ -3125,7 +3106,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 360.
    OVEXCV(IVTYPE) = -999.
-!
+
    IVTYPE = 140
    OVKEYW(IVTYPE) = 'PTDSPR'
    OVSNAM(IVTYPE) = 'DsPT01'
@@ -3137,7 +3118,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 60.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 141
    OVKEYW(IVTYPE) = 'PT02DSPR'
    OVSNAM(IVTYPE) = 'DsPT02'
@@ -3149,7 +3130,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 60.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 142
    OVKEYW(IVTYPE) = 'PT03DSPR'
    OVSNAM(IVTYPE) = 'DsPT03'
@@ -3161,7 +3142,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 60.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 143
    OVKEYW(IVTYPE) = 'PT04DSPR'
    OVSNAM(IVTYPE) = 'DsPT04'
@@ -3173,7 +3154,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 60.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 144
    OVKEYW(IVTYPE) = 'PT05DSPR'
    OVSNAM(IVTYPE) = 'DsPT05'
@@ -3185,7 +3166,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 60.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 145
    OVKEYW(IVTYPE) = 'PT06DSPR'
    OVSNAM(IVTYPE) = 'DsPT06'
@@ -3197,7 +3178,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 60.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 146
    OVKEYW(IVTYPE) = 'PT07DSPR'
    OVSNAM(IVTYPE) = 'DsPT07'
@@ -3209,7 +3190,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 60.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 147
    OVKEYW(IVTYPE) = 'PT08DSPR'
    OVSNAM(IVTYPE) = 'DsPT08'
@@ -3221,7 +3202,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 60.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 148
    OVKEYW(IVTYPE) = 'PT09DSPR'
    OVSNAM(IVTYPE) = 'DsPT09'
@@ -3233,7 +3214,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 60.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 149
    OVKEYW(IVTYPE) = 'PT10DSPR'
    OVSNAM(IVTYPE) = 'DsPT10'
@@ -3245,7 +3226,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 60.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 150
    OVKEYW(IVTYPE) = 'PTWFRAC'
    OVSNAM(IVTYPE) = 'WfPT01'
@@ -3257,7 +3238,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 151
    OVKEYW(IVTYPE) = 'PT02WFRAC'
    OVSNAM(IVTYPE) = 'WfPT02'
@@ -3269,7 +3250,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 152
    OVKEYW(IVTYPE) = 'PT03WFRAC'
    OVSNAM(IVTYPE) = 'WfPT03'
@@ -3281,7 +3262,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 153
    OVKEYW(IVTYPE) = 'PT04WFRAC'
    OVSNAM(IVTYPE) = 'WfPT04'
@@ -3293,7 +3274,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 154
    OVKEYW(IVTYPE) = 'PT05WFRAC'
    OVSNAM(IVTYPE) = 'WfPT05'
@@ -3305,7 +3286,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 155
    OVKEYW(IVTYPE) = 'PT06WFRAC'
    OVSNAM(IVTYPE) = 'WfPT06'
@@ -3317,7 +3298,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 156
    OVKEYW(IVTYPE) = 'PT07WFRAC'
    OVSNAM(IVTYPE) = 'WfPT07'
@@ -3329,7 +3310,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 157
    OVKEYW(IVTYPE) = 'PT08WFRAC'
    OVSNAM(IVTYPE) = 'WfPT08'
@@ -3341,7 +3322,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 158
    OVKEYW(IVTYPE) = 'PT09WFRAC'
    OVSNAM(IVTYPE) = 'WfPT09'
@@ -3353,7 +3334,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 159
    OVKEYW(IVTYPE) = 'PT10WFRAC'
    OVSNAM(IVTYPE) = 'WfPT10'
@@ -3365,7 +3346,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 1.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 160
    OVKEYW(IVTYPE) = 'PTSTEE'
    OVSNAM(IVTYPE) = 'StPT01'
@@ -3377,7 +3358,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 161
    OVKEYW(IVTYPE) = 'PT02STEE'
    OVSNAM(IVTYPE) = 'StPT02'
@@ -3389,7 +3370,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 162
    OVKEYW(IVTYPE) = 'PT03STEE'
    OVSNAM(IVTYPE) = 'StPT03'
@@ -3401,7 +3382,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 163
    OVKEYW(IVTYPE) = 'PT04STEE'
    OVSNAM(IVTYPE) = 'StPT04'
@@ -3413,7 +3394,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 164
    OVKEYW(IVTYPE) = 'PT05STEE'
    OVSNAM(IVTYPE) = 'StPT05'
@@ -3425,7 +3406,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 165
    OVKEYW(IVTYPE) = 'PT06STEE'
    OVSNAM(IVTYPE) = 'StPT06'
@@ -3437,7 +3418,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 166
    OVKEYW(IVTYPE) = 'PT07STEE'
    OVSNAM(IVTYPE) = 'StPT07'
@@ -3449,7 +3430,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 167
    OVKEYW(IVTYPE) = 'PT08STEE'
    OVSNAM(IVTYPE) = 'StPT08'
@@ -3461,7 +3442,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 168
    OVKEYW(IVTYPE) = 'PT09STEE'
    OVSNAM(IVTYPE) = 'StPT09'
@@ -3473,7 +3454,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 169
    OVKEYW(IVTYPE) = 'PT10STEE'
    OVSNAM(IVTYPE) = 'StPT10'
@@ -3485,7 +3466,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 0.1
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 170
    OVKEYW(IVTYPE) = 'PARTIT'
    OVSNAM(IVTYPE) = 'PARTIT'
@@ -3497,7 +3478,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!
+
    IVTYPE = 171
    OVKEYW(IVTYPE) = 'NPART'
    OVSNAM(IVTYPE) = 'Npart'
@@ -3509,7 +3490,7 @@ SUBROUTINE SWINIT (INERR)
    OVLEXP(IVTYPE) = 0.
    OVHEXP(IVTYPE) = 10.
    OVEXCV(IVTYPE) = -9.
-!
+
 !     various parameters for computation of output quantities             40.00
 !
 !     reference time for TSEC
@@ -3533,33 +3514,51 @@ SUBROUTINE SWINIT (INERR)
    OUTPAR(21:35) = 0.
 !     upper bound of integration range for output parameters
    OUTPAR(36:50) = 1000.
-!
+
    RETURN
 ! * end of subroutine SWINIT *
-END
-!
-!***********************************************************************
+end subroutine SWINIT
+
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
-                    KGRPNT, KGRBND, SPCDIR, SPCSIG )
+   KGRPNT, KGRBND, SPCDIR, SPCSIG, DIFFR, TRIADS )
 !                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+!************************************************************************
+
+   USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
+   USE swan_services, ONLY: SWOBST
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_angle_conversions, ONLY: DEGCNV, ANGRAD, ANGDEG
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_number_formatting
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_boundary_counters
+   USE swan_run_mode
+   USE swan_input_grids
+   USE swan_input_field_files
+   USE swan_stencil, ONLY: RDFSIN
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_math_constants
+   USE swan_propagation_scheme
    USE M_OBSTA
-   USE M_SNL3
    USE M_BNDSPEC
    USE M_PARALL
-   USE M_DIFFR
+   USE swan_global_grid
    USE SwanGriddata
    USE SwanCompdata
    USE SwanIEM
-!
-!
+
+   REAL :: ALCP
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -3632,15 +3631,17 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
 !  3. Method
 !
 !  4. Argument variables
-!
+
    INTEGER, INTENT(INOUT) :: KGRBND(*)
-!
+
 !     XCGRID: input  Coordinates of computational grid in x-direction     30.72
 !     YCGRID: input  Coordinates of computational grid in y-direction     30.72
-!
+
+   TYPE(diffraction_state_t), INTENT(INOUT) :: DIFFR
+   TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
    REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
    REAL    SPCDIR(MDC,6)  ,    SPCSIG(MSC)
-!
+
 !  5. SUBROUTINES CALLING
 !
 !     SWREAD
@@ -3668,58 +3669,60 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
 !       ----------------------------------------------------------------
 !
 ! 10. SOURCE TEXT
-   PARAMETER  (NUNT=20) ! m2/s
+   INTEGER, PARAMETER :: NUNT = 20
    INTEGER   KGRPNT(MXC,MYC), CROSS(2,MCGRD)
    INTEGER   BGRIDP(6*NBGRPT)
    REAL      BSPECS(MDC,MSC,NBSPEC,2)
    INTEGER, ALLOCATABLE :: CROSSGL(:,:)
    INTEGER   ITMP(1)
-   INTEGER   IUNT(NUNT)
+   INTEGER, PARAMETER :: IUNT(NUNT) = [ &
+      7, 9, 54, 55, 56, 57, 60, 61, 62, 63, &
+      64, 65, 66, 67, 68, 69, 72, 73, 74, 75]
    REAL      FDN, FIGF
    REAL      MFR, SHP
-!
+   INTEGER :: I1, I2, IB, IC, ICG, IFLD, IFIG, IFREE, II, IIXX, IIYY
+   INTEGER :: INDX, INDXGR, IP, IRFRD, ITMP1, ITMP2, ITMP3, ITRA, ITRAS
+   INTEGER :: IVTYPE, IX, IY, J, JJ, K, MTH, NBS
+   REAL :: ALBC, ALTMP, ATMP, PPTAIL, PWDTH, TRCF
+
    INTEGER   ISTAT, IF1, IL1
-   CHARACTER*20 NUMSTR, CHARS(1)
+   CHARACTER(LEN=20) CHARS(1)
    CHARACTER(120) :: MSGSTR
-!
+
    TYPE(BSDAT) , POINTER :: CURRBS
    TYPE(BGPDAT), POINTER :: CURBGP
    TYPE(OBSTDAT), POINTER :: COBST
-   SAVE IENT
-   DATA IENT/0/
-   SAVE IUNT
-   DATA IUNT /7, 9, 54, 55, 56, 57, 60, 61, 62, 63, &
-              64, 65, 66, 67, 68, 69, 72, 73, 74, 75/
+   INTEGER, SAVE :: IENT = 0
    CALL STRACE (IENT, 'SWPREP')
-!
+
    IF ( ITEST.GE.100 ) THEN
       WRITE (PRTEST,*) ' BNAUT after SWREAD = ',BNAUT
    END IF
-!
+
 !     coefficients for transformation from user coordinates to comp. coord.
-!
+
    COSPC = COS(ALPC)
    SINPC = SIN(ALPC)
    XCP   = -XPC*COSPC - YPC*SINPC
    YCP   =  XPC*SINPC - YPC*COSPC
    ALCP  = -ALPC
-!
+
 !     wind direction w.r.t. computational grid
 !
 !     ALTMP = (WDIP - ALPC) / PI2              removed 30.50
    ALTMP = (WDIP) / PI2
    WDIC  = PI2 * (ALTMP - NINT(ALTMP))
-!
+
    IF (MXC.LE.0 .AND. OPTG.NE.5) CALL MSGERR &
       (3, 'no valid computational grid; check command CGRID')
    IF (MCGRD.LE.1 .AND. nverts.LE.0) CALL MSGERR &
       (3, 'no valid comp. grid; check command READ BOT or READ UNSTRU')
-!
+
    IF (LEDS(1).EQ.0) CALL MSGERR (3,'Bottom grid not defined')
    IF (LEDS(1).EQ.1) CALL MSGERR (3,'No bottom levels read')
    IF (IUBOTR.EQ.1 .AND. IBOT.EQ.0) &
-       CALL MSGERR (1,'Bottom friction not on, UBOT not computed')
-!
+      CALL MSGERR (1,'Bottom friction not on, UBOT not computed')
+
    IF (LEDS(2).EQ.2) THEN
       IF (LEDS(3).NE.2) &
          CALL MSGERR (3, 'VY not read, while VX is read')
@@ -3728,15 +3731,15 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
       COSVC = COS(ALBC)
       SINVC = SIN(ALBC)
    ENDIF
-!
+
    IF (LEDS(4).EQ.2) VARFR = .TRUE.
-!
+
    IF (VARFR .AND. IBOT.EQ.5) THEN
       CALL MSGERR (1, &
-              'Ripples model active, space varying friction ignored')
+         'Ripples model active, space varying friction ignored')
       VARFR = .FALSE.
    ENDIF
-!
+
    IF (LEDS(5).EQ.2) THEN
       IF (LEDS(6).NE.2) &
          CALL MSGERR (3, 'WY not read, while WX is read')
@@ -3746,13 +3749,13 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
       COSWC = COS(ALBC)
       SINWC = SIN(ALBC)
    ENDIF
-!
+
    IF (LEDS(7).EQ.2) VARWLV = .TRUE.
-!
+
    IF (IFLDYN(1).EQ.1 .OR. IFLDYN(7).EQ.1) DYNDEP = .TRUE.
-!
+
    IF (OPTG.EQ.5) BNDCHK = .FALSE.
-!
+
 !     check number of sweeps meant for unstructured grid
    IF ( nsweep.EQ.-999 ) THEN
 !        if nsweep = 1, the original crest method is recovered, however   41.68
@@ -3768,7 +3771,7 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
    ENDIF
 !     nsweep = 1 cannot work naturally in case of SECTOR
    IF ( nsweep.EQ.1 .AND. .NOT.FULCIR ) nsweep = 3
-!
+
 !     adapt units in case of true energy
    IF ( INRHOG.EQ.1 ) THEN
       DO J = 1, NUNT
@@ -3780,27 +3783,27 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
       OVUNIT(22) = 'J/m2'
       OVUNIT(29) = 'J/m2'
    ENDIF
-!
+
 !     check wind drag
    IF (IWIND.EQ.8) THEN
 !        apply Hwang if wrong wind drag
-      IF (IDRAG.LT.4) IDRAG = 4
+      IF (IDRAG.LT.IDRAG_HWANG) IDRAG = IDRAG_HWANG
    ELSE
 !        apply parabolic fit if wrong wind drag
-      IF (IDRAG.GT.3) IDRAG = 2
+      IF (IDRAG.GT.IDRAG_SWELL) IDRAG = IDRAG_FIT
    ENDIF
-   IF (IBOT.EQ.5) IDRAG = 1
-!
+   IF (IBOT.EQ.5) IDRAG = IDRAG_WU
+
 !     initialize reduction factor for wind input term
 !     - this array contains at most 100 frequencies (see module SWCOMM3)
 !     - this factor will be assigned to LFACTOR in SdsBabanin.f90
    RDFSIN = 0.
-!
+
 !     check negative wind input, if appropriate
    IF ( ZIEGER ) THEN
       IF ( RDCOEF.LT.0. .OR. RDCOEF.GT.1. ) THEN
          CALL MSGERR (2,'NEGATINP convention: it should be a ' &
-                        //'positive fraction')
+            //'positive fraction')
       END IF
    ELSE IF ( ROGERS ) THEN
       IF ( RDCOEF.NE.0. ) THEN
@@ -3813,55 +3816,55 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
          RDCOEF = 0.
       END IF
    END IF
-!
+
    IF (IWCAP.EQ.8) THEN
       JPSWEL = 12
    ENDIF
-!
+
 !     prepare QC model
    IF (IQCM.NE.0) THEN
       ! refraction due to depth variations only is already
       ! included in the QC scattering
-      IF (IQCM.EQ.1) IREFR = 0
+      IF (IQCM.EQ.1) IREFR = IREFR_OFF
       ! frequency shift due to mean current is already included
       ! in the QC scattering
-      ITFRE = 0
+      ITFRE = ITFRE_OFF
       ! rescaling is unwanted since action density may be negative
       BRESCL = .FALSE.
       ! no check on boundary because of coherence effects
       BNDCHK = .FALSE.
    ENDIF
-!
+
 !     close input files containing stationary input fields                40.00
-!
+
    DO IFLD = 1, NUMGRD
       IF (IFLDYN(IFLD).EQ.0 .AND. IFLNDS(IFLD).NE.0) THEN
          CLOSE (IFLNDS(IFLD))
          IFLNDS(IFLD) = 0
       ENDIF
    ENDDO
-!
+
 !     computation of tail factors for moments of action spectrum
 !     IP=0: action int. IP=1: energy int. IP=2: first moment of energy etc.
-!
+
    DO IP = 0, 3
       PPTAIL = PWTAIL(1) - REAL(IP)
       PWTAIL(5+IP) = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
    ENDDO
-!
+
 !     check location of output areas
-!
+
    CALL SPRCON ( XCGRID, YCGRID, KGRPNT, KGRBND )
-!
+
 !     *** find obstacles crossing the points in the stencil  ***
 !     *** in structured grids                                ***          40.80
-!
+
    IF (NUMOBS .GT. 0 .AND. OPTG.NE.5 .AND. .NOT.OBSTDONE) THEN
       DO INDX = 1, MCGRD
          CROSS(1,INDX) = 0
          CROSS(2,INDX) = 0
       ENDDO
-!
+
       ITMP1  = MXC
       ITMP2  = MYC
       ITMP3  = MCGRD
@@ -3874,7 +3877,7 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
       MXC    = ITMP1
       MYC    = ITMP2
       MCGRD  = ITMP3
-!
+
       II = 1
       DO IX = MXF, MXL
          DO IY = MYF, MYL
@@ -3887,27 +3890,23 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
       END DO
       DEALLOCATE(CROSSGL)
       OBSTDONE = .TRUE.
-!
+
       IF (ITEST .GE. 120) THEN
-         WRITE(PRINTF,102)
-102      FORMAT('Links with obstacles crossing',/, &
-            '     COMP COORD           LINK         VALUE')
+         WRITE(PRINTF,"('Links with obstacles crossing',/, '     COMP COORD           LINK         VALUE')")
          DO IIYY =2,MYC
             DO IIXX = 2,MXC
                I1 = KGRPNT(IIXX,IIYY)
                DO I2 = 1,2
-                  IF (CROSS(I2,I1) .NE. 0) &
-                     WRITE(PRINTF,101) IIXX,IIYY,I2,I1,CROSS(I2,I1)
-101               FORMAT(' POINT(',I4,',',I4,')', &
-                     '  CROSS(',I3,',',I5,')  = ',I5)
+                  IF (CROSS(I2,I1) .NE. 0)WRITE(PRINTF, &
+                        "(' POINT(',I4,',',I4,')', '  CROSS(',I3,',',I5,')  = ',I5)") IIXX,IIYY,I2,I1,CROSS(I2,I1)
                ENDDO
             ENDDO
          ENDDO
       ENDIF
    ENDIF
-!
+
 !     check freeboard dependent transmission/reflection
-!
+
    IF ( NUMOBS.GT.0 ) THEN
       COBST => FOBSTAC
       DO II = 1, NUMOBS
@@ -3925,11 +3924,11 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
          COBST => COBST%NEXTOBST
       ENDDO
    ENDIF
-!
+
 !     check radiating FIG energy and
 !     determine frequency distribution to FIG source
 !     (see Ardhuin et al., 2014)
-!
+
    IF ( NUMOBS.GT.0 ) THEN
       COBST => FOBSTAC
       DO II = 1, NUMOBS
@@ -3938,10 +3937,10 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
          TRCF  = COBST%TRCOEF(1)
          IFREE = COBST%FBTYP1
          IF ( IFIG.EQ.1 .AND. &
-              ( ITRA.NE.0  .OR. TRCF.NE.0. .OR. IFREE.NE.0 ) ) THEN
+            ( ITRA.NE.0  .OR. TRCF.NE.0. .OR. IFREE.NE.0 ) ) THEN
             WRITE(MSGSTR,'(A)') &
-                              'transmission not allowed in case of'// &
-                              ' radiated FIG energy'
+               'transmission not allowed in case of'// &
+               ' radiated FIG energy'
             CALL MSGERR( 1, TRIM(MSGSTR) )
             ITRA  = 0
             TRCF  = 0.
@@ -3967,163 +3966,156 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
          COBST => COBST%NEXTOBST
       ENDDO
    ENDIF
-!
-!     skip below if no boundary conditions have been specified
-   IF (.NOT.ALOBND) GOTO 201
-!
-   ATMP = -999.
-   J    = 0
-!
-   CURRBS => FBS
-   DO
-      NBS = CURRBS%NBS
-      IF (NBS.EQ.-999) EXIT
-      SPPARM(1:4) = CURRBS%SPPARM(1:4)
-      J = J + 1
-      IF ( J.EQ.1 ) ATMP = 0.
-      ATMP = ATMP + SPPARM(3)
-      FSHAPE      = CURRBS%FSHAPE
-      DSHAPE      = CURRBS%DSHAPE
-      CALL SSHAPE (BSPECS(1,1,NBS,1), SPCSIG, SPCDIR, &
-                   FSHAPE, DSHAPE)
-      IF (.NOT.ASSOCIATED(CURRBS%NEXTBS)) EXIT
-      CURRBS => CURRBS%NEXTBS
-   END DO
 
-   IF (J.GT.0) ATMP = ATMP/REAL(J)
-!
-   IF ( ATMP.NE.-999. ) THEN
-      ATMP = DEGCNV (ATMP)
-      ALTMP = ATMP / 360.
-      ATMP = PI2 * (ALTMP - NINT(ALTMP))
-   ENDIF
-!
+!     skip below if no boundary conditions have been specified
+   IF (ALOBND) THEN
+
+      ATMP = -999.
+      J    = 0
+
+      CURRBS => FBS
+      DO
+         NBS = CURRBS%NBS
+         IF (NBS.EQ.-999) EXIT
+         SPPARM(1:4) = CURRBS%SPPARM(1:4)
+         J = J + 1
+         IF ( J.EQ.1 ) ATMP = 0.
+         ATMP = ATMP + SPPARM(3)
+         FSHAPE      = CURRBS%FSHAPE
+         DSHAPE      = CURRBS%DSHAPE
+         CALL SSHAPE (BSPECS(1,1,NBS,1), SPCSIG, SPCDIR, &
+            FSHAPE, DSHAPE)
+         IF (.NOT.ASSOCIATED(CURRBS%NEXTBS)) EXIT
+         CURRBS => CURRBS%NEXTBS
+      END DO
+
+      IF (J.GT.0) ATMP = ATMP/REAL(J)
+
+      IF ( ATMP.NE.-999. ) THEN
+         ATMP = DEGCNV (ATMP)
+         ALTMP = ATMP / 360.
+         ATMP = PI2 * (ALTMP - NINT(ALTMP))
+      ENDIF
+
 !     set sweep direction based on either incoming wave direction
 !     or wind direction, if user-given direction not specified
-   IF ( .NOT. asort.NE.-999. ) THEN
-      IF ( NSTATM == 0 .OR. NBFILS == 0 ) THEN
-         IF (ATMP.NE.-999. .OR. IWIND.EQ.0 .OR. VARWI) THEN
-            asort = ATMP
-         ELSE
-            asort = WDIP
+      IF ( .NOT. asort.NE.-999. ) THEN
+         IF ( NSTATM == 0 .OR. NBFILS == 0 ) THEN
+            IF (ATMP.NE.-999. .OR. IWIND.EQ.0 .OR. VARWI) THEN
+               asort = ATMP
+            ELSE
+               asort = WDIP
+            ENDIF
          ENDIF
       ENDIF
-   ENDIF
 
-   BGRIDP = 0
-   IF (OPTG.NE.5) THEN
-      IF (NBGGL.EQ.0) NBGGL = NBGRPT
-      NBGRPT = 0
-      DO IX = MXF, MXL
-         DO IY = MYF, MYL
-            INDX = KGRPGL(IX,IY)
-            CURBGP => FBGP
-            DO II = 1, NBGGL
-               INDXGR = CURBGP%BGP(1)
-               IF ( INDXGR.EQ.INDX ) THEN
-                  NBGRPT = NBGRPT + 1
-                  BGRIDP(6*NBGRPT-5) = KGRPNT(IX-MXF+1,IY-MYF+1)
-                  BGRIDP(6*NBGRPT-4) = CURBGP%BGP(2)
-                  BGRIDP(6*NBGRPT-3) = CURBGP%BGP(3)
-                  BGRIDP(6*NBGRPT-2) = CURBGP%BGP(4)
-                  BGRIDP(6*NBGRPT-1) = CURBGP%BGP(5)
-                  BGRIDP(6*NBGRPT  ) = CURBGP%BGP(6)
-               END IF
-               IF (.NOT.ASSOCIATED(CURBGP%NEXTBGP)) EXIT
-               CURBGP => CURBGP%NEXTBGP
+      BGRIDP = 0
+      IF (OPTG.NE.5) THEN
+         IF (NBGGL.EQ.0) NBGGL = NBGRPT
+         NBGRPT = 0
+         DO IX = MXF, MXL
+            DO IY = MYF, MYL
+               INDX = KGRPGL(IX,IY)
+               CURBGP => FBGP
+               DO II = 1, NBGGL
+                  INDXGR = CURBGP%BGP(1)
+                  IF ( INDXGR.EQ.INDX ) THEN
+                     NBGRPT = NBGRPT + 1
+                     BGRIDP(6*NBGRPT-5) = KGRPNT(IX-MXF+1,IY-MYF+1)
+                     BGRIDP(6*NBGRPT-4) = CURBGP%BGP(2)
+                     BGRIDP(6*NBGRPT-3) = CURBGP%BGP(3)
+                     BGRIDP(6*NBGRPT-2) = CURBGP%BGP(4)
+                     BGRIDP(6*NBGRPT-1) = CURBGP%BGP(5)
+                     BGRIDP(6*NBGRPT  ) = CURBGP%BGP(6)
+                  END IF
+                  IF (.NOT.ASSOCIATED(CURBGP%NEXTBGP)) EXIT
+                  CURBGP => CURBGP%NEXTBGP
+               END DO
             END DO
          END DO
-      END DO
-   ELSE
-      IF (NBGGL.EQ.0) NBGGL = NBGRPT
-      NBGRPT = 0
-      CURBGP => FBGP
-      DO II = 1, NBGGL
-         INDXGR = CURBGP%BGP(1)
-         ITMP   = MINLOC(ABS(bvertg(:,2)-INDXGR))
-         K      = ITMP(1)
-         IF ( bvertg(K,2).EQ.INDXGR ) THEN
-            IX = bvertg(K,1)
-            NBGRPT = NBGRPT + 1
-            BGRIDP(6*NBGRPT-5) = IX
-            BGRIDP(6*NBGRPT-4) = CURBGP%BGP(2)
-            BGRIDP(6*NBGRPT-3) = CURBGP%BGP(3)
-            BGRIDP(6*NBGRPT-2) = CURBGP%BGP(4)
-            BGRIDP(6*NBGRPT-1) = CURBGP%BGP(5)
-            BGRIDP(6*NBGRPT  ) = CURBGP%BGP(6)
-         END IF
-         IF (.NOT.ASSOCIATED(CURBGP%NEXTBGP)) EXIT
-         CURBGP => CURBGP%NEXTBGP
-      ENDDO
-   ENDIF
-!
-!     --- test BGRIDP for unstructured mesh                               43.01
-   IF ( OPTG.NE.5 ) THEN
-      GOTO 201
-   ELSEIF ( ITEST.GE.50 ) THEN
-      IF ( NBGRPT.GT.0 ) THEN
-         WRITE(PRTEST,*) &
-            ' number of described boundary points in present subdomain ', &
-            NBGRPT
-         DO IB = 1, NBGRPT
-            IC = BGRIDP(6*IB-5)
-            IF (.NOT.PARLL) THEN
-               ICG = IC
-            ELSE
-               ICG = ivertg(IC)
-            ENDIF
-            IF (BGRIDP(6*IB-4).EQ.1) &
-               WRITE(PRTEST,'(A,I7,2F18.9,I7)') &
-                           ' BGRIDP: INDXGL, XP, YP, bound marker ', &
-                           ICG, &
-                           xcugrd(IC)+XOFFS, &
-                           ycugrd(IC)+YOFFS, &
-                           vmark(IC)
+      ELSE
+         IF (NBGGL.EQ.0) NBGGL = NBGRPT
+         NBGRPT = 0
+         CURBGP => FBGP
+         DO II = 1, NBGGL
+            INDXGR = CURBGP%BGP(1)
+            ITMP   = MINLOC(ABS(bvertg(:,2)-INDXGR))
+            K      = ITMP(1)
+            IF ( bvertg(K,2).EQ.INDXGR ) THEN
+               IX = bvertg(K,1)
+               NBGRPT = NBGRPT + 1
+               BGRIDP(6*NBGRPT-5) = IX
+               BGRIDP(6*NBGRPT-4) = CURBGP%BGP(2)
+               BGRIDP(6*NBGRPT-3) = CURBGP%BGP(3)
+               BGRIDP(6*NBGRPT-2) = CURBGP%BGP(4)
+               BGRIDP(6*NBGRPT-1) = CURBGP%BGP(5)
+               BGRIDP(6*NBGRPT  ) = CURBGP%BGP(6)
+            END IF
+            IF (.NOT.ASSOCIATED(CURBGP%NEXTBGP)) EXIT
+            CURBGP => CURBGP%NEXTBGP
          ENDDO
       ENDIF
-   ENDIF
-!
-201 CONTINUE
-!
+
+!     --- test BGRIDP for unstructured mesh                               43.01
+      IF ( OPTG.EQ.5 .AND. ITEST.GE.50 ) THEN
+         IF ( NBGRPT.GT.0 ) THEN
+            WRITE(PRTEST,*) &
+               ' number of described boundary points in present subdomain ', &
+               NBGRPT
+            DO IB = 1, NBGRPT
+               IC = BGRIDP(6*IB-5)
+               IF (.NOT.PARLL) THEN
+                  ICG = IC
+               ELSE
+                  ICG = ivertg(IC)
+               ENDIF
+               IF (BGRIDP(6*IB-4).EQ.1) &
+                  WRITE(PRTEST,'(A,I7,2F18.9,I7)') &
+                  ' BGRIDP: INDXGL, XP, YP, bound marker ', &
+                  ICG, &
+                  xcugrd(IC)+XOFFS, &
+                  ycugrd(IC)+YOFFS, &
+                  vmark(IC)
+            ENDDO
+         ENDIF
+      ENDIF
+   END IF
+
 !     --- allocate arrays for diffraction and set prop scheme to BSBT     40.41
-!                                                                         40.21
+
    IF ( IDIFFR.EQ.1 ) THEN
-      IF (.NOT.ALLOCATED(DIFPARAM)) ALLOCATE(DIFPARAM(1:MCGRD))
-      IF (.NOT.ALLOCATED(DIFPARDX)) ALLOCATE(DIFPARDX(1:MCGRD))
-      IF (.NOT.ALLOCATED(DIFPARDY)) ALLOCATE(DIFPARDY(1:MCGRD))
+      CALL DIFFR%RESIZE(MCGRD)
       PROPSN = 1
       PROPSS = 1
    ELSE
-      IF (.NOT.ALLOCATED(DIFPARAM)) ALLOCATE(DIFPARAM(0))
-      IF (.NOT.ALLOCATED(DIFPARDX)) ALLOCATE(DIFPARDX(0))
-      IF (.NOT.ALLOCATED(DIFPARDY)) ALLOCATE(DIFPARDY(0))
+      CALL DIFFR%RESIZE(0)
    END IF
-!
+
 !     --- check surfbeat                                                  41.85
-!
+
    IF (LSRFB) THEN
-      !
+
       ! check problem dimension
-      !
+
       IF ( ONED ) THEN
          CALL MSGERR(3,'surfbeat computation not allowed in 1D mode')
       ENDIF
-      !
+
       ! check stationarity
-      !
+
       IF ( NSTATC.NE.0 .OR. NSTATM.NE.0 ) THEN
          CALL MSGERR(3, &
             'surfbeat computation not allowed in non-stationary mode')
       ELSE
          IF ( NCOMPT.EQ.1 .AND. ntf.LT.0 ) THEN
             WRITE(MSGSTR,'(A)') &
-                       'current COMPUTE consists of computation of'// &
-                     ' sea-swell spectrum followed by bound ig waves'
+               'current COMPUTE consists of computation of'// &
+               ' sea-swell spectrum followed by bound ig waves'
             CALL MSGERR( 0, TRIM(MSGSTR) )
          ELSEIF ( NCOMPT.EQ.2 .AND. ntf.GT.0 ) THEN
             WRITE(MSGSTR,'(A)') &
-                       'current COMPUTE consists of computation of'// &
-                       ' reflected (free) ig waves'
+               'current COMPUTE consists of computation of'// &
+               ' reflected (free) ig waves'
             CALL MSGERR( 0, TRIM(MSGSTR) )
          ELSEIF ( NCOMPT.GT.2 ) THEN
             WRITE(MSGSTR,'(A)') &
@@ -4132,23 +4124,23 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
             CALL MSGERR( 3, TRIM(MSGSTR) )
          ENDIF
       ENDIF
-      !
+
       ! check grid and orientation
-      !
+
       IF ( OPTG.NE.1 ) THEN
          CALL MSGERR(3, &
-                     'surfbeat only supported for rectilinear grids')
+            'surfbeat only supported for rectilinear grids')
       ELSE
          IF ( ALPC.NE.0.) THEN
             WRITE(MSGSTR,'(A)') &
-                     'grid orientation is restricted to [alpc] = 0'// &
-                     ' in case of surfbeat'
+               'grid orientation is restricted to [alpc] = 0'// &
+               ' in case of surfbeat'
             CALL MSGERR( 3, TRIM(MSGSTR) )
          ENDIF
       ENDIF
-      !
+
       ! check FIG energy
-      !
+
       IF ( NUMOBS.GT.0 ) THEN
          COBST => FOBSTAC
          DO II = 1, NUMOBS
@@ -4163,15 +4155,15 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
             COBST => COBST%NEXTOBST
          ENDDO
       ENDIF
-      !
+
       ! check west boundary during first COMPUTE
-      !
+
       IF ( ntf.LT.0 ) THEN
          IF ( NBGRPT.NE.MYC ) THEN
             CALL MSGERR(3, &
                'boundary specification is not correct in case of surfbeat')
             CALL MSGERR(0, &
-                     'please only west boundary should be specified')
+               'please only west boundary should be specified')
          ELSE
             J = 0
             DO II = 1, NBGRPT
@@ -4188,34 +4180,12 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
          ENDIF
       ENDIF
    ENDIF
-!
+
 !     --- preparation for triads                                          42.01
-!
+
    IF ( ITRIAD.GT.0 ) THEN
 !        *** allocate frequency- and space-dependent data for triads
-      IF (ITRIAD.EQ.1 .OR. ITRIAD.EQ.11) THEN
-         MSC4D = MSC
-         ISTAT=0
-         IF (.NOT.ALLOCATED(QTRI2)) &
-                              ALLOCATE(QTRI2(MSC,MCGRD,2),STAT=ISTAT)
-         IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(0,0))
-      ELSE IF (ITRIAD.EQ.2 .OR. ITRIAD.EQ.3) THEN
-         MSC4D = MSC*MSC+MSC*(MSC-1)/2
-         IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(MSC4D,2))
-         ISTAT=0
-         IF (.NOT.ALLOCATED(QTRI2)) &
-                            ALLOCATE(QTRI2(MSC4D,MCGRD,4),STAT=ISTAT)
-      ELSE IF (ITRIAD.EQ.5) THEN
-         IF (TCOLL) THEN
-            MSC4D = MSC*(MSC-1)/2
-         ELSE
-            MSC4D = MSC*MSC
-         ENDIF
-         IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(MSC4D,2))
-         ISTAT=0
-         IF (.NOT.ALLOCATED(QTRI2)) &
-                            ALLOCATE(QTRI2(MSC4D,MCGRD,2),STAT=ISTAT)
-      ENDIF
+      CALL TRIADS%resize(ITRIAD, MSC, MCGRD, IBIPH, ISTAT)
       IF ( ISTAT.NE.0 ) THEN
          CHARS(1) = NUMSTR(ISTAT,RNAN,'(I6)')
          CALL TXPBLA(CHARS(1),IF1,IL1)
@@ -4226,51 +4196,48 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
          RETURN
       END IF
    ELSE
-      IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(0,0  ))
-      IF (.NOT.ALLOCATED(QTRI2)) ALLOCATE(QTRI2(0,0,0))
+      CALL TRIADS%resize(ITRIAD, MSC, MCGRD, IBIPH, ISTAT)
    ENDIF
-!
-   IF (IBIPH.EQ.3) THEN
-      IF (.NOT.ALLOCATED(BPHTMP)) ALLOCATE(BPHTMP(MCGRD))
-      BPHTMP = 0.
-   ENDIF
-!
+
 !     reset full directional integration parameter for CCA approach       42.01
-!
+
    IF ( PTRIAD(8).NE.-1. ) THEN
       PWDTH = PTRIAD(8) * PI/180.
       MTH = MDC
       IF ( .NOT.FULCIR ) MTH = MDC - 1
       IF ( .NOT.PWDTH.LT.FLOAT(MTH)*DDIR ) PTRIAD(8) = -1.
    ENDIF
-!
+
 !     check biphase in case no triads                                     41.97
-!
+
    IF ( ITRIAD.EQ.0 ) THEN
       IF ( ISURF.EQ.7 ) THEN
-         IBIPH = 2
+         IBIPH = IBIPH_SAPR
          PTRIAD(9) = 1.
       ENDIF
    ENDIF
-!
+
    RETURN
 ! * end of subroutine SWPREP *
-END
-!
-!***********************************************************************
+end subroutine SWPREP
+
+!************************************************************************
 !                                                                      *
 SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)
 !                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
+!************************************************************************
+
+   USE swan_input_point_validation, ONLY: SINUPT, SINBTG
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_input_grids
+   USE swan_computational_grid
    USE OUTP_DATA
    USE SwanGriddata
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -4310,7 +4277,7 @@ SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)
 !
 !  1. Updates
 !
-!     30.72, Sept 97: INTEGER*4 replaced by INTEGER
+!     30.72, Sept 97: INTEGER(KIND=SELECTED_INT_KIND(9)) replaced by INTEGER
 !     30.72, Sept 97: Replaced DO-block with one CONTINUE to DO-block with
 !                     two CONTINUE's
 !     32.02, Jan. 98: Introduced 1D-version
@@ -4338,22 +4305,22 @@ SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)
 !
 !     XCGRID: input  Coordinates of computational grid in x-direction     30.72
 !     YCGRID: input  Coordinates of computational grid in y-direction     30.72
-!
+
    INTEGER :: KGRBND(*)
-!
+
    REAL    :: XCGRID(MXC,MYC), YCGRID(MXC,MYC)
-!
+
 !  6. Local variables
 !
 !     I, J    counters
-!
-   INTEGER I, J
-!
+
+   INTEGER I, J, IP, MIP, MXK
+
 !     XR      x (comp. grid coord.)
 !     YR      y (comp. grid coord.)
-!
-   REAL    XR, YR
-!
+
+   REAL    XR, YR, XP, XQ, YP, YQ
+
 !  8. Subroutines used
 !
 !     COPYCH
@@ -4375,7 +4342,7 @@ SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)
 !
 ! 12. Structure
 !
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !     Check whether bottom grid and computational grid are defined
 !     and if the bottom and current are read
 !     For every corner point of the computational grid do
@@ -4408,68 +4375,65 @@ SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)
 !                 If pointset is of type G (grid), then
 !                     Check location of the cornerpoints in bottom grid
 !                       and computational grid
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !
 ! 13. Source text
-!
+
    INTEGER  KGRPNT(MXC,MYC)
-   LOGICAL  SINBTG
-   CHARACTER STYPE *1
+   CHARACTER(LEN=1) :: STYPE
    TYPE(OPSDAT), POINTER :: CUOPS
-   SAVE IENT
-   DATA IENT /0/
+   INTEGER, SAVE :: IENT = 0
    CALL STRACE (IENT,'SPRCON')
-!
+
 !     ***** test location of computational grid *****
-!
+
    IF (ITEST.GE.10) WRITE (PRTEST, '(A)') &
-                               'Check location of computational grid'
-!
+      'Check location of computational grid'
+
    IF (OPTG .EQ. 1) THEN
-!
+
 !       regular grid
-!
+
       IF (ONED) THEN
-!
+
 !         For 1D-version:
 !         *** Check angles of bottom grid and computational grid ***      32.02
-!
+
          IF ( ABS((ALPG(1) - ALPC)) .GT. 0.0017 ) THEN
             CALL MSGERR( 2, ' Difference between angle of bottom grid'// &
-                            ' (alpinp) and computational grid (alpc)')
+               ' (alpinp) and computational grid (alpc)')
             CALL MSGERR( 2, ' greater than 0.1 degrees.')
          ENDIF
-!
+
 !         *** Check location of computational grid ***                    32.02
-!
+
          DO  I=0,1
             XR = I*XCLEN
             XP = XPC + XR*COSPC
             YP = YPC + XR*SINPC
             IF (.NOT.SINBTG(XP,YP) ) THEN
                CALL MSGERR(1,'Corner of comp grid outside bottom grid')
-               WRITE (PRINTF, 6010) XP+XOFFS, YP+YOFFS
+               WRITE (PRINTF, "(' Coordinates :',2F10.2)") XP+XOFFS, YP+YOFFS
             ENDIF
          ENDDO
       ELSE
-!
+
 !         two-dimensional case
-!
-         DO 11 I=0,1
-            DO 10 J=0,1
+
+         do I=0,1
+            do J=0,1
                XR = I*XCLEN
                YR = J*YCLEN
                XP = XPC + XR*COSPC - YR*SINPC
                YP = YPC + XR*SINPC + YR*COSPC
                IF (.NOT.SINBTG(XP,YP) ) THEN
                   CALL MSGERR(1,'Corner of comp grid outside bottom grid')
-                  WRITE (PRINTF, 6010) XP+XOFFS, YP+YOFFS
-6010              FORMAT (' Coordinates :',2F10.2)
+                  WRITE (PRINTF, "(' Coordinates :',2F10.2)") XP+XOFFS, YP+YOFFS
                ENDIF
-10          CONTINUE
-11       CONTINUE
+            end do
+         end do
       ENDIF
-!
+
       XR = 0.5*XCLEN
       YR = 0.5*YCLEN
       XP = XPC + XR*COSPC - YR*SINPC
@@ -4478,59 +4442,50 @@ SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)
          CALL MSGERR (2,' Centre of comp. grid outside bottom grid')
       ENDIF
    ELSEIF (OPTG.EQ.5) THEN
-!
+
 !       --- check location of computational grid                          40.80
-!
+
       DO I = 1, nverts
          IF ( vmark(I) /= 0 ) THEN
             XP = xcugrd(I)
             YP = ycugrd(I)
             IF (.NOT.SINBTG(XP,YP) ) THEN
                CALL MSGERR(1,'Corner of comp grid outside bottom grid')
-               WRITE (PRINTF, 6010) XP+XOFFS, YP+YOFFS
+               WRITE (PRINTF, "(' Coordinates :',2F10.2)") XP+XOFFS, YP+YOFFS
             ENDIF
          ENDIF
       ENDDO
    ENDIF
-!
+
 !     ***** test location of output pointsets *****
    IF (LOPS) THEN
       CUOPS => FOPS
-      DO
+      output_sets: DO
 !         --- get name of point set                                       40.31
          SNAME = CUOPS%PSNAME
-         IF (ITEST.GE.80) WRITE (PRTEST, 12) SNAME
-12       FORMAT (' test SPRCON ', A8)
-!
-!         bottom grid is excluded from the test
-         IF (SNAME.EQ.'BOTTGRID') GOTO 100
-!
-!         computational grid is excluded from the test
-         IF (SNAME.EQ.'COMPGRID') GOTO 100
-!
-!         wind grid is excluded from the test
-         IF (SNAME.EQ.'WXGRID' .OR. SNAME.EQ.'WYGRID') GOTO 100
-!
-!         velocity grid is excluded from the test
-         IF (SNAME.EQ.'VXGRID' .OR. SNAME.EQ.'VYGRID') GOTO 100
-!
-!         waterlevel grid is excluded from the test
-         IF (SNAME.EQ.'WLEVGRID') GOTO 100
-!
-!         friction grid is excluded from the test
-         IF (SNAME.EQ.'FRICGRID') GOTO 100
-!
+         IF (ITEST.GE.80) WRITE (PRTEST, "(' test SPRCON ', A8)") SNAME
+
+!         input and computational grids are excluded from the test
+         IF (SNAME.EQ.'BOTTGRID' .OR. SNAME.EQ.'COMPGRID' .OR. &
+             SNAME.EQ.'WXGRID'   .OR. SNAME.EQ.'WYGRID'   .OR. &
+             SNAME.EQ.'VXGRID'   .OR. SNAME.EQ.'VYGRID'   .OR. &
+             SNAME.EQ.'WLEVGRID' .OR. SNAME.EQ.'FRICGRID') THEN
+            IF (.NOT.ASSOCIATED(CUOPS%NEXTOPS)) EXIT output_sets
+            CUOPS => CUOPS%NEXTOPS
+            CYCLE output_sets
+         END IF
+
          IF (ITEST.GE.10) WRITE (PRTEST, '(A)') &
-                      'Check location of output pointset '//TRIM(SNAME)
-!
+            'Check location of output pointset '//TRIM(SNAME)
+
          STYPE = CUOPS%PSTYPE
-!                                                                         32.02
+
 !         *** Check other output locations ***                            32.02
-!                                                                         32.02
+
          IF (STYPE.EQ.'F' .AND. OPTG .EQ. 1) THEN
-!
+
 !           check the four corners of the frame
-!
+
             XQLEN = CUOPS%OPR(3)
             YQLEN = CUOPS%OPR(4)
             XPQ   = CUOPS%OPR(1)
@@ -4544,68 +4499,68 @@ SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)
                   XP = XPQ + XQ*COSPQ
                   YP = YPQ + XQ*SINPQ
                   CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
-                                 KGRBND)
+                     KGRBND)
                ENDDO
             ELSE
-               DO 21 I=0,1
-                  DO 20 J=0,1
+               do I=0,1
+                  do J=0,1
                      XQ = I*XQLEN
                      YQ = J*YQLEN
                      XP = XPQ + XQ*COSPQ - YQ*SINPQ
                      YP = YPQ + XQ*SINPQ + YQ*COSPQ
                      CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
-                                  KGRBND)
-20                CONTINUE
-21             CONTINUE
+                        KGRBND)
+                  end do
+               end do
             ENDIF
          ENDIF
 !         --------------------------------------------------------------
          IF (STYPE .EQ. 'C') THEN
-!
+
 !           check first and last point of a curve
-!
+
             MXK = CUOPS%MIP
             IF ( MXK/=0 ) THEN
                XP = CUOPS%XP(1)
                YP = CUOPS%YP(1)
                CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
-                            KGRBND)
+                  KGRBND)
                XP = CUOPS%XP(MXK)
                YP = CUOPS%YP(MXK)
                CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
-                            KGRBND)
+                  KGRBND)
             ENDIF
          ENDIF
 !         --------------------------------------------------------------
          IF (STYPE .EQ. 'P' .OR. STYPE .EQ. 'U') THEN
-!
+
 !           check all individual output points
-!
+
             MIP = CUOPS%MIP
-            DO 40 IP=1,MIP
+            do IP=1,MIP
                XP = CUOPS%XP(IP)
                YP = CUOPS%YP(IP)
                CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
-                            KGRBND)
-40          CONTINUE
+                  KGRBND)
+            end do
          ENDIF
 !         --------------------------------------------------------------
          IF (STYPE .EQ. 'R') THEN
             MIP = CUOPS%MIP
-            DO 50 IP=1,MIP, MIP
+            do IP=1,MIP, MIP
                XP = CUOPS%XP(IP)
                YP = CUOPS%YP(IP)
                XQ = CUOPS%XQ(IP)
                YQ = CUOPS%YQ(IP)
                CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
-                            KGRBND)
+                  KGRBND)
                CALL SINUPT (SNAME, XQ, YQ, XCGRID, YCGRID, KGRPNT, &
-                            KGRBND)
-50          CONTINUE
+                  KGRBND)
+            end do
          ENDIF
 !         --------------------------------------------------------------
 !         stype = 'N'     VERSION 20.63
-!
+
          IF (STYPE.EQ.'N') THEN
             MIP   = CUOPS%MIP
             XQLEN = CUOPS%OPR(1)
@@ -4624,7 +4579,7 @@ SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)
                      XP = XPQ + XQ*COSPQ - YQ*SINPQ
                      YP = YPQ + XQ*SINPQ + YQ*COSPQ
                      CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
-                                  KGRBND)
+                        KGRBND)
                   ENDDO
                ENDDO
             ELSE
@@ -4633,36 +4588,42 @@ SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)
                   XP = CUOPS%XP(IP)
                   YP = CUOPS%YP(IP)
                   CALL SINUPT (SNAME, XP, YP, XCGRID, YCGRID, KGRPNT, &
-                               KGRBND)
+                     KGRBND)
                ENDDO
             ENDIF
          ENDIF
-!
-100      IF (.NOT.ASSOCIATED(CUOPS%NEXTOPS)) EXIT
+
+         IF (.NOT.ASSOCIATED(CUOPS%NEXTOPS)) EXIT
          CUOPS => CUOPS%NEXTOPS
-      END DO
+      END DO output_sets
    ENDIF
-!
+
    RETURN
 !   * end of subroutine SPRCON *
-END
-!***********************************************************************
+end subroutine SPRCON
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWRBC ( COMPDA )
 !                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+!************************************************************************
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_input_interpolation, ONLY: SVALQI
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_input_grids
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_compda_layout
+   USE swan_test_output
    USE M_GENARR
+   USE swan_input_fields
    USE M_PARALL
    USE SwanGriddata
    USE SwanBraggScat, only: dpmean
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -4713,7 +4674,7 @@ SUBROUTINE SWRBC ( COMPDA )
 !                     some variable names changed (not common anymore)
 !     30.60, Aug. 97: test on value of KGRPNT, skip part of code if
 !                     KGRPNT(IX,IY)=1
-!     30.72, Sept 97: INTEGER*4 replaced by INTEGER
+!     30.72, Sept 97: INTEGER(KIND=SELECTED_INT_KIND(9)) replaced by INTEGER
 !     32.01, Jan. 98: Initialise setup and saved depth for 1D-version
 !     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     30.70, Mar. 98: proper water level stored in array COMPDA(*,JWLV2)
@@ -4742,9 +4703,9 @@ SUBROUTINE SWRBC ( COMPDA )
 !  4. Argument variables
 !
 !     COMPDA
-!
+
    REAL    COMPDA(MCGRD,MCMVAR)
-!
+
 !  6. Local variables
 !
 !  8. Subroutines used
@@ -4765,7 +4726,7 @@ SUBROUTINE SWRBC ( COMPDA )
 !
 ! 12. Structure
 !
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !     For every line IX of the computational grid do
 !         For every point IY of this line do
 !             Compute bottom grid coordinates as number of meshes
@@ -4774,26 +4735,26 @@ SUBROUTINE SWRBC ( COMPDA )
 !                 Compute current components relative to comp. grid
 !             Else
 !                 Current components are zero
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER :: INDX, IX, IY, JVERT
+   REAL :: ASTD, CGFACT, CGMAX, DEP, DEPW, FRI, UU, VTOT, VV, WLVL
+   REAL :: XAICE, XDSS, XHICE, XHSS, XMUD, XNPL, XP, XTSS, XTUR, YP
    CALL STRACE(IENT,'SWRBC')
-!
+
    IF (ITEST .GE. 100 .OR. INTES .GE. 30) THEN
       WRITE(PRINTF,*) '  ', ICUR, IGTYPE(2)
       WRITE(PRINTF,*) '******** In subroutine SWRBC *******'
       IF (ICUR .EQ. 1 ) THEN
-         WRITE(PRINTF,51)
+         WRITE(PRINTF,"('P.index',5X,'coord.',14X,'depth',13X,'UX',13X,'UY')")
       ELSE
-         WRITE(PRINTF,50)
+         WRITE(PRINTF,"('P.index',5X,'coord.',14X,'depth')")
       ENDIF
    ENDIF
-50 FORMAT('P.index',5X,'coord.',14X,'depth')
-51 FORMAT('P.index',5X,'coord.',14X,'depth',13X,'UX',13X,'UY')
-!
+
 !     *** The arrays start to be filled in the second value ***
 !     *** because in COMPDA(1,"variable"), is the default   ***
 !     *** value for land points    version 30.21            ***
@@ -4866,32 +4827,31 @@ SUBROUTINE SWRBC ( COMPDA )
       COMPDA(1,JDSS3) = 0.
    ENDIF
    COMPDA(1,JBOTLV) = 0.
-!
+
 !     --- structured grid                                                 40.80
-!
-   DO 20 IX = 1, MXC
-      DO 10 IY = 1, MYC
+
+   do IX = 1, MXC
+      grid_rows: do IY = 1, MYC
          INDX = KGRPNT(IX,IY)
          IF (INDX.LE.0 .OR. INDX.GT.MCGRD) THEN
             CALL MSGERR (3, 'Grid error in subr. SWRBC')
-            WRITE (PRINTF, 8) IX, IY, INDX, MCGRD
-8           FORMAT (' IX, IY, INDX, MCGRD: ', 4I7)
-            GOTO 10
+            WRITE (PRINTF, "(' IX, IY, INDX, MCGRD: ', 4I7)") IX, IY, INDX, MCGRD
+            CYCLE grid_rows
          ENDIF
-         IF (INDX.EQ.1) GOTO 10
-!
+         IF (INDX.EQ.1) CYCLE grid_rows
+
          XP = XCGRID(IX,IY)
          YP = YCGRID(IX,IY)
-!
+
 !         ***** compute depth and water level *****
-!
+
          IF ( IBRAG.EQ.0 ) THEN
             DEP = SVALQI (XP, YP, 1, DEPTH, 1, IX, IY)
          ELSE
             DEP = dpmean(INDX)
          ENDIF
          COMPDA(INDX,JBOTLV) = DEP
-!
+
          IF (VARWLV) THEN
             WLVL = SVALQI (XP, YP, 7, WLEVL, 1 ,IX ,IY)
             COMPDA(INDX,JWLV2) = WLVL
@@ -4906,22 +4866,21 @@ SUBROUTINE SWRBC ( COMPDA )
 !         ***water level at T (Only for first time computation)     ***
          IF (JDP1.GT.1) COMPDA(INDX,JDP1) = DEPW
          IF (JDP3.GT.1) COMPDA(INDX,JDP3) = DEPW
-!
+
 !         ***** compute current velocity *****
-!
+
          IF (ICUR.EQ.1 .AND. IGTYPE(2) .GE. 1) THEN
             IF (DEPW.GT.0.) THEN
                UU  = SVALQI (XP, YP, 2, UXB, 0 ,IX ,IY)
                VV  = SVALQI (XP, YP, 3, UYB, 0 ,IX ,IY)
                VTOT = SQRT (UU*UU + VV*VV)
-               CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
+               CGMAX = PNUMS(PNUMS_FROUDE)*SQRT(GRAV*DEPW)
                IF (VTOT .GT. CGMAX) THEN
                   CGFACT = CGMAX / VTOT
                   UU = UU * CGFACT
                   VV = VV * CGFACT
                   IF (ERRPTS.GT.0.AND.IAMMASTER) THEN
-                     WRITE (ERRPTS, 211) IX+MXF-1, IY+MYF-1, 1
-211                  FORMAT (I4, 1X, I4, 1X, I2)
+                     WRITE (ERRPTS, "(I4, 1X, I4, 1X, I2)") IX+MXF-1, IY+MYF-1, 1
                   ENDIF
                ENDIF
                COMPDA(INDX,JVX2) =  UU*COSVC + VV*SINVC
@@ -4935,28 +4894,26 @@ SUBROUTINE SWRBC ( COMPDA )
             IF (JVX3.GT.1) COMPDA(INDX,JVX3) = COMPDA(INDX,JVX2)
             IF (JVY3.GT.1) COMPDA(INDX,JVY3) = COMPDA(INDX,JVY2)
          ENDIF
-!
+
          IF (ITEST .GE. 100 .OR. INTES .GE. 30) THEN
             IF (ICUR .EQ. 1 ) THEN
-               WRITE(PRINTF,31)KGRPNT(IX,IY),XP,YP,COMPDA(INDX,JDP2), &
+               WRITE(PRINTF,"(1X,I5,2X,5(E11.4,2X))")KGRPNT(IX,IY),XP,YP,COMPDA(INDX,JDP2), &
                   COMPDA(INDX,JVX2),COMPDA(INDX,JVY2)
             ELSE
-               WRITE(PRINTF,30)KGRPNT(IX,IY),XP,YP,COMPDA(INDX,JDP2)
+               WRITE(PRINTF,"(1X,I5,2X,3(E11.4,2X))")KGRPNT(IX,IY),XP,YP,COMPDA(INDX,JDP2)
             ENDIF
          ENDIF
-30       FORMAT(1X,I5,2X,3(E11.4,2X))
-31       FORMAT(1X,I5,2X,5(E11.4,2X))
-!
+
 !         ***** compute variable friction coefficient *****
-!
+
          IF (VARFR) THEN
             FRI = SVALQI (XP, YP, 4, FRIC, 1 ,IX ,IY)
             COMPDA(INDX,JFRC2) = FRI
             COMPDA(INDX,JFRC3) = FRI
          ENDIF
-!
+
 !         ***** compute variable wind velocity *****
-!
+
          IF (VARWI) THEN
             UU  = SVALQI (XP, YP, 5, WXI, 0 ,IX ,IY)
             VV  = SVALQI (XP, YP, 6, WYI, 0 ,IX ,IY)
@@ -4965,25 +4922,25 @@ SUBROUTINE SWRBC ( COMPDA )
             IF (JWX3.GT.1) COMPDA(INDX,JWX3) = COMPDA(INDX,JWX2)
             IF (JWY3.GT.1) COMPDA(INDX,JWY3) = COMPDA(INDX,JWY2)
          ENDIF
-!
+
 !     ***** compute variable air-sea temperature difference *****         40.03
-!
+
          IF (VARAST) THEN
             ASTD = SVALQI (XP, YP, 10, ASTDF, 1 ,IX ,IY)
             COMPDA(INDX,JASTD2) = ASTD
             COMPDA(INDX,JASTD3) = ASTD
          ENDIF
-!
+
 !     ***** compute number of plants per square meter *****               40.55
-!
+
          IF (VARNPL) THEN
             XNPL = SVALQI (XP, YP, 11, NPLAF, 1 ,IX ,IY)
             COMPDA(INDX,JNPLA2) = XNPL
             COMPDA(INDX,JNPLA3) = XNPL
          ENDIF
-!
+
 !     ***** compute turbulent viscosity *****                             40.35
-!
+
          IF (VARTUR) THEN
             IF (PTURBV(2).LT.0.) THEN
                XTUR = SVALQI (XP, YP, 12, TURBF, 0 ,IX ,IY)
@@ -4995,74 +4952,74 @@ SUBROUTINE SWRBC ( COMPDA )
             COMPDA(INDX,JTURB2) = XTUR
             COMPDA(INDX,JTURB3) = XTUR
          ENDIF
-!
+
 !     ***** compute fluid mud layer *****                                 40.59
-!
+
          IF (VARMUD) THEN
             XMUD = SVALQI (XP, YP, 13, MUDLF, 1 ,IX ,IY)
             COMPDA(INDX,JMUDL1) = XMUD
             COMPDA(INDX,JMUDL2) = XMUD
             COMPDA(INDX,JMUDL3) = XMUD
          ENDIF
-!
+
 !     ***** compute ice concentration (fraction) *****                    41.75
-!
+
          IF (VARAICE) THEN
             XAICE = SVALQI (XP, YP, 14, AICEF, 1 ,IX ,IY)
             COMPDA(INDX,JAICE2) = XAICE
             COMPDA(INDX,JAICE3) = XAICE
          ENDIF
-!
+
 !     ***** compute ice thickness in meters *****                         41.75
-!
+
          IF (VARHICE) THEN
             XHICE = SVALQI (XP, YP, 15, HICEF, 1 ,IX ,IY)
             COMPDA(INDX,JHICE2) = XHICE
             COMPDA(INDX,JHICE3) = XHICE
          ENDIF
-!
+
 !     ***** compute sea-swell sig wave height *****                       41.82
-!
+
          IF (VARHSS) THEN
             XHSS = SVALQI (XP, YP, 16, HSSF, 1 ,IX ,IY)
             COMPDA(INDX,JHSS2) = XHSS
             COMPDA(INDX,JHSS3) = XHSS
          ENDIF
-!
+
 !     ***** compute sea-swell mean wave period *****                      41.82
-!
+
          IF (VARTSS) THEN
             XTSS = SVALQI (XP, YP, 17, TSSF, 1 ,IX ,IY)
             COMPDA(INDX,JTSS2) = XTSS
             COMPDA(INDX,JTSS3) = XTSS
          ENDIF
-!
+
 !     ***** compute sea-swell mean wave direction *****                   42.06
-!
+
          IF (VARDSS) THEN
             XDSS = SVALQI (XP, YP, 18, DSSF, 1 ,IX ,IY)
             COMPDA(INDX,JDSS2) = XDSS
             COMPDA(INDX,JDSS3) = XDSS
          ENDIF
-!
-10    CONTINUE
-20 CONTINUE
-!
+
+      end do grid_rows
+   end do
+
 !     --- unstructured grid                                               40.80
-!
+
    DO INDX = 1, nverts
-!
+
       XP = xcugrd(INDX)
       YP = ycugrd(INDX)
-!
+
       IF ( .NOT.PARLL ) THEN
          JVERT = INDX
       ELSE
          JVERT = ivertg(INDX)
       ENDIF
-!
+
 !        ***** compute depth and water level *****
-!
+
       IF ( IGTYPE(1).EQ.3 ) THEN
          DEP = DEPTH(JVERT)
       ELSE
@@ -5073,7 +5030,7 @@ SUBROUTINE SWRBC ( COMPDA )
          ENDIF
       ENDIF
       COMPDA(INDX,JBOTLV) = DEP
-!
+
       IF (VARWLV) THEN
          IF ( IGTYPE(7).EQ.3 ) THEN
             WLVL = WLEVL(JVERT)
@@ -5092,9 +5049,9 @@ SUBROUTINE SWRBC ( COMPDA )
 !        ***water level at T (Only for first time computation)     ***
       IF (JDP1.GT.1) COMPDA(INDX,JDP1) = DEPW
       IF (JDP3.GT.1) COMPDA(INDX,JDP3) = DEPW
-!
+
 !        ***** compute current velocity *****
-!
+
       IF (ICUR.EQ.1 .AND. IGTYPE(2) .GE. 1) THEN
          IF (DEPW.GT.0.) THEN
             IF ( IGTYPE(2).EQ.3 ) THEN
@@ -5108,14 +5065,13 @@ SUBROUTINE SWRBC ( COMPDA )
                VV = SVALQI (XP, YP, 3, UYB, 0, 0, 0)
             ENDIF
             VTOT = SQRT (UU*UU + VV*VV)
-            CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
+            CGMAX = PNUMS(PNUMS_FROUDE)*SQRT(GRAV*DEPW)
             IF (VTOT .GT. CGMAX) THEN
                CGFACT = CGMAX / VTOT
                UU = UU * CGFACT
                VV = VV * CGFACT
                IF (ERRPTS.GT.0) THEN
-                  WRITE (ERRPTS, 212) INDX, 1
-212               FORMAT (I4, 1X, I2)
+                  WRITE (ERRPTS, "(I4, 1X, I2)") INDX, 1
                ENDIF
             ENDIF
             COMPDA(INDX,JVX2) =  UU*COSVC + VV*SINVC
@@ -5129,9 +5085,9 @@ SUBROUTINE SWRBC ( COMPDA )
          IF (JVX3.GT.1) COMPDA(INDX,JVX3) = COMPDA(INDX,JVX2)
          IF (JVY3.GT.1) COMPDA(INDX,JVY3) = COMPDA(INDX,JVY2)
       ENDIF
-!
+
 !         ***** compute variable friction coefficient *****
-!
+
       IF (VARFR) THEN
          IF ( IGTYPE(4).EQ.3 ) THEN
             FRI = FRIC(JVERT)
@@ -5141,9 +5097,9 @@ SUBROUTINE SWRBC ( COMPDA )
          COMPDA(INDX,JFRC2) = FRI
          COMPDA(INDX,JFRC3) = FRI
       ENDIF
-!
+
 !        ***** compute variable wind velocity *****
-!
+
       IF (VARWI) THEN
          IF ( IGTYPE(5).EQ.3 ) THEN
             UU = WXI(JVERT)
@@ -5160,9 +5116,9 @@ SUBROUTINE SWRBC ( COMPDA )
          IF (JWX3.GT.1) COMPDA(INDX,JWX3) = COMPDA(INDX,JWX2)
          IF (JWY3.GT.1) COMPDA(INDX,JWY3) = COMPDA(INDX,JWY2)
       ENDIF
-!
+
 !     ***** compute variable air-sea temperature difference *****         40.80
-!
+
       IF (VARAST) THEN
          IF ( IGTYPE(10).EQ.3 ) THEN
             ASTD = ASTDF(JVERT)
@@ -5172,9 +5128,9 @@ SUBROUTINE SWRBC ( COMPDA )
          COMPDA(INDX,JASTD2) = ASTD
          COMPDA(INDX,JASTD3) = ASTD
       ENDIF
-!
+
 !     ***** compute number of plants per square meter *****               40.80
-!
+
       IF (VARNPL) THEN
          IF ( IGTYPE(11).EQ.3 ) THEN
             XNPL = NPLAF(JVERT)
@@ -5184,9 +5140,9 @@ SUBROUTINE SWRBC ( COMPDA )
          COMPDA(INDX,JNPLA2) = XNPL
          COMPDA(INDX,JNPLA3) = XNPL
       ENDIF
-!
+
 !     ***** compute turbulent viscosity *****                             40.35
-!
+
       IF (VARTUR) THEN
          IF (PTURBV(2).LT.0.) THEN
             IF ( IGTYPE(12).EQ.3 ) THEN
@@ -5202,9 +5158,9 @@ SUBROUTINE SWRBC ( COMPDA )
          COMPDA(INDX,JTURB2) = XTUR
          COMPDA(INDX,JTURB3) = XTUR
       ENDIF
-!
+
 !     ***** compute fluid mud layer *****                                 40.80
-!
+
       IF (VARMUD) THEN
          IF ( IGTYPE(13).EQ.3 ) THEN
             XMUD = MUDLF(JVERT)
@@ -5215,9 +5171,9 @@ SUBROUTINE SWRBC ( COMPDA )
          COMPDA(INDX,JMUDL2) = XMUD
          COMPDA(INDX,JMUDL3) = XMUD
       ENDIF
-!
+
 !     ***** compute aice, ice concentration (fraction)  *****             41.75
-!                                                                         41.75
+
       IF (VARAICE) THEN
          IF ( IGTYPE(14).EQ.3 ) THEN
             XAICE = AICEF(JVERT)
@@ -5227,9 +5183,9 @@ SUBROUTINE SWRBC ( COMPDA )
          COMPDA(INDX,JAICE2) = XAICE
          COMPDA(INDX,JAICE3) = XAICE
       ENDIF
-!
+
 !     ***** compute hice, ice thickness (m)  *****                        41.75
-!                                                                         41.75
+
       IF (VARHICE) THEN
          IF ( IGTYPE(15).EQ.3 ) THEN
             XHICE = HICEF(JVERT)
@@ -5239,10 +5195,9 @@ SUBROUTINE SWRBC ( COMPDA )
          COMPDA(INDX,JHICE2) = XHICE
          COMPDA(INDX,JHICE3) = XHICE
       ENDIF
-!
-!
+
 !     ***** compute sea-swell significant wave height  *****              41.82
-!                                                                         41.82
+
       IF (VARHSS) THEN
          IF ( IGTYPE(16).EQ.3 ) THEN
             XHSS = HSSF(JVERT)
@@ -5252,9 +5207,9 @@ SUBROUTINE SWRBC ( COMPDA )
          COMPDA(INDX,JHSS2) = XHSS
          COMPDA(INDX,JHSS3) = XHSS
       ENDIF
-!
+
 !     ***** compute sea-swell mean wave period  *****                     41.82
-!                                                                         41.82
+
       IF (VARTSS) THEN
          IF ( IGTYPE(17).EQ.3 ) THEN
             XTSS = TSSF(JVERT)
@@ -5264,9 +5219,9 @@ SUBROUTINE SWRBC ( COMPDA )
          COMPDA(INDX,JTSS2) = XTSS
          COMPDA(INDX,JTSS3) = XTSS
       ENDIF
-!
+
 !     ***** compute sea-swell mean wave direction  *****                  42.06
-!                                                                         42.06
+
       IF (VARDSS) THEN
          IF ( IGTYPE(18).EQ.3 ) THEN
             XDSS = DSSF(JVERT)
@@ -5277,964 +5232,54 @@ SUBROUTINE SWRBC ( COMPDA )
          COMPDA(INDX,JDSS3) = XDSS
       ENDIF
    ENDDO
-!
+
 !     *** initialise setup and saved depth ***                            32.02
-!
+
    IF (LSETUP.GT.0) THEN
       DO INDX = 1, MCGRD
          COMPDA(INDX,JSETUP) =  0.
          COMPDA(INDX,JDPSAV) = COMPDA(INDX,JDP2)
       ENDDO
    ENDIF
-!
+
 !     --- initialize HSIBC                                                40.41
    COMPDA(:,JHSIBC) = 0.
-!
+
 !     --- initialize ZELEN and USTAR                                      40.41
    COMPDA(:,JZEL  ) = 1.E-4
    COMPDA(:,JUSTAR) = 1.E-15
-!
+
 !     --- initialize UBOT and TMBOT                                       40.94
    COMPDA(:,JUBOT) = 0.
    IF (JPBOT.GT.1) COMPDA(:,JPBOT) = 0.
-!
+
 !     --- initialize GAMBR                                                41.97 41.96
    IF (ISURF.EQ.6.OR.ISURF.EQ.7) COMPDA(:,JGAMMA) = PSURF(2)
-!
+
    RETURN
 ! * end of subroutine SWRBC *
-END
-!***********************************************************************
-!                                                                      *
-REAL FUNCTION SVALQI (XP, YP, IGRID, ARRINP, ZERO ,IXC ,IYC)
-!                                                                      *
-!***********************************************************************
-
-   USE OCPCOMM4
-   USE SWCOMM2
-   USE M_PARALL
-
-   IMPLICIT NONE
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     30.60: Nico Booij
-!     30.72: IJsbrand Haagsma
-!     30.82: IJsbrand Haagsma
-!     32.03: Nico Booij
-!     40.04: Annette Kieftenburg
-!     40.30: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!     40.80: Marcel Zijlema
-!
-!  1. Updates
-!
-!     30.72, Sept 97: INTEGER*4 replaced by INTEGER
-!     30.60, Aug. 97: inequalities changed in view of bug reported by
-!                     Ralf Kaiser (GT -> GE and LT -> LE)
-!     32.03, Feb. 98: option for 1-D computation introduced
-!                     real equality changed into inequality
-!     30.82, Apr. 98: Replace statement with division through DYG to avoid division
-!                     through zero in case of 1D.
-!     30.82, Nov. 98: Now takes care of interpolation near points that
-!                     contain exception values
-!     40.04, Aug. 00: Interpolation near points that contain exception values
-!                     modified
-!                   : Removed include files that are not used
-!     40.30, Mar. 03: correcting indices IXC, IYC with offsets MXF, MYF
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!     40.80, Dec. 07: extension to unstructured grids
-!
-!  2. Purpose
-!
-!     Determining the value of a quantity from an input grid
-!     such as depth and the current velocity components
-!     for point given in problem coordinates
-!
-!  3. Method (updated...)
-!
-!     The required values are computed by bilinear interpolation. The
-!     coordinates are given in the bottom grid as the number of meshes
-!     in X- and Y-direction, IB and JB respectively (both real).
-!
-!           YB|
-!             |
-!             |--------------- *                *
-!             | A
-!             | |SYB1
-!             | V
-!         IYB-|-------------------- o
-!             |
-!             |                     |
-!         JB1-|--------------- *    |           *
-!             |                     |
-!             |                |    |    SXB1   |
-!             |                |    |<--------->|
-!             +----------------------------------------------->
-!                              |    |                       XB
-!                             IB1  IXB
-!
-!                   *  bottom grid points
-!                   o  point for interpolation
-!
-!  4. Argument variables
-!
-!     IGRID    Grid indicator
-!     IXC      Counter for X-coordinate in computational grid (used
-!              in curvilinear case)
-!     IYC      Counter for Y-coordinate in computational grid (used
-!              in curvilinear case)
-!     ZERO     If ZERO=0, then value outside the grid is zero, otherwise
-!              the value is extrapolated
-!
-   INTEGER  IGRID, IXC, IYC, ZERO
-!
-!     ARRINP   Array holding the values at the input grid locations
-!     SVALQI   Value of quantity in (XP,YP)
-!     XP       X-coordinate in computational gridpoint
-!     YP       Y-coordinate in computational gridpoint
-!
-   REAL     ARRINP(*), XP, YP
-!
-!  5. Parameter variables
-!
-!  6. Local variables
-!
-!     EQREAL   Boolean function which compares two REAL values
-!     IB1      Grid counter in x-direction
-!     IENT     Number of entries into this subroutine
-!     II       Pointer number in ARRINP
-!     INGRD    Boolean variable to determine whether point is in grid
-!     IXB      Distance to origin in x-direction devided by meshsize
-!              in y-direction
-!     IXCGL    X-index with respect to global grid
-!     IYB      Distance to origin in y-direction devided by meshsize
-!              in y-direction
-!     IYCGL    Y-index with respect to global grid
-!     JB1      Grid counter in y-direction
-!     SUMWEXC  Sum of weight factors of points with exception value       40.04
-!     SUMWREG  Sum of weight factors of points with regular   value       40.04
-!     SXB1     First weight factor for distance in x-direction
-!     SXB2     Second weight factor for distance in x-direction
-!     SYB1     First weight factor for distance in y-direction
-!     SYB2     Second weight factor for distance in y-direction
-!     WF1      Weight factor of point ARRINP(II)                          40.04
-!     WF2      Weight factor of point ARRINP(II+MXG(IGRID))               40.04
-!     WF3      Weight factor of point ARRINP(II+1)                        40.04
-!     WF4      Weight factor of point ARRINP(II+1+MXG(IGRID))             40.04
-!
-   INTEGER  IB1, IENT, II, JB1, IXCGL, IYCGL
-   REAL     IXB, IYB, SXB1, SXB2, SYB1, SYB2
-   REAL     SUMWEXC, SUMWREG, WF1, WF2, WF3, WF4
-   LOGICAL  INGRD
-!
-!  8. Subroutines used
-!
-!     LOGICAL FUNCTION EQREAL: Checks whether two reals are equal within certain margins
-!     STRACE: Traces the entry into subroutines (test purposes)
-!
-   LOGICAL  EQREAL
-!
-!  9. Subroutines calling
-!
-!     SWDIM
-!     INTEGER FUNCTION SIRAY
-!     SWRBC
-!     SNEXTI
-!     FLFILE
-!
-! 10. Error messages
-!
-! 11. Remarks
-!
-! 12. Structure
-!
-!       ----------------------------------------------------------------
-!       If the point is out of bottom grid in X-direction, then
-!           Compute lines for interpolation and interpolation factors
-!             such that the value at the side of the grid is taken
-!       Else
-!           Compute nearest line IX in the bottom grid and the interpo-
-!             lation factor in X-direction
-!       ----------------------------------------------------------------
-!       If the point is out of bottom grid in Y-direction, then
-!           Compute lines for interpolation and interpolation factors
-!             such that the value at the side of the grid is taken
-!       Else
-!           Compute nearest line IY in the bottom grid and the interpo-
-!             lation factor in Y-direction
-!       ----------------------------------------------------------------
-!       Compute pointer in arrays and interpolation factors in both
-!       directions
-!       Compute the depth to the reference level for the point
-!       Add the water level to the depth
-!       If depth > 0 and current is on, then
-!           Interpolate X- and Y-component of current velocity
-!       Else
-!           Current components are zero
-!       ----------------------------------------------------------------
-!
-! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
-   CALL STRACE (IENT, 'SVALQI')
-
-!     --- take global indices instead of local ones                       40.30
-
-   IXCGL = IXC + MXF - 1
-   IYCGL = IYC + MYF - 1
-!
-!     ***    Two different procedures in funcion of       ***
-!     ***    grid type: regular or curvilinear (staggered)*** ver 30.21
-!
-   IF (IGTYPE(IGRID) .EQ. 1) THEN
-!
-!     Regular grid:
-!
-      IXB = ( (XP-XPG(IGRID))*COSPG(IGRID) + &
-              (YP-YPG(IGRID))*SINPG(IGRID) ) / DXG(IGRID)
-!
-      INGRD = .TRUE.
-      IF (IXB .LE. 0.) THEN
-         IB1   = 1
-         SXB2  = 0.
-         IF (IXB.LT.-0.1) INGRD = .FALSE.
-      ELSE IF (IXB .GE. FLOAT(MXG(IGRID)-1)) THEN
-         IB1   = MXG(IGRID)-1
-         SXB2  = 1.
-         IF (IXB.GT.FLOAT(MXG(IGRID))-0.9) INGRD = .FALSE.
-      ELSE
-         IB1   = INT(IXB)
-         SXB2  = IXB-REAL(IB1)
-         IB1   = IB1+1
-      ENDIF
-      IF (MYG(IGRID).GT.1) THEN
-         IYB = (-(XP-XPG(IGRID))*SINPG(IGRID) + &
-                 (YP-YPG(IGRID))*COSPG(IGRID) ) / DYG(IGRID)
-         IF (IYB .LE. 0.) THEN
-            JB1   = 1
-            SYB2  = 0.
-            IF (IYB.LT.-0.1) INGRD = .FALSE.
-         ELSE IF (IYB .GE. FLOAT(MYG(IGRID)-1)) THEN
-            JB1   = MYG(IGRID)-1
-            SYB2  = 1.
-            IF (IYB.GT.FLOAT(MYG(IGRID))-0.9) INGRD = .FALSE.
-         ELSE
-            JB1   = INT(IYB)
-            SYB2  = IYB-REAL(JB1)
-            JB1   = JB1+1
-         ENDIF
-      ENDIF
-!
-!       evaluate SVALQI (2D-mode):
-!
-      IF (.NOT.INGRD .AND. ZERO.EQ.0) THEN
-         SVALQI = 0.
-      ELSE IF (MYG(IGRID).GT.1) THEN
-         SXB1   = 1.- SXB2
-         SYB1   = 1.- SYB2
-         II     = IB1 + (JB1-1) * MXG(IGRID)
-         WF1 = SXB1*SYB1
-         WF2 = SXB1*SYB2
-         WF3 = SXB2*SYB1
-         WF4 = SXB2*SYB2
-         SUMWEXC = 0.
-         IF  (EQREAL(ARRINP(II             ),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF1
-            WF1 =0.
-         ENDIF
-         IF (EQREAL(ARRINP(II+  MXG(IGRID)),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF2
-            WF2=0.
-         ENDIF
-         IF (EQREAL(ARRINP(II+1           ),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF3
-            WF3=0.
-         ENDIF
-         IF (EQREAL(ARRINP(II+1+MXG(IGRID)),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF4
-            WF4=0.
-         ENDIF
-         SUMWREG = 1. -SUMWEXC
-!
-         IF (SUMWEXC.GE.SUMWREG)   THEN
-            SVALQI = EXCFLD(IGRID)
-         ELSE
-            SVALQI = ( WF1*ARRINP(II)   + WF2*ARRINP(II+MXG(IGRID)) &
-                     + WF3*ARRINP(II+1) + WF4*ARRINP(II+1+MXG(IGRID)) ) &
-                     / SUMWREG
-         END IF
-      ELSE
-!
-!       evaluate SVALQI (1D-mode):
-!
-         SXB1 = 1. - SXB2
-         IF (EQREAL(ARRINP(IB1  ),EXCFLD(IGRID)).OR. &
-             EQREAL(ARRINP(IB1+1),EXCFLD(IGRID))    ) THEN
-!
-!           One of the cornerpoints contains an exception value thus:     30.82
-!
-            SVALQI = EXCFLD(IGRID)
-         ELSE
-            SVALQI = SXB1*ARRINP(IB1) &
-                   + SXB2*ARRINP(IB1+1)
-         ENDIF
-      ENDIF
-   ELSEIF ( IGTYPE(IGRID).EQ.3 ) THEN
-!
-!     unstructured grid
-!
-      CALL SwanInterpolatePoint(SVALQI, XP, YP, ARRINP, EXCFLD(IGRID))
-!
-   ELSE IF (ABS(STAGX(IGRID)) .LT. 0.01 .AND. &
-            ABS(STAGY(IGRID)) .LT. 0.01) THEN
-!
-!     Curvilinear and non-staggered input grid:                           32.03
-!
-      IB1   = IXCGL
-      JB1   = IYCGL
-      II     = IB1 + (JB1-1) * MXG(IGRID)
-      SVALQI = ARRINP(II)
-   ELSE
-!
-!     Curvilinear and staggered input grid:                               32.03
-!
-      INGRD = .TRUE.
-      IF (IXCGL .EQ. 1) THEN
-         IB1   = 1
-         SXB2  = 0.
-         IF (STAGY(IGRID) .GT. 0.) INGRD = .FALSE.
-      ELSE IF (IXCGL .GT. MXG(IGRID)-1) THEN
-         IB1   = MXG(IGRID)-1
-         SXB2  = 1.
-         IF (STAGY(IGRID) .GT. 0.) INGRD = .FALSE.
-      ELSE
-         IB1   = IXCGL + 1
-         SXB2  = 1. - STAGX(IGRID)
-      ENDIF
-      IF (IYCGL .EQ. 1) THEN
-         JB1   = 1
-         SYB2  = 0.
-         IF (STAGX(IGRID) .GT. 0.) INGRD = .FALSE.
-      ELSE IF (IYCGL .GT. MYG(IGRID)-1) THEN
-         JB1   = MYG(IGRID)-1
-         SYB2  = 1.
-         IF (STAGY(IGRID) .GT. 0.) INGRD = .FALSE.
-      ELSE
-         JB1   = IYCGL + 1
-         SYB2  =1. - STAGY(IGRID)
-      ENDIF
-!
-!       evaluate SVALQI (2D-mode):
-!
-      IF (.NOT.INGRD .AND. ZERO.EQ.0) THEN
-         SVALQI = 0.
-      ELSE
-         SXB1   = STAGX(IGRID)
-         SYB1   = STAGY(IGRID)
-         II     = IB1 + (JB1-1) * MXG(IGRID)
-         WF1 = SXB1*SYB1
-         WF2 = SXB1*SYB2
-         WF3 = SXB2*SYB1
-         WF4 = SXB2*SYB2
-         SUMWEXC = 0.
-         IF (EQREAL(ARRINP(II             ),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF1
-            WF1 =0.
-         ENDIF
-         IF (EQREAL(ARRINP(II+  MXG(IGRID)),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF2
-            WF2=0.
-         ENDIF
-         IF (EQREAL(ARRINP(II+1           ),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF3
-            WF3=0.
-         ENDIF
-         IF (EQREAL(ARRINP(II+1+MXG(IGRID)),EXCFLD(IGRID))) THEN
-            SUMWEXC = SUMWEXC + WF4
-            WF4=0.
-         ENDIF
-         SUMWREG = 1. -SUMWEXC
-!
-         IF (SUMWEXC.GE.SUMWREG)   THEN
-            SVALQI = EXCFLD(IGRID)
-         ELSE
-            SVALQI = ( WF1*ARRINP(II)   + WF2*ARRINP(II+MXG(IGRID)) &
-                     + WF3*ARRINP(II+1) + WF4*ARRINP(II+1+MXG(IGRID)) ) &
-                     / SUMWREG
-         END IF
-      ENDIF
-   ENDIF
-!
-!     ***** test *****
-   IF (ITEST .GE. 280) &
-!     &   WRITE(PRINTF, 6010) SVALQI,IGRID,XP,YP,IXB,IYB,II,ARRINP(II)
-! 6010 FORMAT(' SVALQI  IGRID       XP      YP        IXB',
-!     &       '       IYB  II  ARRINP(II)', /
-!     &      ,E10.3,I3,1X,4E10.3,I4,E10.3)
-      WRITE(PRINTF, 6010) XP, YP, IXB, IYB, SVALQI
-6010 FORMAT(' Test SVALQI:',5F10.3)
-!
-   RETURN
-!     end of function SVALQI
-END
-!***********************************************************************
-!                                                                      *
-SUBROUTINE SINUPT (PSNAME, XP, YP, XCGRID, YCGRID, KGRPNT, KGRBND)
-!                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM2
-   USE SWCOMM3
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     30.72: IJsbrand Haagsma
-!     40.04: Annette Kieftenburg
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!      0.0 , Mar. 87: Heading added, IF..GOTO.. changed into IF..THEN..
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
-!     40.00, Feb. 99: test skipped for irregular bottom grid
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     Checking whether the point XP, YP (given in problem coordinates)
-!     of the output pointset SNAME is located in the computational grid
-!     and bottom grid or not. If not, a warning is generated.
-!
-!  3. Method
-!
-!     ---
-!
-!  4. Argument variables
-!
-!     KGRPNT: input  Adresses of the computational grid points
-!     KGRBND: input
-!
-   INTEGER KGRPNT(MXC,MYC), KGRBND(*)
-!
-!     XCGRID: input  Coordinates of computational grid in x-direction     30.72
-!     XP    : input  X-coordinate of the point (problem coordinates)
-!     YCGRID: input  Coordinates of computational grid in y-direction     30.72
-!     YP    : input  Y-coordinate of the point (problem coordinates)
-!
-   REAL    XP, YP
-   REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
-!
-!     PSNAME: input  Name of the output pointset (any type)
-!
-   CHARACTER PSNAME *(*)
-!
-!  5. SUBROUTINES CALLING
-!
-!     SPRCON (SWAN/SWREAD)
-!
-!  6. SUBROUTINES USED
-!
-!     SINBTG, SINCMP (both SWAN/SER) and MSGERR (Ocean Pack)
-!
-   LOGICAL SINBTG, SINCMP
-!
-!  7. ERROR MESSAGES
-!
-!     ---
-!
-!  8. REMARKS
-!
-!     ---
-!
-!  9. STRUCTURE
-!
-!     ----------------------------------------------------------------
-!     If point (XP,YP) is not in the bottom grid (SINBTG = FALSE), then
-!         Call MSGERR to generate a warning
-!     If point (XP,YP) is not in the comp. grid (SINCMP = FALSE), then
-!         Call MSGERR to generate a warning
-!     ----------------------------------------------------------------
-!
-! 10. SOURCE TEXT
-!
-!
-   SAVE IENT
-   DATA IENT/0/
-   CALL STRACE(IENT,'SINUPT')
-!
-   IF (.NOT. SINBTG (XP,YP) ) THEN
-      CALL MSGERR(1,'(corner)point outside bottom grid')
-      WRITE (PRINTF, 6010) PSNAME, XP+XOFFS, YP+YOFFS
-   ENDIF
-   IF (.NOT.SINCMP (XP, YP, XCGRID, YCGRID, KGRPNT, KGRBND)) THEN
-      CALL MSGERR(1,'(corner)point outside comp. grid')
-      WRITE (PRINTF, 6010) PSNAME, XP+XOFFS, YP+YOFFS
-   ENDIF
-6010 FORMAT('       Set of output locations: ',A8, &
-            '  coordinates:', 2F12.2)
-!
-   RETURN
-!     end of subroutine SINUPT *
-END
-!
-!***********************************************************************
-!                                                                      *
-LOGICAL FUNCTION SINBTG (XP, YP)
-!                                                                      *
-!***********************************************************************
-!
-   USE SWCOMM2
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     32.02: Roeland Ris & Cor van der Schelde (1D-version)
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!      0.0 , Mar. 87: name of function changed from INBODP into SINBTG
-!     32.02, Jan. 98: Introduced 1D-version
-!     40.00, Feb. 99: 1D procedure simplified, tolerance introduced
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     Checking whether a point given in problem coordinates is in the
-!     bottom grid (SINBTG = true) or not (SINBTG = false).
-!
-!  3. Method
-!
-!     ---
-!
-!  4. Argument variables
-!
-!     XP      REAL   input    X-coordinate (problem grid) of the point
-!     YP      REAL   input    Y-coordinate (problem grid) of the point
-!
-!  6. Local variables
-!
-!     XB      x-coordinate (of bottom grid)
-!     YB      y-coordinate (of bottom grid)
-!     XLENB   length of bottom grid in x-direction (of bottom grid)
-!     YLENB   length of bottom grid in y-direction (of bottom grid)
-!     BTOL    tolerance length
-!
-   REAL    XB, YB, XLENB, YLENB, BTOL
-!
-!  8. Subroutines used
-!
-!     ---
-!
-!  9. Subroutines calling
-!
-!     SPRCON (SWAN/MAIN)
-!     SINUPT (SWAN/SER)
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!     ----------------------------------------------------------------
-!     If the bottom grid is defined (DXB>0 and DYB>0), then
-!         Compute coordinates XB,YB in the bottom grid
-!         Give SINBTG initial value TRUE
-!         If XB < 0, XB > X-length of grid, YB < 0 or YB > .. then
-!            SINBTG is FALSE
-!     ----------------------------------------------------------------
-!
-! 13. Source text
-!
-   DATA  IENT /0/
-   CALL  STRACE (IENT,'SINBTG')
-!
-   SINBTG = .TRUE.
-   IF ( IGTYPE(1).NE.1 ) RETURN
-!
-   XLENB = (MXG(1)-1)*DXG(1)
-   YLENB = (MYG(1)-1)*DYG(1)
-   BTOL  = 0.01 * (XLENB+YLENB)
-!
-!     ***** compute bottom grid coordinates from problem coordinates ****
-!
-   XB =  (XP-XPG(1))*COSPG(1) + (YP-YPG(1))*SINPG(1)
-   YB = -(XP-XPG(1))*SINPG(1) + (YP-YPG(1))*COSPG(1)
-!
-!     ***** check location of point *****
-   IF (XB .LT. -BTOL) SINBTG = .FALSE.
-   IF (XB .GT. XLENB+BTOL) SINBTG = .FALSE.
-   IF (YB .LT. -BTOL) SINBTG = .FALSE.
-   IF (YB .GT. YLENB+BTOL) SINBTG = .FALSE.
-!
-   RETURN
-!   * end of subroutine SINBTG *
-END
-!***********************************************************************
-!                                                                      *
-LOGICAL FUNCTION SINCMP (XP, YP ,XCGRID ,YCGRID ,KGRPNT, KGRBND)
-!                                                                      *
-!***********************************************************************
-!
-   USE SWCOMM2
-   USE SWCOMM3
-   USE M_PARALL
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     30.72: IJsbrand Haagsma
-!     32.02: Roeland Ris & Cor van der Schelde
-!     30.60, 40.00: Nico Booij
-!     40.41: Marcel Zijlema
-!     40.80: Marcel Zijlema
-!
-!  1. Updates
-!
-!     00.00, Mar. 87: name changed from INREKP into SINCMP, heading added
-!     30.60, Aug. 97: assignment of SINCMP moved
-!     30.72, Sept 97: INTEGER*4 replaced by INTEGER
-!     32.02, Jan. 98: Introduced 1D-version
-!     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
-!     40.00, June 98: argument KGRBND added, call CVMESH modified
-!            Febr 99: separate 1D code removed, margin introduced
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!     40.80, Sep. 07: extension to unstructured grids
-!
-!  2. Purpose
-!
-!     Checking whether a point given in problem coordinates is in the
-!     computational grid (SINCMP = true) or not (SINCMP = false).
-!
-!  3. Method
-!
-!     ---
-!
-!  4. Argument variables
-!
-!     KGRPNT  input  grid point addresses
-!     KGRBND  input  describes computational grid boundary                40.00
-!
-   INTEGER KGRPNT(MXC,MYC), KGRBND(*)
-!
-!     XCGRID: input  Coordinates of computational grid in x-direction     30.72
-!     XP      REAL   input    X-coordinate (problem grid) of the point
-!     YCGRID: input  Coordinates of computational grid in y-direction     30.72
-!     YP      REAL   input    Y-coordinate (problem grid) of the point
-!
-   REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
-   REAL    XP,     YP
-!
-!  6. Local variables
-!
-!     CTOL    tolerance value (margin around comput. grid)                40.00
-!
-   REAL    CTOL
-!
-!  8. Subroutines used
-!
-!     ---
-!
-!  9. Subroutines calling
-!
-!     SINUPT
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!     ----------------------------------------------------------------
-!     Compute coordinates XC,YC in the computational grid
-!     Give SINCMP initial value TRUE
-!     If XC < 0, XC > XCLEN, YC < 0 or YC > YCLEN, then
-!         SINCMP = FALSE
-!     ----------------------------------------------------------------
-!
-! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
-   CALL STRACE(IENT,'SINCMP')
-!
-!     *** Different procedure depending on grid type **
-   IF (OPTG .EQ. 1) THEN
-!
-!       regular grid: compute comp. coordinates from problem coordinates
-!
-      XC   =  (XP-XPC)*COSPC+(YP-YPC)*SINPC
-      YC   = -(XP-XPC)*SINPC+(YP-YPC)*COSPC
-!       XC and YC are in m
-!
-!       ***** check for location *****
-      SINCMP = .TRUE.
-      CTOL   = 0.01 * (XCLEN+YCLEN)
-      IF (XC .LT. -CTOL) SINCMP = .FALSE.
-      IF (XC .GT. XCLEN+CTOL) SINCMP = .FALSE.
-      IF (YC .LT. -CTOL) SINCMP = .FALSE.
-      IF (YC .GT. YCLEN+CTOL) SINCMP = .FALSE.
-   ELSE IF (OPTG .EQ. 3) THEN
-!
-!       curvilinear grid
-!
-      CALL CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
-!       XC and YC are nondimensional; equivalent to grid index
-!
-!       ***** check for location *****
-      SINCMP = .TRUE.
-      IF (XC .LT. -0.01) SINCMP = .FALSE.
-      IF (XC .GT. REAL(MXC-1)+0.01) SINCMP = .FALSE.
-      IF (YC .LT. -0.01) SINCMP = .FALSE.
-      IF (YC .GT. REAL(MYC-1)+0.01) SINCMP = .FALSE.
-   ELSE IF (OPTG.EQ.5) THEN
-!
-!       unstructured grid
-!
-      SINCMP = .TRUE.
-      CALL SwanFindPoint ( XP, YP, K )
-      IF ( K.LT.0 ) SINCMP = .FALSE.
-!
-   ENDIF
-!
-!     --- check if output location is in global subdomain                 40.31
-!
-   IF ( PARLL .AND. .NOT.SINCMP ) THEN
-      IF ( XP.GE.XCGMIN .AND. XP.LE.XCGMAX .AND. &
-           YP.GE.YCGMIN .AND. YP.LE.YCGMAX ) SINCMP = .TRUE.
-   END IF
-!
-   RETURN
-!   * end of subroutine SINCMP *
-END
-!***********************************************************************
-!                                                                      *
-SUBROUTINE WRTEST (NAME, NA, IARR, RARR)
-!                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM4
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     ---
-!
-!  3. Method
-!
-!     ---
-!
-!  4. Argument variables
-!
-!     IARR(*)
-!     NA
-!     NAME*(*)
-!     RARR(*)
-!
-   INTEGER   IARR(*), NA
-   REAL      RARR(*)
-   CHARACTER NAME *(*)
-!
-!  8. Subroutines used
-!
-!     ---
-!
-!  9. Subroutines calling
-!
-!     ---
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!     ---
-!
-! 13. Source text
-!
-   WRITE (PRINTF, 10) NAME, (IARR(II), II=1,NA)
-10 FORMAT (1X, A, 10(1X, I8))
-   WRITE (PRINTF, 20) (RARR(II), II=1,NA)
-20 FORMAT (10(1X, E12.4))
-   RETURN
-! * end of subroutine WRTEST *
-END
+end subroutine SWRBC
 !********************************************************************
-!
+
 SUBROUTINE ERRCHK
-!
+
 !****************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+
+   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STRACE
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind
+   USE swan_input_grids
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_propagation_scheme
+   USE swan_spherical_geometry
    USE M_GENARR
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -6317,9 +5362,9 @@ SUBROUTINE ERRCHK
 !  6. Local variables
 !
 !     MSGSTR:     string to pass message to call MSGERR
-!
-   CHARACTER*80 MSGSTR
-!
+
+   CHARACTER(LEN=80) MSGSTR
+
 !  8. Subroutines used
 !
 !     MSGERR : Handles error messages according to severity
@@ -6343,10 +5388,10 @@ SUBROUTINE ERRCHK
 !     ------------------------------------------------------------
 !
 ! 13. Source text
-!
-   LOGICAL  EQREAL
-   SAVE IENT
-   DATA IENT/0/
+
+   INTEGER :: II
+   INTEGER, SAVE :: IENT = 0
+   REAL :: GAMMA
    IF (LTRACE) CALL STRACE (IENT,'ERRCHK')
 
 !     --- choose scheme for stationary or nonstationary computation
@@ -6356,17 +5401,17 @@ SUBROUTINE ERRCHK
    ELSE
       PROPSC = PROPSS
    ENDIF
-!
+
 !     --- reset PWIND(9) and PWIND(17) if RHO has a user value            40.96
-!
+
    PWIND( 9) = PWIND(16)/RHO
    PWIND(17) = RHO
-!
-!     -----------------------------------------------------------------
+
+!     -----------------------------------------------------------------   40.00
 !
 !     *** WARNINGS AND ERROR MESSAGES ***
 !
-!     -----------------------------------------------------------------
+!     -----------------------------------------------------------------   40.00
 !
 !     check 4th generation model
    IF (IGEN.EQ.4) THEN
@@ -6374,10 +5419,10 @@ SUBROUTINE ERRCHK
          CALL MSGERR (0, 'the deep water physics are excluded from')
          CALL MSGERR (0, 'the fourth-generation mode')
       ENDIF
-      IWIND = 0
-      IQUAD = 0
-      IWCAP = 0
-      PNUMS(20) = 1.E20
+      IWIND = IWIND_OFF
+      IQUAD = IQUAD_OFF
+      IWCAP = IWCAP_OFF
+      PNUMS(PNUMS_LIMGRW) = 1.E20
       IF (PWTAIL(1).LT.1.E8) THEN
          CALL MSGERR (1, 'the shape of the spectral tail cannot be')
          CALL MSGERR (1, 'specified as it is not fixed')
@@ -6385,8 +5430,8 @@ SUBROUTINE ERRCHK
       PWTAIL(1)    = 1.E8
       PWTAIL(2:10) = 0.
       IF ( KSPHER.GT.0 ) CALL MSGERR (3, &
-                             'spherical coordinates not supported '// &
-                             'in case of fourth-generation mode')
+         'spherical coordinates not supported '// &
+         'in case of fourth-generation mode')
       IF ( LSETUP.GT.0 ) THEN
          CALL MSGERR (1, 'wave-induced setup has not been tested')
          CALL MSGERR (1, 'within the fourth-generation mode')
@@ -6395,30 +5440,30 @@ SUBROUTINE ERRCHK
          CALL MSGERR (0, 'the phase-decoupled diffraction cannot be')
          CALL MSGERR (0, 'applied in case of fourth-generation mode')
       ENDIF
-      IDIFFR = 0
+      IDIFFR = IDIFFR_OFF
    ENDIF
-!
+
 !     *** Check formulation for whitecapping ***
-!
+
    IF ( IWCAP.GT.8 ) THEN
       WRITE (MSGSTR, '(A,I2,A)') &
-                  'Unknown method for whitecapping (IWCAP=',IWCAP,')'
+         'Unknown method for whitecapping (IWCAP=',IWCAP,')'
       CALL MSGERR( 1, TRIM(MSGSTR) )
       CALL MSGERR( 1, &
          'Whitecapping according to Komen et al. (1984) will be used')
-      IWCAP     = 1
+      IWCAP = IWCAP_KOMEN
       PWCAP(1)  = 2.36E-5
       PWCAP(2)  = 3.02E-3
       PWCAP(9)  = 2.
       PWCAP(10) = 1.
       PWCAP(11) = 1.
    ENDIF
-!
+
 !     *** WAM cycle 3 physics ***
-!
+
    IF  ( (IWIND .EQ. 3 .OR. IWIND .EQ. 5) .AND. IWCAP .NE. 1 &
-         .AND. IWCAP.NE.7 &
-       ) THEN
+      .AND. IWCAP.NE.7 &
+      ) THEN
       CALL MSGERR(1,'Activate whitecapping mechanism according to')
       CALL MSGERR(1,'Komen et al. (1984) for wind option G3/YAN')
    ENDIF
@@ -6436,84 +5481,84 @@ SUBROUTINE ERRCHK
       CALL MSGERR(1,'Babanin input with non-Babanin dissipation')
       CALL MSGERR(1,'has not been tested                       ')
    END IF
-!
+
 !     *** WAM cycle 4 physics ***
-!
+
    IF  ( IWIND .EQ. 4 .AND. IWCAP .NE. 2) THEN
       CALL MSGERR(1,'Activate whitecapping mechanism according to')
       CALL MSGERR(1,'Janssen (1991) for wind option JANS        ')
    ENDIF
-!
+
 !     check QC scattering without ambient current
    IF ( ICUR.EQ.0 .AND. IQCM.GT.1 ) THEN
       CALL MSGERR(1,'Wave-current interaction is deactivated '// &
-                    'in case of zero current')
-      IQCM = 1
+         'in case of zero current')
+      IQCM = IQCM_ON
    ENDIF
-!
+
    IF ( IQCM.NE.0 .AND. IDIFFR.GT.0 ) THEN
       CALL MSGERR (1, 'the phase-decoupled diffraction should not')
       CALL MSGERR (1, 'be activated in case of QC scattering')
-      IDIFFR = 0
+      IDIFFR = IDIFFR_OFF
    ENDIF
-!
+
 !     check refraction scheme in case of QC scattering
-   IF ( IQCM.EQ.1 .AND. INT(PNUMS(17)).EQ.-1 ) THEN
+   IF ( IQCM.EQ.1 .AND. INT(PNUMS(PNUMS_CDLIM)).EQ.-1 ) THEN
       CALL MSGERR (1, 'numerical scheme for refraction should not')
       CALL MSGERR (1, 'be activated in case of QC scattering')
-      IREFR = 0
+      IREFR = IREFR_OFF
    ENDIF
-!
+
 !     check numerical scheme for transport in frequency space
-   IF ( INT(PNUMS(8)).EQ.-999 ) THEN
+   IF ( INT(PNUMS(PNUMS_SCHEMEFR)).EQ.-999 ) THEN
       IF ( IQCM.EQ.0 ) THEN
-         PNUMS(8) = 1.
+         PNUMS(PNUMS_SCHEMEFR) = 1.
       ELSE
-         PNUMS(8) = 0.
+         PNUMS(PNUMS_SCHEMEFR) = 0.
       ENDIF
    ELSE
       IF ( IQCM.NE.0 ) THEN
          CALL MSGERR &
-             (1, 'numerical scheme for transport in frequency space')
+            (1, 'numerical scheme for transport in frequency space')
          CALL MSGERR &
-              (1, 'should not be activated in case of QC scattering')
-         PNUMS(8) = 0.
-         ITFRE = 0
+            (1, 'should not be activated in case of QC scattering')
+         PNUMS(PNUMS_SCHEMEFR) = 0.
+         ITFRE = ITFRE_OFF
       ENDIF
    ENDIF
-!
+
 !     *** check option numerical scheme in presence of a current ***
-!
+
    IF ( ICUR .EQ. 1 .AND. IQCM.EQ.0 ) THEN
-      IF ( PNUMS(6) .EQ. 0. ) THEN
+      IF ( PNUMS(PNUMS_CDD) .EQ. 0. ) THEN
          CALL MSGERR(1,'In presence of a current it is recommended to')
          CALL MSGERR(1,'use an implicit upwind scheme in theta space ')
          CALL MSGERR(1,'-> set CDD = 1.')
          WRITE(PRINTF,*)
       ENDIF
-      IF ( PNUMS(7) .EQ. 0. ) THEN
+      IF ( PNUMS(PNUMS_CSS) .EQ. 0. ) THEN
          CALL MSGERR(1,'In presence of a current it is recommended to')
          CALL MSGERR(1,'use an implicit upwind scheme in sigma space ')
          CALL MSGERR(1,'-> set CSS = 1.')
          WRITE(PRINTF,*)
       ENDIF
    END IF
-!
+
 !     check absolute stopping criterion
-   IF ( .NOT. PNUMS(2).NE.-1. ) THEN
+   IF ( .NOT. PNUMS(PNUMS_DABS).NE.-1. ) THEN
       IF ( IQCM.EQ.0 ) THEN
          IF ( ITRIAD.NE.3 ) THEN
-            PNUMS(2) = 0.005
+            PNUMS(PNUMS_DABS) = 0.005
          ELSE
-            PNUMS(2) = 0.01
+            PNUMS(PNUMS_DABS) = 0.01
          ENDIF
       ELSE
-         PNUMS(2) = 0.05
+         PNUMS(PNUMS_DABS) = 0.05
       ENDIF
    ENDIF
-!
+
 !     check transfer function for triads, if appropriate
-!
+
    IF ( ITRIAD.GT.0 ) THEN
       IF ( .NOT. PTRIAD(10).NE.-1. ) THEN
          IF (ITRIAD.EQ.2 .OR. ITRIAD.EQ.11) THEN
@@ -6525,16 +5570,16 @@ SUBROUTINE ERRCHK
          ENDIF
       ENDIF
    ENDIF
-!
+
 !     *** check vegetation Jacobsen in presence of a current ***
-!
+
    IF ( ICUR .EQ. 1 ) THEN
       IF ( IVEG .EQ. 2 ) THEN
          CALL MSGERR(1,'Current effects are not included in')
          CALL MSGERR(1,'vegetation approach of Jacobsen et al (2019)')
       ENDIF
    END IF
-!
+
    IF ( LSPNAR .AND. BRESCL ) THEN
       CALL MSGERR(1,'Rescaling is turned off since the directional')
       CALL MSGERR(1,'resolution is too coarse to represent energy')
@@ -6542,11 +5587,11 @@ SUBROUTINE ERRCHK
       CALL MSGERR(1,'the act of rescaling.')
       CALL MSGERR(1,'Also full upwind scheme in theta space is set.')
       BRESCL   = .FALSE.
-      PNUMS(6) = 1.
+      PNUMS(PNUMS_CDD) = 1.
    ENDIF
-!
+
 !     check combination of REPeating option and grid type and dimension   33.09
-!
+
    IF (KREPTX.GT.0) THEN
 !       --- "GE" changed to "EQ" since OPTG.EQ.3 FOR CURVILINEAR          40.08
       IF (OPTG.EQ.3) &
@@ -6560,14 +5605,14 @@ SUBROUTINE ERRCHK
       IF (PROPSC.EQ.3 .AND. MXC.LT.3) &
          CALL MSGERR (3, 'MXC must be >=3 for REPeating option')
    ENDIF
-!
+
    IF (PROPSC.EQ.2 .AND. NSTATC.GT.0) THEN
       CALL MSGERR (3, 'SORDUP scheme only in stationary run')
    ENDIF
    IF (PROPSC.EQ.3 .AND. NSTATC.EQ.0) THEN
       CALL MSGERR (3, 'S&L scheme not in stationary run')
    ENDIF
-!
+
 !     --- A warning about curvilinear and S&L scheme                      40.08
    IF ((PROPSC.EQ.3).AND.(OPTG.EQ.3)) THEN
       CALL MSGERR(1,'the S&L scheme (higher order nonstationary')
@@ -6579,33 +5624,33 @@ SUBROUTINE ERRCHK
       CALL MSGERR(1,'IS fully implemented for curvilinear coord.')
       CALL MSGERR(1,'and differences are usually negligible.')
    ENDIF
-!
+
 !     Here the various problems with quadruplets are checked
-!
+
    IF (ICUR.NE.0 .AND. (IQUAD.EQ.1 .OR. IQUAD.EQ.2)) THEN
       CALL MSGERR(0,'In presence of a current it is recommended to')
       CALL MSGERR(0,'update quadruplets per iteration instead of')
       CALL MSGERR(0,'per sweep. This will, however, increase the')
       CALL MSGERR(0,'amount of internal memory with a factor 2.')
    ENDIF
-!
+
    IF (IWIND.EQ.3 .OR. IWIND.EQ.4 &
-                  .OR. IWIND.EQ.8 &
-                                 ) THEN
+      .OR. IWIND.EQ.8 &
+      ) THEN
       IF (IQUAD .EQ. 0) THEN
          CALL MSGERR(2,'Quadruplets should be activated when SWAN  ')
          CALL MSGERR(2,'is running in a third generation mode and  ')
          CALL MSGERR(2,'wind is present                            ')
       ENDIF
    ENDIF
-!
+
 !     The combination of quadruplets and sectors is an error
 !     in the calculation of quadruplets when the SECTOR option is
 !     used in the CGRID command. This error should be corrected
 !     in the future
-!
+
    IF (IQUAD .GE. 1) THEN
-!
+
       IF (.NOT. FULCIR) THEN
          IF ((SPDIR2-SPDIR1) .LT. (PI/12.)) THEN
             CALL MSGERR(2,'A combination of using quadruplets with a'    )
@@ -6619,22 +5664,22 @@ SUBROUTINE ERRCHK
             CALL MSGERR(1,'Refer to the manual (CGRID) for details'      )
          END IF
       END IF
-!
+
       IF (IWIND.EQ.0) THEN
          CALL MSGERR(2,'It is not recommended to use quadruplets'     )
          CALL MSGERR(2,'in combination with zero wind conditions.'    )
       END IF
-!
+
       IF (MSC .EQ. 3 ) THEN
          CALL MSGERR(4,'Do not activate quadruplets for boundary ')
          CALL MSGERR(4,'option BIN -> use other option           ')
          RETURN
       END IF
-!
+
    END IF
-!
+
 !     check parameters for Bragg scattering                               41.80
-!
+
    IF ( IBRAG.NE.0 ) THEN
       IF ( IGTYPE(1).NE.1 ) THEN
          CALL MSGERR (2,'A regular bottom grid is required')
@@ -6646,85 +5691,95 @@ SUBROUTINE ERRCHK
          ENDIF
       ENDIF
    ENDIF
-!
+
 !     check whether limiter should be de-activated
-!
-   IF (IQUAD.EQ.0 .AND. PNUMS(20).LT.100.) THEN
+
+   IF (IQUAD.EQ.0 .AND. PNUMS(PNUMS_LIMGRW).LT.100.) THEN
       CALL MSGERR(1, &
-                 'Limiter is de-activated in case of no quadruplets')
-      PNUMS(20) = 1.E+20
+         'Limiter is de-activated in case of no quadruplets')
+      PNUMS(PNUMS_LIMGRW) = 1.E+20
    END IF
-!
+
 !     check resolution in frequency-space when DIA is used                40.41
-!
+
    IF (IQUAD.GT.0 .AND. IQUAD.LE.3 .OR. IQUAD.EQ.8) THEN
       GAMMA = EXP(ALOG(SHIG/SLOW)/REAL(MSC-1))
       IF (ABS(GAMMA-1.1).GT.0.055) THEN
          CALL MSGERR(1, &
-              'relative frequency resolution (df/f) deviates more')
+            'relative frequency resolution (df/f) deviates more')
          CALL MSGERR(1, &
-              'than 5% from 10%-resolution. This may be problematic')
+            'than 5% from 10%-resolution. This may be problematic')
          CALL MSGERR(1, &
-              'when quadruplets are approximated by means of DIA.')
+            'when quadruplets are approximated by means of DIA.')
       END IF
    END IF
-!
+
 !     When Alves and Banner and XNL are applied change the parameters     40.53
-!
+
    IF ( IWCAP.EQ.7 .AND. (IQUAD.EQ.51 .OR. IQUAD.EQ.52 .OR. &
-                          IQUAD.EQ.53) ) THEN
+      IQUAD.EQ.53) ) THEN
       IF (EQREAL(PWCAP( 1), 5.0E-5)) PWCAP( 1) = 5.0E-5
       IF (EQREAL(PWCAP(12),1.75E-3)) PWCAP(12) = 1.95E-3
    END IF
-!
+
 !     check stopping criterion in case of 4th generation model
    IF (IGEN.EQ.4) THEN
-      IF (PNUMS(21).EQ.0.) THEN
+      IF (PNUMS(PNUMS_STOPTY).EQ.0.) THEN
          CALL MSGERR(1,'command NUM ACCUR is obsolete')
          CALL MSGERR(0,'default stopping criterion is used instead')
-         PNUMS(21) = 1.
-         PNUMS(1)  = 0.01
-         PNUMS(2)  = 0.05
-         PNUMS(4)  = 99.
+         PNUMS(PNUMS_STOPTY) = 1.
+         PNUMS(PNUMS_DREL)  = 0.01
+         PNUMS(PNUMS_DABS)  = 0.05
+         PNUMS(PNUMS_NPNTS)  = 99.
       ENDIF
    ENDIF
-!
+
    IF ( ITEST .GE. 120 ) THEN
-      WRITE(PRINTF,3000) IWIND ,IQUAD, ICUR, IWCAP, MSC
-3000  FORMAT(' ERRCHK : IWIND QUAD CUR WCAP MSC   : ',5I4)
+      WRITE(PRINTF,"(' ERRCHK : IWIND QUAD CUR WCAP MSC   : ',5I4)") IWIND ,IQUAD, ICUR, IWCAP, MSC
       IF (IWIND .GT. 0) THEN
          DO II = 1, MWIND
-            WRITE(PRINTF,30) II,PWIND(II)
-30          FORMAT(' PWIND(',I2,') = ',E11.4)
+            WRITE(PRINTF,"(' PWIND(',I2,') = ',E11.4)") II,PWIND(II)
          ENDDO
       ENDIF
    END IF
-!
+
    RETURN
 !     end of subroutine ERRCHK
-END
+end subroutine ERRCHK
 !*********************************************************************
 !                                                                    *
 SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
-                   SPCSIG, SPCDIR, XCGRID, YCGRID, KGRPNT, &
-                   XYTST , DEPTH , WLEVL , FRIC  , UXB   , &
-                   UYB   , NPLAF , TURBF , MUDLF , WXI   , &
-                   AICEF , HICEF , HSSF  , TSSF  , DSSF  , &
-                   WYI   )
+   SPCSIG, SPCDIR, XCGRID, YCGRID, KGRPNT, &
+   XYTST , DEPTH , WLEVL , FRIC  , UXB   , &
+   UYB   , NPLAF , TURBF , MUDLF , WXI   , &
+   AICEF , HICEF , HSSF  , TSSF  , DSSF  , &
+   WYI   )
 !                                                                    *
 !*********************************************************************
-!
-   USE TIMECOMM
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+
+   USE swan_field_file_update, ONLY: FLFILE
+   USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
+   USE swan_service_interfaces, ONLY: STPNOW, STRACE
+   USE swan_input_interpolation, ONLY: SVALQI
+   USE swan_time, ONLY: default_time_context
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind
+   USE swan_boundary_counters
+   USE swan_input_grids
+   USE swan_input_field_files
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_propagation_scheme
    USE M_BNDSPEC
    USE M_PARALL
    USE SwanGriddata
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -6773,7 +5828,7 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
 !
 !     30.60, Jun. 97: condition for ATAN2 corrected
 !     30.70, Sept 97: reduction of current only if depth is positive
-!     30.72, Sept 97: INTEGER*4 replaced by INTEGER
+!     30.72, Sept 97: INTEGER(KIND=SELECTED_INT_KIND(9)) replaced by INTEGER
 !     30.72, Oct. 97: changed floating point comparison to avoid equality
 !                     comparisons
 !     30.74, Nov. 97: Prepared for version with INCLUDE statements
@@ -6806,9 +5861,9 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
 ! i   BGRIDP: data for interpolating to computational grid points
 ! i   KGRPNT: computational grid point addresses
 ! i   XYTST : test points
-!
+
    INTEGER  BGRIDP(*), XYTST(*), KGRPNT(MXC,MYC)
-!
+
 ! i   AC1   : action density spectra on old time level
 ! i   AC2   : action density spectra on new time level
 ! i   BSPECS: boundary spectra
@@ -6819,10 +5874,10 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
 !             (*,4); cosine^2 of spectral directions                      30.82
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
-! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 ! i   XCGRID: Coordinates of computational grid in x-direction            30.72
 ! i   YCGRID: Coordinates of computational grid in y-direction            30.72
-!
+
    REAL     AC1(MDC,MSC,MCGRD)
    REAL     AC2(MDC,MSC,MCGRD)
    REAL     BSPECS(MDC,MSC,NBSPEC,2)
@@ -6831,12 +5886,12 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
    REAL     SPCSIG(MSC)
    REAL     XCGRID(MXC,MYC), YCGRID(MXC,MYC)
    REAL     DEPTH(*), WLEVL(*), FRIC(*), UXB(*), UYB(*), &
-            NPLAF(*), TURBF(*), &
-            MUDLF(*), &
-            AICEF(*), HICEF(*), &
-            HSSF(*), TSSF(*), DSSF(*), &
-            WXI(*), WYI(*)
-!
+      NPLAF(*), TURBF(*), &
+      MUDLF(*), &
+      AICEF(*), HICEF(*), &
+      HSSF(*), TSSF(*), DSSF(*), &
+      WXI(*), WYI(*)
+
 !     TIMCO ..... Time (date) of computation
 !     TFINC ..... Final time (date) of computation
 !     DT    ..... Increment time for computation
@@ -6855,9 +5910,7 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
 !  8. Subroutines used
 !
 !     SWBROADC
-!
-   LOGICAL STPNOW
-!
+
 !  9. Subroutines calling
 !
 !     ---
@@ -6876,30 +5929,33 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
 !     ------------------------------------------------------------
 !
 ! 13. Source text
-!
-   INTEGER     IERR
+
+   INTEGER :: IERR
+   INTEGER :: IBFILE, IBGRID, ID, IDD, II, INDX, INDXGR, IS, ISS
+   INTEGER :: IVP, IX, IXP, IXY, IY, IYP, JVERT, K1, K2
    REAL        TSTVAL(10)
+   REAL :: AA, AADD, ADEG, APER, ASADD, ASTOT, ATOT, AX, AY
+   REAL :: CGFACT, CGMAX, DEP, DEPW, ETOT, HS, SIG, SIG2
+   REAL :: UU, VTOT, VV, W1, W2, WLVL, XP, YP
    TYPE(BSPCDAT), POINTER :: CURBFL
    LOGICAL LPB
-   SAVE  IENT
-   DATA  IENT/0/
+   INTEGER, SAVE :: IENT = 0
    IF (LTRACE) CALL STRACE(IENT,'SNEXTI')
-!
-!
+
 !     **   All action densities are shifted from array T+DT
 !     **   to the array at time T
-!
+
    IF (NSTATC.EQ.1) THEN
       IF (ITERMX.GT.1 &
-           .OR. PROPSC.EQ.3 &
-                                     ) THEN
-         DO 50 IXY = 1, MCGRD
-            DO 55 ISS = 1, MSC
-               DO 60 IDD = 1, MDC
+         .OR. PROPSC.EQ.3 &
+         ) THEN
+         do IXY = 1, MCGRD
+            do ISS = 1, MSC
+               do IDD = 1, MDC
                   AC1(IDD,ISS,IXY) = AC2(IDD,ISS,IXY)
-60             CONTINUE
-55          CONTINUE
-50       CONTINUE
+               end do
+            end do
+         end do
       ENDIF
    ENDIF
 
@@ -6907,16 +5963,16 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
 
    IF (INODE.EQ.MASTER) THEN
       IF (ITEST.GE.80) WRITE (PRTEST,*) ' number of boundary files ', &
-                NBFILS
+         NBFILS
       CURBFL => FBNDFIL
       DO IBFILE = 1, NBFILS
 
 !          --- read values from boundary file, and interpolate in time
 
          CALL RBFILE ( SPCSIG, SPCDIR, &
-                       CURBFL%BFILED, CURBFL%BSPLOC, &
-                       CURBFL%BSPDIR, CURBFL%BSPFRQ, &
-                       BSPECS, XYTST )
+            CURBFL%BFILED, CURBFL%BSPLOC, &
+            CURBFL%BSPDIR, CURBFL%BSPFRQ, &
+            BSPECS, XYTST )
          IF (STPNOW()) RETURN
          IF (.NOT.ASSOCIATED(CURBFL%NEXTBSPC)) EXIT
          CURBFL => CURBFL%NEXTBSPC
@@ -6926,14 +5982,14 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
 
 !     --- scatter array BSPECS to all nodes
 
-   CALL SWBROADC ( BSPECS, 2*MDC*MSC*NBSPEC, SWREAL )
+   CALL SWBROADC ( BSPECS, 2*MDC*MSC*NBSPEC )
    IF (STPNOW()) RETURN
 
 !     --- determine spectra on boundary points of grid
 
    IF ( NBGRPT.GT.0 ) THEN
       IF (ITEST.GE.80) WRITE(PRTEST,*) ' number of boundary points ', &
-                NBGRPT
+         NBGRPT
       DO IBGRID = 1, NBGRPT
          INDXGR = BGRIDP(6*IBGRID-5)
          IF (BGRIDP(6*IBGRID-4).EQ.1) THEN
@@ -6943,7 +5999,7 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
             W2 = 1.-W1
             K2 = BGRIDP(6*IBGRID)
             CALL SINTRP (W1, W2, BSPECS(1,1,K1,1), BSPECS(1,1,K2,1), &
-                         AC2(1,1,INDXGR), SPCDIR, SPCSIG)
+               AC2(1,1,INDXGR), SPCDIR, SPCSIG)
 !            --- store Hs from boundary condition in array HSOBND
             ETOT = 0.
             DO IS = 1, MSC
@@ -6958,9 +6014,9 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                HS = 0.
             ENDIF
             COMPDA(INDXGR,JHSIBC) = HS
-!
+
 !            --- test output: parameters in test points on boundary
-!
+
             IF (NPTST.GT.0) THEN
                DO IPTST = 1, NPTST
                   IF (OPTG.NE.5) THEN
@@ -6973,13 +6029,11 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                   ENDIF
                   IF ( LPB ) THEN
                      IF (OPTG.NE.5) THEN
-                        WRITE(PRTEST,72) IBGRID, IXP-1, IYP-1, &
-                                         W1, K1, W2, K2
-72                      FORMAT (' boundary point', 3I8, 2(F8.3, I4))
+                        WRITE(PRTEST,"(' boundary point', 3I8, 2(F8.3, I4))") IBGRID, IXP-1, IYP-1, &
+                           W1, K1, W2, K2
                      ELSE
-                        WRITE(PRTEST,73) IBGRID, IVP, &
-                                         W1, K1, W2, K2
-73                      FORMAT (' boundary vertex', 2I8, 2(F8.3, I4))
+                        WRITE(PRTEST,"(' boundary vertex', 2I8, 2(F8.3, I4))") IBGRID, IVP, &
+                           W1, K1, W2, K2
                      ENDIF
                      AX = 0.
                      AY = 0.
@@ -7008,24 +6062,23 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                         APER = -999.
                         ADEG = -999.
                      ENDIF
-                     WRITE (PRTEST, 74) HS, APER, ADEG
-74                   FORMAT (' Hs, Per, Dir: ', 3E12.4)
+                     WRITE (PRTEST, "(' Hs, Per, Dir: ', 3E12.4)") HS, APER, ADEG
                   END IF
                END DO
             END IF
          END IF
       END DO
    END IF
-!
+
 !     --- update input fields (wind, water level etc.)
 !
 !     fields 5 and 6: wind
    IF (IFLDYN(5) .EQ. 1) THEN
       CALL FLFILE ( 5, 6, WXI, WYI, &
-                   0, JWX2, JWX3, 0, JWY2, JWY3, &
-                   COSWC, SINWC, &
-                   COMPDA, XCGRID, YCGRID, &
-                   KGRPNT, IERR)
+         0, JWX2, JWX3, 0, JWY2, JWY3, &
+         COSWC, SINWC, &
+         COMPDA, XCGRID, YCGRID, &
+         KGRPNT, IERR)
       IF (STPNOW()) RETURN
       IF (NPTST.GT.0) THEN
          WRITE (PRTEST, '(A)') ' wind from file in test points'
@@ -7041,8 +6094,8 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                TSTVAL(IPTST) = COMPDA(IVP,JWX3)
             ENDDO
          ENDIF
-         WRITE (PRTEST, 122) ' X-comp: ', &
-               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         WRITE (PRTEST, "(A, 10(1X,E11.4))") ' X-comp: ', &
+            (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
          IF (OPTG.NE.5) THEN
             DO IPTST = 1, MIN(10,NPTST)
                IXP = XYTST(2*IPTST-1)
@@ -7055,19 +6108,18 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                TSTVAL(IPTST) = COMPDA(IVP,JWY3)
             ENDDO
          ENDIF
-         WRITE (PRTEST, 122) ' Y-comp: ', &
-               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
-122      FORMAT (A, 10(1X,E11.4))
+         WRITE (PRTEST, "(A, 10(1X,E11.4))") ' Y-comp: ', &
+            (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
    ENDIF
 
 !     field 4: friction coeff.
    IF (IFLDYN(4) .EQ. 1) THEN
       CALL FLFILE ( 4, 0, FRIC, (/0./), &
-                   0, JFRC2, JFRC3, 0, 0, 0, &
-                   1., 0., &
-                   COMPDA, XCGRID, YCGRID, &
-                   KGRPNT, IERR)
+         0, JFRC2, JFRC3, 0, 0, 0, &
+         1., 0., &
+         COMPDA, XCGRID, YCGRID, &
+         KGRPNT, IERR)
       IF (STPNOW()) RETURN
       IF (NPTST.GT.0) THEN
          WRITE (PRTEST, '(A)') ' fric coeff from file in test points'
@@ -7083,23 +6135,23 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                TSTVAL(IPTST) = COMPDA(IVP,JFRC3)
             ENDDO
          ENDIF
-         WRITE (PRTEST, 122) 'friction: ', &
-               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         WRITE (PRTEST, "(A, 10(1X,E11.4))") 'friction: ', &
+            (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
    ENDIF
 
 !     field 7: water level
    IF (IFLDYN(7) .EQ. 1) THEN
       CALL FLFILE ( 7, 0, WLEVL, (/0./), &
-                   JWLV1, JWLV2, JWLV3, 0, 0, 0, &
-                   1., 0., &
-                   COMPDA, XCGRID, YCGRID, &
-                   KGRPNT, IERR)
+         JWLV1, JWLV2, JWLV3, 0, 0, 0, &
+         1., 0., &
+         COMPDA, XCGRID, YCGRID, &
+         KGRPNT, IERR)
       IF (STPNOW()) RETURN
 !       Add bottom level to obtain depth
 !       structured grid                                                   40.80
-      DO 31 IX = 1, MXC
-         DO 41 IY = 1, MYC
+      do IX = 1, MXC
+         do IY = 1, MYC
             INDX = KGRPNT(IX,IY)
             IF (INDX.GT.1) THEN
                XP = XCGRID(IX,IY)
@@ -7113,8 +6165,8 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                   COMPDA(INDX,JDPSAV) = COMPDA(INDX,JDP2)
                ENDIF
             ENDIF
-41       CONTINUE
-31    CONTINUE
+         end do
+      end do
 !       unstructured grid                                                 40.80
       DO INDX = 1, nverts
          XP = xcugrd(INDX)
@@ -7151,18 +6203,18 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                TSTVAL(IPTST) = COMPDA(IVP,JWLV3)
             ENDDO
          ENDIF
-         WRITE (PRTEST, 122) ' W-level: ', &
-               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         WRITE (PRTEST, "(A, 10(1X,E11.4))") ' W-level: ', &
+            (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
    ENDIF
 
 !     field 2 and 3: current velocity
    IF (IFLDYN(2) .EQ. 1) THEN
       CALL FLFILE ( 2, 3, UXB, UYB, &
-                   JVX1, JVX2, JVX3, JVY1, JVY2, JVY3, &
-                   COSVC, SINVC, &
-                   COMPDA, XCGRID, YCGRID, &
-                   KGRPNT, IERR)
+         JVX1, JVX2, JVX3, JVY1, JVY2, JVY3, &
+         COSVC, SINVC, &
+         COMPDA, XCGRID, YCGRID, &
+         KGRPNT, IERR)
       IF (STPNOW()) RETURN
 !       reduce current velocity if Froude number is larger than PNUMS(18)
 !       structured grid                                                   40.80
@@ -7175,15 +6227,14 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                   UU = COMPDA(INDX,JVX2)
                   VV = COMPDA(INDX,JVY2)
                   VTOT = SQRT (UU*UU + VV*VV)
-                  CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
+                  CGMAX = PNUMS(PNUMS_FROUDE)*SQRT(GRAV*DEPW)
                   IF (VTOT .GT. CGMAX) THEN
                      CGFACT = CGMAX / VTOT
                      COMPDA(INDX,JVX2) = UU * CGFACT
                      COMPDA(INDX,JVY2) = VV * CGFACT
 !                 write IX,IY to error points file
                      IF (ERRPTS.GT.0.AND.IAMMASTER) THEN
-                        WRITE (ERRPTS, 211) IX+MXF-1, IY+MYF-1, 1
-211                     FORMAT (I4, 1X, I4, 1X, I2)
+                        WRITE (ERRPTS, "(I4, 1X, I4, 1X, I2)") IX+MXF-1, IY+MYF-1, 1
                      ENDIF
                   ENDIF
                ENDIF
@@ -7197,15 +6248,14 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
             UU = COMPDA(INDX,JVX2)
             VV = COMPDA(INDX,JVY2)
             VTOT = SQRT (UU*UU + VV*VV)
-            CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
+            CGMAX = PNUMS(PNUMS_FROUDE)*SQRT(GRAV*DEPW)
             IF (VTOT .GT. CGMAX) THEN
                CGFACT = CGMAX / VTOT
                COMPDA(INDX,JVX2) = UU * CGFACT
                COMPDA(INDX,JVY2) = VV * CGFACT
 !                write INDX to error points file
                IF (ERRPTS.GT.0) THEN
-                  WRITE (ERRPTS, 212) INDX, 1
-212               FORMAT (I4, 1X, I2)
+                  WRITE (ERRPTS, "(I4, 1X, I2)") INDX, 1
                ENDIF
             ENDIF
          ENDIF
@@ -7224,8 +6274,8 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                TSTVAL(IPTST) = COMPDA(IVP,JVX3)
             ENDDO
          ENDIF
-         WRITE (PRTEST, 122) ' X-comp: ', &
-               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         WRITE (PRTEST, "(A, 10(1X,E11.4))") ' X-comp: ', &
+            (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
          IF (OPTG.NE.5) THEN
             DO IPTST = 1, MIN(10,NPTST)
                IXP = XYTST(2*IPTST-1)
@@ -7238,18 +6288,18 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                TSTVAL(IPTST) = COMPDA(IVP,JVY3)
             ENDDO
          ENDIF
-         WRITE (PRTEST, 122) ' Y-comp: ', &
-               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         WRITE (PRTEST, "(A, 10(1X,E11.4))") ' Y-comp: ', &
+            (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
    ENDIF
 
 !     field 11: field containing number of plants per square meter
    IF (IFLDYN(11) .EQ. 1) THEN
       CALL FLFILE (11, 0, NPLAF, (/0./), &
-                   0, JNPLA2, JNPLA3, 0, 0, 0, &
-                   1., 0., &
-                   COMPDA, XCGRID, YCGRID, &
-                   KGRPNT, IERR)
+         0, JNPLA2, JNPLA3, 0, 0, 0, &
+         1., 0., &
+         COMPDA, XCGRID, YCGRID, &
+         KGRPNT, IERR)
       IF (STPNOW()) RETURN
       IF (NPTST.GT.0) THEN
          WRITE (PRTEST, '(A)') ' # plants/m2 from file in test points'
@@ -7265,18 +6315,18 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                TSTVAL(IPTST) = COMPDA(IVP,JNPLA3)
             ENDDO
          ENDIF
-         WRITE (PRTEST, 122) ' veg dens: ', &
-               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         WRITE (PRTEST, "(A, 10(1X,E11.4))") ' veg dens: ', &
+            (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
    ENDIF
 
 !     field 12: field containing turbulent viscosity
    IF (IFLDYN(12) .EQ. 1) THEN
       CALL FLFILE (12, 0, TURBF, (/0./), &
-                   0, JTURB2, JTURB3, 0, 0, 0, &
-                   1., 0., &
-                   COMPDA, XCGRID, YCGRID, &
-                   KGRPNT, IERR)
+         0, JTURB2, JTURB3, 0, 0, 0, &
+         1., 0., &
+         COMPDA, XCGRID, YCGRID, &
+         KGRPNT, IERR)
       IF (STPNOW()) RETURN
       IF (NPTST.GT.0) THEN
          WRITE (PRTEST, '(A)') ' turb visc from file in test points'
@@ -7292,18 +6342,18 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                TSTVAL(IPTST) = COMPDA(IVP,JTURB3)
             ENDDO
          ENDIF
-         WRITE (PRTEST, 122) ' turb visc: ', &
-               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         WRITE (PRTEST, "(A, 10(1X,E11.4))") ' turb visc: ', &
+            (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
    ENDIF
 
 !     field 13: field containing fluid mud layer
    IF (IFLDYN(13) .EQ. 1) THEN
       CALL FLFILE (13, 0, MUDLF, (/0./), &
-                   JMUDL1, JMUDL2, JMUDL3, 0, 0, 0, &
-                   1., 0., &
-                   COMPDA, XCGRID, YCGRID, &
-                   KGRPNT, IERR)
+         JMUDL1, JMUDL2, JMUDL3, 0, 0, 0, &
+         1., 0., &
+         COMPDA, XCGRID, YCGRID, &
+         KGRPNT, IERR)
       IF (STPNOW()) RETURN
       IF (NPTST.GT.0) THEN
          WRITE (PRTEST, '(A)') ' mud layer from file in test points'
@@ -7319,18 +6369,18 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                TSTVAL(IPTST) = COMPDA(IVP,JMUDL3)
             ENDDO
          ENDIF
-         WRITE (PRTEST, 122) ' mud layer: ', &
-               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         WRITE (PRTEST, "(A, 10(1X,E11.4))") ' mud layer: ', &
+            (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
    ENDIF
 
 !     field 14: field containing ice concentration (fraction)
    IF (IFLDYN(14) .EQ. 1) THEN
       CALL FLFILE (14, 0, AICEF, (/0./), &
-                   0, JAICE2, JAICE3, 0, 0, 0, &
-                   1., 0., &
-                   COMPDA, XCGRID, YCGRID, &
-                   KGRPNT, IERR)
+         0, JAICE2, JAICE3, 0, 0, 0, &
+         1., 0., &
+         COMPDA, XCGRID, YCGRID, &
+         KGRPNT, IERR)
       IF (STPNOW()) RETURN
       IF (NPTST.GT.0) THEN
          WRITE (PRTEST, '(A)') ' ice frac. from file in test points'
@@ -7346,18 +6396,18 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                TSTVAL(IPTST) = COMPDA(IVP,JAICE3)
             ENDDO
          ENDIF
-         WRITE (PRTEST, 122) ' ice frac.: ', &
-               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         WRITE (PRTEST, "(A, 10(1X,E11.4))") ' ice frac.: ', &
+            (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
    ENDIF
 
 !     field 15: field containing ice thickness in meters
    IF (IFLDYN(15) .EQ. 1) THEN
       CALL FLFILE (15, 0, HICEF, (/0./), &
-                   0, JHICE2, JHICE3, 0, 0, 0, &
-                   1., 0., &
-                   COMPDA, XCGRID, YCGRID, &
-                   KGRPNT, IERR)
+         0, JHICE2, JHICE3, 0, 0, 0, &
+         1., 0., &
+         COMPDA, XCGRID, YCGRID, &
+         KGRPNT, IERR)
       IF (STPNOW()) RETURN
       IF (NPTST.GT.0) THEN
          WRITE (PRTEST, '(A)') ' ice thick. from file in test points'
@@ -7373,18 +6423,18 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                TSTVAL(IPTST) = COMPDA(IVP,JHICE3)
             ENDDO
          ENDIF
-         WRITE (PRTEST, 122) ' ice thick.: ', &
-               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         WRITE (PRTEST, "(A, 10(1X,E11.4))") ' ice thick.: ', &
+            (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
    ENDIF
-!
+
 !     field 16: field containing sea-swell significant wave height
    IF (IFLDYN(16) .EQ. 1) THEN
       CALL FLFILE (16, 0, HSSF, (/0./), &
-                   0, JHSS2, JHSS3, 0, 0, 0, &
-                   1., 0., &
-                   COMPDA, XCGRID, YCGRID, &
-                   KGRPNT, IERR)
+         0, JHSS2, JHSS3, 0, 0, 0, &
+         1., 0., &
+         COMPDA, XCGRID, YCGRID, &
+         KGRPNT, IERR)
       IF (STPNOW()) RETURN
       IF (NPTST.GT.0) THEN
          WRITE (PRTEST, '(A)') ' sea-swell Hs from file in test points'
@@ -7400,18 +6450,18 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                TSTVAL(IPTST) = COMPDA(IVP,JHSS3)
             ENDDO
          ENDIF
-         WRITE (PRTEST, 122) ' sea-swell Hs: ', &
-               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         WRITE (PRTEST, "(A, 10(1X,E11.4))") ' sea-swell Hs: ', &
+            (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
    ENDIF
 
 !     field 17: field containing sea-swell mean wave period
    IF (IFLDYN(17) .EQ. 1) THEN
       CALL FLFILE (17, 0, TSSF, (/0./), &
-                   0, JTSS2, JTSS3, 0, 0, 0, &
-                   1., 0., &
-                   COMPDA, XCGRID, YCGRID, &
-                   KGRPNT, IERR)
+         0, JTSS2, JTSS3, 0, 0, 0, &
+         1., 0., &
+         COMPDA, XCGRID, YCGRID, &
+         KGRPNT, IERR)
       IF (STPNOW()) RETURN
       IF (NPTST.GT.0) THEN
          WRITE (PRTEST, '(A)') ' sea-swell Tm from file in test points'
@@ -7427,18 +6477,18 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                TSTVAL(IPTST) = COMPDA(IVP,JTSS3)
             ENDDO
          ENDIF
-         WRITE (PRTEST, 122) ' sea-swell Tm: ', &
-               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         WRITE (PRTEST, "(A, 10(1X,E11.4))") ' sea-swell Tm: ', &
+            (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
    ENDIF
 
 !     field 18: field containing sea-swell mean wave direction
    IF (IFLDYN(18) .EQ. 1) THEN
       CALL FLFILE (18, 0, DSSF, (/0./), &
-                   0, JDSS2, JDSS3, 0, 0, 0, &
-                   1., 0., &
-                   COMPDA, XCGRID, YCGRID, &
-                   KGRPNT, IERR)
+         0, JDSS2, JDSS3, 0, 0, 0, &
+         1., 0., &
+         COMPDA, XCGRID, YCGRID, &
+         KGRPNT, IERR)
       IF (STPNOW()) RETURN
       IF (NPTST.GT.0) THEN
          WRITE (PRTEST,'(A)') ' sea-swell Dir from file in test points'
@@ -7454,34 +6504,40 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
                TSTVAL(IPTST) = COMPDA(IVP,JDSS3)
             ENDDO
          ENDIF
-         WRITE (PRTEST, 122) ' sea-swell Dir: ', &
-               (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
+         WRITE (PRTEST, "(A, 10(1X,E11.4))") ' sea-swell Dir: ', &
+            (TSTVAL(IPTST), IPTST=1,MIN(10,NPTST))
       ENDIF
    ENDIF
-!
+
 !     End of subroutine SNEXTI
-!
+
    RETURN
-END
-!
+end subroutine SNEXTI
+
 !****************************************************************
-!
+
 SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC, &
-                   BSPDIR, BSPFRQ, BSPECS, XYTST )
-!
+   BSPDIR, BSPFRQ, BSPECS, XYTST )
+
 !****************************************************************
-!
-   USE TIMECOMM
-   USE OCPCOMM2
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
+
+   USE swan_legacy_io, ONLY: INAR2D, COPYCH
+   USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
+   USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_time, ONLY: default_time_context
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_boundary_counters
+   USE swan_input_field_files
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE M_PARALL, ONLY: IAMMASTER
-!
-   IMPLICIT NONE
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -7562,36 +6618,39 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC, &
 !             (*,4); cosine^2 of spectral directions                      30.82
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
-! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.82
-!
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
+
    REAL,   INTENT(IN)     ::  SPCDIR(MDC,6)
    REAL,   INTENT(IN)     ::  SPCSIG(MSC)
    REAL,   INTENT(INOUT)  ::  BSPECS(MDC,MSC,NBSPEC,2)
-!
+
 !     BSPDIR: Spectral directions of input spectrum
 !     BSPFRQ: Spectral frequencies of input spectrum
-!
+
    REAL   , INTENT(INOUT)  :: BSPDIR(*)
    REAL   , INTENT(INOUT)  :: BSPFRQ(*)
-!
+
 !     BFILED  data concerning boundary condition files
 !     BSPLOC  place in array BSPECS where to store interpolated spectra
 !     XYTST   test points
-!
+
    INTEGER, INTENT(INOUT)  ::  BFILED(*)
    INTEGER, INTENT(INOUT)  ::  BSPLOC(*)
    INTEGER, INTENT(IN)     ::  XYTST(*)
-!
+
 !  5. Parameter variables
 !
 !     --
 !
 !  6. Local variables
-!
-   INTEGER   DORDER, NDSL, NDSD, IHD, IBOUNC, IBSPEC, IERR
-   INTEGER   ID, IS, JJ, NANG, NFRE, COUNT_IT, IENT, II
+
+   CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+   INTEGER   DORDER, NDSL, NDSD, IHD, IBOUNC, IBSPEC, IERR, IOSTATUS
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   ID, IS, JJ, NANG, NFRE, II
+   INTEGER, SAVE :: COUNT_IT = 0
    INTEGER   WWDATE, WWTIME
-!
+
 !     DORDER    if <0, order of reading directions is reversed
 !     NDSL      unit ref num for namelist file
 !     NDSD      unit ref num for data file
@@ -7606,11 +6665,11 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC, &
 !     COUNT_IT  counter of the time entering in the WW3 boundary file
 !
 !     WWDATE, WWTIME       time code in WaveWatch                         40.05
-!
+
    REAL      UFAC, W1, BDEPTH, DUM_A, RFAC
    REAL      XLON, XLAT, XDATE, EMEAN, THQ, FMEAN
-   REAL*8    TIMF1, TIMF2
-!
+   REAL(KIND=KIND(0.0D0))    TIMF1, TIMF2
+
 !     TIMF1     time of reading old boundary condition
 !     TIMF2     time of reading new boundary condition
 !     UFAC      multiplication factor
@@ -7623,23 +6682,26 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC, &
 !     FMEAN     coefficient read from WAM file, ignored
 !     DUM_A     dummy local variable (not used in any calculation)
 !     BDEPTH    depth of the boundary points
-!
-   DOUBLE PRECISION DDATE
+
+   REAL(KIND=KIND(0.0D0)) DDATE
 !     DDATE     date-time read from WAM file
-!
-   LOGICAL   NSTATF, UNFORM
+
+   LOGICAL   NSTATF, UNFORM, READ_ERROR
 !     NSTATF    if True time appears in bound. cond. file
 !     UNFORM    if True reading is done unformatted
-!
-   CHARACTER BTYPE *4, HEDLIN *80, TIMSTR *20, &
-             DATITM(5) *18, PTNME*10
+
+   CHARACTER(LEN=4)  :: BTYPE
+   CHARACTER(LEN=80) :: HEDLIN
+   CHARACTER(LEN=20) :: TIMSTR
+   CHARACTER(LEN=18) :: DATITM(5)
+   CHARACTER(LEN=10) :: PTNME
 !     BTYPE     type of boundary condition
 !     HEDLIN    heading line
 !     TIMSTR    time string
    CHARACTER (LEN=14) :: CDATE ! date-time
-!
+
    REAL, ALLOCATABLE :: SPAUX(:,:)
-!
+
 !  8. SUBROUTINES USED
 !
 !     COPYCH, DTRETI, LSPLIT, SSHAPE, RESPEC, MSGERR, SINTRP
@@ -7683,62 +6745,56 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC, &
 ! 13. SOURCE
 !
 !****************************************************************
-!
-!
-   SAVE COUNT_IT
-   SAVE      IENT
-   DATA      IENT /0/
+
    CALL STRACE (IENT, 'RBFILE')
-!
-!
+
 !     if data file is exhausted, return
-   IF (BFILED(1).EQ.-1) GOTO 900
+   IF (BFILED(1).EQ.-1) RETURN
    NSTATF = (BFILED(1) .GT. 0)
    IERR   = 0
    CALL COPYCH (BTYPE, 'F', BFILED(7), 1, IERR)
-!
+
    IF (BTYPE.EQ.'WAMW' .OR. BTYPE.EQ.'WAMC' &
-       .OR. BTYPE.EQ.'WW3U') THEN
+      .OR. BTYPE.EQ.'WW3U') THEN
       UNFORM = .TRUE.
    ELSE
       UNFORM = .FALSE.
    ENDIF
-!
+
    IF (BFILED(2).LT.0) COUNT_IT = 0
-!
+
    DORDER = BFILED(9)
    TIMF1 = DBLE(BFILED(2))
    TIMF2 = DBLE(BFILED(3))
-   IF (ITEST.GE.120) WRITE (PRINTF, 187) BFILED(1), BTYPE, &
-         TIMF1, TIMF2, TIMCO
-187 FORMAT (' Boundary', I2, 2X, A, ' times: ', 3F10.1)
-!
+   IF (ITEST.GE.120) WRITE (PRINTF, "(' Boundary', I2, 2X, A, ' times: ', 3F10.1)") BFILED(1), BTYPE, &
+      TIMF1, TIMF2, default_time_context%TIMCO
+
    ALLOCATE(SPAUX(MDC,MSC))
-!
+
 !     if present time > time of last set of spectra, read new spectra
 !
 !     While Loop named GLOOP
-!
+
    GLOOP : DO
-!
-      IF (TIMCO.GT.TIMF2) THEN
-!
+
+      IF (default_time_context%TIMCO.GT.TIMF2) THEN
+
 !     then read from boundary nesting files all the information
 !     and the spectral ones
 !
 !     COUNT_IT : counter of the time which enter in a WW3F boundary file
 !     and read spectral - used to calculate NHED (number of heading lines
 !     per time) in WW3F case.
-!
+
          COUNT_IT = COUNT_IT+1
          NDSL = BFILED(4)
          NDSD = BFILED(5)
-!
+
 !     REWIND statement removed. ER, Dec 21 2016
 !         IF(BTYPE.EQ.'WW3F') REWIND(NDSD)                                40.05
-!
+
          TIMF1 = TIMF2
-!
+
 !         move new spectra to old for all boundary points
          DO IBOUNC = 1, BFILED(8)
             IBSPEC = BSPLOC(IBOUNC)
@@ -7752,308 +6808,338 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC, &
             IF (ITEST.GE.80) WRITE (PRTEST, *) ' spectrum moved ', &
                IBSPEC, TIMF1
          ENDDO
-!
-210      CONTINUE
-!
+
+         boundary_files: DO
+            READ_ERROR = .FALSE.
+            file_contents: BLOCK
+
 !     BFILED(15) calculation changed: ER, Dec 21 2016
-         IF (BTYPE.EQ.'WW3F') THEN
-            IF (COUNT_IT.EQ.1)THEN
-               BFILED(15) = BFILED(14)
-            ELSE
-               BFILED(15) = 0
-            ENDIF
-         ENDIF
-!
+               IF (BTYPE.EQ.'WW3F') THEN
+                  IF (COUNT_IT.EQ.1)THEN
+                     BFILED(15) = BFILED(14)
+                  ELSE
+                     BFILED(15) = 0
+                  ENDIF
+               ENDIF
+
 !     read heading lines per time step
 !
 !     HBFL is loop over the number of heading lines per time step
-         HBFL : DO IHD = 1, BFILED(15)
-            IF (UNFORM) THEN
-               READ (NDSD, END=380, ERR=920)
-            ELSEIF ((.NOT.UNFORM).AND.(BTYPE.EQ.'WW3F')) THEN
-               READ (NDSD, '(A)', END=380, ERR=920) HEDLIN
-            ELSE
-               READ (NDSD, '(A)', END=380, ERR=920) HEDLIN
-               IF (ITEST.GE.90) WRITE (PRINTF, 212) HEDLIN
-212            FORMAT (' heading line: ', A)
-               IF (BTYPE.EQ.'SWNT') THEN
+               HBFL : DO IHD = 1, BFILED(15)
+                  IF (UNFORM) THEN
+                     READ (NDSD, IOSTAT=IOSTATUS)
+                  ELSEIF ((.NOT.UNFORM).AND.(BTYPE.EQ.'WW3F')) THEN
+                     READ (NDSD, '(A)', IOSTAT=IOSTATUS) HEDLIN
+                  ELSE
+                     READ (NDSD, '(A)', IOSTAT=IOSTATUS) HEDLIN
+                  ENDIF
+                  IF (IOSTATUS.NE.0) THEN
+                     IF (IS_IOSTAT_END(IOSTATUS)) EXIT file_contents
+                     CALL boundary_read_error()
+                     RETURN
+                  ENDIF
+                  IF (.NOT.UNFORM .AND. BTYPE.NE.'WW3F') THEN
+                     IF (ITEST.GE.90) WRITE (PRINTF, "(' heading line: ', A)") HEDLIN
+                     IF (BTYPE.EQ.'SWNT') THEN
 !               convert time string to time in seconds
-                  CALL DTRETI (HEDLIN(1:18), BFILED(6), TIMF2)
-               ENDIF
-            ENDIF
-         ENDDO HBFL
-!
-         IF (.NOT.NSTATF) TIMF2 = 0D0
-         IF (ITEST.GE.60) WRITE (PRINTF, 214) &
-             TIMF1, TIMF2, TIMCO, BFILED(8), BFILED(15)
-214      FORMAT (' Boundary times ', 3F12.0, 2X, 4I4)
-!
+                        CALL DTRETI (HEDLIN(1:18), BFILED(6), TIMF2)
+                     ENDIF
+                  ENDIF
+               ENDDO HBFL
+
+               IF (.NOT.NSTATF) TIMF2 = 0D0
+               IF (ITEST.GE.60) WRITE (PRINTF, "(' Boundary times ', 3F12.0, 2X, 4I4)") &
+                  TIMF1, TIMF2, default_time_context%TIMCO, BFILED(8), BFILED(15)
+
 !         read additional information from the headers and spectrum from
 !         the nesting boundary files (for all the cases)
 !
 !
 !       BP_LOOP loop over the boundary nesting points
-         BP_LOOP : DO  IBOUNC = 1, BFILED(8)
-!
-            IBSPEC = BSPLOC(IBOUNC)
+               BP_LOOP : DO  IBOUNC = 1, BFILED(8)
+
+                  IBSPEC = BSPLOC(IBOUNC)
 !           division by 2*PI to account for difference in definition of freq.
 !           Hz to rad/s
-            NANG  = BFILED(10)
-!
+                  NANG  = BFILED(10)
+
 !           calculate UFAC for the different nesting cases
-            IF (BTYPE(1:3).EQ.'SWN' .AND. NANG.GT.0) THEN
+                  IF (BTYPE(1:3).EQ.'SWN' .AND. NANG.GT.0) THEN
 !           in addition multiply by 180/PI to account for directions in degr
 !           instead of radians (SWAN 2D spectral files)
-               UFAC = 180./ (2.*PI**2)
-            ELSE
-               UFAC = 1./ (2.*PI)
-            ENDIF
+                     UFAC = 180./ (2.*PI**2)
+                  ELSE
+                     UFAC = 1./ (2.*PI)
+                  ENDIF
 !           divide by Rho*Grav if quantity in file is energy density
-            IF ((BFILED(17).EQ.1))  UFAC = UFAC / (RHO*GRAV)
-!
+                  IF ((BFILED(17).EQ.1))  UFAC = UFAC / (RHO*GRAV)
+
 !           read information from heading lines per spectrum
 !
 !          do loop over the numbers of the heading lines per spectrum
-!
-            DO IHD = 1, BFILED(16)
-!
-               IF (IBOUNC.EQ.1) THEN
+
+                  DO IHD = 1, BFILED(16)
+
+                     IF (IBOUNC.EQ.1) THEN
 !             for the first spectrum (first point), read time from
 !             heading line                                                40.03
-                  IF (BTYPE.EQ.'WAMW') THEN
-                     READ(NDSD, END=380, ERR=920) XLON, XLAT, &
-                        CDATE(1:LWDATE), &
-                        EMEAN, THQ, FMEAN
-                     IF (LEN_TRIM(CDATE) == 10 ) THEN
-                        TIMSTR = TRIM(CDATE)
-                     ELSEIF (LEN_TRIM(CDATE) == 12 ) THEN
-                        TIMSTR = CDATE(1:10)
-                     ELSEIF (LEN_TRIM(CDATE) == 14 ) THEN
-                        TIMSTR = CDATE(3:12)
-                     ENDIF
+                        IF (BTYPE.EQ.'WAMW') THEN
+                           READ(NDSD, IOSTAT=IOSTATUS) XLON, XLAT, &
+                              CDATE(1:LWDATE), &
+                              EMEAN, THQ, FMEAN
+                           IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
+                           IF (LEN_TRIM(CDATE) == 10 ) THEN
+                              TIMSTR = TRIM(CDATE)
+                           ELSEIF (LEN_TRIM(CDATE) == 12 ) THEN
+                              TIMSTR = CDATE(1:10)
+                           ELSEIF (LEN_TRIM(CDATE) == 14 ) THEN
+                              TIMSTR = CDATE(3:12)
+                           ENDIF
 !                 convert time string to time in seconds
-                     CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
-                  ELSE IF (BTYPE.EQ.'WAMC') THEN
-                     READ(NDSD, END=380, ERR=920) XLON, XLAT, XDATE, &
-                         EMEAN, THQ, FMEAN
-                     WRITE (TIMSTR,'(F11.0,9X)') XDATE
+                           CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
+                        ELSE IF (BTYPE.EQ.'WAMC') THEN
+                           READ(NDSD, IOSTAT=IOSTATUS) XLON, XLAT, XDATE, &
+                              EMEAN, THQ, FMEAN
+                           IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
+                           WRITE (TIMSTR,'(F11.0,9X)') XDATE
 !                 convert time string to time in seconds
-                     CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
-                  ELSE IF (BTYPE.EQ.'WAMF') THEN
-                     READ(NDSD,*, END=380, ERR=920) XLON, XLAT, DDATE, &
-                        EMEAN, THQ, FMEAN
-                     WRITE (TIMSTR,'(F11.0,9X)') DDATE
+                           CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
+                        ELSE IF (BTYPE.EQ.'WAMF') THEN
+                           READ(NDSD,*, IOSTAT=IOSTATUS) XLON, XLAT, DDATE, &
+                              EMEAN, THQ, FMEAN
+                           IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
+                           WRITE (TIMSTR,'(F11.0,9X)') DDATE
 !                 convert time string to time in seconds
-                     CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
-                  ELSE IF (BTYPE.EQ.'WW3F') THEN
+                           CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
+                        ELSE IF (BTYPE.EQ.'WW3F') THEN
 !                  read from heading lines per spectrum , date ,time      40.05
-                     IF(IHD.EQ.1) THEN
-                        READ(NDSD,*, END=380, ERR=920) WWDATE, WWTIME
-                        IF (SCREEN.NE.PRINTF.AND.IAMMASTER) THEN
-                           WRITE(SCREEN,'(2A,I8.8,A,I6.6)')'Reading WW3' &
-                              ,' bound. forcing......date and time are ' &
-                              ,WWDATE,'.',WWTIME
-                        ENDIF
-                        WRITE (TIMSTR, 118) WWDATE, WWTIME
-118                     FORMAT (I8,'.',I6)
+                           IF(IHD.EQ.1) THEN
+                              READ(NDSD,*, IOSTAT=IOSTATUS) WWDATE, WWTIME
+                              IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
+                              IF (SCREEN.NE.PRINTF.AND.IAMMASTER) THEN
+                                 WRITE(SCREEN,'(2A,I8.8,A,I6.6)')'Reading WW3' &
+                                    ,' bound. forcing......date and time are ' &
+                                    ,WWDATE,'.',WWTIME
+                              ENDIF
+                              WRITE (TIMSTR, "(I8,'.',I6)") WWDATE, WWTIME
 !                    convert time string to time in seconds
-                        CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
-                     ELSE
+                              CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
+                           ELSE
 !                   DUM_A dummy local variable used to read formatted     40.05
 !                   files                                                 40.05
 !                   this variable will be not used in any calculation     40.05
-                        READ (NDSD,901) PTNME, DUM_A, DUM_A, BDEPTH, &
-                                        DUM_A, DUM_A, DUM_A, DUM_A
-                     ENDIF
-                  ELSE IF (BTYPE.EQ.'WW3U') THEN
+                              READ (NDSD,"(1X,A10,1X,2F7.2,F10.1,2(F7.2,F6.1))") PTNME, DUM_A, DUM_A, BDEPTH, &
+                                 DUM_A, DUM_A, DUM_A, DUM_A
+                           ENDIF
+                        ELSE IF (BTYPE.EQ.'WW3U') THEN
 !                 read from heading lines per spectrum , date ,time
-                     READ (NDSD, END=380, ERR=920) WWDATE, WWTIME
-                     WRITE (TIMSTR, 118) WWDATE, WWTIME
+                           READ (NDSD, IOSTAT=IOSTATUS) WWDATE, WWTIME
+                           IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
+                           WRITE (TIMSTR, "(I8,'.',I6)") WWDATE, WWTIME
 !                 convert time string to time in seconds
-                     CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
-                     READ (NDSD, END=380, ERR=920)
-                  ELSE
+                           CALL DTRETI (TIMSTR, BFILED(6), TIMF2)
+                           READ (NDSD, IOSTAT=IOSTATUS)
+                           IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
+                        ELSE
 !                 SWAN files                                              40.05
-                     READ (NDSD, '(A)', END=380, ERR=920) HEDLIN
-                     IF (ITEST.GE.100) WRITE (PRINTF, 212) HEDLIN
-                  ENDIF
-               ELSE
-                  IF (UNFORM) THEN
-                     READ (NDSD, END=380, ERR=920)
-                  ELSE IF (BTYPE.EQ.'WW3F') THEN
+                           READ (NDSD, '(A)', IOSTAT=IOSTATUS) HEDLIN
+                           IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
+                           IF (ITEST.GE.100) WRITE (PRINTF, "(' heading line: ', A)") HEDLIN
+                        ENDIF
+                     ELSE
+                        IF (UNFORM) THEN
+                           READ (NDSD, IOSTAT=IOSTATUS)
+                           IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
+                        ELSE IF (BTYPE.EQ.'WW3F') THEN
 !                 read from heading lines per spectrum depth of the       40.05
 !                 boundary point                                          40.05
-                     IF (IHD.GT.1) EXIT
+                           IF (IHD.GT.1) EXIT
 !                 exit is used because the header per spectrum in WW3F    40.05
 !                 for IBOUNC>1 is one line                                40.05
 !                 DUM_A is a dummy local parameter used in formatted read 40.05
-                     READ (NDSD,901) PTNME, DUM_A, DUM_A, BDEPTH, &
-                                     DUM_A, DUM_A, DUM_A, DUM_A
-                  ELSE IF (BTYPE.EQ.'WAMF') THEN
+                           READ (NDSD,"(1X,A10,1X,2F7.2,F10.1,2(F7.2,F6.1))") PTNME, DUM_A, DUM_A, BDEPTH, &
+                              DUM_A, DUM_A, DUM_A, DUM_A
+                        ELSE IF (BTYPE.EQ.'WAMF') THEN
 !                 read HEDLIN replaced because data are sometimes written 40.13
 !                 on two subsequent lines                                 40.13
-                     READ(NDSD,*, END=380, ERR=920) XLON, XLAT, DDATE, &
-                        EMEAN, THQ, FMEAN
-                  ELSE
-                     READ (NDSD, '(A)', END=380, ERR=920) HEDLIN
-                     IF (ITEST.GE.100) WRITE (PRINTF, 212) HEDLIN
-                  ENDIF
-               ENDIF
-!
-               IF (BTYPE(1:3).EQ.'SWN') THEN
+                           READ(NDSD,*, IOSTAT=IOSTATUS) XLON, XLAT, DDATE, &
+                              EMEAN, THQ, FMEAN
+                           IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
+                        ELSE
+                           READ (NDSD, '(A)', IOSTAT=IOSTATUS) HEDLIN
+                           IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
+                           IF (ITEST.GE.100) WRITE (PRINTF, "(' heading line: ', A)") HEDLIN
+                        ENDIF
+                     ENDIF
+
+                     IF (BTYPE(1:3).EQ.'SWN') THEN
 !             SWAN nesting: take proper action if heading line contains ZERO or NODATA
-                  IF (HEDLIN(1:6).EQ.'NODATA' .OR. HEDLIN(1:4).EQ.'ZERO') &
-                       THEN
-                     DO IS = 1, MSC
-                        DO ID = 1, MDC
-                           BSPECS(ID,IS,IBSPEC,2) = 0.
-                        ENDDO
-                     ENDDO
+                        IF (HEDLIN(1:6).EQ.'NODATA' .OR. HEDLIN(1:4).EQ.'ZERO') &
+                           THEN
+                           DO IS = 1, MSC
+                              DO ID = 1, MDC
+                                 BSPECS(ID,IS,IBSPEC,2) = 0.
+                              ENDDO
+                           ENDDO
 !                 skip reading of values
-                     CYCLE BP_LOOP
-                  ELSE IF (HEDLIN(1:6).EQ.'FACTOR') THEN
-                     READ (NDSD, *) RFAC
-                     UFAC = UFAC * RFAC
+                           CYCLE BP_LOOP
+                        ELSE IF (HEDLIN(1:6).EQ.'FACTOR') THEN
+                           READ (NDSD, *) RFAC
+                           UFAC = UFAC * RFAC
 !                 multiply factor read from file by UFAC (factor following from
 !                 type of file)
-                  ELSE
+                        ELSE
 !                 note: in case of 1D spectra heading line can be ignored
-                     IF (NANG.GT.0) THEN
-                        CALL MSGERR (3, &
-                           'incorrect code in b.c. file: '//HEDLIN(1:20))
+                           IF (NANG.GT.0) THEN
+                              CALL MSGERR (3, &
+                                 'incorrect code in b.c. file: '//HEDLIN(1:20))
+                           ENDIF
+                        ENDIF
                      ENDIF
-                  ENDIF
-               ENDIF
 !           end loop over heading lines per spectrum
-            ENDDO
-!
+                  ENDDO
+
 !           test output: which spectrum is processed                      40.00
-!
-            IF (ITEST.GE.60) THEN
-               INQUIRE (UNIT=NDSD, NAME=FILENM)
-               WRITE (PRTEST, 188) FILENM, CHTIME, IBOUNC, UFAC
-188            FORMAT &
-                  (' read spectrum ', A, '; time=', A, ' nr=', I3, F9.3)
-            ENDIF
-!
+
+                  IF (ITEST.GE.60) THEN
+                     INQUIRE (UNIT=NDSD, NAME=FILENM)
+                     WRITE (PRTEST, "(' read spectrum ', A, '; time=', A, ' nr=', I3, F9.3)") &
+                        FILENM, CHTIME, IBOUNC, UFAC
+                  ENDIF
+
 !       start reading incoming wave data
-!
-            IF (BTYPE.EQ.'TPAR') THEN
-               READ (NDSD, 222, END=380) HEDLIN
-222            FORMAT (A)
-               CALL LSPLIT (HEDLIN, DATITM, 5)
-               CALL DTRETI (DATITM(1), BFILED(6), TIMF2)
-               DO II = 1, 4
-                  READ (DATITM(II+1), '(G12.0)') SPPARM(II)
-               ENDDO
-               IF (ITEST.GE.60) WRITE (PRTEST, *) ' TPAR boundary ', &
-                     TIMF2, (SPPARM(JJ), JJ=1,4)
-               BFILED(3) = NINT(TIMF2)
-               CALL SSHAPE (BSPECS(1,1,IBSPEC,2), SPCSIG, SPCDIR, &
+
+                  IF (BTYPE.EQ.'TPAR') THEN
+                     READ (NDSD, "(A)", IOSTAT=IOSTATUS) HEDLIN
+                     IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
+                     CALL LSPLIT (HEDLIN, DATITM, 5)
+                     CALL DTRETI (DATITM(1), BFILED(6), TIMF2)
+                     DO II = 1, 4
+                        READ (DATITM(II+1), '(G12.0)') SPPARM(II)
+                     ENDDO
+                     IF (ITEST.GE.60) WRITE (PRTEST, *) ' TPAR boundary ', &
+                        TIMF2, (SPPARM(JJ), JJ=1,4)
+                     BFILED(3) = NINT(TIMF2)
+                     CALL SSHAPE (BSPECS(1,1,IBSPEC,2), SPCSIG, SPCDIR, &
                         FSHAPE, DSHAPE)
-            ELSE
+                  ELSE
 !         other (spectral) boundary conditions
-               NANG  = BFILED(10)
-               NFRE  = BFILED(12)
-!
+                     NANG  = BFILED(10)
+                     NFRE  = BFILED(12)
+
 !         call RESPEC subroutine to read the spectum of the bound. files
-!
-               CALL RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
-                   SPCSIG, SPCDIR, BSPFRQ, BSPDIR, BSPECS(1,1,IBSPEC,2), &
-                   UFAC, IERR)
-               IF (IERR.EQ.9) GOTO 380
-            ENDIF
-!
-         END DO BP_LOOP
-!
-         IF (NSTATF) WRITE (PRINTF, 287) BTYPE, TIMF2
-287      FORMAT &
-              (' Boundary data type ', A, ' processed, time: ', F12.0)
-!
+
+                     CALL RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
+                        SPCSIG, SPCDIR, BSPFRQ, BSPDIR, BSPECS(1,1,IBSPEC,2), &
+                        UFAC, IERR)
+                     IF (IERR.EQ.9) EXIT BP_LOOP
+                  ENDIF
+
+               END DO BP_LOOP
+
+               IF (IERR.NE.9) THEN
+                  IF (NSTATF) WRITE (PRINTF, &
+                     "(' Boundary data type ', A, ' processed, time: ', F12.0)") BTYPE, TIMF2
+
 !        cycle back to top of loop
-         CYCLE GLOOP
-!
+                  CYCLE GLOOP
+               END IF
+
+            END BLOCK file_contents
+            IF (READ_ERROR) RETURN
+
 !         if there are no more data on a boundary data file
 !         close this file, and see if there is a next one
-!
-380      CLOSE(NDSD)
+
+            CLOSE(NDSD)
 !         read filename of next boundary file and open them
-         IF (NDSL.GT.0) THEN
-            READ (NDSL, '(A)', END=390, ERR=930) FILENM
-            IF (UNFORM) THEN
-               OPEN (NDSD, FILE=FILENM, FORM='UNFORMATTED', &
-                      STATUS='OLD', ERR=930)
+            IF (NDSL.GT.0) THEN
+               READ (NDSL, '(A)', IOSTAT=IOSTATUS) FILENM
+               IF (IOSTATUS.NE.0) THEN
+                  IF (.NOT.IS_IOSTAT_END(IOSTATUS)) THEN
+                     CALL boundary_open_error()
+                     RETURN
+                  ENDIF
+                  CLOSE (NDSL)
+                  BFILED(5) = 0
+                  CALL MSGERR (1, 'data on boundary file exhausted')
+                  BFILED(4) = 0
+                  BFILED(1) = -1
+                  TIMF2 = 999999999D0
+                  CYCLE GLOOP
+               ENDIF
+               IF (UNFORM) THEN
+                  OPEN (NDSD, FILE=FILENM, FORM='UNFORMATTED', &
+                     STATUS='OLD', IOSTAT=IOSTATUS)
+                  IF (boundary_open_failed(IOSTATUS)) RETURN
 !              read heading lines
-               DO IHD = 1, BFILED(14)
-                  READ (NDSD, END=940, ERR=920)
-               ENDDO
-            ELSEIF ((.NOT.UNFORM).AND.(BTYPE.EQ.'WW3F')) THEN
+                  DO IHD = 1, BFILED(14)
+                     READ (NDSD, IOSTAT=IOSTATUS)
+                     IF (boundary_heading_read_failed(IOSTATUS)) RETURN
+                  ENDDO
+               ELSEIF ((.NOT.UNFORM).AND.(BTYPE.EQ.'WW3F')) THEN
 !             if it is WW3F open the new file only
-               OPEN (NDSD, FILE=FILENM, FORM='FORMATTED', &
-                      STATUS='OLD', ERR=930)
-               COUNT_IT = 1
-            ELSE
-               OPEN (NDSD, FILE=FILENM, FORM='FORMATTED', &
-                      STATUS='OLD', ERR=930)
-               DO IHD = 1, BFILED(14)
+                  OPEN (NDSD, FILE=FILENM, FORM='FORMATTED', &
+                     STATUS='OLD', IOSTAT=IOSTATUS)
+                  IF (boundary_open_failed(IOSTATUS)) RETURN
+                  COUNT_IT = 1
+               ELSE
+                  OPEN (NDSD, FILE=FILENM, FORM='FORMATTED', &
+                     STATUS='OLD', IOSTAT=IOSTATUS)
+                  IF (boundary_open_failed(IOSTATUS)) RETURN
+                  DO IHD = 1, BFILED(14)
 !               read heading lines
-                  READ (NDSD, '(A)', END=940, ERR=920) HEDLIN
-                  IF (ITEST.GE.80) WRITE (PRINTF, 212) HEDLIN
-               ENDDO
-            ENDIF
-!
+                     READ (NDSD, '(A)', IOSTAT=IOSTATUS) HEDLIN
+                     IF (boundary_heading_read_failed(IOSTATUS)) RETURN
+                     IF (ITEST.GE.80) WRITE (PRINTF, "(' heading line: ', A)") HEDLIN
+                  ENDDO
+               ENDIF
+
 !      go back to statement 210 to start again the procedure of reading
 !      info and spectrum from the new boundary file
-!
-            GOTO 210
-!
-         ELSE
+
+               CYCLE boundary_files
+
+            ELSE
 !           boundary data are read from a single file
-            GOTO 392
-         ENDIF
-!         close file containing filenames
-390      CLOSE (NDSL)
-!
-         BFILED(5) = 0
-!         write message and close file containing spectra
-392      CALL MSGERR (1, 'data on boundary file exhausted')
-!
-         BFILED(4) = 0
-         BFILED(1) = -1
-         TIMF2 = 999999999D0
-         CYCLE GLOOP
-!
+               CALL MSGERR (1, 'data on boundary file exhausted')
+               BFILED(4) = 0
+               BFILED(1) = -1
+               TIMF2 = 999999999D0
+               CYCLE GLOOP
+            ENDIF
+         END DO boundary_files
+
 !        (if necessary) data have been read from file, now interpolate in time
-!
+
       ELSE
 !       if present time <= time of last set of spectra then
 !       transform to spectral resolution used in SWAN to
 !       obtain boundary spectra
-!
+
          IF (TIMF1.NE.TIMF2) THEN
-            W1 = REAL((TIMF2-TIMCO) / (TIMF2-TIMF1))
+            W1 = REAL((TIMF2-default_time_context%TIMCO) / (TIMF2-TIMF1))
          ELSE
             W1 = 0.
          END IF
          DO IBOUNC = 1, BFILED(8)
             IBSPEC = BSPLOC(IBOUNC)
-            IF (IBOUNC.EQ.1 .AND. ITEST.GE.80) WRITE (PRTEST, 403) &
-                 TIMCO, W1, TIMF1, TIMF2, IBSPEC
-403         FORMAT (' interp in time ', F14.1, F8.3, 2F14.1, I4)
-!
+            IF (IBOUNC.EQ.1 .AND. ITEST.GE.80) WRITE (PRTEST, "(' interp in time ', F14.1, F8.3, 2F14.1, I4)") &
+               default_time_context%TIMCO, W1, TIMF1, TIMF2, IBSPEC
+
 !       interpolate spectra in time; result has to be store in BSPECS(..,1)
 !       first interpolate to auxiliary array
-!
+
             CALL SINTRP (W1, 1.-W1, BSPECS(1,1,IBSPEC,1), &
-                     BSPECS(1,1,IBSPEC,2), SPAUX, &
-                     SPCDIR, SPCSIG)
+               BSPECS(1,1,IBSPEC,2), SPAUX, &
+               SPCDIR, SPCSIG)
 !       use SINTRP to copy contents of aux. array to BSPECS(..,1)
-!
+
             CALL SINTRP (1., 0., SPAUX, &
-                     BSPECS(1,1,IBSPEC,2), BSPECS(1,1,IBSPEC,1), &
-                     SPCDIR, SPCSIG)
+               BSPECS(1,1,IBSPEC,2), BSPECS(1,1,IBSPEC,1), &
+               SPCDIR, SPCSIG)
          ENDDO
-         BFILED(2) = NINT(TIMCO)
+         BFILED(2) = NINT(default_time_context%TIMCO)
          BFILED(3) = NINT(TIMF2)
          EXIT GLOOP
 !       end of time comparison
@@ -8061,45 +7147,75 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC, &
 
 !     end of while loop
    END DO GLOOP
-!
-!
-901 FORMAT (1X,A10,1X,2F7.2,F10.1,2(F7.2,F6.1))
-!
+
    DEALLOCATE(SPAUX)
-!
-900 RETURN
-!
-920 INQUIRE (UNIT=NDSD, NAME=FILENM)
-   CALL MSGERR (4, &
-        'error reading data from boundary file '//FILENM)
-   GOTO 900
-930 CALL MSGERR (4, &
-         'error opening boundary file '//FILENM)
-   GOTO 900
-940 INQUIRE (UNIT=NDSD, NAME=FILENM)
-   CALL MSGERR (4, &
-        'unexpected end of file on boundary file '//FILENM)
-   GOTO 900
-!
+
+   RETURN
+
+CONTAINS
+
+LOGICAL FUNCTION boundary_data_exhausted(status)
+   INTEGER, INTENT(IN) :: status
+
+   boundary_data_exhausted = status.NE.0
+   IF (.NOT.boundary_data_exhausted) RETURN
+   IF (.NOT.IS_IOSTAT_END(status)) THEN
+      CALL boundary_read_error()
+      READ_ERROR = .TRUE.
+   ENDIF
+END FUNCTION boundary_data_exhausted
+
+LOGICAL FUNCTION boundary_heading_read_failed(status)
+   INTEGER, INTENT(IN) :: status
+
+   boundary_heading_read_failed = status.NE.0
+   IF (.NOT.boundary_heading_read_failed) RETURN
+   INQUIRE (UNIT=NDSD, NAME=FILENM)
+   IF (IS_IOSTAT_END(status)) THEN
+      CALL MSGERR (4, 'unexpected end of file on boundary file '//FILENM)
+   ELSE
+      CALL MSGERR (4, 'error reading data from boundary file '//FILENM)
+   ENDIF
+END FUNCTION boundary_heading_read_failed
+
+LOGICAL FUNCTION boundary_open_failed(status)
+   INTEGER, INTENT(IN) :: status
+
+   boundary_open_failed = status.NE.0
+   IF (boundary_open_failed) CALL boundary_open_error()
+END FUNCTION boundary_open_failed
+
+SUBROUTINE boundary_read_error()
+   INQUIRE (UNIT=NDSD, NAME=FILENM)
+   CALL MSGERR (4, 'error reading data from boundary file '//FILENM)
+END SUBROUTINE boundary_read_error
+
+SUBROUTINE boundary_open_error()
+   CALL MSGERR (4, 'error opening boundary file '//FILENM)
+END SUBROUTINE boundary_open_error
+
 !     End of subroutine RBFILE
-!
-END
+
+end subroutine RBFILE
 !****************************************************************
-!
+
 SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
-                   SPCSIG, SPCDIR, BSPFRQ, BSPDIR, LSPEC, UFAC, &
-                   IERR)
-!
+   SPCSIG, SPCDIR, BSPFRQ, BSPDIR, LSPEC, UFAC, &
+   IERR)
+
 !****************************************************************
-!
-   USE TIMECOMM
-   USE OCPCOMM2
-   USE OCPCOMM4
-   USE SWCOMM3
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
+   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STRACE
+   USE swan_time, ONLY: default_time_context
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_physical_settings
+   USE swan_spectral_grid
+   USE swan_math_constants
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -8161,32 +7277,32 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
 !  3. Method
 !
 !  4. Argument variables
-!
+
    INTEGER, INTENT(INOUT)  :: BFILED(*)
-!
+
 ! i   SPCDIR: (*,1); spectral directions (radians)                        30.82
 !             (*,2); cosine of spectral directions                        30.82
 !             (*,3); sine of spectral directions                          30.82
 !             (*,4); cosine^2 of spectral directions                      30.82
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
-! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.82
-!
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
+
    REAL,    INTENT(IN)     :: SPCDIR(MDC,6)
    REAL,    INTENT(IN)     :: SPCSIG(MSC)
    REAL,    INTENT(IN)     :: BSPDIR(*)
    REAL,    INTENT(IN)     :: BSPFRQ(*)
    REAL,    INTENT(INOUT)  :: LSPEC(MDC,MSC)
    REAL,    INTENT(IN)     :: UFAC
-!
+
    INTEGER,  INTENT(IN) ::  NDSD
    INTEGER,  INTENT(IN) ::  DORDER
    INTEGER,  INTENT(INOUT) ::  IERR
-!
+
    LOGICAL   UNFORM
-!
-   CHARACTER BTYPE *4
-!
+
+   CHARACTER(LEN=4) :: BTYPE
+
 !     BTYPE    char  inp   type of input
 !     NDSD     int   inp   unit ref. number of input file
 !     BFILED   int   inp   options for reading boundary condition file    40.00
@@ -8209,9 +7325,11 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
 !     ID        counter of directions
 !     IS        counter of frequencies
 !     ISIGTA    the last frequency which is determined by interpolation
-!
-   INTEGER   IANG, IFRE, ID, IS, ISIGTA,IENT,NFRE,NANG
-!
+
+   CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   IANG, IFRE, ID, IS, ISIGTA, NFRE, NANG, IOSTATUS
+
    REAL, ALLOCATABLE :: BAUX0(:,:)
    REAL, ALLOCATABLE :: BAUX1(:,:)
    REAL, ALLOCATABLE :: BAUX2(:,:)
@@ -8220,7 +7338,7 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
 
    REAL      ETOT, ADEG, DD, ADIR, MS, CTOT, ACOS, CDIR
    REAL      DSUM, DSPR, FAC
-!
+
 !     ETOT      energy integrated over directions
 !     ADEG      average direction in degr
 !     DD        parameter for directional distribution
@@ -8240,9 +7358,7 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
 !  8. Subroutines used
 !
 !       GAMMAF (in SWANSER)
-   REAL :: GAMMAF
-   LOGICAL EQREAL
-!
+
 !  9. Subroutines calling
 !
 !     RBFILE
@@ -8271,14 +7387,12 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
 !  13. Source text
 !
 !****************************************************************
-!
-   SAVE      IENT
-   DATA      IENT /0/
+
    CALL STRACE (IENT, 'RESPEC')
-!
+
 !     read the values from array BFILED for the number of
 !     direction and frequencies
-!
+
    NANG = BFILED(10)
    NFRE = BFILED(12)
    ALLOCATE (BAUX0(NFRE,NANG))
@@ -8289,37 +7403,38 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
 
    IF (ITEST.GE.60) THEN
       INQUIRE (UNIT=NDSD, NAME=FILENM)
-      WRITE (PRTEST, 7) FILENM, NANG, NFRE, UFAC, BFILED(18), &
+      WRITE (PRTEST, "(' Entry RESPEC, reading file:', A, /, 6X, I3, ' angles ', I3,&
+            & ' freqs; factor ', E12.4, ' dir.def:', I2, ' dir.spr.def:', I2, ' unform:', L2)") &
+            FILENM, NANG, NFRE, UFAC, BFILED(18), &
          BFILED(19), UNFORM
-7     FORMAT (' Entry RESPEC, reading file:', A, /, 6X, &
-         I3, ' angles ', I3, ' freqs; factor ', &
-         E12.4, ' dir.def:', I2, ' dir.spr.def:', I2, ' unform:', L2)
    ENDIF
-!
+
 !     Initialisation
-!
+
    ISIGTA = MSC
-!
+
 !     read spectral energy densities from b.c. file
    IF (NANG.EQ.0) THEN
-!
+
 !     1-D spectral input                                                  40.05
-!
+
       DO IFRE=1,NFRE
 !         1-D spectral input (only function of frequency)
          IF (IFRE.EQ.1) THEN
-            READ (NDSD,*,END=940,ERR=920) ETOT, ADEG, DD
+            READ (NDSD,*,IOSTAT=IOSTATUS) ETOT, ADEG, DD
+            IF (spectrum_read_failed(IOSTATUS, .TRUE.)) RETURN
          ELSE
-            READ (NDSD,*,END=930,ERR=920) ETOT, ADEG, DD
+            READ (NDSD,*,IOSTAT=IOSTATUS) ETOT, ADEG, DD
+            IF (spectrum_read_failed(IOSTATUS, .FALSE.)) RETURN
          ENDIF
-!
+
          IF (EQREAL(ETOT,REAL(BFILED(11)))) THEN
 !            in case of exception value, no energy
             ETOT = 0.
             ADEG = 0.
             DD   = 180./PI
          END IF
-!
+
          IF (BFILED(18).EQ.1) THEN
 !           conversion from degrees to radians
             ADIR = PI * ADEG / 180.
@@ -8327,7 +7442,7 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
 !           conversion from Nautical to Cartesian conv.
             ADIR = PI * (180.+DNORTH-ADEG) / 180.
          ENDIF
-!
+
          IF (BFILED(19).EQ.1) THEN
             IF (DD.GT.23.) THEN
                FAC = 1.2
@@ -8346,12 +7461,10 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
          ELSE
             MS = DD
          ENDIF
-!
-         IF (ITEST.GE.80) WRITE (PRTEST, 12) IFRE, ETOT, &
-               180.*ADIR/PI, MS
-12       FORMAT (' read freq ', I3, E10.3, '; Cart dir ', &
-               F7.1, '; Cos power ', F7.2)
-!
+
+         IF (ITEST.GE.80) WRITE (PRTEST, "(' read freq ', I3, E10.3, '; Cart dir ', F7.1, '; Cos power ', F7.2)") IFRE, ETOT, &
+            180.*ADIR/PI, MS
+
 !         generate distribution over directions
 !
 !         equations taken from Jahnke & Emde (chapter Factorial Function)
@@ -8372,20 +7485,20 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
             BAUX2(ID,IFRE) = CDIR * ETOT
          ENDDO
          IF (ITEST.GE.20) THEN
-            IF (ABS(DSUM-1.).GT.0.1) WRITE (PRTEST, 138) DSUM, CTOT, MS
-138         FORMAT (' integral over directions is ', F9.4, &
-                    ' with CTOT=', F10.3,'; power=', F8.2)
+            IF (ABS(DSUM-1.).GT.0.1) WRITE (PRTEST, &
+                  "(' integral over directions is ', F9.4, ' with CTOT=', F10.3,'; power=', F8.2)") DSUM, CTOT, MS
          ENDIF
       END DO
-!
+
    ELSE
-!
+
 !   (2D) fully spectral input
       IF (UNFORM) THEN
 !          unformatted reading
          IF (BTYPE.EQ.'WW3U') THEN
-            READ (NDSD,END=930,ERR=920) &
+            READ (NDSD,IOSTAT=IOSTATUS) &
                ((BAUX0(IFRE,IANG),IFRE=1,NFRE),IANG=1,NANG)
+            IF (spectrum_read_failed(IOSTATUS, .FALSE.)) RETURN
             DO IANG = 1,NANG
                DO IFRE = 1,NFRE
                   BAUX1(IANG,IFRE) = BAUX0(IFRE,IANG)
@@ -8393,24 +7506,26 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
             ENDDO
          ELSE
             IF (DORDER.LT.0) THEN
-               READ (NDSD,END=930,ERR=920) &
-                      ((BAUX1(IANG,IFRE),IANG=NANG,1,-1),IFRE=1,NFRE)
+               READ (NDSD,IOSTAT=IOSTATUS) &
+                  ((BAUX1(IANG,IFRE),IANG=NANG,1,-1),IFRE=1,NFRE)
+               IF (spectrum_read_failed(IOSTATUS, .FALSE.)) RETURN
             ELSE
-               READ (NDSD,END=930,ERR=920) &
-                      ((BAUX1(IANG,IFRE),IANG=1,NANG),IFRE=1,NFRE)
+               READ (NDSD,IOSTAT=IOSTATUS) &
+                  ((BAUX1(IANG,IFRE),IANG=1,NANG),IFRE=1,NFRE)
+               IF (spectrum_read_failed(IOSTATUS, .FALSE.)) RETURN
             ENDIF
          ENDIF
       ELSEIF ((.NOT.UNFORM).AND.(BTYPE.EQ.'WW3F')) THEN
-!
+
 !         WW3F reading
 !         BAUX0 local array to read the energy spectra from boundary files
-!
-         READ (NDSD,902,END=940,ERR=920) &
+
+         READ (NDSD,"(7E11.3)",IOSTAT=IOSTATUS) &
             ((BAUX0(IFRE,IANG),IFRE=1,NFRE),IANG=1,NANG,1)
-902      FORMAT (7E11.3)
-!
+         IF (spectrum_read_failed(IOSTATUS, .TRUE.)) RETURN
+
 !         energy (variance) density   from E(FRQ,TH) to  E(TH,FRQ)
-!
+
          DO IANG = 1,NANG
             DO IFRE = 1,NFRE
                BAUX1(IANG,IFRE) = BAUX0(IFRE,IANG)
@@ -8419,14 +7534,16 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
       ELSE
 !         format reading (except WW3F)
          IF (DORDER.LT.0) THEN
-            READ (NDSD,*,END=930,ERR=920) &
-                   ((BAUX1(IANG,IFRE),IANG=NANG,1,-1),IFRE=1,NFRE)
+            READ (NDSD,*,IOSTAT=IOSTATUS) &
+               ((BAUX1(IANG,IFRE),IANG=NANG,1,-1),IFRE=1,NFRE)
+            IF (spectrum_read_failed(IOSTATUS, .FALSE.)) RETURN
          ELSE
-            READ (NDSD,*,END=930,ERR=920) &
-                   ((BAUX1(IANG,IFRE),IANG=1,NANG),IFRE=1,NFRE)
+            READ (NDSD,*,IOSTAT=IOSTATUS) &
+               ((BAUX1(IANG,IFRE),IANG=1,NANG),IFRE=1,NFRE)
+            IF (spectrum_read_failed(IOSTATUS, .FALSE.)) RETURN
          ENDIF
       ENDIF
-!
+
       IF (ITEST.GE.120) THEN
          WRITE (PRINTF,*)' Spectra from file'
          DO IFRE = 1, NFRE
@@ -8443,18 +7560,18 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
             END IF
          END DO
       END DO
-!
+
 !       --- transform to spectral directions used in SWAN
 !           results appear in array BAUX2(MDC,NFRE)
-!
+
       DO IFRE = 1, NFRE
          CALL CHGBAS (BSPDIR, SPCDIR, PI2, BAUX1(1,IFRE), &
-                      BAUX2(1,IFRE), NANG, MDC, ITEST, PRTEST)
+            BAUX2(1,IFRE), NANG, MDC, ITEST, PRTEST)
       END DO
    ENDIF
-!
+
 !     interpolate energy densities to SWAN frequencies distribution
-!
+
    IF (BSPFRQ(NFRE) .LT. SPCSIG(MSC)) THEN
       DO IS = MSC, 1, -1
          IF (SPCSIG(IS).LT.BSPFRQ(NFRE)) THEN
@@ -8467,12 +7584,11 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
    ELSE
       ISIGTA = MSC
    ENDIF
-!
-!
+
 !     UFAC is the product of the multiplication factor read from file
 !     and the factor to transform from energy/Hz to energy/(rad/s)
 !     and from energy/degr to energy/rad (latter only for 2d spectra)     40.00
-!
+
    DO  ID = 1,MDC
       DO  IFRE = 1,NFRE
          BAUX3(IFRE) = UFAC * BAUX2(ID,IFRE)
@@ -8480,401 +7596,82 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
 
 !       interpolate over frequency keeping energy constant, output BAUX4(MSC)
       CALL CHGBAS (BSPFRQ, SPCSIG, 0., BAUX3, BAUX4, NFRE, MSC, &
-                   ITEST, PRTEST)
+         ITEST, PRTEST)
       DO  IS=1,MSC
          IF (IS.LE.ISIGTA) THEN
-!
+
 !           to convert energy density to action density
-!
+
             LSPEC(ID,IS) = BAUX4(IS)/SPCSIG(IS)
          ELSE
-!
+
 !           add a tail when IS > ISIGTA
-!
+
             LSPEC(ID,IS) = LSPEC(ID,ISIGTA) * &
-                       (SPCSIG(ISIGTA)/SPCSIG(IS))**(PWTAIL(1)+1)
+               (SPCSIG(ISIGTA)/SPCSIG(IS))**(PWTAIL(1)+1)
          ENDIF
          IF (ITEST.GE.140) THEN
             WRITE (PRTEST, *) 'ID,IS,LSPEC(ID,IS)', ID,IS,LSPEC(ID,IS)
          ENDIF
       ENDDO
    ENDDO
-!
+
    DEALLOCATE (BAUX0,BAUX1,BAUX2,BAUX3,BAUX4)
 
-900 IERR = 0
-   RETURN
-920 INQUIRE (UNIT=NDSD, NAME=FILENM)
-   CALL MSGERR (2, &
-         'read error in boundary condition file '//FILENM)
-
-   RETURN
-930 INQUIRE (UNIT=NDSD, NAME=FILENM)
-   CALL MSGERR (2, &
-         'insufficient data in boundary condition file '//FILENM)
-
-940 IERR = 9
-
-   RETURN
-
-END SUBROUTINE RESPEC
-!**********************************************************************
-!
-SUBROUTINE FLFILE (IGR1, IGR2, &
-                   ARR, ARR2, JX1, JX2, JX3, JY1, JY2, JY3, &
-                   COSFC, SINFC, COMPDA, &
-                   XCGRID, YCGRID, &
-                   KGRPNT, IERR)
-!
-!**********************************************************************
-
-   USE TIMECOMM
-   USE OCPCOMM4
-   USE SWCOMM2
-   USE SWCOMM3
-   USE M_PARALL
-   USE SwanGriddata
-
-   IMPLICIT NONE
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     30.90: IJsbrand Haagsma (Equivalence version)
-!     40.00: Nico Booij
-!     34.01: Jeroen Adema
-!     40.02: IJsbrand Haagsma
-!     40.03, 40.13: Nico Booij
-!     40.30: Marcel Zijlema
-!     40.31: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!     40.80: Marcel Zijlema
-!     41.20: Casey Dietrich
-!
-!  1. Updates
-!
-!     40.00, Jan. 98: new subroutine replacing code in subr SNEXTI
-!     30.90, Oct. 98: Introduced EQUIVALENCE POOL-arrays
-!     34.01, Feb. 99: Introducing STPNOW
-!     40.03, Aug. 00: condition added for calling INAR2D to prevent error
-!                     in case command INP GRID is present and corresponding
-!                     command READ is not.
-!     40.02, Oct. 00: Avoided real/int conflict by replacing RPOOL for POOL in
-!                     INAR2D
-!     40.13, Mar. 01: misplaced error message moved to proper place
-!     40.30, Mar. 03: introduction distributed-memory approach using MPI
-!     40.31, Nov. 03: removing POOL-mechanism
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!     40.80, Sep. 07: extension to unstructured grids
-!     41.20, Mar. 10: extension to tightly coupled ADCIRC+SWAN model
-!
-!  2. PURPOSE
-!
-!     Update boundary conditions, update nonstationary input fields
-!
-!  3. METHOD
-!
-!
-!  4. Argument list
-!
-!     ARR      real  i  array holding values read from file (x-comp)
-!     ARR2     real  i  array holding values read from file (y-comp)
-!     INTRV    real  i  time interval between input fields
-!     TMENDR   real  i  end time of input field
-!     IGR1     int   i  location in array COMPDA for interpolated input field data (x-comp)
-!     IGR2     int   i  location in array COMPDA for interpolated input field data (y-comp)
-!                       for a scalar field IGR2=0
-!     JX1      int   i  location in array COMPDA for interpolated input field data (x-comp)
-!     JX2      int   i  location in array COMPDA for interpolated input field data (x-comp)
-!     JX3      int   i  location in array COMPDA for interpolated input field data (x-comp)
-!     JY1      int   i  location in array COMPDA for interpolated input field data (y-comp)
-!     JY2      int   i  location in array COMPDA for interpolated input field data (y-comp)
-!     JY3      int   i  location in array COMPDA for interpolated input field data (y-comp)
-!     COSFC    real  i  cos of angle between input grid and computational grid
-!     SINFC    real  i  sin of angle between input grid and computational grid
-!     COMPDA   real i/o array holding values for computational grid points
-!     XCGRID   real  i  x-coordinate of computational grid points
-!     YCGRID   real  i  y-coordinate of computational grid points
-!     KGRPNT   int   i  indirect addresses of computational grid points
-!     NHDF     int   i  number of heading lines for a data file
-!     NHDT     int   i  number of heading lines per time step
-!     NHDC     int   i  number of heading lines before second component of vector field
-!     IDLA     int   i  lay-out identifier for a data file
-!     IDFM     int   i  format identifier for a data file
-!     DFORM    char  i  format to read a data file
-!     VFAC     real  i  multiplication factor applied to values from data file
-!     IERR     int   o  error status: 0=no error, 9=end-of-file
-!
-!
-!  5. SUBROUTINES CALLING
-!
-!     SNEXTI
-!
-!  6. SUBROUTINES USED
-!
-!     INAR2D
-!     MSGERR
-!     STRACE
-!     SWBROADC
-!
-   LOGICAL STPNOW
-!
-!  7. ERROR MESSAGES
-!
-!        ---
-!
-!  8. REMARKS
-!
-!
-!  9. Structure
-!
-!     --------------------------------------------------------------
-!     for all comp. grid points do
-!         copy new values to old
-!     --------------------------------------------------------------
-!     repeat
-!         if present time > time of last reading
-!         then read new values from file
-!              update time of last reading
-!              interpolate values to computational grid
-!         else exit from repeat
-!     --------------------------------------------------------------
-!     for all comp. grid points do
-!         interpolate new values
-!     --------------------------------------------------------------
-!
-! 10. SOURCE
-!
-!****************************************************************
-!
-   INTEGER    KGRPNT(MXC,MYC), &
-              IGR1, IGR2, JX1, JX2, JX3, JY1, JY2, JY3, IERR
-!
-   REAL       COMPDA(MCGRD,MCMVAR), &
-              XCGRID(MXC,MYC), YCGRID(MXC,MYC), &
-              COSFC, SINFC
-   REAL       ARR(*), ARR2(*)
-!
-!     local variables
-!
-   INTEGER    IENT, INDX, IX, IY, JVERT
-!     INDX       counter of comp. grid points
-!     IX         index in x-dir of comput grid point
-!     IY         index in y-dir of comput grid point
-!     JVERT      global index of unstructured mesh
-!
-   REAL       SVALQI
-!     SVALQI     real function giving interpolated value of an input array
-!
-   REAL       XP, YP, UU, VV, VTOT, W1, W3, &
-              SIZE1, SIZE2, SIZE3
-   REAL*8     FAC
-   REAL*8     TIMR1
-!     TIMR1      time of one but last input field
-!     XP         x-coord of one comput grid point
-!     YP         y-coord of one comput grid point
-!     UU         x-component of vector, or scalar value
-!     VV         y-component of vector
-!     VTOT       length of vector
-!     W1         weighting coeff for interpolation in time
-!     W3         weighting coeff for interpolation in time
-!     DIRE       direction of interpolated vector
-!     SIZE1      length of vector at time TIMR1
-!     SIZE2      length of vector at time TIMCO
-!     SIZE3      length of vector at time TIMR2
-!
-   SAVE IENT
-   DATA IENT /0/
-   CALL STRACE (IENT, 'FLFILE')
-!
    IERR = 0
-!
-   IF (JX1.GT.1) THEN
-      DO INDX = 1, MCGRD
-         COMPDA(INDX,JX1)=COMPDA(INDX,JX2)
-      ENDDO
-   ENDIF
-   IF (IGR2.GT.0 .AND. JY1.GT.1) THEN
-      DO INDX = 1, MCGRD
-         COMPDA(INDX,JY1)=COMPDA(INDX,JY2)
-      ENDDO
-   ENDIF
-   TIMR1 = TIMCO - DT
-!
-200 IF (TIMCO.LE.IFLTIM(IGR1)) GOTO 400
-   TIMR1 = IFLTIM(IGR1)
-   IFLTIM(IGR1) = IFLTIM(IGR1) + IFLINT(IGR1)
-   IF (IFLTIM(IGR1) .GT. IFLEND(IGR1)) THEN
-      IFLTIM(IGR1) = 1.E10
-      IF (IGR2.GT.0) IFLTIM(IGR2) = IFLTIM(IGR1)
-      GOTO 400
-   ENDIF
-   IF (IFLNDS(IGR1).GT.0) THEN
-      IF (INODE.EQ.MASTER) THEN
-         CALL INAR2D( ARR, MXG(IGR1), MYG(IGR1), &
-                      IFLNDF(IGR1), &
-                      IFLNDS(IGR1), IFLIFM(IGR1), IFLFRM(IGR1), &
-                      IFLIDL(IGR1), IFLFAC(IGR1), &
-                      IFLNHD(IGR1), IFLNHF(IGR1))
-         IF (STPNOW()) RETURN
-      END IF
-      CALL SWBROADC(IFLIDL(IGR1),1,SWINT)
-      IF (IFLIDL(IGR1).LT.0) THEN
-!         end of file was encountered
-         IFLTIM(IGR1) = 1.E10
-         IF (IGR2.GT.0) IFLTIM(IGR2) = IFLTIM(IGR1)
-         GOTO 400
+   RETURN
+
+CONTAINS
+
+LOGICAL FUNCTION spectrum_read_failed(status, eof_is_exhaustion)
+   INTEGER, INTENT(IN) :: status
+   LOGICAL, INTENT(IN) :: eof_is_exhaustion
+
+   spectrum_read_failed = status.NE.0
+   IF (.NOT.spectrum_read_failed) RETURN
+   INQUIRE (UNIT=NDSD, NAME=FILENM)
+   IF (IS_IOSTAT_END(status)) THEN
+      IF (eof_is_exhaustion) THEN
+         IERR = 9
       ELSE
-         CALL SWBROADC(ARR,MXG(IGR1)*MYG(IGR1),SWREAL)
+         CALL MSGERR (2, 'insufficient data in boundary condition file '//FILENM)
       ENDIF
    ELSE
-      IF (ITEST.GE.20) THEN
-         CALL MSGERR (1, &
-            'no read of input field because unit nr=0')
-         WRITE (PRINTF, 208) IGR1
-208      FORMAT (' field nr.', I2)
-      ENDIF
+      CALL MSGERR (2, 'read error in boundary condition file '//FILENM)
    ENDIF
-   IF (IGR2.GT.0) THEN
-      IFLTIM(IGR2) = IFLTIM(IGR1)
-      IF (IFLNDS(IGR2).GT.0) THEN
-         IF (INODE.EQ.MASTER) THEN
-            CALL INAR2D( ARR2, MXG(IGR2), MYG(IGR2), &
-                         IFLNDF(IGR2), &
-                         IFLNDS(IGR2), IFLIFM(IGR2), IFLFRM(IGR2), &
-                         IFLIDL(IGR2), IFLFAC(IGR2), IFLNHD(IGR2), 0)
-            IF (STPNOW()) RETURN
-         END IF
-         CALL SWBROADC(ARR2,MXG(IGR2)*MYG(IGR2),SWREAL)
-      ENDIF
-   ENDIF
-!     Interpolation over the computational grid
-!     structured grid
-   DO 230 IX = 1, MXC
-      DO 240 IY = 1, MYC
-         INDX = KGRPNT(IX,IY)
-         IF (INDX.GT.1) THEN
-            XP = XCGRID(IX,IY)
-            YP = YCGRID(IX,IY)
-            UU = SVALQI (XP, YP, IGR1, ARR, 0, IX, IY)
-            IF (IGR2.EQ.0) THEN
-               COMPDA(INDX,JX3) = UU
-            ELSE
-               VV = SVALQI (XP, YP, IGR2, ARR2, 0, IX, IY)
-               COMPDA(INDX,JX3) =  UU*COSFC + VV*SINFC
-               COMPDA(INDX,JY3) = -UU*SINFC + VV*COSFC
-            ENDIF
-         ENDIF
-240   CONTINUE
-230 CONTINUE
-!     unstructured grid
-   DO INDX = 1, nverts
-      XP = xcugrd(INDX)
-      YP = ycugrd(INDX)
-      IF (.NOT.PARLL) THEN
-         JVERT=INDX
-      ELSE
-         JVERT=ivertg(INDX)
-      ENDIF
-      IF ( IGTYPE(IGR1).EQ.3 ) THEN
-         UU = ARR(JVERT)
-      ELSE
-         UU = SVALQI (XP, YP, IGR1, ARR, 0, 0, 0)
-      ENDIF
-      IF (IGR2.EQ.0) THEN
-         COMPDA(INDX,JX3) = UU
-      ELSE
-         IF ( IGTYPE(IGR2).EQ.3 ) THEN
-            VV = ARR2(JVERT)
-         ELSE
-            VV = SVALQI (XP, YP, IGR2, ARR2, 0, 0, 0)
-         ENDIF
-         COMPDA(INDX,JX3) =  UU*COSFC + VV*SINFC
-         COMPDA(INDX,JY3) = -UU*SINFC + VV*COSFC
-      ENDIF
-   ENDDO
-   GOTO 200
-!
-!         Interpolation in time
-!
-400 FAC = (TIMCO-TIMR1) / (IFLTIM(IGR1)-TIMR1)
-   W3 = REAL(FAC)
-   W1 = 1.-W3
-   IF (ITEST.GE.60) WRITE(PRTEST,402) IGR1, &
-           TIMCO,IFLTIM(IGR1),W1,W3,JX1,JY1,JX2,JY2,JX3,JY3
-402 FORMAT (' input field', I2, ' interp at ', 2F9.0, 2F8.3, 6I3)
-   DO 500 INDX = 1, MCGRD
-      UU = W1 * COMPDA(INDX,JX2) + W3 * COMPDA(INDX,JX3)
-      IF (IGR2.LE.0) THEN
-         COMPDA(INDX,JX2) = UU
-      ELSE
-         VV = W1 * COMPDA(INDX,JY2) + W3 * COMPDA(INDX,JY3)
-         VTOT = SQRT (UU*UU + VV*VV)
-!
-!         procedure to prevent loss of magnitude due to interpolation
-!
-         IF (VTOT.GT.0.) THEN
-            SIZE1 = SQRT(COMPDA(INDX,JX2)**2 + COMPDA(INDX,JY2)**2)
-            SIZE3 = SQRT(COMPDA(INDX,JX3)**2 + COMPDA(INDX,JY3)**2)
-            SIZE2 = W1*SIZE1 + W3*SIZE3
-!           SIZE2 is to be length of vector
-            COMPDA(INDX,JX2) = SIZE2*UU/VTOT
-            COMPDA(INDX,JY2) = SIZE2*VV/VTOT
-         ELSE
-            COMPDA(INDX,JX2) = UU
-            COMPDA(INDX,JY2) = VV
-         ENDIF
-      ENDIF
-500 CONTINUE
-   RETURN
-!
-!     End of subroutine FLFILE
-END
-!
-!***********************************************************************
+END FUNCTION spectrum_read_failed
+
+end subroutine RESPEC
+!**********************************************************************
+
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWINCO (AC2    ,COMPDA , &
-                   XCGRID ,YCGRID , &
-                   KGRPNT ,SPCDIR , &
-                   SPCSIG ,XYTST   )
+   XCGRID ,YCGRID , &
+   KGRPNT ,SPCDIR , &
+   SPCSIG ,XYTST   )
 !                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+!************************************************************************
+
+   USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_input_grids
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -8956,14 +7753,14 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
 !             (*,4); cosine^2 of spectral directions                      30.82
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
-! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 ! i   XCGRID: Coordinates of computational grid in x-direction            30.72
 ! i   YCGRID: Coordinates of computational grid in y-direction            30.72
-!
+
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
    REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
-!
+
 !     AC2        real  i/o   action density spectra
 !     COMPDA     real  inp   quantities in comp grid points
 !     KGRPNT     real  inp   indirect addresses of comp grid points
@@ -8974,9 +7771,9 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
 !     FDLSS : Dimensionless fetch
 !     TPDLSS: Dimensionless peak period
 !     HSDLSS: Dimensionless significant wave height
-!
+
    REAL    FDLSS,  TPDLSS, HSDLSS
-!
+
 !  7. Common blocks used
 !
 !
@@ -8985,18 +7782,19 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
 !  9. STRUCTURE
 !
 ! 10. SOURCE TEXT
-!
+
    REAL     COMPDA(MCGRD,MCMVAR)
-!
+
    REAL     AC2(MDC,MSC,MCGRD)
-!
+
    INTEGER  KGRPNT(MXC,MYC), XYTST(*)
-!
-   LOGICAL  INTERN
-   SAVE IENT
-   DATA IENT/0/
+
+   LOGICAL :: INTERN
+   INTEGER :: INX, IX, IY, IY1, IY2, JJ
+   INTEGER, SAVE :: IENT = 0
+   REAL :: COSYG, FETCH, TDXY, TLEN, WDLOC, WSLOC, WX, WY
    CALL STRACE(IENT,'SWINCO')
-!
+
 !     *** Fetch Computation 'the mean delta' ***
    IF (KSPHER.EQ.0) THEN
       TLEN  = (XCLEN + YCLEN)/2.
@@ -9006,14 +7804,13 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
    ENDIF
    TDXY  = FLOAT(MXCGL + MYCGL)/2.
    IF ( nvertsg.NE.0 ) TDXY = FLOAT(nvertsg)
-!
+
    FETCH = TLEN/TDXY
    SY0   = 3.3
-   IF (ITEST.GE.60 .OR. NPTST.GT.0) WRITE (PRTEST, 62) FETCH
-62 FORMAT (' test SWINCO, fetch:', E12.4)
-!
+   IF (ITEST.GE.60 .OR. NPTST.GT.0) WRITE (PRTEST, "(' test SWINCO, fetch:', E12.4)") FETCH
+
 !     --- structured grid
-!
+
    IF (ONED) THEN
       IY1 = 1
       IY2 = 1
@@ -9041,13 +7838,13 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
             TESTFL = .FALSE.
             DO IPTST = 1, NPTST
                IF (IX.EQ.XYTST(2*IPTST-1) .AND. &
-                   IY.EQ.XYTST(2*IPTST)) TESTFL = .TRUE.
+                  IY.EQ.XYTST(2*IPTST)) TESTFL = .TRUE.
             ENDDO
-!
+
             IF (VARWI) THEN
                WX  = COMPDA(INX,JWX2)
                WY  = COMPDA(INX,JWY2)
-!
+
 !             *** Local wind speed and direction ***
                WSLOC = SQRT(WX*WX + WY*WY)
                IF (WX .NE. 0. .OR. WY .NE. 0.) THEN
@@ -9060,15 +7857,15 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
                WSLOC = U10
                WDLOC = WDIP
             ENDIF
-!
+
             IF (WSLOC .GT. 1.E-10) THEN
-!
+
 ! Dimensionless Hs and Tp calculated according to K.K. Kahma & C.J. Calkoen,
 ! (JPO, 1992) and Pierson-Moskowitz for limit values.
 !
 !             calculate dimensionless fetch:
                FDLSS = GRAV * FETCH / (WSLOC*WSLOC)
-!
+
 !             calculate dimensionless significant wave height:
                HSDLSS = MIN (0.21, 0.00288*FDLSS**0.45)
                SPPARM(1) = HSDLSS * WSLOC**2 / GRAV
@@ -9078,9 +7875,8 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
                IF (SPPARM(1).LT.0.05) SPPARM(2) = 2.
                SPPARM(3) = 180. * WDLOC / PI
                SPPARM(4) = 2.
-               IF (TESTFL) WRITE (PRTEST, 65) XCGRID(IX,IY), &
+               IF (TESTFL) WRITE (PRTEST, "(' test point ',6(1X,E12.4))") XCGRID(IX,IY), &
                   YCGRID(IX,IY), FDLSS, (SPPARM(JJ), JJ = 1, 3)
-65             FORMAT (' test point ',6(1X,E12.4))
             ELSE
                SPPARM(1) = 0.02
                SPPARM(2) = 2.
@@ -9088,13 +7884,13 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
                SPPARM(4) = 0.
             ENDIF
             CALL SSHAPE (AC2(1,1,INX), SPCSIG, SPCDIR, 2, 2)
-!
+
          ENDIF
       ENDDO
    ENDDO
-!
+
 !     --- unstructured grid
-!
+
    DO INX = 1, nverts
 !        internal, exception and ghost vertices only
       IF ( vmark(INX) == 0 .or. vmark(INX) >= excmark ) THEN
@@ -9102,11 +7898,11 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
          DO IPTST = 1, NPTST
             IF (INX.EQ.XYTST(IPTST)) TESTFL = .TRUE.
          ENDDO
-!
+
          IF (VARWI) THEN
             WX = COMPDA(INX,JWX2)
             WY = COMPDA(INX,JWY2)
-!
+
 !             *** Local wind speed and direction ***
             WSLOC = SQRT(WX*WX + WY*WY)
             IF (WX .NE. 0. .OR. WY .NE. 0.) THEN
@@ -9119,15 +7915,15 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
             WSLOC = U10
             WDLOC = WDIP
          ENDIF
-!
+
          IF (WSLOC .GT. 1.E-10) THEN
-!
+
 ! Dimensionless Hs and Tp calculated according to K.K. Kahma & C.J. Calkoen,
 ! (JPO, 1992) and Pierson-Moskowitz for limit values.
 !
 !             calculate dimensionless fetch:
             FDLSS = GRAV * FETCH / (WSLOC*WSLOC)
-!
+
 !             calculate dimensionless significant wave height:
             HSDLSS = MIN (0.21, 0.00288*FDLSS**0.45)
             SPPARM(1) = HSDLSS * WSLOC**2 / GRAV
@@ -9137,7 +7933,7 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
             IF (SPPARM(1).LT.0.05) SPPARM(2) = 2.
             SPPARM(3) = 180. * WDLOC / PI
             SPPARM(4) = 2.
-            IF (TESTFL) WRITE (PRTEST, 65) xcugrd(INX), &
+            IF (TESTFL) WRITE (PRTEST, "(' test point ',6(1X,E12.4))") xcugrd(INX), &
                ycugrd(INX), FDLSS, (SPPARM(JJ), JJ = 1, 3)
          ELSE
             SPPARM(1) = 0.02
@@ -9146,37 +7942,44 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
             SPPARM(4) = 0.
          ENDIF
          CALL SSHAPE (AC2(1,1,INX), SPCSIG, SPCDIR, 2, 2)
-!
+
       ENDIF
    ENDDO
-!
+
    RETURN
 ! * end of subroutine SWINCO *
-END
+end subroutine SWINCO
 !****************************************************************
-!
-SUBROUTINE SWCLME
-!
+
+SUBROUTINE SWCLME ( DIFFR, TRIADS, SNL4, SPECTRAL_POWERS, THREAD_WORKSPACES )
+
 !****************************************************************
-!
-   USE M_WCAP
-   USE OUTP_DATA
-   USE M_SNL4
-   USE M_SNL3
-   USE M_BNDSPEC
-   USE M_GENARR
-   USE M_PARALL
-   USE M_DIFFR
-   USE SwanGriddata
-   USE SwanCompdata
-   USE SwanIEM
-   USE SwanBraggScat
-   USE SwanQCM
-!METIS   USE SwanParallel
-!
-   IMPLICIT NONE
-!
-!
+
+   USE OUTP_DATA, ONLY: CLEAR_OUTPUT_STATE
+   USE M_BNDSPEC, ONLY: CLEAR_BOUNDARY_STATE
+   USE M_OBSTA, ONLY: CLEAR_OBSTACLE_STATE
+   USE M_GENARR, ONLY: CLEAR_GENERAL_ARRAY_STATE
+   USE swan_test_output
+   USE swan_vegetation_layers, ONLY: CLEAR_VEGETATION_LAYERS
+   USE swan_input_fields, ONLY: CLEAR_INPUT_FIELDS
+   USE M_PARALL, ONLY: CLEAR_PARALLEL_STORAGE
+   USE swan_global_grid, ONLY: CLEAR_GLOBAL_GRID
+   USE SwanGriddata, ONLY: CLEAR_GRID_DATA
+   USE SwanCompdata, ONLY: CLEAR_COMPUTATION_DATA
+   USE SwanIEM, ONLY: CLEAR_IEM_STATE
+   USE SwanBraggScat, ONLY: CLEAR_BRAGG_STATE
+   USE SwanQCM, ONLY: CLEAR_QCM_STATE
+   USE swan_front_scheduling_backend, ONLY: clear_front_schedule
+   USE swan_metis_partition_backend, ONLY: metis_release
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(diffraction_state_t), INTENT(INOUT) :: DIFFR
+   TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
+   TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
+   TYPE(spectral_powers_t), INTENT(INOUT) :: SPECTRAL_POWERS
+   TYPE(thread_workspaces_t), INTENT(INOUT) :: THREAD_WORKSPACES
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -9230,113 +8033,37 @@ SUBROUTINE SWCLME
 !     SWMAIN
 !
 ! 13. Source text
+
+   CALL SPECTRAL_POWERS%CLEAR()
+   CALL THREAD_WORKSPACES%CLEAR()
+   CALL SNL4%CLEAR()
+   CALL CLEAR_GENERAL_ARRAY_STATE()
+   CALL CLEAR_INPUT_FIELDS()
+   CALL CLEAR_PARALLEL_STORAGE()
+   CALL CLEAR_GLOBAL_GRID()
+   CALL DIFFR%CLEAR()
+   CALL CLEAR_VEGETATION_LAYERS()
+   CALL TRIADS%CLEAR()
+
+   CALL CLEAR_GRID_DATA()
+   CALL clear_front_schedule()
+   CALL CLEAR_COMPUTATION_DATA()
 !
-   IF (ALLOCATED(SIGPOW))   DEALLOCATE(SIGPOW)
-   IF (ALLOCATED(AF11  ))   DEALLOCATE(AF11  )
-   IF (ALLOCATED(CNL4_1))   DEALLOCATE(CNL4_1)
-   IF (ALLOCATED(CNL4_2))   DEALLOCATE(CNL4_2)
-   IF (ALLOCATED(LAMBDA))   DEALLOCATE(LAMBDA)
-   IF (ALLOCATED(KGRPNT))   DEALLOCATE(KGRPNT)
-   IF (ALLOCATED(KGRBND))   DEALLOCATE(KGRBND)
-   IF (ALLOCATED(XYTST ))   DEALLOCATE(XYTST )
-   IF (ALLOCATED(AC2   ))   DEALLOCATE(AC2   )
-   IF (ALLOCATED(XCGRID))   DEALLOCATE(XCGRID)
-   IF (ALLOCATED(YCGRID))   DEALLOCATE(YCGRID)
-   IF (ALLOCATED(SPCSIG))   DEALLOCATE(SPCSIG)
-   IF (ALLOCATED(SPCDIR))   DEALLOCATE(SPCDIR)
-   IF (ALLOCATED(DEPTH ))   DEALLOCATE(DEPTH )
-   IF (ALLOCATED(FRIC  ))   DEALLOCATE(FRIC  )
-   IF (ALLOCATED(UXB   ))   DEALLOCATE(UXB   )
-   IF (ALLOCATED(UYB   ))   DEALLOCATE(UYB   )
-   IF (ALLOCATED(WXI   ))   DEALLOCATE(WXI   )
-   IF (ALLOCATED(WYI   ))   DEALLOCATE(WYI   )
-   IF (ALLOCATED(WLEVL ))   DEALLOCATE(WLEVL )
-   IF (ALLOCATED(ASTDF ))   DEALLOCATE(ASTDF )
-   IF (ALLOCATED(IBLKAD))   DEALLOCATE(IBLKAD)
-   IF (ALLOCATED(XGRDGL))   DEALLOCATE(XGRDGL)
-   IF (ALLOCATED(YGRDGL))   DEALLOCATE(YGRDGL)
-   IF (ALLOCATED(KGRPGL))   DEALLOCATE(KGRPGL)
-   IF (ALLOCATED(KGRBGL))   DEALLOCATE(KGRBGL)
-   IF (ALLOCATED(DIFPARAM)) DEALLOCATE(DIFPARAM)
-   IF (ALLOCATED(DIFPARDX)) DEALLOCATE(DIFPARDX)
-   IF (ALLOCATED(DIFPARDY)) DEALLOCATE(DIFPARDY)
-   IF (ALLOCATED(MUDLF ))   DEALLOCATE(MUDLF )
-   IF (ALLOCATED(AICEF ))   DEALLOCATE(AICEF )
-   IF (ALLOCATED(HICEF ))   DEALLOCATE(HICEF )
-   IF (ALLOCATED(NPLAF ))   DEALLOCATE(NPLAF )
-   IF (ALLOCATED(LAYH  ))   DEALLOCATE(LAYH  )
-   IF (ALLOCATED(VEGDIL))   DEALLOCATE(VEGDIL)
-   IF (ALLOCATED(VEGNSL))   DEALLOCATE(VEGNSL)
-   IF (ALLOCATED(VEGDRL))   DEALLOCATE(VEGDRL)
-   IF (ALLOCATED(TURBF ))   DEALLOCATE(TURBF )
-   IF (ALLOCATED(HSSF  ))   DEALLOCATE(HSSF  )
-   IF (ALLOCATED(TSSF  ))   DEALLOCATE(TSSF  )
-   IF (ALLOCATED(DSSF  ))   DEALLOCATE(DSSF  )
-   IF (ALLOCATED(BPHTMP))   DEALLOCATE(BPHTMP)
-   IF (ALLOCATED(QTRI1 ))   DEALLOCATE(QTRI1 )
-   IF (ALLOCATED(QTRI2 ))   DEALLOCATE(QTRI2 )
-!
-   IF (ALLOCATED(xcugrd  )) DEALLOCATE(xcugrd  )
-   IF (ALLOCATED(ycugrd  )) DEALLOCATE(ycugrd  )
-   IF (ALLOCATED(xcugrdgl)) DEALLOCATE(xcugrdgl)
-   IF (ALLOCATED(ycugrdgl)) DEALLOCATE(ycugrdgl)
-   IF (ALLOCATED(ivertg  )) DEALLOCATE(ivertg  )
-   IF (ALLOCATED( vmark  )) DEALLOCATE( vmark  )
-   IF (ALLOCATED( vlist  )) DEALLOCATE( vlist  )
-   IF (ALLOCATED( blist  )) DEALLOCATE( blist  )
-   IF (ALLOCATED(bvertg  )) DEALLOCATE(bvertg  )
-   IF (ALLOCATED( bmark  )) DEALLOCATE( bmark  )
-!GRAPH   IF (ALLOCATED( flist  )) DEALLOCATE( flist  )
-!GRAPH   IF (ALLOCATED(  fptr  )) DEALLOCATE(  fptr  )
-!FXFRO   IF (ALLOCATED(fronts  )) DEALLOCATE(fronts  )
-!FXFRO   IF (ALLOCATED(fronte  )) DEALLOCATE(fronte  )
-!GRAPH   IF (ALLOCATED(nfront  )) DEALLOCATE(nfront  )
-!
-!METIS   IF (ALLOCATED(ipown   )) DEALLOCATE(ipown   )
-!METIS   IF (ALLOCATED(vres    )) DEALLOCATE(vres    )
-!METIS   IF (ALLOCATED(vsubcm  )) DEALLOCATE(vsubcm  )
-!METIS   IF (ALLOCATED(nvrecv  )) DEALLOCATE(nvrecv  )
-!METIS   IF (ALLOCATED(nvsend  )) DEALLOCATE(nvsend  )
-!METIS   IF (ALLOCATED(ivrecv  )) DEALLOCATE(ivrecv  )
-!METIS   IF (ALLOCATED(ivsend  )) DEALLOCATE(ivsend  )
-!METIS   IF (ALLOCATED(rrqst   )) DEALLOCATE(rrqst   )
-!METIS   IF (ALLOCATED(srqst   )) DEALLOCATE(srqst   )
-!METIS   IF (ALLOCATED(irbuf   )) DEALLOCATE(irbuf   )
-!METIS   IF (ALLOCATED(isbuf   )) DEALLOCATE(isbuf   )
-!METIS   IF (ALLOCATED( rbuf   )) DEALLOCATE( rbuf   )
-!METIS   IF (ALLOCATED( sbuf   )) DEALLOCATE( sbuf   )
-!
-   IF (ALLOCATED( fb     )) DEALLOCATE( fb     )
-   IF (ALLOCATED( fbdxy  )) DEALLOCATE( fbdxy  )
-!
-   IF (ALLOCATED( kx     )) DEALLOCATE( kx     )
-   IF (ALLOCATED( ky     )) DEALLOCATE( ky     )
-   IF (ALLOCATED( xpsc   )) DEALLOCATE( xpsc   )
-   IF (ALLOCATED( xpd    )) DEALLOCATE( xpd    )
-   IF (ALLOCATED( ypd    )) DEALLOCATE( ypd    )
-   IF (ALLOCATED( kxd    )) DEALLOCATE( kxd    )
-   IF (ALLOCATED( kyd    )) DEALLOCATE( kyd    )
-   IF (ALLOCATED( disbk0 )) DEALLOCATE( disbk0 )
-   IF (ALLOCATED( disbk1 )) DEALLOCATE( disbk1 )
-!
-   IF (ALLOCATED( iwt    )) DEALLOCATE( iwt    )
-   IF (ALLOCATED( itt    )) DEALLOCATE( itt    )
-   IF (ALLOCATED( iss    )) DEALLOCATE( iss    )
-   IF (ALLOCATED( freq   )) DEALLOCATE( freq   )
-   IF (ALLOCATED( E0     )) DEALLOCATE( E0     )
-   IF (ALLOCATED( Ebig   )) DEALLOCATE( Ebig   )
-!
-   CALL DELETE ( FOPS )
-   NULLIFY( COPS )
-   LOPS = .FALSE.
-   CALL DELETE ( FORQ )
-   LORQ = .FALSE.
-   CALL DELETE ( FBNDFIL )
-   LBFILS = .FALSE.
-   CALL DELETE ( FBS )
-   LBS = .FALSE.
-   CALL DELETE ( FBGP )
-   LBGP = .FALSE.
-!
+   CALL metis_release()
+
+   CALL CLEAR_BRAGG_STATE()
+
+   CALL CLEAR_QCM_STATE()
+
+   CALL CLEAR_IEM_STATE()
+
+   CALL CLEAR_OUTPUT_STATE ()
+   CALL CLEAR_BOUNDARY_STATE ()
+   CALL CLEAR_OBSTACLE_STATE ()
+
    RETURN
-END
+end subroutine SWCLME
+
+end module swan_driver
+
+!************************************************************************

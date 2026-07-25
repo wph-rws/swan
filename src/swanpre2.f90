@@ -1,4 +1,4 @@
-!
+
 !     SWAN/SWREAD  file 2 of 2
 !
 !  Contents of this file:
@@ -15,16 +15,32 @@
 !     SWBCPT
 !     RETSTP                                                              40.00
 !
-!***********************************************************************
+!************************************************************************
+
+module swan_input_processing
+   use swan_bnd_struc, only: SwanBndStruc
+   use swan_bpntlist, only: SwanBpntlist
+   use swan_find_point, only: SwanFindPoint
+   use swan_pointin_mesh, only: SwanPointinMesh
+   use swan_io_limits, only: LENFNM
+   use swan_output_variables, only: NMOVAR, OVEXCV, OVKEYW, OVLNAM, OVSNAM, OVSVTY, OVUNIT
+   use swan_output_quadrature, only: ALPQ
+   use swan_project_metadata, only: PROJID, PROJNR, VERTXT
+   use swan_path_separators, only: DIRCH2
+   use swan_output_settings, only: IUBOTR, OUTPAR
+   implicit none(type, external)
+   private
+   public :: SPROUT, SVARTP, SWBOUN, RETSTP
+contains
+
 !                                                                      *
 SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
 !                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM3
-!
-!
+!************************************************************************
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, STPNOW
+   USE swan_input_parser, ONLY: KEYWIS
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -98,10 +114,10 @@ SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
 !
 ! i   BOTLEV: Bottom levels                                               30.70
 ! i   WATLEV: Water levels                                                30.70
-!
+
    REAL    BOTLEV(*)
    REAL    WATLEV(*)
-!
+
 !  6. Local variables
 !
 !  8. Subroutines used
@@ -110,9 +126,7 @@ SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
 !     SWREPS
 !     SWREOQ
 !     STPNOW
-!
-   LOGICAL STPNOW
-!
+
 !  9. Subroutines calling
 !
 !     SWREAD
@@ -127,68 +141,78 @@ SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
 !
 ! 12. Structure
 !
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !             Most of the source code will be clear with the
 !             aid of the user manual, the system documentation
 !             and the additional comments in the source code.
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !
 ! 13. Source text
-!
+
    LOGICAL   FOUND
-   LOGICAL   KEYWIS
-   SAVE IENT
-   DATA IENT/0/
+   INTEGER, SAVE :: IENT = 0
    CALL STRACE (IENT,'SPROUT')
-!
+
    FOUND = .FALSE.
-!
+
 !     definition of output point sets
-!
+
    CALL SWREPS ( FOUND, BOTLEV, WATLEV )
    IF (STPNOW()) RETURN
    IF (FOUND) RETURN
-!
+
 !     output requests
-!
+
    CALL SWREOQ ( FOUND )
    IF (STPNOW()) RETURN
    IF (FOUND) RETURN
-!
+
    IF (KEYWIS('SIT') .OR. KEYWIS('PLA')) THEN
       CALL MSGERR(2,'Keyword SITES is no longer maintained')
-      GOTO 800
+      FOUND = .TRUE.
+      RETURN
    ENDIF
-!
+
    IF (KEYWIS ('LIN')) THEN
       CALL MSGERR(2,'Keyword LINE is no longer maintained')
-      GOTO 800
+      FOUND = .TRUE.
+      RETURN
    ENDIF
 !     -------------------------------------------------------------------
 !     ***** command name not found *****
    RETURN
-!
-800 FOUND = .TRUE.
+
+   FOUND = .TRUE.
    RETURN
 ! *   end of subroutine SPROUT *
-END
-!***********************************************************************
+end subroutine SPROUT
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM3
-   USE OCPCOMM4
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+!************************************************************************
+
+   USE swan_coordinate_input, ONLY: READXY, REFIXY
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, NWLINE
+   USE swan_input_parser, ONLY: default_command_reader
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_run_mode
+   USE swan_computational_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE OUTP_DATA
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
-!
-!
+
+   CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -262,15 +286,15 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !
 !     BOTLEV: input  bottom levels                                        30.70
 !     WATLEV: input  water levels                                         30.70
-!
+
    REAL      BOTLEV(*), WATLEV(*)
-!
+
 !     FOUND : output  parameter indicating whether command
 !                     being processed is found (value True)
 !                     or not (False)
-!
+
    LOGICAL   FOUND
-!
+
 !     Local variables
 
    REAL :: XPFR, YPFR, XLENFR, YLENFR
@@ -280,7 +304,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
    TYPE XYPT
       REAL                :: X, Y, XQ, YQ
       TYPE(XYPT), POINTER :: NEXTXY
-   END TYPE XYPT
+   end type XYPT
 
    TYPE(XYPT), TARGET  :: FRST
    TYPE(XYPT), POINTER :: CURR, TMP
@@ -294,9 +318,6 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !     command reading routines
 !     (all Ocean Pack)
 
-   LOGICAL :: STPNOW
-   LOGICAL :: EQREAL ! if True the two (real) arguments are equal
-
 !  9. Subroutines calling
 !
 !     SPROUT
@@ -306,38 +327,46 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !     ---
 !
 ! 13. Source text
-!
+
    LOGICAL   PP
-   INTEGER   IERR, SIRAY
-   CHARACTER PSNAME*16, STYPE*1, PRNAME*16
-   LOGICAL   KEYWIS, BOTDEP
-   SAVE IENT
-   DATA IENT/0/
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   I, II, IK, INTD, INTE, INTV, IOSTAT, ISTAT
+   INTEGER   IERR, IX1, IX2, IY1, IY2, JJ, KK, MIP, MIPR
+   INTEGER   MXK, MXN, MYK, MYN, NATTR, NBMARK, NDIM, NDS, NVTX
+!  SIRAY is now a module procedure; the old local INTEGER declaration would
+!  turn the reference back into an external function and break linking.
+   REAL      ALON, ALPCN, ALPK, ALTNP, ANG, ANGLE, COSA2, DP
+   REAL      DXN, DYN, RDUM, SINA2, XF, XI, XNLEN, XP, XP1, XPCN
+   REAL      XQ, XQ1, XX, YF, YI, YNLEN, YP, YP1, YPCN, YQ, YQ1, YY
+   CHARACTER(LEN=16) :: PSNAME, PRNAME
+   CHARACTER(LEN=1)  :: STYPE
+   LOGICAL :: BOTDEP
    CALL STRACE (IENT,'SWREPS')
-!
+
 !   --------------------------------------------------------------------
 !   FRAME   'sname'  [xpfr] [ypfr] [alpfr] [xlenfr] [ylenfr]          &
 !           [mxfr] [myfr]
 !   --------------------------------------------------------------------
-!
+
    IF (KEYWIS ('FRA')) THEN
-!
+
       IF (ONED) THEN
          CALL MSGERR (2,' Illegal keyword (FRA) in combination with'// &
-                        ' 1D-computation')
-         GOTO 800
+            ' 1D-computation')
+         FOUND = .TRUE.
+         RETURN
       ELSE
 !         ver 30.20: names of input variables changed, order of data changed
          ALLOCATE(OPSTMP)
          CALL INCSTR ('SNAME',PSNAME,'REQ',' ')
-         IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+         IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
          OPSTMP%PSNAME = PSNAME
          CALL READXY ('XPFR', 'YPFR', XPFR, YPFR, 'REQ', 0., 0.)
          OPSTMP%OPR(1) = XPFR
          OPSTMP%OPR(2) = YPFR
          CALL INREAL('ALPFR',ALPK,'REQ',0.)
          IF (KSPHER.GT.0 .AND. .NOT.EQREAL(ALPK,0.)) CALL MSGERR (2, &
-               '[alpfr] must be 0 with spherical coordinates')
+            '[alpfr] must be 0 with spherical coordinates')
          CALL INREAL('XLENFR', XLENFR,'REQ',0.)
          CALL INREAL('YLENFR', YLENFR,'REQ',0.)
          OPSTMP%OPR(3) = XLENFR
@@ -361,30 +390,33 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             COPS%NEXTOPS => OPSTMP
             COPS => OPSTMP
          END IF
-         GOTO 800
+         FOUND = .TRUE.
+         RETURN
       ENDIF
    ENDIF
-!
-!   ------------------------------------------------------------------
+
+!   ------------------------------------------------------------------    40.88
 !   GROUP   'sname'  SUBGRID [ix1] [ix2] [iy1] [iy2]
-!   ------------------------------------------------------------------
-!
+!   ------------------------------------------------------------------    40.88
+
    IF (KEYWIS('GROUP') .OR. KEYWIS ('SUBG')) THEN
-!
+
       IF (ONED) THEN
          CALL MSGERR (2,' Illegal keyword (GROUP) in combination'// &
-                        ' with 1D-computation')
-         GOTO 800
+            ' with 1D-computation')
+         FOUND = .TRUE.
+         RETURN
       ELSEIF (OPTG.EQ.5) THEN
          CALL MSGERR(2, &
-                   ' Keyword GROUP not supported in unstructured grid')
-         GOTO 800
+            ' Keyword GROUP not supported in unstructured grid')
+         FOUND = .TRUE.
+         RETURN
       ELSE
 !         mod 970221: GROUP is introduced as a new command instead of
 !         an option SUBG within the Frame command
          ALLOCATE(OPSTMP)
          CALL INCSTR ('SNAME',PSNAME,'REQ',' ')
-         IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+         IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
          OPSTMP%PSNAME = PSNAME
          CALL INKEYW ('STA', ' ')
          CALL IGNORE ('SUBG')
@@ -393,13 +425,13 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          CALL ININTG ('IY1', IY1, 'REQ', 0)
          CALL ININTG ('IY2', IY2, 'REQ', 0)
          IF (IX1 .LT. 0 .OR. IX2 .GT. MXCGL-1 .OR. IX1 .GT. IX2 .OR. &
-             IY1 .LT. 0 .OR. IY2 .GT. MYCGL-1 .OR. IY1 .GT. IY2) THEN
+            IY1 .LT. 0 .OR. IY2 .GT. MYCGL-1 .OR. IY1 .GT. IY2) THEN
             CALL MSGERR (3, 'Check corners of GROUP (SUBGRID) command')
             CALL MSGERR (3, ' .........the values should be.........')
             CALL MSGERR (3, 'ix1<ix2 and both between 0 and MXC')
             CALL MSGERR (3, 'iy1<iy2 and both between 0 and MYC')
          ENDIF
-!
+
          IF (OPTG .EQ. 3) THEN
 !             *** If the comput grid is curvilinear then the next    ***
 !             *** quantities are stored : 'H' ,FLOAT(IX2), FLOAT(IY2)***
@@ -436,8 +468,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             OPSTMP%OPI(1) = MXK+1
             OPSTMP%OPI(2) = MYK+1
             IF (ITEST .GE. 20 .OR. INTES .GE. 10) &
-               WRITE (PRINTF, 6020) (OPSTMP%OPR(II), II=1,5)
-6020        FORMAT (' Subgrid parms.', 5(1X,E12.4))
+               WRITE (PRINTF, "(' Subgrid parms.', 5(1X,E12.4))") (OPSTMP%OPR(II), II=1,5)
          ENDIF
          ALLOCATE(OPSTMP%XP(0))
          ALLOCATE(OPSTMP%YP(0))
@@ -450,25 +481,25 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             COPS%NEXTOPS => OPSTMP
             COPS => OPSTMP
          END IF
-         GOTO 800
+         FOUND = .TRUE.
+         RETURN
       ENDIF
    ENDIF
-!
-!   ------------------------------------------------------------------
+
+!   ------------------------------------------------------------------    40.88
 !   CURVE   'sname'  [xp1] [yp1]   < [int]  [xp]  [yp] >
-!   ------------------------------------------------------------------
-!
+!   ------------------------------------------------------------------    40.88
 
    IF (KEYWIS ('CURV')) THEN
       ALLOCATE(OPSTMP)
       CALL INCSTR('SNAME',PSNAME,'REQ',' ')
-      IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+      IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
       OPSTMP%PSNAME = PSNAME
       OPSTMP%PSTYPE = 'C'
       MIP  = 0
       OPSTMP%MIP = MIP
 !       ***** first point of a curve *****
-30    CALL NWLINE
+      CALL NWLINE
       IF (STPNOW()) RETURN
       CALL READXY ('XP1', 'YP1', XP, YP, 'REQ', 0., 0.)
       FRST%X = XP
@@ -477,8 +508,9 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
       CURR => FRST
       MIP = 1
 !       ***** interval and next corner point *****
-33    CALL ININTG ('INT',INTV,'REP',-1)
-      IF (INTV .NE. -1) THEN
+      DO
+         CALL ININTG ('INT',INTV,'REP',-1)
+         IF (INTV .EQ. -1) EXIT
          IF (INTV .LE. 0) THEN
             CALL MSGERR (2,'INT is negative or zero')
             INTV = 1
@@ -487,10 +519,9 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          YP1 = YP
          CALL READXY ('XP', 'YP', XP, YP, 'REQ', 0., 0.)
          IF (ITEST .GE. 200 .OR. INTES .GE. 20) THEN
-            WRITE(PRINTF, 31) PSNAME
-31          FORMAT ('COORDINATES OF OUTPUT POINTS FOR CURVE  : ', A)
+            WRITE(PRINTF, "('COORDINATES OF OUTPUT POINTS FOR CURVE  : ', A)") PSNAME
          ENDIF
-         DO 36  JJ=1,INTV
+         do JJ=1,INTV
             MIP = MIP+1
             ALLOCATE(TMP)
             TMP%X = XP1+REAL(JJ)*(XP-XP1)/REAL(INTV)
@@ -498,9 +529,8 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             NULLIFY(TMP%NEXTXY)
             CURR%NEXTXY => TMP
             CURR => TMP
-36       CONTINUE
-         GOTO 33
-      ENDIF
+         end do
+      END DO
       ALLOCATE(OPSTMP%XP(MIP))
       ALLOCATE(OPSTMP%YP(MIP))
       CURR => FRST
@@ -508,8 +538,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          OPSTMP%XP(JJ) = CURR%X
          OPSTMP%YP(JJ) = CURR%Y
          IF (ITEST .GE. 200 .OR. INTES .GE. 50) THEN
-            WRITE(PRINTF,32) JJ, CURR%X, CURR%Y
-32          FORMAT(' POINT(',I4,')','  (IX,IY) -> ',2F10.2)
+            WRITE(PRINTF,"(' POINT(',I4,')','  (IX,IY) -> ',2F10.2)") JJ, CURR%X, CURR%Y
          ENDIF
          CURR => CURR%NEXTXY
       END DO
@@ -526,17 +555,18 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          COPS%NEXTOPS => OPSTMP
          COPS => OPSTMP
       END IF
-      GOTO 800
+      FOUND = .TRUE.
+      RETURN
    ENDIF
-!
-!   ------------------------------------------------------------------
+
+!   ------------------------------------------------------------------    40.88
 !   POINTS  'sname'  < [xp]  [yp]  >     |    FILE 'fname'
-!   ------------------------------------------------------------------
-!
+!   ------------------------------------------------------------------    40.88
+
    IF (KEYWIS ('POIN')) THEN
       ALLOCATE(OPSTMP)
       CALL INCSTR('SNAME',PSNAME,'REQ',' ')
-      IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+      IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
       OPSTMP%PSNAME = PSNAME
       OPSTMP%PSTYPE = 'P'
       MIP  = 0
@@ -560,14 +590,15 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          IF (PP) THEN
             IERR = 0
             CALL REFIXY (NDS, XP, YP, IERR)
-            IF (IERR.EQ.-1) GOTO 47
+            IF (IERR.EQ.-1) EXIT
             IF (IERR.EQ.-2) THEN
                CALL MSGERR (2, 'Error reading point coord. from file')
-               GOTO 800
+               FOUND = .TRUE.
+               RETURN
             ENDIF
          ELSE
             CALL READXY ('XP', 'YP', XP, YP, 'REP', -1.E10, -1.E10)
-            IF (XP .LT. -0.9E10) GOTO 47
+            IF (XP .LT. -0.9E10) EXIT
          ENDIF
          MIP = MIP+1
          ALLOCATE(TMP)
@@ -577,7 +608,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          CURR%NEXTXY => TMP
          CURR => TMP
       ENDDO
-47    ALLOCATE(OPSTMP%XP(MIP))
+      ALLOCATE(OPSTMP%XP(MIP))
       ALLOCATE(OPSTMP%YP(MIP))
       CURR => FRST%NEXTXY
       DO JJ = 1, MIP
@@ -598,24 +629,26 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          COPS%NEXTOPS => OPSTMP
          COPS => OPSTMP
       END IF
-      GOTO 800
+      FOUND = .TRUE.
+      RETURN
    ENDIF
-!
+
 !   -------------------------------------------------------------------
 !   RAY     'rname'  [xp1] [yp1] [xq1] [yq1]                       &
 !          <  [int]  [xp]  [yp]  [xq]  [yq]  >
 !   -------------------------------------------------------------------
-!
+
    IF (KEYWIS ('RAY'))  THEN
-!
+
       IF (ONED) THEN
          CALL MSGERR (2,' Illegal keyword (RAY) in combination'// &
-                        ' with 1D-computation')
-         GOTO 800
+            ' with 1D-computation')
+         FOUND = .TRUE.
+         RETURN
       ELSE
          ALLOCATE(OPSTMP)
          CALL INCSTR('RNAME',PSNAME,'REQ',' ')
-         IF (LENCST.GT.8) CALL MSGERR (2, 'RNAME is too long')
+         IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'RNAME is too long')
          OPSTMP%PSNAME = PSNAME
          OPSTMP%PSTYPE = 'R'
          MIP  = 1
@@ -632,8 +665,9 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          NULLIFY(FRST%NEXTXY)
          CURR => FRST
 !         following rays
-110      CALL ININTG ('INT',INTD,'REP',-1)
-         IF (INTD .NE. -1) THEN
+         DO
+            CALL ININTG ('INT',INTD,'REP',-1)
+            IF (INTD .EQ. -1) EXIT
             IF (INTD .LE. 0) THEN
                CALL MSGERR(2, 'INT negative or zero')
                INTD = 1
@@ -644,7 +678,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             YQ1 = YQ
             CALL READXY ('XP', 'YP', XP, YP, 'REQ', 0., 0.)
             CALL READXY ('XQ', 'YQ', XQ, YQ, 'REQ', 0., 0.)
-            DO 115 JJ=1,INTD
+            do JJ=1,INTD
                MIP = MIP+1
                ALLOCATE(TMP)
                TMP%X  = XP1 + REAL(JJ)*(XP-XP1)/REAL(INTD)
@@ -654,9 +688,8 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
                NULLIFY(TMP%NEXTXY)
                CURR%NEXTXY => TMP
                CURR => TMP
-115         CONTINUE
-            GOTO 110
-         ENDIF
+            end do
+         END DO
          ALLOCATE(OPSTMP%XP(MIP))
          ALLOCATE(OPSTMP%YP(MIP))
          ALLOCATE(OPSTMP%XQ(MIP))
@@ -670,7 +703,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             CURR => CURR%NEXTXY
          END DO
          DEALLOCATE(TMP)
-!
+
 !         ***** termination *****
          OPSTMP%MIP = MIP
          IF (MIP .EQ. 1) CALL MSGERR (1,'Only one ray is defined')
@@ -683,27 +716,29 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             COPS%NEXTOPS => OPSTMP
             COPS => OPSTMP
          END IF
-         GOTO 800
+         FOUND = .TRUE.
+         RETURN
       ENDIF
    ENDIF
-!
+
 !   -------------------------------------------------------------------
 !   ISOline 'sname'  'rname'  DEPTH / BOTTOM [dep]
 !   -------------------------------------------------------------------
-!
+
    IF (KEYWIS ('ISO')) THEN
-!
+
       IF (ONED) THEN
          CALL MSGERR (2,' Illegal keyword (ISO) in combination'// &
-                        ' with 1D-computation')
-         GOTO 800
+            ' with 1D-computation')
+         FOUND = .TRUE.
+         RETURN
       ELSE
          ALLOCATE(OPSTMP)
          CALL INCSTR ('SNAME',PSNAME,'REQ',' ')
-         IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+         IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
          OPSTMP%PSNAME = PSNAME
          CALL INCSTR ('RNAME', PRNAME, 'REQ', ' ')
-         IF (LENCST.GT.8) CALL MSGERR (2, 'RNAME is too long')
+         IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'RNAME is too long')
          CALL INKEYW ('STA', 'DEP')
          IF (KEYWIS ('BOT')) THEN
             BOTDEP = .TRUE.
@@ -718,7 +753,8 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             IF (ROPS%PSNAME.EQ.PRNAME) EXIT
             IF (.NOT.ASSOCIATED(ROPS%NEXTOPS)) THEN
                CALL MSGERR(2,'Set of rays not defined')
-               GOTO 800
+               FOUND = .TRUE.
+               RETURN
             END IF
             ROPS => ROPS%NEXTOPS
          END DO
@@ -726,7 +762,8 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          IF (STYPE .NE. 'R') THEN
             CALL MSGERR &
                (2,'Ray name set assigned to set of output locations')
-            GOTO 800
+            FOUND = .TRUE.
+            RETURN
          END IF
          MIPR  = ROPS%MIP
          OPSTMP%PSTYPE = 'C'
@@ -736,18 +773,16 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          FRST%Y = 0.
          NULLIFY(FRST%NEXTXY)
          CURR => FRST
-         DO 125 IK=1,MIPR
+         do IK=1,MIPR
             XP   = ROPS%XP(IK)
             YP   = ROPS%YP(IK)
             XQ   = ROPS%XQ(IK)
             YQ   = ROPS%YQ(IK)
             II   = SIRAY (DP, XP, YP, XQ, YQ, XX, YY, BOTDEP, &
-                          BOTLEV, WATLEV)
+               BOTLEV, WATLEV)
             IF (II.EQ.0) THEN
-               WRITE (PRINTF, 6120) DP, XP+XOFFS, YP+YOFFS, &
-                                        XQ+XOFFS, YQ+YOFFS
-6120           FORMAT(' No point with depth ',F5.2, &
-                      ' is found in ray :',4F10.2)
+               WRITE (PRINTF, "(' No point with depth ',F5.2, ' is found in ray :',4F10.2)") DP, XP+XOFFS, YP+YOFFS, &
+                  XQ+XOFFS, YQ+YOFFS
             ELSE
                MIP = MIP+1
                ALLOCATE(TMP)
@@ -757,7 +792,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
                CURR%NEXTXY => TMP
                CURR => TMP
             ENDIF
-125      CONTINUE
+         end do
          ALLOCATE(OPSTMP%XP(MIP))
          ALLOCATE(OPSTMP%YP(MIP))
          CURR => FRST%NEXTXY
@@ -768,7 +803,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          END DO
          DEALLOCATE(TMP)
          IF (MIP.EQ.0) CALL MSGERR &
-                    (2, 'No points with valid depth found')
+            (2, 'No points with valid depth found')
 !             ***** store number of points of the curve *****
          OPSTMP%MIP = MIP
          NULLIFY(OPSTMP%NEXTOPS)
@@ -780,28 +815,30 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             COPS%NEXTOPS => OPSTMP
             COPS => OPSTMP
          END IF
-         GOTO 800
+         FOUND = .TRUE.
+         RETURN
       ENDIF
    ENDIF
-!
+
 !   -------------------------------------------------------------------
 !                    | [xpn] [ypn] [alpn] [xlenn] [ylenn] [mxn] [myn]
 !   NGRID  'sname'  <
 !                    | UNSTRUCtured / -> TRIAngle \
 !                                   \    EASYmesh / 'fname'
 !   -------------------------------------------------------------------
-!
+
    IF (KEYWIS ('NGR')) THEN
-!
+
       IF (ONED) THEN
          CALL MSGERR (2,' Illegal keyword (NGR) in combination'// &
-                        ' with 1D-computation')
-         GOTO 800
+            ' with 1D-computation')
+         FOUND = .TRUE.
+         RETURN
       ELSE
 !         ver 30.20: names changed, order changed
          ALLOCATE(OPSTMP)
          CALL INCSTR('SNAME',PSNAME,'REQ',' ')
-         IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+         IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
          OPSTMP%PSNAME = PSNAME
          OPSTMP%PSTYPE = 'N'
          CALL INKEYW ('STA', ' ')
@@ -815,10 +852,11 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
                FILENM = TRIM(BASENM)//'.n'
                CALL FOR (NDS, FILENM, 'OF', IOSTAT)
                IF (STPNOW()) RETURN
-!
+
 !               --- read first line to determine number of vertices
-!
-               READ(NDS, *, END=950, ERR=910) NVTX
+
+               READ(NDS, *, IOSTAT=IOSTAT) NVTX
+               IF (grid_read_failed(IOSTAT)) RETURN
                ISTAT = 0
                IF(.NOT.ALLOCATED(XG)) ALLOCATE(XG(NVTX), STAT = ISTAT)
                IF ( ISTAT == 0 ) THEN
@@ -832,17 +870,18 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
                      'Allocation problem in SWREPS: array XG, YG or VM ' )
                   RETURN
                ENDIF
-!
+
 !               --- read coordinates of vertices and boundary marker
-!
+
                DO KK = 1, NVTX
-                  READ(NDS, 100, END=950, ERR=910) XG(I),YG(I),VM(I)
+                  READ(NDS, "((6X,2E22.15,I3))", IOSTAT=IOSTAT) XG(I),YG(I),VM(I)
+                  IF (grid_read_failed(IOSTAT)) RETURN
                ENDDO
-!
+
 !               --- close file <name>.n
-!
+
                CLOSE(NDS)
-!
+
             ELSE
                CALL IGNORE('TRIA')
                IOSTAT = 0
@@ -851,10 +890,11 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
                FILENM = TRIM(BASENM)//'.node'
                CALL FOR (NDS, FILENM, 'OF', IOSTAT)
                IF (STPNOW()) RETURN
-!
+
 !               --- read first line to determine number of vertices
-!
-               READ(NDS, *, END=950, ERR=910) NVTX, NDIM, NATTR, NBMARK
+
+               READ(NDS, *, IOSTAT=IOSTAT) NVTX, NDIM, NATTR, NBMARK
+               IF (grid_read_failed(IOSTAT)) RETURN
                ISTAT = 0
                IF(.NOT.ALLOCATED(XG)) ALLOCATE(XG(NVTX), STAT = ISTAT)
                IF ( ISTAT == 0 ) THEN
@@ -868,32 +908,34 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
                      'Allocation problem in SWREPS: array XG, YG or VM ' )
                   RETURN
                ENDIF
-!
+
 !               --- check if boundary marker has been specified
-!
+
                IF ( NBMARK == 0 ) THEN
                   CALL MSGERR ( 4, &
                      'boundary marker for vertices/faces must be specified ' )
                   RETURN
                ENDIF
-!
+
 !               --- read coordinates of vertices and boundary marker
-!
+
                IF ( NATTR == 0 ) THEN
                   DO KK = 1, NVTX
-                     READ(NDS, *, END=950, ERR=910) I,XG(I),YG(I),VM(I)
+                     READ(NDS, *, IOSTAT=IOSTAT) I,XG(I),YG(I),VM(I)
+                     IF (grid_read_failed(IOSTAT)) RETURN
                   ENDDO
                ELSE
                   DO KK = 1, NVTX
-                     READ(NDS, *, END=950, ERR=910) I,XG(I),YG(I),RDUM, &
-                                                    VM(I)
+                     READ(NDS, *, IOSTAT=IOSTAT) I,XG(I),YG(I),RDUM, &
+                        VM(I)
+                     IF (grid_read_failed(IOSTAT)) RETURN
                   ENDDO
                ENDIF
-!
+
 !               --- close file <name>.node
-!
+
                CLOSE(NDS)
-!
+
             ENDIF
          ELSE
             PP = .FALSE.
@@ -930,7 +972,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             YF=YPCN
 !            *****   start to calculate the positions       ********
 !            *****  of the boundary point in the four sides ********
-            DO 50 I=1,4
+            do I=1,4
                INTE=MXN
                ALON=XNLEN
                ANGLE=ANG+PI2*(90.*REAL(I-1))/360.
@@ -942,12 +984,12 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
                YI=YF
                XF=XI+ALON*COS(ANGLE)
                YF=YI+ALON*SIN(ANGLE)
-               DO 55 KK=1,INTE
+               do KK=1,INTE
                   MIP=MIP+1
                   OPSTMP%XP(MIP)=XI+REAL(KK)*(XF-XI)/REAL(INTE)
                   OPSTMP%YP(MIP)=YI+REAL(KK)*(YF-YI)/REAL(INTE)
-55             CONTINUE
-50          CONTINUE
+               end do
+            end do
 !                ***** store number of points *****
             OPSTMP%MIP = MIP
             OPSTMP%OPR(1) = XNLEN
@@ -959,7 +1001,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             OPSTMP%OPI(2) = MYN
          ELSE
 !         unstructured grid
-!
+
             MIP = COUNT(MASK=VM/=0)
             ALLOCATE(OPSTMP%XP(MIP))
             ALLOCATE(OPSTMP%YP(MIP))
@@ -989,42 +1031,56 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             COPS%NEXTOPS => OPSTMP
             COPS => OPSTMP
          END IF
-         GOTO 800
-!
-910      INQUIRE (UNIT=NDS, NAME=FILENM)
-         CALL MSGERR (4, 'error reading data from file '//FILENM )
+         FOUND = .TRUE.
          RETURN
-950      INQUIRE (UNIT=NDS, NAME=FILENM)
-         CALL MSGERR (4, 'unexpected end of file in file '//FILENM )
-         RETURN
-!
+
       ENDIF
    ENDIF
 !     ---------------------------------------------------------
 !     command not found:
    RETURN
-800 FOUND = .TRUE.
+   FOUND = .TRUE.
    RETURN
-100 FORMAT((6X,2E22.15,I3))
+
+CONTAINS
+
+LOGICAL FUNCTION grid_read_failed(status)
+   INTEGER, INTENT(IN) :: status
+
+   grid_read_failed = status.NE.0
+   IF (.NOT.grid_read_failed) RETURN
+   INQUIRE (UNIT=NDS, NAME=FILENM)
+   IF (IS_IOSTAT_END(status)) THEN
+      CALL MSGERR (4, 'unexpected end of file in file '//FILENM)
+   ELSE
+      CALL MSGERR (4, 'error reading data from file '//FILENM)
+   ENDIF
+END FUNCTION grid_read_failed
+
 !*    end of subroutine SWREPS  **
-END
-!***********************************************************************
+end subroutine SWREPS
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWREOQ ( FOUND )
 !                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+!************************************************************************
+
+   USE swan_file_opening, ONLY: FOR
+   USE swan_services, ONLY: MKPATH
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, INCTIM, INITVD
+   USE swan_io_units
+   USE swan_time
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_compda_layout
    USE OUTP_DATA
+   USE swan_vtk_output
    USE M_PARALL
-!NCF   USE swn_outnc
+   USE swan_netcdf_output_backend
+
+   CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -1111,16 +1167,14 @@ SUBROUTINE SWREOQ ( FOUND )
 !     FOUND : output parameter indicating whether command
 !                    being processed is found (value True)
 !                    or not (False)
-!
+
    LOGICAL FOUND
-!
+
 !  8. Subroutines used
 !
 !     command reading routines
 !     (all Ocean Pack)
-!
-   LOGICAL STPNOW
-!
+
 !  9. Subroutines calling
 !
 !     SPROUT
@@ -1130,32 +1184,33 @@ SUBROUTINE SWREOQ ( FOUND )
 !       ---
 !
 ! 13. Source text
-!
-   PARAMETER  (NEXPT=10)
-   INTEGER IERR
-   CHARACTER PSNAME *16, STYPE *1, RTYPE *4
-   LOGICAL   KEYWIS
+
+   INTEGER, PARAMETER :: NEXPT = 10
+   INTEGER, SAVE :: IENT = 0
+   INTEGER IERR, IDLAO, ILPOS, IOSTAT, IPROC, IVTYPE
+   INTEGER JJ, MIP, NREF, NVAR
+   REAL DFAC
+   CHARACTER(LEN=16) :: PSNAME
+   CHARACTER(LEN=1)  :: STYPE
+   CHARACTER(LEN=4)  :: RTYPE
    TYPE(ORQDAT), POINTER :: ORQTMP
    TYPE(ORQDAT), SAVE, POINTER :: CORQ
    TYPE AUXT
       INTEGER             :: I
       REAL                :: R
       TYPE(AUXT), POINTER :: NEXTI
-   END TYPE AUXT
+   end type AUXT
    TYPE(AUXT), TARGET  :: FRST
    TYPE(AUXT), POINTER :: CURR, TMP
-   INTEGER IEXPT(NEXPT)
+   INTEGER, PARAMETER :: IEXPT(NEXPT) = [1, 2, 4, 5, 10, 12, 13, 16, 17, 26]
    INTEGER IVT
    INTEGER NOSWLL
    LOGICAL LC, VTK
    CHARACTER (LEN=4) :: PNUM
    CHARACTER (LEN=80) :: MSGSTR
    CHARACTER (LEN=LENFNM) :: OUTDIR
-   SAVE IENT, IEXPT
-   DATA IENT/0/
-   DATA IEXPT /1, 2, 4, 5, 10, 12, 13, 16, 17, 26/
    CALL STRACE (IENT,'SWREOQ')
-!
+
 !   --------------------------------------------------------------------------
 !   BLOCK   'sname'  HEADER / NOHEADER  'fname' (LAY-OUT [idla])             &
 !          <  DSPR/HSIGN/DIR/PDIR/TDIR/TM01/RTM01/RTP/TM02/FSPR/DEPTH/VEL/   &
@@ -1169,28 +1224,33 @@ SUBROUTINE SWREOQ ( FOUND )
 !   --------------------------------------------------------------------------
 !   BLO   block type output
    IF (KEYWIS ('BLO')) THEN
-!
+
       IF (ONED) THEN
          CALL MSGERR (2,' Illegal keyword (BLO) in combination'// &
-                        ' with 1D-computation')
-         GOTO 800
+            ' with 1D-computation')
+         FOUND = .TRUE.
+         RETURN
       ELSE
          CALL SWNMPS (PSNAME, STYPE, MIP, IERR)
-         IF (IERR.NE.0) GOTO 800
+         IF (IERR.NE.0) THEN
+            FOUND = .TRUE.
+            RETURN
+         END IF
          IF (STYPE.NE.'F' .AND. STYPE.NE.'H' .AND. STYPE.NE.'U' ) THEN
             CALL MSGERR(2,'Set of output locations is not correct type')
-            GOTO 800
+            FOUND = .TRUE.
+            RETURN
          ENDIF
-!
+
 !         output frame exists
-!
+
          ALLOCATE(ORQTMP)
          NREOQ = NREOQ + 1
          IF (NREOQ.GT.MAX_OUTP_REQ) CALL MSGERR (2, &
             'too many output requests')
 
          IDLAO = 1
-!
+
          CALL INKEYW ('REQ',' ')
          IF (KEYWIS('NOHEAD') .OR. KEYWIS ('FIL')) THEN
             CALL INCSTR ('FNAME', FILENM, 'REQ', ' ')
@@ -1208,13 +1268,13 @@ SUBROUTINE SWREOQ ( FOUND )
             CALL INCSTR ('FNAME', FILENM, 'STA', ' ')
             RTYPE = 'BLKP'
             IF ( INDEX( FILENM, '.MAT' ).NE.0 .OR. &
-                 INDEX (FILENM, '.mat' ).NE.0 ) THEN
+               INDEX (FILENM, '.mat' ).NE.0 ) THEN
                CALL MSGERR(4,'No header allowed for Matlab files')
                RETURN
             END IF
          END IF
          VTK = INDEX( FILENM, '.VT' ).NE.0 .OR. &
-               INDEX (FILENM, '.vt' ).NE.0
+            INDEX (FILENM, '.vt' ).NE.0
          IF ( VTK ) THEN
             DFAC  = 1.
             RTYPE = 'BLKV'
@@ -1227,8 +1287,7 @@ SUBROUTINE SWREOQ ( FOUND )
 !               parallel computing                                        40.30
             IF ( PARLL.AND..NOT.VTK ) THEN
                ILPOS = INDEX ( FILENM, ' ' )-1
-               WRITE(FILENM(ILPOS+1:ILPOS+4),33) INODE
-33             FORMAT('-',I3.3)
+               WRITE(FILENM(ILPOS+1:ILPOS+4),"('-',I3.3)") INODE
             END IF
          ENDIF
          CALL INKEYW ('STA', ' ')
@@ -1236,7 +1295,7 @@ SUBROUTINE SWREOQ ( FOUND )
             CALL ININTG ('IDLA', IDLAO, 'REQ', 0)
             CALL INKEYW ('REQ', ' ')
             IF (IDLAO.NE.1 .AND. IDLAO.NE.3 .AND. IDLAO.NE.4 &
-!NCF                .AND. IDLAO.NE.5 &
+               .AND. (IDLAO.NE.5 .OR. .NOT.netcdf_enabled) &
                ) &
                CALL MSGERR (2, 'Illegal value for IDLA')
          ENDIF
@@ -1250,71 +1309,439 @@ SUBROUTINE SWREOQ ( FOUND )
          ORQTMP%OQI(3) = NVAR
          ORQTMP%OQI(4) = IDLAO
          OUTP_FILES(NREOQ) = FILENM
-!
+
 !         read types of output quantities
-!
+
          FRST%I = 0
          FRST%R = 0.
          NULLIFY(FRST%NEXTI)
          CURR => FRST
-70       CALL SVARTP (IVTYPE)
-         IF (IVTYPE .EQ. 98) GOTO 91
+         DO
+            CALL SVARTP (IVTYPE)
+            IF (IVTYPE .EQ. 98 .OR. IVTYPE .EQ. 999) EXIT
+            IF (IVTYPE .NE. 999) THEN
+               IF (is_netcdf_filename(FILENM)) THEN
+                  IF ( IVTYPE.GT.2 ) THEN
+                     call stnames_init()
+                     IF ( STNAMES(IVTYPE,1).EQ. ' ' ) CALL MSGERR (2, &
+                        'netCDF output not allowed for '//TRIM(FILENM))
+                  ENDIF
+               ENDIF
+               CALL INREAL ('UNIT', DFAC, 'STA', -1.)
+               IF (OVSVTY(IVTYPE).EQ.5) THEN
+                  CALL MSGERR (2, &
+                     'Type of output not allowed for this quantity')
+                  WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
+               ELSE IF (IVTYPE.GT.100 .AND. IVTYPE.LT.110) THEN
+                  CALL MSGERR (2,'Invalid partitioning output '// &
+                     'specification. Use PTHSIGN instead.')
+                  WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
+               ELSE IF (IVTYPE.GT.110 .AND. IVTYPE.LT.120) THEN
+                  CALL MSGERR (2,'Invalid partitioning output '// &
+                     'specification. Use PTRTP instead.')
+                  WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
+               ELSE IF (IVTYPE.GT.120 .AND. IVTYPE.LT.130) THEN
+                  CALL MSGERR (2,'Invalid partitioning output '// &
+                     'specification. Use PTWLEN instead.')
+                  WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
+               ELSE IF (IVTYPE.GT.130 .AND. IVTYPE.LT.140) THEN
+                  CALL MSGERR (2,'Invalid partitioning output '// &
+                     'specification. Use PTDIR instead.')
+                  WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
+               ELSE IF (IVTYPE.GT.140 .AND. IVTYPE.LT.150) THEN
+                  CALL MSGERR (2,'Invalid partitioning output '// &
+                     'specification. Use PTDSPR instead.')
+                  WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
+               ELSE IF (IVTYPE.GT.150 .AND. IVTYPE.LT.160) THEN
+                  CALL MSGERR (2,'Invalid partitioning output '// &
+                     'specification. Use PTWFRAC instead.')
+                  WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
+               ELSE IF (IVTYPE.GT.160 .AND. IVTYPE.LT.170) THEN
+                  CALL MSGERR (2,'Invalid partitioning output '// &
+                     'specification. Use PTSTEEPNESS instead.')
+                  WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
+               ELSE IF (IVTYPE.GT.0 .AND. IVTYPE.LT.100) THEN
+                  NVAR = NVAR+1
+                  ALLOCATE(TMP)
+                  TMP%I = IVTYPE
+                  TMP%R = DFAC
+                  NULLIFY(TMP%NEXTI)
+                  CURR%NEXTI => TMP
+                  CURR => TMP
+                  IF (IVTYPE.EQ.6) IUBOTR = 1
+                  IF (IVTYPE.EQ.36 .AND. JZEL.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JZEL   = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.50 .AND. JPBOT.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JPBOT  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.54 .AND. JDSXB.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JDSXB  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.55 .AND. JDSXS.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JDSXS  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.56 .AND. JDSXW.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JDSXW  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.57 .AND. JDSXV.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JDSXV  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.60 .AND. JGENR.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JGENR  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.61 .AND. JGSXW.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JGSXW  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.62 .AND. JREDS.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JREDS  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.63 .AND. JRSXQ.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JRSXQ  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.64 .AND. JRSXT.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JRSXT  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.65 .AND. JTRAN.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JTRAN  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.66 .AND. JTSXG.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JTSXG  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.67 .AND. JTSXT.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JTSXT  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.68 .AND. JTSXS.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JTSXS  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.69 .AND. JRADS.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JRADS  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.72 .AND. JDSXT.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JDSXT  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.74 .AND. JDSXM.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JDSXM  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.75 .AND. JDSXL.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JDSXL  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.76 .AND. JDSXI.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JDSXI  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.79 .AND. JRSXB.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JRSXB  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.80 .AND. JRSXC.LE.1) THEN
+                     MCMVAR = MCMVAR+1
+                     JRSXC  = MCMVAR
+                     ALOCMP = .TRUE.
+                  ENDIF
+                  IF (IVTYPE.EQ.7  .OR. IVTYPE.EQ.9  .OR. &
+                     IVTYPE.EQ.54 .OR. IVTYPE.EQ.55 .OR. &
+                     IVTYPE.EQ.56 .OR. IVTYPE.EQ.57 .OR. &
+                     IVTYPE.GE.60 ) LADDS = .TRUE.
+               ELSE IF (IVTYPE.LT.170) THEN
+                  NOSWLL = INT(OUTPAR(51))
+!               add NOSWLL partitions of requested partition parameter    41.72
+                  DO IVT = IVTYPE, IVTYPE+NOSWLL
+                     NVAR = NVAR+1
+                     ALLOCATE(TMP)
+                     TMP%I = IVT
+                     TMP%R = DFAC
+                     NULLIFY(TMP%NEXTI)
+                     CURR%NEXTI => TMP
+                     CURR => TMP
+                  ENDDO
+               ELSE IF (IVTYPE.EQ.170) THEN
+!               in case of PARTITIONS, add all partition parameters
+                  NVAR = NVAR+1
+                  ALLOCATE(TMP)
+                  TMP%I = 171
+                  TMP%R = DFAC
+                  NULLIFY(TMP%NEXTI)
+                  CURR%NEXTI => TMP
+                  CURR => TMP
+                  DO IVT = 100, 159
+                     NVAR = NVAR+1
+                     ALLOCATE(TMP)
+                     TMP%I = IVT
+                     TMP%R = DFAC
+                     NULLIFY(TMP%NEXTI)
+                     CURR%NEXTI => TMP
+                     CURR => TMP
+                  ENDDO
+!               add some other parameters e.g. Xp, Yp, Depth, Hs, etc.
+                  DO IVT = 1, NEXPT
+                     NVAR = NVAR+1
+                     ALLOCATE(TMP)
+                     TMP%I = IEXPT(IVT)
+                     TMP%R = DFAC
+                     NULLIFY(TMP%NEXTI)
+                     CURR%NEXTI => TMP
+                     CURR => TMP
+                  ENDDO
+               ENDIF
+            ENDIF
+         END DO
+         IF (NVAR.GT.0) THEN
+            ALLOCATE(ORQTMP%IVTYP(NVAR))
+            ALLOCATE(ORQTMP%FAC(NVAR))
+            CURR => FRST%NEXTI
+            DO JJ = 1, NVAR
+               ORQTMP%IVTYP(JJ) = CURR%I
+               ORQTMP%FAC  (JJ) = CURR%R
+               CURR => CURR%NEXTI
+            END DO
+            DEALLOCATE(TMP)
+         END IF
+
+         IF (IVTYPE .EQ. 98) THEN
+            IF (NSTATM.EQ.0) CALL MSGERR (3, &
+               'time information not allowed in stationary mode')
+            NSTATM = 1
+            CALL INCTIM (ITMOPT, 'TBEG', ORQTMP%OQR(1), 'REQ', 0D0)
+            CALL INITVD ('DELT', ORQTMP%OQR(2), 'REQ', 0D0)
+            IF ( VTK.AND.IAMMASTER ) THEN
+!              a PVD file is created to collect time-varying output       41.95
+               LC=.FALSE.
+               ILPOS=INDEX( FILENM, '.VT' )
+               IF (ILPOS.EQ.0) THEN
+                  LC=.TRUE.
+                  ILPOS=INDEX( FILENM, '.vt' )
+               ENDIF
+               IF (LC) THEN
+                  WRITE(FILENM(ILPOS+1:ILPOS+3),"(A3)") 'pvd'
+               ELSE
+                  WRITE(FILENM(ILPOS+3:ILPOS+3),"(A3)") 'PVD'
+               ENDIF
+               NREF   =  0
+               IOSTAT = -1
+               CALL FOR (NREF, FILENM, 'UF', IOSTAT)
+               IF (STPNOW()) RETURN
+               UPVDF(NREOQ) = NREF
+!              write the header lines                                     41.95
+               WRITE(NREF,'(A)') TRIM(XMLLIN1)
+               WRITE(NREF,'(A)') TRIM(XMLLIN2)
+               VTKLINE = '  This file was generated by SWAN version '// &
+                  TRIM(VERTXT)//'; project: '//TRIM(PROJID)// &
+                  '; run number: '//TRIM(PROJNR)
+               WRITE(NREF,'(A)') TRIM(VTKLINE)
+               WRITE(NREF,'(A)') TRIM(XMLLIN3)
+               WRITE(NREF,'(A)') TRIM(PVDLIN1)
+               WRITE(NREF,'(A)') TRIM(PVDLIN2)
+!              make output directory                                      41.95
+               IF (LC) THEN
+                  OUTDIR=FILENM(1:ILPOS-1)//'_output'
+               ELSE
+                  OUTDIR=FILENM(1:ILPOS-1)//'_OUTPUT'
+               ENDIF
+               CALL MKPATH ( OUTDIR, IERR )
+               IF (IERR.NE.0) OUTDIR = '.'
+               VTKDIR(NREOQ) = OUTDIR
+!              create subdirectories to store each piece of output data   41.95
+               IF (PARLL) THEN
+                  DO IPROC = 1, NPROC
+                     IF (LC) THEN
+                        WRITE(PNUM(1:4),"(A1,I3.3)") 'p',IPROC
+                     ELSE
+                        WRITE(PNUM(1:4),"(A1,I3.3)") 'P',IPROC
+                     ENDIF
+                     CALL MKPATH ( TRIM(OUTDIR)//DIRCH2//PNUM, IERR )
+                  ENDDO
+                  IF (IERR.NE.0) THEN
+                     WRITE (MSGSTR, '(A,I5)') &
+                        'Error while creating folders '// &
+                        '- status error =',IERR
+                     CALL MSGERR( 3, TRIM(MSGSTR) )
+                  ENDIF
+               ENDIF
+            ENDIF
+         ENDIF
+
+         ORQTMP%OQI(3) = NVAR
+         IF (NVAR.EQ.0) THEN
+            ALLOCATE(ORQTMP%IVTYP(0))
+            ALLOCATE(ORQTMP%FAC(0))
+         ENDIF
+         NULLIFY(ORQTMP%NEXTORQ)
+         IF ( .NOT.LORQ ) THEN
+            FORQ = ORQTMP
+            CORQ => FORQ
+            LORQ = .TRUE.
+         ELSE
+            CORQ%NEXTORQ => ORQTMP
+            CORQ => ORQTMP
+         END IF
+         FOUND = .TRUE.
+         RETURN
+      ENDIF
+   ENDIF
+!   --------------------------------------------------------------------------
+!   TABLE   'sname'  HEADER / NOHEADER / INDEXED 'fname'                     &
+!          <  DSPR/HSIGN/DIR/PDIR/TDIR/TM01/RTM01/RTP/TM02/FSPR/DEPTH/VEL/   &
+!             FRCOEFF/WIND/DISSIP/QB/TRANSP/FORCE/UBOT/URMS/WLEN/STEEPNESS/  &
+!             DHSIGN/DRTM01/LEAK/TIME/TSEC/XP/YP/DIST/SETUP/TMM10/RTMM10/    &
+!             TMBOT/QP/BFI/WATLEV/BOTLEV/TPS/DISBOT/DISSURF/DISWCAP/         &
+!             GENE/GENW/REDI/REDQ/REDT/REDB/REDC/PROPA/PROPX/PROPT/PROPS/    &
+!             RADS/LWAVP/DISTUR/TURB/DISSWELL/AICE/DISICE/                   &
+!             PTHSIGN/PTRTP/PTWLEN/PTDIR/PTDSPR/PTWFRAC/PTSTEEPNESS>         &
+!             ([unit]) (OUTPUT [tbegtbl] [delttbl] SEC/MIN/HR/DAY)
+!   --------------------------------------------------------------------------
+!   TABLE   output in the form of a table
+
+   IF (KEYWIS ('TAB')) THEN
+      CALL SWNMPS (PSNAME, STYPE, MIP, IERR)
+      IF (IERR.NE.0) THEN
+         FOUND = .TRUE.
+         RETURN
+      END IF
+
+!       output points exist
+
+      ALLOCATE(ORQTMP)
+      NREOQ = NREOQ + 1
+      IF (NREOQ.GT.MAX_OUTP_REQ) CALL MSGERR (2, &
+         'too many output requests')
+
+      CALL INKEYW ('STA','HEAD')
+      IF (KEYWIS('NOHEAD') .OR. KEYWIS ('FIL')) THEN
+         RTYPE = 'TABD'
+      ELSE IF (KEYWIS ('IND')) THEN
+         RTYPE = 'TABI'
+      ELSE IF (KEYWIS ('SWAN')) THEN
+         RTYPE = 'TABS'
+      ELSE IF (KEYWIS ('STAB')) THEN
+         RTYPE = 'TABT'
+      ELSE
+         CALL IGNORE ('HEAD')
+         CALL IGNORE ('PAP')
+         RTYPE = 'TABP'
+      END IF
+      ORQTMP%OQR(1) = -1.
+      ORQTMP%OQR(2) = -1.
+      ORQTMP%RQTYPE = RTYPE
+!       unit reference number NREF is 0, will be determined in output module
+      CALL INCSTR ('FNAME', FILENM, 'STA', ' ')
+      IF (FILENM .NE. '    ') THEN
+         IF (is_netcdf_filename(FILENM)) THEN
+            RTYPE = 'TABC'
+            ORQTMP%RQTYPE = RTYPE
+         ENDIF
+         NREF = 0
+!         --- append node number to FILENM in case of                     40.30
+!             parallel computing                                          40.30
+         IF ( PARLL ) THEN
+            ILPOS = INDEX ( FILENM, ' ' )-1
+            WRITE(FILENM(ILPOS+1:ILPOS+4),"('-',I3.3)") INODE
+         END IF
+      ELSE
+         NREF = PRINTF
+      ENDIF
+      ORQTMP%PSNAME = PSNAME
+      ORQTMP%OQI(1) = NREF
+      ORQTMP%OQI(2) = NREOQ
+      OUTP_FILES(NREOQ) = FILENM
+
+      NVAR = 0
+      ORQTMP%OQI(3) = NVAR
+!       read types of variables to be printed in the table
+      FRST%I = 0
+      NULLIFY(FRST%NEXTI)
+      CURR => FRST
+      DO
+         CALL SVARTP (IVTYPE)
+         IF (IVTYPE .EQ. 98 .OR. IVTYPE .EQ. 999) EXIT
          IF (IVTYPE .NE. 999) THEN
-!NCF            IF ( INDEX(FILENM,'.NC').NE.0  .OR. &
-!NCF                 INDEX(FILENM,'.nc').NE.0 ) THEN
-!NCF               IF ( IVTYPE.GT.2 ) THEN
-!NCF                  call stnames_init()
-!NCF                  IF ( STNAMES(IVTYPE,1).EQ. ' ' ) CALL MSGERR (2, &
-!NCF                        'netCDF output not allowed for '//TRIM(FILENM))
-!NCF               ENDIF
-!NCF            ENDIF
-            CALL INREAL ('UNIT', DFAC, 'STA', -1.)
+            IF (is_netcdf_filename(FILENM)) THEN
+               IF ( IVTYPE.GT.2.AND.IVTYPE.NE.40 ) THEN
+                  call stnames_init()
+                  IF ( STNAMES(IVTYPE,1).EQ. ' ' ) CALL MSGERR (2, &
+                     'netCDF table does not support '//OVKEYW(IVTYPE))
+               ENDIF
+            ENDIF
             IF (OVSVTY(IVTYPE).EQ.5) THEN
                CALL MSGERR (2, &
                   'Type of output not allowed for this quantity')
                WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
             ELSE IF (IVTYPE.GT.100 .AND. IVTYPE.LT.110) THEN
                CALL MSGERR (2,'Invalid partitioning output '// &
-                              'specification. Use PTHSIGN instead.')
+                  'specification. Use PTHSIGN instead.')
                WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
             ELSE IF (IVTYPE.GT.110 .AND. IVTYPE.LT.120) THEN
                CALL MSGERR (2,'Invalid partitioning output '// &
-                              'specification. Use PTRTP instead.')
+                  'specification. Use PTRTP instead.')
                WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
             ELSE IF (IVTYPE.GT.120 .AND. IVTYPE.LT.130) THEN
                CALL MSGERR (2,'Invalid partitioning output '// &
-                              'specification. Use PTWLEN instead.')
+                  'specification. Use PTWLEN instead.')
                WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
             ELSE IF (IVTYPE.GT.130 .AND. IVTYPE.LT.140) THEN
                CALL MSGERR (2,'Invalid partitioning output '// &
-                              'specification. Use PTDIR instead.')
+                  'specification. Use PTDIR instead.')
                WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
             ELSE IF (IVTYPE.GT.140 .AND. IVTYPE.LT.150) THEN
                CALL MSGERR (2,'Invalid partitioning output '// &
-                              'specification. Use PTDSPR instead.')
+                  'specification. Use PTDSPR instead.')
                WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
             ELSE IF (IVTYPE.GT.150 .AND. IVTYPE.LT.160) THEN
                CALL MSGERR (2,'Invalid partitioning output '// &
-                              'specification. Use PTWFRAC instead.')
+                  'specification. Use PTWFRAC instead.')
                WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
             ELSE IF (IVTYPE.GT.160 .AND. IVTYPE.LT.170) THEN
                CALL MSGERR (2,'Invalid partitioning output '// &
-                              'specification. Use PTSTEEPNESS instead.')
+                  'specification. Use PTSTEEPNESS instead.')
                WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
             ELSE IF (IVTYPE.GT.0 .AND. IVTYPE.LT.100) THEN
                NVAR = NVAR+1
                ALLOCATE(TMP)
                TMP%I = IVTYPE
-               TMP%R = DFAC
                NULLIFY(TMP%NEXTI)
                CURR%NEXTI => TMP
                CURR => TMP
-               IF (IVTYPE.EQ.6) IUBOTR = 1
-               IF (IVTYPE.EQ.36 .AND. JZEL.LE.1) THEN
-                  MCMVAR = MCMVAR+1
-                  JZEL   = MCMVAR
-                  ALOCMP = .TRUE.
-               ENDIF
+               IF (IVTYPE.EQ.18) IUBOTR = 1
                IF (IVTYPE.EQ.50 .AND. JPBOT.LE.1) THEN
                   MCMVAR = MCMVAR+1
                   JPBOT  = MCMVAR
@@ -1421,12 +1848,16 @@ SUBROUTINE SWREOQ ( FOUND )
                   ALOCMP = .TRUE.
                ENDIF
                IF (IVTYPE.EQ.7  .OR. IVTYPE.EQ.9  .OR. &
-                   IVTYPE.EQ.54 .OR. IVTYPE.EQ.55 .OR. &
-                   IVTYPE.EQ.56 .OR. IVTYPE.EQ.57 .OR. &
-                   IVTYPE.GE.60 ) LADDS = .TRUE.
+                  IVTYPE.EQ.54 .OR. IVTYPE.EQ.55 .OR. &
+                  IVTYPE.EQ.56 .OR. IVTYPE.EQ.57 .OR. &
+                  IVTYPE.GE.60 ) LADDS = .TRUE.
+               CALL INKEYW ('STA', ' ')
+               IF (KEYWIS('UNIT')) THEN
+                  CALL MSGERR (1, 'UNIT is ignored in this version')
+               ENDIF
             ELSE IF (IVTYPE.LT.170) THEN
                NOSWLL = INT(OUTPAR(51))
-!               add NOSWLL partitions of requested partition parameter    41.72
+!           add NOSWLL partitions of requested partition parameter        41.72
                DO IVT = IVTYPE, IVTYPE+NOSWLL
                   NVAR = NVAR+1
                   ALLOCATE(TMP)
@@ -1436,385 +1867,14 @@ SUBROUTINE SWREOQ ( FOUND )
                   CURR%NEXTI => TMP
                   CURR => TMP
                ENDDO
-            ELSE IF (IVTYPE.EQ.170) THEN
-!               in case of PARTITIONS, add all partition parameters
-               NVAR = NVAR+1
-               ALLOCATE(TMP)
-               TMP%I = 171
-               TMP%R = DFAC
-               NULLIFY(TMP%NEXTI)
-               CURR%NEXTI => TMP
-               CURR => TMP
-               DO IVT = 100, 159
-                  NVAR = NVAR+1
-                  ALLOCATE(TMP)
-                  TMP%I = IVT
-                  TMP%R = DFAC
-                  NULLIFY(TMP%NEXTI)
-                  CURR%NEXTI => TMP
-                  CURR => TMP
-               ENDDO
-!               add some other parameters e.g. Xp, Yp, Depth, Hs, etc.
-               DO IVT = 1, NEXPT
-                  NVAR = NVAR+1
-                  ALLOCATE(TMP)
-                  TMP%I = IEXPT(IVT)
-                  TMP%R = DFAC
-                  NULLIFY(TMP%NEXTI)
-                  CURR%NEXTI => TMP
-                  CURR => TMP
-               ENDDO
-            ENDIF
-            GOTO 70
-         ENDIF
-91       IF (NVAR.GT.0) THEN
-            ALLOCATE(ORQTMP%IVTYP(NVAR))
-            ALLOCATE(ORQTMP%FAC(NVAR))
-            CURR => FRST%NEXTI
-            DO JJ = 1, NVAR
-               ORQTMP%IVTYP(JJ) = CURR%I
-               ORQTMP%FAC  (JJ) = CURR%R
-               CURR => CURR%NEXTI
-            END DO
-            DEALLOCATE(TMP)
-         END IF
-!
-         IF (IVTYPE .EQ. 98) THEN
-            IF (NSTATM.EQ.0) CALL MSGERR (3, &
-               'time information not allowed in stationary mode')
-            NSTATM = 1
-            CALL INCTIM (ITMOPT, 'TBEG', ORQTMP%OQR(1), 'REQ', 0D0)
-            CALL INITVD ('DELT', ORQTMP%OQR(2), 'REQ', 0D0)
-            IF ( VTK.AND.IAMMASTER ) THEN
-!              a PVD file is created to collect time-varying output       41.95
-               LC=.FALSE.
-               ILPOS=INDEX( FILENM, '.VT' )
-               IF (ILPOS.EQ.0) THEN
-                  LC=.TRUE.
-                  ILPOS=INDEX( FILENM, '.vt' )
-               ENDIF
-               IF (LC) THEN
-                  WRITE(FILENM(ILPOS+1:ILPOS+3),95) 'pvd'
-               ELSE
-                  WRITE(FILENM(ILPOS+3:ILPOS+3),95) 'PVD'
-               ENDIF
-95             FORMAT(A3)
-               NREF   =  0
-               IOSTAT = -1
-               CALL FOR (NREF, FILENM, 'UF', IOSTAT)
-               IF (STPNOW()) RETURN
-               UPVDF(NREOQ) = NREF
-!              write the header lines                                     41.95
-               WRITE(NREF,'(A)') TRIM(XMLLIN1)
-               WRITE(NREF,'(A)') TRIM(XMLLIN2)
-               VTKLINE = '  This file was generated by SWAN version '// &
-                         TRIM(VERTXT)//'; project: '//TRIM(PROJID)// &
-                         '; run number: '//TRIM(PROJNR)
-               WRITE(NREF,'(A)') TRIM(VTKLINE)
-               WRITE(NREF,'(A)') TRIM(XMLLIN3)
-               WRITE(NREF,'(A)') TRIM(PVDLIN1)
-               WRITE(NREF,'(A)') TRIM(PVDLIN2)
-!              make output directory                                      41.95
-               IF (LC) THEN
-                  OUTDIR=FILENM(1:ILPOS-1)//'_output'
-               ELSE
-                  OUTDIR=FILENM(1:ILPOS-1)//'_OUTPUT'
-               ENDIF
-               CALL MKPATH ( OUTDIR, IERR )
-               IF (IERR.NE.0) OUTDIR = '.'
-               VTKDIR(NREOQ) = OUTDIR
-!              create subdirectories to store each piece of output data   41.95
-               IF (PARLL) THEN
-                  DO IPROC = 1, NPROC
-                     IF (LC) THEN
-                        WRITE(PNUM(1:4),96) 'p',IPROC
-                     ELSE
-                        WRITE(PNUM(1:4),96) 'P',IPROC
-                     ENDIF
-                     CALL MKPATH ( TRIM(OUTDIR)//DIRCH2//PNUM, IERR )
-                  ENDDO
-                  IF (IERR.NE.0) THEN
-                     WRITE (MSGSTR, '(A,I5)') &
-                                       'Error while creating folders '// &
-                                       '- status error =',IERR
-                     CALL MSGERR( 3, TRIM(MSGSTR) )
-                  ENDIF
-96                FORMAT(A1,I3.3)
+               CALL INKEYW ('STA', ' ')
+               IF (KEYWIS('UNIT')) THEN
+                  CALL MSGERR (1, 'UNIT is ignored in this version')
                ENDIF
             ENDIF
          ENDIF
-!
-         ORQTMP%OQI(3) = NVAR
-         IF (NVAR.EQ.0) THEN
-            ALLOCATE(ORQTMP%IVTYP(0))
-            ALLOCATE(ORQTMP%FAC(0))
-         ENDIF
-         NULLIFY(ORQTMP%NEXTORQ)
-         IF ( .NOT.LORQ ) THEN
-            FORQ = ORQTMP
-            CORQ => FORQ
-            LORQ = .TRUE.
-         ELSE
-            CORQ%NEXTORQ => ORQTMP
-            CORQ => ORQTMP
-         END IF
-         GOTO 800
-      ENDIF
-   ENDIF
-!   --------------------------------------------------------------------------
-!   TABLE   'sname'  HEADER / NOHEADER / INDEXED 'fname'                     &
-!          <  DSPR/HSIGN/DIR/PDIR/TDIR/TM01/RTM01/RTP/TM02/FSPR/DEPTH/VEL/   &
-!             FRCOEFF/WIND/DISSIP/QB/TRANSP/FORCE/UBOT/URMS/WLEN/STEEPNESS/  &
-!             DHSIGN/DRTM01/LEAK/TIME/TSEC/XP/YP/DIST/SETUP/TMM10/RTMM10/    &
-!             TMBOT/QP/BFI/WATLEV/BOTLEV/TPS/DISBOT/DISSURF/DISWCAP/         &
-!             GENE/GENW/REDI/REDQ/REDT/REDB/REDC/PROPA/PROPX/PROPT/PROPS/    &
-!             RADS/LWAVP/DISTUR/TURB/DISSWELL/AICE/DISICE/                   &
-!             PTHSIGN/PTRTP/PTWLEN/PTDIR/PTDSPR/PTWFRAC/PTSTEEPNESS>         &
-!             ([unit]) (OUTPUT [tbegtbl] [delttbl] SEC/MIN/HR/DAY)
-!   --------------------------------------------------------------------------
-!   TABLE   output in the form of a table
-
-   IF (KEYWIS ('TAB')) THEN
-      CALL SWNMPS (PSNAME, STYPE, MIP, IERR)
-      IF (IERR.NE.0) GOTO 800
-!
-!       output points exist
-!
-      ALLOCATE(ORQTMP)
-      NREOQ = NREOQ + 1
-      IF (NREOQ.GT.MAX_OUTP_REQ) CALL MSGERR (2, &
-         'too many output requests')
-!
-      CALL INKEYW ('STA','HEAD')
-      IF (KEYWIS('NOHEAD') .OR. KEYWIS ('FIL')) THEN
-         RTYPE = 'TABD'
-      ELSE IF (KEYWIS ('IND')) THEN
-         RTYPE = 'TABI'
-      ELSE IF (KEYWIS ('SWAN')) THEN
-         RTYPE = 'TABS'
-      ELSE IF (KEYWIS ('STAB')) THEN
-         RTYPE = 'TABT'
-      ELSE
-         CALL IGNORE ('HEAD')
-         CALL IGNORE ('PAP')
-         RTYPE = 'TABP'
-      END IF
-      ORQTMP%OQR(1) = -1.
-      ORQTMP%OQR(2) = -1.
-      ORQTMP%RQTYPE = RTYPE
-!       unit reference number NREF is 0, will be determined in output module
-      CALL INCSTR ('FNAME', FILENM, 'STA', ' ')
-      IF (FILENM .NE. '    ') THEN
-!NCF         IF ( INDEX( FILENM, '.NC' ).NE.0 .OR. &
-!NCF              INDEX (FILENM, '.nc' ).NE.0 ) THEN
-!NCF            RTYPE = 'TABC'
-!NCF            ORQTMP%RQTYPE = RTYPE
-!NCF         ENDIF
-         NREF = 0
-!         --- append node number to FILENM in case of                     40.30
-!             parallel computing                                          40.30
-         IF ( PARLL ) THEN
-            ILPOS = INDEX ( FILENM, ' ' )-1
-            WRITE(FILENM(ILPOS+1:ILPOS+4),33) INODE
-         END IF
-      ELSE
-         NREF = PRINTF
-      ENDIF
-      ORQTMP%PSNAME = PSNAME
-      ORQTMP%OQI(1) = NREF
-      ORQTMP%OQI(2) = NREOQ
-      OUTP_FILES(NREOQ) = FILENM
-!
-      NVAR = 0
-      ORQTMP%OQI(3) = NVAR
-!       read types of variables to be printed in the table
-      FRST%I = 0
-      NULLIFY(FRST%NEXTI)
-      CURR => FRST
-80    CALL SVARTP (IVTYPE)
-      IF (IVTYPE .EQ. 98) GOTO 90
-      IF (IVTYPE .NE. 999) THEN
-!NCF         IF ( INDEX(FILENM,'.NC').NE.0  .OR. &
-!NCF              INDEX(FILENM,'.nc').NE.0 ) THEN
-!NCF            IF ( IVTYPE.GT.2.AND.IVTYPE.NE.40 ) THEN
-!NCF               call stnames_init()
-!NCF               IF ( STNAMES(IVTYPE,1).EQ. ' ' ) CALL MSGERR (2, &
-!NCF                     'netCDF table does not support '//OVKEYW(IVTYPE))
-!NCF            ENDIF
-!NCF         ENDIF
-         IF (OVSVTY(IVTYPE).EQ.5) THEN
-            CALL MSGERR (2, &
-               'Type of output not allowed for this quantity')
-            WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
-         ELSE IF (IVTYPE.GT.100 .AND. IVTYPE.LT.110) THEN
-            CALL MSGERR (2,'Invalid partitioning output '// &
-                           'specification. Use PTHSIGN instead.')
-            WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
-         ELSE IF (IVTYPE.GT.110 .AND. IVTYPE.LT.120) THEN
-            CALL MSGERR (2,'Invalid partitioning output '// &
-                           'specification. Use PTRTP instead.')
-            WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
-         ELSE IF (IVTYPE.GT.120 .AND. IVTYPE.LT.130) THEN
-            CALL MSGERR (2,'Invalid partitioning output '// &
-                           'specification. Use PTWLEN instead.')
-            WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
-         ELSE IF (IVTYPE.GT.130 .AND. IVTYPE.LT.140) THEN
-            CALL MSGERR (2,'Invalid partitioning output '// &
-                           'specification. Use PTDIR instead.')
-            WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
-         ELSE IF (IVTYPE.GT.140 .AND. IVTYPE.LT.150) THEN
-            CALL MSGERR (2,'Invalid partitioning output '// &
-                           'specification. Use PTDSPR instead.')
-            WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
-         ELSE IF (IVTYPE.GT.150 .AND. IVTYPE.LT.160) THEN
-            CALL MSGERR (2,'Invalid partitioning output '// &
-                           'specification. Use PTWFRAC instead.')
-            WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
-         ELSE IF (IVTYPE.GT.160 .AND. IVTYPE.LT.170) THEN
-            CALL MSGERR (2,'Invalid partitioning output '// &
-                           'specification. Use PTSTEEPNESS instead.')
-            WRITE (PRINTF, *) ' -> ', OVSNAM(IVTYPE)
-         ELSE IF (IVTYPE.GT.0 .AND. IVTYPE.LT.100) THEN
-            NVAR = NVAR+1
-            ALLOCATE(TMP)
-            TMP%I = IVTYPE
-            NULLIFY(TMP%NEXTI)
-            CURR%NEXTI => TMP
-            CURR => TMP
-            IF (IVTYPE.EQ.18) IUBOTR = 1
-            IF (IVTYPE.EQ.50 .AND. JPBOT.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JPBOT  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.54 .AND. JDSXB.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JDSXB  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.55 .AND. JDSXS.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JDSXS  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.56 .AND. JDSXW.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JDSXW  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.57 .AND. JDSXV.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JDSXV  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.60 .AND. JGENR.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JGENR  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.61 .AND. JGSXW.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JGSXW  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.62 .AND. JREDS.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JREDS  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.63 .AND. JRSXQ.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JRSXQ  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.64 .AND. JRSXT.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JRSXT  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.65 .AND. JTRAN.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JTRAN  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.66 .AND. JTSXG.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JTSXG  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.67 .AND. JTSXT.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JTSXT  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.68 .AND. JTSXS.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JTSXS  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.69 .AND. JRADS.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JRADS  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.72 .AND. JDSXT.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JDSXT  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.74 .AND. JDSXM.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JDSXM  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.75 .AND. JDSXL.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JDSXL  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.76 .AND. JDSXI.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JDSXI  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.79 .AND. JRSXB.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JRSXB  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.80 .AND. JRSXC.LE.1) THEN
-               MCMVAR = MCMVAR+1
-               JRSXC  = MCMVAR
-               ALOCMP = .TRUE.
-            ENDIF
-            IF (IVTYPE.EQ.7  .OR. IVTYPE.EQ.9  .OR. &
-                IVTYPE.EQ.54 .OR. IVTYPE.EQ.55 .OR. &
-                IVTYPE.EQ.56 .OR. IVTYPE.EQ.57 .OR. &
-                IVTYPE.GE.60 ) LADDS = .TRUE.
-            CALL INKEYW ('STA', ' ')
-            IF (KEYWIS('UNIT')) THEN
-               CALL MSGERR (1, 'UNIT is ignored in this version')
-            ENDIF
-         ELSE IF (IVTYPE.LT.170) THEN
-            NOSWLL = INT(OUTPAR(51))
-!           add NOSWLL partitions of requested partition parameter        41.72
-            DO IVT = IVTYPE, IVTYPE+NOSWLL
-               NVAR = NVAR+1
-               ALLOCATE(TMP)
-               TMP%I = IVT
-               TMP%R = DFAC
-               NULLIFY(TMP%NEXTI)
-               CURR%NEXTI => TMP
-               CURR => TMP
-            ENDDO
-            CALL INKEYW ('STA', ' ')
-            IF (KEYWIS('UNIT')) THEN
-               CALL MSGERR (1, 'UNIT is ignored in this version')
-            ENDIF
-         ENDIF
-         GOTO 80
-      ENDIF
-90    IF (NVAR.GT.0) THEN
+      END DO
+      IF (NVAR.GT.0) THEN
          ALLOCATE(ORQTMP%IVTYP(NVAR))
          CURR => FRST%NEXTI
          DO JJ = 1, NVAR
@@ -1823,12 +1883,12 @@ SUBROUTINE SWREOQ ( FOUND )
          END DO
          DEALLOCATE(TMP)
       END IF
-!NCF      IF ( RTYPE.EQ.'TABC') THEN
-!NCF         ALLOCATE(ORQTMP%FAC(NVAR))
-!NCF         ORQTMP%FAC=1.
-!NCF      ELSE
+      IF ( RTYPE.EQ.'TABC') THEN
+         ALLOCATE(ORQTMP%FAC(NVAR))
+         ORQTMP%FAC=1.
+      ELSE
          ALLOCATE(ORQTMP%FAC(0))
-!NCF      ENDIF
+      ENDIF
 
       IF (IVTYPE .EQ. 98) THEN
          IF (NSTATM.EQ.0) CALL MSGERR (3, &
@@ -1851,36 +1911,41 @@ SUBROUTINE SWREOQ ( FOUND )
          CORQ%NEXTORQ => ORQTMP
          CORQ => ORQTMP
       END IF
-      GOTO 800
+      FOUND = .TRUE.
+      RETURN
    ENDIF
-!
+
 !   PLOT    plot iso lines and/or vector fields
 !
 !   --------------------------------------------------------------------------
 
    IF (KEYWIS ('PLO')) THEN
       CALL MSGERR(2,'Keyword PLO... is no longer maintained')
-      GOTO 800
+      FOUND = .TRUE.
+      RETURN
    ENDIF
-!
+
 !   --------------------------------------------------------------------------
 !   SPECout 'sname'  SPEC1D/SPEC2D  ABS/REL  S/L  'fname'                    &
-!NCF!                    (MONth  ESCAle MDGRID COMPress NOAUX) (NOT documented)  &
+!                    (MONth  ESCAle MDGRID COMPress NOAUX) (NOT document
 !                    (OUTPUT [tbegspc] [deltspc] SEC/MIN/HR/DAY)
 !   --------------------------------------------------------------------------
 !   SPEC   output of spectra
 
    IF (KEYWIS ('SPEC')) THEN
       CALL SWNMPS (PSNAME, STYPE, MIP, IERR)
-      IF (IERR.NE.0) GOTO 800
-!
+      IF (IERR.NE.0) THEN
+         FOUND = .TRUE.
+         RETURN
+      END IF
+
 !       output points exist
-!
+
       ALLOCATE(ORQTMP)
       NREOQ = NREOQ + 1
       IF (NREOQ.GT.MAX_OUTP_REQ) CALL MSGERR (2, &
          'too many output requests')
-!
+
       CALL INKEYW ('STA', 'SPEC2D')
       IF (KEYWIS ('FS1D') .OR. KEYWIS('SPEC1D')) THEN
          RTYPE  = 'SPE1'
@@ -1895,7 +1960,7 @@ SUBROUTINE SWREOQ ( FOUND )
       ELSE
          CALL IGNORE ('ABS')
       ENDIF
-!
+
       CALL INKEYW ('STA', 'S')
       IF (KEYWIS ('L')) THEN
          IF (RTYPE(3:3).EQ.'R') THEN
@@ -1906,7 +1971,7 @@ SUBROUTINE SWREOQ ( FOUND )
       ELSE
          CALL IGNORE ('S')
       ENDIF
-!
+
       ORQTMP%OQR(1) = -1.
       ORQTMP%OQR(2) = -1.
       ORQTMP%RQTYPE = RTYPE
@@ -1916,38 +1981,40 @@ SUBROUTINE SWREOQ ( FOUND )
 !           parallel computing                                            40.30
       IF ( PARLL ) THEN
          ILPOS = INDEX ( FILENM, ' ' )-1
-         WRITE(FILENM(ILPOS+1:ILPOS+4),33) INODE
+         WRITE(FILENM(ILPOS+1:ILPOS+4),"('-',I3.3)") INODE
       END IF
       ORQTMP%PSNAME = PSNAME
       ORQTMP%OQI(1) = NREF
       ORQTMP%OQI(2) = NREOQ
       OUTP_FILES(NREOQ) = FILENM
-!NCF!
-!NCF      CALL INKEYW ('STA', ' ')
-!NCF!       declare monthly netCDF file                                       41.40
-!NCF!       store in oqi(4) differ from idla of block!                        41.40
-!NCF      ORQTMP%OQI(4) = 0
-!NCF      IF (KEYWIS('MON')) THEN
-!NCF         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 1
-!NCF      ENDIF
-!NCF      CALL INKEYW ('STA', ' ')
-!NCF      IF (KEYWIS('ESCA')) THEN
-!NCF         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 2
-!NCF      ENDIF
-!NCF      CALL INKEYW ('STA', ' ')
-!NCF      IF (KEYWIS('COMP')) THEN
-!NCF         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 4
-!NCF      ENDIF
-!NCF      CALL INKEYW ('STA', ' ')
-!NCF      IF (KEYWIS('MDGRID')) THEN
-!NCF         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 8
-!NCF      ENDIF
-!NCF      CALL INKEYW ('STA', ' ')
-!NCF      IF (KEYWIS('NOAUX')) THEN
-!NCF         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 16
-!NCF      ENDIF
-!NCF      CALL INKEYW ('STA', ' ')
 !
+      IF (netcdf_enabled) THEN
+         CALL INKEYW ('STA', ' ')
+!       declare monthly netCDF file
+!       store in oqi(4) differ from idla of block!
+         ORQTMP%OQI(4) = 0
+         IF (KEYWIS('MON')) THEN
+            ORQTMP%OQI(4) = ORQTMP%OQI(4) + 1
+         ENDIF
+         CALL INKEYW ('STA', ' ')
+         IF (KEYWIS('ESCA')) THEN
+            ORQTMP%OQI(4) = ORQTMP%OQI(4) + 2
+         ENDIF
+         CALL INKEYW ('STA', ' ')
+         IF (KEYWIS('COMP')) THEN
+            ORQTMP%OQI(4) = ORQTMP%OQI(4) + 4
+         ENDIF
+         CALL INKEYW ('STA', ' ')
+         IF (KEYWIS('MDGRID')) THEN
+            ORQTMP%OQI(4) = ORQTMP%OQI(4) + 8
+         ENDIF
+         CALL INKEYW ('STA', ' ')
+         IF (KEYWIS('NOAUX')) THEN
+            ORQTMP%OQI(4) = ORQTMP%OQI(4) + 16
+         ENDIF
+         CALL INKEYW ('STA', ' ')
+      ENDIF
+
       NVAR = 0
       ORQTMP%OQI(3) = NVAR
       ALLOCATE(ORQTMP%IVTYP(0))
@@ -1961,7 +2028,7 @@ SUBROUTINE SWREOQ ( FOUND )
          CALL INCTIM (ITMOPT, 'TBEG', ORQTMP%OQR(1), 'REQ', 0D0)
          CALL INITVD ('DELT', ORQTMP%OQR(2), 'REQ', 0D0)
          IF (NSTATM.EQ.0) CALL MSGERR (2, &
-                       'time input not allowed in stationary mode')
+            'time input not allowed in stationary mode')
       ENDIF
       NULLIFY(ORQTMP%NEXTORQ)
       IF ( .NOT.LORQ ) THEN
@@ -1972,7 +2039,8 @@ SUBROUTINE SWREOQ ( FOUND )
          CORQ%NEXTORQ => ORQTMP
          CORQ => ORQTMP
       END IF
-      GOTO 800
+      FOUND = .TRUE.
+      RETURN
    END IF
 
 !   --------------------------------------------------------------------------
@@ -1982,7 +2050,7 @@ SUBROUTINE SWREOQ ( FOUND )
 !   NEST   output for nesting of models                        VER.       20.63
 
    IF (KEYWIS ('NEST')) THEN
-!
+
 !      ======================================================================
 !
 !       NESTout  'sname'  'fname'  &
@@ -1993,17 +2061,22 @@ SUBROUTINE SWREOQ ( FOUND )
 !                                              |    DAy  |
 !
 !      =======================================================================
-!
+
       IF (ONED) THEN
          CALL MSGERR (2,' Illegal keyword (NEST) in'// &
-                        ' combination with 1D-computation')
-         GOTO 800
+            ' combination with 1D-computation')
+         FOUND = .TRUE.
+         RETURN
       ELSE
          CALL SWNMPS (PSNAME, STYPE, MIP, IERR)
-         IF (IERR.NE.0) GOTO 800
+         IF (IERR.NE.0) THEN
+            FOUND = .TRUE.
+            RETURN
+         END IF
          IF (STYPE .NE. 'N') THEN
             CALL MSGERR(2,'Set of output locations is not correct type')
-            GOTO 800
+            FOUND = .TRUE.
+            RETURN
          ENDIF
 !         output points exist
          ALLOCATE(ORQTMP)
@@ -2020,7 +2093,7 @@ SUBROUTINE SWREOQ ( FOUND )
 !             parallel computing                                          40.30
          IF ( PARLL ) THEN
             ILPOS = INDEX ( FILENM, ' ' )-1
-            WRITE(FILENM(ILPOS+1:ILPOS+4),33) INODE
+            WRITE(FILENM(ILPOS+1:ILPOS+4),"('-',I3.3)") INODE
          END IF
          ORQTMP%PSNAME = PSNAME
          ORQTMP%OQI(1) = NREF
@@ -2028,13 +2101,11 @@ SUBROUTINE SWREOQ ( FOUND )
          OUTP_FILES(NREOQ) = FILENM
          NVAR = 0
          ORQTMP%OQI(3) = NVAR
-!NCF!         scale spectra and do not store auxillary variables
-!NCF         IF ( INDEX( FILENM, '.NC'  ).NE.0 .OR. &
-!NCF              INDEX (FILENM, '.nc'  ).NE.0 ) &
-!NCF            ORQTMP%OQI(4) = 18
+!         scale spectra and do not store auxillary variables
+         IF (is_netcdf_filename(FILENM)) ORQTMP%OQI(4) = 18
          ALLOCATE(ORQTMP%IVTYP(0))
          ALLOCATE(ORQTMP%FAC(0))
-!
+
          CALL INKEYW ('STA', ' ')
          IF (KEYWIS ('OUT')) THEN
             IF (NSTATM.EQ.0) CALL MSGERR (3, &
@@ -2043,9 +2114,9 @@ SUBROUTINE SWREOQ ( FOUND )
             CALL INCTIM (ITMOPT, 'TBEG', ORQTMP%OQR(1), 'REQ', 0D0)
             CALL INITVD ('DELT', ORQTMP%OQR(2), 'REQ', 0D0)
             IF (NSTATM.EQ.0) CALL MSGERR (2, &
-                        'time input not allowed in stationary mode')
+               'time input not allowed in stationary mode')
          ENDIF
-!
+
          NULLIFY(ORQTMP%NEXTORQ)
          IF ( .NOT.LORQ ) THEN
             FORQ = ORQTMP
@@ -2055,28 +2126,32 @@ SUBROUTINE SWREOQ ( FOUND )
             CORQ%NEXTORQ => ORQTMP
             CORQ => ORQTMP
          END IF
-         GOTO 800
+         FOUND = .TRUE.
+         RETURN
       ENDIF
    ENDIF
 !     -------------------------------------------------------
 !     command not found:
    RETURN
-800 FOUND = .TRUE.
+   FOUND = .TRUE.
    RETURN
 !*    end of subroutine SWREOQ  **
-END
-!***********************************************************************
+end subroutine SWREOQ
+!************************************************************************
 !                                                                      *
 INTEGER FUNCTION SIRAY (DP, XP1, YP1, XP2, YP2, XX, YY, BOTDEP, &
-                        BOTLEV, WATLEV)
+   BOTLEV, WATLEV)
 !                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM2
-   USE SWCOMM3
-!
-!
+!************************************************************************
+
+   USE swan_service_interfaces, ONLY: EQREAL, STRACE
+   USE swan_input_interpolation, ONLY: SVALQI
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_input_grids
+   USE swan_physical_settings
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2157,7 +2232,7 @@ INTEGER FUNCTION SIRAY (DP, XP1, YP1, XP2, YP2, XX, YY, BOTDEP, &
 !
 !  9. STRUCTURE
 !
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !     Give SIRAY initial value 0
 !     Compute stepsize, raylength and number of steps along the ray
 !     Compute bottom coordinates  of startpoint as number of meshes
@@ -2172,22 +2247,24 @@ INTEGER FUNCTION SIRAY (DP, XP1, YP1, XP2, YP2, XX, YY, BOTDEP, &
 !         Else
 !             Coordinates and depth at start of new interval are values
 !               at end of old interval
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !  10. SOURCE TEXT
-!
-   LOGICAL   EQREAL, BOTDEP
+
+   LOGICAL :: BOTDEP
    REAL      BOTLEV(*), WATLEV(*)
-   SAVE IENT
-   DATA IENT/0/
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   JDMINMAX, JJ, NSTEP
+   REAL      DP, XP1, YP1, XP2, YP2, XX, YY
+   REAL      D2, D3, DIFDEP, DSTEP, RAYLEN, X2, X3, Y2, Y3
    CALL STRACE (IENT,'SIRAY')
-!
+
    SIRAY   = 0
    DIFDEP = 1e+10
    DSTEP  = MIN(DXG(1), DYG(1))
    RAYLEN = SQRT ((XP2-XP1)*(XP2-XP1) + (YP2-YP1)*(YP2-YP1))
    NSTEP  = 1 + INT(1.5*RAYLEN/DSTEP + 0.5)
-!
-   DO 10 JJ = 0, NSTEP
+
+   do JJ = 0, NSTEP
       X3  = XP1 + REAL(JJ)*(XP2-XP1)/REAL(NSTEP)
       Y3  = YP1 + REAL(JJ)*(YP2-YP1)/REAL(NSTEP)
       IF (BOTDEP) THEN
@@ -2197,8 +2274,7 @@ INTEGER FUNCTION SIRAY (DP, XP1, YP1, XP2, YP2, XX, YY, BOTDEP, &
          IF (LEDS(7).GE.2) &
             D3 = D3 + SVALQI (X3, Y3, 7, WATLEV, 1, 0, 0)
       ENDIF
-      IF (ITEST.GE.160) WRITE (PRTEST, 14) X3+XOFFS, Y3+YOFFS, D3
-14    FORMAT (' SIRAY, scan point', 2(1X,F8.0), 1X, F8.2)
+      IF (ITEST.GE.160) WRITE (PRTEST, "(' SIRAY, scan point', 2(1X,F8.0), 1X, F8.2)") X3+XOFFS, Y3+YOFFS, D3
       IF (ABS(D3-DP).LT.DIFDEP) THEN
          DIFDEP=ABS(D3-DP)
          JDMINMAX=JJ
@@ -2213,38 +2289,40 @@ INTEGER FUNCTION SIRAY (DP, XP1, YP1, XP2, YP2, XX, YY, BOTDEP, &
                YY = Y2+(Y3-Y2)*(D2-DP)/(D2-D3)
             ENDIF
             SIRAY = 1
-            GOTO 20
+            EXIT
          ENDIF
       ENDIF
       X2 = X3
       Y2 = Y3
       D2 = D3
-10 CONTINUE
-!
+   end do
+
 !     exact depth not found, take closest value:
-!
-   X3 = XP1 + REAL(JDMINMAX)*(XP2-XP1)/REAL(NSTEP)
-   Y3 = YP1 + REAL(JDMINMAX)*(YP2-YP1)/REAL(NSTEP)
-   XX = X3
-   YY = Y3
-!
-20 IF (ITEST.GE.140) WRITE (PRTEST, 24) XX+XOFFS, YY+YOFFS
-24 FORMAT (' SIRAY, result ', 2(1X,F8.0))
+
+   IF (SIRAY == 0) THEN
+      X3 = XP1 + REAL(JDMINMAX)*(XP2-XP1)/REAL(NSTEP)
+      Y3 = YP1 + REAL(JDMINMAX)*(YP2-YP1)/REAL(NSTEP)
+      XX = X3
+      YY = Y3
+   END IF
+
+   IF (ITEST.GE.140) WRITE (PRTEST, "(' SIRAY, result ', 2(1X,F8.0))") XX+XOFFS, YY+YOFFS
    RETURN
 ! * end of function SIRAY *
-END
+end function SIRAY
 !************************************************************************
-!                                                                       *
+
 SUBROUTINE SWNMPS (PSNAME, PSTYPE, MIP, IERR)
-!                                                                       *
+
 !************************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM4
-   USE SWCOMM1
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_input_parser, ONLY: INCSTR
+   USE swan_input_parser, ONLY: default_command_reader
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE OUTP_DATA
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2314,23 +2392,26 @@ SUBROUTINE SWNMPS (PSNAME, PSTYPE, MIP, IERR)
 !
 !
 ! 10. SOURCE TEXT
-!
-   INTEGER   MIP
-   CHARACTER PSNAME *(*), PSTYPE *1
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   IERR, MIP
+   CHARACTER(LEN=*) :: PSNAME
+   CHARACTER(LEN=1) :: PSTYPE
    TYPE(OPSDAT), POINTER :: CUOPS
-   SAVE IENT
-   DATA IENT/0/
    CALL STRACE (IENT,'SWNMPS')
-!
+
    IERR = 0
    CALL INCSTR ('SNAME', PSNAME, 'STA', 'BOTTGRID')
-   IF (LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
+   IF (default_command_reader%LENCST.GT.8) CALL MSGERR (2, 'SNAME is too long')
    CUOPS => FOPS
    DO
       IF (CUOPS%PSNAME.EQ.PSNAME) EXIT
       IF (.NOT.ASSOCIATED(CUOPS%NEXTOPS)) THEN
          CALL MSGERR(2, 'Set of output locations is not known')
-         GOTO 900
+         PSTYPE = ' '
+         MIP    = 0
+         IERR   = 1
+         RETURN
       END IF
       CUOPS => CUOPS%NEXTOPS
    END DO
@@ -2343,24 +2424,19 @@ SUBROUTINE SWNMPS (PSNAME, PSTYPE, MIP, IERR)
       MIP  = CUOPS%MIP
       ALPQ = 0.
    ENDIF
-800 IF (ITEST.GE.100) WRITE (PRTEST, 802) PSNAME, PSTYPE, MIP
-802 FORMAT (' exit SWNMPS, name:', A8, ' type:', A1, &
-            '  num of p:', I5)
+   IF (ITEST.GE.100) WRITE (PRTEST, "(' exit SWNMPS, name:', A8, ' type:', A1, '  num of p:', I5)") PSNAME, PSTYPE, MIP
    RETURN
-900 PSTYPE = ' '
-   MIP    = 0
-   IERR   = 1
    RETURN
-END
+end subroutine SWNMPS
 !************************************************************************
-!                                                                       *
+
 SUBROUTINE SVARTP (IVTYPE)
-!                                                                       *
+
 !************************************************************************
-!
-   USE SWCOMM1
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_input_parser, ONLY: INKEYW, KEYWIS, WRNKEY
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2435,20 +2511,19 @@ SUBROUTINE SVARTP (IVTYPE)
 !
 ! 12. Structure
 !
-!     -----------------------------------------------------------------
+!     -----------------------------------------------------------------   40.00
 !     If the keyword is equal to given string, then
 !         IVTYPE is given integer value
-!     -----------------------------------------------------------------
+!     -----------------------------------------------------------------   40.00
 !
 ! 13. Source text
-!
-   LOGICAL KEYWIS
-   SAVE IENT
-   DATA IENT/0/
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER IVT, IVTYPE
    CALL STRACE (IENT,'SVARTP')
-!
+
    IVTYPE  =  0
-!
+
    CALL INKEYW ('STA', 'ZZZZ')
 !     check if given keyword corresponds to output quantity
    DO IVT = NMOVAR, 1, -1
@@ -2456,45 +2531,57 @@ SUBROUTINE SVARTP (IVTYPE)
 !       e.g. HSWE before HS
       IF (KEYWIS (OVKEYW(IVT))) THEN
          IVTYPE = IVT
-         GOTO 40
+         EXIT
       ENDIF
    ENDDO
 !     aliases:
-   IF (KEYWIS ('PPER')) IVTYPE = 12
-   IF (KEYWIS ('RPER')) IVTYPE = 28
-   IF (KEYWIS ( 'DTM')) IVTYPE = 31
-   IF (KEYWIS ('FWID')) IVTYPE = 33
+   IF (IVTYPE == 0) THEN
+      IF (KEYWIS ('PPER')) IVTYPE = 12
+      IF (KEYWIS ('RPER')) IVTYPE = 28
+      IF (KEYWIS ( 'DTM')) IVTYPE = 31
+      IF (KEYWIS ('FWID')) IVTYPE = 33
 !     keyword OUTPUT means that output times will be entered              40.00
-   IF (KEYWIS ('OUT')) IVTYPE = 98
+      IF (KEYWIS ('OUT')) IVTYPE = 98
 !     keyword ZZZZ means end of list of output quantities                 40.00
-   IF (KEYWIS ('ZZZZ')) IVTYPE = 999
-!
+      IF (KEYWIS ('ZZZZ')) IVTYPE = 999
+   END IF
+
    IF (IVTYPE .EQ. 0) CALL WRNKEY
-!
-40 RETURN
+
 !     end of subroutine SVARTP *
-END
+end subroutine SVARTP
 !************************************************************************
-!                                                                       *
+
 SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
-!                                                                       *
+
 !************************************************************************
-!
-   USE OCPCOMM2
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
+
+   USE swan_coordinate_input, ONLY: READXY, REFIXY
+   USE swan_services, ONLY: CVMESH
+   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, WRNKEY
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_boundary_counters
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE M_BNDSPEC
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
    USE SwanGridobjects
    USE SwanCompdata
-!METIS   USE SwanParallel
-!
-   IMPLICIT NONE
-!
-!
+   USE swan_metis_partition_backend, ONLY: &
+      metis_collect_boundary_points, metis_enabled
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2572,22 +2659,24 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !
 ! i   XCGRID: Coordinates of computational grid in x-direction            30.82
 ! i   YCGRID: Coordinates of computational grid in y-direction            30.82
-!
+
    REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
-!
+
 !     KGRBND  int   inp    grid indices of boundary points                40.31
 !     KGRPNT  int   inp    indirect addresses of grid points
 !     XYTST   int   inp    ix, iy of test points
-!
+
    INTEGER KGRPNT(MXC,MYC)
    INTEGER XYTST(*),  KGRBND(*)
-!
+
 !  5. Parameter variables
 !
 !
 !  6. Local variables
-!
-   INTEGER   IENT,KOUNTR,IX1,IY1,IX2,IY2
+
+   CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   KOUNTR,IX1,IY1,IX2,IY2
    INTEGER   MM,IX,IY,ISIDM,ISIDE,KC,KC2,KC1,IX3,IY3,MP
    INTEGER   IP,II,NBSPSS,NFSEQ,IKO,IKO2,IBSPC1,IBSPC2
    INTEGER   VM
@@ -2601,10 +2690,10 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
    REAL      RLEN1,RDIST,RLEN2,XC1,YC1,XC2,YC2,W1
    REAL      DET, DXLOC, DYLOC, X1, Y1, X2, Y2, X3, Y3
 
-   LOGICAL   KEYWIS, LOCGRI, CCW, BPARF, BOUNPT, DONALL
+   LOGICAL :: LOCGRI, CCW, BPARF, DONALL
    LOGICAL   LFRST1, LFRST2, LFRST3
    LOGICAL, SAVE :: BNDDONE = .FALSE.
-   LOGICAL   SwanPointinMesh
+!  (local LOGICAL declaration removed: SwanPointinMesh is now a module function)
 
    INTEGER   NUMP
 
@@ -2619,7 +2708,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
    TYPE XYPT
       INTEGER             :: JX, JY
       TYPE(XYPT), POINTER :: NEXTXY
-   END TYPE XYPT
+   end type XYPT
 
    TYPE(XYPT), TARGET  :: FRST
    TYPE(XYPT), POINTER :: CURR, TMP
@@ -2628,15 +2717,12 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 
    TYPE(verttype), DIMENSION(:), POINTER :: vert
    TYPE(facetype), DIMENSION(:), POINTER :: face
-!
+
 !  8. Subroutines used
 !
 !       Ocean Pack command reading routines
 !       BOUNPT
-!
-   LOGICAL STPNOW
-   LOGICAL EQREAL
-!
+
 !  9. Subroutines calling
 !
 !       SWREAD
@@ -2690,35 +2776,35 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !
 ! 13. Source text
 
-   SAVE IENT
-   DATA IENT/0/
    CALL STRACE (IENT,'SWBOUN')
-!
+
 !     point to vertex and face objects
-!
+
    vert => gridobject%vert_grid
    face => gridobject%face_grid
-!
+
    IF (.NOT.BNDDONE) THEN
       IF (OPTG.EQ.5) THEN
-!
+
 !           in case of unstructured grid, make list of boundary points
 !           in ascending order
-!
+
          CALL SwanBpntlist
          IF (STPNOW()) RETURN
-!METIS!
-!METIS!           next, gather the lists of boundary points to all processes    43.01
-!METIS!
-!METIS         CALL SwanCollBpntlist
-!METIS         IF (STPNOW()) RETURN
-!
+
+!           next, gather the lists of boundary points to all processes
+
+         IF (metis_enabled) THEN
+            CALL metis_collect_boundary_points()
+            IF (STPNOW()) RETURN
+         ENDIF
+
          IF (ITEST.GE.50.AND.IAMMASTER) THEN
             NB = SIZE(blist,1)
             K  = SIZE(blist,2)
             IF (.NOT.PARLL) K = 1
             WRITE(PRTEST,*) &
-                        'test BLIST of the sea/mainland boundary '
+               'test BLIST of the sea/mainland boundary '
             KOUNTR = 0
             DO IPP = 1, K
                DO IP = 1, NB
@@ -2740,9 +2826,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                ENDDO
             ENDDO
          ENDIF
-!
+
 !           store global indices of boundary vertices in own subdomain    43.01
-!
+
          IF ( PARLL ) THEN
             NB = nverts - count(mask=vmark==0 .or. vmark>=excmark)
             ALLOCATE(bvertg(NB,2))
@@ -2766,19 +2852,19 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                ENDIF
             ENDDO
          ENDIF
-!
+
       ELSE
-!
+
 !           generate output curves BOUNDARY and BOUND_** for structured grids
-!
+
          CALL SwanBndStruc ( XCGRID, YCGRID )
       ENDIF
       BNDDONE = .TRUE.
    ENDIF
-!
+
    CALL INKEYW ('REQ',' ')
    IF (KEYWIS ('SHAP')) THEN
-!
+
 !           specification of the spectral shape
 !
 ! =========================================================================
@@ -2798,7 +2884,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !                     | -> POWer  |
 !
 ! =========================================================================
-!
+
       CALL INKEYW ('STA', 'JON')
       IF (KEYWIS ('JON')) THEN
          FSHAPE = 2
@@ -2833,11 +2919,10 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          CALL IGNORE ('POW')
          DSHAPE = 2
       ENDIF
-      IF (ITEST.GE.30) WRITE (PRINTF,6100) FSHAPE, DSHAPE
-6100  FORMAT (' Shape of inc. spectrum, Freq:', I2, ' ; Dir:', I2)
-!
+      IF (ITEST.GE.30) WRITE (PRINTF,"(' Shape of inc. spectrum, Freq:', I2, ' ; Dir:', I2)") FSHAPE, DSHAPE
+
    ELSE IF (KEYWIS ('WAMN')) THEN
-!
+
 !       SWAN in WAM nesting                                               30.04
 !
 !      =======================================================================
@@ -2851,15 +2936,15 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !                                    | FREE                     |
 !
 !      =======================================================================
-!
+
       IF (MXC .LE. 0 .AND. OPTG.NE.5) THEN
          CALL MSGERR(3, ' command CGRID must precede this command')
-         GOTO 900
+         RETURN
       ENDIF
       IF (MCGRD .LE. 1 .AND. nverts .LE. 0) THEN
          CALL MSGERR(3, &
             ' command READ BOT or READ UNSTRUC must precede this command')
-         GOTO 900
+         RETURN
       ENDIF
       IF (.NOT.ALOBND) THEN
          NBGRPT = 0
@@ -2868,18 +2953,18 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          NBGGL  = 0
          ALOBND = .TRUE.
       ENDIF
-!
+
       IF (OPTG.EQ.5) THEN
          CALL MSGERR(2, &
-                   ' WAM b.c. are not supported in unstructured grid')
-         GOTO 900
+            ' WAM b.c. are not supported in unstructured grid')
+         RETURN
       ENDIF
-!
+
       NBFILS = NBFILS + 1
       ALLOCATE(BFLTMP)
       CALL INCSTR ('FNAME',FILENM,'REQ', ' ')
       CALL BCWAMN (FILENM, 'NEST', BFLTMP, &
-                   XCGRID, YCGRID, KGRPNT, XYTST)
+         XCGRID, YCGRID, KGRPNT, XYTST)
       IF (STPNOW()) RETURN
       NULLIFY(BFLTMP%NEXTBSPC)
       IF ( .NOT.LBFILS ) THEN
@@ -2890,9 +2975,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          CUBFL%NEXTBSPC => BFLTMP
          CUBFL => BFLTMP
       END IF
-!
+
    ELSE IF (KEYWIS('WW3').OR.KEYWIS('WWIII')) THEN
-!
+
 !       SWAN in WaveWatch nesting                                         40.05
 !
 !      =======================================================================
@@ -2900,15 +2985,15 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !       BOUndnest3  WW3 'fname' <               > <           > [xgc] [ygc]
 !                                | FREe        |   |    OPEN |
 !      =======================================================================
-!
+
       IF (MXC .LE. 0 .AND. OPTG.NE.5) THEN
          CALL MSGERR(3, ' command CGRID must precede this command')
-         GOTO 900
+         RETURN
       ENDIF
       IF (MCGRD .LE. 1 .AND. nverts .LE. 0) THEN
          CALL MSGERR(3, &
             ' command READ BOT or READ UNSTRUC must precede this command')
-         GOTO 900
+         RETURN
       ENDIF
       IF (.NOT.ALOBND) THEN
          NBGRPT = 0
@@ -2917,18 +3002,18 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          NBGGL  = 0
          ALOBND = .TRUE.
       ENDIF
-!
+
       IF (OPTG.EQ.5) THEN
          CALL MSGERR(2, &
-                 ' WWIII b.c. are not supported in unstructured grid')
-         GOTO 900
+            ' WWIII b.c. are not supported in unstructured grid')
+         RETURN
       ENDIF
-!
+
       NBFILS = NBFILS + 1
       ALLOCATE(BFLTMP)
       CALL INCSTR ('FNAME',FILENM,'REQ', ' ')
       CALL BCWW3N (FILENM, 'NEST', BFLTMP, &
-                   XCGRID, YCGRID, KGRPNT, XYTST, KGRBND)
+         XCGRID, YCGRID, KGRPNT, XYTST, KGRBND)
       IF (STPNOW()) RETURN
       NULLIFY(BFLTMP%NEXTBSPC)
       IF ( .NOT.LBFILS ) THEN
@@ -2939,24 +3024,24 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          CUBFL%NEXTBSPC => BFLTMP
          CUBFL => BFLTMP
       END IF
-!
+
    ELSE IF (KEYWIS ('NE')) THEN
-!
+
 !       Nesting SWAN model in larger SWAN model
 ! ==========================================
 !                                | -> CLOS |                              40.05
 !     BOUndnest1  NEst 'fname'  <           >
 !                                |  OPEN   |                              40.05
 ! ==========================================
-!
+
       IF (MXC .LE. 0 .AND. OPTG.NE.5) THEN
          CALL MSGERR(3, ' command CGRID must precede this command')
-         GOTO 900
+         RETURN
       ENDIF
       IF (MCGRD .LE. 1 .AND. nverts .LE. 0) THEN
          CALL MSGERR(3, &
             ' command READ BOT or READ UNSTRUC must precede this command')
-         GOTO 900
+         RETURN
       ENDIF
       IF (.NOT.ALOBND) THEN
          NBGRPT = 0
@@ -2965,7 +3050,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          NBGGL  = 0
          ALOBND = .TRUE.
       ENDIF
-!
+
       NBFILS = NBFILS + 1
       ALLOCATE(BFLTMP)
       CALL INCSTR ('FNAME',FILENM,'REQ', ' ')
@@ -2986,8 +3071,8 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
       ENDIF
 
       CALL BCFILE (FILENM, 'NEST', BFLTMP, &
-                   XCGRID, YCGRID, KGRPNT, XYTST,  KGRBND, &
-                   DONALL)
+         XCGRID, YCGRID, KGRPNT, XYTST,  KGRBND, &
+         DONALL)
       IF (STPNOW()) RETURN
       NULLIFY(BFLTMP%NEXTBSPC)
       IF ( .NOT.LBFILS ) THEN
@@ -2998,9 +3083,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          CUBFL%NEXTBSPC => BFLTMP
          CUBFL => BFLTMP
       END IF
-!
+
    ELSE
-!
+
 !       parametric or file boundary condition
 !
 !      ======================================================================
@@ -3028,15 +3113,15 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !                          |  FILE < [len] 'fname' [seq] >          |
 !
 !      ======================================================================
-!
+
       IF (MXC .LE. 0 .AND. OPTG.NE.5) THEN
          CALL MSGERR(3, ' command CGRID must precede this command')
-         GOTO 900
+         RETURN
       ENDIF
       IF (MCGRD .LE. 1 .AND. nverts .LE. 0) THEN
          CALL MSGERR(3, &
             ' command READ BOT or READ UNSTRUC must precede this command')
-         GOTO 900
+         RETURN
       ENDIF
       IF (.NOT.ALOBND) THEN
          NBGRPT = 0
@@ -3045,11 +3130,11 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          NBGGL  = 0
          ALOBND = .TRUE.
       ENDIF
-!
+
 !       first define side or segment
 !
 !       *** definition of boundary segment ***
-!
+
       CALL INKEYW ('REQ',' ')
       IF (KEYWIS ('STAT')) THEN
          CALL MSGERR (1, 'keyword STAT ignored')
@@ -3077,64 +3162,62 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          DO
             IF (LOCGRI) THEN
                CALL READXY ('XP','YP',XP,YP, 'REP', -1.E10, -1.E10)
-               IF (XP.LT.-.9E10) GOTO 42
+               IF (XP.LT.-.9E10) EXIT
                IF (OPTG.NE.5) THEN
 !             --- structured grid
-!
+
                   CALL CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID, YCGRID, &
-                               KGRBND)
+                     KGRBND)
                   IX2 = NINT(XC) + 1
                   IY2 = NINT(YC) + 1
                   IF (.NOT.BOUNPT(IX2,IY2,KGRPNT)) THEN
                      CALL MSGERR (2, 'invalid boundary point')
-                     WRITE (PRTEST, 38) XP+XOFFS, YP+YOFFS, XC, YC, &
-                                        IX2, IY2
-38                   FORMAT (' segment point ', 2F10.2, &
-                             ' grid ', 2F8.2, 2I4)
+                     WRITE (PRTEST, "(' segment point ', 2F10.2, ' grid ', 2F8.2, 2I4)") XP+XOFFS, YP+YOFFS, XC, YC, &
+                        IX2, IY2
                   ENDIF
                ELSE
 !             --- unstructured grid
-!
+
                   CALL SwanFindPoint ( XP, YP, IX2 )
-!
+
 !                --- find global index of (XP,YP)                         43.01
-!
+
                   IF ( PARLL ) THEN
                      IF ( IX2.GT.0 ) THEN
                         IXG2 = ivertg(IX2)
                      ELSE
                         IXG2 = -999
                      ENDIF
-                     CALL SWREDUCE( IXG2, 1, SWINT, SWMAX )
+                     CALL SWREDUCE( IXG2, 1, SWMAX )
                   ELSE
                      IXG2 = IX2
                   ENDIF
                   IF ( IXG2.LT.0 ) THEN
                      WRITE (MSGSTR, '(A,F12.4,A,F12.4,A)') &
-                               ' Boundary point (',XP+XOFFS,',',YP+YOFFS, &
-                                       ') not part of computational grid'
+                        ' Boundary point (',XP+XOFFS,',',YP+YOFFS, &
+                        ') not part of computational grid'
                      CALL MSGERR( 2, TRIM(MSGSTR) )
                   ENDIF
                   IF ( IX2.GT.0 .AND. vert(IX2)%atti(VMARKER) /= 1 ) THEN
                      WRITE (MSGSTR, '(A,F12.4,A,F12.4,A)') &
-                                       ' Vertex (',XP+XOFFS,',',YP+YOFFS, &
-                                        ') is not a valid boundary point'
+                        ' Vertex (',XP+XOFFS,',',YP+YOFFS, &
+                        ') is not a valid boundary point'
                      CALL MSGERR( 2, TRIM(MSGSTR) )
                   ENDIF
                ENDIF
             ELSE
                IF (OPTG.NE.5) THEN
                   CALL ININTG ('I' , IX2, 'REP', -1)
-                  IF (IX2 .LT. 0) GOTO 42
+                  IF (IX2 .LT. 0) EXIT
                   CALL ININTG ('J' , IY2, 'REQ',  0)
                   IX2 = IX2 + 1
                   IY2 = IY2 + 1
                ELSE
                   CALL ININTG ('K' , IXG2, 'REP', -1)
-                  IF (IXG2 .LT. 0) GOTO 42
+                  IF (IXG2 .LT. 0) EXIT
                   IF (IXG2.LE.0 .OR. IXG2.GT.nvertsg) THEN
                      WRITE (MSGSTR,'(I4,A)') IXG2, &
-                                           ' is not a valid vertex index'
+                        ' is not a valid vertex index'
                      CALL MSGERR( 2, TRIM(MSGSTR) )
                   ENDIF
                   IF ( PARLL ) THEN
@@ -3146,21 +3229,21 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                   ENDIF
                   IF ( IX2.GT.0 .AND. vert(IX2)%atti(VMARKER) /= 1 ) THEN
                      WRITE (MSGSTR,'(A,I4,A)') ' Vertex with index ',IXG2, &
-                                          ' is not a valid boundary point'
+                        ' is not a valid boundary point'
                      CALL MSGERR( 2, TRIM(MSGSTR) )
                   ENDIF
                ENDIF
             ENDIF
-            IF (ITEST.GE.80 .AND. OPTG.NE.5) WRITE (PRTEST, 38) &
-                      XCGRID(IX2,IY2)+XOFFS, &
-                      YCGRID(IX2,IY2)+YOFFS, XC, YC, IX2-1, IY2-1
-!
+            IF (ITEST.GE.80 .AND. OPTG.NE.5) WRITE (PRTEST, "(' segment point ', 2F10.2, ' grid ', 2F8.2, 2I4)") &
+               XCGRID(IX2,IY2)+XOFFS, &
+               YCGRID(IX2,IY2)+YOFFS, XC, YC, IX2-1, IY2-1
+
 !           --- generate intermediate points on the segment
             IF ( OPTG.NE.5 ) THEN
 !           --- structured grid                                           40.80
-!
+
                IF (IX2 .GT. 0 .AND. IX2 .LE. MXC .AND. &
-                   IY2 .GT. 0 .AND. IY2 .LE. MYC) THEN
+                  IY2 .GT. 0 .AND. IY2 .LE. MYC) THEN
                   IF (LFRST1) THEN
                      MM = 1
                      LFRST1 = .FALSE.
@@ -3169,7 +3252,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                   ENDIF
                   DO IP = 1, MM
                      RR = REAL(IP) / REAL(MM)
-!
+
                      IF (.NOT. ONED) THEN
                         IX = IX1 + NINT(RR*REAL(IX2-IX1))
                         IY = IY1 + NINT(RR*REAL(IY2-IY1))
@@ -3177,9 +3260,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                         IX = IX1 + NINT(RR*REAL(IX2-IX1))
                         IY = IY1
                      END IF
-!
+
                      IF (ITEST.GE.80) WRITE (PRTEST, *) ' b. point ', &
-                           RR, IX, IY
+                        RR, IX, IY
                      IF (KGRPNT(IX,IY) .GT. 1) THEN
                         KOUNTR = KOUNTR + 1
                         ALLOCATE(TMP)
@@ -3192,21 +3275,20 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                   ENDDO
                ELSE
                   MSGSTR =''
-                  write (MSGSTR, 117) IX2-1, IY2-1
-117               format ('(',2I5, ') is outside computational grid')
+                  write (MSGSTR, "('(',2I5, ') is outside computational grid')") IX2-1, IY2-1
                   CALL MSGERR (2, MSGSTR)
                ENDIF
                IY1 = IY2
             ELSE
 !           --- unstructured grid                                         40.80
-!
+
                IF (LFRST1) THEN
                   IF ( IX2.GT.0 ) THEN
                      JBG = vert(IX2)%atti(BPOL)
                   ELSE
                      JBG = -1
                   ENDIF
-                  CALL SWREDUCE( JBG, 1, SWINT, SWMAX )
+                  CALL SWREDUCE( JBG, 1, SWMAX )
                   ITMP = MINLOC(ABS(blist(:,JBG)-IXG2))
                   IXB1 = ITMP(1)
                   DET  = 1.
@@ -3217,10 +3299,10 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                   ELSE
                      JBG = -1
                   ENDIF
-                  CALL SWREDUCE( JBG, 1, SWINT, SWMAX )
+                  CALL SWREDUCE( JBG, 1, SWMAX )
                   ITMP = MINLOC(ABS(blist(:,JBG)-IXG1))
                   IXB1 = ITMP(1)
-!
+
 !                 1) the wave spectrum along the given segment can be
 !                    imposed in counterclockwise or clockwise direction
 !                 2) content of array blist is ordered in counterclockwise
@@ -3233,14 +3315,14 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !                 first endpoint of segment
                   X1 = xcugrdgl(IXG1)
                   Y1 = ycugrdgl(IXG1)
-!
+
 !                 second endpoint of segment
                   X2 = xcugrdgl(IXG2)
                   Y2 = ycugrdgl(IXG2)
-!
+
 !                 an arbitrary internal point                             40.92
                   DXLOC = mingsiz
-                  CALL SWREDUCE ( DXLOC, 1, SWREAL, SWMIN )
+                  CALL SWREDUCE ( DXLOC, 1, SWMIN )
                   DYLOC = DXLOC
                   DO IP = 1, 4
                      X3 = X1 - DXLOC
@@ -3250,7 +3332,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                      ELSE
                         IXG = -1
                      ENDIF
-                     CALL SWREDUCE( IXG, 1, SWINT, SWMAX )
+                     CALL SWREDUCE( IXG, 1, SWMAX )
                      IF ( JBG.GT.1 .AND. IXG.LT.0 ) THEN
                         X3 = X1 + DXLOC
                         Y3 = Y1 + DYLOC
@@ -3264,7 +3346,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                         DYLOC = -DYLOC
                      ENDIF
                   ENDDO
-!
+
                   DET= (Y3-Y1)*(X2-X1)-(Y2-Y1)*(X3-X1)
                   IF (DET.GT.0.) THEN
 !                    take next boundary point in counterclockwise
@@ -3277,7 +3359,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                ENDIF
                ITMP = MINLOC(ABS(blist(:,JBG)-IXG2))
                IXB2 = ITMP(1)
-!
+
 !              determine order of counting
                IF (IXB1.GT.IXB2 ) THEN
                   IF (DET.LT.0.) THEN
@@ -3294,7 +3376,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                      IXB1 = IXB1+nbpt(JBG)
                   ENDIF
                ENDIF
-!
+
                DO IPP = IXB1, IXB2, IXI
                   IP = MOD(IPP,nbpt(JBG))
                   IF (IP.EQ.0) IP = nbpt(JBG)
@@ -3316,10 +3398,10 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             IX1  = IX2
             IXG1 = IXG2
          END DO
-42       IF (KOUNTR.EQ.0) &
-                     CALL MSGERR(1,'No points on the boundaries found')
+         IF (KOUNTR.EQ.0) &
+            CALL MSGERR(1,'No points on the boundaries found')
          IF (KOUNTR.EQ.1) CALL MSGERR (1, &
-             'At least two points needed for a segment')
+            'At least two points needed for a segment')
       ELSE
 !         boundary condition on one side of the computational grid
          IF (OPTG.EQ.3) THEN
@@ -3353,9 +3435,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          ELSE
             CALL ININTG ('K', VM, 'REQ', 0)
          ENDIF
-!
+
 !         --- go along boundary clockwise or counterclockwise (default)
-!
+
          CALL INKEYW ('STA', 'CCW')
          IF (KEYWIS('CLOCKW')) THEN
             CCW = .FALSE.
@@ -3363,9 +3445,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             CALL IGNORE ('CCW')
             CCW = .TRUE.
          ENDIF
-!
+
 !         select side in the chosen direction
-!
+
          IF ( OPTG.NE.5 ) THEN
             CRDM   = -1.E10
             ISIDM  = 0
@@ -3470,17 +3552,15 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                         ISIDM = ISIDE
                      ENDIF
                   ENDIF
-                  IF (ITEST.GE.60) WRITE (PRTEST, 151) ISIDE, NUMP, &
+                  IF (ITEST.GE.60) WRITE (PRTEST, "(' side ', 2I4, 2(1X,E11.4), 2(1X,F5.0), 2X, F6.3, 2X, L1)") ISIDE, NUMP, &
                      SOMX, SOMY, DIRSID*180/PI, DIRREF*180/PI, CRDP, CVLEFT
-151               FORMAT (' side ', 2I4, 2(1X,E11.4), 2(1X,F5.0), 2X, &
-                          F6.3, 2X, L1)
                ENDDO
             ENDIF
             IF (ISIDM.EQ.0) THEN
                CALL MSGERR (2, 'No open boundary found')
             ENDIF
-!
-90          IF (ISIDM.EQ.1) THEN
+
+            IF (ISIDM.EQ.1) THEN
                IX1 = 1
                IY1 = 1
                IX2 = MXC
@@ -3510,11 +3590,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                IX2 = IX3
                IY2 = IY3
             ENDIF
-            IF (ITEST.GE.50) WRITE (PRINTF, 112) ISIDM, &
+            IF (ITEST.GE.50) WRITE (PRINTF, "(' Selected side:', I2, ' from ', 2I4, 2F9.0, ' to ', 2I4, 2F9.0)") ISIDM, &
                IX1-1, IY1-1, XCGRID(IX1,IY1)+XOFFS, YCGRID(IX1,IY1)+YOFFS, &
                IX2-1, IY2-1, XCGRID(IX2,IY2)+XOFFS, YCGRID(IX2,IY2)+YOFFS
-112         FORMAT (' Selected side:', I2, ' from ', 2I4, 2F9.0, &
-               ' to ', 2I4, 2F9.0)
             MP = MAX(ABS(IX2-IX1),ABS(IY2-IY1))
             DO IP = 0, MP
                IF (MP.EQ.0) THEN
@@ -3536,13 +3614,13 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             ENDDO
          ELSE
             ! unstructured grid
-            !
+
             DO JBG = 1, nbpol
-               !
+
                ! first boundary polyogon is assumed an outer one
                ! (sea/mainland boundary) and hence, content of blist
                ! is ordered in counterclockwise manner
-               !
+
                IF ( JBG==1 .EQV. CCW ) THEN
                   IXB1 = 1
                   IXB2 = nbpt(JBG)
@@ -3552,7 +3630,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                   IXB2 = 1
                   IXI  = -1
                ENDIF
-               !
+
                ALLOCATE(IARR1(nbpt(JBG)))
                K = 0
                IF ( .NOT.PARLL ) THEN
@@ -3571,9 +3649,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                      ENDIF
                   ENDDO
                ENDIF
-               !
+
                IF ( K/=0 ) THEN
-                  !
+
                   ALLOCATE(IARR2(K))
                   IARR2(1:K) = IARR1(1:K)
                   ISH = 0
@@ -3584,7 +3662,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                      ENDIF
                   ENDDO
                   IARR2 = CSHIFT(IARR2,ISH)
-                  !
+
                   DO IPP = 1, K
                      IP = IARR2(IPP)
                      IXG  = blist(IP,JBG)
@@ -3602,17 +3680,17 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                      CURR => TMP
                   ENDDO
                   DEALLOCATE(IARR2)
-                  !
+
                ENDIF
                DEALLOCATE(IARR1)
-               !
+
             ENDDO
-           !
+
          ENDIF
       ENDIF
-!
+
 !       *** boundary condition from file, 1-d or 2-d spectrum
-!
+
       CURR => FRST%NEXTXY
       CALL INKEYW ('REQ',' ')
       IF (KEYWIS('UNIF') .OR. KEYWIS('CON') .OR. KEYWIS('PAR')) THEN
@@ -3625,10 +3703,10 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             IF (DSHAPE.EQ.1) THEN
                CALL INREAL ('DD',  SPPARM(4), 'STA', 30.)
                IF ((SPPARM(4).GT.360. .OR. SPPARM(4).LT. 0.).AND. &
-                   .NOT.(EQREAL(SPPARM(4),OVEXCV(16)))) THEN
+                  .NOT.(EQREAL(SPPARM(4),OVEXCV(16)))) THEN
                   CALL MSGERR (2,'Directional spreading is less than '// &
-                                '0 or larger than 360 degrees, and no '// &
-                                'exception value')
+                     '0 or larger than 360 degrees, and no '// &
+                     'exception value')
                END IF
             ELSE
                CALL INREAL ('DD',  SPPARM(4), 'STA', 2.)
@@ -3637,17 +3715,16 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                      'Power of cosine is less or equal to zero')
                END IF
                IF (.NOT.LSPNAR .AND. &
-                   SPPARM(4)*DDIR**2/2. .GT. 1.) THEN
+                  SPPARM(4)*DDIR**2/2. .GT. 1.) THEN
                   CALL MSGERR (2, &
                      'distribution too narrow to be represented properly')
-                  WRITE (PRINTF, 142) SQRT(2./SPPARM(4))*180./PI
-142               FORMAT (' Advise: choose Dtheta < ', F8.3, ' degr')
+                  WRITE (PRINTF, "(' Advise: choose Dtheta < ', F8.3, ' degr')") SQRT(2./SPPARM(4))*180./PI
                   LSPNAR = .TRUE.
                END IF
             ENDIF
             NBSPEC = NBSPEC + 1
             IF (ITEST.GE.80) WRITE (PRTEST,*) ' bound. spectr.', &
-                         NBSPEC, (SPPARM(II), II=1,4)
+               NBSPEC, (SPPARM(II), II=1,4)
             NBSPSS = NBSPEC
             ALLOCATE(BSTMP)
             BSTMP%NBS    = NBSPEC
@@ -3670,8 +3747,8 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             NBSPSS = NBSPEC
             ALLOCATE(BFLTMP)
             CALL BCFILE (FILENM, 'PNTS', BFLTMP, &
-                         XCGRID, YCGRID, KGRPNT, XYTST, KGRBND, &
-                         DONALL)
+               XCGRID, YCGRID, KGRPNT, XYTST, KGRBND, &
+               DONALL)
             IF (STPNOW()) RETURN
             NULLIFY(BFLTMP%NEXTBSPC)
             IF ( .NOT.LBFILS ) THEN
@@ -3724,7 +3801,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          IBSPC1 = 1
          LFRST1 = .TRUE.
          LFRST2 = .TRUE.
-         DO
+         boundary_parameters: DO
             IF (LFRST1) THEN
                CALL INREAL('LEN', RLEN2, 'REQ', 0.)
                LFRST1 = .FALSE.
@@ -3735,8 +3812,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                IF (IKO.GT.KOUNTR) THEN
                   CALL MSGERR(1, &
                      'Length of segment short, boundary values ignored')
-                  WRITE (PRINTF, 332) RDIST, RLEN2
-332               FORMAT (' segment length=', F9.2, '; [len]=', F9.2)
+                  WRITE (PRINTF, "(' segment length=', F9.2, '; [len]=', F9.2)") RDIST, RLEN2
                ENDIF
                IF (BPARF) THEN
                   CALL INREAL ('HS',  SPPARM(1), 'REQ', 0.)
@@ -3746,22 +3822,22 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                   IF (DSHAPE.EQ.1) THEN
                      CALL INREAL ('DD',  SPPARM(4), 'STA', 30.)
                      IF ((SPPARM(4).GT.360. .OR. SPPARM(4).LT. 0.).AND. &
-                         .NOT.(EQREAL(SPPARM(4),OVEXCV(16)))) THEN
+                        .NOT.(EQREAL(SPPARM(4),OVEXCV(16)))) THEN
                         CALL MSGERR (2,'Directional spreading is less ' // &
-                                       'than 0 or larger than 360 '// &
-                                       'degrees and no exception value')
+                           'than 0 or larger than 360 '// &
+                           'degrees and no exception value')
                      END IF
                   ELSE
                      CALL INREAL ('DD',  SPPARM(4), 'STA', 2.)
                      IF (SPPARM(4).LE. 0.) THEN
                         CALL MSGERR (2,'Power of cosine is less or equal '// &
-                                       'to zero')
+                           'to zero')
                      END IF
                      IF (.NOT.LSPNAR .AND. &
-                         SPPARM(4)*DDIR**2/2. .GT. 1.) THEN
+                        SPPARM(4)*DDIR**2/2. .GT. 1.) THEN
                         CALL MSGERR (2, &
                            'distribution too narrow to be represented properly')
-                        WRITE (PRINTF, 142) SQRT(2./SPPARM(4))*180./PI
+                        WRITE (PRINTF, "(' Advise: choose Dtheta < ', F8.3, ' degr')") SQRT(2./SPPARM(4))*180./PI
                         LSPNAR = .TRUE.
                      END IF
                   ENDIF
@@ -3794,8 +3870,8 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                      NBSPSS = NBSPEC
                      ALLOCATE(BFLTMP)
                      CALL BCFILE (FILENM, 'PNTS', BFLTMP, &
-                            XCGRID, YCGRID, KGRPNT, XYTST, KGRBND, &
-                            DONALL)
+                        XCGRID, YCGRID, KGRPNT, XYTST, KGRBND, &
+                        DONALL)
                      IF (STPNOW()) RETURN
                      NULLIFY(BFLTMP%NEXTBSPC)
                      IF ( .NOT.LBFILS ) THEN
@@ -3810,13 +3886,13 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                   CALL ININTG ('SEQ', NFSEQ, 'STA', 1)
                   IBSPC2 = NBSPSS + NFSEQ
                   IF (IBSPC2.GT.NBSPEC) &
-                        CALL MSGERR (1,'too large value for SEQ')
+                     CALL MSGERR (1,'too large value for SEQ')
                ENDIF
             ELSE
-               IF (IKO.GT.KOUNTR) GOTO 360
+               IF (IKO.GT.KOUNTR) EXIT boundary_parameters
             ENDIF
             LFRST3 = .TRUE.
-            DO
+            boundary_points: DO
                IX = CURR%JX
                IF (OPTG.NE.5) THEN
                   IY = CURR%JY
@@ -3832,7 +3908,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                LFRST3 = .FALSE.
                XC1 = XC2
                YC1 = YC2
-               IF (RDIST.GT.RLEN2) GOTO 340
+               IF (RDIST.GT.RLEN2) EXIT boundary_points
                ALLOCATE(BGPTMP)
                IF (OPTG.NE.5) THEN
                   BGPTMP%BGP(1) = KGRPNT(IX,IY)
@@ -3855,44 +3931,52 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                   CUBGP => BGPTMP
                END IF
                IKO = IKO + 1
-               IF (IKO.GT.KOUNTR) GOTO 340
+               IF (IKO.GT.KOUNTR) EXIT boundary_points
                IF (.NOT.ASSOCIATED(CURR%NEXTXY)) EXIT
                CURR => CURR%NEXTXY
-            ENDDO
+            ENDDO boundary_points
 !           boundary values have been assigned, read new parameters
-340         IF (RLEN2.GT.0.9E20) GOTO 360
+            IF (RLEN2.GT.0.9E20) EXIT boundary_parameters
             RLEN1  = RLEN2
             IBSPC1 = IBSPC2
-         ENDDO
+         ENDDO boundary_parameters
 !         update NBGRPT = number of boundary grid points
-360      NBGRPT = NBGRPT + KOUNTR
+         NBGRPT = NBGRPT + KOUNTR
       ELSE
          CALL WRNKEY
       ENDIF
       IF (ASSOCIATED(TMP)) DEALLOCATE(TMP)
    ENDIF
-900 RETURN
-END
+   RETURN
+end subroutine SWBOUN
 !*********************************************************************
 !                                                                    *
 SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
-                   XCGRID, YCGRID, KGRPNT, &
-                   XYTST,  KGRBND, DONALL)
+   XCGRID, YCGRID, KGRPNT, &
+   XYTST,  KGRBND, DONALL)
 !                                                                    *
 !*********************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM4
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+
+   USE swan_legacy_io, ONLY: INAR2D, COPYCH
+   USE swan_coordinate_input, ONLY: READXY, REFIXY
+   USE swan_file_opening, ONLY: FOR
+   USE swan_input_parser, ONLY: EQCSTR
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: default_command_reader
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_boundary_counters
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_math_constants
+   USE swan_spherical_geometry
    USE M_BNDSPEC
    USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -3956,12 +4040,12 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
 !
 !
 !  4. Argument variables
-!
+
    REAL      XCGRID(MXC,MYC), YCGRID(MXC,MYC)
-!
+
    INTEGER   KGRPNT(MXC,MYC)
    INTEGER   XYTST(*), KGRBND(*)
-!
+
 !       FBCNAM  char  inp    filename of boundary data file
 !       BCTYPE  char  inp    if value is "NEST": nesting b.c.
 !       XCGRID  real  inp    x-coordinate of computational grid points
@@ -3971,27 +4055,29 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
 !
 !     DONALL: logic arguments declare if the nesting  boundary is open or close
 !             it is defined by the users
-!
+
    LOGICAL, INTENT(INOUT)  ::  DONALL
-!
-   CHARACTER FBCNAM *(*), BCTYPE *(*)
+
+   CHARACTER(LEN=*) :: FBCNAM, BCTYPE
 
    TYPE(BSPCDAT) :: BSPFIL
-!
+
 !  5. Parameter variables
 !
 !
 !  6. Local variables
-!
+
    INTEGER :: ISTATF, NDSL, NDSD, IOSTAT, IERR, NBOUNC, NANG, NFRE
    INTEGER :: IBOUNC, DORDER
-   INTEGER :: IENT,IOPTT
+   INTEGER, SAVE :: IENT = 0
+   INTEGER :: IOPTT
    INTEGER :: NHEDF, NHEDT, NHEDS, IFRE , IANG
    INTEGER :: NQUANT, IQUANT, IBC, II, NBGRPT_PREV,IIPT2
    REAL    :: XP, YP, XP2, YP2
    REAL    :: FREQHZ, DIRDEG, DIRRD1,DIRRAD, EXCV
-   CHARACTER BTYPE *4, HEDLIN *80
-!
+   CHARACTER(LEN=4)  :: BTYPE
+   CHARACTER(LEN=80) :: HEDLIN
+
 !    NBGRPT_PREV is the prevous number of NBGRPT
 !    IIPT2 counter use for the chekinf if there are grid points on nested boundary
 !
@@ -3999,9 +4085,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
 !
 !       Ocean Pack command reading routines
 !       SWBCPT : boundary points interpolation
-!
-   LOGICAL STPNOW, EQCSTR
-!
+
 !  9. Subroutines calling
 !
 !       SWREAD
@@ -4056,24 +4140,22 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
 !       -----------------------------------------------------------------
 !
 ! 13. Source text
-!
+
    LOGICAL         CCOORD
 
-   SAVE      IENT
-   DATA      IENT /0/
    CALL STRACE (IENT, 'BCFILE')
-!
+
    NDSL = 0
    IIPT2 = 0
 !     open data file
    NDSD = 0
    IOSTAT = 0
-   CALL FOR (NDSD, FILENM, 'OF', IOSTAT)
+   CALL FOR (NDSD, FBCNAM, 'OF', IOSTAT)
    IF (STPNOW()) RETURN
-!
+
 !     --- initialize array BFILED of BSPFIL                               40.31
    BSPFIL%BFILED = 0
-!
+
 !     start reading from the data file
    READ (NDSD, '(A)') HEDLIN
    IF (EQCSTR(HEDLIN,'TPAR')) THEN
@@ -4090,14 +4172,16 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
       ALLOCATE(BSPFIL%BSPFRQ(NFRE))
       ALLOCATE(BSPFIL%BSPDIR(NANG))
       IF (NSTATM.EQ.0) CALL MSGERR (3, &
-          'time information not allowed in stationary mode')
+         'time information not allowed in stationary mode')
       NSTATM = 1
    ELSE IF (EQCSTR(HEDLIN,'SWAN')) THEN
       NHEDF  = 0
-10    READ (NDSD, '(A)') HEDLIN
-      IF (ITEST.GE.60) WRITE (PRTEST,11) HEDLIN
-!       skip heading lines starting with comment sign ($ as in command file)
-      IF (HEDLIN(1:1).EQ.COMID .OR. HEDLIN(1:1).EQ.'!') GOTO 10
+      DO
+         READ (NDSD, '(A)') HEDLIN
+         IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
+!        skip heading lines starting with comment sign
+         IF (HEDLIN(1:1).NE.default_command_reader%COMID .AND. HEDLIN(1:1).NE.'!') EXIT
+      END DO
       IF (EQCSTR(HEDLIN,'TIME')) THEN
          IF (NSTATM.EQ.0) CALL MSGERR (3, &
             'nonstationary boundary condition not allowed '// &
@@ -4107,8 +4191,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
          BTYPE = 'SWNT'
          READ (NDSD, *) IOPTT
          READ (NDSD, '(A)') HEDLIN
-         IF (ITEST.GE.60) WRITE (PRTEST,11) HEDLIN
-11       FORMAT (' heading line: ', A)
+         IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
          NHEDF = 2
          NHEDT = 1
       ELSE
@@ -4116,7 +4199,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
          BTYPE = 'SWNS'
          NHEDT  = 0
       ENDIF
-!
+
 !       read geographical locations
 !
 !       read number of boundary points
@@ -4147,14 +4230,14 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
             IF (BCTYPE .EQ. 'NEST') THEN
                XP2 = XP
                YP2 = YP
-!
+
 !             --- interpolate the boundaries points to the grid points of
 !                 the SWAN computational grid
-!
+
                NBGRPT_PREV = NBGRPT
                CALL SWBCPT (  XCGRID, YCGRID, &
-                              KGRPNT, XYTST,  KGRBND,XP2,YP2,IBOUNC, &
-                              NBOUNC,DONALL )
+                  KGRPNT, XYTST,  KGRBND,XP2,YP2,IBOUNC, &
+                  NBOUNC,DONALL )
 !             check if the grid points are on nested boundary.
 !             if not, stop the calculation and give an error message
                IF (NBGRPT.NE.NBGRPT_PREV) THEN
@@ -4162,23 +4245,22 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
                ENDIF
             ENDIF
          ENDDO
-!
-         CALL SWREDUCE ( IIPT2, 1, SWINT, SWMAX )
+
+         CALL SWREDUCE ( IIPT2, 1, SWMAX )
          IF ((BCTYPE.EQ.'NEST') .AND. (IIPT2.EQ.0) .AND. IAMMASTER) &
             CALL MSGERR (2,'no grid points on nested boundary')
-!
+
          NHEDF = NHEDF + 2 + NBOUNC
-         IF (ITEST.GE.60) WRITE (PRTEST,16) NBOUNC
-16       FORMAT (I6, ' boundary locations')
+         IF (ITEST.GE.60) WRITE (PRTEST,"(I6, ' boundary locations')") NBOUNC
          READ (NDSD, '(A)') HEDLIN
-         IF (ITEST.GE.60) WRITE (PRTEST,11) HEDLIN
+         IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
       ELSE
          IF (BCTYPE .EQ. 'NEST') THEN
             CALL MSGERR (3, 'this file is not a true nesting file')
          ENDIF
          NBOUNC = 1
       ENDIF
-!
+
 !       read spectral resolution information
 !
 !       number of spectral frequencies
@@ -4191,7 +4273,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
             BSPFIL%BSPFRQ(IFRE) = PI2 * FREQHZ
          ENDDO
          READ (NDSD, '(A)') HEDLIN
-         IF (ITEST.GE.60) WRITE (PRTEST,11) HEDLIN
+         IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
          NHEDF = NHEDF + 2 + NFRE
       ELSE
          NFRE = 0
@@ -4199,8 +4281,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
             CALL MSGERR (3, 'file is not a true nesting file')
          ENDIF
       ENDIF
-      IF (ITEST.GE.60) WRITE (PRTEST,19) NFRE
-19    FORMAT (I6, ' boundary frequencies')
+      IF (ITEST.GE.60) WRITE (PRTEST,"(I6, ' boundary frequencies')") NFRE
 !       number of spectral directions
       IF (EQCSTR(HEDLIN(2:4),'DIR')) THEN
          READ (NDSD, *) NANG
@@ -4241,7 +4322,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
             ENDIF
          ENDDO
          READ (NDSD, '(A)') HEDLIN
-         IF (ITEST.GE.60) WRITE (PRTEST,11) HEDLIN
+         IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
          NHEDF = NHEDF + 2 + NANG
          NHEDS = 1
       ELSE
@@ -4250,18 +4331,16 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
          NHEDS  = 1
          DORDER = 0
       ENDIF
-      IF (ITEST.GE.60) WRITE (PRTEST,23) NANG
-23    FORMAT (I6, ' boundary directions')
-!
+      IF (ITEST.GE.60) WRITE (PRTEST,"(I6, ' boundary directions')") NANG
+
 !       read quantities (name, unit, exc. value)
-!
+
       IF (EQCSTR(HEDLIN,'QUANT')) THEN
          READ (NDSD, *) NQUANT
          IF (.NOT.((NQUANT.EQ.1 .AND. NANG.GT.0) .OR. &
-                   (NQUANT.EQ.3 .AND. NANG.EQ.0))) THEN
+            (NQUANT.EQ.3 .AND. NANG.EQ.0))) THEN
             CALL MSGERR (2, 'incompatible data on b.c. file')
-            WRITE (PRINTF, 31) NQUANT, NANG
-31          FORMAT (I3, ' quantities; ', I5, ' directions')
+            WRITE (PRINTF, "(I3, ' quantities; ', I5, ' directions')") NQUANT, NANG
          ENDIF
          DO IQUANT = 1, NQUANT
             READ (NDSD, '(A)') HEDLIN
@@ -4295,11 +4374,11 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
 !             if third quantity is 'DSPRP' or 'POWER' power is given,
 !             otherwise calculate power from dir. spread in degrees
                IF (EQCSTR(HEDLIN,'DSPRP') .OR. &
-                   EQCSTR(HEDLIN,'POWER')) THEN
+                  EQCSTR(HEDLIN,'POWER')) THEN
 !               quantity on file is power of cos
                   BSPFIL%BFILED(19) = 2
                ELSE IF (EQCSTR(HEDLIN,'DSPR') .OR. &
-                        EQCSTR(HEDLIN,'DEGR')) THEN
+                  EQCSTR(HEDLIN,'DEGR')) THEN
 !               quantity on file is Directional spread in degr
                   BSPFIL%BFILED(19) = 1
                ELSE
@@ -4325,20 +4404,19 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
          ENDDO
          NHEDF = NHEDF + 2 + 3*NQUANT
       ENDIF
-      IF (ITEST.GE.60) WRITE (PRTEST,28) NQUANT
-28    FORMAT (I6, ' quantities')
+      IF (ITEST.GE.60) WRITE (PRTEST,"(I6, ' quantities')") NQUANT
    ELSE
       CALL MSGERR (3, 'unsupported boundary data file')
    ENDIF
-!
+
    ALLOCATE(BSPFIL%BSPLOC(NBOUNC))
    DO IBC = 1, NBOUNC
       BSPFIL%BSPLOC(IBC) = NBSPEC + IBC
    ENDDO
    NBSPEC = NBSPEC + NBOUNC
-!
+
 !     store file reading parameters in array BFILED
-!
+
    BSPFIL%BFILED(1)  = ISTATF
    BSPFIL%BFILED(2)  = -999999999
    BSPFIL%BFILED(3)  = -999999999
@@ -4356,32 +4434,39 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
    BSPFIL%BFILED(14) = NHEDF
    BSPFIL%BFILED(15) = NHEDT
    BSPFIL%BFILED(16) = NHEDS
-!
-   IF (ITEST.GE.80) WRITE(PRINTF,81) NBFILS, NBSPEC, &
-         (BSPFIL%BFILED(II), II=1,16)
-81 FORMAT (' array BFILED: ', 2I4, 2(/,8I10))
-!
+
+   IF (ITEST.GE.80) WRITE(PRINTF,"(' array BFILED: ', 2I4, 2(/,8I10))") NBFILS, NBSPEC, &
+      (BSPFIL%BFILED(II), II=1,16)
+
    RETURN
 !     end of subroutine BCFILE
-END
+end subroutine BCFILE
 !*********************************************************************
 !                                                                    *
 SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
-                   XCGRID, YCGRID, KGRPNT, XYTST)
+   XCGRID, YCGRID, KGRPNT, XYTST)
 !                                                                    *
 !*********************************************************************
 
-   USE OCPCOMM2
-   USE OCPCOMM4
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+   USE swan_legacy_io, ONLY: INAR2D, COPYCH
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: IGNORE, ININTG, INKEYW, KEYWIS, INDBLE
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_boundary_counters
+   USE swan_input_field_files
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE M_BNDSPEC
    USE M_PARALL
 
-   IMPLICIT NONE
-!
-!
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -4461,8 +4546,6 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
 !  6. SUBROUTINES USED
 !
 !       Ocean Pack command reading routines
-!
-   LOGICAL :: STPNOW
 
 !  7. ERROR MESSAGES
 !
@@ -4514,17 +4597,17 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
 !       -----------------------------------------------------------------
 !
 ! 10. SOURCE TEXT
-!
+
    INTEGER   KGRPNT(MXC,MYC), XYTST(*)
    REAL      XCGRID(MXC,MYC), YCGRID(MXC,MYC)
    TYPE(BSPCDAT) :: BSPFIL
-   CHARACTER FBCNAM *(*), BCTYPE *(*)
-!
+   CHARACTER(LEN=*) :: FBCNAM, BCTYPE
+
 !     local variables
-!
+
    INTEGER   ISTATF, NDSL, NDSD, IOSTAT, IERR, NBOUNC, NANG, NFRE, &
-             IBOUNC, IX1, IY1, IX2, IY2, IXP, IYP, IP, MIP, INDXGR, &
-             DORDER, IOPTT
+      IBOUNC, IX1, IY1, IX2, IY2, IXP, IYP, IP, MIP, INDXGR, &
+      DORDER, IOPTT
 !     ISTATF    if >0 file contains nonstationary data
 !     NDSL      unit ref num of namelist file
 !     NDSD      unit ref num of data file
@@ -4557,8 +4640,8 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
    INTEGER :: IBSP1, IBSP2 ! counters of nesting points
 
    REAL      XP, YP, XP1, YP1, XP2, YP2, RR, RX, RY, RL2, &
-             XANG, XFRE, THD, FR1, CO, XBOU, XDELC, &
-             XLON, XLAT, XDATE, EMEAN, THQ, FMEAN
+      XANG, XFRE, THD, FR1, CO, XBOU, XDELC, &
+      XLON, XLAT, XDATE, EMEAN, THQ, FMEAN
 !     XP        problem coordinate of a comp. grid point on the boundary
 !     YP        problem coordinate of a comp. grid point on the boundary
 !     XP1       problem coordinate of a boundary location
@@ -4570,11 +4653,11 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
 !     RY        vector connecting two boundary locations
 !     RL2       length **2 of vector connecting two boundary locations
 
-   DOUBLE PRECISION, ALLOCATABLE :: XPWAM(:), YPWAM(:)
+   REAL(KIND=KIND(0.0D0)), ALLOCATABLE :: XPWAM(:), YPWAM(:)
    REAL, ALLOCATABLE :: SPAUX(:)
    ! locations of nesting points
-   DOUBLE PRECISION :: DXWAM, DYWAM ! spatial step sizes in nesting file
-   DOUBLE PRECISION :: DXTEST, DYTEST ! distance between two nesting points
+   REAL(KIND=KIND(0.0D0)) :: DXWAM, DYWAM ! spatial step sizes in nesting
+   REAL(KIND=KIND(0.0D0)) :: DXTEST, DYTEST ! distance between two nesting
    REAL :: DISXY ! dim.less distance
    REAL :: PHI ! direction of vector (RX,RY)
    REAL :: DPHI ! difference in direction
@@ -4585,7 +4668,7 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
    CHARACTER (LEN=14) :: CDATE ! date-time
    CHARACTER (LEN=80) :: HEDLIN ! heading line
 
-   DOUBLE PRECISION :: DDATE, XLON0, XLAT0
+   REAL(KIND=KIND(0.0D0)) :: DDATE, XLON0, XLAT0
 !     DDATE     date-time
 !     XLON0     longitude of origin of computational grid
 !     XLAT0     latitude of origin of computational grid
@@ -4594,18 +4677,16 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
 
 !     subroutines used
 
-   LOGICAL :: KEYWIS
-
    INTEGER, SAVE :: IENT = 0
    CALL STRACE (IENT, 'BCWAMN')
-!
+
    ISTATF = 1
    IOPTT = 6
    NDSL = 0
 !     open file with list of names
-   CALL FOR (NDSL, FILENM,'OF',IOSTAT)
+   CALL FOR (NDSL, FBCNAM,'OF',IOSTAT)
    IF (STPNOW()) RETURN
-   READ (NDSL,'(A36)') FILENM
+   READ (NDSL,'(A36)') FBCNAM
    CALL INKEYW ('REQ', ' ')
    IF (KEYWIS('FRE')) THEN
       BTYPE = 'WAMF'
@@ -4622,16 +4703,16 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
    NDSD=0
    IOSTAT = 0
    IF (BTYPE.EQ.'WAMF') THEN
-      CALL FOR(NDSD,FILENM,'OF',IOSTAT)
+      CALL FOR(NDSD,FBCNAM,'OF',IOSTAT)
       IF (STPNOW()) RETURN
    ELSE
-      CALL FOR(NDSD,FILENM,'OU',IOSTAT)
+      CALL FOR(NDSD,FBCNAM,'OU',IOSTAT)
       IF (STPNOW()) RETURN
    ENDIF
-!
+
 !     --- initialize array BFILED of BSPFIL                               40.31
    BSPFIL%BFILED = 0
-!
+
 !     read spherical coordinates of point corresponding to
 !     [xpc], [ypc] in Cartesian coordinates
 !     not necessary if SWAN uses spherical coordinates                    40.03
@@ -4639,18 +4720,18 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
    CALL INDBLE('XGC',XLON0,'STA',-999.D0)
    CALL INDBLE('YGC',XLAT0,'STA',-999.D0)
    CALL ININTG('LWDATE',LWDATE,'STA',12)
-!
+
 !     start reading from the data file
 !
 !     read resolution information from WAM input
-!
+
    IF (BTYPE.EQ.'WAMF') THEN
       READ (NDSD,*) XANG, XFRE, THD, FR1, CO, XBOU, XDELC
    ELSE
 !       Cray and workstation version
       READ (NDSD) XANG, XFRE, THD, FR1, CO, XBOU, XDELC
    ENDIF
-!
+
 !     number of WAM boundary points
    NBOUNC  = NINT(XBOU)
 !     number of direction of WAM spectrum
@@ -4668,31 +4749,29 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
       WRITE(PRINTF,*) ' Lowest frequency in WAM:',FR1
       WRITE(PRINTF,*) ' fi/fi-1 in WAM:',CO
    ENDIF
-!
+
 !     convert WAM wave directions to SWAN convention
 !     apparently WAM uses direction TO which waves propagate !!
-!
+
    ALLOCATE(BSPFIL%BSPDIR(NANG))
    DO  IDW = NANG,1,-1
       BSPFIL%BSPDIR(NANG-IDW+1) = DNORTH*DEGRAD - &
-                     THD - REAL(IDW-1)*PI2/REAL(NANG)
+         THD - REAL(IDW-1)*PI2/REAL(NANG)
    ENDDO
-   IF (ITEST.GE.50) WRITE (PRTEST,132) NANG, &
-             (BSPFIL%BSPDIR(IDW)*180./PI, IDW=1,NANG)
-132 FORMAT (' WAMNEST dirs ', I3, (/, 20F6.0))
-!
+   IF (ITEST.GE.50) WRITE (PRTEST,"(' WAMNEST dirs ', I3, (/, 20F6.0))") NANG, &
+      (BSPFIL%BSPDIR(IDW)*180./PI, IDW=1,NANG)
+
 !     calculate WAM angular frequency array
-!
+
    ALLOCATE(BSPFIL%BSPFRQ(NFRE))
    BSPFIL%BSPFRQ(1) = PI2*FR1
    DO  ISW = 2, NFRE
       BSPFIL%BSPFRQ(ISW) = CO * BSPFIL%BSPFRQ(ISW-1)
    ENDDO
-   IF (ITEST.GE.50) WRITE (PRTEST,133) NFRE, &
-             (BSPFIL%BSPFRQ(ISW)*180./PI, ISW=1,NFRE)
-133 FORMAT (' WAMNEST freqs ', I3, (/, 20F6.2))
+   IF (ITEST.GE.50) WRITE (PRTEST,"(' WAMNEST freqs ', I3, (/, 20F6.2))") NFRE, &
+      (BSPFIL%BSPFRQ(ISW)*180./PI, ISW=1,NFRE)
    IF (NBOUNC.EQ.1) CALL MSGERR (3, &
-        'WAM nest does not work with only one nesting point')
+      'WAM nest does not work with only one nesting point')
 
 !     allocate arrays XPWAM and YPWAM
 
@@ -4708,9 +4787,9 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
       IF (BTYPE.EQ.'WAMF') THEN
 !         read boundary point coordinates from file
          READ(NDSD,*) XLON, XLAT, DDATE, EMEAN, &
-                    THQ, FMEAN
+            THQ, FMEAN
          IF (IBOUNC.EQ.1 .AND. ITEST.GE.80) WRITE (PRTEST, *) &
-               ' WAMNEST starting time ', DDATE
+            ' WAMNEST starting time ', DDATE
 !         read spectral densities but ignore them for the moment
          DO IFRE=1,NFRE
             READ(NDSD,*) (SPAUX(II), II=1,NANG)
@@ -4718,21 +4797,20 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
       ELSE IF (BTYPE.EQ.'WAMC') THEN
 !         read boundary point coordinates from file
          READ(NDSD) XLON, XLAT, XDATE, EMEAN, &
-                    THQ, FMEAN
+            THQ, FMEAN
          IF (IBOUNC.EQ.1 .AND. ITEST.GE.80) WRITE (PRTEST, *) &
-               ' WAMNEST starting time ', XDATE
+            ' WAMNEST starting time ', XDATE
 !         read spectral densities but ignore them for the moment
          READ(NDSD) (SPAUX(II), II=1,NANG*NFRE)
       ELSE
 !         read boundary point coordinates from file
          READ(NDSD) XLON, XLAT, CDATE(1:LWDATE), EMEAN, THQ, FMEAN
          IF (IBOUNC.EQ.1 .AND. ITEST.GE.80) WRITE (PRTEST, *) &
-               ' WAMNEST starting time ', CDATE(1:LWDATE)
+            ' WAMNEST starting time ', CDATE(1:LWDATE)
 !         read spectral densities but ignore them for the moment
          READ(NDSD) (SPAUX(II), II=1,NANG*NFRE)
       ENDIF
-      IF (ITEST.GE.50) WRITE (PRINTF, 178) IBOUNC, XLON, XLAT
-178   FORMAT (' boundary spectrum ', I3, ' at ', 2F12.4)
+      IF (ITEST.GE.50) WRITE (PRINTF, "(' boundary spectrum ', I3, ' at ', 2F12.4)") IBOUNC, XLON, XLAT
       XPWAM(IBOUNC) = XLON
       YPWAM(IBOUNC) = XLAT
 !       determine DXWAM and DYWAM                                         40.13
@@ -4752,19 +4830,18 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
          ENDIF
       ENDIF
    ENDDO
-   IF (ITEST.GE.50) WRITE (PRINTF, 182) DXWAM, DYWAM
-182 FORMAT (' WAM step sizes: ', 2F12.4)
+   IF (ITEST.GE.50) WRITE (PRINTF, "(' WAM step sizes: ', 2F12.4)") DXWAM, DYWAM
    EPS = 0.01 * MIN(DXWAM,DYWAM)
 
 !     determine interpolation coefficients for all couples of             40.13
 !     neighbouring WAM nest points                                        40.13
 
    DO IBNC1 = 1, NBOUNC
-160   DO IBNC2 = IBNC1+1, NBOUNC
+      DO IBNC2 = IBNC1+1, NBOUNC
          DXTEST = ABS(XPWAM(IBNC1)-XPWAM(IBNC2))
          DYTEST = ABS(YPWAM(IBNC1)-YPWAM(IBNC2))
          IF ((DXTEST.LT.EPS .AND. ABS(DYTEST-DYWAM).LT.EPS) .OR. &
-             (DYTEST.LT.EPS .AND. ABS(DXTEST-DXWAM).LT.EPS)) THEN
+            (DYTEST.LT.EPS .AND. ABS(DXTEST-DXWAM).LT.EPS)) THEN
 !           points IBNC1 and IBNC2 are neighbours                         40.13
             IF (KSPHER.EQ.0) THEN
 !             transform to local Cartesian coordinates
@@ -4838,10 +4915,8 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
                               IF (W2.GT.-0.001 .AND. W2.LT.1.001) THEN
                                  IF (W2.LT.0.01) W2 = 0.
                                  IF (W2.GT.0.99) W2 = 1.
-                                 IF (ITEST.GE.80) WRITE (PRTEST, 223) IXP, IYP, &
-                                       XP+XOFFS, YP+YOFFS, W2, IBNC1, IBNC2
-223                              FORMAT (' B.pnt', 2I5, 2F14.4, F6.3, &
-                                         ' from ', 2I3)
+                                 IF (ITEST.GE.80) WRITE (PRTEST, "(' B.pnt', 2I5, 2F14.4, F6.3, ' from ', 2I3)") IXP, IYP, &
+                                    XP+XOFFS, YP+YOFFS, W2, IBNC1, IBNC2
                                  NBGRPT = NBGRPT + 1
                                  IIPT1 = IIPT1 + 1
                                  IIPT2 = IIPT2 + 1
@@ -4866,8 +4941,8 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
                                  IF (NPTST.GT.0) THEN
                                     DO IPTST = 1, NPTST
                                        IF (IXP.EQ.XYTST(2*IPTST-1)+MXF-1 .AND. &
-                                           IYP.EQ.XYTST(2*IPTST  )+MYF-1) &
-                                          WRITE (PRTEST, 223) IXP, IYP, &
+                                          IYP.EQ.XYTST(2*IPTST  )+MYF-1) &
+                                          WRITE (PRTEST, "(' B.pnt', 2I5, 2F14.4, F6.3, ' from ', 2I3)") IXP, IYP, &
                                           XP+XOFFS, YP+YOFFS, W2, IBSP2, IBSP1
                                     ENDDO
                                  ENDIF
@@ -4879,20 +4954,15 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
                ENDIF
             ENDIF
             IF (IIPT1.EQ.0) THEN
-               WRITE (PRINTF, 218) XP1+XOFFS, YP1+YOFFS, &
-                                   XP2+XOFFS, YP2+YOFFS
-218            FORMAT (' Warning: no grid points on interval from ', &
-                     2F14.4, ' to ', 2F14.4)
+               WRITE (PRINTF, "(' Warning: no grid points on interval from ', 2F14.4, ' to ', 2F14.4)") XP1+XOFFS, YP1+YOFFS, &
+                  XP2+XOFFS, YP2+YOFFS
             ENDIF
          ENDIF
       ENDDO
-!       first nesting point may have two valid neighbours                 40.13
-      IF (IBNC1.EQ.1 .AND. IBNC2.EQ.2) GOTO 160
    ENDDO
    IF (IIPT2.EQ.0) CALL MSGERR (2, &
       'no grid points on nested boundary')
-   IF (ITEST.GE.60) WRITE (PRTEST,16) NBOUNC
-16 FORMAT (I6, ' boundary locations')
+   IF (ITEST.GE.60) WRITE (PRTEST,"(I6, ' boundary locations')") NBOUNC
 
 !     deallocate arrays XPWAM, YPWAM and SPAUX
 
@@ -4903,9 +4973,9 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
       BSPFIL%BSPLOC(IBC) = NBSPEC + IBC
    ENDDO
    NBSPEC = NBSPEC + NBOUNC
-!
+
 !     store file reading parameters in array BFILED
-!
+
    BSPFIL%BFILED(1)  = ISTATF
    BSPFIL%BFILED(2)  = -999999999
    BSPFIL%BFILED(3)  = -999999999
@@ -4926,19 +4996,17 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
    BSPFIL%BFILED(16) = NHEDS
 !     quantity on file is variance density
    BSPFIL%BFILED(17) = 2
-!
-   IF (ITEST.GE.80) WRITE(PRINTF,81) NBFILS, NBSPEC, &
-         (BSPFIL%BFILED(II), II=1,16)
-81 FORMAT (' array BFILED: ', 2I4, 2(/,8I10))
-!
+
+   IF (ITEST.GE.80) WRITE(PRINTF,"(' array BFILED: ', 2I4, 2(/,8I10))") NBFILS, NBSPEC, &
+      (BSPFIL%BFILED(II), II=1,16)
+
 !     Rewind input file for proper start
    REWIND (NDSD)
 !     read heading line
    IF (BTYPE.EQ.'WAMF') THEN
       DO IHD = 1, BSPFIL%BFILED(14)
          READ (NDSD, '(A)') HEDLIN
-         IF (ITEST.GE.80) WRITE (PRINTF, 212) HEDLIN
-212      FORMAT (' heading line: ', A)
+         IF (ITEST.GE.80) WRITE (PRINTF, "(' heading line: ', A)") HEDLIN
       ENDDO
    ELSE
       DO IHD = 1, BSPFIL%BFILED(14)
@@ -4947,26 +5015,32 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
    ENDIF
 
    RETURN
-END SUBROUTINE BCWAMN
+end subroutine BCWAMN
 
 !*********************************************************************
 !                                                                    *
 SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
-                   XCGRID, YCGRID, KGRPNT, &
-                   XYTST,  KGRBND)
+   XCGRID, YCGRID, KGRPNT, &
+   XYTST,  KGRBND)
 !                                                                    *
 !*********************************************************************
-!
-   USE OCPCOMM2
-   USE OCPCOMM4
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+
+   USE swan_legacy_io, ONLY: INAR2D, COPYCH
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: INKEYW, KEYWIS, INDBLE, WRNKEY
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_boundary_counters
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_math_constants
+   USE swan_spherical_geometry
    USE M_BNDSPEC
-!
-   IMPLICIT NONE
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -5020,7 +5094,7 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
 !      interpolate them to the grid points of the SWAN computational grid
 !
 !  4. Argument variables
-!
+
    INTEGER, INTENT(IN)     ::  KGRPNT(MXC,MYC)
 !                                 indirect addresses of computational grid points
    INTEGER, INTENT(IN)     ::  KGRBND(*)
@@ -5031,11 +5105,11 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
 !                                 coordinates of computational grid points
 !     FBCNAM  char  inp    filename of boundary data file
 !     BCTYPE  char  inp    boundary condition type, is 'WW3N' in this case
-!
-   CHARACTER FBCNAM *(*), BCTYPE *(*)
+
+   CHARACTER(LEN=*) :: FBCNAM, BCTYPE
 
    TYPE(BSPCDAT) :: BSPFIL
-!
+
 !  5. Parameter variables
 !
 !     --
@@ -5044,17 +5118,18 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
 !
 !     IENT         number of entries into this subroutine
 !     IBC          spectrum counter
-!
-   INTEGER   :: IENT, IBC
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   :: IBC
+
    REAL,    ALLOCATABLE :: FRQ_ARRAY(:), DIR_ARRAY(:)
-!
+
 !     IHD          counter of heading lines
 !     WWDATE       date in boundary file
 !     WWTIME       time in boundary file
-!
+
    INTEGER   :: WWDATE, WWTIME
-!
+
 !     ISTATF    if >0 file contains nonstationary data
 !     NDSL      unit ref num of namelist file
 !     NDSD      unit ref num of data file
@@ -5071,18 +5146,18 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
 !     NHEDF     number of heading lines per file
 !     NHEDT     number of heading lines per time step
 !     NHEDS     number of heading lines per spectrum
-!
+
    INTEGER            :: ISTATF, NDSL, NDSD, IOSTAT, IERR
    INTEGER            :: NBOUNC, NANG, NFRE
    INTEGER            :: IBOUNC
    INTEGER            :: DORDER, IOPTT
    INTEGER            :: NHEDF, NHEDT, NHEDS, NBGRPT_PREV
    INTEGER            :: IHD, IFRE, IANG, II, IIPT2
-!
+
 !     DONALL : logic arguments declare if the boundary is open or close
-!
+
    LOGICAL   :: DONALL
-!
+
 !     DUM_A     real number used for reading a file but not used in any calculation
 !     XLON      longitude
 !     XLAT      latitude
@@ -5091,9 +5166,9 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
 !     DIRRD1
 !     NBGRPT_PREV is the prevous number of NBGRPT
 !     IIPT2 counter use for the chekinf if there are grid points on nested boundary
-!
+
    REAL               :: DUM_A, XLON, XLAT,XP2,YP2,DIRRD1
-!
+
    CHARACTER (LEN=4)  :: BTYPE
 !                           type of boundary cond.
    CHARACTER (LEN=21) :: HEDLINT
@@ -5104,9 +5179,9 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
 !                           name of b. point
 !     XLON0     longitude of origin of computational grid
 !     XLAT0     latitude of origin of computational grid
-!
-   DOUBLE PRECISION   :: XLON0, XLAT0
-!
+
+   REAL(KIND=KIND(0.0D0))   :: XLON0, XLAT0
+
 !       FBCNAM  char  inp    filename of boundary data file
 !       BCTYPE  char  inp    if value is "NEST": nesting b.c.
 !       XCGRID  real  inp    x-coordinate of computational grid points
@@ -5118,10 +5193,7 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
 !
 !     Ocean Pack command reading routines
 !     SWBCPT, STPNOW
-!
-   LOGICAL   :: STPNOW
-   LOGICAL   :: KEYWIS
-!
+
 !  9. Subroutines calling
 !
 !     SWREAD
@@ -5173,11 +5245,9 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
 !       -----------------------------------------------------------------
 !
 ! 13. Source text
-!
-   SAVE      IENT
-   DATA      IENT /0/
+
    CALL STRACE (IENT, 'BCWW3N')
-!
+
 !     Process required UNFormatted/FREe keyword
    CALL INKEYW ('REQ', ' ')
    IF (KEYWIS('FRE')) THEN
@@ -5187,10 +5257,10 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
    ELSE
       CALL WRNKEY
       CALL MSGERR (4, 'The BOUndnest3 WW3 command requires '// &
-                      'UNFormatted or FREe as the first keyword.' )
+         'UNFormatted or FREe as the first keyword.' )
    ENDIF
    IF (STPNOW()) RETURN
-!
+
 !     Process optional CLOS/OPEN keyword
 !     if keyword is OPEN (boundary is not a closed contour) then
 !        DONALL is TRUE  and the nesting boundary remain open
@@ -5207,7 +5277,7 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
       CALL WRNKEY
    ENDIF
    IF (STPNOW()) RETURN
-!
+
 !     NDSL unit ref number for namelist files
    NDSL = 0
    ISTATF = 1
@@ -5218,20 +5288,20 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
    DORDER  = -1
    IOPTT = 1
    IIPT2 = 0
-!
+
 !     open data file NDSD unit ref number for data files
    NDSD = 0
    IOSTAT = 0
    IF (BTYPE.EQ.'WW3F') THEN
-      CALL FOR (NDSD, FILENM , 'OF', IOSTAT)
+      CALL FOR (NDSD, FBCNAM , 'OF', IOSTAT)
    ELSE
-      CALL FOR (NDSD, FILENM , 'OU', IOSTAT)
+      CALL FOR (NDSD, FBCNAM , 'OU', IOSTAT)
    ENDIF
    IF (STPNOW()) RETURN
-!
+
 !     Read header
    IF (BTYPE.EQ.'WW3F') THEN
-      READ (NDSD, 1944) HEDLINT, NFRE, NANG, NBOUNC, GNAME
+      READ (NDSD, "(1X,A21,1X,1X,3I6,1X,1X,A30,1X)") HEDLINT, NFRE, NANG, NBOUNC, GNAME
    ELSE
       READ (NDSD)       HEDLINT, NFRE, NANG, NBOUNC, GNAME
    ENDIF
@@ -5239,50 +5309,50 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
       CALL MSGERR (3, 'file is not a WW3 spectral file')
    IF (NBOUNC.LT.2)  CALL MSGERR &
       (3, 'SWAN need at least 2 boundary points for nesting')
-!
+
 !     --- initialize array BFILED of BSPFIL                               40.31
    BSPFIL%BFILED = 0
-!
+
 !     read frequencies from WW3 boundary file
-!
+
    ALLOCATE (FRQ_ARRAY(1:NFRE), DIR_ARRAY(1:NANG) )
-!
+
 !     read frequency
 !     FRQ_ARRAY(IFRE) =   SIG(IK)/(2*PI)
-!
+
    IF (BTYPE.EQ.'WW3F') THEN
-      READ (NDSD,1945) (FRQ_ARRAY(IFRE) ,IFRE=1,NFRE)
+      READ (NDSD,"(8E10.3)") (FRQ_ARRAY(IFRE) ,IFRE=1,NFRE)
    ELSE
       READ (NDSD)      (FRQ_ARRAY(IFRE) ,IFRE=1,NFRE)
    ENDIF
-!
+
    ALLOCATE(BSPFIL%BSPFRQ(NFRE))
    DO IFRE = 1, NFRE
       BSPFIL%BSPFRQ(IFRE) =  FRQ_ARRAY(IFRE)*2*PI
    ENDDO
-!
+
    IF (ITEST.GE.60) THEN
       WRITE(PRTEST,*) ' HEDLINT ',' NFRE ',' NANG ',' NBOUNC ', &
-                      ' GNAME'
+         ' GNAME'
       WRITE (PRTEST,*) HEDLINT, NFRE, NANG, NBOUNC, GNAME
-      WRITE (PRTEST,*) 'Frequencies read from boundary file ', FILENM
+      WRITE (PRTEST,*) 'Frequencies read from boundary file ', FBCNAM
       WRITE (PRTEST,*) (FRQ_ARRAY(IFRE),IFRE = 1,NFRE)
    ENDIF
-!
+
 !     read direction from WW3 boundary file
 !     DIR_ARRAY(IANG) = MOD(2.5*PI-TH(ITH),TPI)
 !     there are in radians but is not in right order related to SWAN
-!
+
    IF (BTYPE.EQ.'WW3F') THEN
-      READ (NDSD,1946) (DIR_ARRAY(IANG),IANG=1,NANG)
+      READ (NDSD,"(7E11.3)") (DIR_ARRAY(IANG),IANG=1,NANG)
    ELSE
       READ (NDSD)      (DIR_ARRAY(IANG),IANG=1,NANG)
    ENDIF
-!
+
 !     put values in right order. The value of the DIR_ARRAY(i) should be
 !     smaller that the DIR_ARRAY(i-1)
 !     in the opposite situation make DIR_ARRAY(i) = DIR_ARRAY(i) - 2*PI
-!
+
    DIR_ARRAY(:) = PI*DNORTH/180 - DIR_ARRAY(:)
 
    ALLOCATE(BSPFIL%BSPDIR(NANG))
@@ -5303,17 +5373,17 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
 
    IF(ITEST.GE.60) THEN
       WRITE (PRTEST,*) 'Directions read from boundary file ', &
-                        FILENM
-      WRITE (PRTEST,1946) (DIR_ARRAY(IANG),IANG = 1,NANG)
+         FBCNAM
+      WRITE (PRTEST,"(7E11.3)") (DIR_ARRAY(IANG),IANG = 1,NANG)
    ENDIF
-!
+
 !     Time
    IF (BTYPE.EQ.'WW3F') THEN
-      READ (NDSD, 900) WWDATE,WWTIME
+      READ (NDSD, "(I8.8,I7.6)") WWDATE,WWTIME
    ELSE
       READ (NDSD)      WWDATE,WWTIME
    ENDIF
-!
+
 !     Read from boundary file info about the boundary points(b.p): name of b. p.,
 !     geographical location of b.p., depth, wind u-velocity  and direction at the b.p.
 !     current velocity and direction at the b.p.
@@ -5321,43 +5391,43 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
 !     If  DONALL = .TRUE. boundary data correspond to an open boundary otherwise
 !     it is continue the interpolation of the grid point between the last and the
 !     first point
-!
+
    DO IBOUNC = 1, NBOUNC
       IERR = 0
-!
+
 !       latitude =  XLAT
 !       longitude = XLON
 !       A real which is not used in the computation
-!
+
       IF (BTYPE.EQ.'WW3F') THEN
-         READ (NDSD,901) PTNME, XLAT, XLON, DUM_A, DUM_A, &
-                         DUM_A, DUM_A, DUM_A
+         READ (NDSD,"(1X,A10,1X,2F7.2,F10.1,2(F7.2,F6.1))") PTNME, XLAT, XLON, DUM_A, DUM_A, &
+            DUM_A, DUM_A, DUM_A
       ELSE
          READ (NDSD)     PTNME, XLAT, XLON, DUM_A, DUM_A, &
-                         DUM_A, DUM_A, DUM_A
+            DUM_A, DUM_A, DUM_A
       ENDIF
 !       Pass over the lines where the energy spectra is written in the boundary file.
 !       The energy spectra is going to be read later, in the subroutine RESPEC
-!
+
       IF (BTYPE.EQ.'WW3F') THEN
-         READ (NDSD,902) ((DUM_A, IFRE = 1,NFRE),IANG = 1,NANG)
+         READ (NDSD,"(7E11.3)") ((DUM_A, IFRE = 1,NFRE),IANG = 1,NANG)
       ELSE
          READ (NDSD)     ((DUM_A, IFRE = 1,NFRE),IANG = 1,NANG)
       ENDIF
-!
+
       IF (ITEST.GE.80) THEN
          WRITE (PRTEST, *) ' B. spectrum WW3 ', IBOUNC, XLON, &
             XLAT, IERR
       ENDIF
-!
+
 !       in case of nesting coordinates on file are used to determine interpolation
 !       coefficients
-!
+
       IF (KSPHER.EQ.0) THEN
-!
+
 !       if SWAN uses Cartesian coordinates, then transform the spherical coordinates
 !       of the boundary point to local Cartesian coordinates
-!
+
          IF (IBOUNC.EQ.1) THEN
             CALL INDBLE('XGC',XLON0,'REQ',-999.D0)
             CALL INDBLE('YGC',XLAT0,'REQ',-999.D0)
@@ -5366,38 +5436,37 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
                XLAT0 = (YOFFS-YPC)/LENDEG
             ENDIF
          ENDIF
-!
+
          XP2 = XPC + LENDEG*COS(PI*XLAT0/180.)*(XLON-XLON0)
          YP2 = YPC + LENDEG*(XLAT-XLAT0)
-!
+
       ELSE
          XP2 = XLON-XOFFS
          YP2 = XLAT-YOFFS
       ENDIF
-!
+
 !       --- interpolate the boundaries points to the grid points of
 !           the SWAN computational grid
-!
+
       NBGRPT_PREV = NBGRPT
       CALL SWBCPT (  XCGRID, YCGRID, &
-                     KGRPNT, XYTST,  KGRBND,XP2,YP2,IBOUNC, &
-                     NBOUNC, DONALL )
+         KGRPNT, XYTST,  KGRBND,XP2,YP2,IBOUNC, &
+         NBOUNC, DONALL )
 !       check if the grid points are on nested boundary.
 !       if not, stop the calculation and give an error message
       IF (NBGRPT.NE.NBGRPT_PREV) THEN
          IIPT2 = IIPT2+1
       ENDIF
    ENDDO
-!
+
    IF (IIPT2.EQ.0) CALL MSGERR (2, &
       'no grid points on nested boundary')
-!
-   IF (ITEST.GE.60) WRITE (PRTEST,16) NBOUNC
-16 FORMAT (I6, ' boundary locations')
-!
+
+   IF (ITEST.GE.60) WRITE (PRTEST,"(I6, ' boundary locations')") NBOUNC
+
 !     quantity on file is energy density
    BSPFIL%BFILED(17) = 1
-!
+
 !     number of heading lines: per file, per time, per spectrum
    IF (BTYPE.EQ.'WW3F') THEN
       NHEDF = NHEDF + CEILING(NFRE/8.) + CEILING(NANG/7.)+1
@@ -5408,16 +5477,16 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
       NHEDT = 0
       NHEDS = 1
    ENDIF
-!
+
    ALLOCATE(BSPFIL%BSPLOC(NBOUNC))
    DO IBC = 1, NBOUNC
       BSPFIL%BSPLOC(IBC) = NBSPEC + IBC
    ENDDO
-!
+
    NBSPEC = NBSPEC + NBOUNC
-!
+
 !     store file reading parameters in array BFILED
-!
+
    BSPFIL%BFILED(1)  = ISTATF
    BSPFIL%BFILED(2)  = -999999999
    BSPFIL%BFILED(3)  = -999999999
@@ -5438,10 +5507,10 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
    BSPFIL%BFILED(16) = NHEDS
 !     quantity on file is energy density (k)
    BSPFIL%BFILED(17) = 3
-!
-   IF (ITEST.GE.80) WRITE(PRINTF,81) NBFILS, NBSPEC, &
-         (BSPFIL%BFILED(II), II=1,16)
-!
+
+   IF (ITEST.GE.80) WRITE(PRINTF,"(' array BFILED: ', 2I4, 2(/,8I10))") NBFILS, NBSPEC, &
+      (BSPFIL%BFILED(II), II=1,16)
+
 !      Rewind input file for proper start
    REWIND (NDSD)
 !     read per file heading lines
@@ -5451,40 +5520,36 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL, &
       ENDDO
    ENDIF
 
-81 FORMAT (' array BFILED: ', 2I4, 2(/,8I10))
-900 FORMAT (I8.8,I7.6)
-901 FORMAT (1X,A10,1X,2F7.2,F10.1,2(F7.2,F6.1))
-902 FORMAT (7E11.3)
-1944 FORMAT (1X,A21,1X,1X,3I6,1X,1X,A30,1X)
-1945 FORMAT (8E10.3)
-1946 FORMAT (7E11.3)
-
    DEALLOCATE (FRQ_ARRAY,DIR_ARRAY)
 
    RETURN
 
-END SUBROUTINE BCWW3N
+end subroutine BCWW3N
 
-!***********************************************************************
-!
-SUBROUTINE SWBCPT ( XCGRID, YCGRID, &
-                    KGRPNT, XYTST,  KGRBND,XP2,YP2,IBOUNC, &
-                    NBOUNC,DONALL )
-!
 !************************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+
+SUBROUTINE SWBCPT ( XCGRID, YCGRID, &
+   KGRPNT, XYTST,  KGRBND,XP2,YP2,IBOUNC, &
+   NBOUNC,DONALL )
+
+!************************************************************************
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_boundary_counters
+   USE swan_computational_grid
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE M_BNDSPEC
    USE M_PARALL
    USE SwanGriddata
    USE SwanGridobjects
-!
-   IMPLICIT NONE
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -5543,22 +5608,21 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID, &
 !
 !     NBOUNC:     max number of boundaries points
 !     IBOUNC:     counter
-!
-!
+
    INTEGER, INTENT(IN)     ::  KGRPNT(MXC,MYC) ! indirect addresses of computational grid points
    INTEGER, INTENT(IN)     ::  KGRBND(*) ! array of boundary grid points
    INTEGER, INTENT(IN)     ::  XYTST(*) ! array of (ix,iy) of test points
-!
+
    INTEGER, INTENT(IN)     ::  IBOUNC,NBOUNC
-!
+
    REAL                    ::  XP2, YP2 ! coordinates of a point in spectral file
    REAL, INTENT(IN)        ::  XCGRID(MXC,MYC), YCGRID(MXC,MYC) ! coordinates of computational grid points
-!
+
 !     DONALL : logic arguments declare if the nesting boundary is open or close
 !              it is defined by the users
-!
+
    LOGICAL, INTENT(INOUT)  ::  DONALL
-!
+
 !  5. Parameter variables
 !
 !     --
@@ -5572,19 +5636,19 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID, &
 !     DISXY     distance in (x,y)-space
 !     W2        is relative length of projection on line
 !     IIPT1     counter checking the grid points related to the nesting boundary
-!
+
    INTEGER, SAVE      :: IBSP0 = 1, IBSP1 = 1, IENT = 0
    INTEGER            :: IBSP2,IGRBND,INDXGR
    INTEGER            :: IXP,IYP,IIPT1
-!
+
    REAL, SAVE         :: XP0=0., XP1=0., YP0=0., YP1=0.
    REAL               :: XP, YP, RX, RY, RL2
    REAL               :: DX1P, DY1P, DXP2, DYP2, DXCIRC(3)
    REAL               :: DISXY, DOTR1, DOTR2, W2
    TYPE(BGPDAT), POINTER :: BGPTMP
-!
+
    TYPE(verttype), DIMENSION(:), POINTER :: vert
-!
+
 !  7. Common blocks used
 !
 !
@@ -5614,251 +5678,254 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID, &
 !             put interpolation coefficients into array BGRIDP
 !
 !  13. Source text
-!
+
    CALL STRACE (IENT, 'SWBCPT')
-!
+
    IF (NBOUNC.EQ.1) CALL MSGERR (2, &
       'Nesting procedure does not work if file has only 1 spectrum')
-!
+
 !     point to vertices
-!
+
    vert => gridobject%vert_grid
-!
+
    IBSP2 = NBSPEC+IBOUNC
    IIPT1 = 0
-!
-201 IF (IBOUNC.EQ.1) THEN
+
+   boundary_interval: DO
+      IF (IBOUNC.EQ.1) THEN
 !        first point found in a spectral input file                       41.14
-      XP0   = XP2
-      YP0   = YP2
-      IBSP0 = IBSP2
-      IIPT1 = 1
-   ELSE
-!        RX, RY difference vector between consecutive points of spectral file  41.14
-      IF (KSPHER.EQ.0) THEN
-         RX  = XP2 - XP1
+         XP0   = XP2
+         YP0   = YP2
+         IBSP0 = IBSP2
+         IIPT1 = 1
       ELSE
-         DXCIRC(1) = ( XP2 - XP1)-360.0
-         DXCIRC(2) = ( XP2 - XP1)
-         DXCIRC(3) = ( XP2 - XP1)+360.0
-         RX = DXCIRC(MINLOC(ABS(DXCIRC),1))
-      ENDIF
-      RY  = YP2 - YP1
-      RL2 = RX**2 + RY**2
-      IF (RL2.GT.0.) THEN
-         RX  = RX/RL2
-         RY  = RY/RL2
+!        RX, RY difference vector between consecutive points of spectral file  41.14
+         IF (KSPHER.EQ.0) THEN
+            RX  = XP2 - XP1
+         ELSE
+            DXCIRC(1) = ( XP2 - XP1)-360.0
+            DXCIRC(2) = ( XP2 - XP1)
+            DXCIRC(3) = ( XP2 - XP1)+360.0
+            RX = DXCIRC(MINLOC(ABS(DXCIRC),1))
+         ENDIF
+         RY  = YP2 - YP1
+         RL2 = RX**2 + RY**2
+         IF (RL2.GT.0.) THEN
+            RX  = RX/RL2
+            RY  = RY/RL2
 !           WRITE(PRINTF,'(A,2I6,6F12.4)') 'BC_SEARCH_1: ',IBSP1,IBSP2,
 !     &       XP1+XOFFS,YP1+YOFFS,XP2+XOFFS,YP2+YOFFS,RX,RY
 !
 !          loop over boundary of computational grid, select boundary points
 !          between (XP1,YP1) and (XP2,YP2)
-!
-         IF (OPTG.EQ.5) THEN
-            DO IXP = 1, nverts
-               IF ( vert(IXP)%atti(VMARKER) == 1 .AND. &
-                    vert(IXP)%atti(VBC) == 0     .AND. &
-                    vmark(IXP) < excmark ) THEN
-                  XP = vert(IXP)%attr(VERTX)
-                  YP = vert(IXP)%attr(VERTY)
-!
-                  IF (KSPHER.EQ.0) THEN
-                     DX1P = XP  - XP1
-                     DY1P = YP  - YP1
-                     DXP2 = XP2 - XP
-                     DYP2 = YP2 - YP
-                  ELSE
+
+            IF (OPTG.EQ.5) THEN
+               DO IXP = 1, nverts
+                  IF ( vert(IXP)%atti(VMARKER) == 1 .AND. &
+                     vert(IXP)%atti(VBC) == 0     .AND. &
+                     vmark(IXP) < excmark ) THEN
+                     XP = vert(IXP)%attr(VERTX)
+                     YP = vert(IXP)%attr(VERTY)
+
+                     IF (KSPHER.EQ.0) THEN
+                        DX1P = XP  - XP1
+                        DY1P = YP  - YP1
+                        DXP2 = XP2 - XP
+                        DYP2 = YP2 - YP
+                     ELSE
 !                   compute delta_lon that allows for either, both,
 !                   or neither XP,XP1 to be -180 to 180 or 0 to 360
-                     DXCIRC(1) = ( XP - XP1)-360.0
-                     DXCIRC(2) = ( XP - XP1)
-                     DXCIRC(3) = ( XP - XP1)+360.0
-                     DX1P = DXCIRC(MINLOC(ABS(DXCIRC),1))
-                     DY1P = ( YP - YP1 )
-                     DXCIRC(1) = ( XP2 - XP)-360.0
-                     DXCIRC(2) = ( XP2 - XP)
-                     DXCIRC(3) = ( XP2 - XP)+360.0
-                     DXP2 = DXCIRC(MINLOC(ABS(DXCIRC),1))
-                     DYP2 = ( YP2 - YP )
-                  ENDIF
-!
+                        DXCIRC(1) = ( XP - XP1)-360.0
+                        DXCIRC(2) = ( XP - XP1)
+                        DXCIRC(3) = ( XP - XP1)+360.0
+                        DX1P = DXCIRC(MINLOC(ABS(DXCIRC),1))
+                        DY1P = ( YP - YP1 )
+                        DXCIRC(1) = ( XP2 - XP)-360.0
+                        DXCIRC(2) = ( XP2 - XP)
+                        DXCIRC(3) = ( XP2 - XP)+360.0
+                        DXP2 = DXCIRC(MINLOC(ABS(DXCIRC),1))
+                        DYP2 = ( YP2 - YP )
+                     ENDIF
+
 !                DISXY is relative distance from (XP,YP) to line
 !                (XP1,YP1) to (XP2,YP2) with respect to the length of that line
 !                DOTR1 is relative length of projection on line (XP1,YP1) to (XP2,YP2)
-!
-                  DISXY = ABS ( RX*DY1P - RY*DX1P )
-                  DOTR1 = RX*DX1P + RY*DY1P
-                  DOTR2 = RX*DXP2 + RY*DYP2
+
+                     DISXY = ABS ( RX*DY1P - RY*DX1P )
+                     DOTR1 = RX*DX1P + RY*DY1P
+                     DOTR2 = RX*DXP2 + RY*DYP2
 !                 WRITE(PRINTF,'(A,I6,5F12.4)') 'BC_SEARCH_2: ',IXP,
 !     &             XP+XOFFS,YP+YOFFS,DOTR1,DOTR2,DISXY
 !
 !                check if boundary point is between (XP1,YP1) and (XP2,YP2)
-                  IF ( DOTR1.GE.0.AND.DOTR2.GE.0.AND.DISXY.LE.0.1 ) THEN
-                     W2 = DOTR1
-                     IF (W2.LT.0.001) W2 = 0.
-                     IF (W2.GT.0.999) W2 = 1.
-                     IF (ITEST.GE.80) WRITE (PRTEST, *) ' B.pnt', &
-                               IXP, XP, YP, W2, IBSP2, 1.-W2, IBSP1
-                     NBGRPT = NBGRPT + 1
-                     IIPT1  = IIPT1  + 1
+                     IF ( DOTR1.GE.0.AND.DOTR2.GE.0.AND.DISXY.LE.0.1 ) THEN
+                        W2 = DOTR1
+                        IF (W2.LT.0.001) W2 = 0.
+                        IF (W2.GT.0.999) W2 = 1.
+                        IF (ITEST.GE.80) WRITE (PRTEST, *) ' B.pnt', &
+                           IXP, XP, YP, W2, IBSP2, 1.-W2, IBSP1
+                        NBGRPT = NBGRPT + 1
+                        IIPT1  = IIPT1  + 1
 !                    WRITE(PRINTF,'(A,3I6,2(F6.3,I6))') 'BC_SEARCH_3: ',
 !     &              IXP,NBGRPT,IIPT1,1.-W2,IBSP1,W2,IBSP2
-!
-                     ALLOCATE(BGPTMP)
-                     IF (.NOT.PARLL) THEN
-                        BGPTMP%BGP(1) = IXP
-                     ELSE
-                        BGPTMP%BGP(1) = ivertg(IXP)
-                     ENDIF
+
+                        ALLOCATE(BGPTMP)
+                        IF (.NOT.PARLL) THEN
+                           BGPTMP%BGP(1) = IXP
+                        ELSE
+                           BGPTMP%BGP(1) = ivertg(IXP)
+                        ENDIF
 !                   next item indicates type of boundary condition
-                     BGPTMP%BGP(2) = 1
-                     BGPTMP%BGP(3) = NINT(1000. * W2)
-                     BGPTMP%BGP(4) = IBSP2
-                     BGPTMP%BGP(5) = NINT(1000. * (1.-W2))
-                     BGPTMP%BGP(6) = IBSP1
-                     vert(IXP)%atti(VBC) = 1
-                     NULLIFY(BGPTMP%NEXTBGP)
-                     IF ( .NOT.LBGP ) THEN
-                        FBGP = BGPTMP
-                        CUBGP => FBGP
-                        LBGP = .TRUE.
-                     ELSE
-                        CUBGP%NEXTBGP => BGPTMP
-                        CUBGP => BGPTMP
+                        BGPTMP%BGP(2) = 1
+                        BGPTMP%BGP(3) = NINT(1000. * W2)
+                        BGPTMP%BGP(4) = IBSP2
+                        BGPTMP%BGP(5) = NINT(1000. * (1.-W2))
+                        BGPTMP%BGP(6) = IBSP1
+                        vert(IXP)%atti(VBC) = 1
+                        NULLIFY(BGPTMP%NEXTBGP)
+                        IF ( .NOT.LBGP ) THEN
+                           FBGP = BGPTMP
+                           CUBGP => FBGP
+                           LBGP = .TRUE.
+                        ELSE
+                           CUBGP%NEXTBGP => BGPTMP
+                           CUBGP => BGPTMP
+                        ENDIF
                      ENDIF
                   ENDIF
-               ENDIF
-            ENDDO
-         ELSE
-!
+               ENDDO
+            ELSE
+
 !           KGRBND grid addresses on boundary points, NGRBND number of grid points
 !           on computational grid boundary
-!
-            DO IGRBND = 1, NGRBND
-               IXP = KGRBND(2*IGRBND-1)
-               IYP = KGRBND(2*IGRBND)
-!
-               IF (IXP.GT.0 .AND.IYP.GT.0) THEN
-                  INDXGR = KGRPNT(IXP,IYP)
-                  XP = XCGRID(IXP,IYP)
-                  YP = YCGRID(IXP,IYP)
-!
-                  IF (KSPHER.EQ.0) THEN
-                     DX1P = XP  - XP1
-                     DY1P = YP  - YP1
-                     DXP2 = XP2 - XP
-                     DYP2 = YP2 - YP
-                  ELSE
+
+               DO IGRBND = 1, NGRBND
+                  IXP = KGRBND(2*IGRBND-1)
+                  IYP = KGRBND(2*IGRBND)
+
+                  IF (IXP.GT.0 .AND.IYP.GT.0) THEN
+                     INDXGR = KGRPNT(IXP,IYP)
+                     XP = XCGRID(IXP,IYP)
+                     YP = YCGRID(IXP,IYP)
+
+                     IF (KSPHER.EQ.0) THEN
+                        DX1P = XP  - XP1
+                        DY1P = YP  - YP1
+                        DXP2 = XP2 - XP
+                        DYP2 = YP2 - YP
+                     ELSE
 !                   compute delta_lon that allows for either, both,
 !                   or neither XP,XP1 to be -180 to 180 or 0 to 360
-                     DXCIRC(1) = ( XP - XP1)-360.0
-                     DXCIRC(2) = ( XP - XP1)
-                     DXCIRC(3) = ( XP - XP1)+360.0
-                     DX1P = DXCIRC(MINLOC(ABS(DXCIRC),1))
-                     DY1P = ( YP - YP1 )
-                     DXCIRC(1) = ( XP2 - XP)-360.0
-                     DXCIRC(2) = ( XP2 - XP)
-                     DXCIRC(3) = ( XP2 - XP)+360.0
-                     DXP2 = DXCIRC(MINLOC(ABS(DXCIRC),1))
-                     DYP2 = ( YP2 - YP )
-                  ENDIF
-!
+                        DXCIRC(1) = ( XP - XP1)-360.0
+                        DXCIRC(2) = ( XP - XP1)
+                        DXCIRC(3) = ( XP - XP1)+360.0
+                        DX1P = DXCIRC(MINLOC(ABS(DXCIRC),1))
+                        DY1P = ( YP - YP1 )
+                        DXCIRC(1) = ( XP2 - XP)-360.0
+                        DXCIRC(2) = ( XP2 - XP)
+                        DXCIRC(3) = ( XP2 - XP)+360.0
+                        DXP2 = DXCIRC(MINLOC(ABS(DXCIRC),1))
+                        DYP2 = ( YP2 - YP )
+                     ENDIF
+
 !                DISXY is relative distance from (XP,YP) to line
 !                (XP1,YP1) to (XP2,YP2) with respect to the length of that line
 !                DOTR1 is relative length of projection on line (XP1,YP1) to (XP2,YP2)
-!
-                  DISXY = ABS( RX*DY1P - RY*DX1P )
-                  DOTR1 = RX*DX1P + RY*DY1P
-                  DOTR2 = RX*DXP2 + RY*DYP2
+
+                     DISXY = ABS( RX*DY1P - RY*DX1P )
+                     DOTR1 = RX*DX1P + RY*DY1P
+                     DOTR2 = RX*DXP2 + RY*DYP2
 !                 WRITE(PRINTF,'(A,2I6,5F12.4)') 'BC_SEARCH_2: ',IXP,IYP,
 !     &             XP+XOFFS,YP+YOFFS,DOTR1,DOTR2,DISXY
 !
 !                check if boundary point is between (XP1,YP1) and (XP2,YP2)
-                  IF ( DOTR1.GE.0.AND.DOTR2.GE.0.AND.DISXY.LE.0.1 ) THEN
-                     W2 = DOTR1
-                     IF (W2.LT.0.001) W2 = 0.
-                     IF (W2.GT.0.999) W2 = 1.
-                     IF (ITEST.GE.80) WRITE (PRTEST, *) ' B.pnt', &
-                               IXP, XP, YP, W2, IBSP2, 1.-W2, IBSP1
-                     NBGRPT = NBGRPT + 1
-                     IIPT1  = IIPT1  + 1
+                     IF ( DOTR1.GE.0.AND.DOTR2.GE.0.AND.DISXY.LE.0.1 ) THEN
+                        W2 = DOTR1
+                        IF (W2.LT.0.001) W2 = 0.
+                        IF (W2.GT.0.999) W2 = 1.
+                        IF (ITEST.GE.80) WRITE (PRTEST, *) ' B.pnt', &
+                           IXP, XP, YP, W2, IBSP2, 1.-W2, IBSP1
+                        NBGRPT = NBGRPT + 1
+                        IIPT1  = IIPT1  + 1
 !                    WRITE(PRINTF,'(A,4I6,2(F6.3,I6))') 'BC_SEARCH_3: ',
 !     &              IXP,IYP,NBGRPT,IIPT1,1.-W2,IBSP1,W2,IBSP2
-!
-                     ALLOCATE(BGPTMP)
-                     BGPTMP%BGP(1) = INDXGR
+
+                        ALLOCATE(BGPTMP)
+                        BGPTMP%BGP(1) = INDXGR
 !                   next item indicates type of boundary condition
-                     BGPTMP%BGP(2) = 1
-                     BGPTMP%BGP(3) = NINT(1000. * W2)
-                     BGPTMP%BGP(4) = IBSP2
-                     BGPTMP%BGP(5) = NINT(1000. * (1.-W2))
-                     BGPTMP%BGP(6) = IBSP1
-                     NULLIFY(BGPTMP%NEXTBGP)
-                     IF ( .NOT.LBGP ) THEN
-                        FBGP = BGPTMP
-                        CUBGP => FBGP
-                        LBGP = .TRUE.
-                     ELSE
-                        CUBGP%NEXTBGP => BGPTMP
-                        CUBGP => BGPTMP
-                     END IF
-!
+                        BGPTMP%BGP(2) = 1
+                        BGPTMP%BGP(3) = NINT(1000. * W2)
+                        BGPTMP%BGP(4) = IBSP2
+                        BGPTMP%BGP(5) = NINT(1000. * (1.-W2))
+                        BGPTMP%BGP(6) = IBSP1
+                        NULLIFY(BGPTMP%NEXTBGP)
+                        IF ( .NOT.LBGP ) THEN
+                           FBGP = BGPTMP
+                           CUBGP => FBGP
+                           LBGP = .TRUE.
+                        ELSE
+                           CUBGP%NEXTBGP => BGPTMP
+                           CUBGP => BGPTMP
+                        END IF
+
 !                   test output if point is a test point
-!
-                     IF (NPTST.GT.0) THEN
-                        DO IPTST = 1, NPTST
-                           IF (IXP.EQ.XYTST(2*IPTST-1)+MXF-1 .AND. &
-                               IYP.EQ.XYTST(2*IPTST  )+MYF-1) &
-                              WRITE (PRTEST, 223) &
-                              IXP-1,IYP-1, XP+XOFFS, YP+YOFFS, W2, IBSP2, &
-                              IBSP1
-223                        FORMAT (' B.pnt', 2I5, 2F9.0, F6.3, 2I3)
-                        ENDDO
+
+                        IF (NPTST.GT.0) THEN
+                           DO IPTST = 1, NPTST
+                              IF (IXP.EQ.XYTST(2*IPTST-1)+MXF-1 .AND. &
+                                 IYP.EQ.XYTST(2*IPTST  )+MYF-1) &
+                                 WRITE (PRTEST, "(' B.pnt', 2I5, 2F9.0, F6.3, 2I3)") &
+                                 IXP-1,IYP-1, XP+XOFFS, YP+YOFFS, W2, IBSP2, &
+                                 IBSP1
+                           ENDDO
+                        ENDIF
                      ENDIF
                   ENDIF
-               ENDIF
-            ENDDO
+               ENDDO
+            ENDIF
          ENDIF
       ENDIF
-   ENDIF
-!
+
 !      IF (IIPT1.EQ.0) THEN
 !         WRITE (PRINTF, 218) XP1+XOFFS, YP1+YOFFS,
 !     &   XP2+XOFFS, YP2+YOFFS
 ! 218     FORMAT (' Warning: no grid points on interval from ', 2F12.4,
 !     &           ' to ', 2F12.4)
 !      ENDIF
-!
-   XP1   = XP2
-   YP1   = YP2
-   IBSP1 = IBSP2
-!
-   IF (IBOUNC.EQ.NBOUNC) THEN
-      IF (.NOT. DONALL) THEN
-!
+
+      XP1   = XP2
+      YP1   = YP2
+      IBSP1 = IBSP2
+
+      IF (IBOUNC.EQ.NBOUNC) THEN
+         IF (.NOT. DONALL) THEN
+
 !           process grid points between last and first boundary point
-!
-         DONALL = .TRUE.
-         XP2    = XP0
-         YP2    = YP0
-         IBSP2  = IBSP0
-         GOTO 201
+
+            DONALL = .TRUE.
+            XP2    = XP0
+            YP2    = YP0
+            IBSP2  = IBSP0
+            CYCLE boundary_interval
+         ENDIF
       ENDIF
-   ENDIF
+
+      EXIT boundary_interval
+   END DO boundary_interval
 
    RETURN
-!
-END SUBROUTINE SWBCPT
-!
+
+end subroutine SWBCPT
+
 !*********************************************************************
 !                                                                    *
 LOGICAL FUNCTION BOUNPT (IX,IY,KGRPNT)
 !                                                                    *
 !*********************************************************************
-!
-   USE SWCOMM3
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_computational_grid
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -5926,43 +5993,42 @@ LOGICAL FUNCTION BOUNPT (IX,IY,KGRPNT)
 !
 !  9. STRUCTURE
 !
-!     -----------------------------------------------------------------
+!     -----------------------------------------------------------------   40.00
 !     Make BOUNPT = False
 !     If the grid point is not active
 !     Then return
-!     -----------------------------------------------------------------
+!     -----------------------------------------------------------------   40.00
 !     If grid point is on the outer boundary
 !     Then make BOUNPT = True
 !          return
-!     -----------------------------------------------------------------
+!     -----------------------------------------------------------------   40.00
 !     If a neighbouring grid point is inactive
 !     Then make BOUNPT = True
 !          return
-!     -----------------------------------------------------------------
+!     -----------------------------------------------------------------   40.00
 !
 ! 10. SOURCE TEXT
-!
-   INTEGER IX,IY,KGRPNT(MXC,MYC)
-   SAVE IENT
-   DATA IENT/0/
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER IX, IY, KGRPNT(MXC,MYC)
    CALL STRACE (IENT, 'BOUNPT')
-!
+
    BOUNPT = .FALSE.
-!
+
    IF (IX.LE.0)   RETURN
    IF (IY.LE.0)   RETURN
    IF (IX.GT.MXC) RETURN
    IF (IY.GT.MYC) RETURN
-!
+
 !     If the grid point is not active
 !     Then return
-!
+
    IF (KGRPNT(IX,IY).LE.1) RETURN
-!
+
 !     If grid point is on the outer boundary
 !     Then make BOUNPT = True
 !          return
-!
+
    IF (IX.EQ.1) THEN
       BOUNPT = .TRUE.
       RETURN
@@ -5979,11 +6045,11 @@ LOGICAL FUNCTION BOUNPT (IX,IY,KGRPNT)
       BOUNPT = .TRUE.
       RETURN
    ENDIF
-!
+
 !     If a neighbouring grid point is inactive
 !     Then make BOUNPT = True
 !          return
-!
+
    IF (KGRPNT(IX-1,IY).LE.1) THEN
       BOUNPT = .TRUE.
       RETURN
@@ -6001,24 +6067,38 @@ LOGICAL FUNCTION BOUNPT (IX,IY,KGRPNT)
       RETURN
    ENDIF
    RETURN
-END
+end function BOUNPT
 !*********************************************************************
 !                                                                    *
 SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID, &
-                   SPCSIG, SPCDIR)
+   SPCSIG, SPCDIR)
 !                                                                    *
 !*********************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+
+   USE swan_coordinate_input, ONLY: READXY, REFIXY
+   USE swan_services, ONLY: CVMESH
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
+   USE swan_input_parser, ONLY: INCSTR, ININTG, INKEYW, KEYWIS, WRNKEY
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_time
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE OUTP_DATA
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
-!
-!
+
+   CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -6091,32 +6171,30 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID, &
 !             (*,4); cosine^2 of spectral directions                      30.82
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
-! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.82
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 ! i   XCGRID: Coordinates of computational grid in x-direction            30.82
 ! i   YCGRID: Coordinates of computational grid in y-direction            30.82
-!
+
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
    REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
-!
+
 ! i   LXYTST: Maximum length of array XYTST                               40.80
 ! i   XYTST : Grid point indices of test points                           30.82
 !
 !     MPTST : Maximum number of test points                               30.82
-!
+
    INTEGER LXYTST, MPTST
    INTEGER XYTST(LXYTST)
    INTEGER ICHECK1,ICHECK2 ! for checking that
-                           ! hardwired # quantities is correct
+   ! hardwired # quantities is correct
 !
 !  5. SUBROUTINES CALLING
 !
 !     SWREAD
 !
 !  6. SUBROUTINES USED
-!
-   LOGICAL STPNOW
-!
+
 !  7. Common blocks used
 !
 !
@@ -6125,32 +6203,33 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID, &
 !
 !  9. STRUCTURE
 !
-!     -----------------------------------------------------------------
+!     -----------------------------------------------------------------   40.00
 !     Repeat
 !         read (i,j) identifying a test point
 !         store values in array XYTST
-!     -----------------------------------------------------------------
+!     -----------------------------------------------------------------   40.00
 !     Generate output point set 'TESTPNTS'
 !     write coordinates of test points into array OUTDA
-!     -----------------------------------------------------------------
+!     -----------------------------------------------------------------   40.00
 !     If 1D output of source terms is requested
 !     Then open file
 !          write general data into the file
-!     -----------------------------------------------------------------
+!     -----------------------------------------------------------------   40.00
 !     If 2D output of source terms is requested
 !     Then open file
 !          write general data into the file
-!     -----------------------------------------------------------------
+!     -----------------------------------------------------------------   40.00
 !
 ! 10. SOURCE TEXT
-!
+
    INTEGER   KGRPNT(MXC,MYC), KGRBND(*)
-   LOGICAL   KEYWIS, LOCGRI
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   ID, IERR, ILPOS, IS, K
+   REAL      XC, XP, YC, YP
+   LOGICAL :: LOCGRI
    TYPE(OPSDAT), POINTER :: OPSTMP
-   SAVE      IENT
-   DATA      IENT /0/
    CALL STRACE (IENT, 'RETSTP')
-!
+
    IF (OPTG.NE.5) THEN
       MPTST = LXYTST/2
    ELSE
@@ -6169,82 +6248,86 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID, &
       CALL MSGERR(3, &
          'command READ BOT or READ UNSTRUC must precede command TEST')
    ENDIF
-!
-10 IF (LOCGRI) THEN
-      CALL READXY ('X','Y',XP,YP, 'REP', -1.E10, -1.E10)
-      IF (XP.LT.-.9E10) THEN
-         LXDMP = 0
-         GOTO 60
-      ELSE
-         IF (OPTG.NE.5) THEN
-            CALL CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID, YCGRID, KGRBND)
-            IF (XC.LT.0.) THEN
-               IF (XP.GE.XCGMIN .AND. XP.LE.XCGMAX .AND. &
-                   YP.GE.YCGMIN .AND. YP.LE.YCGMAX ) THEN
-                  GOTO 50
+
+   test_point_loop: DO
+      IF (NPTST.GT.MPTST) THEN
+         CALL MSGERR (2, 'Too many test points')
+         EXIT test_point_loop
+      END IF
+      point_input: BLOCK
+         IF (LOCGRI) THEN
+            CALL READXY ('X','Y',XP,YP, 'REP', -1.E10, -1.E10)
+            IF (XP.LT.-.9E10) THEN
+               LXDMP = 0
+               EXIT test_point_loop
+            ELSE
+               IF (OPTG.NE.5) THEN
+                  CALL CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID, YCGRID, KGRBND)
+                  IF (XC.LT.0.) THEN
+                     IF (XP.GE.XCGMIN .AND. XP.LE.XCGMAX .AND. &
+                        YP.GE.YCGMIN .AND. YP.LE.YCGMAX ) THEN
+                        CYCLE test_point_loop
+                     ELSE
+                        EXIT point_input
+                     END IF
+                  END IF
+                  LXDMP = NINT(XC) + MXF -1
+                  LYDMP = NINT(YC) + MYF -1
+                  IF (ITEST.GE.30) WRITE (PRTEST, "(' test point ', 2F12.2, ' to grid point ', 2I4)") XP+XOFFS, YP+YOFFS, &
+                     LXDMP, LYDMP
                ELSE
-                  GOTO 40
-               END IF
-            END IF
-            LXDMP = NINT(XC) + MXF -1
-            LYDMP = NINT(YC) + MYF -1
-            IF (ITEST.GE.30) WRITE (PRTEST, 14) XP+XOFFS, YP+YOFFS, &
-               LXDMP, LYDMP
-14          FORMAT (' test point ', 2F12.2, ' to grid point ', 2I4)
-         ELSE
-            CALL SwanFindPoint ( XP, YP, K )
-            IF ( K.LT.0 ) THEN
-               IF (XP.GE.XCGMIN .AND. XP.LE.XCGMAX .AND. &
-                   YP.GE.YCGMIN .AND. YP.LE.YCGMAX ) THEN
-                  GOTO 50
-               ELSE
-                  GOTO 40
-               END IF
-            END IF
-            LXDMP = K
-            IF (ITEST.GE.30) WRITE (PRTEST,15) XP+XOFFS,YP+YOFFS,LXDMP
-15          FORMAT (' test point ', 2F12.2, ' to vertex ', I6)
-         ENDIF
-      ENDIF
-   ELSE
-      CALL ININTG ('I' , LXDMP, 'REP', -1)
-      IF (LXDMP .LT. 0) GOTO 60
-      IF (OPTG.NE.5) CALL ININTG ('J' , LYDMP, 'REQ',  0)
-   ENDIF
-!
-   IF (OPTG.NE.5) THEN
-      IF (LXDMP.GE.0 .AND. LXDMP.LE.MXCGL-1 .AND. &
-          LYDMP.GE.0 .AND. LYDMP.LE.MYCGL-1) THEN
-         LXDMP = LXDMP - MXF + 1
-         LYDMP = LYDMP - MYF + 1
-         IF (LXDMP.GE.0 .AND. LXDMP.LE.MXC-1 .AND. &
-             LYDMP.GE.0 .AND. LYDMP.LE.MYC-1) THEN
-            IF (KGRPNT(LXDMP+1,LYDMP+1) .GT. 1) THEN
-               NPTST = NPTST + 1
-               XYTST(2*NPTST-1) = LXDMP+1
-               XYTST(2*NPTST)   = LYDMP+1
-               GOTO 50
+                  CALL SwanFindPoint ( XP, YP, K )
+                  IF ( K.LT.0 ) THEN
+                     IF (XP.GE.XCGMIN .AND. XP.LE.XCGMAX .AND. &
+                        YP.GE.YCGMIN .AND. YP.LE.YCGMAX ) THEN
+                        CYCLE test_point_loop
+                     ELSE
+                        EXIT point_input
+                     END IF
+                  END IF
+                  LXDMP = K
+                  IF (ITEST.GE.30) WRITE (PRTEST,"(' test point ', 2F12.2, ' to vertex ', I6)") XP+XOFFS,YP+YOFFS,LXDMP
+               ENDIF
             ENDIF
          ELSE
-            GOTO 50
+            CALL ININTG ('I' , LXDMP, 'REP', -1)
+            IF (LXDMP .LT. 0) EXIT test_point_loop
+            IF (OPTG.NE.5) CALL ININTG ('J' , LYDMP, 'REQ',  0)
          ENDIF
-      ENDIF
-   ELSE
-      IF (LXDMP.GE.1 .AND. LXDMP.LE.nverts) THEN
-         NPTST = NPTST + 1
-         XYTST(NPTST) = LXDMP
-         GOTO 50
-      ENDIF
-   ENDIF
-!
-40 CALL MSGERR (1, 'test point is not active')
-   WRITE (PRINTF, *) XP+XOFFS, YP+YOFFS
-50 IF (NPTST.LE.MPTST) GOTO 10
-   CALL MSGERR (2, 'Too many test points')
-!
+
+         IF (OPTG.NE.5) THEN
+            IF (LXDMP.GE.0 .AND. LXDMP.LE.MXCGL-1 .AND. &
+               LYDMP.GE.0 .AND. LYDMP.LE.MYCGL-1) THEN
+               LXDMP = LXDMP - MXF + 1
+               LYDMP = LYDMP - MYF + 1
+               IF (LXDMP.GE.0 .AND. LXDMP.LE.MXC-1 .AND. &
+                  LYDMP.GE.0 .AND. LYDMP.LE.MYC-1) THEN
+                  IF (KGRPNT(LXDMP+1,LYDMP+1) .GT. 1) THEN
+                     NPTST = NPTST + 1
+                     XYTST(2*NPTST-1) = LXDMP+1
+                     XYTST(2*NPTST)   = LYDMP+1
+                     CYCLE test_point_loop
+                  ENDIF
+               ELSE
+                  CYCLE test_point_loop
+               ENDIF
+            ENDIF
+         ELSE
+            IF (LXDMP.GE.1 .AND. LXDMP.LE.nverts) THEN
+               NPTST = NPTST + 1
+               XYTST(NPTST) = LXDMP
+               CYCLE test_point_loop
+            ENDIF
+         ENDIF
+
+      END BLOCK point_input
+      CALL MSGERR (1, 'test point is not active')
+      WRITE (PRINTF, *) XP+XOFFS, YP+YOFFS
+   END DO test_point_loop
+
 !     generate output point set 'TESTPNTS'
-!
-60 ALLOCATE(OPSTMP)
+
+   ALLOCATE(OPSTMP)
    OPSTMP%PSNAME = 'TESTPNTS'
    OPSTMP%PSTYPE = 'P'
    OPSTMP%MIP    = NPTST
@@ -6273,9 +6356,9 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID, &
       COPS%NEXTOPS => OPSTMP
       COPS => OPSTMP
    END IF
-!
+
 !     open output file for test output of wave parameters                 40.00
-!
+
    CALL INKEYW ('STA', ' ')
    IF (KEYWIS('PAR')) THEN
       CALL INCSTR ('FNAME', FILENM, 'STA', 'SWSRCPA')
@@ -6283,49 +6366,41 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID, &
 !           parallel computing                                            40.30
       IF ( PARLL ) THEN
          ILPOS = INDEX ( FILENM, ' ' )-1
-         WRITE(FILENM(ILPOS+1:ILPOS+4),99) INODE
-99       FORMAT('-',I3.3)
+         WRITE(FILENM(ILPOS+1:ILPOS+4),"('-',I3.3)") INODE
       END IF
       IERR = 0
       CALL FOR (IFPAR, FILENM, 'UF', IERR)
       IF (STPNOW()) RETURN
-      WRITE (IFPAR, 101) 1
-101   FORMAT ('SWAN', I4, T41, &
-         'Swan standard spectral file, version')
-      WRITE (IFPAR, 111) VERTXT
-111   FORMAT ('$   Data produced by SWAN version ', A)
-      WRITE (IFPAR, 113) PROJID, PROJNR
-113   FORMAT ('$   Project: ', A, ';  run number: ', A)
+      WRITE (IFPAR, "('SWAN', I4, T41, 'Swan standard spectral file, version')") 1
+      WRITE (IFPAR, "('$   Data produced by SWAN version ', A)") VERTXT
+      WRITE (IFPAR, "('$   Project: ', A, ';  run number: ', A)") PROJID, PROJNR
       IF (NSTATM.EQ.1) THEN
-         WRITE (IFPAR, 102) 'TIME', 'time-dependent data'
-102      FORMAT (A, T41, A)
-         WRITE (IFPAR, 103) ITMOPT, 'time coding option'
-103      FORMAT (I6, T41, A)
+         WRITE (IFPAR, "(A, T41, A)") 'TIME', 'time-dependent data'
+         WRITE (IFPAR, "(I6, T41, A)") ITMOPT, 'time coding option'
       ELSE
-         WRITE (IFPAR, 102) 'ITER', 'iteration-dependent data'
-         WRITE (IFPAR, 103) 0
+         WRITE (IFPAR, "(A, T41, A)") 'ITER', 'iteration-dependent data'
+         WRITE (IFPAR, "(I6, T41, A)") 0
       ENDIF
       IF (KSPHER.EQ.0) THEN
-         WRITE (IFPAR, 102) 'LOCATIONS', 'locations in x-y-space'
+         WRITE (IFPAR, "(A, T41, A)") 'LOCATIONS', 'locations in x-y-space'
       ELSE
-         WRITE (IFPAR, 102) 'LONLAT', &
-                            'locations in longitude, latitude'
+         WRITE (IFPAR, "(A, T41, A)") 'LONLAT', &
+            'locations in longitude, latitude'
       ENDIF
-      WRITE (IFPAR, 103) NPTST, 'number of locations'
+      WRITE (IFPAR, "(I6, T41, A)") NPTST, 'number of locations'
       IF (OPTG.NE.5) THEN
-         DO 110 IPTST = 1, NPTST
+         do IPTST = 1, NPTST
             LXDMP = XYTST(2*IPTST-1)
             LYDMP = XYTST(2*IPTST)
-            WRITE (IFPAR, 106) XCGRID(LXDMP,LYDMP)+XOFFS, &
-                               YCGRID(LXDMP,LYDMP)+YOFFS
-110      CONTINUE
+            WRITE (IFPAR, "(2(1X,F12.2))") XCGRID(LXDMP,LYDMP)+XOFFS, &
+               YCGRID(LXDMP,LYDMP)+YOFFS
+         end do
       ELSE
          DO IPTST = 1, NPTST
             K = XYTST(IPTST)
-            WRITE (IFPAR, 106) xcugrd(K)+XOFFS, ycugrd(K)+YOFFS
+            WRITE (IFPAR, "(2(1X,F12.2))") xcugrd(K)+XOFFS, ycugrd(K)+YOFFS
          ENDDO
       ENDIF
-106   FORMAT (2(1X,F12.2))
 ! NB: If list of variables is expanded, the following hardwired integers
 !   must be increased:
       IF(IWCAP.NE.8)THEN
@@ -6333,76 +6408,74 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID, &
       ELSE
          ICHECK1=15
       ENDIF
-      WRITE (IFPAR, 132) ICHECK1
-132   FORMAT ('QUANT', /, I6, T41, 'number of quantities in table')
-      WRITE (IFPAR, 102) OVSNAM(10), OVLNAM(10)
-      WRITE (IFPAR, 102) OVUNIT(10), 'unit'
-      WRITE (IFPAR, 104) OVEXCV(10), 'exception value'
-104   FORMAT (F14.6, T41, A)
-      WRITE (IFPAR, 102) OVSNAM(28), OVLNAM(28)
-      WRITE (IFPAR, 102) OVUNIT(28), 'unit'
-      WRITE (IFPAR, 104) OVEXCV(28), 'exception value'
+      WRITE (IFPAR, "('QUANT', /, I6, T41, 'number of quantities in table')") ICHECK1
+      WRITE (IFPAR, "(A, T41, A)") OVSNAM(10), OVLNAM(10)
+      WRITE (IFPAR, "(A, T41, A)") OVUNIT(10), 'unit'
+      WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(10), 'exception value'
+      WRITE (IFPAR, "(A, T41, A)") OVSNAM(28), OVLNAM(28)
+      WRITE (IFPAR, "(A, T41, A)") OVUNIT(28), 'unit'
+      WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(28), 'exception value'
       ICHECK2=3
-      WRITE (IFPAR, 102) 'Swind',  'wind source term (of var. dens.)'
-      WRITE (IFPAR, 102) 'm2/s',   'unit'
-      WRITE (IFPAR, 104) OVEXCV(7),'exception value'
+      WRITE (IFPAR, "(A, T41, A)") 'Swind',  'wind source term (of var. dens.)'
+      WRITE (IFPAR, "(A, T41, A)") 'm2/s',   'unit'
+      WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFPAR, 102) 'Swcap',  'whitecapping dissipation'
-      WRITE (IFPAR, 102) 'm2/s',   'unit'
-      WRITE (IFPAR, 104) OVEXCV(7),'exception value'
+      WRITE (IFPAR, "(A, T41, A)") 'Swcap',  'whitecapping dissipation'
+      WRITE (IFPAR, "(A, T41, A)") 'm2/s',   'unit'
+      WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       IF(IWCAP.EQ.8)THEN
          ICHECK2=ICHECK2+1
-         WRITE (IFPAR, 102) 'Sswell', 'swell dissipation'
-         WRITE (IFPAR, 102) 'm2/s',   'unit'
-         WRITE (IFPAR, 104) OVEXCV(7),'exception value'
+         WRITE (IFPAR, "(A, T41, A)") 'Sswell', 'swell dissipation'
+         WRITE (IFPAR, "(A, T41, A)") 'm2/s',   'unit'
+         WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ENDIF
       ICHECK2=ICHECK2+1
-      WRITE (IFPAR, 102) 'Sfric',  'bottom friction dissipation'
-      WRITE (IFPAR, 102) 'm2/s',   'unit'
-      WRITE (IFPAR, 104) OVEXCV(7),'exception value'
+      WRITE (IFPAR, "(A, T41, A)") 'Sfric',  'bottom friction dissipation'
+      WRITE (IFPAR, "(A, T41, A)") 'm2/s',   'unit'
+      WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFPAR, 102) 'Svege',  'vegetation dissipation'
-      WRITE (IFPAR, 102) 'm2/s',   'unit'
-      WRITE (IFPAR, 104) OVEXCV(7),'exception value'
+      WRITE (IFPAR, "(A, T41, A)") 'Svege',  'vegetation dissipation'
+      WRITE (IFPAR, "(A, T41, A)") 'm2/s',   'unit'
+      WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFPAR, 102) 'Sturb',  'turbulent dissipation'
-      WRITE (IFPAR, 102) 'm2/s',   'unit'
-      WRITE (IFPAR, 104) OVEXCV(7),'exception value'
+      WRITE (IFPAR, "(A, T41, A)") 'Sturb',  'turbulent dissipation'
+      WRITE (IFPAR, "(A, T41, A)") 'm2/s',   'unit'
+      WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFPAR, 102) 'Smud',  'fluid mud dissipation'
-      WRITE (IFPAR, 102) 'm2/s',   'unit'
-      WRITE (IFPAR, 104) OVEXCV(7),'exception value'
+      WRITE (IFPAR, "(A, T41, A)") 'Smud',  'fluid mud dissipation'
+      WRITE (IFPAR, "(A, T41, A)") 'm2/s',   'unit'
+      WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFPAR, 102) 'Sice',   'dissipation by sea ice'
-      WRITE (IFPAR, 102) 'm2/s',   'unit'
-      WRITE (IFPAR, 104) OVEXCV(7),'exception value'
+      WRITE (IFPAR, "(A, T41, A)") 'Sice',   'dissipation by sea ice'
+      WRITE (IFPAR, "(A, T41, A)") 'm2/s',   'unit'
+      WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFPAR, 102) 'Ssurf',  'surf breaking dissipation'
-      WRITE (IFPAR, 102) 'm2/s',   'unit'
-      WRITE (IFPAR, 104) OVEXCV(7),'exception value'
+      WRITE (IFPAR, "(A, T41, A)") 'Ssurf',  'surf breaking dissipation'
+      WRITE (IFPAR, "(A, T41, A)") 'm2/s',   'unit'
+      WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFPAR, 102) 'Snl3',   'total absolute 3-wave interaction'
-      WRITE (IFPAR, 102) 'm2/s',   'unit'
-      WRITE (IFPAR, 104) OVEXCV(7),'exception value'
+      WRITE (IFPAR, "(A, T41, A)") 'Snl3',   'total absolute 3-wave interaction'
+      WRITE (IFPAR, "(A, T41, A)") 'm2/s',   'unit'
+      WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFPAR, 102) 'Snl4',   'total absolute 4-wave interaction'
-      WRITE (IFPAR, 102) 'm2/s',   'unit'
-      WRITE (IFPAR, 104) OVEXCV(7),'exception value'
+      WRITE (IFPAR, "(A, T41, A)") 'Snl4',   'total absolute 4-wave interaction'
+      WRITE (IFPAR, "(A, T41, A)") 'm2/s',   'unit'
+      WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFPAR, 102) 'Sbragg', 'Bragg scattering'
-      WRITE (IFPAR, 102) 'm2/s',   'unit'
-      WRITE (IFPAR, 104) OVEXCV(7),'exception value'
+      WRITE (IFPAR, "(A, T41, A)") 'Sbragg', 'Bragg scattering'
+      WRITE (IFPAR, "(A, T41, A)") 'm2/s',   'unit'
+      WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFPAR, 102) 'Sqc',    'QC scattering'
-      WRITE (IFPAR, 102) 'm2/s',   'unit'
-      WRITE (IFPAR, 104) OVEXCV(7),'exception value'
+      WRITE (IFPAR, "(A, T41, A)") 'Sqc',    'QC scattering'
+      WRITE (IFPAR, "(A, T41, A)") 'm2/s',   'unit'
+      WRITE (IFPAR, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       IF ( ICHECK1.NE.ICHECK2 ) THEN
          CALL MSGERR (3,'Internal error: mismatch in # quantities')
       ENDIF
    ENDIF
-!
+
 !     open output file for source terms if requested
-!
+
    CALL INKEYW ('STA', ' ')
    IF (KEYWIS('S1D')) THEN
       CALL INCSTR ('FNAME', FILENM, 'STA', 'SWSRC1D')
@@ -6410,51 +6483,50 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID, &
 !           parallel computing                                            40.30
       IF ( PARLL ) THEN
          ILPOS = INDEX ( FILENM, ' ' )-1
-         WRITE(FILENM(ILPOS+1:ILPOS+4),99) INODE
+         WRITE(FILENM(ILPOS+1:ILPOS+4),"('-',I3.3)") INODE
       END IF
       IERR = 0
       CALL FOR (IFS1D, FILENM, 'UF', IERR)
       IF (STPNOW()) RETURN
-      WRITE (IFS1D, 101) 1
-      WRITE (IFS1D, 111) VERTXT
-      WRITE (IFS1D, 113) PROJID, PROJNR
+      WRITE (IFS1D, "('SWAN', I4, T41, 'Swan standard spectral file, version')") 1
+      WRITE (IFS1D, "('$   Data produced by SWAN version ', A)") VERTXT
+      WRITE (IFS1D, "('$   Project: ', A, ';  run number: ', A)") PROJID, PROJNR
       IF (NSTATM.EQ.1) THEN
-         WRITE (IFS1D, 102) 'TIME', 'time-dependent data'
-         WRITE (IFS1D, 103) ITMOPT, 'time coding option'
+         WRITE (IFS1D, "(A, T41, A)") 'TIME', 'time-dependent data'
+         WRITE (IFS1D, "(I6, T41, A)") ITMOPT, 'time coding option'
       ELSE
-         WRITE (IFS1D, 102) 'ITER', 'iteration-dependent data'
-         WRITE (IFS1D, 103) 0
+         WRITE (IFS1D, "(A, T41, A)") 'ITER', 'iteration-dependent data'
+         WRITE (IFS1D, "(I6, T41, A)") 0
       ENDIF
       IF (KSPHER.EQ.0) THEN
-         WRITE (IFS1D, 102) 'LOCATIONS', 'locations in x-y-space'
+         WRITE (IFS1D, "(A, T41, A)") 'LOCATIONS', 'locations in x-y-space'
       ELSE
-         WRITE (IFS1D, 102) 'LONLAT', &
-                            'locations in longitude, latitude'
+         WRITE (IFS1D, "(A, T41, A)") 'LONLAT', &
+            'locations in longitude, latitude'
       ENDIF
-      WRITE (IFS1D, 103) NPTST, 'number of locations'
+      WRITE (IFS1D, "(I6, T41, A)") NPTST, 'number of locations'
       IF (OPTG.NE.5) THEN
-         DO 210 IPTST = 1, NPTST
+         do IPTST = 1, NPTST
             LXDMP = XYTST(2*IPTST-1)
             LYDMP = XYTST(2*IPTST)
-            WRITE (IFS1D, 106) XCGRID(LXDMP,LYDMP)+XOFFS, &
-                               YCGRID(LXDMP,LYDMP)+YOFFS
-210      CONTINUE
+            WRITE (IFS1D, "(2(1X,F12.2))") XCGRID(LXDMP,LYDMP)+XOFFS, &
+               YCGRID(LXDMP,LYDMP)+YOFFS
+         end do
       ELSE
          DO IPTST = 1, NPTST
             K = XYTST(IPTST)
-            WRITE (IFS1D, 106) xcugrd(K)+XOFFS, ycugrd(K)+YOFFS
+            WRITE (IFS1D, "(2(1X,F12.2))") xcugrd(K)+XOFFS, ycugrd(K)+YOFFS
          ENDDO
       ENDIF
       IF (ICUR.GT.0) THEN
-         WRITE (IFS1D, 102) 'RFREQ', 'relative frequencies in Hz'
+         WRITE (IFS1D, "(A, T41, A)") 'RFREQ', 'relative frequencies in Hz'
       ELSE
-         WRITE (IFS1D, 102) 'AFREQ', 'absolute frequencies in Hz'
+         WRITE (IFS1D, "(A, T41, A)") 'AFREQ', 'absolute frequencies in Hz'
       ENDIF
-      WRITE (IFS1D, 103) MSC, 'number of frequencies'
-      DO 220 IS = 1, MSC
-         WRITE (IFS1D, 214) SPCSIG(IS)/PI2
-214      FORMAT (F10.4)
-220   CONTINUE
+      WRITE (IFS1D, "(I6, T41, A)") MSC, 'number of frequencies'
+      do IS = 1, MSC
+         WRITE (IFS1D, "(F10.4)") SPCSIG(IS)/PI2
+      end do
 ! NB: If list of variables is expanded, the following hardwired integers
 !   must be increased:
       IF(IWCAP.NE.8)THEN
@@ -6462,64 +6534,64 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID, &
       ELSE
          ICHECK1=14
       ENDIF
-      WRITE (IFS1D, 132) ICHECK1
-      WRITE (IFS1D, 102) 'VaDens', 'variance densities'
-      WRITE (IFS1D, 102) 'm2/Hz',  'unit'
-      WRITE (IFS1D, 104) 0.,       'exception value'
+      WRITE (IFS1D, "('QUANT', /, I6, T41, 'number of quantities in table')") ICHECK1
+      WRITE (IFS1D, "(A, T41, A)") 'VaDens', 'variance densities'
+      WRITE (IFS1D, "(A, T41, A)") 'm2/Hz',  'unit'
+      WRITE (IFS1D, "(F14.6, T41, A)") 0.,       'exception value'
       ICHECK2=2
-      WRITE (IFS1D, 102) 'Swind',  'wind source term'
-      WRITE (IFS1D, 102) 'm2',     'unit'
-      WRITE (IFS1D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS1D, "(A, T41, A)") 'Swind',  'wind source term'
+      WRITE (IFS1D, "(A, T41, A)") 'm2',     'unit'
+      WRITE (IFS1D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS1D, 102) 'Swcap',  'whitecapping dissipation'
-      WRITE (IFS1D, 102) 'm2',     'unit'
-      WRITE (IFS1D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS1D, "(A, T41, A)") 'Swcap',  'whitecapping dissipation'
+      WRITE (IFS1D, "(A, T41, A)") 'm2',     'unit'
+      WRITE (IFS1D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       IF(IWCAP.EQ.8) THEN
          ICHECK2=ICHECK2+1
-         WRITE (IFS1D, 102) 'Sswell', 'swell dissipation'
-         WRITE (IFS1D, 102) 'm2',     'unit'
-         WRITE (IFS1D, 104) OVEXCV(7),'exception value'
+         WRITE (IFS1D, "(A, T41, A)") 'Sswell', 'swell dissipation'
+         WRITE (IFS1D, "(A, T41, A)") 'm2',     'unit'
+         WRITE (IFS1D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ENDIF
       ICHECK2=ICHECK2+1
-      WRITE (IFS1D, 102) 'Sfric',  'bottom friction dissipation'
-      WRITE (IFS1D, 102) 'm2',     'unit'
-      WRITE (IFS1D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS1D, "(A, T41, A)") 'Sfric',  'bottom friction dissipation'
+      WRITE (IFS1D, "(A, T41, A)") 'm2',     'unit'
+      WRITE (IFS1D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS1D, 102) 'Svege',  'vegetation dissipation'
-      WRITE (IFS1D, 102) 'm2',     'unit'
-      WRITE (IFS1D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS1D, "(A, T41, A)") 'Svege',  'vegetation dissipation'
+      WRITE (IFS1D, "(A, T41, A)") 'm2',     'unit'
+      WRITE (IFS1D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS1D, 102) 'Sturb',  'turbulent dissipation'
-      WRITE (IFS1D, 102) 'm2',     'unit'
-      WRITE (IFS1D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS1D, "(A, T41, A)") 'Sturb',  'turbulent dissipation'
+      WRITE (IFS1D, "(A, T41, A)") 'm2',     'unit'
+      WRITE (IFS1D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS1D, 102) 'Smud',  'fluid mud dissipation'
-      WRITE (IFS1D, 102) 'm2',     'unit'
-      WRITE (IFS1D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS1D, "(A, T41, A)") 'Smud',  'fluid mud dissipation'
+      WRITE (IFS1D, "(A, T41, A)") 'm2',     'unit'
+      WRITE (IFS1D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS1D, 102) 'Sice',   'dissipation by sea ice'
-      WRITE (IFS1D, 102) 'm2',     'unit'
-      WRITE (IFS1D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS1D, "(A, T41, A)") 'Sice',   'dissipation by sea ice'
+      WRITE (IFS1D, "(A, T41, A)") 'm2',     'unit'
+      WRITE (IFS1D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS1D, 102) 'Ssurf',  'surf breaking dissipation'
-      WRITE (IFS1D, 102) 'm2',     'unit'
-      WRITE (IFS1D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS1D, "(A, T41, A)") 'Ssurf',  'surf breaking dissipation'
+      WRITE (IFS1D, "(A, T41, A)") 'm2',     'unit'
+      WRITE (IFS1D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS1D, 102) 'Snl3',   'triad interactions'
-      WRITE (IFS1D, 102) 'm2',     'unit'
-      WRITE (IFS1D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS1D, "(A, T41, A)") 'Snl3',   'triad interactions'
+      WRITE (IFS1D, "(A, T41, A)") 'm2',     'unit'
+      WRITE (IFS1D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS1D, 102) 'Snl4',   'quadruplet interactions'
-      WRITE (IFS1D, 102) 'm2',     'unit'
-      WRITE (IFS1D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS1D, "(A, T41, A)") 'Snl4',   'quadruplet interactions'
+      WRITE (IFS1D, "(A, T41, A)") 'm2',     'unit'
+      WRITE (IFS1D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS1D, 102) 'Sbragg', 'Bragg scattering'
-      WRITE (IFS1D, 102) 'm2',     'unit'
-      WRITE (IFS1D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS1D, "(A, T41, A)") 'Sbragg', 'Bragg scattering'
+      WRITE (IFS1D, "(A, T41, A)") 'm2',     'unit'
+      WRITE (IFS1D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS1D, 102) 'Sqc',    'QC scattering'
-      WRITE (IFS1D, 102) 'm2',     'unit'
-      WRITE (IFS1D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS1D, "(A, T41, A)") 'Sqc',    'QC scattering'
+      WRITE (IFS1D, "(A, T41, A)") 'm2',     'unit'
+      WRITE (IFS1D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       IF ( ICHECK1.NE.ICHECK2 ) THEN
          CALL MSGERR (3,'Internal error: mismatch in # quantities')
       ENDIF
@@ -6532,58 +6604,57 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID, &
 !           parallel computing                                            40.30
       IF ( PARLL ) THEN
          ILPOS = INDEX ( FILENM, ' ' )-1
-         WRITE(FILENM(ILPOS+1:ILPOS+4),99) INODE
+         WRITE(FILENM(ILPOS+1:ILPOS+4),"('-',I3.3)") INODE
       END IF
       IERR = 0
       CALL FOR (IFS2D, FILENM, 'UF', IERR)
       IF (STPNOW()) RETURN
-      WRITE (IFS2D, 101) 1
-      WRITE (IFS2D, 111) VERTXT
-      WRITE (IFS2D, 113) PROJID, PROJNR
+      WRITE (IFS2D, "('SWAN', I4, T41, 'Swan standard spectral file, version')") 1
+      WRITE (IFS2D, "('$   Data produced by SWAN version ', A)") VERTXT
+      WRITE (IFS2D, "('$   Project: ', A, ';  run number: ', A)") PROJID, PROJNR
       IF (NSTATM.EQ.1) THEN
-         WRITE (IFS2D, 102) 'TIME', 'time-dependent data'
-         WRITE (IFS2D, 103) ITMOPT, 'time coding option'
+         WRITE (IFS2D, "(A, T41, A)") 'TIME', 'time-dependent data'
+         WRITE (IFS2D, "(I6, T41, A)") ITMOPT, 'time coding option'
       ELSE
-         WRITE (IFS2D, 102) 'ITER', 'iteration-dependent data'
-         WRITE (IFS2D, 103) 0
+         WRITE (IFS2D, "(A, T41, A)") 'ITER', 'iteration-dependent data'
+         WRITE (IFS2D, "(I6, T41, A)") 0
       ENDIF
       IF (KSPHER.EQ.0) THEN
-         WRITE (IFS2D, 102) 'LOCATIONS', 'locations in x-y-space'
+         WRITE (IFS2D, "(A, T41, A)") 'LOCATIONS', 'locations in x-y-space'
       ELSE
-         WRITE (IFS2D, 102) 'LONLAT', &
-                            'locations in longitude, latitude'
+         WRITE (IFS2D, "(A, T41, A)") 'LONLAT', &
+            'locations in longitude, latitude'
       ENDIF
-      WRITE (IFS2D, 103) NPTST, 'number of locations'
+      WRITE (IFS2D, "(I6, T41, A)") NPTST, 'number of locations'
       IF (OPTG.NE.5) THEN
-         DO 310 IPTST = 1, NPTST
+         do IPTST = 1, NPTST
             LXDMP = XYTST(2*IPTST-1)
             LYDMP = XYTST(2*IPTST)
-            WRITE (IFS2D, 106) XCGRID(LXDMP,LYDMP)+XOFFS, &
-                               YCGRID(LXDMP,LYDMP)+YOFFS
-310      CONTINUE
+            WRITE (IFS2D, "(2(1X,F12.2))") XCGRID(LXDMP,LYDMP)+XOFFS, &
+               YCGRID(LXDMP,LYDMP)+YOFFS
+         end do
       ELSE
          DO IPTST = 1, NPTST
             K = XYTST(IPTST)
-            WRITE (IFS2D, 106) xcugrd(K)+XOFFS, ycugrd(K)+YOFFS
+            WRITE (IFS2D, "(2(1X,F12.2))") xcugrd(K)+XOFFS, ycugrd(K)+YOFFS
          ENDDO
       ENDIF
       IF (ICUR.GT.0) THEN
-         WRITE (IFS2D, 102) 'RFREQ', 'relative frequencies in Hz'
+         WRITE (IFS2D, "(A, T41, A)") 'RFREQ', 'relative frequencies in Hz'
       ELSE
-         WRITE (IFS2D, 102) 'AFREQ', 'absolute frequencies in Hz'
+         WRITE (IFS2D, "(A, T41, A)") 'AFREQ', 'absolute frequencies in Hz'
       ENDIF
-      WRITE (IFS2D, 103) MSC, 'number of frequencies'
-      DO 320 IS = 1, MSC
-         WRITE (IFS2D, 214) SPCSIG(IS)/PI2
-320   CONTINUE
+      WRITE (IFS2D, "(I6, T41, A)") MSC, 'number of frequencies'
+      do IS = 1, MSC
+         WRITE (IFS2D, "(F10.4)") SPCSIG(IS)/PI2
+      end do
 !       full 2-D spectrum
-      WRITE (IFS2D, 102) 'CDIR', &
-                          'spectral Cartesian directions in degr'
-      WRITE (IFS2D, 103) MDC, 'number of directions'
-      DO 330 ID = 1, MDC
-         WRITE (IFS2D, 324) SPCDIR(ID,1)*180./PI
-324      FORMAT (F10.4)
-330   CONTINUE
+      WRITE (IFS2D, "(A, T41, A)") 'CDIR', &
+         'spectral Cartesian directions in degr'
+      WRITE (IFS2D, "(I6, T41, A)") MDC, 'number of directions'
+      do ID = 1, MDC
+         WRITE (IFS2D, "(F10.4)") SPCDIR(ID,1)*180./PI
+      end do
 ! NB: If list of variables is expanded, the following hardwired integers
 !   must be increased:
       IF(IWCAP.NE.8)THEN
@@ -6591,68 +6662,70 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID, &
       ELSE
          ICHECK1=14
       ENDIF
-      WRITE (IFS2D, 132) ICHECK1
-      WRITE (IFS2D, 102) 'VaDens', 'variance densities'
-      WRITE (IFS2D, 102) 'm2/Hz/degr', 'unit'
-      WRITE (IFS2D, 104) 0.,       'exception value'
+      WRITE (IFS2D, "('QUANT', /, I6, T41, 'number of quantities in table')") ICHECK1
+      WRITE (IFS2D, "(A, T41, A)") 'VaDens', 'variance densities'
+      WRITE (IFS2D, "(A, T41, A)") 'm2/Hz/degr', 'unit'
+      WRITE (IFS2D, "(F14.6, T41, A)") 0.,       'exception value'
       ICHECK2=2
-      WRITE (IFS2D, 102) 'Swind',  'wind source term'
-      WRITE (IFS2D, 102) 'm2/degr','unit'
-      WRITE (IFS2D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS2D, "(A, T41, A)") 'Swind',  'wind source term'
+      WRITE (IFS2D, "(A, T41, A)") 'm2/degr','unit'
+      WRITE (IFS2D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS2D, 102) 'Swcap',  'whitecapping dissipation'
-      WRITE (IFS2D, 102) 'm2/degr','unit'
-      WRITE (IFS2D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS2D, "(A, T41, A)") 'Swcap',  'whitecapping dissipation'
+      WRITE (IFS2D, "(A, T41, A)") 'm2/degr','unit'
+      WRITE (IFS2D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       IF(IWCAP.EQ.8) THEN
          ICHECK2=ICHECK2+1
-         WRITE (IFS2D, 102) 'Sswell', 'swell dissipation'
-         WRITE (IFS2D, 102) 'm2/degr','unit'
-         WRITE (IFS2D, 104) OVEXCV(7),'exception value'
+         WRITE (IFS2D, "(A, T41, A)") 'Sswell', 'swell dissipation'
+         WRITE (IFS2D, "(A, T41, A)") 'm2/degr','unit'
+         WRITE (IFS2D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ENDIF
       ICHECK2=ICHECK2+1
-      WRITE (IFS2D, 102) 'Sfric',  'bottom friction dissipation'
-      WRITE (IFS2D, 102) 'm2/degr','unit'
-      WRITE (IFS2D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS2D, "(A, T41, A)") 'Sfric',  'bottom friction dissipation'
+      WRITE (IFS2D, "(A, T41, A)") 'm2/degr','unit'
+      WRITE (IFS2D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS2D, 102) 'Svege',  'vegetation dissipation'
-      WRITE (IFS2D, 102) 'm2/degr','unit'
-      WRITE (IFS2D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS2D, "(A, T41, A)") 'Svege',  'vegetation dissipation'
+      WRITE (IFS2D, "(A, T41, A)") 'm2/degr','unit'
+      WRITE (IFS2D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS2D, 102) 'Sturb',  'turbulent dissipation'
-      WRITE (IFS2D, 102) 'm2/degr','unit'
-      WRITE (IFS2D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS2D, "(A, T41, A)") 'Sturb',  'turbulent dissipation'
+      WRITE (IFS2D, "(A, T41, A)") 'm2/degr','unit'
+      WRITE (IFS2D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS2D, 102) 'Smud',  'fluid mud dissipation'
-      WRITE (IFS2D, 102) 'm2/degr','unit'
-      WRITE (IFS2D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS2D, "(A, T41, A)") 'Smud',  'fluid mud dissipation'
+      WRITE (IFS2D, "(A, T41, A)") 'm2/degr','unit'
+      WRITE (IFS2D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS2D, 102) 'Sice',  'dissipation by sea ice'
-      WRITE (IFS2D, 102) 'm2/degr','unit'
-      WRITE (IFS2D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS2D, "(A, T41, A)") 'Sice',  'dissipation by sea ice'
+      WRITE (IFS2D, "(A, T41, A)") 'm2/degr','unit'
+      WRITE (IFS2D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS2D, 102) 'Ssurf',  'surf breaking dissipation'
-      WRITE (IFS2D, 102) 'm2/degr','unit'
-      WRITE (IFS2D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS2D, "(A, T41, A)") 'Ssurf',  'surf breaking dissipation'
+      WRITE (IFS2D, "(A, T41, A)") 'm2/degr','unit'
+      WRITE (IFS2D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS2D, 102) 'Snl3',   'triad interactions'
-      WRITE (IFS2D, 102) 'm2/degr','unit'
-      WRITE (IFS2D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS2D, "(A, T41, A)") 'Snl3',   'triad interactions'
+      WRITE (IFS2D, "(A, T41, A)") 'm2/degr','unit'
+      WRITE (IFS2D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS2D, 102) 'Snl4',   'quadruplet interactions'
-      WRITE (IFS2D, 102) 'm2/degr','unit'
-      WRITE (IFS2D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS2D, "(A, T41, A)") 'Snl4',   'quadruplet interactions'
+      WRITE (IFS2D, "(A, T41, A)") 'm2/degr','unit'
+      WRITE (IFS2D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS2D, 102) 'Sbragg', 'Bragg scattering'
-      WRITE (IFS2D, 102) 'm2/degr','unit'
-      WRITE (IFS2D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS2D, "(A, T41, A)") 'Sbragg', 'Bragg scattering'
+      WRITE (IFS2D, "(A, T41, A)") 'm2/degr','unit'
+      WRITE (IFS2D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       ICHECK2=ICHECK2+1
-      WRITE (IFS2D, 102) 'Sqc',    'QC scattering'
-      WRITE (IFS2D, 102) 'm2/degr','unit'
-      WRITE (IFS2D, 104) OVEXCV(7),'exception value'
+      WRITE (IFS2D, "(A, T41, A)") 'Sqc',    'QC scattering'
+      WRITE (IFS2D, "(A, T41, A)") 'm2/degr','unit'
+      WRITE (IFS2D, "(F14.6, T41, A)") OVEXCV(7),'exception value'
       IF ( ICHECK1.NE.ICHECK2 ) THEN
          CALL MSGERR (3,'Internal error: mismatch in # quantities')
       ENDIF
    ENDIF
    RETURN
 !     end of subroutine RETSTP
-END
+end subroutine RETSTP
+
+end module swan_input_processing

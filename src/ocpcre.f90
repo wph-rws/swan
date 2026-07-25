@@ -1,3 +1,144 @@
+module swan_input_parser
+   use swan_kinds, only: swan_double
+   use swan_io_context, only: io_context_t, diagnostics_context_t
+   use swan_text_utilities, only: upcase
+   use swan_io_limits, only: LENFNM
+   implicit none(type, external)
+   private
+
+   integer, parameter, public :: LINELN = 180
+
+   type, public :: command_reader_t
+      character(len=4) :: BLANK = '    '
+      character :: COMID = '$'
+      character(len=LINELN) :: ELTEXT = ''
+      character(len=4) :: ELTYPE = 'USED'
+      character(len=LINELN) :: KAART = ''
+      character :: KAR = ';'
+      character(len=8) :: KEYWRD = ''
+      character :: TABC = achar(9)
+      integer :: ELINT = 0
+      integer :: KARNR = LINELN + 1
+      integer :: LENCST = 0
+      real(swan_double) :: ELREAL = 0.0_swan_double
+      logical :: CHGVAL = .false.
+      ! Optional owned input stream. When io_bound is .true. the reader reads
+      ! command lines from io%INPUTF instead of the shared OCPCOMM4 INPUTF, so
+      ! two readers can consume two different input files. This is
+      ! configuration, not parse state, so reset() leaves it untouched.
+      type(io_context_t) :: io
+      logical :: io_bound = .false.
+      ! Optional owned diagnostics. When diag_bound is .true. the parser reports
+      ! errors into diag (and to io's streams) instead of the shared globals, so
+      ! two readers can keep separate logs. Configuration, not parse state.
+      type(diagnostics_context_t) :: diag
+      logical :: diag_bound = .false.
+   contains
+   procedure :: reset => reset_command_reader
+   end type command_reader_t
+
+   type(command_reader_t), public, save, target :: default_command_reader
+
+   public :: eqcstr, getkar, ignore, incstr, inctim, indble
+   public :: inintg, inintv, inkeyw, initvd, inreal, keywis
+   public :: leesel, nwline, putkar, rdinit, upcase, wrnkey
+
+   interface rdinit
+      module procedure rdinit_default, rdinit_ctx
+   end interface
+   interface nwline
+      module procedure nwline_default, nwline_ctx
+   end interface
+   interface inkeyw
+      module procedure inkeyw_default, inkeyw_ctx
+   end interface
+   interface inreal
+      module procedure inreal_default, inreal_ctx
+   end interface
+   interface indble
+      module procedure indble_default, indble_ctx
+   end interface
+   interface inintg
+      module procedure inintg_default, inintg_ctx
+   end interface
+   interface incstr
+      module procedure incstr_default, incstr_ctx
+   end interface
+   interface inctim
+      module procedure inctim_default, inctim_ctx
+   end interface
+   interface inintv
+      module procedure inintv_default, inintv_ctx
+   end interface
+   interface initvd
+      module procedure initvd_default, initvd_ctx
+   end interface
+   interface leesel
+      module procedure leesel_default, leesel_ctx
+   end interface
+   interface getkar
+      module procedure getkar_default, getkar_ctx
+   end interface
+   interface putkar
+      module procedure putkar_default, putkar_ctx
+   end interface
+   interface keywis
+      module procedure keywis_default, keywis_ctx
+   end interface
+   interface wrnkey
+      module procedure wrnkey_default, wrnkey_ctx
+   end interface
+   interface ignore
+      module procedure ignore_default, ignore_ctx
+   end interface
+
+contains
+
+!  Report through the reader's own diagnostics/streams when it owns them,
+!  otherwise through the shared globals. Keeps the 32 call sites in the parser
+!  free of PRESENT/bound branching.
+subroutine reader_msgerr (STATE, LEV, STRING)
+   use swan_service_interfaces, only: MSGERR
+   type(command_reader_t), intent(inout) :: STATE
+   integer, intent(in) :: LEV
+   character(len=*), intent(in) :: STRING
+
+   if (STATE%diag_bound) then
+      call MSGERR (LEV, STRING, STATE%diag, STATE%io)
+   else if (STATE%io_bound) then
+      call MSGERR (LEV, STRING, IO=STATE%io)
+   else
+      call MSGERR (LEV, STRING)
+   end if
+end subroutine reader_msgerr
+
+!  Unit the reader echoes its input and messages to.
+integer function reader_print_unit (STATE) result(UNIT)
+   USE swan_io_units, ONLY: PRINTF
+   type(command_reader_t), intent(in) :: STATE
+
+   UNIT = PRINTF
+   if (STATE%io_bound) UNIT = STATE%io%PRINTF
+end function reader_print_unit
+
+subroutine reset_command_reader(self)
+   class(command_reader_t), intent(inout) :: self
+
+   self%BLANK = '    '
+   self%COMID = '$'
+   self%ELTEXT = ''
+   self%ELTYPE = 'USED'
+   self%KAART = ''
+   self%KAR = ';'
+   self%KEYWRD = ''
+   self%TABC = achar(9)
+   self%ELINT = 0
+   self%KARNR = LINELN + 1
+   self%LENCST = 0
+   self%ELREAL = 0.0_swan_double
+   self%CHGVAL = .false.
+end subroutine reset_command_reader
+
 !               OCEAN PACK  command reading routines
 !
 !  Contents of this file:
@@ -22,18 +163,14 @@
 !
 !****************************************************************
 !                                                               *
-SUBROUTINE RDINIT
+SUBROUTINE RDINIT_CTX (STATE)
 !                                                               *
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE, EQREAL, MSGERR
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -77,14 +214,20 @@ SUBROUTINE RDINIT
 !
 !  4. ARGUMENT VARIABLES
 !
+!     STATE  : command reader; its line position and data item are set
+!              to their initial values (output)
+!
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
+!
+!
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
 !
 !     IENT   : Number of entries into this subroutine
-!
-   INTEGER   IENT
-!
+
+   INTEGER, SAVE :: IENT = 0
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -96,30 +239,26 @@ SUBROUTINE RDINIT
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA IENT/0/
+
    CALL STRACE (IENT,'RDINIT')
-   KAR = ';'
-   KARNR = LINELN + 1
-   ELTYPE = 'USED'
-   BLANK = '    '
+   STATE%KAR = ';'
+   STATE%KARNR = LINELN + 1
+   STATE%ELTYPE = 'USED'
+   STATE%BLANK = '    '
    RETURN
-END
+end subroutine RDINIT_CTX
 !****************************************************************
 !                                                               *
-SUBROUTINE NWLINE
+SUBROUTINE NWLINE_CTX (STATE)
 !                                                               *
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -169,14 +308,21 @@ SUBROUTINE NWLINE
 !
 !  4. ARGUMENT VARIABLES
 !
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
+!
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
+!
+!
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
 !
 !     IENT   : Number of entries into this subroutine
-!
-   INTEGER   IENT
-!
+
+   CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+   INTEGER, SAVE :: IENT = 0
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -188,46 +334,38 @@ SUBROUTINE NWLINE
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA  IENT/0/
+
    CALL STRACE (IENT,'NWLINE')
-5  IF ((ELTYPE.EQ.'USED').OR.(ELTYPE.EQ.'EOR')) CALL LEESEL
-   IF (ELTYPE.EQ.'EOF') GOTO 90
-   IF (ELTYPE.EQ.'KEY' .AND. KEYWRD.NE.'        ') GOTO 50
-   IF (ELTYPE.EQ.'INT') GOTO 50
-   IF (ELTYPE.EQ.'REAL') GOTO 50
-   IF (ELTYPE.EQ.'CHAR') GOTO 50
-   IF (KARNR.LE.LINELN) GOTO 50
+   DO
+      IF ((STATE%ELTYPE.EQ.'USED').OR.(STATE%ELTYPE.EQ.'EOR')) CALL LEESEL (STATE)
+      IF (STATE%ELTYPE.EQ.'EOF') EXIT
+      IF (STATE%ELTYPE.EQ.'KEY' .AND. STATE%KEYWRD.NE.'        ') EXIT
+      IF (STATE%ELTYPE.EQ.'INT' .OR. STATE%ELTYPE.EQ.'REAL' .OR. &
+          STATE%ELTYPE.EQ.'CHAR' .OR. STATE%KARNR.LE.LINELN) EXIT
 !     The end of the previous line is reached, there are no more
 !     unprocessed data items on that line.
 !     Jump to new line can take place.
-   WRITE (PRINTF,9) '    '
-9  FORMAT (A4)
-   KARNR=0
-   KAR=' '
-   ELTYPE='USED'
-   GOTO 5
-90 IF (ITEST.GE.10) THEN
-      INQUIRE (UNIT=INPUTF, NAME=FILENM)
-      WRITE (PRINTF, *) ' end of input file '//FILENM
+      WRITE (reader_print_unit(STATE),"(A4)") '    '
+      STATE%KARNR=0
+      STATE%KAR=' '
+      STATE%ELTYPE='USED'
+   END DO
+   IF (STATE%ELTYPE.EQ.'EOF' .AND. ITEST.GE.10) THEN
+      INQUIRE (UNIT=MERGE(STATE%io%INPUTF, INPUTF, STATE%io_bound), NAME=FILENM)
+      WRITE (reader_print_unit(STATE), *) ' end of input file '//FILENM
    ENDIF
-50 RETURN
-END
+end subroutine NWLINE_CTX
 !****************************************************************
 !                                                               *
-SUBROUTINE INKEYW (KONT, CSTA)
+SUBROUTINE INKEYW_CTX (STATE, KONT, CSTA)
 !                                                               *
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_diagnostics_level
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -272,23 +410,27 @@ SUBROUTINE INKEYW (KONT, CSTA)
 !
 !  4. ARGUMENT VARIABLES
 !
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
 !     KONT   : action to be taken if no keyword is found in input:
 !              'REQ' (required) error message
 !              'STA' (standard) the value of csta is assigned to keywrd.
 !
 !     CSTA   : see above.
-!
-   CHARACTER CSTA *(*), KONT *(*)
-!
+
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
+   CHARACTER(LEN=*), INTENT(IN) :: CSTA, KONT
+
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
 !
 !     IENT   : Number of entries into this subroutine
 !     LENS   : length of default string (CSTA)
-!
-   INTEGER   IENT, LENS
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   LENS
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -300,81 +442,78 @@ SUBROUTINE INKEYW (KONT, CSTA)
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA  IENT/0/
+
    CALL  STRACE ( IENT, 'INKEYW')
-!
+
 !     if necessary, a new data item is read.
-!
-   IF (ELTYPE.EQ.'KEY' .AND. KEYWRD.EQ.'        ') GOTO 510
-   IF (ELTYPE.EQ.'KEY') GOTO 900
-   IF (ELTYPE.EQ.'EOR') GOTO 510
-   IF (ELTYPE.EQ.'USED') GOTO 510
-   GOTO 520
-510 CALL LEESEL
-520 IF (ELTYPE.EQ.'KEY') GOTO 900
+
+   keyword_search: DO
+      IF (STATE%ELTYPE.EQ.'KEY' .AND. STATE%KEYWRD.NE.'        ') EXIT keyword_search
+      IF (STATE%ELTYPE.EQ.'KEY' .OR. STATE%ELTYPE.EQ.'EOR' .OR. &
+          STATE%ELTYPE.EQ.'USED') CALL LEESEL (STATE)
+      IF (STATE%ELTYPE.EQ.'KEY') EXIT keyword_search
 !     KEYWORD IS READ
-   IF ((KONT.EQ.'STA').OR.(KONT.EQ.'NSKP')) THEN
-      LENS = LEN(CSTA)
-      IF (LENS.GE.8) THEN
-         KEYWRD = CSTA(1:8)
-      ELSE
-         KEYWRD = '        '
-         KEYWRD(1:LENS) = CSTA
+      IF ((KONT.EQ.'STA').OR.(KONT.EQ.'NSKP')) THEN
+         LENS = LEN(CSTA)
+         IF (LENS.GE.8) THEN
+            STATE%KEYWRD = CSTA(1:8)
+         ELSE
+            STATE%KEYWRD = '        '
+            STATE%KEYWRD(1:LENS) = CSTA
+         ENDIF
+         EXIT keyword_search
       ENDIF
-      GOTO 900
-   ENDIF
 !     at the end of the input 'STOP' is generated.
-   IF (ELTYPE.EQ.'EOF') THEN
-      KEYWRD='STOP'
-      CALL MSGERR (2, 'STOP statement is missing')
-      GOTO 900
-   ENDIF
+      IF (STATE%ELTYPE.EQ.'EOF') THEN
+         STATE%KEYWRD='STOP'
+         CALL reader_msgerr (STATE, 2, 'STOP statement is missing')
+         EXIT keyword_search
+      ENDIF
 !     ----------------------------------------------------------
 !     Data appear where a keyword is expected.
 !     The user must be informed.
 !     ----------------------------------------------------------
-   IF (ELTYPE.EQ.'EOR') THEN
-      KEYWRD = '        '
-      GOTO 900
-   ENDIF
-   IF (ELTYPE.EQ.'INT') THEN
-      CALL MSGERR (2, 'Data field skipped:'//ELTEXT)
-      GOTO 510
-   ENDIF
-   IF (ELTYPE.EQ.'REAL') THEN
-      CALL MSGERR (2, 'Data field skipped:'//ELTEXT)
-      GOTO 510
-   ENDIF
-   IF (ELTYPE.EQ.'CHAR' .OR. ELTYPE.EQ.'OTHR') THEN
-      CALL MSGERR (2, 'Data field skipped:'//ELTEXT)
-      GOTO 510
-   ENDIF
-   IF (ELTYPE.EQ.'EMPT') THEN
-      CALL MSGERR (2, 'Empty data field skipped')
-      GOTO 510
-   ENDIF
-   CALL MSGERR (3, 'Error subr. INKEYW')
+      IF (STATE%ELTYPE.EQ.'EOR') THEN
+         STATE%KEYWRD = '        '
+         EXIT keyword_search
+      ENDIF
+      IF (STATE%ELTYPE.EQ.'INT') THEN
+         CALL reader_msgerr (STATE, 2, 'Data field skipped:'//STATE%ELTEXT)
+         CALL LEESEL (STATE)
+         CYCLE keyword_search
+      ENDIF
+      IF (STATE%ELTYPE.EQ.'REAL') THEN
+         CALL reader_msgerr (STATE, 2, 'Data field skipped:'//STATE%ELTEXT)
+         CALL LEESEL (STATE)
+         CYCLE keyword_search
+      ENDIF
+      IF (STATE%ELTYPE.EQ.'CHAR' .OR. STATE%ELTYPE.EQ.'OTHR') THEN
+         CALL reader_msgerr (STATE, 2, 'Data field skipped:'//STATE%ELTEXT)
+         CALL LEESEL (STATE)
+         CYCLE keyword_search
+      ENDIF
+      IF (STATE%ELTYPE.EQ.'EMPT') THEN
+         CALL reader_msgerr (STATE, 2, 'Empty data field skipped')
+         CALL LEESEL (STATE)
+         CYCLE keyword_search
+      ENDIF
+      CALL reader_msgerr (STATE, 3, 'Error subr. INKEYW')
+      EXIT keyword_search
 !     ----------------------------------------------------------
-900 IF (ITEST.GE.10) WRITE (PRINTF,910) KEYWRD
-910 FORMAT (' KEYWORD: ',A8)
+   END DO keyword_search
+   IF (ITEST.GE.10) WRITE (reader_print_unit(STATE),"(' KEYWORD: ',A8)") STATE%KEYWRD
    RETURN
-END
+end subroutine INKEYW_CTX
 !****************************************************************
 !                                                               *
-SUBROUTINE INREAL (NAAM, R, KONT, RSTA)
+SUBROUTINE INREAL_CTX (STATE, NAAM, R, KONT, RSTA)
 !                                                               *
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -425,11 +564,15 @@ SUBROUTINE INREAL (NAAM, R, KONT, RSTA)
 !
 !  4. ARGUMENT VARIABLES
 !
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
 !     R      : The value of the variable that is to be read.
 !     RSTA   : Reference value needed for KONT='STA'or 'RQI'
-!
-   REAL      R, RSTA
-!
+
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
+   REAL, INTENT(INOUT) :: R
+   REAL, INTENT(IN)    :: RSTA
+
 !     KONT   : What to do with the variable?
 !              ='REQ' : variable is required
 !              ='UNC' : if no variable, then variable will not be changed
@@ -439,20 +582,20 @@ SUBROUTINE INREAL (NAAM, R, KONT, RSTA)
 !              ='NSKP': (NO SKIP) if data item is of different type,
 !                       value is left unchanged
 !     NAAM   : Name of the variable according to the user manual.
-!
-   CHARACTER NAAM *(*), KONT *(*)
-!
+
+   CHARACTER(LEN=*), INTENT(IN) :: NAAM, KONT
+
 !  5. PARAMETER VARIABLES
 !
-!     DRSTA  : Double precision variant of RSTA
-!     RDBL   : Double precision variant of R
-!
-   DOUBLE    PRECISION RDBL, DRSTA
-!
+!     DRSTA  : REAL(KIND=KIND(0.0D0)) variant of RSTA
+!     RDBL   : REAL(KIND=KIND(0.0D0)) variant of R
+
+   REAL(KIND=KIND(0.0D0)) RDBL, DRSTA
+
 !     IENT   : Number of entries into this subroutine
-!
-   INTEGER   IENT
-!
+
+   INTEGER, SAVE :: IENT = 0
+
 !  6. LOCAL VARIABLES
 !
 !  8. SUBROUTINE USED
@@ -466,38 +609,32 @@ SUBROUTINE INREAL (NAAM, R, KONT, RSTA)
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA IENT /0/
+
    CALL STRACE ( IENT, 'INREAL')
-!
+
    RDBL = DBLE(R)
    DRSTA  = DBLE(RSTA)
-   CALL INDBLE (NAAM, RDBL, KONT, DRSTA)
-!
+   CALL INDBLE (STATE, NAAM, RDBL, KONT, DRSTA)
+
 !     RDBL may have changed due to the value of KONT
-!
+
    R = REAL(RDBL)
    RETURN
-!
+
 !     End of subroutine INREAL
-!
-END
-!
+
+end subroutine INREAL_CTX
 !****************************************************************
 !                                                               *
-SUBROUTINE INDBLE (NAAM, R, KONT, RSTA)
+SUBROUTINE INDBLE_CTX (STATE, NAAM, R, KONT, RSTA)
 !                                                               *
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL
+   USE swan_diagnostics_level
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -541,17 +678,20 @@ SUBROUTINE INDBLE (NAAM, R, KONT, RSTA)
 !
 !  2. PURPOSE
 !
-!     Reads a DOUBLE PRECISION number, in free format.
+!     Reads a REAL(KIND=KIND(0.0D0)) number, in free format.
 !
 !  3. METHOD
 !
 !  4. ARGUMENT VARIABLES
 !
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
 !     R      : THE VARIABLE THAT IS TO BE READ.
 !     RSTA   : SEE ABOVE
-!
-   DOUBLE    PRECISION R, RSTA
-!
+
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
+   REAL(KIND=KIND(0.0D0)) R, RSTA
+
 !     KONT   : What to do with the variable?
 !              ='REQ'; Value in input file is required
 !              ='UNC'; If no value, then variable will not be changed
@@ -561,26 +701,27 @@ SUBROUTINE INDBLE (NAAM, R, KONT, RSTA)
 !              ='NSKP' (no skip) if data item is of different type,
 !                      value is left unchanged.
 !     NAAM   : name of the variable according to the user's manual.
-!
-   CHARACTER KONT *(*), NAAM *(*)
-!
+
+   CHARACTER(LEN=*) :: KONT, NAAM
+
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
 !
 !     IENT   : Number of entries into this subroutine
 !     LENNM  : length of string NAAM
-!
-   INTEGER   IENT, LENNM
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   LENNM
+
 !     NAAM_L : local copy of NAAM                                         40.03
-!
+
    CHARACTER (LEN=40) :: NAAM_L
-!
+
 !     EQREAL :
-!
-   LOGICAL   EQREAL
-!
+
+   LOGICAL :: HAVE_CANDIDATE, KEEP_VALUE
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -592,106 +733,100 @@ SUBROUTINE INDBLE (NAAM, R, KONT, RSTA)
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA IENT /0/
+
    CALL STRACE ( IENT, 'INDBLE')
-!
+
 !     if necessary, a new data item is read
-!
-   CHGVAL = .FALSE.
+
+   STATE%CHGVAL = .FALSE.
    NAAM_L = NAAM
-   IF (ELTYPE.EQ.'USED') CALL  LEESEL
+   IF (STATE%ELTYPE.EQ.'USED') CALL LEESEL (STATE)
+   HAVE_CANDIDATE = .TRUE.
+   KEEP_VALUE = .FALSE.
 !     consider type of data item
-   IF (ELTYPE.EQ.'KEY') THEN
+   IF (STATE%ELTYPE.EQ.'KEY') THEN
 !       find out whether in input is written: NAAM=...
       LENNM = LEN(NAAM)
-      IF (NAAM.NE.ELTEXT(1:LENNM)) GOTO 20
-      ELTYPE = 'USED'
-      CALL LEESEL
-      IF (ELTYPE.EQ.'REAL') GOTO 12
-      IF (ELTYPE.EQ.'INT') GOTO 14
-      GOTO 50
+      IF (NAAM.NE.STATE%ELTEXT(1:LENNM)) THEN
+         HAVE_CANDIDATE = .FALSE.
+      ELSE
+         STATE%ELTYPE = 'USED'
+         CALL LEESEL (STATE)
+      END IF
    ENDIF
-!     if type is 'REAL' or 'INT', its value is assigned to R
-12 IF (ELTYPE.EQ.'REAL') THEN
-      R      = ELREAL
-      ELTYPE = 'USED'
-      IF (.NOT.EQREAL(REAL(R),REAL(RSTA))) CHGVAL = .TRUE.
-      GOTO 80
-   ENDIF
-14 IF (ELTYPE.EQ.'INT') THEN
-      R      = DBLE(ELINT)
-      ELTYPE = 'USED'
-      IF  (.NOT.EQREAL(REAL(R),REAL(RSTA))) CHGVAL = .TRUE.
-      GOTO 80
-   ENDIF
-   IF (ELTYPE.EQ.'EOR') THEN
-!       find out whether end of repeat is reached,
-!       if so make R=RSTA.
-      IF (KONT.NE.'REP') GOTO 20
-      ELTYPE='USED'
-      GOTO 70
-   ENDIF
-   IF (ELTYPE.EQ.'EOF') GOTO 20
-   IF (ELTYPE.EQ.'EMPT') THEN
-      ELTYPE='USED'
-      GOTO 20
-   ENDIF
-   IF (ELTYPE.EQ.'ERR') GOTO 50
-   IF (ELTYPE.EQ.'CHAR' .OR. ELTYPE.EQ.'OTHR') THEN
-      IF (KONT.EQ.'NSKP') GOTO 70
-      CALL MSGERR (3, &
-               'Wrong type of data for variable '//NAAM_L)
-      WRITE (PRINTF,18) NAAM, ELTEXT(1:LENCST)
-18    FORMAT (' -> ',A, '  item=', A)
-      ELTYPE='USED'
-      GOTO 70
-   ENDIF
-   CALL MSGERR (3, 'Error subr. INREAL')
-   WRITE (PRINTF, '(1X,A,A)') ELTYPE, KONT
-!     -------------------------------------------------------------
-!     data item of different type is read, action according to KONT
-!     -------------------------------------------------------------
-20 IF (KONT.EQ.'REQ') GOTO 30
-   IF (KONT.EQ.'REP') GOTO 70
-   IF (KONT.EQ.'RQI') GOTO 28
-   IF (KONT.EQ.'STA') GOTO 70
-   IF (KONT.EQ.'NSKP') GOTO 70
-   IF (KONT.EQ.'UNC') GOTO 80
-!
-   CALL MSGERR (3, 'Error subr. INREAL')
-   WRITE (PRINTF, '(1X,A,A)') ELTYPE, KONT
-   GOTO 70
-!
-28 IF  (.NOT.EQREAL(REAL(R),REAL(RSTA))) GOTO 80
-30 CALL MSGERR (3, 'No value for variable '//NAAM_L)
-   WRITE (PRINTF,18) NAAM, ELTEXT(1:LENCST)
-   GOTO 70
-!
-50 CALL MSGERR (3, 'Read error with variable '//NAAM_L)
-   WRITE (PRINTF,18) NAAM, ELTEXT(1:LENCST)
-   ELTYPE='USED'
-!
-70 R      = RSTA
-80 IF (ITEST.GE.10) WRITE (PRINTF, 85) NAAM, R
-85 FORMAT (1X,A8,'=',D12.4)
+
+   IF (HAVE_CANDIDATE) THEN
+      SELECT CASE (STATE%ELTYPE)
+      CASE ('REAL')
+         R = STATE%ELREAL
+         STATE%ELTYPE = 'USED'
+         KEEP_VALUE = .TRUE.
+         IF (.NOT.EQREAL(REAL(R),REAL(RSTA))) STATE%CHGVAL = .TRUE.
+      CASE ('INT')
+         R = DBLE(STATE%ELINT)
+         STATE%ELTYPE = 'USED'
+         KEEP_VALUE = .TRUE.
+         IF (.NOT.EQREAL(REAL(R),REAL(RSTA))) STATE%CHGVAL = .TRUE.
+      CASE ('EOR')
+         IF (KONT.EQ.'REP') STATE%ELTYPE = 'USED'
+         HAVE_CANDIDATE = .FALSE.
+      CASE ('EOF')
+         HAVE_CANDIDATE = .FALSE.
+      CASE ('EMPT')
+         STATE%ELTYPE = 'USED'
+         HAVE_CANDIDATE = .FALSE.
+      CASE ('ERR')
+         CALL reader_msgerr (STATE, 3, 'Read error with variable '//NAAM_L)
+         WRITE (reader_print_unit(STATE),"(' -> ',A, '  item=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         STATE%ELTYPE = 'USED'
+      CASE ('CHAR', 'OTHR')
+         IF (KONT.NE.'NSKP') THEN
+            CALL reader_msgerr (STATE, 3, 'Wrong type of data for variable '//NAAM_L)
+            WRITE (reader_print_unit(STATE),"(' -> ',A, '  item=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+            STATE%ELTYPE = 'USED'
+         END IF
+      CASE DEFAULT
+         CALL reader_msgerr (STATE, 3, 'Error subr. INREAL')
+         WRITE (reader_print_unit(STATE), '(1X,A,A)') STATE%ELTYPE, KONT
+      END SELECT
+   END IF
+
+   IF (.NOT. KEEP_VALUE .AND. .NOT. HAVE_CANDIDATE) THEN
+      SELECT CASE (KONT)
+      CASE ('UNC')
+         KEEP_VALUE = .TRUE.
+      CASE ('RQI')
+         IF (.NOT.EQREAL(REAL(R),REAL(RSTA))) THEN
+            KEEP_VALUE = .TRUE.
+         ELSE
+            CALL reader_msgerr (STATE, 3, 'No value for variable '//NAAM_L)
+            WRITE (reader_print_unit(STATE),"(' -> ',A, '  item=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         END IF
+      CASE ('REQ')
+         CALL reader_msgerr (STATE, 3, 'No value for variable '//NAAM_L)
+         WRITE (reader_print_unit(STATE),"(' -> ',A, '  item=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+      CASE ('REP', 'STA', 'NSKP')
+      CASE DEFAULT
+         CALL reader_msgerr (STATE, 3, 'Error subr. INREAL')
+         WRITE (reader_print_unit(STATE), '(1X,A,A)') STATE%ELTYPE, KONT
+      END SELECT
+   END IF
+
+   IF (.NOT. KEEP_VALUE) R = RSTA
+   IF (ITEST.GE.10) WRITE (reader_print_unit(STATE), "(1X,A8,'=',D12.4)") NAAM, R
    RETURN
-END
+end subroutine INDBLE_CTX
 !****************************************************************
 !                                                               *
-SUBROUTINE ININTG (NAAM, IV, KONT, ISTA)
+SUBROUTINE ININTG_CTX (STATE, NAAM, IV, KONT, ISTA)
 !                                                               *
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_diagnostics_level
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -740,11 +875,15 @@ SUBROUTINE ININTG (NAAM, IV, KONT, ISTA)
 !
 !  4. ARGUMENT VARIABLES
 !
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
 !     IV     :  integer variable which is to be assigned a value
 !     ISTA   :  default value
-!
-   INTEGER   IV, ISTA
-!
+
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
+   INTEGER, INTENT(INOUT) :: IV
+   INTEGER, INTENT(IN)    :: ISTA
+
 !     NAAM   :  name of the variable according to the user manual
 !     KONT   : What to do with the variable?
 !              ='REQ'; error message if no value is found in the input file
@@ -754,9 +893,9 @@ SUBROUTINE ININTG (NAAM, IV, KONT, ISTA)
 !              ='REP'  (repeat)
 !              ='NSKP' (no skip) if data item is of different type,
 !                      value is left unchanged.
-!
-   CHARACTER NAAM *(*), KONT *(*)
-!
+
+   CHARACTER(LEN=*), INTENT(IN) :: NAAM, KONT
+
 !  5. PARAMETER VARIABLES
 !
 !     PARAMETERS: SEE SUBR. INREAL
@@ -765,13 +904,15 @@ SUBROUTINE ININTG (NAAM, IV, KONT, ISTA)
 !
 !     IENT   : Number of entries into this subroutine
 !     LENNM  : length of the string NAAM
-!
-   INTEGER   IENT, LENNM
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   LENNM
+
 !     NAAM_L : local copy of NAAM                                         40.03
-!
+
    CHARACTER (LEN=40) :: NAAM_L
-!
+   LOGICAL :: HAVE_CANDIDATE, KEEP_VALUE
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -783,75 +924,90 @@ SUBROUTINE ININTG (NAAM, IV, KONT, ISTA)
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA  IENT /0/
+
    CALL  STRACE ( IENT, 'ININTG')
-!
-   CHGVAL = .FALSE.
+
+   STATE%CHGVAL = .FALSE.
    NAAM_L = NAAM
 !     IF NECESSARY, A NEW DATA ITEM IS READ
-   IF (ELTYPE.EQ.'USED') CALL  LEESEL
-!     CONSIDER TYPE OF DAT ITEM.
-   IF (ELTYPE.EQ.'EOR') GOTO 14
-   IF (ELTYPE.EQ.'KEY') GOTO 16
-   IF (ELTYPE.EQ.'EOF') GOTO 20
-   IF (ELTYPE.EQ.'EMPT') GOTO 18
-   IF (ELTYPE.EQ.'ERR') GOTO 50
-   IF (ELTYPE.EQ.'CHAR') GOTO 40
-   IF (ELTYPE.EQ.'OTHR') GOTO 40
-   IF (ELTYPE.EQ.'REAL') GOTO 40
-!     TYPE IS 'INT', VALUE IS ASSIGNED
-12 IV=ELINT
-   IF (IV.NE.ISTA) CHGVAL = .TRUE.
-   ELTYPE='USED'
-   GOTO 80
-14 IF (KONT.NE.'REP') GOTO 20
-   ELTYPE='USED'
-   GOTO 70
-16 LENNM = LEN(NAAM)
-   IF (NAAM.NE.ELTEXT(1:LENNM)) GOTO 20
-   CALL LEESEL
-   IF (ELTYPE.EQ.'INT') GOTO 12
-   GOTO 50
-18 ELTYPE='USED'
-20 IF (KONT.EQ.'REQ') GOTO 30
-   IF (KONT.EQ.'REP') GOTO 70
-   IF (KONT.EQ.'RQI') GOTO 28
-   IF (KONT.EQ.'STA') GOTO 70
-   IF (KONT.EQ.'NSKP') GOTO 70
-   GOTO 80
-28 IF (IV.NE.ISTA) GOTO 80
-30 CALL MSGERR (2, 'No value for variable '//NAAM_L)
-   GOTO 70
-40 IF (KONT.EQ.'NSKP') GOTO 70
-   CALL MSGERR (2, 'Wrong type of data for variable '//NAAM_L)
-   WRITE (PRINTF,41) NAAM, ELTEXT(1:LENCST)
-41 FORMAT (' -> ',A8, '  item read=', A)
-   ELTYPE='USED'
-   GOTO 70
-50 CALL MSGERR (2, 'Read error with variable '//NAAM_L)
-   WRITE (PRINTF,41) NAAM, ELTEXT(1:LENCST)
-   ELTYPE='USED'
-70 IV=ISTA
-80 IF (ITEST.GE.10) WRITE (PRINTF, 85) NAAM, IV
-85 FORMAT (1X,A8,'=',I6)
+   IF (STATE%ELTYPE.EQ.'USED') CALL LEESEL (STATE)
+   HAVE_CANDIDATE = .TRUE.
+   KEEP_VALUE = .FALSE.
+
+   IF (STATE%ELTYPE.EQ.'KEY') THEN
+      LENNM = LEN(NAAM)
+      IF (NAAM.NE.STATE%ELTEXT(1:LENNM)) THEN
+         HAVE_CANDIDATE = .FALSE.
+      ELSE
+         CALL LEESEL (STATE)
+      END IF
+   END IF
+
+   IF (HAVE_CANDIDATE) THEN
+      SELECT CASE (STATE%ELTYPE)
+      CASE ('INT')
+         IV = STATE%ELINT
+         IF (IV.NE.ISTA) STATE%CHGVAL = .TRUE.
+         STATE%ELTYPE = 'USED'
+         KEEP_VALUE = .TRUE.
+      CASE ('EOR')
+         IF (KONT.EQ.'REP') STATE%ELTYPE = 'USED'
+         HAVE_CANDIDATE = .FALSE.
+      CASE ('EOF')
+         HAVE_CANDIDATE = .FALSE.
+      CASE ('EMPT')
+         STATE%ELTYPE = 'USED'
+         HAVE_CANDIDATE = .FALSE.
+      CASE ('CHAR', 'OTHR', 'REAL')
+         IF (KONT.NE.'NSKP') THEN
+            CALL reader_msgerr (STATE, 2, 'Wrong type of data for variable '//NAAM_L)
+            WRITE (reader_print_unit(STATE),"(' -> ',A8, '  item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+            STATE%ELTYPE = 'USED'
+         END IF
+      CASE ('ERR')
+         CALL reader_msgerr (STATE, 2, 'Read error with variable '//NAAM_L)
+         WRITE (reader_print_unit(STATE),"(' -> ',A8, '  item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         STATE%ELTYPE = 'USED'
+      CASE DEFAULT
+         CALL reader_msgerr (STATE, 2, 'Read error with variable '//NAAM_L)
+         WRITE (reader_print_unit(STATE),"(' -> ',A8, '  item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         STATE%ELTYPE = 'USED'
+      END SELECT
+   END IF
+
+   IF (.NOT. KEEP_VALUE .AND. .NOT. HAVE_CANDIDATE) THEN
+      SELECT CASE (KONT)
+      CASE ('UNC')
+         KEEP_VALUE = .TRUE.
+      CASE ('RQI')
+         IF (IV.NE.ISTA) THEN
+            KEEP_VALUE = .TRUE.
+         ELSE
+            CALL reader_msgerr (STATE, 2, 'No value for variable '//NAAM_L)
+         END IF
+      CASE ('REQ')
+         CALL reader_msgerr (STATE, 2, 'No value for variable '//NAAM_L)
+      CASE ('REP', 'STA', 'NSKP')
+      CASE DEFAULT
+         KEEP_VALUE = .TRUE.
+      END SELECT
+   END IF
+
+   IF (.NOT. KEEP_VALUE) IV = ISTA
+   IF (ITEST.GE.10) WRITE (reader_print_unit(STATE), "(1X,A8,'=',I6)") NAAM, IV
    RETURN
-END
+end subroutine ININTG_CTX
 !****************************************************************
 !                                                               *
-SUBROUTINE INCSTR (NAAM, C, KONT, CSTA)
+SUBROUTINE INCSTR_CTX (STATE, NAAM, C, KONT, CSTA)
 !                                                               *
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_diagnostics_level
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -900,6 +1056,8 @@ SUBROUTINE INCSTR (NAAM, C, KONT, CSTA)
 !
 !  4. ARGUMENT VARIABLES
 !
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
 !     NAAM   : name of the variable according to the user manual
 !     KONT   : What to do with the variable?
 !              ='REQ'; error message if no value is found in the input file
@@ -911,9 +1069,11 @@ SUBROUTINE INCSTR (NAAM, C, KONT, CSTA)
 !                      value is left unchanged.
 !     C      : string that is to be read from input file
 !     CSTA   : default value of the string
-!
-   CHARACTER NAAM *(*), KONT *(*), C *(*), CSTA *(*)
-!
+
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
+   CHARACTER(LEN=*), INTENT(IN)    :: NAAM, KONT, CSTA
+   CHARACTER(LEN=*), INTENT(INOUT) :: C
+
 !  5. PARAMETER VARIABLES
 !
 !     Parameters: see program documentation.
@@ -924,13 +1084,15 @@ SUBROUTINE INCSTR (NAAM, C, KONT, CSTA)
 !     LENNM  : length of the string NAAM
 !     LENW   : length of the string C
 !     NS     : length of the string CSTA
-!
-   INTEGER   IENT, LENNM, LENW, NS
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   LENNM, LENW, NS
+
 !     NAAM_L : local copy of NAAM                                         40.03
-!
+
    CHARACTER (LEN=40) :: NAAM_L
-!
+   LOGICAL :: HAVE_CANDIDATE, KEEP_VALUE
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -942,110 +1104,109 @@ SUBROUTINE INCSTR (NAAM, C, KONT, CSTA)
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA  IENT /0/
+
    CALL  STRACE ( IENT, 'INCSTR')
-!
-   CHGVAL = .FALSE.
+
+   STATE%CHGVAL = .FALSE.
    NAAM_L = NAAM
    LENW = LEN(C)
 !     IF NECESSARY, A NEW DATA ITEM IS READ.
-   IF (ELTYPE.EQ.'USED') CALL  LEESEL
-!     CONSIDER TYPE OF DATA ITEM.
-   IF (ELTYPE.EQ.'KEY') THEN
+   IF (STATE%ELTYPE.EQ.'USED') CALL LEESEL (STATE)
+   HAVE_CANDIDATE = .TRUE.
+   KEEP_VALUE = .FALSE.
+
+   IF (STATE%ELTYPE.EQ.'KEY') THEN
 !       FIND OUT WHETHER IN INPUT IS WRITTEN:  NAAM=....
       LENNM = LEN(NAAM)
-      IF (NAAM.NE.ELTEXT(1:LENNM)) GOTO 20
-      ELTYPE = 'USED'
-      CALL LEESEL
-      IF (ELTYPE.EQ.'CHAR') GOTO 12
-      GOTO 50
+      IF (NAAM.NE.STATE%ELTEXT(1:LENNM)) THEN
+         HAVE_CANDIDATE = .FALSE.
+      ELSE
+         STATE%ELTYPE = 'USED'
+         CALL LEESEL (STATE)
+      END IF
    ENDIF
-12 IF (ELTYPE.EQ.'CHAR') THEN
-!       TYPE IS 'CHAR', VALUE IS ASSIGNED.
-      IF (LENCST.GT.LENW) THEN
-         CALL MSGERR (2, &
-            'too long string given for: '//NAAM_L)
-         WRITE (PRINTF, 13) NAAM, ELTEXT(1:LENCST)
-13       FORMAT (' name=', A, ' string=', A)
+
+   IF (HAVE_CANDIDATE) THEN
+      SELECT CASE (STATE%ELTYPE)
+      CASE ('CHAR')
+         IF (STATE%LENCST.GT.LENW) THEN
+            CALL reader_msgerr (STATE, 2, 'too long string given for: '//NAAM_L)
+            WRITE (reader_print_unit(STATE), "(' name=', A, ' string=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         ENDIF
+         C = STATE%ELTEXT(1:LENW)
+         IF (C.NE.CSTA) STATE%CHGVAL = .TRUE.
+         STATE%ELTYPE = 'USED'
+         KEEP_VALUE = .TRUE.
+      CASE ('EOR')
+         IF (KONT.EQ.'REP') STATE%ELTYPE = 'USED'
+         HAVE_CANDIDATE = .FALSE.
+      CASE ('EOF')
+         HAVE_CANDIDATE = .FALSE.
+      CASE ('EMPT')
+         STATE%ELTYPE = 'USED'
+         HAVE_CANDIDATE = .FALSE.
+      CASE ('INT', 'REAL', 'OTHR')
+         IF (KONT.NE.'NSKP') THEN
+            CALL reader_msgerr (STATE, 3, 'Wrong type of data for variable '//NAAM_L)
+            WRITE (reader_print_unit(STATE),"(' -> ',A8)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+            STATE%ELTYPE = 'USED'
+         END IF
+      CASE ('ERR')
+         CALL reader_msgerr (STATE, 3, 'Read error with variable '//NAAM_L)
+         WRITE (reader_print_unit(STATE),"(' -> ',A8)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         STATE%ELTYPE = 'USED'
+      CASE DEFAULT
+         CALL reader_msgerr (STATE, 3, 'Error subr. INCSTR')
+         WRITE (reader_print_unit(STATE), '(1X,A,1X,A)') STATE%ELTYPE, KONT
+         KEEP_VALUE = .TRUE.
+      END SELECT
+   END IF
+
+   IF (.NOT. KEEP_VALUE .AND. .NOT. HAVE_CANDIDATE) THEN
+      SELECT CASE (KONT)
+      CASE ('UNC')
+         KEEP_VALUE = .TRUE.
+      CASE ('RQI')
+         IF (C(1:LENW).NE.CSTA(1:LENW)) THEN
+            KEEP_VALUE = .TRUE.
+         ELSE
+            CALL reader_msgerr (STATE, 3, 'No value for variable '//NAAM_L)
+         END IF
+      CASE ('REQ')
+         CALL reader_msgerr (STATE, 3, 'No value for variable '//NAAM_L)
+      CASE ('REP', 'STA', 'NSKP')
+      CASE DEFAULT
+         CALL reader_msgerr (STATE, 3, 'Error subr. INCSTR')
+         WRITE (reader_print_unit(STATE), '(1X,A,1X,A)') STATE%ELTYPE, KONT
+      END SELECT
+   END IF
+
+   IF (.NOT. KEEP_VALUE) THEN
+      NS = LEN(CSTA)
+      IF (NS.LT.LENW) THEN
+         C(1:NS) = CSTA(1:NS)
+         C(NS+1:LENW) = ' '
+         STATE%LENCST = NS
+      ELSE
+         C(1:LENW) = CSTA(1:LENW)
+         STATE%LENCST = LENW
       ENDIF
-      C = ELTEXT(1:LENW)
-      IF (C.NE.CSTA) CHGVAL = .TRUE.
-      ELTYPE='USED'
-      GOTO 80
-   ENDIF
-   IF (ELTYPE.EQ.'EOR') THEN
-!       END OF REPEAT GROUP, STANDARD VALUE IS ASSIGNED.
-      IF (KONT.NE.'REP') GOTO 20
-      ELTYPE='USED'
-      GOTO 70
-   ENDIF
-   IF (ELTYPE.EQ.'EOF') GOTO 20
-   IF (ELTYPE.EQ.'EMPT') THEN
-      ELTYPE='USED'
-      GOTO 20
-   ENDIF
-   IF (ELTYPE.EQ.'ERR') GOTO 50
-   IF (ELTYPE.EQ.'INT') GOTO 40
-   IF (ELTYPE.EQ.'REAL') GOTO 40
-   IF (ELTYPE.EQ.'OTHR') GOTO 40
-   CALL MSGERR (3, 'Error subr. INCSTR')
-   WRITE (PRINTF, '(1X,A,1X,A)') ELTYPE, KONT
-   GOTO 80
-!     --------------------------------------------------------
-!     No value provided, action is taken according to 'KONT'.
-!     --------------------------------------------------------
-20 IF (KONT.EQ.'REQ') GOTO 30
-   IF (KONT.EQ.'REP') GOTO 70
-   IF (KONT.EQ.'RQI') GOTO 28
-   IF (KONT.EQ.'STA') GOTO 70
-   IF (KONT.EQ.'NSKP') GOTO 70
-   IF (KONT.EQ.'UNC') GOTO 80
-   CALL MSGERR (3, 'Error subr. INCSTR')
-   WRITE (PRINTF, '(1X,A,1X,A)') ELTYPE, KONT
-   GOTO 70
-!
-28 IF (C(1:LENW).NE.CSTA(1:LENW)) GOTO 80
-30 CALL MSGERR (3, 'No value for variable '//NAAM_L)
-   GOTO 70
-40 IF (KONT.EQ.'NSKP') GOTO 70
-   CALL MSGERR (3, 'Wrong type of data for variable '//NAAM_L)
-   WRITE (PRINTF,41) NAAM, ELTEXT(1:LENCST)
-41 FORMAT (' -> ',A8)
-   ELTYPE='USED'
-   GOTO 70
-50 CALL MSGERR (3, 'Read error with variable '//NAAM_L)
-   WRITE (PRINTF,41) NAAM, ELTEXT(1:LENCST)
-   ELTYPE='USED'
-!
-70 NS = LEN(CSTA)
-   IF (NS.LT.LENW) THEN
-      C(1:NS) = CSTA(1:NS)
-      C(NS+1:LENW) = ' '
-      LENCST = NS
-   ELSE
-      C(1:LENW) = CSTA(1:LENW)
-      LENCST = LENW
-   ENDIF
-80 IF (ITEST.GE.10) WRITE (PRINTF, 85) TRIM(NAAM), C, LENCST
-85 FORMAT (1X, A, ' = ', A, 4X, 'length:', I3)
+   END IF
+   IF (ITEST.GE.10) WRITE (reader_print_unit(STATE), "(1X, A, ' = ', A, 4X, 'length:', I3)") TRIM(NAAM), C, STATE%LENCST
    RETURN
-END
+end subroutine INCSTR_CTX
 !****************************************************************
 !                                                               *
-SUBROUTINE INCTIM (IOPTIM, NAAM, RV, KONT, RSTA)
+SUBROUTINE INCTIM_CTX (STATE, IOPTIM, NAAM, RV, KONT, RSTA)
 !                                                               *
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQDBLE
+   USE swan_diagnostics_level
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1095,16 +1256,18 @@ SUBROUTINE INCTIM (IOPTIM, NAAM, RV, KONT, RSTA)
 !
 !  4. ARGUMENT VARIABLES
 !
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
 !     IOPTIM   int   inp   time reading option (see subr DTSTTI)
-!
-!
+
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
    INTEGER   IOPTIM
-!
+
 !     RV     : variable that is to be assigned a value
 !     RSTA   : default value
-!
-   REAL*8    RV, RSTA
-!
+
+   REAL(KIND=KIND(0.0D0))    RV, RSTA
+
 !     NAAM   : name of the variable according to the user manual
 !     KONT   : What to do with the variable?
 !              ='REQ'; error message if no value is found in the input file
@@ -1114,9 +1277,9 @@ SUBROUTINE INCTIM (IOPTIM, NAAM, RV, KONT, RSTA)
 !              ='REP'  (repeat)
 !              ='NSKP' (no skip) if data item is of different type,
 !                      value is left unchanged.
-!
-   CHARACTER NAAM *(*), KONT *(*)
-!
+
+   CHARACTER(LEN=*) :: NAAM, KONT
+
 !  5. PARAMETER VARIABLES
 !
 !     PARAMETERS: SEE PROGRAM DOCUMENTATION.
@@ -1125,17 +1288,18 @@ SUBROUTINE INCTIM (IOPTIM, NAAM, RV, KONT, RSTA)
 !
 !     IENT   : Number of entries into this subroutine
 !     LENMN  : length of the string NAAM
-!
-   INTEGER    IENT, LENNM
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER    LENNM
+
 !     NAAM_L : local copy of NAAM                                         40.03
-!
+
    CHARACTER (LEN=40) :: NAAM_L
-!
+
 !     EQDBLE : logical function, True if arguments are equal
-!
-   LOGICAL    EQDBLE
-!
+
+   LOGICAL    HAVE_CANDIDATE, KEEP_VALUE
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -1147,97 +1311,89 @@ SUBROUTINE INCTIM (IOPTIM, NAAM, RV, KONT, RSTA)
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA IENT /0/
+
    CALL STRACE ( IENT, 'INCTIM')
-!
-   CHGVAL = .FALSE.
+
+   STATE%CHGVAL = .FALSE.
    NAAM_L = NAAM
 !     If necessary, a new data item is read.
-   IF (ELTYPE.EQ.'USED') CALL  LEESEL
+   IF (STATE%ELTYPE.EQ.'USED') CALL LEESEL (STATE)
+   HAVE_CANDIDATE = .TRUE.
+   KEEP_VALUE = .FALSE.
 !     Consider type of data item.
-   IF (ELTYPE.EQ.'KEY') THEN
+   IF (STATE%ELTYPE.EQ.'KEY') THEN
 !       find out whether in input is written:  NAAM=....
       LENNM = LEN(NAAM)
-      IF (NAAM.NE.ELTEXT(1:LENNM)) GOTO 20
-      ELTYPE = 'USED'
-      CALL LEESEL
-      IF (ELTYPE.EQ.'CHAR' .OR. ELTYPE.EQ.'OTHR' &
-         .OR. ELTYPE.EQ.'REAL' .OR. ELTYPE.EQ.'INT') GOTO 12
-      GOTO 50
+      IF (NAAM.NE.STATE%ELTEXT(1:LENNM)) THEN
+         HAVE_CANDIDATE = .FALSE.
+      ELSE
+         STATE%ELTYPE = 'USED'
+         CALL LEESEL (STATE)
+      END IF
    ENDIF
-12 IF (ELTYPE.EQ.'CHAR' .OR. ELTYPE.EQ.'OTHR' &
-       .OR. ELTYPE.EQ.'REAL' .OR. ELTYPE.EQ.'INT') THEN
-!       TYPE IS 'CHAR' etc., time is read from string
-      CALL DTRETI (ELTEXT(1:LENCST), IOPTIM, RV)
-      IF  (.NOT.EQDBLE(RV,RSTA)) CHGVAL = .TRUE.
-      ELTYPE='USED'
-      GOTO 80
-   ENDIF
-   IF (ELTYPE.EQ.'EOR') THEN
-!       end of repeat group, standard value is assigned.
-      IF (KONT.NE.'REP') GOTO 20
-      ELTYPE='USED'
-      GOTO 70
-   ENDIF
-   IF (ELTYPE.EQ.'EOF') GOTO 20
-   IF (ELTYPE.EQ.'EMPT') THEN
-      ELTYPE='USED'
-      GOTO 20
-   ENDIF
-   IF (ELTYPE.EQ.'ERR') GOTO 50
-   IF (ELTYPE.EQ.'INT') GOTO 40
-   IF (ELTYPE.EQ.'REAL') GOTO 40
-   CALL MSGERR (3, 'Error subr. INCTIM')
-   WRITE (PRINTF, '(1X,A,1X,A)') ELTYPE, KONT
-   GOTO 80
-!     --------------------------------------------------------
-!     no value provided, action is taken according to 'KONT'.
-!     --------------------------------------------------------
-20 IF (KONT.EQ.'REQ') GOTO 30
-   IF (KONT.EQ.'REP') GOTO 70
-   IF (KONT.EQ.'RQI') GOTO 28
-   IF (KONT.EQ.'STA') GOTO 70
-   IF (KONT.EQ.'NSKP') GOTO 70
-   IF (KONT.EQ.'UNC') GOTO 80
-   CALL MSGERR (3, 'Error subr. INCTIM')
-   WRITE (PRINTF, '(1X,A,1X,A)') ELTYPE, KONT
-   GOTO 70
-!
-28 IF  (.NOT.EQDBLE(RV,RSTA)) GOTO 80
-30 CALL MSGERR (3, 'No value for variable '//NAAM_L)
-   WRITE (PRINTF,31) NAAM, ELTEXT(1:LENCST)
-31 FORMAT (' -> ',A, '  item read=', A)
-   GOTO 70
-40 IF (KONT.EQ.'NSKP') GOTO 70
-   CALL MSGERR (3, 'Wrong type of data for variable '//NAAM_L)
-   WRITE (PRINTF,31) NAAM, ELTEXT(1:LENCST)
-   ELTYPE='USED'
-   GOTO 70
-50 CALL MSGERR (3, 'Read error with variable '//NAAM_L)
-   WRITE (PRINTF,31) NAAM, ELTEXT(1:LENCST)
-   ELTYPE='USED'
-!
-70 RV =RSTA
-80 IF (ITEST.GE.10) WRITE (PRINTF, 85) NAAM, ELTEXT(1:LENCST), RV
-85 FORMAT (1X, A, ' = ', A, 4X, 't in sec:', F10.0)
+
+   IF (HAVE_CANDIDATE) THEN
+      SELECT CASE (STATE%ELTYPE)
+      CASE ('CHAR', 'OTHR', 'REAL', 'INT')
+         CALL DTRETI (STATE%ELTEXT(1:STATE%LENCST), IOPTIM, RV)
+         IF (.NOT.EQDBLE(RV,RSTA)) STATE%CHGVAL = .TRUE.
+         STATE%ELTYPE = 'USED'
+         KEEP_VALUE = .TRUE.
+      CASE ('EOR')
+         IF (KONT.EQ.'REP') STATE%ELTYPE = 'USED'
+         HAVE_CANDIDATE = .FALSE.
+      CASE ('EOF')
+         HAVE_CANDIDATE = .FALSE.
+      CASE ('EMPT')
+         STATE%ELTYPE = 'USED'
+         HAVE_CANDIDATE = .FALSE.
+      CASE ('ERR')
+         CALL reader_msgerr (STATE, 3, 'Read error with variable '//NAAM_L)
+         WRITE (reader_print_unit(STATE),"(' -> ',A, '  item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         STATE%ELTYPE = 'USED'
+      CASE DEFAULT
+         CALL reader_msgerr (STATE, 3, 'Error subr. INCTIM')
+         WRITE (reader_print_unit(STATE), '(1X,A,1X,A)') STATE%ELTYPE, KONT
+         KEEP_VALUE = .TRUE.
+      END SELECT
+   END IF
+
+   IF (.NOT. KEEP_VALUE .AND. .NOT. HAVE_CANDIDATE) THEN
+      SELECT CASE (KONT)
+      CASE ('UNC')
+         KEEP_VALUE = .TRUE.
+      CASE ('RQI')
+         IF (.NOT.EQDBLE(RV,RSTA)) THEN
+            KEEP_VALUE = .TRUE.
+         ELSE
+            CALL reader_msgerr (STATE, 3, 'No value for variable '//NAAM_L)
+            WRITE (reader_print_unit(STATE),"(' -> ',A, '  item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+         END IF
+      CASE ('REQ')
+         CALL reader_msgerr (STATE, 3, 'No value for variable '//NAAM_L)
+         WRITE (reader_print_unit(STATE),"(' -> ',A, '  item read=', A)") NAAM, STATE%ELTEXT(1:STATE%LENCST)
+      CASE ('REP', 'STA', 'NSKP')
+      CASE DEFAULT
+         CALL reader_msgerr (STATE, 3, 'Error subr. INCTIM')
+         WRITE (reader_print_unit(STATE), '(1X,A,1X,A)') STATE%ELTYPE, KONT
+      END SELECT
+   END IF
+
+   IF (.NOT. KEEP_VALUE) RV = RSTA
+   IF (ITEST.GE.10) WRITE (reader_print_unit(STATE), &
+         "(1X, A, ' = ', A, 4X, 't in sec:', F10.0)") NAAM, STATE%ELTEXT(1:STATE%LENCST), RV
    RETURN
-END
+end subroutine INCTIM_CTX
 !*******************************************************************
 !                                                                  *
-SUBROUTINE ININTV (NAME, RVAR, KONT, RSTA)
+SUBROUTINE ININTV_CTX (STATE, NAME, RVAR, KONT, RSTA)
 !                                                                  *
 !*******************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1282,7 +1438,9 @@ SUBROUTINE ININTV (NAME, RVAR, KONT, RSTA)
 !
 !  4. ARGUMENT VARIABLES
 !
-!     NAAM   : name of the variable according to the user manual
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
+!     NAME   : name of the variable according to the user manual
 !     KONT   : What to do with the variable?
 !              ='REQ'; error message if no value is found in the input file
 !              ='UNC'; If no value, then variable will not be changed
@@ -1291,32 +1449,31 @@ SUBROUTINE ININTV (NAME, RVAR, KONT, RSTA)
 !              ='REP'  (repeat)
 !              ='NSKP' (no skip) if data item is of different type,
 !                      value is left unchanged.
-!
-   CHARACTER NAME *(*), KONT *(*)
-!
+
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
+   CHARACTER(LEN=*) :: NAME, KONT
+
 !     RSTA   : default value
 !     RVAR   : variable that is to be assigned a value
-!
+
    REAL      RSTA, RVAR
-!
+
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
 !
 !     IENT   : Number of entries into this subroutine
-!
-   INTEGER   IENT
-!
+
+   INTEGER, SAVE :: IENT = 0
+
 !     FAC    : a factor, value depends on unit of time used
 !     RI     : auxiliary variable
-!
+
    REAL      FAC, RI
-!
+
 !     KEYWIS : logical function, True if keyword encountered is equal to
 !              keyword in user manual
-!
-   LOGICAL   KEYWIS
-!
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -1342,22 +1499,20 @@ SUBROUTINE ININTV (NAME, RVAR, KONT, RSTA)
 !     -------------------------------------------------------------
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA IENT /0/
+
    CALL STRACE (IENT, 'ININTV')
-!
-   CALL INREAL (NAME, RI, KONT, RSTA)
-   IF (CHGVAL) THEN
-      CALL INKEYW ('STA', 'S')
-      IF (KEYWIS('DA')) THEN
+
+   CALL INREAL (STATE, NAME, RI, KONT, RSTA)
+   IF (STATE%CHGVAL) THEN
+      CALL INKEYW (STATE, 'STA', 'S')
+      IF (KEYWIS (STATE, 'DA')) THEN
          FAC = 24.*3600.
-      ELSE IF (KEYWIS('HR')) THEN
+      ELSE IF (KEYWIS (STATE, 'HR')) THEN
          FAC = 3600.
-      ELSE IF (KEYWIS('MI')) THEN
+      ELSE IF (KEYWIS (STATE, 'MI')) THEN
          FAC = 60.
       ELSE
-         CALL IGNORE ('S')
+         CALL IGNORE (STATE, 'S')
          FAC = 1.
       ENDIF
    ELSE
@@ -1366,21 +1521,17 @@ SUBROUTINE ININTV (NAME, RVAR, KONT, RSTA)
    RVAR = FAC * RI
    RETURN
 !     end of subroutine ININTV                                            30.09
-END
+end subroutine ININTV_CTX
 !*******************************************************************
 !                                                                  *
-SUBROUTINE INITVD (NAME, RVAR, KONT, RSTA)
+SUBROUTINE INITVD_CTX (STATE, NAME, RVAR, KONT, RSTA)
 !                                                                  *
 !*******************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1414,7 +1565,7 @@ SUBROUTINE INITVD (NAME, RVAR, KONT, RSTA)
 !
 !  1. UPDATES
 !
-!     July 2015: copied from ININTV, adapted to double precision
+!     July 2015: copied from ININTV, adapted to REAL(KIND=KIND(0.0D0))
 !
 !  2. PURPOSE
 !
@@ -1424,7 +1575,9 @@ SUBROUTINE INITVD (NAME, RVAR, KONT, RSTA)
 !
 !  4. ARGUMENT VARIABLES
 !
-!     NAAM   : name of the variable according to the user manual
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
+!     NAME   : name of the variable according to the user manual
 !     KONT   : What to do with the variable?
 !              ='REQ'; error message if no value is found in the input file
 !              ='UNC'; If no value, then variable will not be changed
@@ -1433,32 +1586,31 @@ SUBROUTINE INITVD (NAME, RVAR, KONT, RSTA)
 !              ='REP'  (repeat)
 !              ='NSKP' (no skip) if data item is of different type,
 !                      value is left unchanged.
-!
-   CHARACTER NAME *(*), KONT *(*)
-!
+
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
+   CHARACTER(LEN=*) :: NAME, KONT
+
 !     RSTA   : default value
 !     RVAR   : variable that is to be assigned a value
-!
-   REAL*8    RSTA, RVAR
-!
+
+   REAL(KIND=KIND(0.0D0))    RSTA, RVAR
+
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
 !
 !     IENT   : Number of entries into this subroutine
-!
-   INTEGER   IENT
-!
+
+   INTEGER, SAVE :: IENT = 0
+
 !     FAC    : a factor, value depends on unit of time used
 !     RI     : auxiliary variable
-!
-   REAL*8    FAC, RI
-!
+
+   REAL(KIND=KIND(0.0D0))    FAC, RI
+
 !     KEYWIS : logical function, True if keyword encountered is equal to
 !              keyword in user manual
-!
-   LOGICAL   KEYWIS
-!
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -1484,22 +1636,20 @@ SUBROUTINE INITVD (NAME, RVAR, KONT, RSTA)
 !     -------------------------------------------------------------
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA IENT /0/
+
    CALL STRACE (IENT, 'INITVD')
-!
-   CALL INDBLE (NAME, RI, KONT, RSTA)
-   IF (CHGVAL) THEN
-      CALL INKEYW ('STA', 'S')
-      IF (KEYWIS('DA')) THEN
+
+   CALL INDBLE (STATE, NAME, RI, KONT, RSTA)
+   IF (STATE%CHGVAL) THEN
+      CALL INKEYW (STATE, 'STA', 'S')
+      IF (KEYWIS (STATE, 'DA')) THEN
          FAC = 24.*3600.
-      ELSE IF (KEYWIS('HR')) THEN
+      ELSE IF (KEYWIS (STATE, 'HR')) THEN
          FAC = 3600.
-      ELSE IF (KEYWIS('MI')) THEN
+      ELSE IF (KEYWIS (STATE, 'MI')) THEN
          FAC = 60.
       ELSE
-         CALL IGNORE ('S')
+         CALL IGNORE (STATE, 'S')
          FAC = 1.
       ENDIF
    ELSE
@@ -1508,21 +1658,19 @@ SUBROUTINE INITVD (NAME, RVAR, KONT, RSTA)
    RVAR = FAC * RI
    RETURN
 !     end of subroutine INITVD
-END
+end subroutine INITVD_CTX
 !****************************************************************
 !                                                               *
-SUBROUTINE LEESEL
+SUBROUTINE LEESEL_CTX (STATE)
 !                                                               *
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1557,7 +1705,7 @@ SUBROUTINE LEESEL
 !
 !  1. UPDATES
 !
-!     Jan. 1994, mod. 20.05: ELREAL is made double precision
+!     Jan. 1994, mod. 20.05: ELREAL is made REAL(KIND=KIND(0.0D0))
 !     40.13, Jan. 01: ! is now added as comment sign
 !     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
@@ -1589,6 +1737,12 @@ SUBROUTINE LEESEL
 !
 !  4. ARGUMENT VARIABLES
 !
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
+!
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
+!
+!
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
@@ -1604,18 +1758,20 @@ SUBROUTINE LEESEL
 !     NREP   : repetition number
 !     NUM1   : value of integer part of mantissa
 !     NUM2   : exponent value
-!
-   INTEGER   IENT, IRK, ISIGN1, ISIGN2, ISTATE, J, JJ, JKAR, NREP, &
-             NUM1, NUM2
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER, SAVE :: NREP = 1
+   INTEGER   IRK, ISIGN1, ISIGN2, ISTATE, J, JJ, JKAR, NUM1, NUM2
+   LOGICAL :: PARSE_AS_OTHER
+
 !     RMANT  : real mantissa value
-!
-   DOUBLE    PRECISION RMANT
-!
+
+   REAL(KIND=KIND(0.0D0)) RMANT
+
 !     QUOTE  : the quote character
-!
-   CHARACTER QUOTE *1
-!
+
+   CHARACTER(LEN=1), PARAMETER :: QUOTE = "'"
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -1627,283 +1783,272 @@ SUBROUTINE LEESEL
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   SAVE  IENT, QUOTE, NREP
-   DATA  QUOTE/''''/ , IENT/0/, NREP/1/
+
    CALL  STRACE ( IENT, 'LEESEL')
-!
-   IF (NREP.GT.1) THEN
-      NREP = NREP - 1
-      GOTO 190
-   ENDIF
-!
-!     initialisations
-!
-2  NREP = 1
-   DO  4 J=1,LINELN,4
-      ELTEXT(J:J+3) = '    '
-4  CONTINUE
-   JKAR = 1
-   ELINT=0
-   ELREAL=0.
-!
-!     start processing data item
-!
-   IF (KARNR.EQ.0) GOTO 12
-!     process a new character
-10 IF (KAR.EQ.'!' .OR. KARNR.GT.LINELN) THEN
-!       end of the line is reached, if repetition factor is >1
-!       the data item is assumed to be empty
-      IF (NREP.GT.1) GOTO 28
-!       end of the line is reached, if no repetition factor appears
-!       the data item is assumed to be of type 'EOR'
-      ELTYPE='EOR'
-      IF (KAR.EQ.'!') KARNR = LINELN+1
-      GOTO 190
-   ENDIF
-!     skip leading blanks or Tab characters
-11 IF (KAR.NE.' ' .AND. KAR.NE.TABC) GOTO 20
-12 CALL GETKAR
-!     end of input file was reached
-   IF (ELTYPE.EQ.'EOF') THEN
-!       generate keyword STOP
-      ELTEXT='STOP'
-      GOTO 190
-   ENDIF
-   GOTO 10
-!     if character is comma, empty data field
-20 IF (KAR.NE.',') GOTO 30
-   CALL GETKAR
-28 ELTYPE='EMPT'
-   GOTO 190
-!     Notice: jump to label 28 (empty data field)
-!     if after repetition a comment, a keyword, end of record etc. is found.
-!     --------------------------------------------------------
-!     see whether end of repeat (; or /) is marked
-30 IF (INDEX(';/',KAR).GT.0) THEN
-      IF (NREP.GT.1) GOTO 28
-      ELTYPE='EOR'
-      CALL GETKAR
-      GOTO 190
-   ENDIF
-!     ( marks the beginning of a data item group; is ignored
-38 IF (KAR.EQ.'(') GOTO 12
-!     --------------------------------------------------------
-!     comment; data enclosed in comment identifiers is interpreted as comment
-40 IF (KAR.EQ.COMID) THEN
-      IF (NREP.GT.1) GOTO 28
-41    CALL  GETKAR
-      IF (KARNR.GT.LINELN) GOTO 10
-      IF (KAR.NE.COMID) GOTO 41
-      GOTO 12
-   ENDIF
-!     -------------------------------------------------------
-!     if item is a number, read this integer or real number
-!
-!     integer number:  SIGN1]NUM1
-!     real:            SIGN1]NUM1].]MANT]E]SIGN2]NUM2
-!        ISTATE =    10     9    8 7    6 5     4    3
-!     SIGN1, SIGN2:     + OR -
-!     NUM1, NUM2, MANT: series of digits
-!     -------------------------------------------------------
-50 IF (INDEX('+-.0123456789',KAR).EQ.0) GOTO 80
-   NUM1=0
-   NUM2=0
-   ISIGN1=1
-   ISIGN2=1
-   ISTATE=10
-   IRK=0
-   RMANT=0.
-   ELTYPE='INT'
-   IF (INDEX('+-',KAR).EQ.0) GOTO 52
-   ISTATE=9
-   IF (KAR.EQ.'-') ISIGN1=-1
-   CALL PUTKAR (ELTEXT, KAR, JKAR)
-   CALL GETKAR
-!     ****  part before decimal point  ****
-52 IF (INDEX('0123456789',KAR).EQ.0) GOTO 54
-   IRK=1
-   ISTATE=8
-   NUM1=10*NUM1+INDEX('123456789',KAR)
-   CALL PUTKAR (ELTEXT, KAR, JKAR)
-   CALL GETKAR
-   GOTO 52
-54 IF (KAR.NE.'.') GOTO 56
-   ISTATE=7
-   ELTYPE='REAL'
-   CALL PUTKAR (ELTEXT, KAR, JKAR)
-   CALL GETKAR
-56 JJ=-1
-!     ****  part after decimal point  ****
-57 IF (INDEX('0123456789',KAR).EQ.0) GOTO 58
-   IRK=1
-   ISTATE=6
-   RMANT = RMANT + DBLE(INDEX('123456789',KAR))*1.D1**JJ
-   JJ=JJ-1
-   CALL PUTKAR (ELTEXT, KAR, JKAR)
-   CALL GETKAR
-   GOTO 57
-58 IF (ISTATE.GE.9 .OR. IRK.EQ.0) GOTO 120
-!     ****  exponent part  ****
-   IF (INDEX('DdEe^',KAR).EQ.0) GOTO 66
-   ISTATE=5
-   IRK=0
-   IF (ELTYPE.EQ.'INT') ELTYPE='REAL'
-   CALL PUTKAR (ELTEXT, KAR, JKAR)
-   CALL GETKAR
-   IF (INDEX('+-',KAR).EQ.0) GOTO 62
-   IF (KAR.EQ.'-') ISIGN2=-1
-   ISTATE=4
-   CALL PUTKAR (ELTEXT, KAR, JKAR)
-   CALL GETKAR
-62 IF (INDEX('0123456789',KAR).EQ.0) GOTO 66
-   IRK=1
-   ISTATE=3
-   NUM2=10*NUM2+INDEX('123456789',KAR)
-   CALL PUTKAR (ELTEXT, KAR, JKAR)
-   CALL GETKAR
-   GOTO 62
-!     ****  a number is put together  ****
-66 IF (IRK.EQ.0) GOTO 120
-   IF (INDEX('+-.',KAR).GE.1) ELTYPE='OTHR'
-   ISTATE=2
-   IF (ITEST.GE.330) WRITE (PRINTF,699) ELTYPE, ISIGN1, NUM1, &
-      RMANT, ISIGN2, NUM2
-699 FORMAT (1X, A4, 2I6, F12.9, 2I6)
-   IF (ELTYPE.EQ.'REAL') ELREAL = &
-      ISIGN1*(DBLE(NUM1)+RMANT) * 1.D1**(ISIGN2*NUM2)
-   IF (ELTYPE.EQ.'INT') ELINT = ISIGN1*NUM1
-   LENCST = JKAR - 1
-!     skip trailing blanks
-67 IF (KAR.NE.' ' .AND. KAR.NE.TABC) GOTO 68
-   ISTATE=1
-   CALL GETKAR
-   GOTO 67
-!     If a * is encountered now, it is interpreted as a repetition factor.
-68 IF (KAR.EQ.'*') THEN
-      IF (ELTYPE.EQ.'INT' .AND. ELINT.GT.0) THEN
-         NREP = ELINT
-         ELINT = 0
-         CALL GETKAR
-         GOTO 10
-      ELSE
-         CALL MSGERR (2, 'Wrong repetition factor')
-         CALL GETKAR
-         GOTO 190
+
+   parse_item: BLOCK
+      IF (NREP.GT.1) THEN
+         NREP = NREP - 1
+         EXIT parse_item
       ENDIF
-   ENDIF
-69 IF (KAR.EQ.',') THEN
-      CALL GETKAR
-      GOTO 190
-   ENDIF
-   IF (ISTATE.EQ.1) GOTO 190
-   IF (INDEX(' ;',KAR).NE.0 .OR. KAR.EQ.TABC) THEN
-      GOTO 190
-   ENDIF
-!     number is not followed by , blank or tab; type is made OTHR:
-   GOTO 120
-!     ----------------------------------------------------------
-!     a character string is read; it start and ends with a quote
-!     ----------------------------------------------------------
-80 IF (KAR.EQ.QUOTE) THEN
-      ELTYPE='CHAR'
-      LENCST = 0
-      JJ=1
-82    CALL GETKAR
-!       end of the string: end of record or closing quote
-      IF (KARNR.GT.LINELN) GOTO 190
-      IF (KAR.EQ.QUOTE) THEN
-         CALL GETKAR
-!         new character is not a quote; end of the string
-         IF (KAR.NE.QUOTE) GOTO 88
-!         double quote is read as a single quote; continue
-      ENDIF
-!       put the character into ELTEXT
-84    ELTEXT(JJ:JJ) = KAR
-      LENCST = JJ
-      JJ=JJ+1
-      GOTO 82
-!       process characters behind the string
-87    CALL GETKAR
-!       skip trailing blanks
-88    IF (KAR.EQ.' ' .OR. KAR.EQ.TABC) GOTO 87
-      IF (KAR.NE.',') GOTO 190
-      CALL GETKAR
-      GOTO 190
-   ENDIF
-!     -------------------------------------------------------
-!     a keyword is read
-!     a keyword starts with a letter (upper or lower case)
-!     -------------------------------------------------------
-90 CALL UPCASE (KAR)
-   IF (INDEX('ABCDEFGHIJKLMNOPQRSTUVWXYZ',KAR).GT.0) THEN
-      IF (NREP.GT.1) GOTO 28
-      ELTYPE='KEY'
-      ISTATE=2
-      JJ=1
-92    ELTEXT(JJ:JJ) = KAR
-      LENCST = JJ
-      CALL GETKAR
-      CALL UPCASE (KAR)
-      JJ=JJ+1
-!       next characters: letters, digits or - _ .
-      IF (INDEX('ABCDEFGHIJKLMNOPQRSTUVWXYZ',KAR).GE.1) GOTO 92
-      IF (INDEX('0123456789-_.',KAR).GE.1) GOTO 92
-!       keyword is read
-      KEYWRD = ELTEXT(1:8)
-!       trailing blanks or tab char are skipped
-94    IF (KAR.NE.' ' .AND. KAR.NE.TABC) GOTO  96
-      CALL GETKAR
-      GOTO 94
-!       closure character  : or = is processed
-96    IF (INDEX('=:',KAR).EQ.0) GOTO 190
-      CALL GETKAR
-      GOTO 190
-   ENDIF
-!     --------------------------------------------------
-!     continuation symbol is read
-!     --------------------------------------------------
-100 IF (INDEX('_&',KAR).EQ.0) GOTO 120
-   IF (NREP.GT.1) GOTO 28
-110 KARNR=0
-   GOTO 12
-!     --------------------------------------------------
-!     other type of data
-!     --------------------------------------------------
-120 ELTYPE='OTHR'
-122 ELTEXT(JKAR:JKAR) = KAR
-   LENCST = JKAR
-   JKAR=JKAR+1
-   CALL GETKAR
-   IF (INDEX(' ,;', KAR).GE.1 .OR. KAR.EQ.TABC) GOTO 126
-   GOTO 122
-126 CALL GETKAR
-! 127  CALL MSGERR (3, 'Read error in: ')
-!      WRITE (PRINTF,129) ELTEXT
-! 129  FORMAT (A)                                                         40.00
-!      RETURN
-!     --------------------------------------------------
-!     test output and return to calling program
-!     --------------------------------------------------
-190 IF (ITEST.GE.120) WRITE (PRTEST, 199) KAR, KARNR, ELTYPE, ELREAL, &
-       ELINT, NREP, ELTEXT(1:LENCST)
-199 FORMAT (' test LEESEL: ', A1, 1X, I4, 1X, A4, D12.4, 2I6, 2X, A)
-   RETURN
-END
+
+      NREP = 1
+      do J=1,LINELN,4
+         STATE%ELTEXT(J:J+3) = '    '
+      end do
+      JKAR = 1
+      STATE%ELINT = 0
+      STATE%ELREAL = 0.
+
+      item_start: DO
+         IF (STATE%KARNR.EQ.0) CALL GETKAR (STATE)
+
+         DO WHILE ((STATE%KAR.EQ.' ' .OR. STATE%KAR.EQ.STATE%TABC) .AND. STATE%KARNR.LE.LINELN)
+            CALL GETKAR (STATE)
+            IF (STATE%ELTYPE.EQ.'EOF') EXIT
+         END DO
+
+         IF (STATE%ELTYPE.EQ.'EOF') THEN
+            STATE%ELTEXT = 'STOP'
+            EXIT parse_item
+         ENDIF
+
+         IF (STATE%KAR.EQ.'!' .OR. STATE%KARNR.GT.LINELN) THEN
+            IF (NREP.GT.1) THEN
+               STATE%ELTYPE = 'EMPT'
+            ELSE
+               STATE%ELTYPE = 'EOR'
+               IF (STATE%KAR.EQ.'!') STATE%KARNR = LINELN+1
+            ENDIF
+            EXIT parse_item
+         ENDIF
+
+         IF (STATE%KAR.EQ.',') THEN
+            CALL GETKAR (STATE)
+            STATE%ELTYPE = 'EMPT'
+            EXIT parse_item
+         ENDIF
+
+         IF (INDEX(';/',STATE%KAR).GT.0) THEN
+            IF (NREP.GT.1) THEN
+               STATE%ELTYPE = 'EMPT'
+            ELSE
+               STATE%ELTYPE = 'EOR'
+               CALL GETKAR (STATE)
+            ENDIF
+            EXIT parse_item
+         ENDIF
+
+         IF (STATE%KAR.EQ.'(') THEN
+            CALL GETKAR (STATE)
+            CYCLE item_start
+         ENDIF
+
+         IF (STATE%KAR.EQ.STATE%COMID) THEN
+            IF (NREP.GT.1) THEN
+               STATE%ELTYPE = 'EMPT'
+               EXIT parse_item
+            ENDIF
+            DO
+               CALL GETKAR (STATE)
+               IF (STATE%KARNR.GT.LINELN .OR. STATE%KAR.EQ.STATE%COMID) EXIT
+            END DO
+            IF (STATE%KARNR.LE.LINELN) CALL GETKAR (STATE)
+            CYCLE item_start
+         ENDIF
+
+         PARSE_AS_OTHER = .FALSE.
+         IF (INDEX('+-.0123456789',STATE%KAR).GT.0) THEN
+            NUM1 = 0
+            NUM2 = 0
+            ISIGN1 = 1
+            ISIGN2 = 1
+            ISTATE = 10
+            IRK = 0
+            RMANT = 0.
+            STATE%ELTYPE = 'INT'
+
+            IF (INDEX('+-',STATE%KAR).GT.0) THEN
+               ISTATE = 9
+               IF (STATE%KAR.EQ.'-') ISIGN1 = -1
+               CALL PUTKAR (STATE, STATE%ELTEXT, STATE%KAR, JKAR)
+               CALL GETKAR (STATE)
+            ENDIF
+
+            DO WHILE (INDEX('0123456789',STATE%KAR).GT.0)
+               IRK = 1
+               ISTATE = 8
+               NUM1 = 10*NUM1 + INDEX('123456789',STATE%KAR)
+               CALL PUTKAR (STATE, STATE%ELTEXT, STATE%KAR, JKAR)
+               CALL GETKAR (STATE)
+            END DO
+
+            IF (STATE%KAR.EQ.'.') THEN
+               ISTATE = 7
+               STATE%ELTYPE = 'REAL'
+               CALL PUTKAR (STATE, STATE%ELTEXT, STATE%KAR, JKAR)
+               CALL GETKAR (STATE)
+            ENDIF
+
+            JJ = -1
+            DO WHILE (INDEX('0123456789',STATE%KAR).GT.0)
+               IRK = 1
+               ISTATE = 6
+               RMANT = RMANT + DBLE(INDEX('123456789',STATE%KAR))*1.D1**JJ
+               JJ = JJ-1
+               CALL PUTKAR (STATE, STATE%ELTEXT, STATE%KAR, JKAR)
+               CALL GETKAR (STATE)
+            END DO
+
+            IF (ISTATE.GE.9 .OR. IRK.EQ.0) PARSE_AS_OTHER = .TRUE.
+
+            IF (.NOT.PARSE_AS_OTHER .AND. INDEX('DdEe^',STATE%KAR).GT.0) THEN
+               ISTATE = 5
+               IRK = 0
+               IF (STATE%ELTYPE.EQ.'INT') STATE%ELTYPE = 'REAL'
+               CALL PUTKAR (STATE, STATE%ELTEXT, STATE%KAR, JKAR)
+               CALL GETKAR (STATE)
+               IF (INDEX('+-',STATE%KAR).GT.0) THEN
+                  IF (STATE%KAR.EQ.'-') ISIGN2 = -1
+                  ISTATE = 4
+                  CALL PUTKAR (STATE, STATE%ELTEXT, STATE%KAR, JKAR)
+                  CALL GETKAR (STATE)
+               ENDIF
+               DO WHILE (INDEX('0123456789',STATE%KAR).GT.0)
+                  IRK = 1
+                  ISTATE = 3
+                  NUM2 = 10*NUM2 + INDEX('123456789',STATE%KAR)
+                  CALL PUTKAR (STATE, STATE%ELTEXT, STATE%KAR, JKAR)
+                  CALL GETKAR (STATE)
+               END DO
+               IF (IRK.EQ.0) PARSE_AS_OTHER = .TRUE.
+            ENDIF
+
+            IF (INDEX('+-.',STATE%KAR).GE.1) PARSE_AS_OTHER = .TRUE.
+
+            IF (.NOT.PARSE_AS_OTHER) THEN
+               ISTATE = 2
+               IF (ITEST.GE.330) WRITE (reader_print_unit(STATE),"(1X, A4, 2I6, F12.9, 2I6)") STATE%ELTYPE, ISIGN1, NUM1, &
+                  RMANT, ISIGN2, NUM2
+               IF (STATE%ELTYPE.EQ.'REAL') STATE%ELREAL = &
+                  ISIGN1*(DBLE(NUM1)+RMANT) * 1.D1**(ISIGN2*NUM2)
+               IF (STATE%ELTYPE.EQ.'INT') STATE%ELINT = ISIGN1*NUM1
+               STATE%LENCST = JKAR - 1
+               DO WHILE (STATE%KAR.EQ.' ' .OR. STATE%KAR.EQ.STATE%TABC)
+                  ISTATE = 1
+                  CALL GETKAR (STATE)
+               END DO
+
+               IF (STATE%KAR.EQ.'*') THEN
+                  IF (STATE%ELTYPE.EQ.'INT' .AND. STATE%ELINT.GT.0) THEN
+                     NREP = STATE%ELINT
+                     STATE%ELINT = 0
+                     CALL GETKAR (STATE)
+                     CYCLE item_start
+                  ELSE
+                     CALL reader_msgerr (STATE, 2, 'Wrong repetition factor')
+                     CALL GETKAR (STATE)
+                     EXIT parse_item
+                  ENDIF
+               ENDIF
+               IF (STATE%KAR.EQ.',') THEN
+                  CALL GETKAR (STATE)
+                  EXIT parse_item
+               ENDIF
+               IF (ISTATE.EQ.1 .OR. INDEX(' ;',STATE%KAR).NE.0 .OR. &
+                   STATE%KAR.EQ.STATE%TABC) EXIT parse_item
+               PARSE_AS_OTHER = .TRUE.
+            ENDIF
+
+         ELSE IF (STATE%KAR.EQ.QUOTE) THEN
+            STATE%ELTYPE = 'CHAR'
+            STATE%LENCST = 0
+            JJ = 1
+            DO
+               CALL GETKAR (STATE)
+               IF (STATE%KARNR.GT.LINELN) EXIT parse_item
+               IF (STATE%KAR.EQ.QUOTE) THEN
+                  CALL GETKAR (STATE)
+                  IF (STATE%KAR.NE.QUOTE) EXIT
+               ENDIF
+               STATE%ELTEXT(JJ:JJ) = STATE%KAR
+               STATE%LENCST = JJ
+               JJ = JJ+1
+            END DO
+            DO WHILE (STATE%KAR.EQ.' ' .OR. STATE%KAR.EQ.STATE%TABC)
+               CALL GETKAR (STATE)
+            END DO
+            IF (STATE%KAR.EQ.',') CALL GETKAR (STATE)
+            EXIT parse_item
+
+         ELSE
+            CALL UPCASE (STATE%KAR)
+            IF (INDEX('ABCDEFGHIJKLMNOPQRSTUVWXYZ',STATE%KAR).GT.0) THEN
+               IF (NREP.GT.1) THEN
+                  STATE%ELTYPE = 'EMPT'
+                  EXIT parse_item
+               ENDIF
+               STATE%ELTYPE = 'KEY'
+               ISTATE = 2
+               JJ = 1
+               DO
+                  STATE%ELTEXT(JJ:JJ) = STATE%KAR
+                  STATE%LENCST = JJ
+                  CALL GETKAR (STATE)
+                  CALL UPCASE (STATE%KAR)
+                  JJ = JJ+1
+                  IF (INDEX('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.',STATE%KAR) &
+                      .EQ.0) EXIT
+               END DO
+               STATE%KEYWRD = STATE%ELTEXT(1:8)
+               DO WHILE (STATE%KAR.EQ.' ' .OR. STATE%KAR.EQ.STATE%TABC)
+                  CALL GETKAR (STATE)
+               END DO
+               IF (INDEX('=:',STATE%KAR).GT.0) CALL GETKAR (STATE)
+               EXIT parse_item
+            ENDIF
+
+            IF (INDEX('_&',STATE%KAR).GT.0) THEN
+               IF (NREP.GT.1) THEN
+                  STATE%ELTYPE = 'EMPT'
+                  EXIT parse_item
+               ENDIF
+               STATE%KARNR = 0
+               CYCLE item_start
+            ENDIF
+            PARSE_AS_OTHER = .TRUE.
+         ENDIF
+
+         IF (PARSE_AS_OTHER) THEN
+            STATE%ELTYPE = 'OTHR'
+            DO
+               STATE%ELTEXT(JKAR:JKAR) = STATE%KAR
+               STATE%LENCST = JKAR
+               JKAR = JKAR+1
+               CALL GETKAR (STATE)
+               IF (INDEX(' ,;', STATE%KAR).GE.1 .OR. STATE%KAR.EQ.STATE%TABC) EXIT
+            END DO
+            CALL GETKAR (STATE)
+            EXIT parse_item
+         ENDIF
+      END DO item_start
+   END BLOCK parse_item
+
+   IF (ITEST.GE.120) WRITE (PRTEST, &
+         "(' test LEESEL: ', A1, 1X, I4, 1X, A4, D12.4, 2I6, 2X, A)") STATE%KAR, STATE%KARNR, STATE%ELTYPE, STATE%ELREAL, &
+      STATE%ELINT, NREP, STATE%ELTEXT(1:STATE%LENCST)
+end subroutine LEESEL_CTX
+
 !****************************************************************
-!                                                               *
-SUBROUTINE GETKAR
-!                                                               *
+!     Read the next character from this command reader.
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+SUBROUTINE GETKAR_CTX (STATE)
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1952,14 +2097,22 @@ SUBROUTINE GETKAR
 !
 !  4. ARGUMENT VARIABLES
 !
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
+!
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
+!
+!
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
 !
 !     IENT   : Number of entries into this subroutine
-!
-   INTEGER   IENT
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   IO_STATUS
+   INTEGER   IUNIT
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -1971,46 +2124,42 @@ SUBROUTINE GETKAR
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA  IENT /0/
+
    CALL STRACE (IENT, 'GETKAR')
-   IF (KARNR.EQ.0) THEN
-      READ (INPUTF, 7, END=20) KAART
-7     FORMAT (A)
-      IF (ITEST.GE.-10) WRITE (PRINTF, 8) TRIM(KAART)
-8     FORMAT (1X,A)
-      KARNR=1
+   IF (STATE%KARNR.EQ.0) THEN
+      IUNIT = INPUTF
+      IF (STATE%io_bound) IUNIT = STATE%io%INPUTF
+      READ (IUNIT, "(A)", IOSTAT=IO_STATUS) STATE%KAART
+      IF (IO_STATUS /= 0) THEN
+         STATE%ELTYPE = 'EOF'
+         STATE%KAR = '@'
+         IF (ITEST.GE.320) WRITE (reader_print_unit(STATE), &
+               "(' Test GETKAR', 2X, A4, 2X, A1, I4)") STATE%ELTYPE, STATE%KAR, STATE%KARNR
+         RETURN
+      END IF
+      IF (ITEST.GE.-10) WRITE (reader_print_unit(STATE), "(1X,A)") TRIM(STATE%KAART)
+      STATE%KARNR=1
    ENDIF
-   IF (KARNR.GT.LINELN) THEN
-      KAR=';'
-      GOTO 90
+   IF (STATE%KARNR.GT.LINELN) THEN
+      STATE%KAR=';'
+   ELSE
+      STATE%KAR = STATE%KAART(STATE%KARNR:STATE%KARNR)
+      STATE%KARNR=STATE%KARNR+1
    ENDIF
-   KAR = KAART(KARNR:KARNR)
-   KARNR=KARNR+1
-   GOTO 90
-!     end of file is encountered
-20 ELTYPE='EOF'
-   KAR='@'
-90 IF (ITEST.GE.320) WRITE (PRINTF, 99) ELTYPE, KAR, KARNR
-99 FORMAT (' Test GETKAR', 2X, A4, 2X, A1, I4)
+   IF (ITEST.GE.320) WRITE (reader_print_unit(STATE), "(' Test GETKAR', 2X, A4, 2X, A1, I4)") STATE%ELTYPE, STATE%KAR, STATE%KARNR
    RETURN
 !     end of subroutine GETKAR
-END
+end subroutine GETKAR_CTX
 !****************************************************************
 !                                                               *
-SUBROUTINE PUTKAR (LTEXT, KARR, JKAR)
+SUBROUTINE PUTKAR_CTX (STATE, LTEXT, KARR, JKAR)
 !                                                               *
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2056,24 +2205,28 @@ SUBROUTINE PUTKAR (LTEXT, KARR, JKAR)
 !
 !  4. ARGUMENT VARIABLES
 !
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
 !     JKAR   : counts the number of characters in a data field
-!
+
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
    INTEGER  JKAR
-!
+
 !     LTEXT  : a character string; after a number of calls it should
 !              contain the character representation of a data field
 !     KARR   : character to be inserted into LTEXT
-!
-   CHARACTER LTEXT *(*), KARR *1
-!
+
+   CHARACTER(LEN=*) :: LTEXT
+   CHARACTER(LEN=1) :: KARR
+
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
 !
 !     IENT   : Number of entries into this subroutine
-!
-   INTEGER   IENT
-!
+
+   INTEGER, SAVE :: IENT = 0
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -2085,137 +2238,29 @@ SUBROUTINE PUTKAR (LTEXT, KARR, JKAR)
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA IENT /0/
+
    CALL STRACE (IENT, 'PUTKAR')
-   IF (JKAR.GT.LEN(LTEXT)) CALL MSGERR (2, 'PUTKAR, string too long')
+   IF (JKAR.GT.LEN(LTEXT)) CALL reader_msgerr (STATE, 2, 'PUTKAR, string too long')
    LTEXT(JKAR:JKAR) = KARR
-   LENCST = JKAR
+   STATE%LENCST = JKAR
    JKAR = JKAR + 1
    RETURN
 !     end of subroutine PUTKAR
-END
+end subroutine PUTKAR_CTX
 !****************************************************************
 !                                                               *
-SUBROUTINE UPCASE (CHARST)
-!                                                               *
-!****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. AUTHORS
-!
-!     40.41: Marcel Zijlema
-!
-!  1. UPDATES
-!
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. PURPOSE
-!
-!     changes all characters of the string CHARST from lower to
-!     upper case
-!
-!  3. METHOD
-!
-!  4. ARGUMENT VARIABLES
-!
-!     CHARST : a character string
-!
-   CHARACTER*(*) CHARST
-!
-!  5. PARAMETER VARIABLES
-!
-!  6. LOCAL VARIABLES
-!
-!     IC     : sequence number of a character in the string CHARST
-!     IENT   : Number of entries into this subroutine
-!     KK     : position of a character in a given string
-!     LLCC   : length of the given character string
-!
-   INTEGER   IC, IENT, KK, LLCC
-!
-!     ABCUP  : A to Z upper case characters
-!     ABCLO  : a to z lower case characters
-!     CC     : a character
-!
-   CHARACTER ABCUP *26, ABCLO *26, CC *1
-!
-!  8. SUBROUTINE USED
-!
-!  9. SUBROUTINES CALLING
-!
-! 10. ERROR MESSAGES
-!
-! 11. REMARKS
-!
-! 12. STRUCTURE
-!
-! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA  IENT /0/
-   DATA  ABCUP /'ABCDEFGHIJKLMNOPQRSTUVWXYZ'/
-   DATA  ABCLO /'abcdefghijklmnopqrstuvwxyz'/
-   CALL STRACE (IENT, 'UPCASE')
-!
-   LLCC = LEN (CHARST)
-   DO 10 IC = 1, LLCC
-      CC = CHARST(IC:IC)
-      KK = INDEX (ABCLO, CC)
-      IF (KK.NE.0) CHARST(IC:IC) = ABCUP(KK:KK)
-10 CONTINUE
-   RETURN
-!     end of subroutine UPCASE
-END
 !****************************************************************
 !                                                               *
-LOGICAL FUNCTION EQCSTR (STR1, STR2)
+PURE LOGICAL FUNCTION EQCSTR (STR1, STR2)
+!     Pure: the only side effect was
+!     STRACE diagnostics; UPCASE was made pure in the same step.
+!     Regressions run with ITRACE=0 and no reference contains
+!     EQCSTR/UPCASE lines.
 !                                                               *
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2262,16 +2307,13 @@ LOGICAL FUNCTION EQCSTR (STR1, STR2)
 !     the length of string 2 gives the number of significant characters
 !
 !  4. ARGUMENT VARIABLES
-!
-   CHARACTER (LEN=*) :: STR1, STR2
+
+   CHARACTER (LEN=*), INTENT(IN) :: STR1, STR2
 !     two character strings to be compared
 !
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
-!
-   INTEGER, SAVE  :: IENT = 0
-!     IENT   : Number of entries into this subroutine
 
    INTEGER :: IC, LLCC
 !     IC     : sequence number of a character in the string
@@ -2291,14 +2333,12 @@ LOGICAL FUNCTION EQCSTR (STR1, STR2)
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   CALL STRACE (IENT, 'UPCASE')
-!
+
    EQCSTR = .TRUE.
    LLCC = LEN (STR2)
    IF (LEN(STR1).LT.LLCC) THEN
       EQCSTR = .FALSE.
-      GOTO 90
+      RETURN
    ENDIF
    DO IC = 1, LLCC
       CC1 = STR1(IC:IC)
@@ -2307,25 +2347,20 @@ LOGICAL FUNCTION EQCSTR (STR1, STR2)
       CALL UPCASE (CC2)
       IF (CC1.NE.CC2) THEN
          EQCSTR = .FALSE.
-         GOTO 90
+         RETURN
       ENDIF
    ENDDO
-90 RETURN
-END function EQCSTR
+end function EQCSTR
 !****************************************************************
 !                                                               *
-LOGICAL FUNCTION KEYWIS (STRING)
+LOGICAL FUNCTION KEYWIS_CTX (STATE, STRING)
 !                                                               *
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2373,10 +2408,13 @@ LOGICAL FUNCTION KEYWIS (STRING)
 !
 !  4. ARGUMENT VARIABLES
 !
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
 !     STRING : a keyword which is compared with a keyword found in the input file
-!
-   CHARACTER STRING *(*)
-!
+
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
+   CHARACTER(LEN=*), INTENT(IN) :: STRING
+
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
@@ -2384,14 +2422,15 @@ LOGICAL FUNCTION KEYWIS (STRING)
 !     IENT   : Number of entries into this subroutine
 !     J      : counter
 !     LENSS  : length of the keyword STRING
-!
-   INTEGER   IENT, J, LENSS
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   J, LENSS
+
 !     KAR1   : a character of the keyword appearing in the input file
 !     KAR2   : corresponding character in the STRING
-!
-   CHARACTER KAR1 *1, KAR2 *1
-!
+
+   CHARACTER(LEN=1) :: KAR1, KAR2
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -2403,41 +2442,34 @@ LOGICAL FUNCTION KEYWIS (STRING)
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA IENT /0/
+
    CALL STRACE (IENT, 'KEYWIS')
-!
-   KEYWIS = .FALSE.
-   IF (ELTYPE.EQ.'USED') GOTO 30
-!
-   KEYWIS=.TRUE.
+
+   KEYWIS_CTX = .FALSE.
+   IF (STATE%ELTYPE.EQ.'USED') RETURN
+
+   KEYWIS_CTX=.TRUE.
    LENSS = LEN (STRING)
-   DO  20  J=1, LENSS
-      KAR1 = KEYWRD(J:J)
+   do J=1, LENSS
+      KAR1 = STATE%KEYWRD(J:J)
       KAR2 = STRING(J:J)
       IF (KAR1.NE.KAR2 .AND. KAR2.NE.' ') THEN
-         KEYWIS=.FALSE.
-         GOTO 30
+         KEYWIS_CTX=.FALSE.
+         RETURN
       ENDIF
-20 CONTINUE
-   IF (ELTYPE.EQ.'KEY') ELTYPE = 'USED'
-30 RETURN
-END
+   end do
+   IF (STATE%ELTYPE.EQ.'KEY') STATE%ELTYPE = 'USED'
+end function KEYWIS_CTX
 !****************************************************************
 !                                                               *
-SUBROUTINE  WRNKEY
+SUBROUTINE WRNKEY_CTX (STATE)
 !                                                               *
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2483,14 +2515,20 @@ SUBROUTINE  WRNKEY
 !
 !  4. ARGUMENT VARIABLES
 !
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
+!
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
+!
+!
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
 !
 !     IENT   : Number of entries into this subroutine
-!
-   INTEGER   IENT
-!
+
+   INTEGER, SAVE :: IENT = 0
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -2502,29 +2540,24 @@ SUBROUTINE  WRNKEY
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA IENT /0/
+
    CALL STRACE (IENT, 'WRNKEY')
-!
-   CALL MSGERR (2, 'Illegal keyword: '//KEYWRD)
-   ELTYPE = 'USED'
+
+   CALL reader_msgerr (STATE, 2, 'Illegal keyword: '//STATE%KEYWRD)
+   STATE%ELTYPE = 'USED'
    RETURN
-END
+end subroutine WRNKEY_CTX
 !****************************************************************
 !                                                               *
-SUBROUTINE  IGNORE (STRING)
+SUBROUTINE IGNORE_CTX (STATE, STRING)
 !                                                               *
 !****************************************************************
-!
-   USE OCPCOMM1
-   USE OCPCOMM2
-   USE OCPCOMM3
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_diagnostics_level
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2571,22 +2604,23 @@ SUBROUTINE  IGNORE (STRING)
 !
 !  4. ARGUMENT VARIABLES
 !
+!     STATE  : command reader: the current input line, the position in it
+!              and the last data item read (input and output)
 !     STRING : keyword (if appearing in input file) that can be ignored
-!
-   CHARACTER STRING *(*)
-!
+
+   TYPE(command_reader_t), INTENT(INOUT) :: STATE
+   CHARACTER(LEN=*), INTENT(IN) :: STRING
+
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
 !
 !     IENT   : Number of entries into this subroutine
-!
-   INTEGER   IENT
-!
+
+   INTEGER, SAVE :: IENT = 0
+
 !     KEYWIS : logical function
-!
-   LOGICAL   KEYWIS
-!
+
 !  8. SUBROUTINE USED
 !
 !  9. SUBROUTINES CALLING
@@ -2598,15 +2632,107 @@ SUBROUTINE  IGNORE (STRING)
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-!
-   SAVE IENT
-   DATA IENT /0/
+
    CALL STRACE (IENT, 'IGNORE')
-!
-   CALL INKEYW ('STA', 'XXXX')
-   IF (KEYWIS(STRING)) RETURN
-   IF (KEYWIS('XXXX')) RETURN
-   IF (ITEST.GE.60) WRITE (PRINTF, 5) KEYWRD, ELTYPE
-5  FORMAT (' NOT IGNORED: ', A, 2X, A)
+
+   CALL INKEYW (STATE, 'STA', 'XXXX')
+   IF (KEYWIS (STATE, STRING)) RETURN
+   IF (KEYWIS (STATE, 'XXXX')) RETURN
+   IF (ITEST.GE.60) WRITE (reader_print_unit(STATE), "(' NOT IGNORED: ', A, 2X, A)") STATE%KEYWRD, STATE%ELTYPE
    RETURN
-END
+end subroutine IGNORE_CTX
+! Legacy entry points retain the original signatures and use the singleton
+! parser state. Passing a command_reader_t as first argument selects the
+! context-aware implementation through the generic interfaces above.
+subroutine rdinit_default
+   call rdinit_ctx(default_command_reader)
+end subroutine rdinit_default
+
+subroutine nwline_default
+   call nwline_ctx(default_command_reader)
+end subroutine nwline_default
+
+subroutine inkeyw_default(kont, csta)
+   character(len=*), intent(in) :: kont, csta
+   call inkeyw_ctx(default_command_reader, kont, csta)
+end subroutine inkeyw_default
+
+subroutine inreal_default(naam, r, kont, rsta)
+   character(len=*), intent(in) :: naam, kont
+   real, intent(inout) :: r
+   real, intent(in) :: rsta
+   call inreal_ctx(default_command_reader, naam, r, kont, rsta)
+end subroutine inreal_default
+
+subroutine indble_default(naam, r, kont, rsta)
+   character(len=*), intent(in) :: naam, kont
+   real(swan_double), intent(inout) :: r
+   real(swan_double), intent(in) :: rsta
+   call indble_ctx(default_command_reader, naam, r, kont, rsta)
+end subroutine indble_default
+
+subroutine inintg_default(naam, iv, kont, ista)
+   character(len=*), intent(in) :: naam, kont
+   integer, intent(inout) :: iv
+   integer, intent(in) :: ista
+   call inintg_ctx(default_command_reader, naam, iv, kont, ista)
+end subroutine inintg_default
+
+subroutine incstr_default(naam, c, kont, csta)
+   character(len=*), intent(in) :: naam, kont, csta
+   character(len=*), intent(inout) :: c
+   call incstr_ctx(default_command_reader, naam, c, kont, csta)
+end subroutine incstr_default
+
+subroutine inctim_default(ioptim, naam, rv, kont, rsta)
+   integer, intent(in) :: ioptim
+   character(len=*), intent(in) :: naam, kont
+   real(swan_double), intent(inout) :: rv
+   real(swan_double), intent(in) :: rsta
+   call inctim_ctx(default_command_reader, ioptim, naam, rv, kont, rsta)
+end subroutine inctim_default
+
+subroutine inintv_default(name, rvar, kont, rsta)
+   character(len=*), intent(in) :: name, kont
+   real, intent(inout) :: rvar
+   real, intent(in) :: rsta
+   call inintv_ctx(default_command_reader, name, rvar, kont, rsta)
+end subroutine inintv_default
+
+subroutine initvd_default(name, rvar, kont, rsta)
+   character(len=*), intent(in) :: name, kont
+   real(swan_double), intent(inout) :: rvar
+   real(swan_double), intent(in) :: rsta
+   call initvd_ctx(default_command_reader, name, rvar, kont, rsta)
+end subroutine initvd_default
+
+subroutine leesel_default
+   call leesel_ctx(default_command_reader)
+end subroutine leesel_default
+
+subroutine getkar_default
+   call getkar_ctx(default_command_reader)
+end subroutine getkar_default
+
+subroutine putkar_default(ltext, karr, jkar)
+   character(len=*), intent(inout) :: ltext
+   character(len=1), intent(in) :: karr
+   integer, intent(inout) :: jkar
+   call putkar_ctx(default_command_reader, ltext, karr, jkar)
+end subroutine putkar_default
+
+logical function keywis_default(string)
+   character(len=*), intent(in) :: string
+   keywis_default = keywis_ctx(default_command_reader, string)
+end function keywis_default
+
+subroutine wrnkey_default
+   call wrnkey_ctx(default_command_reader)
+end subroutine wrnkey_default
+
+subroutine ignore_default(string)
+   character(len=*), intent(in) :: string
+   call ignore_ctx(default_command_reader, string)
+end subroutine ignore_default
+
+end module swan_input_parser

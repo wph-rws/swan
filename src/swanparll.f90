@@ -1,4 +1,4 @@
-!
+
 !     SWAN - routines for distributed-memory approach based on MPI
 !
 !  Contents of this file
@@ -14,33 +14,55 @@
 !     SWREDUCI
 !     SWREDUCR
 !     SWSTRIP
-!JAC!     SWORB
+!     SWORB
 !     SWPARTIT
 !     SWBLADM
 !     SWDECOMP
-!     SWEXCHG
-!WFR!     SWRECVAC
-!WFR!     SWSENDAC
+!     SWEXCHG_JAC
+!     SWEXCHG_WFR
+!     SWRECVAC
+!     SWSENDAC
 !     SWCOLLECT
 !     SWCOLOUT
 !     SWCOLTAB
 !     SWCOLSPC
 !     SWCOLBLK
-!JAC!     SWBLKCOL
+!     SWBLKCOL
 !
 !****************************************************************
-!
+
+module swan_parallel
+   use swan_build_config, only: jacobi_sweep_enabled, timing_enabled
+   use swan_matlab_output_backend, only: matlab_direct_record_length
+   use swan_io_limits, only: LENFNM
+   use swan_output_variables, only: NMOVAR, OVEXCV, OVHEXP, OVLNAM, OVSNAM, OVSVTY, OVUNIT
+   use swan_time, only: CHTIME
+   implicit none(type, external)
+   private
+!  Both historical exchange algorithms are ordinary module procedures. A
+!  selected facade presents one fixed contract to their callers.
+   public :: SWINITMPI, SWEXITMPI, SWSYNC, SWDECOMP, SWCOLLECT, SWCOLOUT
+   public :: SWPARTIT
+   public :: SWEXCHG_JAC, SWEXCHG_WFR
+   public :: SWRECVAC, SWSENDAC
+   public :: SWBLKCOL
+
+contains
+
 SUBROUTINE SWINITMPI
-!
+
 !****************************************************************
 !
-!MPI   USE MPI
-   USE OCPCOMM4
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_mpi_backend, ONLY: mpi_backend_communication_constants, swan_mpi_success
+   USE swan_mpi_lifecycle_backend, ONLY: lifecycle_initialize, &
+      lifecycle_rank, lifecycle_size
+   USE swan_service_interfaces, ONLY: MSGERR, SWTSTA, SWTSTO
+   USE swan_diagnostics_level
    USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -98,24 +120,19 @@ SUBROUTINE SWINITMPI
 !
 !     CHARS :     array to pass character info to MSGERR
 !     IERR  :     error value of MPI call
-!     IF1   :     first non-character in string1
-!     IF2   :     first non-character in string2
-!     IL1   :     last non-character in string1
-!     IL2   :     last non-character in string2
 !     MSGSTR:     string to pass message to call MSGERR
-!
-   INTEGER      IERR, IF1, IF2, IL1, IL2
-   CHARACTER*20 INTSTR, CHARS(2)
-   CHARACTER*80 MSGSTR
-!
+
+   INTEGER      IERR
+   CHARACTER(LEN=20) CHARS(2)
+   CHARACTER(LEN=80) MSGSTR
+
 !  8. Subroutines used
 !
 !     INTSTR           Converts integer to string
-!MPI!     MPI_COMM_RANK    Get rank of processes in MPI communication context
-!MPI!     MPI_COMM_SIZE    Get number of processes in MPI communication context
-!MPI!     MPI_INIT         Enroll in MPI
+!     MPI_COMM_RANK    Get rank of processes in MPI communication contex
+!     MPI_COMM_SIZE    Get number of processes in MPI communication cont
+!     MPI_INIT         Enroll in MPI
 !     MSGERR           Writes error message
-!     TXPBLA           Removes leading and trailing blanks in string
 !
 !  9. Subroutines calling
 !
@@ -130,59 +147,55 @@ SUBROUTINE SWINITMPI
 !     Start MPI and initialize some common variables in module M_PARALL
 !
 ! 13. Source text
-!
+
    LEVERR = 0
    MAXERR = 1
    ITRACE = 0
+   IERR = swan_mpi_success
 
-!MPI!     --- enroll in MPI
+!     --- enroll in MPI
 
-!MPI!NCOH   CALL MPI_INIT ( IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS(1) = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS(1),IF1,IL1)
-!MPI      MSGSTR = 'MPI produces some internal error - '// &
-!MPI               'return code is '//CHARS(1)(IF1:IL1)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-
+   CALL lifecycle_initialize(IERR)
+   IF (IERR.NE.swan_mpi_success) THEN
+      CHARS(1) = INTSTR(IERR)
+      MSGSTR = 'MPI produces some internal error - '// &
+         'return code is '//TRIM(ADJUSTL(CHARS(1)))
+      CALL MSGERR ( 4, MSGSTR )
+      RETURN
+   END IF
+!
 !     --- initialize common variables
 
    INODE = 0
    NPROC = 1
 
-!MPI!     --- get node number INODE
+!     --- get node number INODE
 
-!MPI!NCOH   CALL MPI_COMM_RANK ( MPI_COMM_WORLD, INODE, IERR )
+   CALL lifecycle_rank(INODE, IERR)
    INODE = INODE + 1
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS(1) = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS(1),IF1,IL1)
-!MPI      CHARS(2) = INTSTR(INODE)
-!MPI      CALL TXPBLA(CHARS(2),IF2,IL2)
-!MPI      MSGSTR = 'MPI produces some internal error - '// &
-!MPI               'return code is '//CHARS(1)(IF1:IL1)// &
-!MPI               ' and node number is '//CHARS(2)(IF2:IL2)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
+   IF (IERR.NE.swan_mpi_success) THEN
+      CHARS(1) = INTSTR(IERR)
+      CHARS(2) = INTSTR(INODE)
+      MSGSTR = 'MPI produces some internal error - '// &
+         'return code is '//TRIM(ADJUSTL(CHARS(1)))// &
+         ' and node number is '//TRIM(ADJUSTL(CHARS(2)))
+      CALL MSGERR ( 4, MSGSTR )
+      RETURN
+   END IF
 
-!MPI!     --- determine total number of processes
+!     --- determine total number of processes
 
-!MPI!NCOH   CALL MPI_COMM_SIZE ( MPI_COMM_WORLD, NPROC, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS(1) = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS(1),IF1,IL1)
-!MPI      CHARS(2) = INTSTR(INODE)
-!MPI      CALL TXPBLA(CHARS(2),IF2,IL2)
-!MPI      MSGSTR = 'MPI produces some internal error - '// &
-!MPI               'return code is '//CHARS(1)(IF1:IL1)// &
-!MPI               ' and node number is '//CHARS(2)(IF2:IL2)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-
+   CALL lifecycle_size(NPROC, IERR)
+   IF (IERR.NE.swan_mpi_success) THEN
+      CHARS(1) = INTSTR(IERR)
+      CHARS(2) = INTSTR(INODE)
+      MSGSTR = 'MPI produces some internal error - '// &
+         'return code is '//TRIM(ADJUSTL(CHARS(1)))// &
+         ' and node number is '//TRIM(ADJUSTL(CHARS(2)))
+      CALL MSGERR ( 4, MSGSTR )
+      RETURN
+   END IF
+!
 !     --- determine whether this is a parallel run or not
 
    IF ( NPROC.GT.1 ) THEN
@@ -195,29 +208,26 @@ SUBROUTINE SWINITMPI
 
    IAMMASTER = INODE.EQ.MASTER
 
-!MPI!     --- define MPI constants for communication within SWAN
+!     --- define MPI constants for communication within SWAN
 
-!MPI   SWCHAR = MPI_CHARACTER
-!MPI   SWINT  = MPI_INTEGER
-!MPI   SWREAL = MPI_REAL
-!MPI   SWMAX  = MPI_MAX
-!MPI   SWMIN  = MPI_MIN
-!MPI   SWSUM  = MPI_SUM
+   CALL mpi_backend_communication_constants(SWCHAR, SWINT, SWREAL, SWMAX, &
+      SWMIN, SWSUM)
 
    RETURN
-END
+end subroutine SWINITMPI
 !****************************************************************
-!
+
 SUBROUTINE SWEXITMPI
-!
+
 !****************************************************************
 !
-!MPI   USE MPI
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+   USE swan_mpi_backend, ONLY: mpi_backend_initialized
+   USE swan_mpi_lifecycle_backend, ONLY: lifecycle_abort, &
+      lifecycle_barrier, lifecycle_finalize
+   USE swan_diagnostics_level
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -271,16 +281,16 @@ SUBROUTINE SWEXITMPI
 !
 !     IERR    :   error value of MPI call
 !     PARALMPI:   if true, parallel process is carried out with MPI
-!
+
    INTEGER IERR
    LOGICAL PARALMPI
-!
+
 !  8. Subroutines used
 !
-!MPI!     MPI_ABORT        Abort MPI if severe error occurs
-!MPI!     MPI_BARRIER      Blocks until all nodes have called this routine
-!MPI!     MPI_INITIALIZED  Indicates whether MPI_Init has been called
-!MPI!     MPI_FINALIZE     Cleans up the MPI state and exits
+!     MPI_ABORT        Abort MPI if severe error occurs
+!     MPI_BARRIER      Blocks until all nodes have called this routine
+!     MPI_INITIALIZED  Indicates whether MPI_Init has been called
+!     MPI_FINALIZE     Cleans up the MPI state and exits
 !
 !  9. Subroutines calling
 !
@@ -292,51 +302,53 @@ SUBROUTINE SWEXITMPI
 !
 ! 12. Structure
 !
-!MPI!     if MPI has been initialized
-!MPI!        synchronize nodes
-!MPI!        if severe error
-!MPI!           abort MPI
-!MPI!        else
-!MPI!           close MPI
-!MPI!
+!     if MPI has been initialized
+!        synchronize nodes
+!        if severe error
+!           abort MPI
+!        else
+!           close MPI
+!
 ! 13. Source text
 !
-!MPI   CALL MPI_INITIALIZED ( PARALMPI, IERR )
-!MPI   IF ( PARALMPI ) THEN
+   CALL mpi_backend_initialized(PARALMPI, IERR)
+   IF ( PARALMPI ) THEN
 
-!MPI!NCOH      CALL MPI_BARRIER ( MPI_COMM_WORLD, IERR )
+      CALL lifecycle_barrier(IERR)
 
-!MPI      IF ( LEVERR.GE.4 ) THEN
+      IF ( LEVERR.GE.4 ) THEN
 
-!MPI!        --- in case of a severe error abort all MPI processes
+!        --- in case of a severe error abort all MPI processes
 
-!MPI!NCOH         CALL MPI_ABORT ( MPI_COMM_WORLD, LEVERR, IERR )
+         CALL lifecycle_abort(LEVERR, IERR)
 
-!MPI      ELSE
+      ELSE
 
-!MPI!        --- otherwise stop MPI operations on this computer
+!        --- otherwise stop MPI operations on this computer
 
-!MPI!NCOH         CALL MPI_FINALIZE ( IERR )
+         CALL lifecycle_finalize(IERR)
 
-!MPI      END IF
+      END IF
 
-!MPI   END IF
+   END IF
 
    RETURN
-END
+end subroutine SWEXITMPI
 !****************************************************************
-!
+
 SUBROUTINE SWSYNC
-!
+
 !****************************************************************
 !
-!MPI   USE MPI
-   USE OCPCOMM4
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_mpi_backend, ONLY: swan_mpi_success
+   USE swan_mpi_lifecycle_backend, ONLY: lifecycle_barrier
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_diagnostics_level
    USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -395,23 +407,19 @@ SUBROUTINE SWSYNC
 !     CHARS :     array to pass character info to MSGERR
 !     IENT  :     number of entries
 !     IERR  :     error value of MPI call
-!     IF1   :     first non-character in string1
-!     IF2   :     first non-character in string2
-!     IL1   :     last non-character in string1
-!     IL2   :     last non-character in string2
 !     MSGSTR:     string to pass message to call MSGERR
-!
-   INTEGER      IENT, IERR, IF1, IF2, IL1, IL2
-   CHARACTER*20 INTSTR, CHARS(2)
-   CHARACTER*80 MSGSTR
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER      IERR
+   CHARACTER(LEN=20) CHARS(2)
+   CHARACTER(LEN=80) MSGSTR
+
 !  8. Subroutines used
 !
 !     INTSTR           Converts integer to string
-!MPI!     MPI_BARRIER      Blocks until all nodes have called this routine
+!     MPI_BARRIER      Blocks until all nodes have called this routine
 !     MSGERR           Writes error message
 !     STRACE           Tracing routine for debugging
-!     TXPBLA           Removes leading and trailing blanks in string
 !
 !  9. Subroutines calling
 !
@@ -427,39 +435,40 @@ SUBROUTINE SWSYNC
 !     In this way, all nodes are synchronized
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWSYNC')
+   IERR = swan_mpi_success
 
-!MPI!     --- blocks until all nodes have called this routine
+!     --- blocks until all nodes have called this routine
 
-!MPI!NCOH   CALL MPI_BARRIER ( MPI_COMM_WORLD, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS(1) = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS(1),IF1,IL1)
-!MPI      CHARS(2) = INTSTR(INODE)
-!MPI      CALL TXPBLA(CHARS(2),IF2,IL2)
-!MPI      MSGSTR = 'MPI produces some internal error - '// &
-!MPI               'return code is '//CHARS(1)(IF1:IL1)// &
-!MPI               ' and node number is '//CHARS(2)(IF2:IL2)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
+   CALL lifecycle_barrier(IERR)
+   IF (IERR.NE.swan_mpi_success) THEN
+      CHARS(1) = INTSTR(IERR)
+      CHARS(2) = INTSTR(INODE)
+      MSGSTR = 'MPI produces some internal error - '// &
+         'return code is '//TRIM(ADJUSTL(CHARS(1)))// &
+         ' and node number is '//TRIM(ADJUSTL(CHARS(2)))
+      CALL MSGERR ( 4, MSGSTR )
+      RETURN
+   END IF
 
    RETURN
-END
+end subroutine SWSYNC
+!****************************************************************
+
+!****************************************************************
 !****************************************************************
 !
-SUBROUTINE SWSENDNB ( IPTR, ILEN, ITYPE, IDEST, ITAG )
+SUBROUTINE SWSTRIP_WFR ( IPOWN, IDIR, NPART, IWORK, MXC, MYC )
 !
 !****************************************************************
 !
-!MPI   USE MPI
-   USE OCPCOMM4
-   USE M_PARALL
-!
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_diagnostics_level
+
    IMPLICIT NONE
+
+!
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -501,188 +510,59 @@ SUBROUTINE SWSENDNB ( IPTR, ILEN, ITYPE, IDEST, ITAG )
 !
 !  2. Purpose
 !
-!     Data is sent to a neighbour
+!     Performs a stripwise partitioning with straight interfaces
 !
 !  3. Method
 !
-!     Wrapper for MPI_SEND
+!     Each active point in a row/column will be assign to a part
+!     according to its number and size (stored in IWORK).
+!     The remaining points in the row/column will be assign
+!     to the same part.
 !
 !  4. Argument variables
 !
-!     IDEST       rank of the destination process
-!     ILEN        length of array to be sent
-!     IPTR        pointer to first element of array to be sent
-!     ITAG        message type
-!     ITYPE       type of data
+!     IDIR        direction of cutting
+!                 1 = row
+!                 2 = column
+!     IPOWN       array giving the subdomain number of each gridpoint
+!     IWORK       work array with the following meaning:
+!                    IWORK(1,i) = number of i-th part to be created
+!                    IWORK(2,i) = size of i-th part to be created
+!     MXC         maximum counter of gridpoints in x-direction
+!     MYC         maximum counter of gridpoints in y-direction
+!     NPART       number of parts to be created
 !
-   INTEGER IPTR, ILEN, ITYPE, IDEST, ITAG
-!
-!  5. Parameter variables
-!
-!     ---
-!
-!  6. Local variables
-!
-!     CHARS :     array to pass character info to MSGERR
-!     IENT  :     number of entries
-!     IERR  :     error value of MPI call
-!     IF1   :     first non-character in string1
-!     IF2   :     first non-character in string2
-!     IL1   :     last non-character in string1
-!     IL2   :     last non-character in string2
-!     MSGSTR:     string to pass message to call MSGERR
-!
-   INTEGER      IENT, IERR, IF1, IF2, IL1, IL2
-   CHARACTER*20 INTSTR, CHARS(2)
-   CHARACTER*80 MSGSTR
-!
-!  8. Subroutines used
-!
-!     INTSTR           Converts integer to string
-!MPI!     MPI_SEND         Immediately sends the data in the active
-!MPI!                      MPI message buffer
-!     MSGERR           Writes error message
-!     STRACE           Tracing routine for debugging
-!     TXPBLA           Removes leading and trailing blanks in string
-!
-!  9. Subroutines calling
-!
-!     SWEXCHG
-!
-! 10. Error messages
-!
-!     ---
-!
-! 12. Structure
-!
-!MPI!     Data is sent to a neighbour with command MPI_SEND
-!
-! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
-   IF (LTRACE) CALL STRACE (IENT,'SWSENDNB')
-
-!     --- if not parallel, return
-   IF (.NOT.PARLL) RETURN
-
-!MPI!NCOH   CALL MPI_SEND ( IPTR, ILEN, ITYPE, IDEST-1, &
-!MPI!NCOH                   ITAG, MPI_COMM_WORLD, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS(1) = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS(1),IF1,IL1)
-!MPI      CHARS(2) = INTSTR(INODE)
-!MPI      CALL TXPBLA(CHARS(2),IF2,IL2)
-!MPI      MSGSTR = 'MPI produces some internal error - '// &
-!MPI               'return code is '//CHARS(1)(IF1:IL1)// &
-!MPI               ' and node number is '//CHARS(2)(IF2:IL2)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-
-   RETURN
-END
-!****************************************************************
-!
-SUBROUTINE SWRECVNB ( IPTR, ILEN, ITYPE, ISOURCE, ITAG )
-!
-!****************************************************************
-!
-!MPI   USE MPI
-   USE OCPCOMM4
-   USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.30: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.30, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     Data is received from a neighbour
-!
-!  3. Method
-!
-!     Wrapper for MPI_RECV
-!
-!  4. Argument variables
-!
-!     ILEN        length of array to be received
-!     IPTR        pointer to first element of array to be received
-!     ISOURCE     rank of the source process
-!     ITAG        message type
-!     ITYPE       type of data
-!
-   INTEGER IPTR, ILEN, ITYPE, ISOURCE, ITAG
-!
-!  5. Parameter variables
-!
-!     ---
+   INTEGER   IDIR, MXC, MYC, NPART
+   INTEGER   IPOWN(*)
+   INTEGER(KIND=SELECTED_INT_KIND(18)) IWORK(2,*)
 !
 !  6. Local variables
 !
-!     CHARS :     array to pass character info to MSGERR
+!     IC    :     index of (IX,IY)-point
+!     ICC   :     index of (IX,IY)-point
 !     IENT  :     number of entries
-!     IERR  :     error value of MPI call
-!     IF1   :     first non-character in string1
-!     IF2   :     first non-character in string2
-!     IL1   :     last non-character in string1
-!     IL2   :     last non-character in string2
-!MPI!     ISTAT :     MPI status array
-!     MSGSTR:     string to pass message to call MSGERR
+!     INCX  :     increment for adressing: 1 for x-dir, MXC for y-dir
+!     INCY  :     increment for adressing: MXC for x-dir, 1 for y-dir
+!     IX    :     index in x-direction
+!     IY    :     index in y-direction
+!     IYY   :     index in y-direction
+!     IPART :     a part counter
+!     MXCI  :     maximum counter of gridpoints in x/y-direction
+!     MYCI  :     maximum counter of gridpoints in y/x-direction
+!     NCURPT:     number of currently assigned points to a created part
+!     NPREM :     number of remaining points in a row/column
 !
-   INTEGER      IENT, IERR, IF1, IF2, IL1, IL2
-!MPI   INTEGER      ISTAT(MPI_STATUS_SIZE)
-   CHARACTER*20 INTSTR, CHARS(2)
-   CHARACTER*80 MSGSTR
+   INTEGER IC, ICC, INCX, INCY, IX, IY, IYY, IPART, &
+      MXCI, MYCI, NCURPT, NPREM
+   INTEGER, SAVE :: IENT = 0
 !
 !  8. Subroutines used
 !
-!     INTSTR           Converts integer to string
-!MPI!     MPI_RECV         Immediately receives the data in the active
-!MPI!                      MPI message buffer
-!     MSGERR           Writes error message
 !     STRACE           Tracing routine for debugging
-!     TXPBLA           Removes leading and trailing blanks in string
 !
 !  9. Subroutines calling
 !
-!     SWEXCHG
+!     SWPARTIT
 !
 ! 10. Error messages
 !
@@ -694,365 +574,104 @@ SUBROUTINE SWRECVNB ( IPTR, ILEN, ITYPE, ISOURCE, ITAG )
 !
 ! 12. Structure
 !
-!MPI!     Data is received from a neighbour with command MPI_RECV
+!     depending on cutting direction, determine indirect addressing
+!     create first empty part
+!     for all active points do
+!         assign this point to the created part
+!         if size of created part has been reached
+!            determine remaining active points in the current column
+!            if no remaining points, create next empty part
+!            else remaining points belong to the current part
 !
 ! 13. Source text
 !
-   SAVE IENT
-   DATA IENT/0/
-   IF (LTRACE) CALL STRACE (IENT,'SWRECVNB')
+   IF (LTRACE) CALL STRACE (IENT,'SWSTRIP')
 
-!     --- if not parallel, return
-   IF (.NOT.PARLL) RETURN
+!     --- depending on cutting direction, determine indirect addressing
+!         for array IPOWN
 
-!MPI!NCOH   CALL MPI_RECV ( IPTR, ILEN, ITYPE, ISOURCE-1, ITAG, &
-!MPI!NCOH                   MPI_COMM_WORLD, ISTAT, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS(1) = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS(1),IF1,IL1)
-!MPI      CHARS(2) = INTSTR(INODE)
-!MPI      CALL TXPBLA(CHARS(2),IF2,IL2)
-!MPI      MSGSTR = 'MPI produces some internal error - '// &
-!MPI               'return code is '//CHARS(1)(IF1:IL1)// &
-!MPI               ' and node number is '//CHARS(2)(IF2:IL2)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-
-   RETURN
-END
-!****************************************************************
-!
-SUBROUTINE SWBROADC ( IPTR, ILEN, ITYPE )
-!
-!****************************************************************
-!
-!MPI   USE MPI
-   USE OCPCOMM4
-   USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.30: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.30, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     Broadcasts data from the master to all other processes
-!
-!  3. Method
-!
-!     Wrapper for MPI_BCAST
-!
-!  4. Argument variables
-!
-!     ILEN        length of array to be sent
-!     IPTR        pointer to first element of array to be sent
-!     ITYPE       type of data
-!
-   INTEGER IPTR, ILEN, ITYPE
-!
-!  5. Parameter variables
-!
-!     ---
-!
-!  6. Local variables
-!
-!     CHARS :     character for passing info to MSGERR
-!     IENT  :     number of entries
-!     IERR  :     error value of MPI call
-!     IF    :     first non-character in string
-!     IL    :     last non-character in string
-!     MSGSTR:     string to pass message to call MSGERR
-!
-   INTEGER      IENT, IERR, IF, IL
-   CHARACTER*20 INTSTR, CHARS
-   CHARACTER*80 MSGSTR
-!
-!  8. Subroutines used
-!
-!     INTSTR           Converts integer to string
-!MPI!     MPI_BCAST        Broadcasts a message from the master
-!MPI!                      to all other processes of the group
-!     MSGERR           Writes error message
-!     STRACE           Tracing routine for debugging
-!TIMG!     SWTSTA           Start timing for a section of code
-!TIMG!     SWTSTO           Stop timing for a section of code
-!     TXPBLA           Removes leading and trailing blanks in string
-!
-!  9. Subroutines calling
-!
-!     SNEXTI
-!     FLFILE
-!
-! 10. Error messages
-!
-!     ---
-!
-! 12. Structure
-!
-!MPI!     Broadcasts data from the master to all other nodes
-!MPI!     with command MPI_BCAST
-!
-! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
-   IF (LTRACE) CALL STRACE (IENT,'SWBROADC')
-
-!     --- if not parallel, return
-   IF (.NOT.PARLL) RETURN
-
-!TIMG   CALL SWTSTA(201)
-!MPI!NCOH   CALL MPI_BCAST ( IPTR, ILEN, ITYPE, MASTER-1, &
-!MPI!NCOH                    MPI_COMM_WORLD, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS,IF,IL)
-!MPI      MSGSTR = 'MPI produces some internal error - '// &
-!MPI               'return code is '//CHARS(IF:IL)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-!TIMG   CALL SWTSTO(201)
-
-   RETURN
-END
-!****************************************************************
-!
-SUBROUTINE SWGATHER ( IOPTR, IOLEN, IIPTR, IILEN, ITYPE )
-!
-!****************************************************************
-!
-!MPI   USE MPI
-   USE OCPCOMM4
-   USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.30: Marcel Zijlema
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.30, Feb. 03: New subroutine
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     Gathers different amounts of data from each processor
-!     to the master
-!
-!  3. Method
-!
-!     Wrapper for MPI_GATHERV
-!
-!  4. Argument variables
-!
-!     IILEN       length of input array
-!     IIPTR       pointer to first element of input array (local)
-!     IOLEN       length of output array
-!     IOPTR       pointer to first element of output array (global)
-!     ITYPE       type of data
-!
-   INTEGER IILEN, IIPTR, IOLEN, IOPTR, ITYPE
-!
-!  5. Parameter variables
-!
-!     ---
-!
-!  6. Local variables
-!
-!     CHARS :     character for passing info to MSGERR
-!     I     :     loop counter
-!     ICOUNT:     array specifying array size of data received
-!                 from each processor
-!     IDSPLC:     array specifying the starting address of the
-!                 incoming data from each processor, relative
-!                 to the global array
-!     IENT  :     number of entries
-!     IERR  :     error value of MPI call
-!     IF    :     first non-character in string
-!     IL    :     last non-character in string
-!     MSGSTR:     string to pass message to call MSGERR
-!
-   INTEGER                 I, IENT, IERR, IF, IL
-   INTEGER, ALLOCATABLE :: ICOUNT(:), IDSPLC(:)
-   CHARACTER*20            INTSTR, CHARS
-   CHARACTER*80            MSGSTR
-!
-!  8. Subroutines used
-!
-!     INTSTR           Converts integer to string
-!MPI!     MPI_GATHER       Gathers data from all nodes to the master
-!MPI!     MPI_GATHERV      Gathers different amounts of data from
-!MPI!                      all nodes to the master
-!     MSGERR           Writes error message
-!     STRACE           Tracing routine for debugging
-!     TXPBLA           Removes leading and trailing blanks in string
-!
-!  9. Subroutines calling
-!
-! 10. Error messages
-!
-!     ---
-!
-! 12. Structure
-!
-!     if not parallel, return
-!
-!MPI!     gather the array sizes to the master
-!MPI!
-!     check whether enough space has been allocated
-!     for gathered data
-!
-!     calculate starting address of each local array
-!     with respect to the global array
-!
-!MPI!     gather different amounts of data from each processor
-!MPI!     to the master
-!MPI!
-! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
-   IF (LTRACE) CALL STRACE (IENT,'SWGATHER')
-
-!     --- if not parallel, return
-   IF (.NOT.PARLL) RETURN
-
-   IF (IAMMASTER) THEN
-      ALLOCATE(ICOUNT(0:NPROC-1))
-      ALLOCATE(IDSPLC(0:NPROC-1))
+   IF ( IDIR.EQ.1 ) THEN
+      MXCI = MYC
+      MYCI = MXC
+      INCX = MXC
+      INCY = 1
+   ELSE IF ( IDIR.EQ.2 ) THEN
+      MXCI = MXC
+      MYCI = MYC
+      INCX = 1
+      INCY = MXC
    END IF
 
-!MPI!     --- gather the array sizes to the master
+!     --- create first empty part
 
-!MPI!NCOH   CALL MPI_GATHER( IILEN, 1, SWINT, ICOUNT, 1, SWINT, &
-!MPI!NCOH                    MASTER-1, MPI_COMM_WORLD, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS,IF,IL)
-!MPI      MSGSTR = 'MPI produces some internal error - '// &
-!MPI               'return code is '//CHARS(IF:IL)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
+   IPART  = 1
+   NCURPT = 0
 
-!     --- check whether enough space has been allocated
-!         for gathered data
+!     --- for all active points do
 
-   IF (IAMMASTER) THEN
-      IF ( SUM(ICOUNT).GT.IOLEN ) THEN
-         CALL MSGERR(4, &
-                     'Not enough space allocated for gathered data')
-         RETURN
-      END IF
-   END IF
+   DO IX = 1, MXCI
+      DO IY = 1, MYCI
 
-!     --- calculate starting address of each local array
-!         with respect to the global array
+         IC = IX*INCX + IY*INCY - MXC
 
-   IF (IAMMASTER) THEN
-      IDSPLC(0) = 0
-      DO I = 1, NPROC-1
-         IDSPLC(I) = ICOUNT(I-1) + IDSPLC(I-1)
+         IF ( IPOWN(IC).EQ.1 ) THEN
+
+!              --- assign this point to the created part
+
+            IPOWN(IC) = IWORK(1,IPART)
+            NCURPT    = NCURPT + 1
+
+!              --- if size of created part has been reached
+
+            IF ( NCURPT.GE.IWORK(2,IPART) ) THEN
+
+!                 --- determine remaining active points in the
+!                     current column
+
+               NPREM = 0
+               DO IYY = IY+1, MYCI
+                  ICC = IX*INCX + IYY*INCY - MXC
+                  IF (IPOWN(ICC).EQ.1) NPREM = NPREM +1
+               END DO
+
+               IF ( NPREM.EQ.0 ) THEN
+
+!                    --- if no remaining points, create next empty part
+
+                  IPART  = IPART + 1
+                  NCURPT = 0
+
+               ELSE
+
+!                    --- else remaining points belong to the current par
+
+                  IWORK(2,IPART  ) = IWORK(2,IPART  ) + NPREM
+                  IWORK(2,IPART+1) = IWORK(2,IPART+1) - NPREM
+
+               END IF
+
+            END IF
+
+         END IF
+
       END DO
-   END IF
-
-!MPI!     --- gather different amounts of data from each processor
-!MPI!         to the master
-
-!MPI!NCOH   CALL MPI_GATHERV( IIPTR, IILEN, ITYPE, IOPTR, ICOUNT, IDSPLC, &
-!MPI!NCOH                     ITYPE, MASTER-1, MPI_COMM_WORLD, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS,IF,IL)
-!MPI      MSGSTR = 'MPI produces some internal error - '// &
-!MPI               'return code is '//CHARS(IF:IL)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-
-   IF (IAMMASTER) DEALLOCATE(ICOUNT,IDSPLC)
+   END DO
 
    RETURN
-END
+end subroutine SWSTRIP_WFR
 !****************************************************************
 !
-SUBROUTINE SWREDUCE ( IPTR, ILEN, ITYPE, ITYPRD )
+SUBROUTINE SWSTRIP_JAC ( IPOWN, IDIR, IPART, LPARTS, &
+   MXC  , MYC )
 !
 !****************************************************************
 !
-   USE OCPCOMM4
-   USE M_PARALL
-!
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_diagnostics_level
+
    IMPLICIT NONE
+
+!
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -1086,38 +705,61 @@ SUBROUTINE SWREDUCE ( IPTR, ILEN, ITYPE, ITYPRD )
 !
 !     40.30: Marcel Zijlema
 !     40.41: Marcel Zijlema
-!     40.96: Marcel Zijlema
 !
 !  1. Updates
 !
 !     40.30, Feb. 03: New subroutine
 !     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!     40.96, Dec. 08: call SWREDUCI/R instead of passing startaddress of the array
 !
 !  2. Purpose
 !
-!     Performs a global reduction of type ITYPRD on
-!     array (IPTR) of type ITYPE to collect values from
-!     all processes
+!     Performs a stripwise partitioning with straight interfaces
+!
+!  3. Method
+!
+!     This method is described in Ph.D. Thesis of M. Roest
+!     entitled:
+!     Partitioning for parallel finite difference computations
+!     in coastal water simulation, DUT, 1997
 !
 !  4. Argument variables
 !
-!     ILEN        length of array to be collect
-!     IPTR        pointer to first element of array to be collect
-!     ITYPE       type of data
-!     ITYPRD      type of reduction
+!     IDIR        direction of cutting
+!                 1 = row
+!                 2 = column
+!     IPART       part number that must be partitioned
+!     IPOWN       array giving the subdomain number of each gridpoint
+!     LPARTS      list of parts to be created
+!                    lparts(1,i) = number of i-th part to be created
+!                    lparts(2,i) = size of i-th part to be created
+!     MXC         maximum counter of gridpoints in x-direction
+!     MYC         maximum counter of gridpoints in y-direction
 !
-   INTEGER IPTR, ILEN, ITYPE, ITYPRD
-!
-!  5. Parameter variables
-!
-!     ---
+   INTEGER   IDIR, IPART, MXC, MYC
+   INTEGER   IPOWN(*)
+   INTEGER, PARAMETER :: PART_KIND = SELECTED_INT_KIND(18)
+   INTEGER(KIND=PART_KIND) LPARTS(2,*)
 !
 !  6. Local variables
 !
+!     IC    :     index of (IX,IY)-point
+!     ICC   :     index of (IX,IY)-point
 !     IENT  :     number of entries
+!     INCX  :     increment for adressing: 1 for x-dir, MXC for y-dir
+!     INCY  :     increment for adressing: MXC for x-dir, 1 for y-dir
+!     IX    :     index in x-direction
+!     IY    :     index in y-direction
+!     IYY   :     index in y-direction
+!     JPART :     a part counter
+!     MXCI  :     maximum counter of gridpoints in x/y-direction
+!     MYCI  :     maximum counter of gridpoints in y/x-direction
+!     NBACK :     number of points in a row already assigned to a part
+!     NFORW :     number of points in a row remaining to be assigned
+!     NINPRT:     number of points currently assigned to a new part
 !
-   INTEGER IENT
+   INTEGER IC, ICC, INCX, INCY, IX, IY, IYY, JPART, &
+      MXCI, MYCI, NBACK, NFORW, NINPRT
+   INTEGER, SAVE :: IENT = 0
 !
 !  8. Subroutines used
 !
@@ -1125,7 +767,8 @@ SUBROUTINE SWREDUCE ( IPTR, ILEN, ITYPE, ITYPRD )
 !
 !  9. Subroutines calling
 !
-!     SWCOMP
+!     SWORB
+!     SWPARTIT
 !
 ! 10. Error messages
 !
@@ -1137,37 +780,141 @@ SUBROUTINE SWREDUCE ( IPTR, ILEN, ITYPE, ITYPRD )
 !
 ! 12. Structure
 !
-!     Performs a global reduction of data across all nodes
+!     depending on IDIR, determine indirect addressing in IPOWN
+!     start by creating the first part, which is currently empty
+!     for all points in IPOWN do
+!        if point belongs to the part that must be partitioned then
+!           when current part has reached its planned size
+!              see how many points in this row remain to be assigned
+!              if no more points to be assigned, go on to next part
+!              else, if majority of row has been assigned take the rest
+!              else, leave this row to next part
+!           assign point IC to part that is currently being created
 !
 ! 13. Source text
 !
-   SAVE IENT
-   DATA IENT/0/
-   IF (LTRACE) CALL STRACE (IENT,'SWREDUCE')
+   IF (LTRACE) CALL STRACE (IENT,'SWSTRIP')
 
-!     --- if not parallel, return
-   IF (.NOT.PARLL) RETURN
-!
-!     --- actual reduction of field array based on its type
-   IF ( ITYPE.EQ.SWINT ) THEN
-      CALL SWREDUCI ( IPTR, ILEN, ITYPRD )
-   ELSE IF ( ITYPE.EQ.SWREAL ) THEN
-      CALL SWREDUCR ( IPTR, ILEN, ITYPRD )
+!     --- depending on IDIR, determine indirect addressing in IPOWN
+
+   IF ( IDIR.EQ.1 ) THEN
+      MXCI = MYC
+      MYCI = MXC
+      INCX = MXC
+      INCY = 1
+   ELSE IF ( IDIR.EQ.2 ) THEN
+      MXCI = MXC
+      MYCI = MYC
+      INCX = 1
+      INCY = MXC
    END IF
 
+!     --- start by creating the first part, which is currently empty
+
+   JPART  = 1
+   NINPRT = 0
+
+!     --- for all points in IPOWN do
+
+   DO IX = 1, MXCI
+      DO IY = 1, MYCI
+
+         IC = IX*INCX + IY*INCY - MXC
+
+!           --- if this point belongs to the part that must be partition
+
+         IF ( IPOWN(IC).EQ.IPART ) THEN
+
+!              --- when current part has reached its planned size
+
+            IF ( INT(NINPRT,PART_KIND).GE.LPARTS(2,JPART) ) THEN
+
+!                 --- see how many points in this row have been assigned
+
+               NBACK = 0
+               DO IYY = 1, IY-1
+
+                  ICC = IX*INCX + IYY*INCY - MXC
+                  IF (INT(IPOWN(ICC),PART_KIND).EQ.LPARTS(1,JPART)) &
+                     NBACK = NBACK +1
+
+               END DO
+
+!                 --- see how many points in this row remain to be assig
+
+               NFORW = 0
+               DO IYY = IY, MYCI
+
+                  ICC = IX*INCX + IYY*INCY - MXC
+                  IF (IPOWN(ICC).EQ.IPART) NFORW = NFORW +1
+
+               END DO
+
+!                 --- if no more points to be assigned, go on to next pa
+
+               IF ( NFORW.EQ.0 ) THEN
+
+                  JPART  = JPART + 1
+                  NINPRT = 0
+
+               ELSE IF ( (NBACK-NFORW).GT.0 ) THEN
+
+!                    --- if majority of row has been assigned take the r
+
+                  LPARTS(2,JPART  ) = LPARTS(2,JPART  ) + &
+                     INT(NFORW,PART_KIND)
+                  LPARTS(2,JPART+1) = LPARTS(2,JPART+1) - &
+                     INT(NFORW,PART_KIND)
+
+               ELSE
+!                    --- else, leave this row to next part
+
+                  LPARTS(2,JPART  ) = LPARTS(2,JPART  ) - &
+                     INT(NBACK,PART_KIND)
+                  LPARTS(2,JPART+1) = LPARTS(2,JPART+1) + &
+                     INT(NBACK,PART_KIND)
+
+                  DO IYY = 1, IY-1
+
+                     ICC = IX*INCX + IYY*INCY - MXC
+                     IF ( INT(IPOWN(ICC),PART_KIND).EQ.LPARTS(1,JPART) ) THEN
+                        IPOWN(ICC) = INT(LPARTS(1,JPART+1),KIND(IPOWN))
+                     END IF
+
+                  END DO
+
+                  JPART  = JPART + 1
+                  NINPRT = NBACK
+
+               END IF
+
+            END IF
+
+!              --- assign point IC to part that is currently being creat
+
+            IPOWN(IC) = INT(LPARTS(1,JPART),KIND(IPOWN))
+            NINPRT    = NINPRT + 1
+
+         END IF
+
+      END DO
+   END DO
+
    RETURN
-END
+end subroutine SWSTRIP_JAC
 !****************************************************************
 !
-SUBROUTINE SWREDUCI ( IARR, ILEN, ITYPRD )
+SUBROUTINE SWORB ( IPOWN, IDIR, NPART, LPARTS, &
+   MXC  , MYC )
 !
 !****************************************************************
 !
-!MPI   USE MPI
-   USE OCPCOMM4
-   USE M_PARALL
-!
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_diagnostics_level
+
    IMPLICIT NONE
+
+!
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -1199,60 +946,83 @@ SUBROUTINE SWREDUCI ( IARR, ILEN, ITYPRD )
 !
 !  0. Authors
 !
-!     40.96: Marcel Zijlema
+!     40.30: Marcel Zijlema
+!     40.41: Marcel Zijlema
 !
 !  1. Updates
 !
-!     40.96, Dec. 08: New subroutine
+!     40.30, Feb. 03: New subroutine
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !
 !  2. Purpose
 !
-!     Performs a global reduction of type ITYPRD on integer
-!     array IARR to collect values from all processes
+!     Performs an Orthogonal Recursive Bisection partitioning
 !
 !  3. Method
 !
-!     Wrapper for MPI_ALLREDUCE
+!     Starting with a single part (the entire domain), each part is
+!     recursively partitioned by bisecting it, until all parts have been
+!     created. The bisection direction is swapped in each direction.
+!
+!     This method is described in Ph.D. Thesis of M. Roest
+!     entitled:
+!     Partitioning for parallel finite difference computations
+!     in coastal water simulation, DUT, 1997
 !
 !  4. Argument variables
 !
-!     IARR        integer array
-!     ILEN        length of array to be collect
-!     ITYPRD      type of reduction
+!     IDIR        direction of cutting
+!                 1 = row
+!                 2 = column
+!     IPOWN       array giving the subdomain number of each gridpoint
+!     LPARTS      list of parts to be created
+!                    lparts(1,i) = number of i-th part to be created
+!                    lparts(2,i) = size of i-th part to be created
+!     MXC         maximum counter of gridpoints in x-direction
+!     MYC         maximum counter of gridpoints in y-direction
+!     NPART       number of parts to be created
 !
-   INTEGER ILEN, ITYPRD
-   INTEGER IARR(ILEN)
+   INTEGER   IDIR, MXC, MYC, NPART
+   INTEGER   IPOWN(*)
+   INTEGER, PARAMETER :: PART_KIND = SELECTED_INT_KIND(18)
+   INTEGER(KIND=PART_KIND) LPARTS(2,*)
 !
 !  6. Local variables
 !
-!     CHARS :     character for passing info to MSGERR
+!     IDIFF :     the difference to be applied to a subdomain-size
 !     IENT  :     number of entries
-!     IERR  :     error value of MPI call
-!     IF    :     first non-character in string
-!     IL    :     last non-character in string
-!     ITEMP :     temporary array to store collected data
-!     MSGSTR:     string to pass message to call MSGERR
-!
-   INTEGER      IENT, IERR, IF, IL
-   CHARACTER*20 INTSTR, CHARS
-   CHARACTER*80 MSGSTR
+!     IP    :     counter of parts to be splitted
+!     ISPLIT:     counter of parts to be created in splitting
+!     ISSUCC:     flag indicating success in reducing a difference in si
+!                 0=no
+!                 1=yes
+!     IWORK :     see description LPARTS
+!     J     :     loop counter
+!     JEND  :     number of last new part to be created by splitting
+!     JPARTE:     number of last part in 1..npart belonging to jpart
+!     JPARTS:     number of first part in 1..npart belonging to jpart
+!     JSTART:     number of first new part to be created by splitting
+!     KSPLIT:     number of parts to be created in a particular splittin
+!     NP    :     number of parts to be created in a particular recursio
+!     NSPLIT:     maximum number of parts to be created in one splitting
+!                 (NB: 2 = bisection, 4 = quadrisection)
 
-   INTEGER, ALLOCATABLE :: ITEMP(:)
+   INTEGER IDIFF, IP, ISPLIT, ISSUCC, J, JEND, JPARTE, JPARTS, &
+      JSTART, KSPLIT, NP
+   INTEGER, PARAMETER :: NSPLIT = 2
+   INTEGER, SAVE :: IENT = 0
+   INTEGER(KIND=PART_KIND) IWORK(2,NPART)
 !
 !  8. Subroutines used
 !
-!     INTSTR           Converts integer to string
-!MPI!     MPI_ALLREDUCE    Combines values from all processes and
-!MPI!                      distribute the result back to all processes
 !     MSGERR           Writes error message
 !     STRACE           Tracing routine for debugging
-!TIMG!     SWTSTA           Start timing for a section of code
-!TIMG!     SWTSTO           Stop timing for a section of code
-!     TXPBLA           Removes leading and trailing blanks in string
+!     SWSTRIP          Performs a stripwise partitioning with straight
+!                      interfaces
 !
 !  9. Subroutines calling
 !
-!     SWREDUCE
+!     SWPARTIT
 !
 ! 10. Error messages
 !
@@ -1264,886 +1034,154 @@ SUBROUTINE SWREDUCI ( IARR, ILEN, ITYPRD )
 !
 ! 12. Structure
 !
-!MPI!     Performs a global reduction of integers across all nodes
-!MPI!     with command MPI_ALLREDUCE
+!     while not enough parts have been created, do another recursion
+!
+!        for each part that currently exists
+!
+!          determine which final parts belong to this part
+!          if the number of such parts > 1, do further splitting
+!
+!            determine into how many parts this part must be split
+!            determine the sizes and numbers of parts to be created
+!
+!            do splitting
+!
+!            determine whether objective partsizes have been modified
+!            and distribute the difference over the constituent parts
+!
+!        swap cutting direction
 !
 ! 13. Source text
 !
-   SAVE IENT
-   DATA IENT/0/
-   IF (LTRACE) CALL STRACE (IENT,'SWREDUCI')
+   IF (LTRACE) CALL STRACE (IENT,'SWORB')
 
-   ALLOCATE(ITEMP(ILEN))
+!     --- while not enough parts have been created, do another recursion
 
-!TIMG   CALL SWTSTA(202)
-!MPI!NCOH   CALL MPI_ALLREDUCE ( IARR, ITEMP, ILEN, SWINT, &
-!MPI!NCOH                        ITYPRD, MPI_COMM_WORLD, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS,IF,IL)
-!MPI      MSGSTR = 'MPI produces some internal error - '// &
-!MPI               'return code is '//CHARS(IF:IL)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-   IARR = ITEMP
-!TIMG   CALL SWTSTO(202)
+   NP = 1
+   DO WHILE (NP.LE.NPART)
 
-   DEALLOCATE(ITEMP)
+!        --- for each part that currently exists
 
-   RETURN
-END
-!****************************************************************
-!
-SUBROUTINE SWREDUCR ( ARR, ILEN, ITYPRD )
-!
-!****************************************************************
-!
-!MPI   USE MPI
-   USE OCPCOMM4
-   USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.96: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.96, Dec. 08: New subroutine
-!
-!  2. Purpose
-!
-!     Performs a global reduction of type ITYPRD on real
-!     array ARR to collect values from all processes
-!
-!  3. Method
-!
-!     Wrapper for MPI_ALLREDUCE
-!
-!  4. Argument variables
-!
-!     ARR         real array
-!     ILEN        length of array to be collect
-!     ITYPRD      type of reduction
-!
-   INTEGER ILEN, ITYPRD
-   REAL    ARR(ILEN)
-!
-!  6. Local variables
-!
-!     CHARS :     character for passing info to MSGERR
-!     IENT  :     number of entries
-!     IERR  :     error value of MPI call
-!     IF    :     first non-character in string
-!     IL    :     last non-character in string
-!     MSGSTR:     string to pass message to call MSGERR
-!     TEMP  :     temporary array to store collected data
-!
-   INTEGER      IENT, IERR, IF, IL
-   CHARACTER*20 INTSTR, CHARS
-   CHARACTER*80 MSGSTR
+      DO IP = 1, NP
 
-   REAL, ALLOCATABLE :: TEMP(:)
-!
-!  8. Subroutines used
-!
-!     INTSTR           Converts integer to string
-!MPI!     MPI_ALLREDUCE    Combines values from all processes and
-!MPI!                      distribute the result back to all processes
-!     MSGERR           Writes error message
-!     STRACE           Tracing routine for debugging
-!TIMG!     SWTSTA           Start timing for a section of code
-!TIMG!     SWTSTO           Stop timing for a section of code
-!     TXPBLA           Removes leading and trailing blanks in string
-!
-!  9. Subroutines calling
-!
-!     SWREDUCE
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!MPI!     Performs a global reduction of reals across all nodes
-!MPI!     with command MPI_ALLREDUCE
-!
-! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
-   IF (LTRACE) CALL STRACE (IENT,'SWREDUCR')
+!           --- determine which final parts belong to this part
 
-   ALLOCATE(TEMP(ILEN))
+         JPARTS = (IP-1)*NPART/NP+1
+         JPARTE = (IP  )*NPART/NP
 
-!TIMG   CALL SWTSTA(202)
-!MPI!NCOH   CALL MPI_ALLREDUCE ( ARR, TEMP, ILEN, SWREAL, &
-!MPI!NCOH                        ITYPRD, MPI_COMM_WORLD, IERR )
-!MPI   IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI      CHARS = INTSTR(IERR)
-!MPI      CALL TXPBLA(CHARS,IF,IL)
-!MPI      MSGSTR = 'MPI produces some internal error - '// &
-!MPI               'return code is '//CHARS(IF:IL)
-!MPI      CALL MSGERR ( 4, MSGSTR )
-!MPI      RETURN
-!MPI   END IF
-   ARR = TEMP
-!TIMG   CALL SWTSTO(202)
+!           --- if the number of such parts > 1, do further splitting
 
-   DEALLOCATE(TEMP)
+         IF ( (JPARTE-JPARTS+1).GT.1 ) THEN
+
+!              --- determine into how many parts this part must be split
+
+            KSPLIT = MIN(NSPLIT,JPARTE-JPARTS+1)
+
+!              --- determine the sizes and numbers of parts to be create
+
+            DO ISPLIT = 1, KSPLIT
+
+               JSTART = JPARTS+(ISPLIT-1)*(JPARTE-JPARTS+1)/KSPLIT
+               JEND   = JPARTS+    ISPLIT*(JPARTE-JPARTS+1)/KSPLIT-1
+
+               IWORK(1,ISPLIT) = INT(JSTART,PART_KIND)
+
+               IWORK(2,ISPLIT) = 0
+               DO J = JSTART, JEND
+                  IWORK(2,ISPLIT) = IWORK(2,ISPLIT) + LPARTS(2,J)
+               END DO
+
+            END DO
+
+!              --- do splitting
+
+            CALL SWSTRIP_JAC (IPOWN,IDIR,JPARTS,IWORK,MXC,MYC)
+
+!              --- determine whether objective partsizes have been modif
+!                  in SWSTRIP in order to make straight interfaces
+
+            DO ISPLIT = 1, KSPLIT
+
+               JSTART = JPARTS+(ISPLIT-1)*(JPARTE-JPARTS+1)/KSPLIT
+               JEND   = JPARTS+    ISPLIT*(JPARTE-JPARTS+1)/KSPLIT-1
+
+               DO J = JSTART, JEND
+                  IWORK(2,ISPLIT) = IWORK(2,ISPLIT) - LPARTS(2,J)
+               END DO
+
+!                 --- and distribute the difference over the contiguous
+!                     parts making sure not to cause negative subdomain-
+
+               J      = JSTART
+               ISSUCC = 0
+               IF ( IWORK(2,ISPLIT).LT.0 ) THEN
+                  IDIFF = -1
+               ELSE
+                  IDIFF =  1
+               END IF
+
+!                 --- reduce the difference until nothing is left
+
+               DO WHILE (IWORK(2,ISPLIT).NE.0)
+
+!                    --- only adjust parts if their size remains valid
+
+                  IF ( LPARTS(2,J).GT.0 .AND. &
+                     ((LPARTS(2,J)+INT(IDIFF,PART_KIND)).GT.0) ) THEN
+                     ISSUCC          = 1
+                     LPARTS(2,J)     = LPARTS(2,J) + INT(IDIFF,PART_KIND)
+                     IWORK(2,ISPLIT) = IWORK(2,ISPLIT) - &
+                        INT(IDIFF,PART_KIND)
+                  END IF
+
+!                    --- go on to the next part
+
+                  J = J + 1
+
+!                    --- when all parts have been visited, go back to fi
+
+                  IF ( J.GT.JEND ) THEN
+
+!                       --- check whether any reduction of the differenc
+!                           was done in last pass over all parts
+
+                     IF ( ISSUCC.EQ.0 ) THEN
+                        CALL MSGERR (4,'Internal problem in SWORB')
+                        RETURN
+                     END IF
+                     J = JSTART
+                  END IF
+
+               END DO
+
+            END DO
+
+         END IF
+
+      END DO
+
+!        --- swap cutting direction
+
+      IDIR = MOD(IDIR,2) + 1
+
+      NP = NSPLIT*NP
+   END DO
 
    RETURN
-END
-!WFR!****************************************************************
-!WFR!
-!WFR SUBROUTINE SWSTRIP ( IPOWN, IDIR, NPART, IWORK, MXC, MYC )
-!WFR!
-!WFR!****************************************************************
-!WFR!
-!WFR   USE OCPCOMM4
-!WFR!
-!WFR   IMPLICIT NONE
-!WFR!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!WFR!
-!WFR!  0. Authors
-!WFR!
-!WFR!     40.30: Marcel Zijlema
-!WFR!     40.41: Marcel Zijlema
-!WFR!
-!WFR!  1. Updates
-!WFR!
-!WFR!     40.30, Feb. 03: New subroutine
-!WFR!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!WFR!
-!WFR!  2. Purpose
-!WFR!
-!WFR!     Performs a stripwise partitioning with straight interfaces
-!WFR!
-!WFR!  3. Method
-!WFR!
-!WFR!     Each active point in a row/column will be assign to a part
-!WFR!     according to its number and size (stored in IWORK).
-!WFR!     The remaining points in the row/column will be assign
-!WFR!     to the same part.
-!WFR!
-!WFR!  4. Argument variables
-!WFR!
-!WFR!     IDIR        direction of cutting
-!WFR!                 1 = row
-!WFR!                 2 = column
-!WFR!     IPOWN       array giving the subdomain number of each gridpoint
-!WFR!     IWORK       work array with the following meaning:
-!WFR!                    IWORK(1,i) = number of i-th part to be created
-!WFR!                    IWORK(2,i) = size of i-th part to be created
-!WFR!     MXC         maximum counter of gridpoints in x-direction
-!WFR!     MYC         maximum counter of gridpoints in y-direction
-!WFR!     NPART       number of parts to be created
-!WFR!
-!WFR   INTEGER   IDIR, MXC, MYC, NPART
-!WFR   INTEGER   IPOWN(*)
-!WFR   INTEGER*8 IWORK(2,*)
-!WFR!
-!WFR!  6. Local variables
-!WFR!
-!WFR!     IC    :     index of (IX,IY)-point
-!WFR!     ICC   :     index of (IX,IY)-point
-!WFR!     IENT  :     number of entries
-!WFR!     INCX  :     increment for adressing: 1 for x-dir, MXC for y-dir
-!WFR!     INCY  :     increment for adressing: MXC for x-dir, 1 for y-dir
-!WFR!     IX    :     index in x-direction
-!WFR!     IY    :     index in y-direction
-!WFR!     IYY   :     index in y-direction
-!WFR!     IPART :     a part counter
-!WFR!     MXCI  :     maximum counter of gridpoints in x/y-direction
-!WFR!     MYCI  :     maximum counter of gridpoints in y/x-direction
-!WFR!     NCURPT:     number of currently assigned points to a created part
-!WFR!     NPREM :     number of remaining points in a row/column
-!WFR!
-!WFR   INTEGER IC, ICC, IENT, INCX, INCY, IX, IY, IYY, IPART, &
-!WFR           MXCI, MYCI, NCURPT, NPREM
-!WFR!
-!WFR!  8. Subroutines used
-!WFR!
-!WFR!     STRACE           Tracing routine for debugging
-!WFR!
-!WFR!  9. Subroutines calling
-!WFR!
-!WFR!     SWPARTIT
-!WFR!
-!WFR! 10. Error messages
-!WFR!
-!WFR!     ---
-!WFR!
-!WFR! 11. Remarks
-!WFR!
-!WFR!     ---
-!WFR!
-!WFR! 12. Structure
-!WFR!
-!WFR!     depending on cutting direction, determine indirect addressing
-!WFR!     create first empty part
-!WFR!     for all active points do
-!WFR!         assign this point to the created part
-!WFR!         if size of created part has been reached
-!WFR!            determine remaining active points in the current column
-!WFR!            if no remaining points, create next empty part
-!WFR!            else remaining points belong to the current part
-!WFR!
-!WFR! 13. Source text
-!WFR!
-!WFR   SAVE IENT
-!WFR   DATA IENT/0/
-!WFR   IF (LTRACE) CALL STRACE (IENT,'SWSTRIP')
-
-!WFR!     --- depending on cutting direction, determine indirect addressing
-!WFR!         for array IPOWN
-
-!WFR   IF ( IDIR.EQ.1 ) THEN
-!WFR      MXCI = MYC
-!WFR      MYCI = MXC
-!WFR      INCX = MXC
-!WFR      INCY = 1
-!WFR   ELSE IF ( IDIR.EQ.2 ) THEN
-!WFR      MXCI = MXC
-!WFR      MYCI = MYC
-!WFR      INCX = 1
-!WFR      INCY = MXC
-!WFR   END IF
-
-!WFR!     --- create first empty part
-
-!WFR   IPART  = 1
-!WFR   NCURPT = 0
-
-!WFR!     --- for all active points do
-
-!WFR   DO IX = 1, MXCI
-!WFR      DO IY = 1, MYCI
-
-!WFR         IC = IX*INCX + IY*INCY - MXC
-
-!WFR         IF ( IPOWN(IC).EQ.1 ) THEN
-
-!WFR!              --- assign this point to the created part
-
-!WFR            IPOWN(IC) = IWORK(1,IPART)
-!WFR            NCURPT    = NCURPT + 1
-
-!WFR!              --- if size of created part has been reached
-
-!WFR            IF ( NCURPT.GE.IWORK(2,IPART) ) THEN
-
-!WFR!                 --- determine remaining active points in the
-!WFR!                     current column
-
-!WFR               NPREM = 0
-!WFR               DO IYY = IY+1, MYCI
-!WFR                  ICC = IX*INCX + IYY*INCY - MXC
-!WFR                  IF (IPOWN(ICC).EQ.1) NPREM = NPREM +1
-!WFR               END DO
-
-!WFR               IF ( NPREM.EQ.0 ) THEN
-
-!WFR!                    --- if no remaining points, create next empty part
-
-!WFR                  IPART  = IPART + 1
-!WFR                  NCURPT = 0
-
-!WFR               ELSE
-
-!WFR!                    --- else remaining points belong to the current part
-
-!WFR                  IWORK(2,IPART  ) = IWORK(2,IPART  ) + NPREM
-!WFR                  IWORK(2,IPART+1) = IWORK(2,IPART+1) - NPREM
-
-!WFR               END IF
-
-!WFR            END IF
-
-!WFR         END IF
-
-!WFR      END DO
-!WFR   END DO
-
-!WFR   RETURN
-!WFR END
-!JAC!****************************************************************
-!JAC!
-!JAC SUBROUTINE SWSTRIP ( IPOWN, IDIR, IPART, NPART, LPARTS, &
-!JAC                      MXC  , MYC )
-!JAC!
-!JAC!****************************************************************
-!JAC!
-!JAC   USE OCPCOMM4
-!JAC!
-!JAC   IMPLICIT NONE
-!JAC!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!JAC!
-!JAC!  0. Authors
-!JAC!
-!JAC!     40.30: Marcel Zijlema
-!JAC!     40.41: Marcel Zijlema
-!JAC!
-!JAC!  1. Updates
-!JAC!
-!JAC!     40.30, Feb. 03: New subroutine
-!JAC!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!JAC!
-!JAC!  2. Purpose
-!JAC!
-!JAC!     Performs a stripwise partitioning with straight interfaces
-!JAC!
-!JAC!  3. Method
-!JAC!
-!JAC!     This method is described in Ph.D. Thesis of M. Roest
-!JAC!     entitled:
-!JAC!     Partitioning for parallel finite difference computations
-!JAC!     in coastal water simulation, DUT, 1997
-!JAC!
-!JAC!  4. Argument variables
-!JAC!
-!JAC!     IDIR        direction of cutting
-!JAC!                 1 = row
-!JAC!                 2 = column
-!JAC!     IPART       part number that must be partitioned
-!JAC!     IPOWN       array giving the subdomain number of each gridpoint
-!JAC!     LPARTS      list of parts to be created
-!JAC!                    lparts(1,i) = number of i-th part to be created
-!JAC!                    lparts(2,i) = size of i-th part to be created
-!JAC!     MXC         maximum counter of gridpoints in x-direction
-!JAC!     MYC         maximum counter of gridpoints in y-direction
-!JAC!     NPART       number of parts to be created
-!JAC!
-!JAC   INTEGER   IDIR, IPART, MXC, MYC, NPART
-!JAC   INTEGER   IPOWN(*)
-!JAC   INTEGER*8 LPARTS(2,*)
-!JAC!
-!JAC!  6. Local variables
-!JAC!
-!JAC!     IC    :     index of (IX,IY)-point
-!JAC!     ICC   :     index of (IX,IY)-point
-!JAC!     IENT  :     number of entries
-!JAC!     INCX  :     increment for adressing: 1 for x-dir, MXC for y-dir
-!JAC!     INCY  :     increment for adressing: MXC for x-dir, 1 for y-dir
-!JAC!     IX    :     index in x-direction
-!JAC!     IY    :     index in y-direction
-!JAC!     IYY   :     index in y-direction
-!JAC!     JPART :     a part counter
-!JAC!     MXCI  :     maximum counter of gridpoints in x/y-direction
-!JAC!     MYCI  :     maximum counter of gridpoints in y/x-direction
-!JAC!     NBACK :     number of points in a row already assigned to a part
-!JAC!     NFORW :     number of points in a row remaining to be assigned
-!JAC!     NINPRT:     number of points currently assigned to a new part
-!JAC!
-!JAC   INTEGER IC, ICC, IENT, INCX, INCY, IX, IY, IYY, JPART, &
-!JAC           MXCI, MYCI, NBACK, NFORW, NINPRT
-!JAC!
-!JAC!  8. Subroutines used
-!JAC!
-!JAC!     STRACE           Tracing routine for debugging
-!JAC!
-!JAC!  9. Subroutines calling
-!JAC!
-!JAC!     SWORB
-!JAC!     SWPARTIT
-!JAC!
-!JAC! 10. Error messages
-!JAC!
-!JAC!     ---
-!JAC!
-!JAC! 11. Remarks
-!JAC!
-!JAC!     ---
-!JAC!
-!JAC! 12. Structure
-!JAC!
-!JAC!     depending on IDIR, determine indirect addressing in IPOWN
-!JAC!     start by creating the first part, which is currently empty
-!JAC!     for all points in IPOWN do
-!JAC!        if point belongs to the part that must be partitioned then
-!JAC!           when current part has reached its planned size
-!JAC!              see how many points in this row remain to be assigned
-!JAC!              if no more points to be assigned, go on to next part
-!JAC!              else, if majority of row has been assigned take the rest
-!JAC!              else, leave this row to next part
-!JAC!           assign point IC to part that is currently being created
-!JAC!
-!JAC! 13. Source text
-!JAC!
-!JAC   SAVE IENT
-!JAC   DATA IENT/0/
-!JAC   IF (LTRACE) CALL STRACE (IENT,'SWSTRIP')
-
-!JAC!     --- depending on IDIR, determine indirect addressing in IPOWN
-
-!JAC   IF ( IDIR.EQ.1 ) THEN
-!JAC      MXCI = MYC
-!JAC      MYCI = MXC
-!JAC      INCX = MXC
-!JAC      INCY = 1
-!JAC   ELSE IF ( IDIR.EQ.2 ) THEN
-!JAC      MXCI = MXC
-!JAC      MYCI = MYC
-!JAC      INCX = 1
-!JAC      INCY = MXC
-!JAC   END IF
-
-!JAC!     --- start by creating the first part, which is currently empty
-
-!JAC   JPART  = 1
-!JAC   NINPRT = 0
-
-!JAC!     --- for all points in IPOWN do
-
-!JAC   DO IX = 1, MXCI
-!JAC      DO IY = 1, MYCI
-
-!JAC         IC = IX*INCX + IY*INCY - MXC
-
-!JAC!           --- if this point belongs to the part that must be partitioned then
-
-!JAC         IF ( IPOWN(IC).EQ.IPART ) THEN
-
-!JAC!              --- when current part has reached its planned size
-
-!JAC            IF ( NINPRT.GE.LPARTS(2,JPART) ) THEN
-
-!JAC!                 --- see how many points in this row have been assigned
-
-!JAC               NBACK = 0
-!JAC               DO IYY = 1, IY-1
-
-!JAC                  ICC = IX*INCX + IYY*INCY - MXC
-!JAC                  IF (IPOWN(ICC).EQ.LPARTS(1,JPART)) NBACK = NBACK +1
-
-!JAC               END DO
-
-!JAC!                 --- see how many points in this row remain to be assigned
-
-!JAC               NFORW = 0
-!JAC               DO IYY = IY, MYCI
-
-!JAC                  ICC = IX*INCX + IYY*INCY - MXC
-!JAC                  IF (IPOWN(ICC).EQ.IPART) NFORW = NFORW +1
-
-!JAC               END DO
-
-!JAC!                 --- if no more points to be assigned, go on to next part
-
-!JAC               IF ( NFORW.EQ.0 ) THEN
-
-!JAC                  JPART  = JPART + 1
-!JAC                  NINPRT = 0
-
-!JAC               ELSE IF ( (NBACK-NFORW).GT.0 ) THEN
-
-!JAC!                    --- if majority of row has been assigned take the rest
-
-!JAC                  LPARTS(2,JPART  ) = LPARTS(2,JPART  ) + NFORW
-!JAC                  LPARTS(2,JPART+1) = LPARTS(2,JPART+1) - NFORW
-
-!JAC               ELSE
-!JAC!                    --- else, leave this row to next part
-
-!JAC                  LPARTS(2,JPART  ) = LPARTS(2,JPART  ) - NBACK
-!JAC                  LPARTS(2,JPART+1) = LPARTS(2,JPART+1) + NBACK
-
-!JAC                  DO IYY = 1, IY-1
-
-!JAC                     ICC = IX*INCX + IYY*INCY - MXC
-!JAC                     IF ( IPOWN(ICC).EQ.LPARTS(1,JPART) ) THEN
-!JAC                        IPOWN(ICC) = LPARTS(1,JPART+1)
-!JAC                     END IF
-
-!JAC                  END DO
-
-!JAC                  JPART  = JPART + 1
-!JAC                  NINPRT = NBACK
-
-!JAC               END IF
-
-!JAC            END IF
-
-!JAC!              --- assign point IC to part that is currently being created
-
-!JAC            IPOWN(IC) = LPARTS(1,JPART)
-!JAC            NINPRT    = NINPRT + 1
-
-!JAC         END IF
-
-!JAC      END DO
-!JAC   END DO
-
-!JAC   RETURN
-!JAC END
-!JAC!****************************************************************
-!JAC!
-!JAC SUBROUTINE SWORB ( IPOWN, IDIR, IPART, NPART, LPARTS, &
-!JAC                    MXC  , MYC )
-!JAC!
-!JAC!****************************************************************
-!JAC!
-!JAC   USE OCPCOMM4
-!JAC!
-!JAC   IMPLICIT NONE
-!JAC!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!JAC!
-!JAC!  0. Authors
-!JAC!
-!JAC!     40.30: Marcel Zijlema
-!JAC!     40.41: Marcel Zijlema
-!JAC!
-!JAC!  1. Updates
-!JAC!
-!JAC!     40.30, Feb. 03: New subroutine
-!JAC!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!JAC!
-!JAC!  2. Purpose
-!JAC!
-!JAC!     Performs an Orthogonal Recursive Bisection partitioning
-!JAC!
-!JAC!  3. Method
-!JAC!
-!JAC!     Starting with a single part (the entire domain), each part is
-!JAC!     recursively partitioned by bisecting it, until all parts have been
-!JAC!     created. The bisection direction is swapped in each direction.
-!JAC!
-!JAC!     This method is described in Ph.D. Thesis of M. Roest
-!JAC!     entitled:
-!JAC!     Partitioning for parallel finite difference computations
-!JAC!     in coastal water simulation, DUT, 1997
-!JAC!
-!JAC!  4. Argument variables
-!JAC!
-!JAC!     IDIR        direction of cutting
-!JAC!                 1 = row
-!JAC!                 2 = column
-!JAC!     IPART       part number that must be partitioned
-!JAC!     IPOWN       array giving the subdomain number of each gridpoint
-!JAC!     LPARTS      list of parts to be created
-!JAC!                    lparts(1,i) = number of i-th part to be created
-!JAC!                    lparts(2,i) = size of i-th part to be created
-!JAC!     MXC         maximum counter of gridpoints in x-direction
-!JAC!     MYC         maximum counter of gridpoints in y-direction
-!JAC!     NPART       number of parts to be created
-!JAC!
-!JAC   INTEGER   IDIR, IPART, MXC, MYC, NPART
-!JAC   INTEGER   IPOWN(*)
-!JAC   INTEGER*8 LPARTS(2,*)
-!JAC!
-!JAC!  6. Local variables
-!JAC!
-!JAC!     IDIFF :     the difference to be applied to a subdomain-size
-!JAC!     IENT  :     number of entries
-!JAC!     IP    :     counter of parts to be splitted
-!JAC!     ISPLIT:     counter of parts to be created in splitting
-!JAC!     ISSUCC:     flag indicating success in reducing a difference in size
-!JAC!                 0=no
-!JAC!                 1=yes
-!JAC!     IWORK :     see description LPARTS
-!JAC!     J     :     loop counter
-!JAC!     JEND  :     number of last new part to be created by splitting
-!JAC!     JPARTE:     number of last part in 1..npart belonging to jpart
-!JAC!     JPARTS:     number of first part in 1..npart belonging to jpart
-!JAC!     JSTART:     number of first new part to be created by splitting
-!JAC!     KSPLIT:     number of parts to be created in a particular splitting
-!JAC!     NP    :     number of parts to be created in a particular recursion
-!JAC!     NSPLIT:     maximum number of parts to be created in one splitting
-!JAC!                 (NB: 2 = bisection, 4 = quadrisection)
-
-!JAC   INTEGER IDIFF, IENT, IP, ISPLIT, ISSUCC, J, JEND, JPARTE, JPARTS, &
-!JAC           JSTART, KSPLIT, NP, NSPLIT
-!JAC   INTEGER*8 IWORK(2,NPART)
-!JAC   PARAMETER(NSPLIT = 2)
-!JAC!
-!JAC!  8. Subroutines used
-!JAC!
-!JAC!     MSGERR           Writes error message
-!JAC!     STRACE           Tracing routine for debugging
-!JAC!     SWSTRIP          Performs a stripwise partitioning with straight
-!JAC!                      interfaces
-!JAC!
-!JAC!  9. Subroutines calling
-!JAC!
-!JAC!     SWPARTIT
-!JAC!
-!JAC! 10. Error messages
-!JAC!
-!JAC!     ---
-!JAC!
-!JAC! 11. Remarks
-!JAC!
-!JAC!     ---
-!JAC!
-!JAC! 12. Structure
-!JAC!
-!JAC!     while not enough parts have been created, do another recursion
-!JAC!
-!JAC!        for each part that currently exists
-!JAC!
-!JAC!          determine which final parts belong to this part
-!JAC!          if the number of such parts > 1, do further splitting
-!JAC!
-!JAC!            determine into how many parts this part must be split
-!JAC!            determine the sizes and numbers of parts to be created
-!JAC!
-!JAC!            do splitting
-!JAC!
-!JAC!            determine whether objective partsizes have been modified
-!JAC!            and distribute the difference over the constituent parts
-!JAC!
-!JAC!        swap cutting direction
-!JAC!
-!JAC! 13. Source text
-!JAC!
-!JAC   SAVE IENT
-!JAC   DATA IENT/0/
-!JAC   IF (LTRACE) CALL STRACE (IENT,'SWORB')
-
-!JAC!     --- while not enough parts have been created, do another recursion
-
-!JAC   NP = 1
-!JAC   100   IF ( NP.LE.NPART ) THEN
-
-!JAC!        --- for each part that currently exists
-
-!JAC      DO IP = 1, NP
-
-!JAC!           --- determine which final parts belong to this part
-
-!JAC         JPARTS = (IP-1)*NPART/NP+1
-!JAC         JPARTE = (IP  )*NPART/NP
-
-!JAC!           --- if the number of such parts > 1, do further splitting
-
-!JAC         IF ( (JPARTE-JPARTS+1).GT.1 ) THEN
-
-!JAC!              --- determine into how many parts this part must be split
-
-!JAC            KSPLIT = MIN(NSPLIT,JPARTE-JPARTS+1)
-
-!JAC!              --- determine the sizes and numbers of parts to be created
-
-!JAC            DO ISPLIT = 1, KSPLIT
-
-!JAC               JSTART = JPARTS+(ISPLIT-1)*(JPARTE-JPARTS+1)/KSPLIT
-!JAC               JEND   = JPARTS+    ISPLIT*(JPARTE-JPARTS+1)/KSPLIT-1
-
-!JAC               IWORK(1,ISPLIT) = JSTART
-
-!JAC               IWORK(2,ISPLIT) = 0
-!JAC               DO J = JSTART, JEND
-!JAC                  IWORK(2,ISPLIT) = IWORK(2,ISPLIT) + LPARTS(2,J)
-!JAC               END DO
-
-!JAC            END DO
-
-!JAC!              --- do splitting
-
-!JAC            CALL SWSTRIP (IPOWN,IDIR,JPARTS,KSPLIT,IWORK,MXC,MYC)
-
-!JAC!              --- determine whether objective partsizes have been modified
-!JAC!                  in SWSTRIP in order to make straight interfaces
-
-!JAC            DO ISPLIT = 1, KSPLIT
-
-!JAC               JSTART = JPARTS+(ISPLIT-1)*(JPARTE-JPARTS+1)/KSPLIT
-!JAC               JEND   = JPARTS+    ISPLIT*(JPARTE-JPARTS+1)/KSPLIT-1
-
-!JAC               DO J = JSTART, JEND
-!JAC                  IWORK(2,ISPLIT) = IWORK(2,ISPLIT) - LPARTS(2,J)
-!JAC               END DO
-
-!JAC!                 --- and distribute the difference over the contiguous
-!JAC!                     parts making sure not to cause negative subdomain-sizes
-
-!JAC               J      = JSTART
-!JAC               ISSUCC = 0
-!JAC               IF ( IWORK(2,ISPLIT).LT.0 ) THEN
-!JAC                  IDIFF = -1
-!JAC               ELSE
-!JAC                  IDIFF =  1
-!JAC               END IF
-
-!JAC!                 --- reduce the difference until nothing is left
-
-!JAC               200               IF ( IWORK(2,ISPLIT).NE.0 ) THEN
-
-!JAC!                    --- only adjust parts if their size remains valid
-
-!JAC                  IF ( LPARTS(2,J).GT.0 .AND. &
-!JAC                       ((LPARTS(2,J)+IDIFF).GT.0) ) THEN
-!JAC                     ISSUCC          = 1
-!JAC                     LPARTS(2,J)     = LPARTS(2,J)     + IDIFF
-!JAC                     IWORK(2,ISPLIT) = IWORK(2,ISPLIT) - IDIFF
-!JAC                  END IF
-
-!JAC!                    --- go on to the next part
-
-!JAC                  J = J + 1
-
-!JAC!                    --- when all parts have been visited, go back to first
-
-!JAC                  IF ( J.GT.JEND ) THEN
-
-!JAC!                       --- check whether any reduction of the difference
-!JAC!                           was done in last pass over all parts
-
-!JAC                     IF ( ISSUCC.EQ.0 ) THEN
-!JAC                        CALL MSGERR (4,'Internal problem in SWORB')
-!JAC                        RETURN
-!JAC                     END IF
-!JAC                     J = JSTART
-!JAC                  END IF
-
-!JAC                  GOTO 200
-!JAC               END IF
-
-!JAC            END DO
-
-!JAC         END IF
-
-!JAC      END DO
-
-!JAC!        --- swap cutting direction
-
-!JAC      IDIR = MOD(IDIR,2) + 1
-
-!JAC      NP = NSPLIT*NP
-!JAC      GOTO 100
-
-!JAC   END IF
-
-!JAC   RETURN
-!JAC END
+end subroutine SWORB
 !****************************************************************
-!
+
 SUBROUTINE SWPARTIT ( IPOWN, MXC, MYC )
-!
+
 !****************************************************************
-!
-   USE OCPCOMM4
+
+   USE swan_service_interfaces, ONLY: STRACE, STPNOW
+   USE swan_diagnostics_level
    USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
+   USE swan_global_grid
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2188,18 +1226,18 @@ SUBROUTINE SWPARTIT ( IPOWN, MXC, MYC )
 !
 !  3. Method
 !
-!WFR!     Based on stripwise partitioning
-!JAC!     Based on Orthogonal Recursive Bisection
+!     Wavefront uses stripwise partitioning; Jacobi uses Orthogonal
+!     Recursive Bisection.
 !
 !  4. Argument variables
 !
 !     IPOWN       array giving the subdomain number of each gridpoint
 !     MXC         maximum counter of gridpoints in x-direction
 !     MYC         maximum counter of gridpoints in y-direction
-!
+
    INTEGER MXC, MYC
    INTEGER IPOWN(MXC,MYC)
-!
+
 !  6. Local variables
 !
 !     I     :     loop counter
@@ -2215,22 +1253,21 @@ SUBROUTINE SWPARTIT ( IPOWN, MXC, MYC )
 !                    IWORK(2,i) = size of i-th part to be created
 !     NACTP :     total number of active gridpoints
 !     NPCUM :     cumulative number of gridpoints
-!
-   INTEGER   I, IDIR, IENT, IX, IY
-   INTEGER*8 ICNT, NACTP, NPCUM
-   INTEGER*8 IWORK(2,NPROC)
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   I, IDIR, IX, IY
+   INTEGER(KIND=SELECTED_INT_KIND(18)) ICNT, NACTP, NPCUM
+   INTEGER(KIND=SELECTED_INT_KIND(18)) IWORK(2,NPROC)
+
 !  8. Subroutines used
 !
 !     STPNOW           Logical indicating whether program must
 !                      terminated or not
 !     STRACE           Tracing routine for debugging
-!JAC!     SWORB            Performs an Orthogonal Recursive Bisection partitioning
-!WFR!     SWSTRIP          Performs a stripwise partitioning with straight
-!WFR!                      interfaces
-!
-   LOGICAL STPNOW
-!
+!     SWORB            Performs an Orthogonal Recursive Bisection partition
+!     SWSTRIP          Performs a stripwise partitioning with straight
+!                      interfaces
+
 !  9. Subroutines calling
 !
 !     SWDECOMP
@@ -2252,9 +1289,7 @@ SUBROUTINE SWPARTIT ( IPOWN, MXC, MYC )
 !     partition grid
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWPARTIT')
 
 !     --- if not parallel, return
@@ -2294,25 +1329,30 @@ SUBROUTINE SWPARTIT ( IPOWN, MXC, MYC )
    DEALLOCATE(IWEIG)
 
 !     --- partition grid
-
-!WFR   CALL SWSTRIP ( IPOWN, IDIR, NPROC, IWORK, MXC, MYC )
-!JAC   CALL SWORB ( IPOWN, IDIR, 1, NPROC, IWORK, MXC, MYC )
-!JAC   IF (STPNOW()) RETURN
+!
+   IF (jacobi_sweep_enabled) THEN
+      CALL SWORB ( IPOWN, IDIR, NPROC, IWORK, MXC, MYC )
+      IF (STPNOW()) RETURN
+   ELSE
+      CALL SWSTRIP_WFR ( IPOWN, IDIR, NPROC, IWORK, MXC, MYC )
+   END IF
 
    RETURN
-END
+end subroutine SWPARTIT
 !****************************************************************
-!
+
 SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
-!
+
 !****************************************************************
-!
-   USE OCPCOMM4
+
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
+   USE swan_diagnostics_level
    USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
+   USE swan_global_grid
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2367,10 +1407,10 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
 !     IPOWN       array giving the subdomain number of each gridpoint
 !     MXC         maximum counter of gridpoints in x-direction
 !     MYC         maximum counter of gridpoints in y-direction
-!
+
    INTEGER MXC, MYC
    INTEGER IPOWN(MXC,MYC)
-!
+
 !  5. Parameter variables
 !
 !     ---
@@ -2407,22 +1447,23 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
 !     MYSIZ :     size of present subdomain in y-direction
 !     NNEIGH:     number of neighbouring subdomains
 !     NOVLU :     number of overlapping unknowns
-!
-   INTEGER      I, IC, ICOFF, IDOM, IENT, IF, IL, INB, ISTART, &
-                IX, IXOFF, IY, IYOFF, JOFFS(2,4), MXSIZ, MYSIZ, &
-                NNEIGH, NOVLU
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER      I, IC, ICOFF, IDOM, IF, IL, INB, ISTART, &
+      IX, IXOFF, IY, IYOFF, JOFFS(2,4), MXSIZ, MYSIZ, &
+      NNEIGH, NOVLU
    INTEGER      IWORK(3,NPROC), &
-                ICRECV(NPROC,MAX(MXC,MYC)), &
-                ICSEND(NPROC,MAX(MXC,MYC))
-   CHARACTER*20 INTSTR, CHARS
-   CHARACTER*80 MSGSTR
-!
+      ICRECV(NPROC,MAX(MXC,MYC)), &
+      ICSEND(NPROC,MAX(MXC,MYC))
+   CHARACTER(LEN=20) CHARS
+   CHARACTER(LEN=80) MSGSTR
+
 !  8. Subroutines used
 !
 !     INTSTR           Converts integer to string
 !     MSGERR           Writes error message
 !     STRACE           Tracing routine for debugging
-!     TXPBLA           Removes leading and trailing blanks in string
+!     TXPBLA           Removes leading and trailing blanks in string      40.41
 !
 !  9. Subroutines calling
 !
@@ -2460,9 +1501,7 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
 !     store block administration
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWBLADM')
 
 !     --- if not parallel, return
@@ -2473,18 +1512,19 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
    JOFFS = RESHAPE((/0,1,0,-1,1,0,-1,0/), (/2,4/))
 
 !     --- determine enclosing box of present subdomain
-
-!WFR   IF ( MXC.GT.MYC ) THEN
-!WFR      MXF = MXC+1
-!WFR      MXL = 0
-!WFR   ELSE
-!WFR      MYF = MYC+1
-!WFR      MYL = 0
-!WFR   END IF
-!JAC   MXF = MXC+1
-!JAC   MYF = MYC+1
-!JAC   MXL = 0
-!JAC   MYL = 0
+!
+   IF (jacobi_sweep_enabled) THEN
+      MXF = MXC+1
+      MYF = MYC+1
+      MXL = 0
+      MYL = 0
+   ELSE IF ( MXC.GT.MYC ) THEN
+      MXF = MXC+1
+      MXL = 0
+   ELSE
+      MYF = MYC+1
+      MYL = 0
+   END IF
 
    DO IX = 1, MXC
       DO IY = 1, MYC
@@ -2510,7 +1550,7 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
       CHARS = INTSTR(INODE)
       CALL TXPBLA(CHARS,IF,IL)
       MSGSTR = 'Empty subdomain is detected - '// &
-               ' node number is '//CHARS(IF:IL)
+         ' node number is '//CHARS(IF:IL)
       CALL MSGERR ( 1, MSGSTR )
 
       MXF = 1
@@ -2571,10 +1611,10 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
 !                 --- if a neighbouring subdomain is found there
 
                IF ( (IX+IXOFF).GT.0.AND.(IX+IXOFF).LE.MXC.AND. &
-                    (IY+IYOFF).GT.0.AND.(IY+IYOFF).LE.MYC ) THEN
+                  (IY+IYOFF).GT.0.AND.(IY+IYOFF).LE.MYC ) THEN
 
                   IF ( IPOWN(IX+IXOFF,IY+IYOFF).NE.0.AND. &
-                       IPOWN(IX+IXOFF,IY+IYOFF).NE.INODE ) THEN
+                     IPOWN(IX+IXOFF,IY+IYOFF).NE.INODE ) THEN
 
                      IC    = (IY      -MYF)*MXSIZ + (IX      -MXF+1)
                      ICOFF = (IY+IYOFF-MYF)*MXSIZ + (IX+IXOFF-MXF+1)
@@ -2584,16 +1624,15 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
                      IDOM = IPOWN(IX+IXOFF,IY+IYOFF)
 
                      INB = 1
-100                  IF ( INB.LE.NPROC .AND. &
-                          IWORK(1,INB).NE.IDOM .AND. &
-                          IWORK(1,INB).NE.0 )  THEN
+                     DO WHILE ( INB.LE.NPROC .AND. &
+                        IWORK(1,INB).NE.IDOM .AND. &
+                        IWORK(1,INB).NE.0 )
                         INB = INB + 1
-                        GOTO 100
-                     END IF
+                     END DO
 
                      IF ( INB.GT.NPROC ) THEN
                         CALL MSGERR (4,'Found more neighbours than '// &
-                                     'subdomains in the partitioning')
+                           'subdomains in the partitioning')
                         RETURN
                      END IF
 
@@ -2643,20 +1682,21 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
    END DO
 
    RETURN
-END
+end subroutine SWBLADM
 !****************************************************************
-!
+
 SUBROUTINE SWDECOMP
-!
+
 !****************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM3
+
+   USE swan_service_interfaces, ONLY: STRACE, STPNOW
+   USE swan_diagnostics_level
+   USE swan_computational_grid
    USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
+   USE swan_global_grid
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2715,10 +1755,11 @@ SUBROUTINE SWDECOMP
 !     IX    :     loop counter
 !     IY    :     loop counter
 !     IPOWN :     array giving the subdomain number of each gridpoint
-!
-   INTEGER IENT, IX, IY
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER IX, IY
    INTEGER, ALLOCATABLE :: IPOWN(:,:)
-!
+
 !  8. Subroutines used
 !
 !     STPNOW           Logical indicating whether program must
@@ -2727,9 +1768,7 @@ SUBROUTINE SWDECOMP
 !     SWBLADM          Carries out the block administration
 !     SWPARTIT         Carries out the partitioning of the SWAN
 !                      computational grid
-!
-   LOGICAL STPNOW
-!
+
 !  9. Subroutines calling
 !
 !     SWMAIN
@@ -2752,9 +1791,7 @@ SUBROUTINE SWDECOMP
 !     compute MXC, MYC and MCGRD for each subdomain
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWDECOMP')
 
 !     --- allocate and initialize array for block administration
@@ -2808,767 +1845,777 @@ SUBROUTINE SWDECOMP
    DEALLOCATE(IPOWN)
 
    RETURN
-END
-!JAC!****************************************************************
-!JAC!
-!JAC SUBROUTINE SWEXCHG ( FIELD, SWPDIR, KGRPNT )
-!JAC!
-!JAC!****************************************************************
-!JAC!
-!JAC   USE OCPCOMM4
-!JAC   USE SWCOMM3
-!JAC   USE M_PARALL
-!JAC!
-!JAC   IMPLICIT NONE
-!JAC!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!JAC!
-!JAC!  0. Authors
-!JAC!
-!JAC!     40.30: Marcel Zijlema
-!JAC!     40.41: Marcel Zijlema
-!JAC!
-!JAC!  1. Updates
-!JAC!
-!JAC!     40.30, Feb. 03: New subroutine
-!JAC!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!JAC!
-!JAC!  2. Purpose
-!JAC!
-!JAC!     Updates geographical field array through exchanging
-!JAC!     values between neighbouring subdomains depending on
-!JAC!     sweep direction
-!JAC!
-!JAC!  3. Method
-!JAC!
-!JAC!     Made use of MPI by means of SWSENDNB and SWRECVNB
-!JAC!     and also block administration (stored in IBLKAD)
-!JAC!
-!JAC!  4. Argument variables
-!JAC!
-!JAC!     FIELD       geographical field array for which 'halo' values must
-!JAC!                 be copied from neighbouring subdomains
-!JAC!     KGRPNT      indirect addressing for grid points
-!JAC!     SWPDIR      sweep direction (0=all directions together)
-!JAC!
-!JAC   INTEGER SWPDIR
-!JAC   INTEGER KGRPNT(MXC*MYC)
-!JAC   REAL    FIELD(MCGRD)
-!JAC!
-!JAC!  6. Local variables
-!JAC!
-!JAC!     IDOM  :     subdomain number
-!JAC!     IENT  :     number of entries
-!JAC!     INB   :     neighbour counter
-!JAC!     IPNB  :     position of neighbour (=top, bottom, right, left)
-!JAC!     IPR   :     array containing positions of neighbours from
-!JAC!                 which data is to be received
-!JAC!     IPS   :     array containing positions of neighbours to
-!JAC!                 which data is to be sent
-!JAC!     ISTART:     pointer in array IBLKAD
-!JAC!     ISWP  :     sweep direction
-!JAC!     ITAG  :     message tag for sending and receiving
-!JAC!     K     :     loop counter
-!JAC!     NNEIGH:     number of neighbouring subdomains
-!JAC!     NOVLU :     number of overlapping unknowns
-!JAC!     WORK  :     work array to store data to be sent to or
-!JAC!                 received from neighbour
-!JAC!
-!JAC   INTEGER IDOM, IENT, INB, IPNB, ISTART, ISWP, ITAG, &
-!JAC           K, NNEIGH, NOVLU
-!JAC   INTEGER IPR(2,4), IPS(2,4)
-!JAC   REAL    WORK(MAX(MXC,MYC))
-!JAC!
-!JAC!  8. Subroutines used
-!JAC!
-!JAC!     STPNOW           Logical indicating whether program must
-!JAC!                      terminated or not
-!JAC!     STRACE           Tracing routine for debugging
-!JAC!     SWRECVNB         Data is received from a neighbour
-!JAC!     SWSENDNB         Data is sent to a neighbour
-!JAC!TIMG!     SWTSTA           Start timing for a section of code
-!JAC!TIMG!     SWTSTO           Stop timing for a section of code
-!JAC!
-!JAC   LOGICAL STPNOW
-!JAC!
-!JAC!  9. Subroutines calling
-!JAC!
-!JAC!     SWCOMP
-!JAC!
-!JAC! 10. Error messages
-!JAC!
-!JAC!     ---
-!JAC!
-!JAC! 11. Remarks
-!JAC!
-!JAC!     ---
-!JAC!
-!JAC! 12. Structure
-!JAC!
-!JAC!     if not parallel, return
-!JAC!
-!JAC!     for all neighbouring subdomains do
-!JAC!        get position
-!JAC!        if position corresponds to sweep selection
-!JAC!           get subdomain number, pointer and size
-!JAC!           store data to be sent in array WORK
-!JAC!           send array WORK
-!JAC!
-!JAC!     for all neighbouring subdomains do
-!JAC!        get position
-!JAC!        if position corresponds to sweep selection
-!JAC!           get subdomain number, pointer and size
-!JAC!           receive next array and store in WORK
-!JAC!           store the received data
-!JAC!
-!JAC! 13. Source text
-!JAC!
-!JAC   SAVE IENT
-!JAC   DATA IENT/0/
-!JAC   IF (LTRACE) CALL STRACE (IENT,'SWEXCHG')
-
-!JAC!     --- if not parallel, return
-!JAC   IF (.NOT.PARLL) RETURN
-
-!JAC   IPR = RESHAPE((/2,4,2,3,1,3,1,4/), (/2,4/))
-!JAC   IPS = RESHAPE((/1,3,1,4,2,4,2,3/), (/2,4/))
-
-!JAC!TIMG   CALL SWTSTA(203)
-
-!JAC   ISWP = MAX(1,SWPDIR)
-
-!JAC   NNEIGH = IBLKAD(1)
-
-!JAC!     --- for all neighbouring subdomains do
-
-!JAC   DO INB = 1, NNEIGH
-
-!JAC!        --- get position
-
-!JAC      IPNB = IBLKAD(3*INB)
-
-!JAC!        --- if position corresponds to sweep selection
-
-!JAC      IF ( SWPDIR.EQ.0 .OR. &
-!JAC           IPNB.EQ.IPS(1,ISWP) .OR. IPNB.EQ.IPS(2,ISWP) ) THEN
-
-!JAC!           --- get subdomain number, pointer and size
-
-!JAC         IDOM   = IBLKAD(3*INB-1)
-!JAC         ISTART = IBLKAD(3*INB+1)
-!JAC         NOVLU  = IBLKAD(ISTART)
-
-!JAC!           --- store data to be sent in array WORK
-
-!JAC         DO K = 1, NOVLU
-!JAC            WORK(K) = FIELD(KGRPNT(IBLKAD(ISTART+K)))
-!JAC         END DO
-
-!JAC!           --- send array WORK
-
-!JAC         ITAG = 2
-!JAC         CALL SWSENDNB ( WORK, NOVLU, SWREAL, IDOM, ITAG )
-!JAC         IF (STPNOW()) RETURN
-
-!JAC      END IF
-
-!JAC   END DO
-
-!JAC!     --- for all neighbouring subdomains do
-
-!JAC   DO INB = 1, NNEIGH
-
-!JAC!        --- get position
-
-!JAC      IPNB = IBLKAD(3*INB)
-
-!JAC!        --- if position corresponds to sweep selection
-
-!JAC      IF ( SWPDIR.EQ.0 .OR. &
-!JAC           IPNB.EQ.IPR(1,ISWP) .OR. IPNB.EQ.IPR(2,ISWP) ) THEN
-
-!JAC!           --- get subdomain number, pointer and size
-
-!JAC         IDOM   = IBLKAD(3*INB-1)
-!JAC         ISTART = IBLKAD(3*INB+1)
-!JAC         NOVLU  = IBLKAD(ISTART)
-
-!JAC!           --- receive next array and store in WORK
-
-!JAC         ITAG  = 2
-!JAC         CALL SWRECVNB ( WORK, NOVLU, SWREAL, IDOM, ITAG )
-!JAC         IF (STPNOW()) RETURN
-
-!JAC!           --- store the received data
-
-!JAC         DO K = 1, NOVLU
-!JAC            FIELD(KGRPNT(IBLKAD(ISTART+NOVLU+K))) = WORK(K)
-!JAC         END DO
-
-!JAC      END IF
-
-!JAC   END DO
-
-!JAC!TIMG   CALL SWTSTO(203)
-
-!JAC   RETURN
-!JAC END
-!WFR!****************************************************************
-!WFR!
-!WFR SUBROUTINE SWEXCHG ( FIELD, KGRPNT )
-!WFR!
-!WFR!****************************************************************
-!WFR!
-!WFR   USE OCPCOMM4
-!WFR   USE SWCOMM3
-!WFR   USE M_PARALL
-!WFR!
-!WFR   IMPLICIT NONE
-!WFR!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!WFR!
-!WFR!  0. Authors
-!WFR!
-!WFR!     40.30: Marcel Zijlema
-!WFR!     40.41: Marcel Zijlema
-!WFR!
-!WFR!  1. Updates
-!WFR!
-!WFR!     40.30, Feb. 03: New subroutine
-!WFR!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!WFR!
-!WFR!  2. Purpose
-!WFR!
-!WFR!     Updates geographical field array through exchanging
-!WFR!     values between neighbouring subdomains
-!WFR!
-!WFR!  3. Method
-!WFR!
-!WFR!     Made use of MPI by means of SWSENDNB and SWRECVNB
-!WFR!     and also block administration (stored in IBLKAD)
-!WFR!
-!WFR!  4. Argument variables
-!WFR!
-!WFR!     FIELD       geographical field array for which 'halo' values must
-!WFR!                 be copied from neighbouring subdomains
-!WFR!     KGRPNT      indirect addressing for grid points
-!WFR!
-!WFR   INTEGER KGRPNT(MXC*MYC)
-!WFR   REAL    FIELD(MCGRD)
-!WFR!
-!WFR!  6. Local variables
-!WFR!
-!WFR!     IDOM  :     subdomain number
-!WFR!     IENT  :     number of entries
-!WFR!     INB   :     neighbour counter
-!WFR!     ISTART:     pointer in array IBLKAD
-!WFR!     ITAG  :     message tag for sending and receiving
-!WFR!     K     :     loop counter
-!WFR!     NNEIGH:     number of neighbouring subdomains
-!WFR!     NOVLU :     number of overlapping unknowns
-!WFR!     WORK  :     work array to store data to be sent to or
-!WFR!                 received from neighbour
-!WFR!
-!WFR   INTEGER IDOM, IENT, INB, ISTART, ITAG, K, NNEIGH, NOVLU
-!WFR   REAL    WORK(MAX(MXC,MYC))
-!WFR!
-!WFR!  8. Subroutines used
-!WFR!
-!WFR!     STPNOW           Logical indicating whether program must
-!WFR!                      terminated or not
-!WFR!     STRACE           Tracing routine for debugging
-!WFR!     SWRECVNB         Data is received from a neighbour
-!WFR!     SWSENDNB         Data is sent to a neighbour
-!WFR!TIMG!     SWTSTA           Start timing for a section of code
-!WFR!TIMG!     SWTSTO           Stop timing for a section of code
-!WFR!
-!WFR   LOGICAL STPNOW
-!WFR!
-!WFR!  9. Subroutines calling
-!WFR!
-!WFR!     ---
-!WFR!
-!WFR! 10. Error messages
-!WFR!
-!WFR!     ---
-!WFR!
-!WFR! 11. Remarks
-!WFR!
-!WFR!     ---
-!WFR!
-!WFR! 12. Structure
-!WFR!
-!WFR!     if not parallel, return
-!WFR!
-!WFR!     for all neighbouring subdomains do
-!WFR!        get subdomain number, pointer and size
-!WFR!        store data to be sent in array WORK
-!WFR!        send array WORK
-!WFR!
-!WFR!     for all neighbouring subdomains do
-!WFR!        get subdomain number, pointer and size
-!WFR!        receive next array and store in WORK
-!WFR!        store the received data
-!WFR!
-!WFR! 13. Source text
-!WFR!
-!WFR   SAVE IENT
-!WFR   DATA IENT/0/
-!WFR   IF (LTRACE) CALL STRACE (IENT,'SWEXCHG')
-
-!WFR!     --- if not parallel, return
-!WFR   IF (.NOT.PARLL) RETURN
-
-!WFR!TIMG   CALL SWTSTA(203)
-
-!WFR   NNEIGH = IBLKAD(1)
-
-!WFR!     --- for all neighbouring subdomains do
-
-!WFR   DO INB = 1, NNEIGH
-
-!WFR!        --- get subdomain number, pointer and size
-
-!WFR      IDOM   = IBLKAD(3*INB-1)
-!WFR      ISTART = IBLKAD(3*INB+1)
-!WFR      NOVLU  = IBLKAD(ISTART)
-
-!WFR!        --- store data to be sent in array WORK
-
-!WFR      DO K = 1, NOVLU
-!WFR         WORK(K) = FIELD(KGRPNT(IBLKAD(ISTART+K)))
-!WFR      END DO
-
-!WFR!        --- send array WORK
-
-!WFR      ITAG = 2
-!WFR      CALL SWSENDNB ( WORK, NOVLU, SWREAL, IDOM, ITAG )
-!WFR      IF (STPNOW()) RETURN
-
-!WFR   END DO
-
-!WFR!     --- for all neighbouring subdomains do
-
-!WFR   DO INB = 1, NNEIGH
-
-!WFR!        --- get subdomain number, pointer and size
-
-!WFR      IDOM   = IBLKAD(3*INB-1)
-!WFR      ISTART = IBLKAD(3*INB+1)
-!WFR      NOVLU  = IBLKAD(ISTART)
-
-!WFR!        --- receive next array and store in WORK
-
-!WFR      ITAG  = 2
-!WFR      CALL SWRECVNB ( WORK, NOVLU, SWREAL, IDOM, ITAG )
-!WFR      IF (STPNOW()) RETURN
-
-!WFR!        --- store the received data
-
-!WFR      DO K = 1, NOVLU
-!WFR         FIELD(KGRPNT(IBLKAD(ISTART+NOVLU+K))) = WORK(K)
-!WFR      END DO
-
-!WFR   END DO
-
-!WFR!TIMG   CALL SWTSTO(203)
-
-!WFR   RETURN
-!WFR END
-!WFR!****************************************************************
-!WFR!
-!WFR SUBROUTINE SWRECVAC ( AC2, IS, J, SWPDIR, KGRPNT )
-!WFR!
-!WFR!****************************************************************
-!WFR!
-!WFR   USE OCPCOMM4
-!WFR   USE SWCOMM3
-!WFR   USE M_PARALL
-!WFR!
-!WFR   IMPLICIT NONE
-!WFR!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!WFR!
-!WFR!  0. Authors
-!WFR!
-!WFR!     40.30: Marcel Zijlema
-!WFR!     40.41: Marcel Zijlema
-!WFR!
-!WFR!  1. Updates
-!WFR!
-!WFR!     40.30, Feb. 03: New subroutine
-!WFR!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!WFR!
-!WFR!  2. Purpose
-!WFR!
-!WFR!     Receives action density from neighbouring subdomains
-!WFR!     depending on sweep direction
-!WFR!
-!WFR!  3. Method
-!WFR!
-!WFR!     Use of SWRECVNB and block administration (stored in IBLKAD)
-!WFR!
-!WFR!  4. Argument variables
-!WFR!
-!WFR!     AC2         action density
-!WFR!     IS          start index of J-th row
-!WFR!     J           J-th row
-!WFR!     KGRPNT      indirect addressing for grid points
-!WFR!     SWPDIR      sweep direction
-!WFR!
-!WFR   INTEGER IS, J, SWPDIR
-!WFR   INTEGER KGRPNT(MXC,MYC)
-!WFR   REAL    AC2(MDC,MSC,MCGRD)
-!WFR!
-!WFR!  6. Local variables
-!WFR!
-!WFR!     IDOM  :     subdomain number
-!WFR!     IENT  :     number of entries
-!WFR!     INB   :     neighbour counter
-!WFR!     IPNB  :     position of neighbour (=top, bottom, right, left)
-!WFR!     IPR   :     array containing positions of neighbours from
-!WFR!                 which data is to be received
-!WFR!     ITAG  :     message tag for sending and receiving
-!WFR!     NNEIGH:     number of neighbouring subdomains
-!WFR!     WORK  :     work array to store data to received from neighbour
-!WFR!
-!WFR   INTEGER IDOM, IENT, INB, IPNB, ITAG, NNEIGH
-!WFR   INTEGER IPR(2,4)
-!WFR   REAL    WORK(MDC,MSC)
-!WFR!
-!WFR!  8. Subroutines used
-!WFR!
-!WFR!     STPNOW           Logical indicating whether program must
-!WFR!                      terminated or not
-!WFR!     STRACE           Tracing routine for debugging
-!WFR!     SWRECVNB         Data is received from a neighbour
-!WFR!
-!WFR   LOGICAL STPNOW
-!WFR!
-!WFR!  9. Subroutines calling
-!WFR!
-!WFR!     SWCOMP
-!WFR!
-!WFR! 10. Error messages
-!WFR!
-!WFR!     ---
-!WFR!
-!WFR! 11. Remarks
-!WFR!
-!WFR!     ---
-!WFR!
-!WFR! 12. Structure
-!WFR!
-!WFR!     if not parallel, return
-!WFR!
-!WFR!     for all neighbouring subdomains do
-!WFR!        get position
-!WFR!        if position corresponds to sweep selection
-!WFR!           get subdomain number
-!WFR!           receive next array and store in WORK
-!WFR!           store the received data
-!WFR!
-!WFR! 13. Source text
-!WFR!
-!WFR   SAVE IENT
-!WFR   DATA IENT/0/
-!WFR   IF (LTRACE) CALL STRACE (IENT,'SWRECVAC')
-
-!WFR!     --- if not parallel, return
-!WFR   IF (.NOT.PARLL) RETURN
-
-!WFR   IPR = RESHAPE((/2,4,2,3,1,3,1,4/), (/2,4/))
-
-!WFR   NNEIGH = IBLKAD(1)
-
-!WFR!     --- for all neighbouring subdomains do
-
-!WFR   DO INB = 1, NNEIGH
-
-!WFR!        --- get position
-
-!WFR      IPNB = IBLKAD(3*INB)
-
-!WFR!        --- if position corresponds to sweep selection
-
-!WFR      IF ( IPNB.EQ.IPR(1,SWPDIR) .OR. IPNB.EQ.IPR(2,SWPDIR) ) THEN
-
-!WFR!           --- get subdomain number
-
-!WFR         IDOM   = IBLKAD(3*INB-1)
-
-!WFR!           --- receive next array and store in WORK
-
-!WFR         ITAG  = 2
-!WFR         CALL SWRECVNB ( WORK, MDC*MSC, SWREAL, IDOM, ITAG )
-!WFR         IF (STPNOW()) RETURN
-
-!WFR!           --- store the received data
-
-!WFR         AC2(:,:,KGRPNT(IS,J)) = WORK(:,:)
-
-!WFR      END IF
-
-!WFR   END DO
-
-!WFR   RETURN
-!WFR END
-!WFR!****************************************************************
-!WFR!
-!WFR SUBROUTINE SWSENDAC ( AC2, IE, J, SWPDIR, KGRPNT )
-!WFR!
-!WFR!****************************************************************
-!WFR!
-!WFR   USE OCPCOMM4
-!WFR   USE SWCOMM3
-!WFR   USE M_PARALL
-!WFR!
-!WFR   IMPLICIT NONE
-!WFR!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmer: Marcel Zijlema                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!WFR!
-!WFR!  0. Authors
-!WFR!
-!WFR!     40.30: Marcel Zijlema
-!WFR!     40.41: Marcel Zijlema
-!WFR!
-!WFR!  1. Updates
-!WFR!
-!WFR!     40.30, Feb. 03: New subroutine
-!WFR!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!WFR!
-!WFR!  2. Purpose
-!WFR!
-!WFR!     Sends action density to neighbouring subdomains
-!WFR!     depending on sweep direction
-!WFR!
-!WFR!  3. Method
-!WFR!
-!WFR!     Use of SWSENDNB and block administration (stored in IBLKAD)
-!WFR!
-!WFR!  4. Argument variables
-!WFR!
-!WFR!     AC2         action density
-!WFR!     IE          end index of J-th row
-!WFR!     J           J-th row
-!WFR!     KGRPNT      indirect addressing for grid points
-!WFR!     SWPDIR      sweep direction
-!WFR!
-!WFR   INTEGER IE, J, SWPDIR
-!WFR   INTEGER KGRPNT(MXC,MYC)
-!WFR   REAL    AC2(MDC,MSC,MCGRD)
-!WFR!
-!WFR!  6. Local variables
-!WFR!
-!WFR!     IDOM  :     subdomain number
-!WFR!     IENT  :     number of entries
-!WFR!     INB   :     neighbour counter
-!WFR!     IPNB  :     position of neighbour (=top, bottom, right, left)
-!WFR!     IPS   :     array containing positions of neighbours to
-!WFR!                 which data is to be sent
-!WFR!     ITAG  :     message tag for sending and receiving
-!WFR!     NNEIGH:     number of neighbouring subdomains
-!WFR!     WORK  :     work array to store data to be sent to neighbour
-!WFR!
-!WFR   INTEGER IDOM, IENT, INB, IPNB, ITAG, NNEIGH
-!WFR   INTEGER IPS(2,4)
-!WFR   REAL    WORK(MDC,MSC)
-!WFR!
-!WFR!  8. Subroutines used
-!WFR!
-!WFR!     STPNOW           Logical indicating whether program must
-!WFR!                      terminated or not
-!WFR!     STRACE           Tracing routine for debugging
-!WFR!     SWSENDNB         Data is sent to a neighbour
-!WFR!
-!WFR   LOGICAL STPNOW
-!WFR!
-!WFR!  9. Subroutines calling
-!WFR!
-!WFR!     SWCOMP
-!WFR!
-!WFR! 10. Error messages
-!WFR!
-!WFR!     ---
-!WFR!
-!WFR! 11. Remarks
-!WFR!
-!WFR!     ---
-!WFR!
-!WFR! 12. Structure
-!WFR!
-!WFR!     if not parallel, return
-!WFR!
-!WFR!     for all neighbouring subdomains do
-!WFR!        get position
-!WFR!        if position corresponds to sweep selection
-!WFR!           get subdomain number
-!WFR!           store data to be sent in array WORK
-!WFR!           send array WORK
-!WFR!
-!WFR! 13. Source text
-!WFR!
-!WFR   SAVE IENT
-!WFR   DATA IENT/0/
-!WFR   IF (LTRACE) CALL STRACE (IENT,'SWSENDAC')
-
-!WFR!     --- if not parallel, return
-!WFR   IF (.NOT.PARLL) RETURN
-
-!WFR   IPS = RESHAPE((/1,3,1,4,2,4,2,3/), (/2,4/))
-
-!WFR   NNEIGH = IBLKAD(1)
-
-!WFR!     --- for all neighbouring subdomains do
-
-!WFR   DO INB = 1, NNEIGH
-
-!WFR!        --- get position
-
-!WFR      IPNB = IBLKAD(3*INB)
-
-!WFR!        --- if position corresponds to sweep selection
-
-!WFR      IF ( IPNB.EQ.IPS(1,SWPDIR) .OR. IPNB.EQ.IPS(2,SWPDIR) ) THEN
-
-!WFR!           --- get subdomain number
-
-!WFR         IDOM   = IBLKAD(3*INB-1)
-
-!WFR!           --- store data to be sent in array WORK
-
-!WFR         WORK(:,:) = AC2(:,:,KGRPNT(IE,J))
-
-!WFR!           --- send array WORK
-
-!WFR         ITAG = 2
-!WFR         CALL SWSENDNB ( WORK, MDC*MSC, SWREAL, IDOM, ITAG )
-!WFR         IF (STPNOW()) RETURN
-
-!WFR      END IF
-
-!WFR   END DO
-
-!WFR   RETURN
-!WFR END
+end subroutine SWDECOMP
 !****************************************************************
 !
+SUBROUTINE SWEXCHG_JAC ( FIELD, SWPDIR, KGRPNT )
+!
+!****************************************************************
+!
+   USE swan_service_interfaces, ONLY: STRACE, STPNOW, SWTSTA, SWTSTO
+   USE swan_diagnostics_level
+   USE swan_computational_grid
+   USE M_PARALL
+   USE swan_global_grid
+
+   IMPLICIT NONE
+
+!
+!
+!
+!   --|-----------------------------------------------------------|--
+!     | Delft University of Technology                            |
+!     | Faculty of Civil Engineering and Geosciences              |
+!     | Environmental Fluid Mechanics Section                     |
+!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
+!     |                                                           |
+!     | Programmer: Marcel Zijlema                                |
+!   --|-----------------------------------------------------------|--
+!
+!
+!     SWAN (Simulating WAves Nearshore); a third generation wave model
+!     Copyright (C) 1993-2024  Delft University of Technology
+!
+!     This program is free software: you can redistribute it and/or modify
+!     it under the terms of the GNU General Public License as published by
+!     the Free Software Foundation, either version 3 of the License, or
+!     (at your option) any later version.
+!
+!     This program is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+!     GNU General Public License for more details.
+!
+!     You should have received a copy of the GNU General Public License
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!
+!
+!  0. Authors
+!
+!     40.30: Marcel Zijlema
+!     40.41: Marcel Zijlema
+!
+!  1. Updates
+!
+!     40.30, Feb. 03: New subroutine
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!
+!  2. Purpose
+!
+!     Updates geographical field array through exchanging
+!     values between neighbouring subdomains depending on
+!     sweep direction
+!
+!  3. Method
+!
+!     Made use of MPI by means of SWSENDNB and SWRECVNB
+!     and also block administration (stored in IBLKAD)
+!
+!  4. Argument variables
+!
+!     FIELD       geographical field array for which 'halo' values must
+!                 be copied from neighbouring subdomains
+!     KGRPNT      indirect addressing for grid points
+!     SWPDIR      sweep direction (0=all directions together)
+!
+   INTEGER SWPDIR
+   INTEGER KGRPNT(MXC*MYC)
+   REAL    FIELD(MCGRD)
+!
+!  6. Local variables
+!
+!     IDOM  :     subdomain number
+!     IENT  :     number of entries
+!     INB   :     neighbour counter
+!     IPNB  :     position of neighbour (=top, bottom, right, left)
+!     IPR   :     array containing positions of neighbours from
+!                 which data is to be received
+!     IPS   :     array containing positions of neighbours to
+!                 which data is to be sent
+!     ISTART:     pointer in array IBLKAD
+!     ISWP  :     sweep direction
+!     ITAG  :     message tag for sending and receiving
+!     K     :     loop counter
+!     NNEIGH:     number of neighbouring subdomains
+!     NOVLU :     number of overlapping unknowns
+!     WORK  :     work array to store data to be sent to or
+!                 received from neighbour
+!
+   INTEGER IDOM, INB, IPNB, ISTART, ISWP, ITAG, &
+      K, NNEIGH, NOVLU
+   INTEGER, SAVE :: IENT = 0
+   INTEGER IPR(2,4), IPS(2,4)
+   REAL    WORK(MAX(MXC,MYC))
+!
+!  8. Subroutines used
+!
+!     STPNOW           Logical indicating whether program must
+!                      terminated or not
+!     STRACE           Tracing routine for debugging
+!     SWRECVNB         Data is received from a neighbour
+!     SWSENDNB         Data is sent to a neighbour
+!     SWTSTA           Start timing for a section of code
+!     SWTSTO           Stop timing for a section of code
+!
+!
+!  9. Subroutines calling
+!
+!     SWCOMP
+!
+! 10. Error messages
+!
+!     ---
+!
+! 11. Remarks
+!
+!     ---
+!
+! 12. Structure
+!
+!     if not parallel, return
+!
+!     for all neighbouring subdomains do
+!        get position
+!        if position corresponds to sweep selection
+!           get subdomain number, pointer and size
+!           store data to be sent in array WORK
+!           send array WORK
+!
+!     for all neighbouring subdomains do
+!        get position
+!        if position corresponds to sweep selection
+!           get subdomain number, pointer and size
+!           receive next array and store in WORK
+!           store the received data
+!
+! 13. Source text
+!
+   IF (LTRACE) CALL STRACE (IENT,'SWEXCHG')
+
+!     --- if not parallel, return
+   IF (.NOT.PARLL) RETURN
+
+   IPR = RESHAPE((/2,4,2,3,1,3,1,4/), (/2,4/))
+   IPS = RESHAPE((/1,3,1,4,2,4,2,3/), (/2,4/))
+
+   IF (timing_enabled) CALL SWTSTA(203)
+
+   ISWP = MAX(1,SWPDIR)
+
+   NNEIGH = IBLKAD(1)
+
+!     --- for all neighbouring subdomains do
+
+   DO INB = 1, NNEIGH
+
+!        --- get position
+
+      IPNB = IBLKAD(3*INB)
+
+!        --- if position corresponds to sweep selection
+
+      IF ( SWPDIR.EQ.0 .OR. &
+         IPNB.EQ.IPS(1,ISWP) .OR. IPNB.EQ.IPS(2,ISWP) ) THEN
+
+!           --- get subdomain number, pointer and size
+
+         IDOM   = IBLKAD(3*INB-1)
+         ISTART = IBLKAD(3*INB+1)
+         NOVLU  = IBLKAD(ISTART)
+
+!           --- store data to be sent in array WORK
+
+         DO K = 1, NOVLU
+            WORK(K) = FIELD(KGRPNT(IBLKAD(ISTART+K)))
+         END DO
+
+!           --- send array WORK
+
+         ITAG = 2
+         CALL SWSENDNB ( WORK, NOVLU, IDOM, ITAG )
+         IF (STPNOW()) RETURN
+
+      END IF
+
+   END DO
+
+!     --- for all neighbouring subdomains do
+
+   DO INB = 1, NNEIGH
+
+!        --- get position
+
+      IPNB = IBLKAD(3*INB)
+
+!        --- if position corresponds to sweep selection
+
+      IF ( SWPDIR.EQ.0 .OR. &
+         IPNB.EQ.IPR(1,ISWP) .OR. IPNB.EQ.IPR(2,ISWP) ) THEN
+
+!           --- get subdomain number, pointer and size
+
+         IDOM   = IBLKAD(3*INB-1)
+         ISTART = IBLKAD(3*INB+1)
+         NOVLU  = IBLKAD(ISTART)
+
+!           --- receive next array and store in WORK
+
+         ITAG  = 2
+         CALL SWRECVNB ( WORK, NOVLU, IDOM, ITAG )
+         IF (STPNOW()) RETURN
+
+!           --- store the received data
+
+         DO K = 1, NOVLU
+            FIELD(KGRPNT(IBLKAD(ISTART+NOVLU+K))) = WORK(K)
+         END DO
+
+      END IF
+
+   END DO
+
+   IF (timing_enabled) CALL SWTSTO(203)
+
+   RETURN
+end subroutine SWEXCHG_JAC
+!****************************************************************
+!
+SUBROUTINE SWEXCHG_WFR ( FIELD, KGRPNT )
+!
+!****************************************************************
+!
+   USE swan_service_interfaces, ONLY: STRACE, STPNOW, SWTSTA, SWTSTO
+   USE swan_diagnostics_level
+   USE swan_computational_grid
+   USE M_PARALL
+
+   IMPLICIT NONE
+
+!
+!
+!
+!   --|-----------------------------------------------------------|--
+!     | Delft University of Technology                            |
+!     | Faculty of Civil Engineering and Geosciences              |
+!     | Environmental Fluid Mechanics Section                     |
+!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
+!     |                                                           |
+!     | Programmer: Marcel Zijlema                                |
+!   --|-----------------------------------------------------------|--
+!
+!
+!     SWAN (Simulating WAves Nearshore); a third generation wave model
+!     Copyright (C) 1993-2024  Delft University of Technology
+!
+!     This program is free software: you can redistribute it and/or modify
+!     it under the terms of the GNU General Public License as published by
+!     the Free Software Foundation, either version 3 of the License, or
+!     (at your option) any later version.
+!
+!     This program is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+!     GNU General Public License for more details.
+!
+!     You should have received a copy of the GNU General Public License
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!
+!
+!  0. Authors
+!
+!     40.30: Marcel Zijlema
+!     40.41: Marcel Zijlema
+!
+!  1. Updates
+!
+!     40.30, Feb. 03: New subroutine
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!
+!  2. Purpose
+!
+!     Updates geographical field array through exchanging
+!     values between neighbouring subdomains
+!
+!  3. Method
+!
+!     Made use of MPI by means of SWSENDNB and SWRECVNB
+!     and also block administration (stored in IBLKAD)
+!
+!  4. Argument variables
+!
+!     FIELD       geographical field array for which 'halo' values must
+!                 be copied from neighbouring subdomains
+!     KGRPNT      indirect addressing for grid points
+!
+   INTEGER KGRPNT(MXC*MYC)
+   REAL    FIELD(MCGRD)
+!
+!  6. Local variables
+!
+!     IDOM  :     subdomain number
+!     IENT  :     number of entries
+!     INB   :     neighbour counter
+!     ISTART:     pointer in array IBLKAD
+!     ITAG  :     message tag for sending and receiving
+!     K     :     loop counter
+!     NNEIGH:     number of neighbouring subdomains
+!     NOVLU :     number of overlapping unknowns
+!     WORK  :     work array to store data to be sent to or
+!                 received from neighbour
+!
+   INTEGER IDOM, INB, ISTART, ITAG, K, NNEIGH, NOVLU
+   INTEGER, SAVE :: IENT = 0
+   REAL    WORK(MAX(MXC,MYC))
+!
+!  8. Subroutines used
+!
+!     STPNOW           Logical indicating whether program must
+!                      terminated or not
+!     STRACE           Tracing routine for debugging
+!     SWRECVNB         Data is received from a neighbour
+!     SWSENDNB         Data is sent to a neighbour
+!     SWTSTA           Start timing for a section of code
+!     SWTSTO           Stop timing for a section of code
+!
+!
+!  9. Subroutines calling
+!
+!     ---
+!
+! 10. Error messages
+!
+!     ---
+!
+! 11. Remarks
+!
+!     ---
+!
+! 12. Structure
+!
+!     if not parallel, return
+!
+!     for all neighbouring subdomains do
+!        get subdomain number, pointer and size
+!        store data to be sent in array WORK
+!        send array WORK
+!
+!     for all neighbouring subdomains do
+!        get subdomain number, pointer and size
+!        receive next array and store in WORK
+!        store the received data
+!
+! 13. Source text
+!
+   IF (LTRACE) CALL STRACE (IENT,'SWEXCHG')
+
+!     --- if not parallel, return
+   IF (.NOT.PARLL) RETURN
+
+   IF (timing_enabled) CALL SWTSTA(203)
+
+   NNEIGH = IBLKAD(1)
+
+!     --- for all neighbouring subdomains do
+
+   DO INB = 1, NNEIGH
+
+!        --- get subdomain number, pointer and size
+
+      IDOM   = IBLKAD(3*INB-1)
+      ISTART = IBLKAD(3*INB+1)
+      NOVLU  = IBLKAD(ISTART)
+
+!        --- store data to be sent in array WORK
+
+      DO K = 1, NOVLU
+         WORK(K) = FIELD(KGRPNT(IBLKAD(ISTART+K)))
+      END DO
+
+!        --- send array WORK
+
+      ITAG = 2
+      CALL SWSENDNB ( WORK, NOVLU, IDOM, ITAG )
+      IF (STPNOW()) RETURN
+
+   END DO
+
+!     --- for all neighbouring subdomains do
+
+   DO INB = 1, NNEIGH
+
+!        --- get subdomain number, pointer and size
+
+      IDOM   = IBLKAD(3*INB-1)
+      ISTART = IBLKAD(3*INB+1)
+      NOVLU  = IBLKAD(ISTART)
+
+!        --- receive next array and store in WORK
+
+      ITAG  = 2
+      CALL SWRECVNB ( WORK, NOVLU, IDOM, ITAG )
+      IF (STPNOW()) RETURN
+
+!        --- store the received data
+
+      DO K = 1, NOVLU
+         FIELD(KGRPNT(IBLKAD(ISTART+NOVLU+K))) = WORK(K)
+      END DO
+
+   END DO
+
+   IF (timing_enabled) CALL SWTSTO(203)
+
+   RETURN
+end subroutine SWEXCHG_WFR
+!****************************************************************
+!
+!****************************************************************
+!
+SUBROUTINE SWRECVAC ( AC2, IS, J, SWPDIR, KGRPNT )
+!
+!****************************************************************
+!
+   USE swan_service_interfaces, ONLY: STRACE, STPNOW
+   USE swan_diagnostics_level
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE M_PARALL
+
+   IMPLICIT NONE
+
+!
+!
+!
+!   --|-----------------------------------------------------------|--
+!     | Delft University of Technology                            |
+!     | Faculty of Civil Engineering and Geosciences              |
+!     | Environmental Fluid Mechanics Section                     |
+!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
+!     |                                                           |
+!     | Programmer: Marcel Zijlema                                |
+!   --|-----------------------------------------------------------|--
+!
+!
+!     SWAN (Simulating WAves Nearshore); a third generation wave model
+!     Copyright (C) 1993-2024  Delft University of Technology
+!
+!     This program is free software: you can redistribute it and/or modify
+!     it under the terms of the GNU General Public License as published by
+!     the Free Software Foundation, either version 3 of the License, or
+!     (at your option) any later version.
+!
+!     This program is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+!     GNU General Public License for more details.
+!
+!     You should have received a copy of the GNU General Public License
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!
+!
+!  0. Authors
+!
+!     40.30: Marcel Zijlema
+!     40.41: Marcel Zijlema
+!
+!  1. Updates
+!
+!     40.30, Feb. 03: New subroutine
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!
+!  2. Purpose
+!
+!     Receives action density from neighbouring subdomains
+!     depending on sweep direction
+!
+!  3. Method
+!
+!     Use of SWRECVNB and block administration (stored in IBLKAD)
+!
+!  4. Argument variables
+!
+!     AC2         action density
+!     IS          start index of J-th row
+!     J           J-th row
+!     KGRPNT      indirect addressing for grid points
+!     SWPDIR      sweep direction
+!
+   INTEGER IS, J, SWPDIR
+   INTEGER KGRPNT(MXC,MYC)
+   REAL    AC2(MDC,MSC,MCGRD)
+!
+!  6. Local variables
+!
+!     IDOM  :     subdomain number
+!     IENT  :     number of entries
+!     INB   :     neighbour counter
+!     IPNB  :     position of neighbour (=top, bottom, right, left)
+!     IPR   :     array containing positions of neighbours from
+!                 which data is to be received
+!     ITAG  :     message tag for sending and receiving
+!     NNEIGH:     number of neighbouring subdomains
+!     WORK  :     work array to store data to received from neighbour
+!
+   INTEGER IDOM, INB, IPNB, ITAG, NNEIGH
+   INTEGER, SAVE :: IENT = 0
+   INTEGER IPR(2,4)
+   REAL    WORK(MDC,MSC)
+!
+!  8. Subroutines used
+!
+!     STPNOW           Logical indicating whether program must
+!                      terminated or not
+!     STRACE           Tracing routine for debugging
+!     SWRECVNB         Data is received from a neighbour
+!
+!
+!  9. Subroutines calling
+!
+!     SWCOMP
+!
+! 10. Error messages
+!
+!     ---
+!
+! 11. Remarks
+!
+!     ---
+!
+! 12. Structure
+!
+!     if not parallel, return
+!
+!     for all neighbouring subdomains do
+!        get position
+!        if position corresponds to sweep selection
+!           get subdomain number
+!           receive next array and store in WORK
+!           store the received data
+!
+! 13. Source text
+!
+   IF (LTRACE) CALL STRACE (IENT,'SWRECVAC')
+
+!     --- if not parallel, return
+   IF (.NOT.PARLL) RETURN
+
+   IPR = RESHAPE((/2,4,2,3,1,3,1,4/), (/2,4/))
+
+   NNEIGH = IBLKAD(1)
+
+!     --- for all neighbouring subdomains do
+
+   DO INB = 1, NNEIGH
+
+!        --- get position
+
+      IPNB = IBLKAD(3*INB)
+
+!        --- if position corresponds to sweep selection
+
+      IF ( IPNB.EQ.IPR(1,SWPDIR) .OR. IPNB.EQ.IPR(2,SWPDIR) ) THEN
+
+!           --- get subdomain number
+
+         IDOM   = IBLKAD(3*INB-1)
+
+!           --- receive next array and store in WORK
+
+         ITAG  = 2
+         CALL SWRECVNB ( WORK, MDC*MSC, IDOM, ITAG )
+         IF (STPNOW()) RETURN
+
+!           --- store the received data
+
+         AC2(:,:,KGRPNT(IS,J)) = WORK(:,:)
+
+      END IF
+
+   END DO
+
+   RETURN
+end subroutine SWRECVAC
+!****************************************************************
+!
+SUBROUTINE SWSENDAC ( AC2, IE, J, SWPDIR, KGRPNT )
+!
+!****************************************************************
+!
+   USE swan_service_interfaces, ONLY: STRACE, STPNOW
+   USE swan_diagnostics_level
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE M_PARALL
+
+   IMPLICIT NONE
+
+!
+!
+!
+!   --|-----------------------------------------------------------|--
+!     | Delft University of Technology                            |
+!     | Faculty of Civil Engineering and Geosciences              |
+!     | Environmental Fluid Mechanics Section                     |
+!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
+!     |                                                           |
+!     | Programmer: Marcel Zijlema                                |
+!   --|-----------------------------------------------------------|--
+!
+!
+!     SWAN (Simulating WAves Nearshore); a third generation wave model
+!     Copyright (C) 1993-2024  Delft University of Technology
+!
+!     This program is free software: you can redistribute it and/or modify
+!     it under the terms of the GNU General Public License as published by
+!     the Free Software Foundation, either version 3 of the License, or
+!     (at your option) any later version.
+!
+!     This program is distributed in the hope that it will be useful,
+!     but WITHOUT ANY WARRANTY; without even the implied warranty of
+!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+!     GNU General Public License for more details.
+!
+!     You should have received a copy of the GNU General Public License
+!     along with this program. If not, see <http://www.gnu.org/licenses/>.
+!
+!
+!  0. Authors
+!
+!     40.30: Marcel Zijlema
+!     40.41: Marcel Zijlema
+!
+!  1. Updates
+!
+!     40.30, Feb. 03: New subroutine
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!
+!  2. Purpose
+!
+!     Sends action density to neighbouring subdomains
+!     depending on sweep direction
+!
+!  3. Method
+!
+!     Use of SWSENDNB and block administration (stored in IBLKAD)
+!
+!  4. Argument variables
+!
+!     AC2         action density
+!     IE          end index of J-th row
+!     J           J-th row
+!     KGRPNT      indirect addressing for grid points
+!     SWPDIR      sweep direction
+!
+   INTEGER IE, J, SWPDIR
+   INTEGER KGRPNT(MXC,MYC)
+   REAL    AC2(MDC,MSC,MCGRD)
+!
+!  6. Local variables
+!
+!     IDOM  :     subdomain number
+!     IENT  :     number of entries
+!     INB   :     neighbour counter
+!     IPNB  :     position of neighbour (=top, bottom, right, left)
+!     IPS   :     array containing positions of neighbours to
+!                 which data is to be sent
+!     ITAG  :     message tag for sending and receiving
+!     NNEIGH:     number of neighbouring subdomains
+!     WORK  :     work array to store data to be sent to neighbour
+!
+   INTEGER IDOM, INB, IPNB, ITAG, NNEIGH
+   INTEGER, SAVE :: IENT = 0
+   INTEGER IPS(2,4)
+   REAL    WORK(MDC,MSC)
+!
+!  8. Subroutines used
+!
+!     STPNOW           Logical indicating whether program must
+!                      terminated or not
+!     STRACE           Tracing routine for debugging
+!     SWSENDNB         Data is sent to a neighbour
+!
+!
+!  9. Subroutines calling
+!
+!     SWCOMP
+!
+! 10. Error messages
+!
+!     ---
+!
+! 11. Remarks
+!
+!     ---
+!
+! 12. Structure
+!
+!     if not parallel, return
+!
+!     for all neighbouring subdomains do
+!        get position
+!        if position corresponds to sweep selection
+!           get subdomain number
+!           store data to be sent in array WORK
+!           send array WORK
+!
+! 13. Source text
+!
+   IF (LTRACE) CALL STRACE (IENT,'SWSENDAC')
+
+!     --- if not parallel, return
+   IF (.NOT.PARLL) RETURN
+
+   IPS = RESHAPE((/1,3,1,4,2,4,2,3/), (/2,4/))
+
+   NNEIGH = IBLKAD(1)
+
+!     --- for all neighbouring subdomains do
+
+   DO INB = 1, NNEIGH
+
+!        --- get position
+
+      IPNB = IBLKAD(3*INB)
+
+!        --- if position corresponds to sweep selection
+
+      IF ( IPNB.EQ.IPS(1,SWPDIR) .OR. IPNB.EQ.IPS(2,SWPDIR) ) THEN
+
+!           --- get subdomain number
+
+         IDOM   = IBLKAD(3*INB-1)
+
+!           --- store data to be sent in array WORK
+
+         WORK(:,:) = AC2(:,:,KGRPNT(IE,J))
+
+!           --- send array WORK
+
+         ITAG = 2
+         CALL SWSENDNB ( WORK, MDC*MSC, IDOM, ITAG )
+         IF (STPNOW()) RETURN
+
+      END IF
+
+   END DO
+
+   RETURN
+end subroutine SWSENDAC
+!****************************************************************
+
 SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
-!
+
 !****************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM3
+
+   USE swan_service_interfaces, ONLY: STRACE, STPNOW
+   USE swan_diagnostics_level
+   USE swan_computational_grid
    USE M_GENARR
    USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
+   USE swan_global_grid
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -3622,10 +2669,10 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
 !     FIELDGL     global geographical field array gathered from all nodes
 !     FULL        if true, full arrays are handled otherwise 1-D compact
 !                 arrays are handled
-!
+
    REAL    FIELD(*), FIELDGL(*)
    LOGICAL FULL
-!
+
 !  6. Local variables
 !
 !     FLDC  :     auxiliary array for collecting data
@@ -3647,23 +2694,22 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
 !     MXLGL :     last index w.r.t. global grid in x-direction
 !     MYFGL :     first index w.r.t. global grid in y-direction
 !     MYLGL :     last index w.r.t. global grid in y-direction
-!
-   INTEGER IENT, ILEN, ILEN2, INDX, INDXC, IOFF1, IOFF2, IP, IX, IY, &
-           MXFGL, MXLGL, MYFGL, MYLGL
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER ILEN, ILEN2, INDX, INDXC, IOFF1, IOFF2, IP, IX, IY, &
+      MXFGL, MXLGL, MYFGL, MYLGL
    INTEGER IARRL(5), IARRC(5,0:NPROC-1)
 
    INTEGER, ALLOCATABLE :: KGRPTC(:)
    REAL,    ALLOCATABLE :: FLDC(:)
-!
+
 !  8. Subroutines used
 !
 !     STPNOW           Logical indicating whether program must
 !                      terminated or not
 !     STRACE           Tracing routine for debugging
 !     SWGATHER         Gathers different amounts of data from all nodes
-!
-   LOGICAL STPNOW
-!
+
 !  9. Subroutines calling
 !
 !     ---
@@ -3685,9 +2731,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
 !        copy gathered data to global array in appropriate manner
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWCOLLECT')
 
    IF (.NOT.PARLL) THEN
@@ -3713,16 +2757,16 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
       IARRL(3) = MYF
       IARRL(4) = MYL
       IARRL(5) = MCGRD
-      CALL SWGATHER (IARRC, 5*NPROC, IARRL, 5, SWINT )
+      CALL SWGATHER (IARRC, 5*NPROC, IARRL, 5 )
       IF (STPNOW()) RETURN
 
       IF (.NOT.FULL) THEN
          IF (IAMMASTER) THEN
             ILEN = MXCGL*MYCGL + &
-                          4*MAX(IHALOX,IHALOY)*NPROC*MAX(MXCGL,MYCGL)
+               4*MAX(IHALOX,IHALOY)*NPROC*MAX(MXCGL,MYCGL)
             ALLOCATE(KGRPTC(ILEN))
          END IF
-         CALL SWGATHER ( KGRPTC, ILEN, KGRPNT, MXC*MYC, SWINT )
+         CALL SWGATHER ( KGRPTC, ILEN, KGRPNT, MXC*MYC )
          IF (STPNOW()) RETURN
       ELSE
          IF (IAMMASTER) ALLOCATE(KGRPTC(0))
@@ -3731,10 +2775,10 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
       IF (IAMMASTER) THEN
          IF (FULL) THEN
             ILEN = MXCGL*MYCGL + &
-                          4*MAX(IHALOX,IHALOY)*NPROC*MAX(MXCGL,MYCGL)
+               4*MAX(IHALOX,IHALOY)*NPROC*MAX(MXCGL,MYCGL)
          ELSE
             ILEN = MCGRDGL + &
-                          4*MAX(IHALOX,IHALOY)*NPROC*MAX(MXCGL,MYCGL)
+               4*MAX(IHALOX,IHALOY)*NPROC*MAX(MXCGL,MYCGL)
          END IF
          ALLOCATE(FLDC(ILEN))
       END IF
@@ -3743,7 +2787,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
       ELSE
          ILEN2 = MCGRD
       END IF
-      CALL SWGATHER ( FLDC, ILEN, FIELD, ILEN2, SWREAL )
+      CALL SWGATHER ( FLDC, ILEN, FIELD, ILEN2 )
       IF (STPNOW()) RETURN
 
 !        --- copy gathered data to global array in appropriate manner
@@ -3805,7 +2849,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
                   DO IY = MYFGL, MYLGL
                      INDX  = (IY-1)*MXCGL+IX
                      INDXC = (IY-IARRC(3,IP))*ILEN+IX &
-                                -IARRC(1,IP)+1+IOFF2
+                        -IARRC(1,IP)+1+IOFF2
                      FIELDGL(INDX)= FLDC(INDXC)
                   END DO
                END DO
@@ -3814,7 +2858,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
                   DO IY = MYFGL, MYLGL
                      INDX  = KGRPGL(IX,IY)
                      INDXC = KGRPTC((IY-IARRC(3,IP))*ILEN+IX &
-                                       -IARRC(1,IP)+1+IOFF2)
+                        -IARRC(1,IP)+1+IOFF2)
                      FIELDGL(INDX) = FLDC(INDXC+IOFF1)
                   END DO
                END DO
@@ -3822,7 +2866,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
 
             IOFF1 = IOFF1 + IARRC(5,IP)
             IOFF2 = IOFF2 + (IARRC(2,IP)-IARRC(1,IP)+1)* &
-                            (IARRC(4,IP)-IARRC(3,IP)+1)
+               (IARRC(4,IP)-IARRC(3,IP)+1)
 
          END DO
 
@@ -3833,25 +2877,31 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
    END IF
 
    RETURN
-END
+end subroutine SWCOLLECT
 !****************************************************************
-!
+
 SUBROUTINE SWCOLOUT ( OURQT, BLKND )
-!
+
 !****************************************************************
-!
-   USE TIMECOMM
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
+
+   USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
+   USE swan_output_orchestration, ONLY: SWOEXC
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL, STPNOW
+   USE swan_time, ONLY: default_time_context
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_time
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_numerics
+   USE swan_computational_grid
    USE OUTP_DATA
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata, ONLY: nvertsg
-!
-   IMPLICIT NONE
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -3909,10 +2959,10 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
 !     BLKND       collected array giving node number per subdomain        40.41
 !     OURQT       array indicating at what time requested output          40.51
 !                 is processed                                            40.51
-!
+
    REAL    BLKND(MXCGL,MYCGL)
-   REAL*8  OURQT(MAX_OUTP_REQ)
-!
+   REAL(KIND=KIND(0.0D0))  OURQT(MAX_OUTP_REQ)
+
 !  6. Local variables
 !
 !     CORQ  :     current item in list of request outputs
@@ -3953,20 +3003,24 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
 !     XP    :     user x-coordinate of output point
 !     YC    :     computational grid y-coordinate of output point
 !     YP    :     user y-coordinate of output point
-!
-   INTEGER   IC, IENT, IP, IRQ, IT, IT0, IT1, IUNIT, MIP, MXK, MYK
+
+   CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   IC, IP, IRQ, IT, IT0, IT1, IUNIT, MIP, MXK, MYK
    INTEGER   ITMP1, ITMP2, ITMP3, ITMP4, ITMP5, ITMP6
    INTEGER   ILPOS, IPROC
-   REAL*8    DIF, TNEXT
+   REAL(KIND=KIND(0.0D0))    DIF, TNEXT
    REAL      RTMP1, RTMP2, RTMP3, RTMP4
    REAL, ALLOCATABLE :: XC(:), YC(:), XP(:), YP(:)
    LOGICAL   OPENED
    LOGICAL   EXIST
    LOGICAL, ALLOCATABLE :: CROSS(:,:)
-   CHARACTER PSTYPE*1, RTYPE*4, SNAMPF*8, DTTIWR*18
+   CHARACTER(LEN=1)  :: PSTYPE
+   CHARACTER(LEN=4)  :: RTYPE
+   CHARACTER(LEN=8)  :: SNAMPF
    TYPE(ORQDAT), POINTER :: CORQ
    TYPE(OPSDAT), POINTER :: CUOPS
-!
+
 !  8. Subroutines used
 !
 !     EQREAL           Logical comparing two reals
@@ -3977,9 +3031,7 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
 !     SWCOLSPC         Collects spectral output
 !     SWCOLTAB         Collects table ouput
 !     SWOEXC           Computes coordinates of output points              40.51
-!
-   LOGICAL   EQREAL, STPNOW
-!
+
 !  9. Subroutines calling
 !
 !     SWMAIN
@@ -4007,9 +3059,7 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
 !     close all files and delete process files
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWCOLOUT')
 
    IF ( NREOQ.EQ.0 ) RETURN
@@ -4025,226 +3075,227 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
          IT0 = 1
       END IF
       IT1   = NINT(RCOMPT(IC,2))
-      TFINC = RCOMPT(IC,3)
-      TINIC = RCOMPT(IC,4)
-      DT    = RCOMPT(IC,5)
-      TIMCO = TINIC
+      default_time_context%TFINC = RCOMPT(IC,3)
+      default_time_context%TINIC = RCOMPT(IC,4)
+      default_time_context%DT    = RCOMPT(IC,5)
+      default_time_context%TIMCO = default_time_context%TINIC
 
 !        --- do for all time steps
 
       DO IT = IT0, IT1
 
-         IF (NSTATM.GT.0) CHTIME = DTTIWR(ITMOPT, TIMCO)
+         IF (NSTATM.GT.0) CHTIME = DTTIWR(ITMOPT, default_time_context%TIMCO)
 
 !           --- do for all output requests
 
          CORQ => FORQ
-         DO 100 IRQ = 1, NREOQ
+         output_request_loop: do IRQ = 1, NREOQ
+            request_processing: do
 
 !              --- processing of output instructions necessary
 !                  for collection
-
+!
 !              --- check time of output action
 
-            DIF = TFINC - TIMCO
-            IF ( IT.EQ.IT0 .AND. IC.EQ.1 ) THEN
-               CORQ%OQR(1) = OURQT(IRQ)
-            END IF
-            IF (CORQ%OQR(1).LT.TINIC) THEN
-               TNEXT = TINIC
-            ELSE
-               TNEXT = CORQ%OQR(1)
-            ENDIF
-            IF ( ABS(DIF).LT.0.5*DT .AND. CORQ%OQR(2).LT.0. ) THEN
-               CORQ%OQR(1) = TIMCO
-            ELSE IF ( CORQ%OQR(2).GT.0. .AND. TIMCO.GE.TNEXT ) THEN
-               CORQ%OQR(1) = TNEXT + CORQ%OQR(2)
-            ELSE
-               GOTO 50
-            END IF
+               DIF = default_time_context%TFINC - default_time_context%TIMCO
+               IF ( IT.EQ.IT0 .AND. IC.EQ.1 ) THEN
+                  CORQ%OQR(1) = OURQT(IRQ)
+               END IF
+               IF (CORQ%OQR(1).LT.default_time_context%TINIC) THEN
+                  TNEXT = default_time_context%TINIC
+               ELSE
+                  TNEXT = CORQ%OQR(1)
+               ENDIF
+               IF ( ABS(DIF).LT.0.5*default_time_context%DT .AND. CORQ%OQR(2).LT.0. ) THEN
+                  CORQ%OQR(1) = default_time_context%TIMCO
+               ELSE IF ( CORQ%OQR(2).GT.0. .AND. default_time_context%TIMCO.GE.TNEXT ) THEN
+                  CORQ%OQR(1) = TNEXT + CORQ%OQR(2)
+               ELSE
+                  EXIT request_processing
+               END IF
 
-            RTYPE  = CORQ%RQTYPE
-            IF (RTYPE.EQ.'BLKV') GOTO 50 ! note: no collection VTK files
-            SNAMPF = CORQ%PSNAME
+               RTYPE  = CORQ%RQTYPE
+               IF (RTYPE.EQ.'BLKV') EXIT request_processing ! no collection for VTK files
+               SNAMPF = CORQ%PSNAME
 
-            IF (SNAMPF.EQ.'COMPGRID') THEN
-               LCOMPGRD=.TRUE.
-            ELSE
-               LCOMPGRD=.FALSE.
-            ENDIF
+               IF (SNAMPF.EQ.'COMPGRID') THEN
+                  LCOMPGRD=.TRUE.
+               ELSE
+                  LCOMPGRD=.FALSE.
+               ENDIF
 
-            CUOPS => FOPS
-            DO
-               IF (CUOPS%PSNAME.EQ.SNAMPF) EXIT
-               IF (.NOT.ASSOCIATED(CUOPS%NEXTOPS)) GOTO 50
-               CUOPS => CUOPS%NEXTOPS
-            END DO
-            PSTYPE = CUOPS%PSTYPE
+               CUOPS => FOPS
+               DO
+                  IF (CUOPS%PSNAME.EQ.SNAMPF) EXIT
+                  IF (.NOT.ASSOCIATED(CUOPS%NEXTOPS)) EXIT request_processing
+                  CUOPS => CUOPS%NEXTOPS
+               END DO
+               PSTYPE = CUOPS%PSTYPE
 
-            IF ( PSTYPE.EQ.'F' .OR. PSTYPE.EQ.'H' ) THEN
-               MXK = CUOPS%OPI(1)
-               MYK = CUOPS%OPI(2)
-               MIP = MXK * MYK
-            ELSE IF ( PSTYPE.EQ.'C' .OR. PSTYPE.EQ.'P' .OR. &
-                      PSTYPE.EQ.'N' ) THEN
-               MXK = 0
-               MYK = 0
-               MIP = CUOPS%MIP
-            ELSE IF ( PSTYPE.EQ.'U' ) THEN
-               MIP = CUOPS%MIP
-               IF ( LCOMPGRD ) MIP = nvertsg
-               MXK = MIP
-               MYK = 1
-            END IF
+               IF ( PSTYPE.EQ.'F' .OR. PSTYPE.EQ.'H' ) THEN
+                  MXK = CUOPS%OPI(1)
+                  MYK = CUOPS%OPI(2)
+                  MIP = MXK * MYK
+               ELSE IF ( PSTYPE.EQ.'C' .OR. PSTYPE.EQ.'P' .OR. &
+                  PSTYPE.EQ.'N' ) THEN
+                  MXK = 0
+                  MYK = 0
+                  MIP = CUOPS%MIP
+               ELSE IF ( PSTYPE.EQ.'U' ) THEN
+                  MIP = CUOPS%MIP
+                  IF ( LCOMPGRD ) MIP = nvertsg
+                  MXK = MIP
+                  MYK = 1
+               END IF
 
-            IF (.NOT.ALLOCATED(XC)) ALLOCATE(XC(MIP))
-            IF (.NOT.ALLOCATED(YC)) ALLOCATE(YC(MIP))
-            IF (.NOT.ALLOCATED(XP)) ALLOCATE(XP(MIP))
-            IF (.NOT.ALLOCATED(YP)) ALLOCATE(YP(MIP))
-            IF (.NOT.ALLOCATED(CROSS)) ALLOCATE(CROSS(4,MIP))
+               IF (.NOT.ALLOCATED(XC)) ALLOCATE(XC(MIP))
+               IF (.NOT.ALLOCATED(YC)) ALLOCATE(YC(MIP))
+               IF (.NOT.ALLOCATED(XP)) ALLOCATE(XP(MIP))
+               IF (.NOT.ALLOCATED(YP)) ALLOCATE(YP(MIP))
+               IF (.NOT.ALLOCATED(CROSS)) ALLOCATE(CROSS(4,MIP))
 
 !              --- compute coordinates of output points                   40.51
 
-            ITMP1  = MXC
-            ITMP2  = MYC
-            ITMP3  = MCGRD
-            ITMP4  = NGRBND
-            ITMP5  = MXF
-            ITMP6  = MYF
-            RTMP1  = XCLMIN
-            RTMP2  = XCLMAX
-            RTMP3  = YCLMIN
-            RTMP4  = YCLMAX
-            MXC    = MXCGL
-            MYC    = MYCGL
-            MCGRD  = MCGRDGL
-            NGRBND = NGRBGL
-            MXF    = 1
-            MYF    = 1
-            XCLMIN = XCGMIN
-            XCLMAX = XCGMAX
-            YCLMIN = YCGMIN
-            YCLMAX = YCGMAX
-            CALL SWOEXC (PSTYPE              , &
-                         CUOPS%OPI           ,CUOPS%OPR           , &
-                         CUOPS%XP            ,CUOPS%YP            , &
-                         MIP                 ,XP                  , &
-                         YP                  ,XC                  , &
-                         YC                  ,KGRPGL              , &
-                         XGRDGL              ,YGRDGL              , &
-                         CROSS               )
-            MXC    = ITMP1
-            MYC    = ITMP2
-            MCGRD  = ITMP3
-            NGRBND = ITMP4
-            MXF    = ITMP5
-            MYF    = ITMP6
-            XCLMIN = RTMP1
-            XCLMAX = RTMP2
-            YCLMIN = RTMP3
-            YCLMAX = RTMP4
+               ITMP1  = MXC
+               ITMP2  = MYC
+               ITMP3  = MCGRD
+               ITMP4  = NGRBND
+               ITMP5  = MXF
+               ITMP6  = MYF
+               RTMP1  = XCLMIN
+               RTMP2  = XCLMAX
+               RTMP3  = YCLMIN
+               RTMP4  = YCLMAX
+               MXC    = MXCGL
+               MYC    = MYCGL
+               MCGRD  = MCGRDGL
+               NGRBND = NGRBGL
+               MXF    = 1
+               MYF    = 1
+               XCLMIN = XCGMIN
+               XCLMAX = XCGMAX
+               YCLMIN = YCGMIN
+               YCLMAX = YCGMAX
+               CALL SWOEXC (PSTYPE              , &
+                  CUOPS%OPI           ,CUOPS%OPR           , &
+                  CUOPS%XP            ,CUOPS%YP            , &
+                  MIP                 ,XP                  , &
+                  YP                  ,XC                  , &
+                  YC                  ,KGRPGL              , &
+                  XGRDGL              ,YGRDGL              , &
+                  CROSS               )
+               MXC    = ITMP1
+               MYC    = ITMP2
+               MCGRD  = ITMP3
+               NGRBND = ITMP4
+               MXF    = ITMP5
+               MYF    = ITMP6
+               XCLMIN = RTMP1
+               XCLMAX = RTMP2
+               YCLMIN = RTMP3
+               YCLMAX = RTMP4
 
 !              --- find global vertex index for output locations
 !                  in unstructured mesh and stored in array XC
 
-            IF ( OPTG.EQ.5 .AND. .NOT.LCOMPGRD ) THEN
-               XC = -1.
-               YC =  0.
-               FILENM = 'output.set'
-               ILPOS = INDEX ( FILENM, ' ' )-1
-               DO IPROC = 1, NPROC
+               IF ( OPTG.EQ.5 .AND. .NOT.LCOMPGRD ) THEN
+                  XC = -1.
+                  YC =  0.
+                  FILENM = 'output.set'
+                  ILPOS = INDEX ( FILENM, ' ' )-1
+                  DO IPROC = 1, NPROC
 !                    append node number to FILENM
-                  WRITE(FILENM(ILPOS+1:ILPOS+4),33) IPROC
-33                FORMAT('-',I3.3)
-                  IUNIT = HIOPEN+NREOQ*(NPROC+1)+IPROC
-                  INQUIRE ( FILE=FILENM, EXIST=EXIST, OPENED=OPENED )
-                  IF ( .NOT.OPENED ) THEN
-                     IF (EXIST) THEN
-                        OPEN ( UNIT=IUNIT, FILE=FILENM, &
-                               FORM='UNFORMATTED' )
+                     WRITE(FILENM(ILPOS+1:ILPOS+4),"('-',I3.3)") IPROC
+                     IUNIT = HIOPEN+NREOQ*(NPROC+1)+IPROC
+                     INQUIRE ( FILE=FILENM, EXIST=EXIST, OPENED=OPENED )
+                     IF ( .NOT.OPENED ) THEN
+                        IF (EXIST) THEN
+                           OPEN ( UNIT=IUNIT, FILE=FILENM, &
+                              FORM='UNFORMATTED' )
+                        ELSE
+                           CALL MSGERR( 4, &
+                              'file '//trim(FILENM)//' does not exist' )
+                           RETURN
+                        ENDIF
+                     ENDIF
+                     READ(IUNIT) ITMP1, ITMP2
+                     IF (ITMP1.EQ.IRQ) THEN
+                        DO IP = 1, ITMP2
+                           READ (IUNIT) ITMP3, ITMP4
+                           XC(ITMP3) = REAL(ITMP4) - 1.
+                        ENDDO
                      ELSE
                         CALL MSGERR( 4, &
-                           'file '//trim(FILENM)//' does not exist' )
+                           'inconsistency found in SWCOLOUT: wrong request number ' )
                         RETURN
                      ENDIF
-                  ENDIF
-                  READ(IUNIT) ITMP1, ITMP2
-                  IF (ITMP1.EQ.IRQ) THEN
-                     DO IP = 1, ITMP2
-                        READ (IUNIT) ITMP3, ITMP4
-                        XC(ITMP3) = REAL(ITMP4) - 1.
-                     ENDDO
-                  ELSE
-                     CALL MSGERR( 4, &
-                        'inconsistency found in SWCOLOUT: wrong request number ' )
-                     RETURN
-                  ENDIF
-               ENDDO
-            ELSE IF ( OPTG.EQ.5 ) THEN
-               DO IP = 1, MIP
-                  XC(IP) = REAL(IP) - 1.
-                  YC(IP) = 0.
-               ENDDO
-            ENDIF
+                  ENDDO
+               ELSE IF ( OPTG.EQ.5 ) THEN
+                  DO IP = 1, MIP
+                     XC(IP) = REAL(IP) - 1.
+                     YC(IP) = 0.
+                  ENDDO
+               ENDIF
 
 !              --- correct problem coordinates with offset values
 
-            DO IP = 1, MIP
-               RTMP1 = XP(IP)
-               RTMP2 = YP(IP)
-               IF (.NOT.EQREAL(RTMP1,OVEXCV(1))) XP(IP)=RTMP1+XOFFS
-               IF (.NOT.EQREAL(RTMP2,OVEXCV(2))) YP(IP)=RTMP2+YOFFS
-            END DO
+               DO IP = 1, MIP
+                  RTMP1 = XP(IP)
+                  RTMP2 = YP(IP)
+                  IF (.NOT.EQREAL(RTMP1,OVEXCV(1))) XP(IP)=RTMP1+XOFFS
+                  IF (.NOT.EQREAL(RTMP2,OVEXCV(2))) YP(IP)=RTMP2+YOFFS
+               END DO
 
 !              --- rewrite table output by means of collection of
 !                  output locations
 
-            IF ( RTYPE(1:3).EQ.'TAB' ) THEN
-!NCF               IF ( RTYPE.EQ.'TABC') THEN
-!NCF!                 --- use "block" intermediate file facility to pass data between cores
-!NCF                  CALL SWCOLBLK ( RTYPE, CORQ%OQI, CORQ%OQR, CORQ%IVTYP, &
-!NCF                                  CORQ%FAC, SNAMPF, MIP, 1, IRQ, &
-!NCF                                  BLKND, XC, YC )
-!NCF                  IF (STPNOW()) RETURN
-!NCF               ELSE
-                  CALL SWCOLTAB ( RTYPE, CORQ%OQI, CORQ%IVTYP, MIP, IRQ, &
-                                  BLKND, XC, YC, XP, YP )
-                  IF (STPNOW()) RETURN
-!NCF               ENDIF
-            END IF
+               IF ( RTYPE(1:3).EQ.'TAB' ) THEN
+                  IF ( RTYPE.EQ.'TABC') THEN
+!                 --- use "block" intermediate file facility to pass dat
+                     CALL SWCOLBLK ( RTYPE, CORQ%OQI, CORQ%OQR, CORQ%IVTYP, &
+                        CORQ%FAC, SNAMPF, MIP, 1, IRQ, &
+                        BLKND, XC, YC )
+                     IF (STPNOW()) RETURN
+                  ELSE
+                     CALL SWCOLTAB ( RTYPE, CORQ%OQI, CORQ%IVTYP, MIP, IRQ, &
+                        BLKND, XC, YC, XP, YP )
+                     IF (STPNOW()) RETURN
+                  ENDIF
+               END IF
 
 !              --- rewrite spectral output by means of collection of
 !                  output locations
 
-            IF ( RTYPE(1:2).EQ.'SP' ) THEN
-               CALL SWCOLSPC ( RTYPE, CORQ%OQI, CORQ%OQR, MIP, &
-                               IRQ  , BLKND   , XC      , YC )
-               IF (STPNOW()) RETURN
-            END IF
+               IF ( RTYPE(1:2).EQ.'SP' ) THEN
+                  CALL SWCOLSPC ( RTYPE, CORQ%OQI, CORQ%OQR, MIP, &
+                     IRQ  , BLKND   , XC      , YC )
+                  IF (STPNOW()) RETURN
+               END IF
 
 !              --- rewrite block output by means of collection of process
 !                  output data
 
-            IF ( RTYPE(1:3).EQ.'BLK' ) THEN
-               CALL SWCOLBLK ( RTYPE, CORQ%OQI, CORQ%OQR, CORQ%IVTYP, &
-                               CORQ%FAC, SNAMPF, MXK, MYK, IRQ, &
-                               BLKND, XC, YC )
-               IF (STPNOW()) RETURN
-            END IF
+               IF ( RTYPE(1:3).EQ.'BLK' ) THEN
+                  CALL SWCOLBLK ( RTYPE, CORQ%OQI, CORQ%OQR, CORQ%IVTYP, &
+                     CORQ%FAC, SNAMPF, MXK, MYK, IRQ, &
+                     BLKND, XC, YC )
+                  IF (STPNOW()) RETURN
+               END IF
 
-            IF (ALLOCATED(XP)) DEALLOCATE(XP)
-            IF (ALLOCATED(YP)) DEALLOCATE(YP)
-            IF (ALLOCATED(XC)) DEALLOCATE(XC)
-            IF (ALLOCATED(YC)) DEALLOCATE(YC)
+               IF (ALLOCATED(XP)) DEALLOCATE(XP)
+               IF (ALLOCATED(YP)) DEALLOCATE(YP)
+               IF (ALLOCATED(XC)) DEALLOCATE(XC)
+               IF (ALLOCATED(YC)) DEALLOCATE(YC)
 
-            IF (ALLOCATED(CROSS)) DEALLOCATE(CROSS)
+               IF (ALLOCATED(CROSS)) DEALLOCATE(CROSS)
 
-50          CONTINUE
+               EXIT request_processing
+            end do request_processing
             CORQ => CORQ%NEXTORQ
 
-100      CONTINUE
+         end do output_request_loop
 
-         IF ( NSTATC.EQ.1.AND.IT.LT.IT1 ) TIMCO = TIMCO + DT
+         IF ( NSTATC.EQ.1.AND.IT.LT.IT1 ) default_time_context%TIMCO = default_time_context%TIMCO + default_time_context%DT
 
       END DO
 
@@ -4262,25 +3313,25 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
    END DO
 
    RETURN
-END
+end subroutine SWCOLOUT
 !****************************************************************
-!
+
 SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND, &
-                      XC   , YC , XP   , YP )
-!
+   XC   , YC , XP   , YP )
+
 !****************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2, ONLY: OPTG
-   USE SWCOMM3
-   USE SWCOMM4
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, EQREAL
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind, ONLY: OPTG
+   USE swan_numerics
    USE OUTP_DATA
    USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
+   USE swan_global_grid
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -4332,7 +3383,7 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND, &
 !
 !  4. Argument variables
 !
-!     BLKND       collected array giving node number per subdomain
+!     BLKND       collected array giving node number per subdomain        40.41
 !     IRQ         request number
 !     IVTYP       type of variable output
 !     MIP         total number of output points
@@ -4342,11 +3393,11 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND, &
 !     XP          user x-coordinate of output point
 !     YC          computational grid y-coordinate of output point
 !     YP          user y-coordinate of output point
-!
+
    INTEGER   IRQ, MIP, OQI(4), IVTYP(OQI(3))
    REAL      BLKND(MXCGL,MYCGL), XC(MIP), YC(MIP), XP(MIP), YP(MIP)
-   CHARACTER RTYPE*4
-!
+   CHARACTER(LEN=4) :: RTYPE
+
 !  6. Local variables
 !
 !     EQREAL:     logical comparing two reals
@@ -4375,21 +3426,23 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND, &
 !     OUTLIN:     output line
 !     RVAL1 :     a value
 !     RVAL2 :     another value
-!
-   INTEGER       I, IENT, IF, IL, ILPOS, IP, IPROC, IUNIT, &
-                 IUT, IVTYPE, IXK, IYK, JVAR, LFIELD, NLINES, &
-                 NREF, NUMDEC, NVAR
+
+   CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+   INTEGER, SAVE :: IENT = 0
+   INTEGER       I, IF, IL, ILPOS, IP, IPROC, IUNIT, &
+      IUT, IVTYPE, IXK, IYK, JVAR, LFIELD, NLINES, &
+      NREF, NUMDEC, NVAR
    REAL          RVAL1, RVAL2
-   LOGICAL       EXIST, OPENED, EQREAL
-   CHARACTER*80  MSGSTR
-   CHARACTER*18  FSTR
-   CHARACTER*512 OUTLIN
-!
+   LOGICAL :: EXIST, OPENED
+   CHARACTER(LEN=80)  MSGSTR
+   CHARACTER(LEN=18)  FSTR
+   CHARACTER(LEN=512) OUTLIN
+
 !  8. Subroutines used
 !
 !     MSGERR           Writes error message
 !     STRACE           Tracing routine for debugging
-!     TXPBLA           Removes leading and trailing blanks in string
+!     TXPBLA           Removes leading and trailing blanks in string      40.41
 !
 !  9. Subroutines calling
 !
@@ -4420,9 +3473,7 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND, &
 !     it in appropriate manner to generic output file                     40.51
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWCOLTAB')
 
    NREF   = OQI(1)
@@ -4483,8 +3534,7 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND, &
          ILPOS  = INDEX ( FILENM, ' ' )-1
          DO IPROC = 1, NPROC
             I = IPROC
-            WRITE(FILENM(ILPOS-3:ILPOS),100) I
-100         FORMAT('-',I3.3)
+            WRITE(FILENM(ILPOS-3:ILPOS),"('-',I3.3)") I
             IUNIT = HIOPEN+NREOQ+(NREF-HIOPEN-1)*NPROC+IPROC
             INQUIRE ( FILE=FILENM, EXIST=EXIST, OPENED=OPENED )
             IF ( .NOT.OPENED ) THEN
@@ -4526,15 +3576,15 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND, &
             RVAL1 = FLOAT(IXK)
             RVAL2 = FLOAT(IYK)
             IF ( .NOT.EQREAL(XC(IP),RVAL1) .OR. &
-                      EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
+               EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
             IF ( .NOT.EQREAL(YC(IP),RVAL2) .OR. &
-                      EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
+               EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
          ELSE
             IXK = IXK + 1
             IYK = IYK + 1
          ENDIF
          IF ( IXK.LT.1 .OR. IYK.LT.1 .OR. IXK.GT.MXCGL .OR. &
-              IYK.GT.MYCGL ) THEN
+            IYK.GT.MYCGL ) THEN
             CALL WREXCV
             CYCLE IPLOOP
          END IF
@@ -4562,6 +3612,7 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND, &
 
 CONTAINS
 SUBROUTINE WREXCV
+   USE swan_output_formats, ONLY: FLT_TABLE, FLD_TABLE
    IL = 1
    OUTLIN = '    '
    IF (RTYPE.EQ.'TABI') THEN
@@ -4608,28 +3659,31 @@ SUBROUTINE WREXCV
    CALL TXPBLA(OUTLIN,IF,IL)
    WRITE (NREF, '(A)') OUTLIN(1:IL)
    RETURN
-END SUBROUTINE WREXCV
+end subroutine WREXCV
 
-END
+end subroutine SWCOLTAB
 !****************************************************************
-!
+
 SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
-!
+
 !****************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2, ONLY: OPTG, XOFFS, YOFFS
-   USE SWCOMM3
-   USE SWCOMM4
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, EQREAL
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind, ONLY: OPTG
+   USE swan_coordinate_offset, ONLY: XOFFS, YOFFS
+   USE swan_numerics
+   USE swan_spectral_grid
    USE OUTP_DATA
    USE M_PARALL
-!NCF   USE swn_outnc, ONLY: swn_outnc_colspc
+   USE swan_global_grid
+   USE swan_netcdf_output_backend, ONLY: is_netcdf_filename, &
+      swn_outnc_colspc
    USE SwanGriddata, ONLY: xcugrdgl, ycugrdgl
-!
-   IMPLICIT NONE
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -4681,7 +3735,7 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 !
 !  4. Argument variables
 !
-!     BLKND       collected array giving node number per subdomain
+!     BLKND       collected array giving node number per subdomain        40.41
 !     IRQ         request number
 !     MIP         total number of output points
 !     OQI         integer array containing output request data
@@ -4689,12 +3743,12 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 !     RTYPE       type of output request
 !     XC          computational grid x-coordinate of output point
 !     YC          computational grid y-coordinate of output point
-!
+
    INTEGER   IRQ, MIP, OQI(4)
-   REAL*8    OQR(2)
+   REAL(KIND=KIND(0.0D0))    OQR(2)
    REAL      BLKND(MXCGL,MYCGL), XC(MIP), YC(MIP)
-   CHARACTER RTYPE*4
-!
+   CHARACTER(LEN=4) :: RTYPE
+
 !  6. Local variables
 !
 !     EMPTY :     logical whether a line is empty or not
@@ -4714,7 +3768,7 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 !     IXK   :     loop counter
 !     IYK   :     loop counter
 !     MSGSTR:     string to pass message to call MSGERR
-!NCF!     NCF   :     true if netCDF file
+!     NCF   :     true if netCDF file
 !     NLINES:     number of lines in heading
 !     NREF  :     unit reference number
 !     OPENED:     logical whether a file is open or not
@@ -4722,25 +3776,26 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 !     OUTLIN:     output line
 !     RVAL1 :     a value
 !     RVAL2 :     another value
-!
-   INTEGER       I, IBLKN, IENT, IF, IL, ILPOS, IP, IPROC, IS, &
-                 IUNIT, IUT, IXK, IYK, NLINES, NREF, OTYPE
+
+   CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+   INTEGER, SAVE :: IENT = 0
+   INTEGER       I, IBLKN, IF, IL, ILPOS, IP, IPROC, IS, &
+      IUNIT, IUT, IXK, IYK, NLINES, NREF, OTYPE
    REAL          RVAL1, RVAL2
-   LOGICAL       EMPTY, EXIST, OPENED, EQREAL
-!NCF   LOGICAL, SAVE :: NCF = .FALSE.
-   CHARACTER*80  MSGSTR
+   LOGICAL :: EMPTY, EXIST, OPENED
+   LOGICAL, SAVE :: NCF = .FALSE.
+   CHARACTER(LEN=80)  MSGSTR
    CHARACTER (LEN=LENSPO) OUTLIN
    CHARACTER (LEN=8) :: CRFORM = '(2F14.4)'
-!
+
 !  8. Subroutines used
 !
 !     MSGERR           Writes error message
 !     STRACE           Tracing routine for debugging
-!NCF!     STPNOW           Logical indicating whether program must
-!NCF!     swn_outnc_colspc Collect spectral output for netcdf
-!     TXPBLA           Removes leading and trailing blanks in string
+!     STPNOW           Logical indicating whether program must
+!     swn_outnc_colspc Collect spectral output for netcdf
+!     TXPBLA           Removes leading and trailing blanks in string      40.41
 !
-!NCF   LOGICAL STPNOW
 !
 !  9. Subroutines calling
 !
@@ -4771,19 +3826,16 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 !     it in appropriate manner to generic output file                     40.51
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWCOLSPC')
 
-!NCF   FILENM = OUTP_FILES(OQI(2))
-!NCF   NCF = INDEX( FILENM, '.NC' ).NE.0 .OR. &
-!NCF         INDEX (FILENM, '.nc' ).NE.0
-!NCF!
-!NCF   IF ( NCF ) THEN
-!NCF      CALL swn_outnc_colspc( RTYPE, OQI, OQR, MIP, KGRPGL )
-!NCF      RETURN
-!NCF   ENDIF
+   FILENM = OUTP_FILES(OQI(2))
+   NCF = is_netcdf_filename(FILENM)
+!
+   IF ( NCF ) THEN
+      CALL swn_outnc_colspc( RTYPE, OQI, OQR, MIP, KGRPGL )
+      RETURN
+   ENDIF
 
    NREF   = OQI(1)
    NLINES = 0
@@ -4824,8 +3876,7 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
          ILPOS  = INDEX ( FILENM, ' ' )-1
          DO IPROC = 1, NPROC
             I = IPROC
-            WRITE(FILENM(ILPOS-3:ILPOS),100) I
-100         FORMAT('-',I3.3)
+            WRITE(FILENM(ILPOS-3:ILPOS),"('-',I3.3)") I
             IUNIT = HIOPEN+NREOQ+(NREF-HIOPEN-1)*NPROC+IPROC
             INQUIRE ( FILE=FILENM, EXIST=EXIST, OPENED=OPENED )
             IF ( .NOT.OPENED ) THEN
@@ -4855,8 +3906,8 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
          IF ( OPTG.NE.5 .OR. .NOT.LCOMPGRD ) THEN
             DO IP = 1, MIP
                IF ( XC(IP).LT.-0.01 .OR. YC(IP).LT.-0.01 .OR. &
-                    XC(IP).GT.REAL(MXCGL-1)+0.01 .OR. &
-                    YC(IP).GT.REAL(MYCGL-1)+0.01 ) THEN
+                  XC(IP).GT.REAL(MXCGL-1)+0.01 .OR. &
+                  YC(IP).GT.REAL(MYCGL-1)+0.01 ) THEN
                   IBLKN = NPROC+1
                ELSE
                   IXK = INT(XC(IP))
@@ -4865,9 +3916,9 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
                      RVAL1 = FLOAT(IXK)
                      RVAL2 = FLOAT(IYK)
                      IF ( .NOT.EQREAL(XC(IP),RVAL1) .OR. &
-                               EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
+                        EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
                      IF ( .NOT.EQREAL(YC(IP),RVAL2) .OR. &
-                               EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
+                        EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
                   ELSE
                      IXK = IXK + 1
                      IYK = IYK + 1
@@ -4889,7 +3940,7 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
          ELSE
             DO IP = 1, MIP
                WRITE (NREF, FMT=CRFORM) DBLE(xcugrdgl(IP)+XOFFS), &
-                                        DBLE(ycugrdgl(IP)+YOFFS)
+                  DBLE(ycugrdgl(IP)+YOFFS)
             ENDDO
          ENDIF
 
@@ -4948,15 +3999,15 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
          RVAL1 = FLOAT(IXK)
          RVAL2 = FLOAT(IYK)
          IF ( .NOT.EQREAL(XC(IP),RVAL1) .OR. &
-                   EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
+            EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
          IF ( .NOT.EQREAL(YC(IP),RVAL2) .OR. &
-                   EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
+            EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
       ELSE
          IXK = IXK + 1
          IYK = IYK + 1
       ENDIF
       IF ( IXK.LT.1 .OR. IYK.LT.1 .OR. IXK.GT.MXCGL .OR. &
-           IYK.GT.MYCGL ) THEN
+         IYK.GT.MYCGL ) THEN
          WRITE (NREF, '(A)') 'NODATA'
          CYCLE IPLOOP
       END IF
@@ -4998,28 +4049,32 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
    END DO IPLOOP
 
    RETURN
-END
+end subroutine SWCOLSPC
 !****************************************************************
-!
+
 SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
-                      PSNAME, MXK, MYK, IRQ  , BLKND, &
-                      XC    , YC )
-!
+   PSNAME, MXK, MYK, IRQ  , BLKND, &
+   XC    , YC )
+
 !****************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2, ONLY: OPTG
-   USE SWCOMM3, ONLY: NSTATM
-   USE SWCOMM4, ONLY: KSPHER
+
+   USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+   USE swan_output_writers, ONLY: SBLKPT, SRAWPT, SWRMAT
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, EQREAL, TABHED
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind, ONLY: OPTG
+   USE swan_numerics, ONLY: NSTATM
+   USE swan_computational_grid
+   USE swan_spherical_geometry, ONLY: KSPHER
    USE OUTP_DATA
    USE M_PARALL
-!NCF   USE SwanGridData, ONLY: XCUGRDGL, YCUGRDGL
-!NCF   USE swn_outnc
-!
-   IMPLICIT NONE
-!
-!
+   USE swan_global_grid
+   USE SwanGridData, ONLY: XCUGRDGL, YCUGRDGL
+   USE swan_netcdf_output_backend
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -5074,7 +4129,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
 !
 !  4. Argument variables
 !
-!     BLKND       collected array giving node number per subdomain
+!     BLKND       collected array giving node number per subdomain        40.41
 !     FAC         factors of multiplication of block output
 !     IRQ         request number
 !     IVTYP       type of variable output
@@ -5086,13 +4141,14 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
 !     RTYPE       type of output request
 !     XC          computational grid x-coordinate of output point
 !     YC          computational grid y-coordinate of output point
-!
+
    INTEGER   MXK, MYK, IRQ, OQI(4), IVTYP(OQI(3))
    REAL      BLKND(MXCGL,MYCGL), XC(MXK*MYK), YC(MXK*MYK)
-   REAL*8    OQR(2)
+   REAL(KIND=KIND(0.0D0))    OQR(2)
    REAL      FAC(OQI(3))
-   CHARACTER RTYPE*4, PSNAME*8
-!
+   CHARACTER(LEN=4) :: RTYPE
+   CHARACTER(LEN=8) :: PSNAME
+
 !  6. Local variables
 !
 !     CTIM  :     string representing date of computation
@@ -5130,24 +4186,26 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
 !     RVAL1 :     a value
 !     RVAL2 :     another value
 !     VOQ   :     collected output variables
-!
-   INTEGER      I, IBLKN, IDLA, IENT, IF, IFAC, IL, ILPOS, IP, IPD, &
-                IPROC, IUNIT, IUT, IXK, IYK, IVTYPE, J, JVAR, NREF, &
-                NVAR
+
+   CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+   INTEGER, SAVE :: IENT = 0
+   INTEGER      I, IBLKN, IDLA, IF, IFAC, IL, ILPOS, IP, IPD, &
+      IPROC, IUNIT, IUT, IXK, IYK, IVTYPE, J, JVAR, NREF, &
+      NVAR
    REAL         DFAC, FMAX, FTIP, FTIP1, FTIP2
    REAL         RVAL1, RVAL2
-   LOGICAL      EXIST, OPENED, EQREAL
+   LOGICAL :: EXIST, OPENED
    INTEGER, SAVE :: IREC(MAX_OUTP_REQ)=0
    LOGICAL, SAVE :: MATLAB=.FALSE.
-!NCF   LOGICAL, SAVE :: NCF   =.FALSE.
+   LOGICAL, SAVE :: NCF   =.FALSE.
    LOGICAL, SAVE :: RAWPRT=.FALSE.
-   CHARACTER*80 MSGSTR
+   CHARACTER(LEN=80) MSGSTR
    CHARACTER (LEN=20) :: CTIM
    CHARACTER (LEN=30) :: NAMVAR
    CHARACTER (LEN=80) :: HTXT(3)
    REAL, ALLOCATABLE :: VOQ(:,:)
    INTEGER VOQR(NMOVAR)
-!
+
 !  8. Subroutines used
 !
 !     MSGERR           Writes error message
@@ -5183,9 +4241,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
 !     it in appropriate manner to generic output file                     40.51
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWCOLBLK')
 
    NREF = OQI(1)
@@ -5210,32 +4266,31 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
       IF (ILPOS.NE.0) FILENM = FILENM(1:ILPOS-1)
       INQUIRE ( FILE=FILENM, OPENED=OPENED, NUMBER=IUT )
       MATLAB = INDEX( FILENM, '.MAT' ).NE.0 .OR. &
-               INDEX (FILENM, '.mat' ).NE.0
-!NCF      NCF    = INDEX( FILENM, '.NC'  ).NE.0 .OR. &
-!NCF               INDEX (FILENM, '.nc'  ).NE.0
+         INDEX (FILENM, '.mat' ).NE.0
+      NCF = is_netcdf_filename(FILENM)
       RAWPRT = INDEX( FILENM, '.RAW' ).NE.0 .OR. &
-               INDEX (FILENM, '.raw' ).NE.0
+         INDEX (FILENM, '.raw' ).NE.0
 
 !        --- if it is not open or already open thru another request
 
       IF ( .NOT.OPENED .OR. NREF.LE.HIOPEN ) THEN
 
 !           --- open generic output file or reset reference number
-
-!NCF         IF (NCF .AND. .NOT.OPENED) THEN
-!NCF            IUT    = HIOPEN + IRQ
-!NCF            OQI(1) = IUT
-!NCF            IF (OPTG.NE.5) THEN
-!NCF               CALL swn_outnc_openblockfile(FILENM, MYK, MXK, &
-!NCF                                            OVLNAM, XGRDGL, YGRDGL, &
-!NCF                                            OQI, OQR, IVTYP, IRQ)
-!NCF            ELSE
-!NCF               CALL swn_outnc_openblockfile(FILENM, MYK, MXK, &
-!NCF                                          OVLNAM, XCUGRDGL, YCUGRDGL, &
-!NCF                                            OQI, OQR, IVTYP, IRQ)
-!NCF            ENDIF
-!NCF            OPENED = .TRUE.
-!NCF         END IF
+!
+         IF (NCF .AND. .NOT.OPENED) THEN
+            IUT    = HIOPEN + IRQ
+            OQI(1) = IUT
+            IF (OPTG.NE.5) THEN
+               CALL swn_outnc_openblockfile(FILENM, MYK, MXK, &
+                  OVLNAM, XGRDGL, YGRDGL, &
+                  OQI, OQR, IVTYP, IRQ)
+            ELSE
+               CALL swn_outnc_openblockfile(FILENM, MYK, MXK, &
+                  OVLNAM, XCUGRDGL, YCUGRDGL, &
+                  OQI, OQR, IVTYP, IRQ)
+            ENDIF
+            OPENED = .TRUE.
+         END IF
 
          IF ( .NOT.OPENED ) THEN
             NREF = HIOPEN + IRQ
@@ -5248,9 +4303,8 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
          IF (MATLAB .AND. .NOT.OPENED) THEN
             CLOSE(NREF)
             OPEN(UNIT=NREF, FILE=FILENM, FORM='UNFORMATTED', &
-                 STATUS='REPLACE', &
-!MatL4                 ACCESS='DIRECT', RECL=1)
-!MatL5            ACCESS='DIRECT', RECL=4)
+               STATUS='REPLACE', &
+               ACCESS='DIRECT', RECL=matlab_direct_record_length)
             IREC(IRQ) = 1
          END IF
 
@@ -5266,13 +4320,13 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
                WRITE (HTXT(2),'(a)') '       lat           lon'
             ENDIF
             WRITE (HTXT(3),'(a)') &
-                  '       name       nprt depth uabs  udir cabs  cdir'
-!
+               '       name       nprt depth uabs  udir cabs  cdir'
+
             WRITE(NREF,'(A26)') 'SWAN PARTITIONED DATA FILE'
             WRITE(NREF,'(A16,A24,A50)') TRIM(HTXT(1)), TRIM(HTXT(2)), &
-                                        TRIM(HTXT(3))
+               TRIM(HTXT(3))
             WRITE(NREF,'(A31,A20)') '        hs     tp     lp       ', &
-                                    'theta     sp      wf'
+               'theta     sp      wf'
          END IF
 
 !           --- open individual process output files
@@ -5281,8 +4335,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
          ILPOS  = INDEX ( FILENM, ' ' )-1
          DO IPROC = 1, NPROC
             I = IPROC
-            WRITE(FILENM(ILPOS-3:ILPOS),100) I
-100         FORMAT('-',I3.3)
+            WRITE(FILENM(ILPOS-3:ILPOS),"('-',I3.3)") I
             IUNIT = HIOPEN+NREOQ+(NREF-HIOPEN-1)*NPROC+IPROC
             INQUIRE ( FILE=FILENM, EXIST=EXIST, OPENED=OPENED )
             IF ( .NOT.OPENED ) THEN
@@ -5300,8 +4353,8 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
 
    END IF
 
-!     --- read data from the proper process file and write                40.51
-!         it in appropriate manner to generic output file                 40.51
+!     --- read data from the proper process file and write
+!         it in appropriate manner to generic output file
 
    CTIM = CHTIME
    CALL TXPBLA(CTIM,IF,IL)
@@ -5333,15 +4386,15 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
             RVAL1 = FLOAT(IXK)
             RVAL2 = FLOAT(IYK)
             IF ( .NOT.EQREAL(XC(IP),RVAL1) .OR. &
-                      EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
+               EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
             IF ( .NOT.EQREAL(YC(IP),RVAL2) .OR. &
-                      EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
+               EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
          ELSE
             IXK = IXK + 1
             IYK = IYK + 1
          ENDIF
          IF ( IXK.LT.1 .OR. IYK.LT.1 .OR. IXK.GT.MXCGL .OR. &
-              IYK.GT.MYCGL ) THEN
+            IYK.GT.MYCGL ) THEN
             IBLKN = 0
             IPROC = NPROC+1
          ELSE
@@ -5373,15 +4426,15 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
                RVAL1 = FLOAT(IXK)
                RVAL2 = FLOAT(IYK)
                IF ( .NOT.EQREAL(XC(IP),RVAL1) .OR. &
-                         EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
+                  EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
                IF ( .NOT.EQREAL(YC(IP),RVAL2) .OR. &
-                         EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
+                  EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
             ELSE
                IXK = IXK + 1
                IYK = IYK + 1
             ENDIF
             IF ( IXK.LT.1 .OR. IYK.LT.1 .OR. IXK.GT.MXCGL .OR. &
-                 IYK.GT.MYCGL ) THEN
+               IYK.GT.MYCGL ) THEN
                IBLKN = 0
                IPROC = NPROC+1
             ELSE
@@ -5442,56 +4495,56 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
                NAMVAR = OVSNAM(IVTYPE)
             ELSE
                NAMVAR = OVSNAM(IVTYPE)(1:LEN_TRIM(OVSNAM(IVTYPE)))// &
-                        '_'//CTIM
+                  '_'//CTIM
             END IF
             CALL SWRMAT( MYK, MXK, NAMVAR, VOQ(1,1), NREF, &
-                         IREC(IRQ), IDLA, OVEXCV(IVTYPE) )
-!NCF         ELSE IF (NCF) THEN
-!NCF            IF ( IVTYPE.GT.2.AND.IVTYPE.NE.40 ) THEN
-!NCF               CALL swn_outnc_appendblock(MYK, MXK, IVTYPE, OQI(1), &
-!NCF                                          IRQ, VOQ(1,1), &
-!NCF                                          OVEXCV(IVTYPE), 1)
-!NCF            END IF
+               IREC(IRQ), IDLA, OVEXCV(IVTYPE) )
+         ELSE IF (NCF) THEN
+            IF ( IVTYPE.GT.2.AND.IVTYPE.NE.40 ) THEN
+               CALL swn_outnc_appendblock(MYK, MXK, IVTYPE, OQI(1), &
+                  IRQ, VOQ(1,1), &
+                  OVEXCV(IVTYPE), 1)
+            END IF
          ELSE
             CALL SBLKPT( IPD, NREF, DFAC, PSNAME, OVUNIT(IVTYPE), &
-                         MXK, MYK, IDLA, OVLNAM(IVTYPE), VOQ(1,1) )
+               MXK, MYK, IDLA, OVLNAM(IVTYPE), VOQ(1,1) )
          END IF
       ELSE
          IF (MATLAB) THEN
             IF (IL.EQ.1) THEN
                NAMVAR = OVSNAM(IVTYPE)(1:LEN_TRIM(OVSNAM(IVTYPE)))// &
-                        '_x'
+                  '_x'
             ELSE
                NAMVAR = OVSNAM(IVTYPE)(1:LEN_TRIM(OVSNAM(IVTYPE)))// &
-                        '_x_'//CTIM
+                  '_x_'//CTIM
             END IF
             CALL SWRMAT( MYK, MXK, NAMVAR, &
-                    VOQ(1,1), NREF, IREC(IRQ), IDLA, OVEXCV(IVTYPE) )
+               VOQ(1,1), NREF, IREC(IRQ), IDLA, OVEXCV(IVTYPE) )
             IF (IL.EQ.1) THEN
                NAMVAR = OVSNAM(IVTYPE)(1:LEN_TRIM(OVSNAM(IVTYPE)))// &
-                        '_y'
+                  '_y'
             ELSE
                NAMVAR = OVSNAM(IVTYPE)(1:LEN_TRIM(OVSNAM(IVTYPE)))// &
-                        '_y_'//CTIM
+                  '_y_'//CTIM
             END IF
             CALL SWRMAT( MYK, MXK, NAMVAR, &
-                    VOQ(1,2), NREF, IREC(IRQ), IDLA, OVEXCV(IVTYPE) )
-!NCF         ELSE IF (NCF) THEN
-!NCF            IF ( IVTYPE.GT.3 ) THEN
-!NCF               CALL swn_outnc_appendblock(MYK, MXK, IVTYPE, OQI(1), &
-!NCF                                          IRQ, VOQ(1,1), &
-!NCF                                          OVEXCV(IVTYPE), 1)
-!NCF               CALL swn_outnc_appendblock(MYK, MXK, IVTYPE, OQI(1), &
-!NCF                                          IRQ, VOQ(1,2), &
-!NCF                                          OVEXCV(IVTYPE), 2)
-!NCF            END IF
+               VOQ(1,2), NREF, IREC(IRQ), IDLA, OVEXCV(IVTYPE) )
+         ELSE IF (NCF) THEN
+            IF ( IVTYPE.GT.3 ) THEN
+               CALL swn_outnc_appendblock(MYK, MXK, IVTYPE, OQI(1), &
+                  IRQ, VOQ(1,1), &
+                  OVEXCV(IVTYPE), 1)
+               CALL swn_outnc_appendblock(MYK, MXK, IVTYPE, OQI(1), &
+                  IRQ, VOQ(1,2), &
+                  OVEXCV(IVTYPE), 2)
+            END IF
          ELSE
             CALL SBLKPT( IPD, NREF, DFAC, PSNAME, OVUNIT(IVTYPE), &
-                         MXK, MYK, IDLA, OVLNAM(IVTYPE)//'X-comp', &
-                         VOQ(1,1) )
+               MXK, MYK, IDLA, OVLNAM(IVTYPE)//'X-comp', &
+               VOQ(1,1) )
             CALL SBLKPT( IPD, NREF, DFAC, PSNAME, OVUNIT(IVTYPE), &
-                         MXK, MYK, IDLA, OVLNAM(IVTYPE)//'Y-comp', &
-                         VOQ(1,2) )
+               MXK, MYK, IDLA, OVLNAM(IVTYPE)//'Y-comp', &
+               VOQ(1,2) )
          END IF
       END IF
 
@@ -5500,28 +4553,32 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
 !     generate a dump of the raw partition data, if appropriate
    IF (RAWPRT) CALL SRAWPT ( NREF, VOQR, VOQ, MXK, MYK )
 
-!NCF   IF ( NCF ) CALL swn_outnc_close_on_end(OQI(1), IRQ)
+   IF ( NCF ) CALL swn_outnc_close_on_end(OQI(1), IRQ)
 
-   IF (IPD.EQ.1 .AND. NREF.EQ.PRINTF) WRITE (PRINTF, 111)
+   IF (IPD.EQ.1 .AND. NREF.EQ.PRINTF) WRITE (PRINTF, "(///)")
 
    DEALLOCATE(VOQ)
 
-111 FORMAT (///)
-
    RETURN
-END
-!JAC!****************************************************************
-!JAC!
-!JAC SUBROUTINE SWBLKCOL ( MCOLR, KGRPNT )
-!JAC!
-!JAC!****************************************************************
-!JAC!
-!JAC   USE OCPCOMM4
-!JAC   USE SWCOMM3
-!JAC   USE M_PARALL
-!JAC!
-!JAC   IMPLICIT NONE
-!JAC!
+end subroutine SWCOLBLK
+!****************************************************************
+!
+SUBROUTINE SWBLKCOL ( MCOLR, KGRPNT )
+!
+!****************************************************************
+!
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
+   USE swan_number_formatting, ONLY: INTSTR
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid
+   USE M_PARALL
+   USE swan_global_grid
+
+   IMPLICIT NONE
+
+!
+!
 !
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -5549,225 +4606,224 @@ END
 !     You should have received a copy of the GNU General Public License
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
-!JAC!
-!JAC!  0. Authors
-!JAC!
-!JAC!     40.30: Marcel Zijlema
-!JAC!     40.41: Marcel Zijlema
-!JAC!
-!JAC!  1. Updates
-!JAC!
-!JAC!     40.30, Mar. 03: New subroutine
-!JAC!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!JAC!
-!JAC!  2. Purpose
-!JAC!
-!JAC!     Colours the subdomains with red, yellow, green and black
-!JAC!     in order to determine the sequence of sweeps during the
-!JAC!     iteration process
-!JAC!
-!JAC!  3. Method
-!JAC!
-!JAC!     The four-colour ordering scheme is based on colouring
-!JAC!     subdomains in each direction in alternating way with
-!JAC!     red and black (similar to a chessboard colouring),
-!JAC!     whereafter the product of resulting color directions
-!JAC!     is taken.
-!JAC!     Initially, the most left and under blocks are coloured
-!JAC!     red, whereas other are uncoloured. Then, the colors
-!JAC!     are propagated from left to right and from bottom to
-!JAC!     top. Finally, when both directions of all subdomains
-!JAC!     have been coloured, the subdomains are coloured by
-!JAC!     taking the product of two color directions.
-!JAC!
-!JAC!  4. Argument variables
-!JAC!
-!JAC!     KGRPNT      indirect addressing for grid points
-!JAC!     MCOLR       flag to indicate multi-colouring
-!JAC!                 of subdomains (.TRUE.) or not (.FALSE.)
-!JAC!
-!JAC   INTEGER KGRPNT(MXC,MYC)
-!JAC   LOGICAL MCOLR
-!JAC!
-!JAC!  5. Parameter variables
-!JAC!
-!JAC!     ITERMAX:    maximum number of iterations
-!JAC!     IWHITE:     integer used to colour subdomains 'white'
-!JAC!
-!JAC   INTEGER IWHITE, ITERMAX
-!JAC   PARAMETER (IWHITE=0, ITERMAX=100)
-!JAC!
-!JAC!  6. Local variables
-!JAC!
-!JAC!     CHARS :     character for passing info to MSGERR
-!JAC!     ICOLNB:     color of neighbouring subdomain
-!JAC!     ICONV :     indicator for convergence (0=yes, 1=no)
-!JAC!     IENT  :     number of entries
-!JAC!     IF    :     first non-character in string
-!JAC!     IL    :     last non-character in string
-!JAC!     ITER  :     iteration count
-!JAC!     IXCOL :     color in x-direction of own subdomain
-!JAC!     IYCOL :     color in y-direction of own subdomain
-!JAC!     MSGSTR:     string to pass message to call MSGERR
-!JAC!     XCOL  :     field array containing present color in x-direction
-!JAC!     YCOL  :     field array containing present color in y-direction
-!JAC!
-!JAC   INTEGER      ICOLNB, ICONV, IENT, IF, IL, ITER, IXCOL, IYCOL
-!JAC   CHARACTER*20 INTSTR, CHARS
-!JAC   CHARACTER*80 MSGSTR
-!JAC   REAL, ALLOCATABLE :: XCOL(:), YCOL(:)
-!JAC!
-!JAC!  8. Subroutines used
-!JAC!
-!JAC!     INTSTR           Converts integer to string
-!JAC!     MSGERR           Writes error message
-!JAC!     STRACE           Tracing routine for debugging
-!JAC!     SWEXCHG          Updates geographical field array through
-!JAC!                      exchanging values between subdomains
-!JAC!     SWREDUCE         Performs a global reduction
-!JAC!     TXPBLA           Removes leading and trailing blanks in string
-!JAC!
-!JAC!  9. Subroutines calling
-!JAC!
-!JAC!     SWMAIN
-!JAC!
-!JAC! 10. Error messages
-!JAC!
-!JAC!     ---
-!JAC!
-!JAC! 11. Remarks
-!JAC!
-!JAC!     ---
-!JAC!
-!JAC! 12. Structure
-!JAC!
-!JAC!     if not parallel or no colouring, return
-!JAC!
-!JAC!     initially, both x- and y-direction of the most left
-!JAC!     and under subdomains are coloured red and that of all
-!JAC!     other subdomains are marked white, i.e. not being
-!JAC!     coloured
-!JAC!
-!JAC!     while not all subdomains are coloured do
-!JAC!        exchange colors of both directions between subdomains
-!JAC!        adjust color in x-direction of own subdomain
-!JAC!        adjust color in y-direction of own subdomain
-!JAC!        check whether all subdomains have been coloured
-!JAC!
-!JAC!     if not all subdomains have been coloured gives message and stops
-!JAC!
-!JAC!     finally, subdomains are coloured by taking the product of two
-!JAC!     color directions
-!JAC!
-!JAC! 13. Source text
-!JAC!
-!JAC   SAVE IENT
-!JAC   DATA IENT/0/
-!JAC   IF (LTRACE) CALL STRACE (IENT,'SWBLKCOL')
+!
+!  0. Authors
+!
+!     40.30: Marcel Zijlema
+!     40.41: Marcel Zijlema
+!
+!  1. Updates
+!
+!     40.30, Mar. 03: New subroutine
+!     40.41, Oct. 04: common blocks replaced by modules, include files removed
+!
+!  2. Purpose
+!
+!     Colours the subdomains with red, yellow, green and black
+!     in order to determine the sequence of sweeps during the
+!     iteration process
+!
+!  3. Method
+!
+!     The four-colour ordering scheme is based on colouring
+!     subdomains in each direction in alternating way with
+!     red and black (similar to a chessboard colouring),
+!     whereafter the product of resulting color directions
+!     is taken.
+!     Initially, the most left and under blocks are coloured
+!     red, whereas other are uncoloured. Then, the colors
+!     are propagated from left to right and from bottom to
+!     top. Finally, when both directions of all subdomains
+!     have been coloured, the subdomains are coloured by
+!     taking the product of two color directions.
+!
+!  4. Argument variables
+!
+!     KGRPNT      indirect addressing for grid points
+!     MCOLR       flag to indicate multi-colouring
+!                 of subdomains (.TRUE.) or not (.FALSE.)
+!
+   INTEGER KGRPNT(MXC,MYC)
+   LOGICAL MCOLR
+!
+!  5. Parameter variables
+!
+!     ITERMAX:    maximum number of iterations
+!     IWHITE:     integer used to colour subdomains 'white'
+!
+   INTEGER, PARAMETER :: IWHITE=0, ITERMAX=100
+!
+!  6. Local variables
+!
+!     CHARS :     character for passing info to MSGERR
+!     ICOLNB:     color of neighbouring subdomain
+!     ICONV :     indicator for convergence (0=yes, 1=no)
+!     IENT  :     number of entries
+!     IF    :     first non-character in string
+!     IL    :     last non-character in string
+!     ITER  :     iteration count
+!     IXCOL :     color in x-direction of own subdomain
+!     IYCOL :     color in y-direction of own subdomain
+!     MSGSTR:     string to pass message to call MSGERR
+!     XCOL  :     field array containing present color in x-direction
+!     YCOL  :     field array containing present color in y-direction
+!
+   INTEGER      ICOLNB, ICONV, IF, IL, ITER, IXCOL, IYCOL
+   INTEGER, SAVE :: IENT = 0
+   CHARACTER(LEN=20) CHARS
+   CHARACTER(LEN=80) MSGSTR
+   REAL, ALLOCATABLE :: XCOL(:), YCOL(:)
+!
+!  8. Subroutines used
+!
+!     INTSTR           Converts integer to string
+!     MSGERR           Writes error message
+!     STRACE           Tracing routine for debugging
+!     SWEXCHG          Updates geographical field array through
+!                      exchanging values between subdomains
+!     SWREDUCE         Performs a global reduction
+!     TXPBLA           Removes leading and trailing blanks in string      40.41
+!
+!  9. Subroutines calling
+!
+!     SWMAIN
+!
+! 10. Error messages
+!
+!     ---
+!
+! 11. Remarks
+!
+!     ---
+!
+! 12. Structure
+!
+!     if not parallel or no colouring, return
+!
+!     initially, both x- and y-direction of the most left
+!     and under subdomains are coloured red and that of all
+!     other subdomains are marked white, i.e. not being
+!     coloured
+!
+!     while not all subdomains are coloured do
+!        exchange colors of both directions between subdomains
+!        adjust color in x-direction of own subdomain
+!        adjust color in y-direction of own subdomain
+!        check whether all subdomains have been coloured
+!
+!     if not all subdomains have been coloured gives message and stops
+!
+!     finally, subdomains are coloured by taking the product of two
+!     color directions
+!
+! 13. Source text
+!
+   IF (LTRACE) CALL STRACE (IENT,'SWBLKCOL')
 
-!JAC   IBCOL = IRED
+   IBCOL = IRED
 
-!JAC!     --- if not parallel or no colouring, return
-!JAC   IF (.NOT.PARLL .OR. .NOT.MCOLR) RETURN
+!     --- if not parallel or no colouring, return
+   IF (.NOT.PARLL .OR. .NOT.MCOLR) RETURN
 
-!JAC   ALLOCATE(XCOL(MCGRD))
-!JAC   ALLOCATE(YCOL(MCGRD))
+   ALLOCATE(XCOL(MCGRD))
+   ALLOCATE(YCOL(MCGRD))
 
-!JAC!     --- initially, both x- and y-direction of the most left
-!JAC!         and under subdomains are coloured red and that of all
-!JAC!         other subdomains are marked white, i.e. not being
-!JAC!         coloured
+!     --- initially, both x- and y-direction of the most left
+!         and under subdomains are coloured red and that of all
+!         other subdomains are marked white, i.e. not being
+!         coloured
 
-!JAC   IF ( MXF.EQ.1 ) THEN
-!JAC      IXCOL = IRED
-!JAC   ELSE
-!JAC      IXCOL = IWHITE
-!JAC   END IF
-!JAC   IF ( MYF.EQ.1 ) THEN
-!JAC      IYCOL = IRED
-!JAC   ELSE
-!JAC      IYCOL = IWHITE
-!JAC   END IF
+   IF ( MXF.EQ.1 ) THEN
+      IXCOL = IRED
+   ELSE
+      IXCOL = IWHITE
+   END IF
+   IF ( MYF.EQ.1 ) THEN
+      IYCOL = IRED
+   ELSE
+      IYCOL = IWHITE
+   END IF
 
-!JAC!     --- while not all subdomains are coloured, adjust the
-!JAC!         color of each direction of own subdomain depending
-!JAC!         on the color directions of left and under neighbours
+!     --- while not all subdomains are coloured, adjust the
+!         color of each direction of own subdomain depending
+!         on the color directions of left and under neighbours
 
-!JAC   DO ITER = 1, ITERMAX
+   DO ITER = 1, ITERMAX
 
-!JAC      ICONV = 0
+      ICONV = 0
 
-!JAC!        --- exchange colors of both directions between subdomains
+!        --- exchange colors of both directions between subdomains
 
-!JAC      XCOL = REAL(IXCOL)
-!JAC      YCOL = REAL(IYCOL)
-!JAC      CALL SWEXCHG ( XCOL, 0, KGRPNT )
-!JAC      CALL SWEXCHG ( YCOL, 0, KGRPNT )
+      XCOL = REAL(IXCOL)
+      YCOL = REAL(IYCOL)
+      CALL SWEXCHG_JAC ( XCOL, 0, KGRPNT )
+      CALL SWEXCHG_JAC ( YCOL, 0, KGRPNT )
 
-!JAC!        --- adjust color in x-direction of own subdomain
+!        --- adjust color in x-direction of own subdomain
 
-!JAC      IF ( IXCOL.EQ.IWHITE ) THEN
+      IF ( IXCOL.EQ.IWHITE ) THEN
 
-!JAC         ICOLNB = NINT(XCOL(KGRPNT(1,2)))
-!JAC         IF ( ICOLNB.EQ.IRED ) THEN
-!JAC            IXCOL = IBLACK
-!JAC         ELSE IF ( ICOLNB.EQ.IBLACK ) THEN
-!JAC            IXCOL = IRED
-!JAC         ELSE
-!JAC            ICONV = 1
-!JAC         END IF
+         ICOLNB = NINT(XCOL(KGRPNT(1,2)))
+         IF ( ICOLNB.EQ.IRED ) THEN
+            IXCOL = IBLACK
+         ELSE IF ( ICOLNB.EQ.IBLACK ) THEN
+            IXCOL = IRED
+         ELSE
+            ICONV = 1
+         END IF
 
-!JAC      END IF
+      END IF
 
-!JAC!        --- adjust color in y-direction of own subdomain
+!        --- adjust color in y-direction of own subdomain
 
-!JAC      IF ( IYCOL.EQ.IWHITE ) THEN
+      IF ( IYCOL.EQ.IWHITE ) THEN
 
-!JAC         ICOLNB = NINT(YCOL(KGRPNT(2,1)))
-!JAC         IF ( ICOLNB.EQ.IRED ) THEN
-!JAC            IYCOL = IBLACK
-!JAC         ELSE IF ( ICOLNB.EQ.IBLACK ) THEN
-!JAC            IYCOL = IRED
-!JAC         ELSE
-!JAC            ICONV = 1
-!JAC         END IF
+         ICOLNB = NINT(YCOL(KGRPNT(2,1)))
+         IF ( ICOLNB.EQ.IRED ) THEN
+            IYCOL = IBLACK
+         ELSE IF ( ICOLNB.EQ.IBLACK ) THEN
+            IYCOL = IRED
+         ELSE
+            ICONV = 1
+         END IF
 
-!JAC      END IF
+      END IF
 
-!JAC!        --- check whether all subdomains have been coloured
+!        --- check whether all subdomains have been coloured
 
-!JAC      CALL SWREDUCE( ICONV, 1, SWINT, SWMAX )
-!JAC      IF ( ICONV.EQ.0 ) GOTO 100
+      CALL SWREDUCE( ICONV, 1, SWMAX )
+      IF ( ICONV.EQ.0 ) EXIT
 
-!JAC   END DO
-!JAC   100   CONTINUE
+   END DO
 
-!JAC!     --- if not all subdomains have been coloured
-!JAC!         gives message and stops
+!     --- if not all subdomains have been coloured
+!         gives message and stops
 
-!JAC   IF (ICONV.NE.0 .AND. (IXCOL.EQ.IWHITE .OR. IYCOL.EQ.IWHITE)) THEN
-!JAC      CHARS = INTSTR(INODE)
-!JAC      CALL TXPBLA(CHARS,IF,IL)
-!JAC      MSGSTR = 'Subdomain '//CHARS(IF:IL)// &
-!JAC               'has not been coloured'
-!JAC      CALL MSGERR ( 4, MSGSTR )
-!JAC      RETURN
-!JAC   END IF
+   IF (ICONV.NE.0 .AND. (IXCOL.EQ.IWHITE .OR. IYCOL.EQ.IWHITE)) THEN
+      CHARS = INTSTR(INODE)
+      CALL TXPBLA(CHARS,IF,IL)
+      MSGSTR = 'Subdomain '//CHARS(IF:IL)// &
+         'has not been coloured'
+      CALL MSGERR ( 4, MSGSTR )
+      RETURN
+   END IF
 
-!JAC!     --- finally, subdomains are coloured by taking the product
-!JAC!         of two color directions
+!     --- finally, subdomains are coloured by taking the product
+!         of two color directions
 
-!JAC   IF ( IXCOL.EQ.IRED .AND. IYCOL.EQ.IRED ) THEN
-!JAC      IBCOL = IRED
-!JAC   ELSE IF ( IXCOL.EQ.IBLACK .AND. IYCOL.EQ.IRED ) THEN
-!JAC      IBCOL = IYELOW
-!JAC   ELSE IF ( IXCOL.EQ.IBLACK .AND. IYCOL.EQ.IBLACK ) THEN
-!JAC      IBCOL = IGREEN
-!JAC   ELSE IF ( IXCOL.EQ.IRED .AND. IYCOL.EQ.IBLACK ) THEN
-!JAC      IBCOL = IBLACK
-!JAC   END IF
+   IF ( IXCOL.EQ.IRED .AND. IYCOL.EQ.IRED ) THEN
+      IBCOL = IRED
+   ELSE IF ( IXCOL.EQ.IBLACK .AND. IYCOL.EQ.IRED ) THEN
+      IBCOL = IYELOW
+   ELSE IF ( IXCOL.EQ.IBLACK .AND. IYCOL.EQ.IBLACK ) THEN
+      IBCOL = IGREEN
+   ELSE IF ( IXCOL.EQ.IRED .AND. IYCOL.EQ.IBLACK ) THEN
+      IBCOL = IBLACK
+   END IF
 
-!JAC   DEALLOCATE(XCOL,YCOL)
+   DEALLOCATE(XCOL,YCOL)
 
-!JAC   RETURN
-!JAC END
+   RETURN
+end subroutine SWBLKCOL
+
+end module swan_parallel

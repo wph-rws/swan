@@ -1,4 +1,4 @@
-!
+
 !     SWAN/COMPU   file 4 of 5
 !
 !
@@ -56,18 +56,31 @@
 !----------------------------------------------------------------------
 !
 !******************************************************************
-!
+
+module swan_nonlinear_interactions
+   use swan_triad_state, only: triad_state_t
+   use swan_snl4_tables, only: snl4_tables_t
+   implicit none(type, external)
+   private
+   public :: FAC4WW, RANGE4, SWPRE4W, SWSNL1, SWSNL2, SWSNL3, SWSNL4, SWSNL8
+   public :: FILNL3, SWINTFXNL, FAC3WW, SWLTA, SWDCTA, SWDNCTA, SWFTIM
+   public :: PEREXC, SWBIDW, SWBIPM
+contains
+
 SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
-                  DAL1  ,DAL2  ,DAL3         ,SPCSIG, &
-                  WWINT ,WWAWG ,WWSWG                )
-!
+   DAL1  ,DAL2  ,DAL3         ,SPCSIG, &
+   WWINT ,WWAWG ,WWSWG, SNL4          )
+
 !******************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-   USE M_SNL4
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_diagnostics_level
+   USE swan_io_units
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering                              |
@@ -118,10 +131,11 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
+
+   TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
    REAL    SPCSIG(MSC)
-!
+
 !     INTEGERS:
 !     ---------
 !     MSC2,MSC1         Auxiliary variables
@@ -193,7 +207,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
 !
 !  9. Source code :
 !
-!     -----------------------------------------------------------------
+!     -----------------------------------------------------------------   40.00
 !     Calculate :
 !       1. counters for frequency and direction for NL-interaction
 !       2. weight factors
@@ -204,122 +218,121 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
 !     ----------------------------------------------------------
 !
 !****************************************************************
-!
+
+   INTEGER, SAVE :: IENT = 0
    INTEGER     MSC2  ,MSC1  ,IS    ,IDP   ,IDP1  , &
-               IDM   ,IDM1  ,ISP   ,ISP1  ,ISM   ,ISM1  , &
-               IDPP  ,IDMM  ,ISPP  ,ISMM  , &
-               ISLOW ,ISHGH ,ISCLW ,ISCHG ,IDLOW ,IDHGH , &
-               MSCMAX,MDCMAX
-!
+      IDM   ,IDM1  ,ISP   ,ISP1  ,ISM   ,ISM1  , &
+      IDPP  ,IDMM  ,ISPP  ,ISMM  , &
+      ISLOW ,ISHGH ,ISCLW ,ISCHG ,IDLOW ,IDHGH , &
+      MSCMAX,MDCMAX
+
    REAL        SNLC1 ,LAMM2 ,LAMP2 ,DELTH3, &
-               AUX1  ,DELTH4,DAL1  ,DAL2  ,DAL3  ,CIDP  ,WIDP  , &
-               WIDP1 ,CIDM  ,WIDM  ,WIDM1 ,XIS   ,XISLN ,WISP  , &
-               WISP1 ,WISM  ,WISM1 ,AWG1  ,AWG2  ,AWG3  ,AWG4  , &
-               AWG5  ,AWG6  ,AWG7  ,AWG8  ,SWG1  ,SWG2  ,SWG3  , &
-               SWG4  ,SWG5  ,SWG6  ,SWG7  ,SWG8  ,FREQ  , &
-               RADE
-!
+      AUX1  ,DELTH4,DAL1  ,DAL2  ,DAL3  ,CIDP  ,WIDP  , &
+      WIDP1 ,CIDM  ,WIDM  ,WIDM1 ,XIS   ,XISLN ,WISP  , &
+      WISP1 ,WISM  ,WISM1 ,AWG1  ,AWG2  ,AWG3  ,AWG4  , &
+      AWG5  ,AWG6  ,AWG7  ,AWG8  ,SWG1  ,SWG2  ,SWG3  , &
+      SWG4  ,SWG5  ,SWG6  ,SWG7  ,SWG8  ,FREQ  , &
+      RADE
+
    REAL       WWAWG(*)               , &
-              WWSWG(*)
-!
+      WWSWG(*)
+
    INTEGER    WWINT(*)
-!
-   SAVE IENT
-   DATA IENT/0/
 
    IF (LTRACE) CALL STRACE (IENT,'FAC4WW')
 
-   IF (ALLOCATED(AF11)) DEALLOCATE(AF11)
+   IF (ALLOCATED(SNL4%frequency_power_11)) &
+      DEALLOCATE(SNL4%frequency_power_11)
 
 !     *** Compute frequency indices                               ***
 !     *** XIS is the relative increment of the relative frequency ***
-!
+
    MSC2   = INT ( FLOAT(MSC) / 2.0 )
    MSC1   = MSC2 - 1
    XIS    = SPCSIG(MSC2) / SPCSIG(MSC1)
-!
+
 !     *** set values for the nonlinear four-wave interactions ***
-!
+
    SNLC1  = 1. / GRAV**4
-!
+
    LAMM2  = (1.-PQUAD(1))**2
    LAMP2  = (1.+PQUAD(1))**2
    DELTH3 = ACOS( (LAMM2**2+4.-LAMP2**2) / (4.*LAMM2) )
    AUX1   = SIN(DELTH3)
    DELTH4 = ASIN(-AUX1*LAMM2/LAMP2)
-!
+
    DAL1   = 1. / (1.+PQUAD(1))**4
    DAL2   = 1. / (1.-PQUAD(1))**4
    DAL3   = 2. * DAL1 * DAL2
-!
+
 !     *** Compute directional indices in sigma and theta space ***
-!
+
    CIDP   = ABS(DELTH4/DDIR)
    IDP   = INT(CIDP)
    IDP1  = IDP + 1
    WIDP   = CIDP - REAL(IDP)
    WIDP1  = 1.- WIDP
-!
+
    CIDM   = ABS(DELTH3/DDIR)
    IDM   = INT(CIDM)
    IDM1  = IDM + 1
    WIDM   = CIDM - REAL(IDM)
    WIDM1  = 1.- WIDM
    XISLN  = LOG( XIS )
-!
+
    ISP    = INT( LOG(1.+PQUAD(1)) / XISLN )
    ISP1   = ISP + 1
    WISP   = (1.+PQUAD(1) - XIS**ISP) / (XIS**ISP1 - XIS**ISP)
    WISP1  = 1. - WISP
-!
+
    ISM    = INT( LOG(1.-PQUAD(1)) / XISLN )
    ISM1   = ISM - 1
    WISM   = (XIS**ISM -(1.-PQUAD(1))) / (XIS**ISM - XIS**ISM1)
    WISM1  = 1. - WISM
-!
+
 !     *** Range of calculations ***
-!
+
    ISLOW =  1  + ISM1
    ISHGH = MSC + ISP1 - ISM1
    ISCLW =  1
    ISCHG = MSC - ISM1
    IDLOW = 1 - MDC - MAX(IDM1,IDP1)
    IDHGH = MDC + MDC + MAX(IDM1,IDP1)
-!
+
    MSC4MI = ISLOW
    MSC4MA = ISHGH
    MDC4MI = IDLOW
    MDC4MA = IDHGH
    MSCMAX = MSC4MA - MSC4MI + 1
    MDCMAX = MDC4MA - MDC4MI + 1
-!
+
 !     *** Interpolation weights ***
-!
+
    AWG1   = WIDP  * WISP
    AWG2   = WIDP1 * WISP
    AWG3   = WIDP  * WISP1
    AWG4   = WIDP1 * WISP1
-!
+
    AWG5   = WIDM  * WISM
    AWG6   = WIDM1 * WISM
    AWG7   = WIDM  * WISM1
    AWG8   = WIDM1 * WISM1
-!
+
 !     *** quadratic interpolation ***
-!
+
    SWG1   = AWG1**2
    SWG2   = AWG2**2
    SWG3   = AWG3**2
    SWG4   = AWG4**2
-!
+
    SWG5   = AWG5**2
    SWG6   = AWG6**2
    SWG7   = AWG7**2
    SWG8   = AWG8**2
-!
+
 !     --- determine discrete counters for piecewise                       40.41
 !         constant interpolation                                          40.41
-!
+
    IF (AWG1.LT.AWG2) THEN
       IF (AWG2.LT.AWG3) THEN
          IF (AWG3.LT.AWG4) THEN
@@ -382,9 +395,9 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
       ISMM=ISM1
       IDMM=IDM1
    END IF
-!
+
 !     *** fill the arrays *
-!
+
    WWINT(1) = IDP
    WWINT(2) = IDP1
    WWINT(3) = IDM
@@ -409,7 +422,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
    WWINT(22)= IDMM
    WWINT(23)= ISPP
    WWINT(24)= ISMM
-!
+
    WWAWG(1) = AWG1
    WWAWG(2) = AWG2
    WWAWG(3) = AWG3
@@ -418,7 +431,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
    WWAWG(6) = AWG6
    WWAWG(7) = AWG7
    WWAWG(8) = AWG8
-!
+
    WWSWG(1) = SWG1
    WWSWG(2) = SWG2
    WWSWG(3) = SWG3
@@ -428,86 +441,75 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
    WWSWG(7) = SWG7
    WWSWG(8) = SWG8
 
-   ALLOCATE (AF11(MSC4MI:MSC4MA))
+   ALLOCATE (SNL4%frequency_power_11(MSC4MI:MSC4MA))
 
 !     *** Fill scaling array (f**11)                     ***
 !     *** compute the radian frequency**11 for IS=1, MSC ***
-!
-   DO 100 IS=1, MSC
-      AF11(IS) = ( SPCSIG(IS) / ( 2. * PI ) )**11
-100 CONTINUE
-!
+
+   do IS=1, MSC
+      SNL4%frequency_power_11(IS) = ( SPCSIG(IS) / ( 2. * PI ) )**11
+   end do
+
 !     *** compute the radian frequency for the IS = MSC+1, ISHGH ***
-!
+
    FREQ   = SPCSIG(MSC) / ( 2. * PI )
-   DO 110 IS = MSC+1, ISHGH
+   do IS = MSC+1, ISHGH
       FREQ   = FREQ * XIS
-      AF11(IS) = FREQ**11
-110 CONTINUE
-!
+      SNL4%frequency_power_11(IS) = FREQ**11
+   end do
+
 !     *** compute the radian frequency for IS = 0, ISLOW ***
-!
+
    FREQ   = SPCSIG(1) / ( 2. * PI )
-   DO 120 IS = 0, ISLOW, -1
+   do IS = 0, ISLOW, -1
       FREQ   = FREQ / XIS
-      AF11(IS) = FREQ**11
-120 CONTINUE
-!
+      SNL4%frequency_power_11(IS) = FREQ**11
+   end do
+
 !     *** test output ***
-!
+
    IF (ISLOW .LT. MSC4MI .OR. ISHGH .GT. MSC4MA .OR. &
-       IDLOW .LT. MDC4MI .OR. IDHGH .GT. MDC4MA) THEN
-      WRITE (PRINTF,900) IXCGRD(1), IYCGRD(1), &
-                         ISLOW, ISHGH, IDLOW, IDHGH, &
-                         MSC4MI,MSC4MA, MDC4MI, MDC4MA
-900   FORMAT ( ' ** Error : array bounds and maxima in subr FAC4WW, ', &
-               ' point ', 2I5, &
-             /,'            ISL,ISH : ',2I4, '   IDL,IDH : ',2I4, &
-             /,'            SMI,SMA : ',2I4, '   DMI,DMA : ',2I4)
+      IDLOW .LT. MDC4MI .OR. IDHGH .GT. MDC4MA) THEN
+      WRITE (PRINTF,"( ' ** Error : array bounds and maxima in subr FAC4WW', /,' ISL,ISH : ',2I4,&
+            & ' IDL,IDH : ',2I4, /,' SMI,SMA : ',2I4, ' DMI,DMA : ',2I4)") &
+         ISLOW, ISHGH, IDLOW, IDHGH, &
+         MSC4MI,MSC4MA, MDC4MI, MDC4MA
    ENDIF
-!
+
    IF (ITEST .GE. 40) THEN
       RADE = 360.0 / ( 2. * PI )
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) ' FAC4WW subroutine '
-      WRITE(PRINTF,9000) DELTH4*RADE, DELTH3*RADE, DDIR*RADE, XIS
-9000  FORMAT (' THET3 THET4 DDIR XIS  :',4E12.4)
-      WRITE(PRINTF,9011) IDP, IDP1, IDM, IDM1
-9011  FORMAT (' IDP IDP1 IDM IDM1     :',4I5)
-      WRITE(PRINTF,9012) WIDP, WIDP1, WIDM, WIDM1
-9012  FORMAT (' WIDP WIDP1 WIDM WIDM1 :',4E12.4)
-      WRITE (PRINTF,9013) ISP, ISP1, ISM, ISM1
-9013  FORMAT (' ISP ISP1 ISM ISM1     :',4I5)
-      WRITE (PRINTF,9014) WISP, WISP1, WISM, WISM1
-9014  FORMAT (' WISP WISP1 WISM WISM1 :',4E12.4)
-      WRITE(PRINTF,9016) ISCLW, ISCHG
-9016  FORMAT (' ICLW ICHG             :',2I5)
-      WRITE (PRINTF,9017) AWG1, AWG2, AWG3, AWG4
-9017  FORMAT (' AWG1 AWG2 AWG3 AWG4   :',4E12.4)
-      WRITE (PRINTF,9018) AWG5, AWG6, AWG7, AWG8
-9018  FORMAT (' AWG5 AWG6 AWG7 AWG8   :',4E12.4)
-      WRITE (PRINTF,9019) MSC4MI, MSC4MA, MDC4MI, MDC4MA
-9019  FORMAT (' S4MI S4MA D4MI D4MA   :',4I6)
-      WRITE (PRINTF,9015) ISLOW, ISHGH, IDLOW,IDHGH
-9015  FORMAT (' ISLOW ISHG IDLOW IDHG :',4I5)
+      WRITE(PRINTF,"(' THET3 THET4 DDIR XIS  :',4E12.4)") DELTH4*RADE, DELTH3*RADE, DDIR*RADE, XIS
+      WRITE(PRINTF,"(' IDP IDP1 IDM IDM1     :',4I5)") IDP, IDP1, IDM, IDM1
+      WRITE(PRINTF,"(' WIDP WIDP1 WIDM WIDM1 :',4E12.4)") WIDP, WIDP1, WIDM, WIDM1
+      WRITE (PRINTF,"(' ISP ISP1 ISM ISM1     :',4I5)") ISP, ISP1, ISM, ISM1
+      WRITE (PRINTF,"(' WISP WISP1 WISM WISM1 :',4E12.4)") WISP, WISP1, WISM, WISM1
+      WRITE(PRINTF,"(' ICLW ICHG             :',2I5)") ISCLW, ISCHG
+      WRITE (PRINTF,"(' AWG1 AWG2 AWG3 AWG4   :',4E12.4)") AWG1, AWG2, AWG3, AWG4
+      WRITE (PRINTF,"(' AWG5 AWG6 AWG7 AWG8   :',4E12.4)") AWG5, AWG6, AWG7, AWG8
+      WRITE (PRINTF,"(' S4MI S4MA D4MI D4MA   :',4I6)") MSC4MI, MSC4MA, MDC4MI, MDC4MA
+      WRITE (PRINTF,"(' ISLOW ISHG IDLOW IDHG :',4I5)") ISLOW, ISHGH, IDLOW,IDHGH
       WRITE(PRINTF,*)
    END IF
-!
+
    RETURN
 !     End of FAC4WW
-END
-!
+end subroutine FAC4WW
+
 !******************************************************************
-!
-SUBROUTINE RANGE4 (WWINT ,IDDLOW,IDDTOP)
-!
+
+SUBROUTINE RANGE4 (WWINT, WINDOW, IXCG, IYCG)
+
 !******************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_physics_selection
+   USE swan_spectral_grid
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -616,7 +618,7 @@ SUBROUTINE RANGE4 (WWINT ,IDDLOW,IDDTOP)
 !
 !  9. Source code :
 !
-!     -----------------------------------------------------------------
+!     -----------------------------------------------------------------   40.00
 !     Calculate :
 !       In absence of a current there are always four sectors
 !         equal 90 degrees within a sweep that are propagated
@@ -627,78 +629,297 @@ SUBROUTINE RANGE4 (WWINT ,IDDLOW,IDDTOP)
 !     ----------------------------------------------------------
 !
 !****************************************************************
-!
-   INTEGER     IDDLOW,IDDTOP
-!
+
+   TYPE(spectral_window_t) :: WINDOW
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER, INTENT(IN) :: IXCG, IYCG
+
    INTEGER     WWINT(*)
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'RANGE4')
-!
+
 !     *** Range in directional domain ***
-!
+
    IF ( IQUAD .LT. 3 .AND. IQUAD .GT. 0 ) THEN
 !       *** counters based on bins which fall within a sweep ***
-      WWINT(13) = IDDLOW - MAX( WWINT(4), WWINT(2) )
-      WWINT(14) = IDDTOP + MAX( WWINT(4), WWINT(2) )
+      WWINT(13) = WINDOW%IDDLOW - MAX( WWINT(4), WWINT(2) )
+      WWINT(14) = WINDOW%IDDTOP + MAX( WWINT(4), WWINT(2) )
    ELSE
 !       *** counters initially based on full circle ***
       WWINT(13) = 1   - MAX( WWINT(4), WWINT(2) )
       WWINT(14) = MDC + MAX( WWINT(4), WWINT(2) )
    END IF
-!
+
 !     *** error message ***
-!
+
    IF (WWINT(9)  .LT. WWINT(15) .OR. WWINT(10) .GT. WWINT(16) .OR. &
-       WWINT(13) .LT. WWINT(17) .OR. WWINT(14) .GT. WWINT(18) ) THEN
-      WRITE (PRINTF,900) IXCGRD(1), IYCGRD(1), &
-                         WWINT(9) ,WWINT(10) ,WWINT(13) ,WWINT(14), &
-                         WWINT(15),WWINT(16) ,WWINT(17) ,WWINT(18)
-900   FORMAT ( ' ** Error : array bounds and maxima in subr RANGE4, ', &
-               ' point ', 2I5, &
-             /,'            ISL,ISH : ',2I4, '   IDL,IDH : ',2I4, &
-             /,'            SMI,SMA : ',2I4, '   DMI,DMA : ',2I4)
-      IF (ITEST.GE.50) WRITE (PRTEST, 901) MSC, MDC, IDDLOW, IDDTOP
-901   FORMAT (' MSC, MDC, IDDLOW, IDDTOP: ', 4I5)
+      WWINT(13) .LT. WWINT(17) .OR. WWINT(14) .GT. WWINT(18) ) THEN
+      WRITE (PRINTF,"( ' ** Error : array bounds and maxima in subr RANGE4, ', ' point ', 2I5, /,&
+            &'            ISL,ISH : ',2I4, '   IDL,IDH : ',2I4, /,'            SMI,SMA : ',2I4, '   DMI,DMA : ',2I4)") &
+            IXCG, IYCG,WWINT(9) ,WWINT(10) ,WWINT(13) ,WWINT(14),WWINT(15),WWINT(16) ,WWINT(17) ,WWINT(18)
+      IF (ITEST.GE.50) WRITE (PRTEST, "(' MSC, MDC, IDDLOW, IDDTOP: ', 4I5)") MSC, MDC, WINDOW%IDDLOW, WINDOW%IDDTOP
    ENDIF
-!
+
 !     test output
-!
+
    IF (TESTFL .AND. ITEST .GE. 60) THEN
-      WRITE(PRTEST,911) WWINT(4), WWINT(2), WWINT(8), WWINT(6)
-911   FORMAT (' RANGE4: IDM1 IDP1 ISM1 ISP1    :',4I5)
-      WRITE(PRTEST,916) WWINT(11), WWINT(12), IQUAD
-916   FORMAT (' RANGE4: ISCLW ISCHG IQUAD      :',3I5)
-      WRITE (PRTEST,917) WWINT(9), WWINT(10), WWINT(13), WWINT(14)
-917   FORMAT (' RANGE4: ISLOW ISHGH IDLOW IDHGH:',4I5)
-      WRITE (PRTEST,919) WWINT(15), WWINT(16), WWINT(17), WWINT(18)
-919   FORMAT (' RANGE4: MS4MI MS4MA MD4MI MD4MA:',4I5)
+      WRITE(PRTEST,"(' RANGE4: IDM1 IDP1 ISM1 ISP1    :',4I5)") WWINT(4), WWINT(2), WWINT(8), WWINT(6)
+      WRITE(PRTEST,"(' RANGE4: ISCLW ISCHG IQUAD      :',3I5)") WWINT(11), WWINT(12), IQUAD
+      WRITE (PRTEST,"(' RANGE4: ISLOW ISHGH IDLOW IDHGH:',4I5)") WWINT(9), WWINT(10), WWINT(13), WWINT(14)
+      WRITE (PRTEST,"(' RANGE4: MS4MI MS4MA MD4MI MD4MA:',4I5)") WWINT(15), WWINT(16), WWINT(17), WWINT(18)
       WRITE(PRINTF,*)
    END IF
-!
+
    RETURN
 !     End of RANGE4
-END
-!
+end subroutine RANGE4
+
 !********************************************************************
-!
-SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   , &
-                   IDCMIN  ,IDCMAX  ,UE      ,SA1     , &
-                   SA2     ,DA1C    ,DA1P    ,DA1M    ,DA2C    , &
-                   DA2P    ,DA2M    ,SPCSIG  ,SNLC1   ,KMESPC  , &
-                   FACHFR  ,ISSTOP  ,DAL1    ,DAL2    ,DAL3    , &
-                   SFNL    ,DSNL    ,DEP2    ,AC2     ,IMATDA  , &
-                   IMATRA  ,PLNL4S  ,PLNL4D  , &
-                   IDDLOW  ,IDDTOP  ,REDC0   ,REDC1   )
-!
+
+SUBROUTINE SWPRE4W (XIS   ,SNLC1 , &
+   DAL1  ,DAL2  ,DAL3  ,SPCSIG, &
+   WWINT ,WWAWG ,WWSWG, SNL4  )
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+
 !********************************************************************
+
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_diagnostics_level
+   TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
+
+!  2. Purpose
 !
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-   USE M_SNL4
+!     Computes the interaction coefficients of all quadruplets of the
+!     MDIA (IQUAD=4) once per computation and caches them in module
+!     M_SNL4, so that the source term evaluation does not have to call
+!     FAC4WW again for every grid point and quadruplet. The spectral
+!     ranges MSC4MI/MSC4MA/MDC4MI/MDC4MA are widened to cover all
+!     quadruplets, so work arrays allocated with these bounds fit each
+!     of them, and AF11 is filled for that widest range (its values do
+!     not depend on the quadruplet)
 !
+!  4. Argument variables (see FAC4WW)
+!
+!     XIS, SNLC1, DAL1, DAL2, DAL3, WWINT, WWAWG, WWSWG: as in FAC4WW;
+!                  on output they hold the values of the last quadruplet
+!     SNL4         tables of the quadruplet interactions; on input the
+!                  number of quadruplets and their lambda values, on
+!                  output the cached coefficients of every quadruplet
+!                  and AF11 for the widest spectral range
+
+   INTEGER WWINT(24)
+   REAL    XIS, SNLC1, DAL1, DAL2, DAL3
+   REAL    SPCSIG(MSC)
+   REAL    WWAWG(8), WWSWG(8)
+
+!  6. Local variables
+
+   INTEGER IDIA, IS, ISTAT, MI4S, MA4S, MI4D, MA4D, MSCMAX, MDCMAX
+   LOGICAL REBUILD
+   REAL    FREQ
+
+!     Cache identity. FAC4WW depends on the spectral grid, directional
+!     resolution, gravity and the MDIA lambda values. Preserve exact inp
+!     copies so a following non-stationary time step can reuse the cache
+!     while a changed COMPUTE configuration rebuilds it automatically.
+   INTEGER, SAVE :: MDISAV = -1, MSCSAV = -1, MDCSAV = -1
+   REAL, SAVE :: DDIRSAV = 0., GRAVSAV = 0., PISAV = 0.
+   REAL, SAVE :: XISSAV = 0., SNLSAV = 0.
+   REAL, ALLOCATABLE, SAVE :: SIGSAV(:), LAMSAV(:)
+   INTEGER, SAVE :: IENT = 0
+   IF (LTRACE) CALL STRACE (IENT,'SWPRE4W')
+
+   REBUILD = .TRUE.
+   IF ( ALLOCATED(SNL4%cached_indices) .AND. &
+      ALLOCATED(SNL4%cached_angular_weights) .AND. &
+      ALLOCATED(SNL4%cached_spectral_weights) .AND. &
+      ALLOCATED(SNL4%cached_dal1) .AND. ALLOCATED(SNL4%cached_dal2) .AND. &
+      ALLOCATED(SNL4%cached_dal3) .AND. &
+      ALLOCATED(SNL4%frequency_power_11) .AND. ALLOCATED(SIGSAV) .AND. &
+      ALLOCATED(LAMSAV) ) THEN
+      IF ( SIZE(SNL4%cached_indices,1).EQ.24 .AND. &
+         SIZE(SNL4%cached_indices,2).EQ.SNL4%quadruplet_count .AND. &
+         SIZE(SNL4%cached_angular_weights,1).EQ.8 .AND. &
+         SIZE(SNL4%cached_angular_weights,2).EQ.SNL4%quadruplet_count .AND. &
+         SIZE(SNL4%cached_spectral_weights,1).EQ.8 .AND. &
+         SIZE(SNL4%cached_spectral_weights,2).EQ.SNL4%quadruplet_count .AND. &
+         SIZE(SNL4%cached_dal1).EQ.SNL4%quadruplet_count .AND. &
+         SIZE(SNL4%cached_dal2).EQ.SNL4%quadruplet_count .AND. &
+         SIZE(SNL4%cached_dal3).EQ.SNL4%quadruplet_count .AND. &
+         SIZE(SIGSAV).EQ.MSC .AND. &
+         SIZE(LAMSAV).EQ.SNL4%quadruplet_count ) THEN
+         REBUILD = .FALSE.
+         IF ( MDISAV.NE.SNL4%quadruplet_count .OR. &
+            MSCSAV.NE.MSC .OR. MDCSAV.NE.MDC ) &
+            REBUILD = .TRUE.
+         IF ( DDIRSAV.NE.DDIR .OR. GRAVSAV.NE.GRAV .OR. PISAV.NE.PI ) &
+            REBUILD = .TRUE.
+         IF ( .NOT.REBUILD ) THEN
+            IF ( ANY(SIGSAV.NE.SPCSIG) .OR. &
+               ANY(LAMSAV.NE.SNL4%lambda) ) &
+               REBUILD = .TRUE.
+         ENDIF
+         IF ( .NOT.REBUILD ) THEN
+            IF ( LBOUND(SNL4%frequency_power_11,1).NE. &
+               SNL4%cached_indices(15,1) .OR. &
+               UBOUND(SNL4%frequency_power_11,1).NE. &
+               SNL4%cached_indices(16,1) ) REBUILD = .TRUE.
+         ENDIF
+      ENDIF
+   ENDIF
+
+   IF ( .NOT.REBUILD ) THEN
+      XIS   = XISSAV
+      SNLC1 = SNLSAV
+      WWINT(1:24) = SNL4%cached_indices(1:24,SNL4%quadruplet_count)
+      WWAWG(1:8) = SNL4%cached_angular_weights(1:8,SNL4%quadruplet_count)
+      WWSWG(1:8) = SNL4%cached_spectral_weights(1:8,SNL4%quadruplet_count)
+      DAL1 = SNL4%cached_dal1(SNL4%quadruplet_count)
+      DAL2 = SNL4%cached_dal2(SNL4%quadruplet_count)
+      DAL3 = SNL4%cached_dal3(SNL4%quadruplet_count)
+      PQUAD(1) = SNL4%lambda(SNL4%quadruplet_count)
+      MSC4MI = SNL4%cached_indices(15,1)
+      MSC4MA = SNL4%cached_indices(16,1)
+      MDC4MI = SNL4%cached_indices(17,1)
+      MDC4MA = SNL4%cached_indices(18,1)
+      MSCMAX = SNL4%cached_indices(19,1)
+      MDCMAX = SNL4%cached_indices(20,1)
+      RETURN
+   ENDIF
+
+   IF (ALLOCATED(SNL4%cached_indices)) DEALLOCATE(SNL4%cached_indices)
+   IF (ALLOCATED(SNL4%cached_angular_weights)) &
+      DEALLOCATE(SNL4%cached_angular_weights)
+   IF (ALLOCATED(SNL4%cached_spectral_weights)) &
+      DEALLOCATE(SNL4%cached_spectral_weights)
+   IF (ALLOCATED(SNL4%cached_dal1)) DEALLOCATE(SNL4%cached_dal1)
+   IF (ALLOCATED(SNL4%cached_dal2)) DEALLOCATE(SNL4%cached_dal2)
+   IF (ALLOCATED(SNL4%cached_dal3)) DEALLOCATE(SNL4%cached_dal3)
+   ISTAT = 0
+   ALLOCATE (SNL4%cached_indices(24,SNL4%quadruplet_count), &
+      SNL4%cached_angular_weights(8,SNL4%quadruplet_count), &
+      SNL4%cached_spectral_weights(8,SNL4%quadruplet_count), &
+      SNL4%cached_dal1(SNL4%quadruplet_count), &
+      SNL4%cached_dal2(SNL4%quadruplet_count), &
+      SNL4%cached_dal3(SNL4%quadruplet_count), &
+      STAT=ISTAT)
+   IF ( ISTAT.NE.0 ) THEN
+      CALL MSGERR (4, &
+         'Allocation problem in SWPRE4W: MDIA cache arrays')
+      RETURN
+   ENDIF
+
+   DO IDIA = 1, SNL4%quadruplet_count
+      PQUAD(1) = SNL4%lambda(IDIA)
+      CALL FAC4WW (XIS   ,SNLC1 , &
+         DAL1  ,DAL2  ,DAL3  ,SPCSIG, &
+         WWINT ,WWAWG ,WWSWG, SNL4 )
+      SNL4%cached_indices(1:24,IDIA) = WWINT(1:24)
+      SNL4%cached_angular_weights(1:8,IDIA) = WWAWG(1:8)
+      SNL4%cached_spectral_weights(1:8,IDIA) = WWSWG(1:8)
+      SNL4%cached_dal1(IDIA) = DAL1
+      SNL4%cached_dal2(IDIA) = DAL2
+      SNL4%cached_dal3(IDIA) = DAL3
+      IF ( IDIA.EQ.1 ) THEN
+         MI4S = MSC4MI
+         MA4S = MSC4MA
+         MI4D = MDC4MI
+         MA4D = MDC4MA
+      ELSE
+         MI4S = MIN( MI4S, MSC4MI )
+         MA4S = MAX( MA4S, MSC4MA )
+         MI4D = MIN( MI4D, MDC4MI )
+         MA4D = MAX( MA4D, MDC4MA )
+      ENDIF
+   ENDDO
+
+!     *** widest spectral range over all quadruplets ***
+
+   MSC4MI = MI4S
+   MSC4MA = MA4S
+   MDC4MI = MI4D
+   MDC4MA = MA4D
+   MSCMAX = MSC4MA - MSC4MI + 1
+   MDCMAX = MDC4MA - MDC4MI + 1
+
+   DO IDIA = 1, SNL4%quadruplet_count
+      SNL4%cached_indices(15,IDIA) = MSC4MI
+      SNL4%cached_indices(16,IDIA) = MSC4MA
+      SNL4%cached_indices(17,IDIA) = MDC4MI
+      SNL4%cached_indices(18,IDIA) = MDC4MA
+      SNL4%cached_indices(19,IDIA) = MSCMAX
+      SNL4%cached_indices(20,IDIA) = MDCMAX
+   ENDDO
+
+!     *** refill scaling array (f**11) for the widest range; ***
+!     *** the values do not depend on the quadruplet         ***
+
+   IF (ALLOCATED(SNL4%frequency_power_11)) &
+      DEALLOCATE(SNL4%frequency_power_11)
+   ALLOCATE (SNL4%frequency_power_11(MSC4MI:MSC4MA))
+   DO IS = 1, MSC
+      SNL4%frequency_power_11(IS) = ( SPCSIG(IS) / ( 2. * PI ) )**11
+   ENDDO
+   FREQ = SPCSIG(MSC) / ( 2. * PI )
+   DO IS = MSC+1, MSC4MA
+      FREQ = FREQ * XIS
+      SNL4%frequency_power_11(IS) = FREQ**11
+   ENDDO
+   FREQ = SPCSIG(1) / ( 2. * PI )
+   DO IS = 0, MSC4MI, -1
+      FREQ = FREQ / XIS
+      SNL4%frequency_power_11(IS) = FREQ**11
+   ENDDO
+
+!     *** remember the exact cache identity and reusable scalar outputs
+
+   IF (ALLOCATED(SIGSAV)) DEALLOCATE(SIGSAV)
+   IF (ALLOCATED(LAMSAV)) DEALLOCATE(LAMSAV)
+   ISTAT = 0
+   ALLOCATE (SIGSAV(MSC), LAMSAV(SNL4%quadruplet_count), STAT=ISTAT)
+   IF ( ISTAT.NE.0 ) THEN
+      IF (ALLOCATED(SIGSAV)) DEALLOCATE(SIGSAV)
+      IF (ALLOCATED(LAMSAV)) DEALLOCATE(LAMSAV)
+      CALL MSGERR (4, &
+         'Allocation problem in SWPRE4W: cache identity arrays')
+      RETURN
+   ENDIF
+   SIGSAV = SPCSIG
+   LAMSAV = SNL4%lambda
+   MDISAV = SNL4%quadruplet_count
+   MSCSAV = MSC
+   MDCSAV = MDC
+   DDIRSAV = DDIR
+   GRAVSAV = GRAV
+   PISAV   = PI
+   XISSAV  = XIS
+   SNLSAV  = SNLC1
+
+   RETURN
+!     End of SWPRE4W
+end subroutine SWPRE4W
+
+!********************************************************************
+
+SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, AC2, IMATDA, IMATRA, &
+      PLNL4S, PLNL4D, REDC0, REDC1, AF11, IGP)
+
+!********************************************************************
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_source_workspaces, ONLY: dia_workspace_t
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering                              |
@@ -797,12 +1018,31 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   , &
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
+!     DIA_WORKSPACE: work space and coefficients of the DIA, in upstream
+!             separate arguments: the proportionality constant SNLC1,
+!             the LAMBDA dependend weight factors DAL1, DAL2, DAL3 and
+!             the interpolation weights WWAWG, WWSWG (see FAC4WW), the
+!             "unfolded" spectrum UE, the interaction contributions SA1
+!             and SA2 of the first and second quadruplet (unfolded
+!             space), their parts for the diagonal matrix DA1C, DA1P,
+!             DA1M, DA2C, DA2P, DA2M, and the source term SFNL and its
+!             part for the diagonal matrix DSNL
+!     IGP   : grid address of the point being computed
+!             (KCGRD(1) in upstream)
+!     WINDOW: spectral window of the grid point: the directional range
+!             per frequency (IDCMIN, IDCMAX), the directional range
+!             of the sweep (IDDLOW, IDDTOP) and the maximum frequency
+!             counter that is propagated (ISSTOP)
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
+   REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
+   TYPE(dia_workspace_t), INTENT(INOUT) :: DIA_WORKSPACE
    REAL    SPCSIG(MSC)
-!
+
 !     Data in PARAMETER statements :
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !       DAL1    Real  LAMBDA dependend weight factors (see FAC4WW)
 !       DAL2    Real
 !       DAL3    Real
@@ -820,7 +1060,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   , &
 !       DA1C, DA1P, DA1M, DA2C, DA2P, DA2M
 !               R.A.  Idem for diagonal matrix.
 !       PERCIR        full circle or sector
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !
 !       Relative offsets of interpolation points around central bin
 !       "#" and corresponding numbers of AWGn :
@@ -868,51 +1108,44 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   , &
 ! 13. Source text
 !
 !*************************************************************
-!
-   INTEGER   IS     ,ID     ,I      ,J      , &
-             ISHGH  ,IDLOW  ,ISP    ,ISP1   ,IDP    ,IDP1   , &
-             ISM    ,ISM1   ,IDHGH  ,IDM    ,IDM1   ,ISCLW  , &
-             ISCHG  ,IDDLOW ,IDDTOP
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER :: IS, ID, ID0, I, J, IDDUM, IIID, ISLOW, ISHGH, IDLOW, ISP, ISP1, IDP, IDP1, ISM, ISM1, &
+         IDHGH, IDM, IDM1, ISCLW, ISCHG, IDCLOW, IDCHGH
+
+!     The counters that RANGE4 recomputes for this grid point and this sweep.
+!     They must come from the caller's own copy: DIA_WORKSPACE%WWINT holds the
+!     grid-wide table that SWPRE4W filled and that RANGE4 never touches, and its
+!     elements 13 and 14 are exactly MDC4MI and MDC4MA -- the allocation bounds
+!     of UE and the SA/DA arrays.  Reading them here would make the loops below
+!     run from IDLOW - IIID to IDHGH + IIID and write outside those arrays.
+   INTEGER :: WWINT(*)
+
    REAL      X      ,X2     ,CONS   ,FACTOR ,SNLCS1 ,SNLCS2 ,SNLCS3, &
-             E00    ,EP1    ,EM1    ,EP2    ,EM2    ,SA1A   ,SA1B  , &
-             SA2A   ,SA2B   ,KMESPC ,FACHFR ,AWG1   ,AWG2   ,AWG3  , &
-             AWG4   ,AWG5   ,AWG6   ,AWG7   ,AWG8   ,DAL1   ,DAL2  , &
-             DAL3   ,SNLC1  ,SWG1   ,SWG2   ,SWG3   ,SWG4   ,SWG5  , &
-             SWG6   ,SWG7   ,SWG8           ,JACOBI ,SIGPI
-!
+      E00    ,EP1    ,EM1    ,EP2    ,EM2    ,SA1A   ,SA1B  , &
+      SA2A   ,SA2B   ,KMESPC ,FACHFR ,AWG1   ,AWG2   ,AWG3  , &
+      AWG4   ,AWG5   ,AWG6   ,AWG7   ,AWG8   ,SWG1   ,SWG2  , &
+      SWG3   ,SWG4   ,SWG5   ,SWG6   ,SWG7   ,SWG8, JACOBI, SIGPI, PI3
+
    REAL      AC2(MDC,MSC,MCGRD)                    , &
-             DEP2(MCGRD)                           , &
-             UE(MSC4MI:MSC4MA , MDC4MI:MDC4MA )    , &
-             SA1(MSC4MI:MSC4MA , MDC4MI:MDC4MA )   , &
-             SA2(MSC4MI:MSC4MA , MDC4MI:MDC4MA )   , &
-             DA1C(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  , &
-             DA1P(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  , &
-             DA1M(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  , &
-             DA2C(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  , &
-             DA2P(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  , &
-             DA2M(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  , &
-             SFNL(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  , &
-             DSNL(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  , &
-             IMATDA(MDC,MSC)                       , &
-             IMATRA(MDC,MSC)                       , &
-             PLNL4S(MDC,MSC,NPTST)                 , &
-             PLNL4D(MDC,MSC,NPTST)                 , &
-             WWAWG(*)                              , &
-             WWSWG(*)
+      DEP2(MCGRD)                           , &
+      IMATDA(MDC,MSC)                       , &
+      IMATRA(MDC,MSC)                       , &
+      PLNL4S(MDC,MSC,NPTST)                 , &
+      PLNL4D(MDC,MSC,NPTST)
    REAL :: REDC0 (MDC,MSC,MREDS)
    REAL :: REDC1 (MDC,MSC,MREDS)
-!
-   INTEGER   IDCMIN(MSC)        , &
-             IDCMAX(MSC)        , &
-             WWINT(*)
-!
+
    LOGICAL   PERCIR
-!
-   SAVE IENT
-   DATA IENT/0/
+
+   LOGICAL   LTSTFL
+
    IF (LTRACE) CALL STRACE (IENT,'SWSNL1')
-!
+
+!     evaluate the test-output condition once; the per-bin loop below
+!     only tests this single flag
+   LTSTFL = ITEST.GE.100 .AND. TESTFL
+
    IDP    = WWINT(1)
    IDP1   = WWINT(2)
    IDM    = WWINT(3)
@@ -927,60 +1160,60 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   , &
    ISCHG  = WWINT(12)
    IDLOW  = WWINT(13)
    IDHGH  = WWINT(14)
-!
-   AWG1 = WWAWG(1)
-   AWG2 = WWAWG(2)
-   AWG3 = WWAWG(3)
-   AWG4 = WWAWG(4)
-   AWG5 = WWAWG(5)
-   AWG6 = WWAWG(6)
-   AWG7 = WWAWG(7)
-   AWG8 = WWAWG(8)
-!
-   SWG1 = WWSWG(1)
-   SWG2 = WWSWG(2)
-   SWG3 = WWSWG(3)
-   SWG4 = WWSWG(4)
-   SWG5 = WWSWG(5)
-   SWG6 = WWSWG(6)
-   SWG7 = WWSWG(7)
-   SWG8 = WWSWG(8)
-!
+
+   AWG1 = DIA_WORKSPACE%WWAWG(1)
+   AWG2 = DIA_WORKSPACE%WWAWG(2)
+   AWG3 = DIA_WORKSPACE%WWAWG(3)
+   AWG4 = DIA_WORKSPACE%WWAWG(4)
+   AWG5 = DIA_WORKSPACE%WWAWG(5)
+   AWG6 = DIA_WORKSPACE%WWAWG(6)
+   AWG7 = DIA_WORKSPACE%WWAWG(7)
+   AWG8 = DIA_WORKSPACE%WWAWG(8)
+
+   SWG1 = DIA_WORKSPACE%WWSWG(1)
+   SWG2 = DIA_WORKSPACE%WWSWG(2)
+   SWG3 = DIA_WORKSPACE%WWSWG(3)
+   SWG4 = DIA_WORKSPACE%WWSWG(4)
+   SWG5 = DIA_WORKSPACE%WWSWG(5)
+   SWG6 = DIA_WORKSPACE%WWSWG(6)
+   SWG7 = DIA_WORKSPACE%WWSWG(7)
+   SWG8 = DIA_WORKSPACE%WWSWG(8)
+
 !     *** Initialize auxiliary arrays per gridpoint ***
-!
+
    DO ID = MDC4MI, MDC4MA
       DO IS = MSC4MI, MSC4MA
-         UE(IS,ID)   = 0.
-         SA1(IS,ID)  = 0.
-         SA2(IS,ID)  = 0.
-         SFNL(IS,ID) = 0.
-         DA1C(IS,ID) = 0.
-         DA1P(IS,ID) = 0.
-         DA1M(IS,ID) = 0.
-         DA2C(IS,ID) = 0.
-         DA2P(IS,ID) = 0.
-         DA2M(IS,ID) = 0.
-         DSNL(IS,ID) = 0.
+         DIA_WORKSPACE%UE(IS,ID)   = 0.
+         DIA_WORKSPACE%SA1(IS,ID)  = 0.
+         DIA_WORKSPACE%SA2(IS,ID)  = 0.
+         DIA_WORKSPACE%SFNL(IS,ID) = 0.
+         DIA_WORKSPACE%DA1C(IS,ID) = 0.
+         DIA_WORKSPACE%DA1P(IS,ID) = 0.
+         DIA_WORKSPACE%DA1M(IS,ID) = 0.
+         DIA_WORKSPACE%DA2C(IS,ID) = 0.
+         DIA_WORKSPACE%DA2P(IS,ID) = 0.
+         DIA_WORKSPACE%DA2M(IS,ID) = 0.
+         DIA_WORKSPACE%DSNL(IS,ID) = 0.
       ENDDO
    ENDDO
-!
+
 !     *** Calculate factor R(X) to calculate the NL wave-wave ***
 !     *** interaction for shallow water                       ***
-!     *** SNLC1 = 1/GRAV**4                                   ***         40.17
-!
+!     *** DIA_WORKSPACE%SNLC1 = 1/GRAV**4                                   ***
+
    SNLCS1 = PQUAD(3)
    SNLCS2 = PQUAD(4)
    SNLCS3 = PQUAD(5)
-   X      = MAX ( 0.75 * DEP2(KCGRD(1)) * KMESPC , 0.5 )
+   X      = MAX ( 0.75 * DEP2(IGP) * KMESPC , 0.5 )
    X2     = MAX ( -1.E15, SNLCS3*X)
-   CONS   = SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
+   CONS   = DIA_WORKSPACE%SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
    JACOBI = 2. * PI
-!
+
 !     *** check whether the spectral domain is periodic in ***
 !     *** directional space and if so, modify boundaries   ***
-!
+
    PERCIR = .FALSE.
-   IF ( IDDLOW .EQ. 1 .AND. IDDTOP .EQ. MDC ) THEN
+   IF ( WINDOW%IDDLOW .EQ. 1 .AND. WINDOW%IDDTOP .EQ. MDC ) THEN
 !       *** periodic in theta -> spectrum can be folded    ***
 !       *** (can only be present in presence of a current) ***
       IDCLOW = 1
@@ -993,208 +1226,195 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   , &
       IDCLOW = IDLOW
       IDCHGH = IDHGH
    ENDIF
-!
+
 !     *** Prepare auxiliary spectrum               ***
-!     *** set action original spectrum in array UE ***
-!
+!     *** set action original spectrum in array DIA_WORKSPACE%UE ***
+
    DO IDDUM = IDLOW - IIID, IDHGH + IIID
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
       DO IS = 1, MSC
-         UE(IS,IDDUM) = AC2(ID,IS,KCGRD(1)) * SPCSIG(IS) * JACOBI
+         DIA_WORKSPACE%UE(IS,IDDUM) = AC2(ID,IS,IGP) * SPCSIG(IS) * JACOBI
       ENDDO
    ENDDO
-!
+
 !     *** set values in area 2 for IS > MSC+1  ***
-!
+
    DO IS = MSC+1, ISHGH
       DO ID = IDLOW - IIID , IDHGH + IIID
-         UE (IS,ID) = UE(IS-1,ID) * FACHFR
+         DIA_WORKSPACE%UE (IS,ID) = DIA_WORKSPACE%UE(IS-1,ID) * FACHFR
       ENDDO
    ENDDO
-!
+
 !     *** Calculate interactions      ***
 !     *** Energy at interacting bins  ***
-!
+
    DO IS = ISCLW, ISCHG
       DO ID = IDCLOW, IDCHGH
-         E00    =        UE(IS      ,ID      )
-         EP1    = AWG1 * UE(IS+ISP1,ID+IDP1) + &
-                  AWG2 * UE(IS+ISP1,ID+IDP ) + &
-                  AWG3 * UE(IS+ISP ,ID+IDP1) + &
-                  AWG4 * UE(IS+ISP ,ID+IDP )
-         EM1    = AWG5 * UE(IS+ISM1,ID-IDM1) + &
-                  AWG6 * UE(IS+ISM1,ID-IDM ) + &
-                  AWG7 * UE(IS+ISM ,ID-IDM1) + &
-                  AWG8 * UE(IS+ISM ,ID-IDM )
-!
-         EP2    = AWG1 * UE(IS+ISP1,ID-IDP1) + &
-                  AWG2 * UE(IS+ISP1,ID-IDP ) + &
-                  AWG3 * UE(IS+ISP ,ID-IDP1) + &
-                  AWG4 * UE(IS+ISP ,ID-IDP )
-         EM2    = AWG5 * UE(IS+ISM1,ID+IDM1) + &
-                  AWG6 * UE(IS+ISM1,ID+IDM ) + &
-                  AWG7 * UE(IS+ISM ,ID+IDM1) + &
-                  AWG8 * UE(IS+ISM ,ID+IDM )
-!
+         E00    =        DIA_WORKSPACE%UE(IS      ,ID      )
+         EP1    = AWG1 * DIA_WORKSPACE%UE(IS+ISP1,ID+IDP1) + &
+            AWG2 * DIA_WORKSPACE%UE(IS+ISP1,ID+IDP ) + &
+            AWG3 * DIA_WORKSPACE%UE(IS+ISP ,ID+IDP1) + &
+            AWG4 * DIA_WORKSPACE%UE(IS+ISP ,ID+IDP )
+         EM1    = AWG5 * DIA_WORKSPACE%UE(IS+ISM1,ID-IDM1) + &
+            AWG6 * DIA_WORKSPACE%UE(IS+ISM1,ID-IDM ) + &
+            AWG7 * DIA_WORKSPACE%UE(IS+ISM ,ID-IDM1) + &
+            AWG8 * DIA_WORKSPACE%UE(IS+ISM ,ID-IDM )
+
+         EP2    = AWG1 * DIA_WORKSPACE%UE(IS+ISP1,ID-IDP1) + &
+            AWG2 * DIA_WORKSPACE%UE(IS+ISP1,ID-IDP ) + &
+            AWG3 * DIA_WORKSPACE%UE(IS+ISP ,ID-IDP1) + &
+            AWG4 * DIA_WORKSPACE%UE(IS+ISP ,ID-IDP )
+         EM2    = AWG5 * DIA_WORKSPACE%UE(IS+ISM1,ID+IDM1) + &
+            AWG6 * DIA_WORKSPACE%UE(IS+ISM1,ID+IDM ) + &
+            AWG7 * DIA_WORKSPACE%UE(IS+ISM ,ID+IDM1) + &
+            AWG8 * DIA_WORKSPACE%UE(IS+ISM ,ID+IDM )
+
 !         *** Contribution to interactions                          ***
 !         *** CONS is the shallow water factor for the NL interact. ***
-!
+
          FACTOR = CONS * AF11(IS) * E00
-!
-         SA1A   = E00 * ( EP1*DAL1 + EM1*DAL2 ) * PQUAD(2)
-         SA1B   = SA1A - EP1*EM1*DAL3 * PQUAD(2)
-         SA2A   = E00 * ( EP2*DAL1 + EM2*DAL2 ) * PQUAD(2)
-         SA2B   = SA2A - EP2*EM2*DAL3 * PQUAD(2)
-!
-         SA1 (IS,ID) = FACTOR * SA1B
-         SA2 (IS,ID) = FACTOR * SA2B
-!
-         IF(ITEST.GE.100 .AND. TESTFL) THEN
-            WRITE(PRINTF,9002) E00,EP1,EM1,EP2,EM2
-9002        FORMAT (' E00 EP1 EM1 EP2 EM2  :',5E11.4)
-            WRITE(PRINTF,9003) SA1A,SA1B,SA2A,SA2B
-9003        FORMAT (' SA1A SA1B SA2A SA2B  :',4E11.4)
-            WRITE(PRINTF,9004) IS,ID,SA1(IS,ID),SA2(IS,ID)
-9004        FORMAT (' IS ID SA1() SA2()    :',2I4,2E12.4)
-            WRITE(PRINTF,9005) FACTOR
-9005        FORMAT (' FACTOR               : ',E12.4)
+
+         SA1A   = E00 * ( EP1*DIA_WORKSPACE%DAL1 + EM1*DIA_WORKSPACE%DAL2 ) * PQUAD(2)
+         SA1B   = SA1A - EP1*EM1*DIA_WORKSPACE%DAL3 * PQUAD(2)
+         SA2A   = E00 * ( EP2*DIA_WORKSPACE%DAL1 + EM2*DIA_WORKSPACE%DAL2 ) * PQUAD(2)
+         SA2B   = SA2A - EP2*EM2*DIA_WORKSPACE%DAL3 * PQUAD(2)
+
+         DIA_WORKSPACE%SA1 (IS,ID) = FACTOR * SA1B
+         DIA_WORKSPACE%SA2 (IS,ID) = FACTOR * SA2B
+
+         IF (LTSTFL) THEN
+            WRITE(PRINTF,"(' E00 EP1 EM1 EP2 EM2  :',5E11.4)") E00,EP1,EM1,EP2,EM2
+            WRITE(PRINTF,"(' SA1A SA1B SA2A SA2B  :',4E11.4)") SA1A,SA1B,SA2A,SA2B
+            WRITE(PRINTF,"(' IS ID DIA_WORKSPACE%SA1() DIA_WORKSPACE%SA2() :',2I4,2E12.4)") IS,ID, &
+                  DIA_WORKSPACE%SA1(IS,ID),DIA_WORKSPACE%SA2(IS,ID)
+            WRITE(PRINTF,"(' FACTOR               : ',E12.4)") FACTOR
          END IF
-!
-         DA1C(IS,ID) = CONS * AF11(IS) * ( SA1A + SA1B )
-         DA1P(IS,ID) = FACTOR * ( DAL1*E00 - DAL3*EM1 ) * PQUAD(2)
-         DA1M(IS,ID) = FACTOR * ( DAL2*E00 - DAL3*EP1 ) * PQUAD(2)
-!
-         DA2C(IS,ID) = CONS * AF11(IS) * ( SA2A + SA2B )
-         DA2P(IS,ID) = FACTOR * ( DAL1*E00 - DAL3*EM2 ) * PQUAD(2)
-         DA2M(IS,ID) = FACTOR * ( DAL2*E00 - DAL3*EP2 ) * PQUAD(2)
+
+         DIA_WORKSPACE%DA1C(IS,ID) = CONS * AF11(IS) * ( SA1A + SA1B )
+         DIA_WORKSPACE%DA1P(IS,ID) = FACTOR * ( DIA_WORKSPACE%DAL1*E00 - DIA_WORKSPACE%DAL3*EM1 ) * PQUAD(2)
+         DIA_WORKSPACE%DA1M(IS,ID) = FACTOR * ( DIA_WORKSPACE%DAL2*E00 - DIA_WORKSPACE%DAL3*EP1 ) * PQUAD(2)
+
+         DIA_WORKSPACE%DA2C(IS,ID) = CONS * AF11(IS) * ( SA2A + SA2B )
+         DIA_WORKSPACE%DA2P(IS,ID) = FACTOR * ( DIA_WORKSPACE%DAL1*E00 - DIA_WORKSPACE%DAL3*EM2 ) * PQUAD(2)
+         DIA_WORKSPACE%DA2M(IS,ID) = FACTOR * ( DIA_WORKSPACE%DAL2*E00 - DIA_WORKSPACE%DAL3*EP2 ) * PQUAD(2)
       ENDDO
    ENDDO
-!
+
 !     *** Fold interactions to side angles if spectral domain ***
 !     *** is periodic in directional space                    ***
-!
+
    IF ( PERCIR ) THEN
       DO ID = 1, IDHGH - MDC
          ID0   = 1 - ID
          DO IS = ISCLW, ISCHG
-            SA1 (IS,MDC+ID) = SA1 (IS,  ID   )
-            SA2 (IS,MDC+ID) = SA2 (IS,  ID   )
-            DA1C(IS,MDC+ID) = DA1C(IS,  ID   )
-            DA1P(IS,MDC+ID) = DA1P(IS,  ID   )
-            DA1M(IS,MDC+ID) = DA1M(IS,  ID   )
-            DA2C(IS,MDC+ID) = DA2C(IS,  ID   )
-            DA2P(IS,MDC+ID) = DA2P(IS,  ID   )
-            DA2M(IS,MDC+ID) = DA2M(IS,  ID   )
-!
-            SA1 (IS,  ID0 ) = SA1 (IS, MDC+ID0)
-            SA2 (IS,  ID0 ) = SA2 (IS, MDC+ID0)
-            DA1C(IS,  ID0 ) = DA1C(IS, MDC+ID0)
-            DA1P(IS,  ID0 ) = DA1P(IS, MDC+ID0)
-            DA1M(IS,  ID0 ) = DA1M(IS, MDC+ID0)
-            DA2C(IS,  ID0 ) = DA2C(IS, MDC+ID0)
-            DA2P(IS,  ID0 ) = DA2P(IS, MDC+ID0)
-            DA2M(IS,  ID0 ) = DA2M(IS, MDC+ID0)
+            DIA_WORKSPACE%SA1 (IS,MDC+ID) = DIA_WORKSPACE%SA1 (IS,  ID   )
+            DIA_WORKSPACE%SA2 (IS,MDC+ID) = DIA_WORKSPACE%SA2 (IS,  ID   )
+            DIA_WORKSPACE%DA1C(IS,MDC+ID) = DIA_WORKSPACE%DA1C(IS,  ID   )
+            DIA_WORKSPACE%DA1P(IS,MDC+ID) = DIA_WORKSPACE%DA1P(IS,  ID   )
+            DIA_WORKSPACE%DA1M(IS,MDC+ID) = DIA_WORKSPACE%DA1M(IS,  ID   )
+            DIA_WORKSPACE%DA2C(IS,MDC+ID) = DIA_WORKSPACE%DA2C(IS,  ID   )
+            DIA_WORKSPACE%DA2P(IS,MDC+ID) = DIA_WORKSPACE%DA2P(IS,  ID   )
+            DIA_WORKSPACE%DA2M(IS,MDC+ID) = DIA_WORKSPACE%DA2M(IS,  ID   )
+
+            DIA_WORKSPACE%SA1 (IS,  ID0 ) = DIA_WORKSPACE%SA1 (IS, MDC+ID0)
+            DIA_WORKSPACE%SA2 (IS,  ID0 ) = DIA_WORKSPACE%SA2 (IS, MDC+ID0)
+            DIA_WORKSPACE%DA1C(IS,  ID0 ) = DIA_WORKSPACE%DA1C(IS, MDC+ID0)
+            DIA_WORKSPACE%DA1P(IS,  ID0 ) = DIA_WORKSPACE%DA1P(IS, MDC+ID0)
+            DIA_WORKSPACE%DA1M(IS,  ID0 ) = DIA_WORKSPACE%DA1M(IS, MDC+ID0)
+            DIA_WORKSPACE%DA2C(IS,  ID0 ) = DIA_WORKSPACE%DA2C(IS, MDC+ID0)
+            DIA_WORKSPACE%DA2P(IS,  ID0 ) = DIA_WORKSPACE%DA2P(IS, MDC+ID0)
+            DIA_WORKSPACE%DA2M(IS,  ID0 ) = DIA_WORKSPACE%DA2M(IS, MDC+ID0)
          ENDDO
       ENDDO
    ENDIF
-!
+
 !     *** Put source term together (To save space I=IS and J=ID ***
 !     *** is used)                                              ***
-!
+
    PI3   = (2. * PI)**3
-   DO I = 1, ISSTOP
+   DO I = 1, WINDOW%ISSTOP
       SIGPI = SPCSIG(I) * JACOBI
-      DO J = IDCMIN(I), IDCMAX(I)
+      DO J = WINDOW%IDCMIN(I), WINDOW%IDCMAX(I)
          ID = MOD ( J - 1 + MDC , MDC ) + 1
-         SFNL(I,ID) =   - 2. * ( SA1(I,J) + SA2(I,J) ) &
-             + AWG1 * ( SA1(I-ISP1,J-IDP1) + SA2(I-ISP1,J+IDP1) ) &
-             + AWG2 * ( SA1(I-ISP1,J-IDP ) + SA2(I-ISP1,J+IDP ) ) &
-             + AWG3 * ( SA1(I-ISP ,J-IDP1) + SA2(I-ISP ,J+IDP1) ) &
-             + AWG4 * ( SA1(I-ISP ,J-IDP ) + SA2(I-ISP ,J+IDP ) ) &
-             + AWG5 * ( SA1(I-ISM1,J+IDM1) + SA2(I-ISM1,J-IDM1) ) &
-             + AWG6 * ( SA1(I-ISM1,J+IDM ) + SA2(I-ISM1,J-IDM ) ) &
-             + AWG7 * ( SA1(I-ISM ,J+IDM1) + SA2(I-ISM ,J-IDM1) ) &
-             + AWG8 * ( SA1(I-ISM ,J+IDM ) + SA2(I-ISM ,J-IDM ) )
-!
-         DSNL(I,ID) =   - 2. * ( DA1C(I,J) + DA2C(I,J) ) &
-             + SWG1 * ( DA1P(I-ISP1,J-IDP1) + DA2P(I-ISP1,J+IDP1) ) &
-             + SWG2 * ( DA1P(I-ISP1,J-IDP ) + DA2P(I-ISP1,J+IDP ) ) &
-             + SWG3 * ( DA1P(I-ISP ,J-IDP1) + DA2P(I-ISP ,J+IDP1) ) &
-             + SWG4 * ( DA1P(I-ISP ,J-IDP ) + DA2P(I-ISP ,J+IDP ) ) &
-             + SWG5 * ( DA1M(I-ISM1,J+IDM1) + DA2M(I-ISM1,J-IDM1) ) &
-             + SWG6 * ( DA1M(I-ISM1,J+IDM ) + DA2M(I-ISM1,J-IDM ) ) &
-             + SWG7 * ( DA1M(I-ISM ,J+IDM1) + DA2M(I-ISM ,J-IDM1) ) &
-             + SWG8 * ( DA1M(I-ISM ,J+IDM ) + DA2M(I-ISM ,J-IDM ) )
-!
+         DIA_WORKSPACE%SFNL(I,ID) =   - 2. * ( DIA_WORKSPACE%SA1(I,J) + DIA_WORKSPACE%SA2(I,J) ) &
+            + AWG1 * ( DIA_WORKSPACE%SA1(I-ISP1,J-IDP1) + DIA_WORKSPACE%SA2(I-ISP1,J+IDP1) ) &
+            + AWG2 * ( DIA_WORKSPACE%SA1(I-ISP1,J-IDP ) + DIA_WORKSPACE%SA2(I-ISP1,J+IDP ) ) &
+            + AWG3 * ( DIA_WORKSPACE%SA1(I-ISP ,J-IDP1) + DIA_WORKSPACE%SA2(I-ISP ,J+IDP1) ) &
+            + AWG4 * ( DIA_WORKSPACE%SA1(I-ISP ,J-IDP ) + DIA_WORKSPACE%SA2(I-ISP ,J+IDP ) ) &
+            + AWG5 * ( DIA_WORKSPACE%SA1(I-ISM1,J+IDM1) + DIA_WORKSPACE%SA2(I-ISM1,J-IDM1) ) &
+            + AWG6 * ( DIA_WORKSPACE%SA1(I-ISM1,J+IDM ) + DIA_WORKSPACE%SA2(I-ISM1,J-IDM ) ) &
+            + AWG7 * ( DIA_WORKSPACE%SA1(I-ISM ,J+IDM1) + DIA_WORKSPACE%SA2(I-ISM ,J-IDM1) ) &
+            + AWG8 * ( DIA_WORKSPACE%SA1(I-ISM ,J+IDM ) + DIA_WORKSPACE%SA2(I-ISM ,J-IDM ) )
+
+         DIA_WORKSPACE%DSNL(I,ID) =   - 2. * ( DIA_WORKSPACE%DA1C(I,J) + DIA_WORKSPACE%DA2C(I,J) ) &
+            + SWG1 * ( DIA_WORKSPACE%DA1P(I-ISP1,J-IDP1) + DIA_WORKSPACE%DA2P(I-ISP1,J+IDP1) ) &
+            + SWG2 * ( DIA_WORKSPACE%DA1P(I-ISP1,J-IDP ) + DIA_WORKSPACE%DA2P(I-ISP1,J+IDP ) ) &
+            + SWG3 * ( DIA_WORKSPACE%DA1P(I-ISP ,J-IDP1) + DIA_WORKSPACE%DA2P(I-ISP ,J+IDP1) ) &
+            + SWG4 * ( DIA_WORKSPACE%DA1P(I-ISP ,J-IDP ) + DIA_WORKSPACE%DA2P(I-ISP ,J+IDP ) ) &
+            + SWG5 * ( DIA_WORKSPACE%DA1M(I-ISM1,J+IDM1) + DIA_WORKSPACE%DA2M(I-ISM1,J-IDM1) ) &
+            + SWG6 * ( DIA_WORKSPACE%DA1M(I-ISM1,J+IDM ) + DIA_WORKSPACE%DA2M(I-ISM1,J-IDM ) ) &
+            + SWG7 * ( DIA_WORKSPACE%DA1M(I-ISM ,J+IDM1) + DIA_WORKSPACE%DA2M(I-ISM ,J-IDM1) ) &
+            + SWG8 * ( DIA_WORKSPACE%DA1M(I-ISM ,J+IDM ) + DIA_WORKSPACE%DA2M(I-ISM ,J-IDM ) )
+
 !         *** store results in IMATDA and IMATRA ***
-!
+
          IF(TESTFL) THEN
-            PLNL4S(ID,I,IPTST) = SFNL(I,ID) / SIGPI
-            PLNL4D(ID,I,IPTST) = DSNL(I,ID) / PI3
+            PLNL4S(ID,I,IPTST) = DIA_WORKSPACE%SFNL(I,ID) / SIGPI
+            PLNL4D(ID,I,IPTST) = DIA_WORKSPACE%DSNL(I,ID) / PI3
          END IF
-         REDC0(ID,I,1) = REDC0(ID,I,1) + SFNL(I,ID) / SIGPI
-         REDC1(ID,I,1) = REDC1(ID,I,1) + DSNL(I,ID) / PI3
-!
-         IMATRA(ID,I) = IMATRA(ID,I) + SFNL(I,ID) / SIGPI
-         IMATDA(ID,I) = IMATDA(ID,I) - DSNL(I,ID) / PI3
-!
+         REDC0(ID,I,1) = REDC0(ID,I,1) + DIA_WORKSPACE%SFNL(I,ID) / SIGPI
+         REDC1(ID,I,1) = REDC1(ID,I,1) + DIA_WORKSPACE%DSNL(I,ID) / PI3
+
+         IMATRA(ID,I) = IMATRA(ID,I) + DIA_WORKSPACE%SFNL(I,ID) / SIGPI
+         IMATDA(ID,I) = IMATDA(ID,I) - DIA_WORKSPACE%DSNL(I,ID) / PI3
+
          IF(ITEST.GE.90 .AND. TESTFL) THEN
-            WRITE(PRINTF,9006) I,J,SFNL(I,ID),DSNL(I,ID), &
+            WRITE(PRINTF,"(' IS ID DIA_WORKSPACE%SFNL DIA_WORKSPACE%DSNL SPCSIG:',2I4,3E12.4)") I,J, &
+                  DIA_WORKSPACE%SFNL(I,ID),DIA_WORKSPACE%DSNL(I,ID), &
                SPCSIG(I)
-9006        FORMAT (' IS ID SFNL DSNL SPCSIG:',2I4,3E12.4)
          END IF
-!
+
       ENDDO
    ENDDO
-!
+
 !     *** test output ***
-!
+
    IF (ITEST .GE. 50 .AND. TESTFL) THEN
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) ' SWSNL1 subroutine '
-      WRITE(PRINTF,9011) IDP, IDP1, IDM, IDM1
-9011  FORMAT (' IDP IDP1 IDM IDM1     :',4I5)
-      WRITE (PRINTF,9013) ISP, ISP1, ISM, ISM1
-9013  FORMAT (' ISP ISP1 ISM ISM1     :',4I5)
-      WRITE (PRINTF,9015) ISLOW, ISHGH, IDLOW,IDHGH
-9015  FORMAT (' ISLOW ISHGH IDLOW IDHG:',4I5)
-      WRITE(PRINTF,9016) ISCLW, ISCHG, IDDLOW, IDDTOP
-9016  FORMAT (' ICLW ICHG IDDLOW IDDTO:',2I5)
-      WRITE (PRINTF,9017) AWG1, AWG2, AWG3, AWG4
-9017  FORMAT (' AWG1 AWG2 AWG3 AWG4   :',4E12.4)
-      WRITE (PRINTF,9018) AWG5, AWG6, AWG7, AWG8
-9018  FORMAT (' AWG5 AWG6 AWG7 AWG8   :',4E12.4)
-      WRITE (PRINTF,9019) MSC4MI, MSC4MA, MDC4MI, MDC4MA
-9019  FORMAT (' S4MI S4MA D4MI D4MA   :',4I6)
-      WRITE(PRINTF,9020) SNLC1,X,X2,CONS
-9020  FORMAT (' SNLC1  X  X2  CONS    :',4E12.4)
-      WRITE(PRINTF,9021) DEP2(KCGRD(1)),KMESPC, FACHFR, PI
-9021  FORMAT (' DEPTH KMESPC FACHFR PI:',4E12.4)
-      WRITE(PRINTF,9023) JACOBI
-9023  FORMAT (' JACOBI                :',E12.4)
+      WRITE(PRINTF,"(' IDP IDP1 IDM IDM1     :',4I5)") IDP, IDP1, IDM, IDM1
+      WRITE (PRINTF,"(' ISP ISP1 ISM ISM1     :',4I5)") ISP, ISP1, ISM, ISM1
+      WRITE (PRINTF,"(' ISLOW ISHGH IDLOW IDHG:',4I5)") ISLOW, ISHGH, IDLOW,IDHGH
+      WRITE(PRINTF,"(' ICLW ICHG IDDLOW IDDTO:',2I5)") ISCLW, ISCHG, WINDOW%IDDLOW, WINDOW%IDDTOP
+      WRITE (PRINTF,"(' AWG1 AWG2 AWG3 AWG4   :',4E12.4)") AWG1, AWG2, AWG3, AWG4
+      WRITE (PRINTF,"(' AWG5 AWG6 AWG7 AWG8   :',4E12.4)") AWG5, AWG6, AWG7, AWG8
+      WRITE (PRINTF,"(' S4MI S4MA D4MI D4MA   :',4I6)") MSC4MI, MSC4MA, MDC4MI, MDC4MA
+      WRITE(PRINTF,"(' DIA_WORKSPACE%SNLC1 X X2 CONS :',4E12.4)") DIA_WORKSPACE%SNLC1,X,X2,CONS
+      WRITE(PRINTF,"(' DEPTH KMESPC FACHFR PI:',4E12.4)") DEP2(IGP),KMESPC, FACHFR, PI
+      WRITE(PRINTF,"(' JACOBI                :',E12.4)") JACOBI
       WRITE(PRINTF,*)
    END IF
-!
+
    RETURN
 !     End of the subroutine SWSNL1
-END
-!
+end subroutine SWSNL1
+
 !*******************************************************************
-!
-SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   , &
-                   WWAWG   ,UE      ,SA1     ,ISSTOP  , &
-                   SA2     ,SPCSIG  ,SNLC1   ,DAL1    ,DAL2    , &
-                   DAL3    ,SFNL    ,DEP2    ,AC2     ,KMESPC  , &
-                            REDC0   ,REDC1   ,IMATDA  ,IMATRA  , &
-                   FACHFR  ,PLNL4S  ,         IDCMIN  ,IDCMAX  )
-!
+
+SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2, DAL3, SFNL, DEP2, &
+      AC2, KMESPC, REDC0, REDC1, IMATDA, IMATRA, FACHFR, PLNL4S, AF11, IGP)
+
 !*******************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-   USE M_SNL4
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering                              |
@@ -1296,10 +1516,22 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   , &
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
+!     AF11  : scaling array (Freq**11), the component frequency_power_11
+!             of the quadruplet tables filled by FAC4WW (in upstream a
+!             module array of M_SNL4)
+!     IGP   : grid address of the point being computed
+!             (KCGRD(1) in upstream)
+!     WINDOW: spectral window of the grid point: the directional range
+!             per frequency (IDCMIN, IDCMAX), the directional range
+!             of the sweep (IDDLOW, IDDTOP) and the maximum frequency
+!             counter that is propagated (ISSTOP)
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
+   REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
    REAL    SPCSIG(MSC)
-!
+
 !  7. Common blocks used
 !
 !
@@ -1329,41 +1561,42 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   , &
 ! 13. Source text
 !
 !*******************************************************************
-!
-   INTEGER   IS     ,ID     ,I      ,J                      ,ISHGH  , &
-             ISSTOP ,ISP    ,ISP1   ,IDP    ,IDP1   ,ISM    ,ISM1   , &
-             IDM    ,IDM1   ,ISCLW  ,ISCHG  , &
-                     IDLOW  ,IDHGH  ,IDDLOW ,IDDTOP ,IDCLOW ,IDCHGH
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER :: IS, ID, ID0, I, J, IDDUM, IIID, ISLOW, ISHGH, ISP, ISP1, IDP, IDP1, ISM, ISM1, IDM, &
+         IDM1, ISCLW, ISCHG, IDLOW, IDHGH, IDCLOW, IDCHGH
+
    REAL      X      ,X2     ,CONS   ,FACTOR ,SNLCS1 ,SNLCS2 ,SNLCS3 , &
-             E00    ,EP1    ,EM1    ,EP2    ,EM2    ,SA1A   ,SA1B   , &
-             SA2A   ,SA2B   ,KMESPC ,FACHFR ,AWG1   ,AWG2   ,AWG3   , &
-             AWG4   ,AWG5   ,AWG6   ,AWG7   ,AWG8   ,DAL1   ,DAL2   , &
-             DAL3           ,JACOBI ,SIGPI
-!
+      E00    ,EP1    ,EM1    ,EP2    ,EM2    ,SA1A   ,SA1B   , &
+      SA2A   ,SA2B   ,KMESPC ,FACHFR ,AWG1   ,AWG2   ,AWG3   , &
+      AWG4   ,AWG5   ,AWG6   ,AWG7   ,AWG8   ,DAL1   ,DAL2   , &
+      DAL3, SNLC1, JACOBI, SIGPI
+
    REAL      AC2(MDC,MSC,MCGRD)                    , &
-             DEP2(MCGRD)                           , &
-             UE(MSC4MI:MSC4MA , MDC4MI:MDC4MA )    , &
-             SA1(MSC4MI:MSC4MA , MDC4MI:MDC4MA )   , &
-             SA2(MSC4MI:MSC4MA , MDC4MI:MDC4MA )   , &
-             SFNL(MSC4MI:MSC4MA , MDC4MI:MDC4MA)   , &
-             IMATRA(MDC,MSC)                       , &
-             IMATDA(MDC,MSC)                       , &
-             PLNL4S(MDC,MSC,NPTST)                 , &
-             WWAWG(*)
+      DEP2(MCGRD)                           , &
+      UE(MSC4MI:MSC4MA , MDC4MI:MDC4MA )    , &
+      SA1(MSC4MI:MSC4MA , MDC4MI:MDC4MA )   , &
+      SA2(MSC4MI:MSC4MA , MDC4MI:MDC4MA )   , &
+      SFNL(MSC4MI:MSC4MA , MDC4MI:MDC4MA)   , &
+      IMATRA(MDC,MSC)                       , &
+      IMATDA(MDC,MSC)                       , &
+      PLNL4S(MDC,MSC,NPTST)                 , &
+      WWAWG(*)
    REAL :: REDC0 (MDC,MSC,MREDS)
    REAL :: REDC1 (MDC,MSC,MREDS)
-!
-   INTEGER   WWINT(*)         , &
-             IDCMIN(MSC)      , &
-             IDCMAX(MSC)
-!
+
+   INTEGER :: WWINT(*)
+
    LOGICAL   PERCIR
-!
-   SAVE IENT
-   DATA IENT/0/
+
+   LOGICAL   LTSTFL
+
    IF (LTRACE) CALL STRACE (IENT,'SWSNL2')
-!
+
+!     evaluate the test-output condition once; the per-bin loop below
+!     only tests this single flag
+   LTSTFL = ITEST.GE.100 .AND. TESTFL
+
    IDP    = WWINT(1)
    IDP1   = WWINT(2)
    IDM    = WWINT(3)
@@ -1378,7 +1611,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   , &
    ISCHG  = WWINT(12)
    IDLOW  = WWINT(13)
    IDHGH  = WWINT(14)
-!
+
    AWG1 = WWAWG(1)
    AWG2 = WWAWG(2)
    AWG3 = WWAWG(3)
@@ -1387,9 +1620,9 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   , &
    AWG6 = WWAWG(6)
    AWG7 = WWAWG(7)
    AWG8 = WWAWG(8)
-!
+
 !     *** Initialize auxiliary arrays per gridpoint ***
-!
+
    DO ID = MDC4MI, MDC4MA
       DO IS = MSC4MI, MSC4MA
          UE(IS,ID)   = 0.
@@ -1398,25 +1631,25 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   , &
          SFNL(IS,ID) = 0.
       ENDDO
    ENDDO
-!
+
 !     *** Calculate prop. constant.                           ***
 !     *** Calculate factor R(X) to calculate the NL wave-wave ***
 !     *** interaction for shallow water                       ***
 !     *** SNLC1 = 1/GRAV**4                                   ***         40.17
-!
+
    SNLCS1 = PQUAD(3)
    SNLCS2 = PQUAD(4)
    SNLCS3 = PQUAD(5)
-   X      = MAX ( 0.75 * DEP2(KCGRD(1)) * KMESPC , 0.5 )
+   X      = MAX ( 0.75 * DEP2(IGP) * KMESPC , 0.5 )
    X2     = MAX ( -1.E15, SNLCS3*X)
    CONS   = SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
    JACOBI = 2. * PI
-!
+
 !     *** check whether the spectral domain is periodic in ***
 !     *** direction space and if so modify boundaries      ***
-!
+
    PERCIR = .FALSE.
-   IF ( IDDLOW .EQ. 1 .AND. IDDTOP .EQ. MDC ) THEN
+   IF ( WINDOW%IDDLOW .EQ. 1 .AND. WINDOW%IDDTOP .EQ. MDC ) THEN
 !       *** periodic in theta -> spectrum can be folded  ***
 !       *** (can only occur in presence of a current)    ***
       IDCLOW = 1
@@ -1429,79 +1662,74 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   , &
       IDCLOW = IDLOW
       IDCHGH = IDHGH
    ENDIF
-!
+
 !     *** Prepare auxiliary spectrum               ***
 !     *** set action original spectrum in array UE ***
-!
+
    DO IDDUM = IDLOW - IIID , IDHGH + IIID
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
       DO IS = 1, MSC
-         UE(IS,IDDUM) = AC2(ID,IS,KCGRD(1)) * SPCSIG(IS) * JACOBI
+         UE(IS,IDDUM) = AC2(ID,IS,IGP) * SPCSIG(IS) * JACOBI
       ENDDO
    ENDDO
-!
+
 !     *** set values in the areas 2 for IS > MSC+1 ***
-!
+
    DO IS = MSC+1, ISHGH
       DO ID = IDLOW - IIID , IDHGH + IIID
          UE (IS,ID) = UE(IS-1,ID) * FACHFR
       ENDDO
    ENDDO
-!
+
 !     *** Calculate interactions      ***
 !     *** Energy at interacting bins  ***
-!
+
    DO IS = ISCLW, ISCHG
       DO ID = IDCLOW , IDCHGH
          E00    =        UE(IS      ,ID      )
          EP1    = AWG1 * UE(IS+ISP1,ID+IDP1) + &
-                  AWG2 * UE(IS+ISP1,ID+IDP ) + &
-                  AWG3 * UE(IS+ISP ,ID+IDP1) + &
-                  AWG4 * UE(IS+ISP ,ID+IDP )
+            AWG2 * UE(IS+ISP1,ID+IDP ) + &
+            AWG3 * UE(IS+ISP ,ID+IDP1) + &
+            AWG4 * UE(IS+ISP ,ID+IDP )
          EM1    = AWG5 * UE(IS+ISM1,ID-IDM1) + &
-                  AWG6 * UE(IS+ISM1,ID-IDM ) + &
-                  AWG7 * UE(IS+ISM ,ID-IDM1) + &
-                  AWG8 * UE(IS+ISM ,ID-IDM )
-!
+            AWG6 * UE(IS+ISM1,ID-IDM ) + &
+            AWG7 * UE(IS+ISM ,ID-IDM1) + &
+            AWG8 * UE(IS+ISM ,ID-IDM )
+
          EP2    = AWG1 * UE(IS+ISP1,ID-IDP1) + &
-                  AWG2 * UE(IS+ISP1,ID-IDP ) + &
-                  AWG3 * UE(IS+ISP ,ID-IDP1) + &
-                  AWG4 * UE(IS+ISP ,ID-IDP )
+            AWG2 * UE(IS+ISP1,ID-IDP ) + &
+            AWG3 * UE(IS+ISP ,ID-IDP1) + &
+            AWG4 * UE(IS+ISP ,ID-IDP )
          EM2    = AWG5 * UE(IS+ISM1,ID+IDM1) + &
-                  AWG6 * UE(IS+ISM1,ID+IDM ) + &
-                  AWG7 * UE(IS+ISM ,ID+IDM1) + &
-                  AWG8 * UE(IS+ISM ,ID+IDM )
-!
+            AWG6 * UE(IS+ISM1,ID+IDM ) + &
+            AWG7 * UE(IS+ISM ,ID+IDM1) + &
+            AWG8 * UE(IS+ISM ,ID+IDM )
+
 !         *** Contribution to interactions                          ***
 !         *** CONS is the shallow water factor for the NL interact. ***
-!
+
          FACTOR = CONS * AF11(IS) * E00
-!
+
          SA1A   = E00 * ( EP1*DAL1 + EM1*DAL2 ) * PQUAD(2)
          SA1B   = SA1A - EP1*EM1*DAL3 * PQUAD(2)
          SA2A   = E00 * ( EP2*DAL1 + EM2*DAL2 ) * PQUAD(2)
          SA2B   = SA2A - EP2*EM2*DAL3 * PQUAD(2)
-!
+
          SA1 (IS,ID) = FACTOR * SA1B
          SA2 (IS,ID) = FACTOR * SA2B
-!
-         IF(ITEST.GE.100 .AND. TESTFL) THEN
-            WRITE(PRINTF,9002) E00,EP1,EM1,EP2,EM2
-9002        FORMAT (' E00 EP1 EM1 EP2 EM2  :',5E11.4)
-            WRITE(PRINTF,9003) SA1A,SA1B,SA2A,SA2B
-9003        FORMAT (' SA1A SA1B SA2A SA2B  :',4E11.4)
-            WRITE(PRINTF,9004) IS,ID,SA1(IS,ID),SA2(IS,ID)
-9004        FORMAT (' IS ID SA1() SA2()    :',2I4,2E12.4)
-            WRITE(PRINTF,9005) FACTOR ,ISLOW
-9005        FORMAT (' FACTOR ISLOW         : ',E12.4,I4)
+
+         IF (LTSTFL) THEN
+            WRITE(PRINTF,"(' E00 EP1 EM1 EP2 EM2  :',5E11.4)") E00,EP1,EM1,EP2,EM2
+            WRITE(PRINTF,"(' SA1A SA1B SA2A SA2B  :',4E11.4)") SA1A,SA1B,SA2A,SA2B
+            WRITE(PRINTF,"(' IS ID SA1() SA2()    :',2I4,2E12.4)") IS,ID,SA1(IS,ID),SA2(IS,ID)
+            WRITE(PRINTF,"(' FACTOR ISLOW         : ',E12.4,I4)") FACTOR ,ISLOW
          END IF
-!
       ENDDO
    ENDDO
-!
+
 !     *** Fold interactions to side angles if spectral domain ***
 !     *** is periodic in directional space                    ***
-!
+
    IF ( PERCIR ) THEN
       DO ID = 1, IDHGH - MDC
          ID0   = 1 - ID
@@ -1513,88 +1741,80 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   , &
          ENDDO
       ENDDO
    ENDIF
-!
+
 !     ***  Put source term together (To save space I=IS and J=ID ***
 !     ***  is used)                                              ***
-!
-   DO I = 1, ISSTOP
+
+   DO I = 1, WINDOW%ISSTOP
       SIGPI = SPCSIG(I) * JACOBI
-      DO J = IDCMIN(I), IDCMAX(I)
+      DO J = WINDOW%IDCMIN(I), WINDOW%IDCMAX(I)
          ID = MOD ( J - 1 + MDC , MDC ) + 1
          SFNL(I,ID) =   - 2. * ( SA1(I,J) + SA2(I,J) ) &
-             + AWG1 * ( SA1(I-ISP1,J-IDP1) + SA2(I-ISP1,J+IDP1) ) &
-             + AWG2 * ( SA1(I-ISP1,J-IDP ) + SA2(I-ISP1,J+IDP ) ) &
-             + AWG3 * ( SA1(I-ISP ,J-IDP1) + SA2(I-ISP ,J+IDP1) ) &
-             + AWG4 * ( SA1(I-ISP ,J-IDP ) + SA2(I-ISP ,J+IDP ) ) &
-             + AWG5 * ( SA1(I-ISM1,J+IDM1) + SA2(I-ISM1,J-IDM1) ) &
-             + AWG6 * ( SA1(I-ISM1,J+IDM ) + SA2(I-ISM1,J-IDM ) ) &
-             + AWG7 * ( SA1(I-ISM ,J+IDM1) + SA2(I-ISM ,J-IDM1) ) &
-             + AWG8 * ( SA1(I-ISM ,J+IDM ) + SA2(I-ISM ,J-IDM ) )
-!
+            + AWG1 * ( SA1(I-ISP1,J-IDP1) + SA2(I-ISP1,J+IDP1) ) &
+            + AWG2 * ( SA1(I-ISP1,J-IDP ) + SA2(I-ISP1,J+IDP ) ) &
+            + AWG3 * ( SA1(I-ISP ,J-IDP1) + SA2(I-ISP ,J+IDP1) ) &
+            + AWG4 * ( SA1(I-ISP ,J-IDP ) + SA2(I-ISP ,J+IDP ) ) &
+            + AWG5 * ( SA1(I-ISM1,J+IDM1) + SA2(I-ISM1,J-IDM1) ) &
+            + AWG6 * ( SA1(I-ISM1,J+IDM ) + SA2(I-ISM1,J-IDM ) ) &
+            + AWG7 * ( SA1(I-ISM ,J+IDM1) + SA2(I-ISM ,J-IDM1) ) &
+            + AWG8 * ( SA1(I-ISM ,J+IDM ) + SA2(I-ISM ,J-IDM ) )
+
 !         *** store results in rhv ***
 !         *** store results in rhs and main diagonal according ***        40.23
 !         *** to Patankar-rules                                ***        40.23
-!
+
          IF(TESTFL) PLNL4S(ID,I,IPTST) =  SFNL(I,ID) / SIGPI
          IF (SFNL(I,ID).GT.0.) THEN
             IMATRA(ID,I) = IMATRA(ID,I) + SFNL(I,ID) / SIGPI
             REDC0(ID,I,1)= REDC0(ID,I,1)+ SFNL(I,ID) / SIGPI
          ELSE
             IMATDA(ID,I) = IMATDA(ID,I) - SFNL(I,ID) / &
-                           MAX(1.E-18,AC2(ID,I,KCGRD(1))*SIGPI)
+               MAX(1.E-18,AC2(ID,I,IGP)*SIGPI)
             REDC1(ID,I,1)= REDC1(ID,I,1)+ SFNL(I,ID) / &
-                           MAX(1.E-18,AC2(ID,I,KCGRD(1))*SIGPI)
+               MAX(1.E-18,AC2(ID,I,IGP)*SIGPI)
          END IF
-!
       ENDDO
    ENDDO
-!
+
 !     *** test output ***
-!
+
    IF (ITEST .GE. 40 .AND. TESTFL) THEN
       WRITE(PRINTF,*) ' SWSNL2 subroutine '
-      WRITE(PRINTF,9011) IDP, IDP1, IDM, IDM1
-9011  FORMAT (' IDP IDP1 IDM IDM1     :',4I5)
-      WRITE (PRINTF,9013) ISP, ISP1, ISM, ISM1
-9013  FORMAT (' ISP ISP1 ISM ISM1     :',4I5)
-      WRITE (PRINTF,9015) ISHGH, IDDLOW, IDDTOP
-9015  FORMAT (' ISHG IDDLOW IDDTOP    :',3I5)
-      WRITE(PRINTF,9016) ISCLW, ISCHG, IDLOW, IDHGH
-9016  FORMAT (' ICLW ICHG IDLOW IDHGH :',4I5)
-      WRITE (PRINTF,9017) AWG1, AWG2, AWG3, AWG4
-9017  FORMAT (' AWG1 AWG2 AWG3 AWG4   :',4E12.4)
-      WRITE (PRINTF,9018) AWG5, AWG6, AWG7, AWG8
-9018  FORMAT (' AWG5 AWG6 AWG7 AWG8   :',4E12.4)
-      WRITE (PRINTF,9019) MSC4MI, MSC4MA, MDC4MI, MDC4MA
-9019  FORMAT (' S4MI S4MA D4MI D4MA   :',4I6)
-      WRITE(PRINTF,9020) SNLC1,X,X2,CONS
-9020  FORMAT (' SNLC1  X  X2  CONS    :',4E12.4)
-      WRITE(PRINTF,9021) DEP2(KCGRD(1)),KMESPC, FACHFR,PI
-9021  FORMAT (' DEPTH KMESPC FACHFR PI:',4E12.4)
-      WRITE(PRINTF,9023) JACOBI,ISLOW
-9023  FORMAT (' JACOBI  ISLOW         :',E12.4,I4)
+      WRITE(PRINTF,"(' IDP IDP1 IDM IDM1     :',4I5)") IDP, IDP1, IDM, IDM1
+      WRITE (PRINTF,"(' ISP ISP1 ISM ISM1     :',4I5)") ISP, ISP1, ISM, ISM1
+      WRITE (PRINTF,"(' ISHG IDDLOW IDDTOP    :',3I5)") ISHGH, WINDOW%IDDLOW, WINDOW%IDDTOP
+      WRITE(PRINTF,"(' ICLW ICHG IDLOW IDHGH :',4I5)") ISCLW, ISCHG, IDLOW, IDHGH
+      WRITE (PRINTF,"(' AWG1 AWG2 AWG3 AWG4   :',4E12.4)") AWG1, AWG2, AWG3, AWG4
+      WRITE (PRINTF,"(' AWG5 AWG6 AWG7 AWG8   :',4E12.4)") AWG5, AWG6, AWG7, AWG8
+      WRITE (PRINTF,"(' S4MI S4MA D4MI D4MA   :',4I6)") MSC4MI, MSC4MA, MDC4MI, MDC4MA
+      WRITE(PRINTF,"(' SNLC1  X  X2  CONS    :',4E12.4)") SNLC1,X,X2,CONS
+      WRITE(PRINTF,"(' DEPTH KMESPC FACHFR PI:',4E12.4)") DEP2(IGP),KMESPC, FACHFR,PI
+      WRITE(PRINTF,"(' JACOBI  ISLOW         :',E12.4,I4)") JACOBI,ISLOW
       WRITE(PRINTF,*)
    END IF
-!
+
    RETURN
 !     End of SWSNL2
-END
-!
+end subroutine SWSNL2
+
 !************************************************************
-!
 
 SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
-                   UE      ,SA1     ,SA2     ,SPCSIG  ,SNLC1   , &
-                   DAL1    ,DAL2    ,DAL3    ,SFNL    ,DEP2    , &
-                   AC2     ,KMESPC  ,MEMNL4  ,FACHFR           )
-!
+   UE      ,SA1     ,SA2     ,SPCSIG  ,SNLC1   , &
+   DAL1    ,DAL2    ,DAL3    ,SFNL    ,DEP2    , &
+   AC2     ,KMESPC  ,MEMNL4  ,FACHFR, AF11     ,IGP)
+
 !*******************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-   USE M_SNL4
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering                              |
@@ -1696,6 +1916,8 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
 !
 !  4. Argument variables
 !
+!     IGP   : grid address of the point being computed
+!             (KCGRD(1) in upstream)
 !     MCGRD : number of wet grid points of the computational grid
 !     MDC   : grid points in theta-direction of computational grid
 !     MDC4MA: highest array counter in directional space (Snl4)
@@ -1704,9 +1926,11 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
 !     MSC4MA: highest array counter in frequency space (Snl4)
 !     MSC4MI: lowest array counter in frequency space (Snl4)
 !     WWINT : counters for quadruplet interactions
-!
+
+   INTEGER, INTENT(IN) :: IGP
+   REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
    INTEGER WWINT(*)
-!
+
 !     AC2   : action density
 !     AF11  : scaling frequency
 !     DAL1  : coefficient for the quadruplet interactions
@@ -1724,7 +1948,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
 !     SPCSIG: relative frequencies in computational domain in sigma-space
 !     UE    : "unfolded" spectrum
 !     WWAWG : weight coefficients for the quadruplet interactions
-!
+
    REAL    DAL1, DAL2, DAL3, FACHFR, KMESPC, SNLC1
    REAL    AC2(MDC,MSC,MCGRD)
    REAL    DEP2(MCGRD)
@@ -1735,7 +1959,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
    REAL    SPCSIG(MSC)
    REAL    UE(MSC4MI:MSC4MA,MDC4MI:MDC4MA)
    REAL    WWAWG(*)
-!
+
 !  7. Common blocks used
 !
 !
@@ -1765,23 +1989,28 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
 ! 13. Source text
 !
 !*******************************************************************
-!
-   INTEGER   IS      ,ID      ,ID0     ,I       ,J       , &
-             ISHGH   ,IDLOW   ,IDHGH   ,ISP     ,ISP1    , &
-             IDP     ,IDP1    ,ISM     ,ISM1    ,IDM     ,IDM1    , &
-             ISCLW   ,ISCHG
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   IS, ID, ID0, I, J, IDDUM, ISLOW, &
+      ISHGH   ,IDLOW   ,IDHGH   ,ISP     ,ISP1    , &
+      IDP     ,IDP1    ,ISM     ,ISM1    ,IDM     ,IDM1    , &
+      ISCLW   ,ISCHG
+
    REAL      X       ,X2      ,CONS    ,FACTOR  ,SNLCS2  , &
-             SNLCS3  ,E00     ,EP1     ,EM1     ,EP2     ,EM2     , &
-             SA1A    ,SA1B    ,SA2A    ,SA2B    , &
-             AWG1    ,AWG2    ,AWG3    ,AWG4    ,AWG5    ,AWG6    , &
-             AWG7    ,AWG8    , &
-             JACOBI  ,SIGPI
-!
-   SAVE IENT
-   DATA IENT/0/
+      SNLCS3  ,E00     ,EP1     ,EM1     ,EP2     ,EM2     , &
+      SA1A    ,SA1B    ,SA2A    ,SA2B    , &
+      AWG1    ,AWG2    ,AWG3    ,AWG4    ,AWG5    ,AWG6    , &
+      AWG7    ,AWG8    , &
+      JACOBI, SIGPI, SNLCS1
+
+   LOGICAL   LTSTFL
+
    IF (LTRACE) CALL STRACE (IENT,'SWSNL3')
-!
+
+!     evaluate the test-output condition once; the per-bin loop below
+!     only tests this single flag
+   LTSTFL = ITEST.GE.100 .AND. TESTFL
+
    IDP    = WWINT(1)
    IDP1   = WWINT(2)
    IDM    = WWINT(3)
@@ -1796,7 +2025,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
    ISCHG  = WWINT(12)
    IDLOW  = WWINT(13)
    IDHGH  = WWINT(14)
-!
+
    AWG1 = WWAWG(1)
    AWG2 = WWAWG(2)
    AWG3 = WWAWG(3)
@@ -1805,9 +2034,9 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
    AWG6 = WWAWG(6)
    AWG7 = WWAWG(7)
    AWG8 = WWAWG(8)
-!
+
 !     *** Initialize auxiliary arrays per gridpoint ***
-!
+
    DO ID = MDC4MI, MDC4MA
       DO IS = MSC4MI, MSC4MA
          UE(IS,ID)   = 0.
@@ -1816,87 +2045,83 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
          SFNL(IS,ID) = 0.
       ENDDO
    ENDDO
-!
+
 !     *** Calculate prop. constant.                           ***
 !     *** Calculate factor R(X) to calculate the NL wave-wave ***
 !     *** interaction for shallow water                       ***
 !     *** SNLC1 = 1/GRAV**4                                   ***         40.17
-!
+
    SNLCS1 = PQUAD(3)
    SNLCS2 = PQUAD(4)
    SNLCS3 = PQUAD(5)
-   X      = MAX ( 0.75 * DEP2(KCGRD(1)) * KMESPC , 0.5 )
+   X      = MAX ( 0.75 * DEP2(IGP) * KMESPC , 0.5 )
    X2     = MAX ( -1.E15, SNLCS3*X)
    CONS   = SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
    JACOBI = 2. * PI
-!
+
 !     *** extend the area with action density at periodic boundaries ***
-!
+
    DO IDDUM = IDLOW, IDHGH
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
       DO IS=1, MSC
-         UE (IS,IDDUM) = AC2(ID,IS,KCGRD(1)) * SPCSIG(IS) * JACOBI
+         UE (IS,IDDUM) = AC2(ID,IS,IGP) * SPCSIG(IS) * JACOBI
       ENDDO
    ENDDO
-!
+
    DO IS = MSC+1, ISHGH
       DO ID = IDLOW, IDHGH
          UE(IS,ID) = UE(IS-1,ID) * FACHFR
       ENDDO
    ENDDO
-!
+
 !     *** Calculate (unfolded) interactions ***
 !     *** Energy at interacting bins        ***
-!
+
    DO IS = ISCLW, ISCHG
       DO ID = 1, MDC
          E00    =        UE(IS      ,ID      )
          EP1    = AWG1 * UE(IS+ISP1,ID+IDP1) + &
-                  AWG2 * UE(IS+ISP1,ID+IDP ) + &
-                  AWG3 * UE(IS+ISP ,ID+IDP1) + &
-                  AWG4 * UE(IS+ISP ,ID+IDP )
+            AWG2 * UE(IS+ISP1,ID+IDP ) + &
+            AWG3 * UE(IS+ISP ,ID+IDP1) + &
+            AWG4 * UE(IS+ISP ,ID+IDP )
          EM1    = AWG5 * UE(IS+ISM1,ID-IDM1) + &
-                  AWG6 * UE(IS+ISM1,ID-IDM ) + &
-                  AWG7 * UE(IS+ISM ,ID-IDM1) + &
-                  AWG8 * UE(IS+ISM ,ID-IDM )
+            AWG6 * UE(IS+ISM1,ID-IDM ) + &
+            AWG7 * UE(IS+ISM ,ID-IDM1) + &
+            AWG8 * UE(IS+ISM ,ID-IDM )
          EP2    = AWG1 * UE(IS+ISP1,ID-IDP1) + &
-                  AWG2 * UE(IS+ISP1,ID-IDP ) + &
-                  AWG3 * UE(IS+ISP ,ID-IDP1) + &
-                  AWG4 * UE(IS+ISP ,ID-IDP )
+            AWG2 * UE(IS+ISP1,ID-IDP ) + &
+            AWG3 * UE(IS+ISP ,ID-IDP1) + &
+            AWG4 * UE(IS+ISP ,ID-IDP )
          EM2    = AWG5 * UE(IS+ISM1,ID+IDM1) + &
-                  AWG6 * UE(IS+ISM1,ID+IDM ) + &
-                  AWG7 * UE(IS+ISM ,ID+IDM1) + &
-                  AWG8 * UE(IS+ISM ,ID+IDM )
-!
+            AWG6 * UE(IS+ISM1,ID+IDM ) + &
+            AWG7 * UE(IS+ISM ,ID+IDM1) + &
+            AWG8 * UE(IS+ISM ,ID+IDM )
+
 !         Contribution to interactions
-!
+
          FACTOR = CONS * AF11(IS) * E00
-!
+
          SA1A   = E00 * ( EP1*DAL1 + EM1*DAL2 ) * PQUAD(2)
          SA1B   = SA1A - EP1*EM1*DAL3 * PQUAD(2)
          SA2A   = E00 * ( EP2*DAL1 + EM2*DAL2 ) * PQUAD(2)
          SA2B   = SA2A - EP2*EM2*DAL3 * PQUAD(2)
-!
+
          SA1 (IS,ID) = FACTOR * SA1B
          SA2 (IS,ID) = FACTOR * SA2B
-!
-         IF(ITEST.GE.100 .AND. TESTFL) THEN
-            WRITE(PRINTF,9002) E00,EP1,EM1,EP2,EM2
-9002        FORMAT (' E00 EP1 EM1 EP2 EM2  :',5E11.4)
-            WRITE(PRINTF,9003) SA1A,SA1B,SA2A,SA2B
-9003        FORMAT (' SA1A SA1B SA2A SA2B  :',4E11.4)
-            WRITE(PRINTF,9004) IS,ID,SA1(IS,ID),SA2(IS,ID)
-9004        FORMAT (' IS ID SA1() SA2()    :',2I4,2E12.4)
-            WRITE(PRINTF,9005) FACTOR,JACOBI
-9005        FORMAT (' FACTOR JACOBI        : ',2E12.4)
+
+         IF (LTSTFL) THEN
+            WRITE(PRINTF,"(' E00 EP1 EM1 EP2 EM2  :',5E11.4)") E00,EP1,EM1,EP2,EM2
+            WRITE(PRINTF,"(' SA1A SA1B SA2A SA2B  :',4E11.4)") SA1A,SA1B,SA2A,SA2B
+            WRITE(PRINTF,"(' IS ID SA1() SA2()    :',2I4,2E12.4)") IS,ID,SA1(IS,ID),SA2(IS,ID)
+            WRITE(PRINTF,"(' FACTOR JACOBI        : ',2E12.4)") FACTOR,JACOBI
          END IF
-!
+
       ENDDO
    ENDDO
-!
+
 !     *** Fold interactions to side angles -> domain in theta is ***
 !     *** periodic                                               ***
-!
+
    DO ID = 1, IDHGH - MDC
       ID0   = 1 - ID
       DO IS = ISCLW, ISCHG
@@ -1906,87 +2131,84 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
          SA2 (IS,  ID0 ) = SA2 (IS,MDC+ID0)
       ENDDO
    ENDDO
-!
+
 !     *** Put source term together (To save space I=IS and ***
 !     *** J=MDC is used)  ----                             ***
-!
+
    DO I = 1, MSC
       SIGPI = SPCSIG(I) * JACOBI
       DO J = 1, MDC
          SFNL(I,J) =   - 2. * ( SA1(I,J) + SA2(I,J) ) &
-             + AWG1 * ( SA1(I-ISP1,J-IDP1) + SA2(I-ISP1,J+IDP1) ) &
-             + AWG2 * ( SA1(I-ISP1,J-IDP ) + SA2(I-ISP1,J+IDP ) ) &
-             + AWG3 * ( SA1(I-ISP ,J-IDP1) + SA2(I-ISP ,J+IDP1) ) &
-             + AWG4 * ( SA1(I-ISP ,J-IDP ) + SA2(I-ISP ,J+IDP ) ) &
-             + AWG5 * ( SA1(I-ISM1,J+IDM1) + SA2(I-ISM1,J-IDM1) ) &
-             + AWG6 * ( SA1(I-ISM1,J+IDM ) + SA2(I-ISM1,J-IDM ) ) &
-             + AWG7 * ( SA1(I-ISM ,J+IDM1) + SA2(I-ISM ,J-IDM1) ) &
-             + AWG8 * ( SA1(I-ISM ,J+IDM ) + SA2(I-ISM ,J-IDM ) )
-!
+            + AWG1 * ( SA1(I-ISP1,J-IDP1) + SA2(I-ISP1,J+IDP1) ) &
+            + AWG2 * ( SA1(I-ISP1,J-IDP ) + SA2(I-ISP1,J+IDP ) ) &
+            + AWG3 * ( SA1(I-ISP ,J-IDP1) + SA2(I-ISP ,J+IDP1) ) &
+            + AWG4 * ( SA1(I-ISP ,J-IDP ) + SA2(I-ISP ,J+IDP ) ) &
+            + AWG5 * ( SA1(I-ISM1,J+IDM1) + SA2(I-ISM1,J-IDM1) ) &
+            + AWG6 * ( SA1(I-ISM1,J+IDM ) + SA2(I-ISM1,J-IDM ) ) &
+            + AWG7 * ( SA1(I-ISM ,J+IDM1) + SA2(I-ISM ,J-IDM1) ) &
+            + AWG8 * ( SA1(I-ISM ,J+IDM ) + SA2(I-ISM ,J-IDM ) )
+
 !         *** store value in auxiliary array and use values in ***
 !         *** next four sweeps (see subroutine FILNL3)         ***
-!
-         MEMNL4(J,I,KCGRD(1)) = SFNL(I,J) / SIGPI
+
+         MEMNL4(J,I,IGP) = SFNL(I,J) / SIGPI
       ENDDO
    ENDDO
-!
+
 !     *** test output ***
-!
+
    IF (ITEST .GE. 50 .AND. TESTFL) THEN
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) ' SWSNL3 subroutine '
-      WRITE(PRINTF,9011) IDP, IDP1, IDM, IDM1
-9011  FORMAT (' IDP IDP1 IDM IDM1     :',4I5)
-      WRITE (PRINTF,9013) ISP, ISP1, ISM, ISM1
-9013  FORMAT (' ISP ISP1 ISM ISM1     :',4I5)
-      WRITE (PRINTF,9015) ISLOW, ISHGH, IDLOW, IDHGH
-9015  FORMAT (' ISLOW ISHG IDLOW IDHG :',4I5)
-      WRITE(PRINTF,9016) ISCLW, ISCHG, JACOBI
-9016  FORMAT (' ICLW ICHG JACOBI      :',2I5,E12.4)
-      WRITE (PRINTF,9017) AWG1, AWG2, AWG3, AWG4
-9017  FORMAT (' AWG1 AWG2 AWG3 AWG4   :',4E12.4)
-      WRITE (PRINTF,9018) AWG5, AWG6, AWG7, AWG8
-9018  FORMAT (' AWG5 AWG6 AWG7 AWG8   :',4E12.4)
-      WRITE (PRINTF,9019) MSC4MI, MSC4MA, MDC4MI, MDC4MA
-9019  FORMAT (' S4MI S4MA D4MI D4MA   :',4I6)
-      WRITE(PRINTF,9020) SNLC1,X,X2,CONS
-9020  FORMAT (' SNLC1  X  X2  CONS    :',4E12.4)
-      WRITE(PRINTF,9021) DEP2(KCGRD(1)),KMESPC,FACHFR,PI
-9021  FORMAT (' DEPTH KMESPC FACHFR PI:',4E12.4)
+      WRITE(PRINTF,"(' IDP IDP1 IDM IDM1     :',4I5)") IDP, IDP1, IDM, IDM1
+      WRITE (PRINTF,"(' ISP ISP1 ISM ISM1     :',4I5)") ISP, ISP1, ISM, ISM1
+      WRITE (PRINTF,"(' ISLOW ISHG IDLOW IDHG :',4I5)") ISLOW, ISHGH, IDLOW, IDHGH
+      WRITE(PRINTF,"(' ICLW ICHG JACOBI      :',2I5,E12.4)") ISCLW, ISCHG, JACOBI
+      WRITE (PRINTF,"(' AWG1 AWG2 AWG3 AWG4   :',4E12.4)") AWG1, AWG2, AWG3, AWG4
+      WRITE (PRINTF,"(' AWG5 AWG6 AWG7 AWG8   :',4E12.4)") AWG5, AWG6, AWG7, AWG8
+      WRITE (PRINTF,"(' S4MI S4MA D4MI D4MA   :',4I6)") MSC4MI, MSC4MA, MDC4MI, MDC4MA
+      WRITE(PRINTF,"(' SNLC1  X  X2  CONS    :',4E12.4)") SNLC1,X,X2,CONS
+      WRITE(PRINTF,"(' DEPTH KMESPC FACHFR PI:',4E12.4)") DEP2(IGP),KMESPC,FACHFR,PI
       WRITE(PRINTF,*)
-!
+
 !       *** value source term in every bin ***
-!
+
       IF(ITEST.GE. 150 ) THEN
          DO I=1, MSC
             DO J=1, MDC
-               WRITE(PRINTF,2006) I,J,MEMNL4(J,I,KCGRD(1)),SFNL(I,J), &
-                                  SPCSIG(I)
-2006           FORMAT (' I J MEMNL() SFNL() SPCSIG:',2I4,3E12.4)
+               WRITE(PRINTF,"(' I J MEMNL() SFNL() SPCSIG:',2I4,3E12.4)") I,J,MEMNL4(J,I,IGP),SFNL(I,J), &
+                  SPCSIG(I)
             ENDDO
          ENDDO
       END IF
    END IF
-!
+
    RETURN
-!
-END SUBROUTINE SWSNL3
-!
+
+end subroutine SWSNL3
+
 !*******************************************************************
-!
+
 SUBROUTINE SWSNL4 (WWINT   ,WWAWG   , &
-                   SPCSIG  ,SNLC1   , &
-                   DAL1    ,DAL2    ,DAL3    ,DEP2    , &
-                   AC2     ,KMESPC  ,MEMNL4  ,FACHFR  , &
-                   IDIA    ,ITER    )
-!
+   SPCSIG  ,SNLC1   , &
+   DAL1    ,DAL2    ,DAL3    ,DEP2    , &
+   AC2     ,KMESPC  ,MEMNL4  ,FACHFR  , &
+   IDIA    ,ITER    ,UE      ,SA1     , &
+   SA2     ,SFNL    ,AF11, CNL4_1, CNL4_2,IGP)
+
 !*******************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-   USE M_SNL4
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+!  one coefficient per quadruplet, indexed by IDIA -- not spectral arrays
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering                              |
@@ -2086,6 +2308,8 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   , &
 !
 !  4. Argument variables
 !
+!     IGP   : grid address of the point being computed
+!             (KCGRD(1) in upstream)
 !     MCGRD : number of wet grid points of the computational grid
 !     MDC   : grid points in theta-direction of computational grid
 !     MDC4MA: highest array counter in directional space (Snl4)
@@ -2094,10 +2318,14 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   , &
 !     MSC4MA: highest array counter in frequency space (Snl4)
 !     MSC4MI: lowest array counter in frequency space (Snl4)
 !     WWINT : counters for quadruplet interactions
-!
+
+   INTEGER, INTENT(IN) :: IGP
+   REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
+   REAL, INTENT(IN) :: CNL4_1(:)
+   REAL, INTENT(IN) :: CNL4_2(:)
    INTEGER WWINT(*)
    INTEGER IDIA
-!
+
 !     AC2   : action density
 !     AF11  : scaling frequency
 !     DAL1  : coefficient for the quadruplet interactions
@@ -2115,17 +2343,20 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   , &
 !     SPCSIG: relative frequencies in computational domain in sigma-space
 !     UE    : "unfolded" spectrum
 !     WWAWG : weight coefficients for the quadruplet interactions
-!
+
    REAL    DAL1, DAL2, DAL3, FACHFR, KMESPC, SNLC1
    REAL    AC2(MDC,MSC,MCGRD)
    REAL    DEP2(MCGRD)
    REAL    MEMNL4(MDC,MSC,MCGRD)
+   REAL    SA1(MSC4MI:MSC4MA,MDC4MI:MDC4MA)
+   REAL    SA2(MSC4MI:MSC4MA,MDC4MI:MDC4MA)
+   REAL    SFNL(MSC4MI:MSC4MA,MDC4MI:MDC4MA)
    REAL    SPCSIG(MSC)
+   REAL    UE(MSC4MI:MSC4MA,MDC4MI:MDC4MA)
    REAL    WWAWG(*)
-!
+
 !  6. Local variables
 !
-   REAL, ALLOCATABLE :: SA1(:,:), SA2(:,:), SFNL(:,:), UE(:,:)
 !
 !  7. Common blocks used
 !
@@ -2156,28 +2387,28 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   , &
 ! 13. Source text
 !
 !*******************************************************************
-!
-   INTEGER   IS      ,ID      ,ID0     ,I       ,J       , &
-             ISHGH   ,IDLOW   ,IDHGH   ,ISP     ,ISP1    , &
-             IDP     ,IDP1    ,ISM     ,ISM1    ,IDM     ,IDM1    , &
-             ISCLW   ,ISCHG
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   IS, ID, ID0, I, J, IDDUM, ISLOW, ITER, &
+      ISHGH   ,IDLOW   ,IDHGH   ,ISP     ,ISP1    , &
+      IDP     ,IDP1    ,ISM     ,ISM1    ,IDM     ,IDM1    , &
+      ISCLW   ,ISCHG
+
    REAL      X       ,X2      ,CONS    ,FACTOR  ,SNLCS2  , &
-             SNLCS3  ,E00     ,EP1     ,EM1     ,EP2     ,EM2     , &
-             SA1A    ,SA1B    ,SA2A    ,SA2B    , &
-             AWG1    ,AWG2    ,AWG3    ,AWG4    ,AWG5    ,AWG6    , &
-             AWG7    ,AWG8    , &
-             JACOBI  ,SIGPI
-!
-   SAVE IENT
-   DATA IENT/0/
+      SNLCS3  ,E00     ,EP1     ,EM1     ,EP2     ,EM2     , &
+      SA1A    ,SA1B    ,SA2A    ,SA2B    , &
+      AWG1    ,AWG2    ,AWG3    ,AWG4    ,AWG5    ,AWG6    , &
+      AWG7    ,AWG8    , &
+      JACOBI, SIGPI, SNLCS1, FAC
+
+   LOGICAL   LTSTFL
+
    IF (LTRACE) CALL STRACE (IENT,'SWSNL4')
 
-   ALLOCATE(SA1(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
-   ALLOCATE(SA2(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
-   ALLOCATE(SFNL(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
-   ALLOCATE(UE(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
-!
+!     evaluate the test-output condition once; the per-bin loop below
+!     only tests this single flag
+   LTSTFL = ITEST.GE.100 .AND. TESTFL
+
    IDP    = WWINT(1)
    IDP1   = WWINT(2)
    IDM    = WWINT(3)
@@ -2192,7 +2423,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   , &
    ISCHG  = WWINT(12)
    IDLOW  = WWINT(13)
    IDHGH  = WWINT(14)
-!
+
    AWG1 = WWAWG(1)
    AWG2 = WWAWG(2)
    AWG3 = WWAWG(3)
@@ -2201,9 +2432,9 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   , &
    AWG6 = WWAWG(6)
    AWG7 = WWAWG(7)
    AWG8 = WWAWG(8)
-!
+
 !     *** Initialize auxiliary arrays per gridpoint ***
-!
+
    DO ID = MDC4MI, MDC4MA
       DO IS = MSC4MI, MSC4MA
          UE(IS,ID)   = 0.
@@ -2212,88 +2443,83 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   , &
          SFNL(IS,ID) = 0.
       ENDDO
    ENDDO
-!
+
 !     *** Calculate prop. constant.                           ***
 !     *** Calculate factor R(X) to calculate the NL wave-wave ***
 !     *** interaction for shallow water                       ***
-!     *** SNLC1 = 1/GRAV**4                                   ***
-!
+!     *** SNLC1 = 1/GRAV**4                                   ***         40.17
+
    SNLCS1 = PQUAD(3)
    SNLCS2 = PQUAD(4)
    SNLCS3 = PQUAD(5)
-   X      = MAX ( 0.75 * DEP2(KCGRD(1)) * KMESPC , 0.5 )
+   X      = MAX ( 0.75 * DEP2(IGP) * KMESPC , 0.5 )
    X2     = MAX ( -1.E15, SNLCS3*X)
    CONS   = SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
    JACOBI = 2. * PI
-!
+
 !     *** extend the area with action density at periodic boundaries ***
-!
+
    DO IDDUM = IDLOW, IDHGH
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
       DO IS=1, MSC
-         UE (IS,IDDUM) = AC2(ID,IS,KCGRD(1)) * SPCSIG(IS) * JACOBI
+         UE (IS,IDDUM) = AC2(ID,IS,IGP) * SPCSIG(IS) * JACOBI
       ENDDO
    ENDDO
-!
+
    DO IS = MSC+1, ISHGH
       DO ID = IDLOW, IDHGH
          UE(IS,ID) = UE(IS-1,ID) * FACHFR
       ENDDO
    ENDDO
-!
+
 !     *** Calculate (unfolded) interactions ***
 !     *** Energy at interacting bins        ***
-!
+
    DO IS = ISCLW, ISCHG
       DO ID = 1, MDC
          E00    =        UE(IS      ,ID      )
          EP1    = AWG1 * UE(IS+ISP1,ID+IDP1) + &
-                  AWG2 * UE(IS+ISP1,ID+IDP ) + &
-                  AWG3 * UE(IS+ISP ,ID+IDP1) + &
-                  AWG4 * UE(IS+ISP ,ID+IDP )
+            AWG2 * UE(IS+ISP1,ID+IDP ) + &
+            AWG3 * UE(IS+ISP ,ID+IDP1) + &
+            AWG4 * UE(IS+ISP ,ID+IDP )
          EM1    = AWG5 * UE(IS+ISM1,ID-IDM1) + &
-                  AWG6 * UE(IS+ISM1,ID-IDM ) + &
-                  AWG7 * UE(IS+ISM ,ID-IDM1) + &
-                  AWG8 * UE(IS+ISM ,ID-IDM )
+            AWG6 * UE(IS+ISM1,ID-IDM ) + &
+            AWG7 * UE(IS+ISM ,ID-IDM1) + &
+            AWG8 * UE(IS+ISM ,ID-IDM )
          EP2    = AWG1 * UE(IS+ISP1,ID-IDP1) + &
-                  AWG2 * UE(IS+ISP1,ID-IDP ) + &
-                  AWG3 * UE(IS+ISP ,ID-IDP1) + &
-                  AWG4 * UE(IS+ISP ,ID-IDP )
+            AWG2 * UE(IS+ISP1,ID-IDP ) + &
+            AWG3 * UE(IS+ISP ,ID-IDP1) + &
+            AWG4 * UE(IS+ISP ,ID-IDP )
          EM2    = AWG5 * UE(IS+ISM1,ID+IDM1) + &
-                  AWG6 * UE(IS+ISM1,ID+IDM ) + &
-                  AWG7 * UE(IS+ISM ,ID+IDM1) + &
-                  AWG8 * UE(IS+ISM ,ID+IDM )
-!
+            AWG6 * UE(IS+ISM1,ID+IDM ) + &
+            AWG7 * UE(IS+ISM ,ID+IDM1) + &
+            AWG8 * UE(IS+ISM ,ID+IDM )
+
 !         Contribution to interactions
-!
+
          FACTOR = CONS * AF11(IS) * E00
-!
+
          SA1A   = E00 * ( EP1*DAL1 + EM1*DAL2 ) * CNL4_1(IDIA)
          SA1B   = SA1A - EP1*EM1*DAL3 * CNL4_2(IDIA)
          SA2A   = E00 * ( EP2*DAL1 + EM2*DAL2 ) * CNL4_1(IDIA)
          SA2B   = SA2A - EP2*EM2*DAL3 * CNL4_2(IDIA)
-!
 
          SA1 (IS,ID) = FACTOR * SA1B
          SA2 (IS,ID) = FACTOR * SA2B
-!
-         IF(ITEST.GE.100 .AND. TESTFL) THEN
-            WRITE(PRINTF,9002) E00,EP1,EM1,EP2,EM2
-9002        FORMAT (' E00 EP1 EM1 EP2 EM2  :',5E11.4)
-            WRITE(PRINTF,9003) SA1A,SA1B,SA2A,SA2B
-9003        FORMAT (' SA1A SA1B SA2A SA2B  :',4E11.4)
-            WRITE(PRINTF,9004) IS,ID,SA1(IS,ID),SA2(IS,ID)
-9004        FORMAT (' IS ID SA1() SA2()    :',2I4,2E12.4)
-            WRITE(PRINTF,9005) FACTOR,JACOBI
-9005        FORMAT (' FACTOR JACOBI        : ',2E12.4)
+
+         IF (LTSTFL) THEN
+            WRITE(PRINTF,"(' E00 EP1 EM1 EP2 EM2  :',5E11.4)") E00,EP1,EM1,EP2,EM2
+            WRITE(PRINTF,"(' SA1A SA1B SA2A SA2B  :',4E11.4)") SA1A,SA1B,SA2A,SA2B
+            WRITE(PRINTF,"(' IS ID SA1() SA2()    :',2I4,2E12.4)") IS,ID,SA1(IS,ID),SA2(IS,ID)
+            WRITE(PRINTF,"(' FACTOR JACOBI        : ',2E12.4)") FACTOR,JACOBI
          END IF
-!
+
       ENDDO
    ENDDO
-!
+
 !     *** Fold interactions to side angles -> domain in theta is ***
 !     *** periodic                                               ***
-!
+
    DO ID = 1, IDHGH - MDC
       ID0   = 1 - ID
       DO IS = ISCLW, ISCHG
@@ -2303,94 +2529,86 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   , &
          SA2 (IS,  ID0 ) = SA2 (IS,MDC+ID0)
       ENDDO
    ENDDO
-!
+
 !     *** Put source term together (To save space I=IS and ***
 !     *** J=MDC is used)                                   ***
-!
+
    FAC = 1.
 
    DO I = 1, MSC
       SIGPI = SPCSIG(I) * JACOBI
       DO J = 1, MDC
          SFNL(I,J) =   - 2. * ( SA1(I,J) + SA2(I,J) ) &
-             + AWG1 * ( SA1(I-ISP1,J-IDP1) + SA2(I-ISP1,J+IDP1) ) &
-             + AWG2 * ( SA1(I-ISP1,J-IDP ) + SA2(I-ISP1,J+IDP ) ) &
-             + AWG3 * ( SA1(I-ISP ,J-IDP1) + SA2(I-ISP ,J+IDP1) ) &
-             + AWG4 * ( SA1(I-ISP ,J-IDP ) + SA2(I-ISP ,J+IDP ) ) &
-             + AWG5 * ( SA1(I-ISM1,J+IDM1) + SA2(I-ISM1,J-IDM1) ) &
-             + AWG6 * ( SA1(I-ISM1,J+IDM ) + SA2(I-ISM1,J-IDM ) ) &
-             + AWG7 * ( SA1(I-ISM ,J+IDM1) + SA2(I-ISM ,J-IDM1) ) &
-             + AWG8 * ( SA1(I-ISM ,J+IDM ) + SA2(I-ISM ,J-IDM ) )
-!
+            + AWG1 * ( SA1(I-ISP1,J-IDP1) + SA2(I-ISP1,J+IDP1) ) &
+            + AWG2 * ( SA1(I-ISP1,J-IDP ) + SA2(I-ISP1,J+IDP ) ) &
+            + AWG3 * ( SA1(I-ISP ,J-IDP1) + SA2(I-ISP ,J+IDP1) ) &
+            + AWG4 * ( SA1(I-ISP ,J-IDP ) + SA2(I-ISP ,J+IDP ) ) &
+            + AWG5 * ( SA1(I-ISM1,J+IDM1) + SA2(I-ISM1,J-IDM1) ) &
+            + AWG6 * ( SA1(I-ISM1,J+IDM ) + SA2(I-ISM1,J-IDM ) ) &
+            + AWG7 * ( SA1(I-ISM ,J+IDM1) + SA2(I-ISM ,J-IDM1) ) &
+            + AWG8 * ( SA1(I-ISM ,J+IDM ) + SA2(I-ISM ,J-IDM ) )
+
 !         *** store value in auxiliary array and use values in ***
 !         *** next four sweeps (see subroutine FILNL3)         ***
-!
+
          IF (IDIA.EQ.1) THEN
-            MEMNL4(J,I,KCGRD(1)) = FAC * SFNL(I,J) / SIGPI
+            MEMNL4(J,I,IGP) = FAC * SFNL(I,J) / SIGPI
          ELSE
-            MEMNL4(J,I,KCGRD(1)) = MEMNL4(J,I,KCGRD(1)) + &
-                                   FAC * SFNL(I,J) / SIGPI
+            MEMNL4(J,I,IGP) = MEMNL4(J,I,IGP) + &
+               FAC * SFNL(I,J) / SIGPI
          END IF
       ENDDO
    ENDDO
-!
+
 !     *** test output ***
-!
+
    IF (ITEST .GE. 50 .AND. TESTFL) THEN
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) ' SWSNL4 subroutine '
-      WRITE(PRINTF,9011) IDP, IDP1, IDM, IDM1
-9011  FORMAT (' IDP IDP1 IDM IDM1     :',4I5)
-      WRITE (PRINTF,9013) ISP, ISP1, ISM, ISM1
-9013  FORMAT (' ISP ISP1 ISM ISM1     :',4I5)
-      WRITE (PRINTF,9015) ISLOW, ISHGH, IDLOW, IDHGH
-9015  FORMAT (' ISLOW ISHG IDLOW IDHG :',4I5)
-      WRITE(PRINTF,9016) ISCLW, ISCHG, JACOBI
-9016  FORMAT (' ICLW ICHG JACOBI      :',2I5,E12.4)
-      WRITE (PRINTF,9017) AWG1, AWG2, AWG3, AWG4
-9017  FORMAT (' AWG1 AWG2 AWG3 AWG4   :',4E12.4)
-      WRITE (PRINTF,9018) AWG5, AWG6, AWG7, AWG8
-9018  FORMAT (' AWG5 AWG6 AWG7 AWG8   :',4E12.4)
-      WRITE (PRINTF,9019) MSC4MI, MSC4MA, MDC4MI, MDC4MA
-9019  FORMAT (' S4MI S4MA D4MI D4MA   :',4I6)
-      WRITE(PRINTF,9020) SNLC1,X,X2,CONS
-9020  FORMAT (' SNLC1  X  X2  CONS    :',4E12.4)
-      WRITE(PRINTF,9021) DEP2(KCGRD(1)),KMESPC,FACHFR,PI
-9021  FORMAT (' DEPTH KMESPC FACHFR PI:',4E12.4)
+      WRITE(PRINTF,"(' IDP IDP1 IDM IDM1     :',4I5)") IDP, IDP1, IDM, IDM1
+      WRITE (PRINTF,"(' ISP ISP1 ISM ISM1     :',4I5)") ISP, ISP1, ISM, ISM1
+      WRITE (PRINTF,"(' ISLOW ISHG IDLOW IDHG :',4I5)") ISLOW, ISHGH, IDLOW, IDHGH
+      WRITE(PRINTF,"(' ICLW ICHG JACOBI      :',2I5,E12.4)") ISCLW, ISCHG, JACOBI
+      WRITE (PRINTF,"(' AWG1 AWG2 AWG3 AWG4   :',4E12.4)") AWG1, AWG2, AWG3, AWG4
+      WRITE (PRINTF,"(' AWG5 AWG6 AWG7 AWG8   :',4E12.4)") AWG5, AWG6, AWG7, AWG8
+      WRITE (PRINTF,"(' S4MI S4MA D4MI D4MA   :',4I6)") MSC4MI, MSC4MA, MDC4MI, MDC4MA
+      WRITE(PRINTF,"(' SNLC1  X  X2  CONS    :',4E12.4)") SNLC1,X,X2,CONS
+      WRITE(PRINTF,"(' DEPTH KMESPC FACHFR PI:',4E12.4)") DEP2(IGP),KMESPC,FACHFR,PI
       WRITE(PRINTF,*)
-!
+
 !       *** value source term in every bin ***
-!
+
       IF(ITEST.GE. 150 ) THEN
          DO I=1, MSC
             DO J=1, MDC
-               WRITE(PRINTF,2006) I,J,MEMNL4(J,I,KCGRD(1)),SFNL(I,J), &
-                                  SPCSIG(I)
-2006           FORMAT (' I J MEMNL() SFNL() SPCSIG:',2I4,3E12.4)
+               WRITE(PRINTF,"(' I J MEMNL() SFNL() SPCSIG:',2I4,3E12.4)") I,J,MEMNL4(J,I,IGP),SFNL(I,J), &
+                  SPCSIG(I)
             ENDDO
          ENDDO
       END IF
    END IF
-!
-   DEALLOCATE (SA1, SA2, SFNL, UE)
 
    RETURN
-!
-END SUBROUTINE SWSNL4
-!
+
+end subroutine SWSNL4
+
 !*********************************************************************
 SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  , &
-                   SNLC1   ,DAL1    ,DAL2    ,DAL3    ,SFNL    , &
-                   DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR  )
+   SNLC1   ,DAL1    ,DAL2    ,DAL3    ,SFNL    , &
+   DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, AF11 ,IGP)
 !*********************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-   USE M_SNL4
-!
-   IMPLICIT NONE
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering                              |
@@ -2472,6 +2690,8 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  , &
 !
 !  4. Argument variables
 !
+!     IGP   : grid address of the point being computed
+!             (KCGRD(1) in upstream)
 !     MCGRD : number of wet grid points of the computational grid
 !     MDC   : grid points in theta-direction of computational grid
 !     MDC4MA: highest array counter in directional space (Snl4)
@@ -2480,9 +2700,11 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  , &
 !     MSC4MA: highest array counter in frequency space (Snl4)
 !     MSC4MI: lowest array counter in frequency space (Snl4)
 !     WWINT : counters for quadruplet interactions
-!
+
+   INTEGER, INTENT(IN) :: IGP
+   REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
    INTEGER WWINT(*)
-!
+
 !     AC2   : action density
 !     AF11  : scaling frequency
 !     DAL1  : coefficient for the quadruplet interactions
@@ -2499,7 +2721,7 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  , &
 !     SNLC1
 !     SPCSIG: relative frequencies in computational domain in sigma-space
 !     UE    : "unfolded" spectrum
-!
+
    REAL    DAL1, DAL2, DAL3, FACHFR, KMESPC, SNLC1
    REAL    AC2(MDC,MSC,MCGRD)
    REAL    DEP2(MCGRD)
@@ -2509,7 +2731,7 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  , &
    REAL    SFNL(MSC4MI:MSC4MA,MDC4MI:MDC4MA)
    REAL    SPCSIG(MSC)
    REAL    UE(MSC4MI:MSC4MA,MDC4MI:MDC4MA)
-!
+
 !  7. Common blocks used
 !
 !
@@ -2539,21 +2761,20 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  , &
 ! 13. Source text
 !
 !*******************************************************************
-!
+
+   INTEGER, SAVE :: IENT = 0
    INTEGER   IS      ,ID      ,ID0     ,I       ,J       , &
-             ISLOW   ,ISHGH   ,IDLOW   ,IDHGH   , &
-             IDPP    ,IDMM    ,ISPP    ,ISMM    , &
-             ISCLW   ,ISCHG   ,IDDUM   ,IENT
-!
+      ISLOW   ,ISHGH   ,IDLOW   ,IDHGH   , &
+      IDPP    ,IDMM    ,ISPP    ,ISMM    , &
+      ISCLW   ,ISCHG   ,IDDUM
+
    REAL      X       ,X2      ,CONS    ,FACTOR  ,SNLCS1  ,SNLCS2  , &
-             SNLCS3  ,E00     ,EP1     ,EM1     ,EP2     ,EM2     , &
-             SA1A    ,SA1B    ,SA2A    ,SA2B    , &
-             JACOBI  ,SIGPI
-!
-   SAVE IENT
-   DATA IENT/0/
+      SNLCS3  ,E00     ,EP1     ,EM1     ,EP2     ,EM2     , &
+      SA1A    ,SA1B    ,SA2A    ,SA2B    , &
+      JACOBI  ,SIGPI
+
    IF (LTRACE) CALL STRACE (IENT,'SWSNL8')
-!
+
    ISLOW  = WWINT(9)
    ISHGH  = WWINT(10)
    ISCLW  = WWINT(11)
@@ -2564,38 +2785,38 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  , &
    IDMM   = WWINT(22)
    ISPP   = WWINT(23)
    ISMM   = WWINT(24)
-!
+
 !     *** Calculate prop. constant.                           ***
 !     *** Calculate factor R(X) to calculate the NL wave-wave ***
 !     *** interaction for shallow water                       ***
-!     *** SNLC1 = 1/GRAV**4                                   ***
-!
+!     *** SNLC1 = 1/GRAV**4                                   ***         40.17
+
    SNLCS1 = PQUAD(3)
    SNLCS2 = PQUAD(4)
    SNLCS3 = PQUAD(5)
-   X      = MAX ( 0.75 * DEP2(KCGRD(1)) * KMESPC , 0.5 )
+   X      = MAX ( 0.75 * DEP2(IGP) * KMESPC , 0.5 )
    X2     = MAX ( -1.E15, SNLCS3*X)
    CONS   = SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
    JACOBI = 2. * PI
-!
+
 !     *** extend the area with action density at periodic boundaries ***
-!
+
    DO IDDUM = IDLOW, IDHGH
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
       DO IS=1, MSC
-         UE (IS,IDDUM) = AC2(ID,IS,KCGRD(1)) * SPCSIG(IS) * JACOBI
+         UE (IS,IDDUM) = AC2(ID,IS,IGP) * SPCSIG(IS) * JACOBI
       ENDDO
    ENDDO
-!
+
    DO ID = IDLOW, IDHGH
       DO IS = MSC+1, ISHGH
          UE(IS,ID) = UE(IS-1,ID) * FACHFR
       ENDDO
    ENDDO
-!
+
 !     *** Calculate (unfolded) interactions ***
 !     *** Energy at interacting bins        ***
-!
+
    DO ID = 1, MDC
       DO IS = ISCLW, ISCHG
          E00 = UE(IS     ,ID     )
@@ -2603,25 +2824,25 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  , &
          EM1 = UE(IS+ISMM,ID-IDMM)
          EP2 = UE(IS+ISPP,ID-IDPP)
          EM2 = UE(IS+ISMM,ID+IDMM)
-!
+
 !         Contribution to interactions
-!
+
          FACTOR = CONS * AF11(IS) * PQUAD(2) * E00
-!
+
          SA1A   = E00 * ( EP1*DAL1 + EM1*DAL2 )
          SA1B   = SA1A - EP1*EM1*DAL3
          SA2A   = E00 * ( EP2*DAL1 + EM2*DAL2 )
          SA2B   = SA2A - EP2*EM2*DAL3
-!
+
          SA1 (IS,ID) = FACTOR * SA1B
          SA2 (IS,ID) = FACTOR * SA2B
-!
+
       ENDDO
    ENDDO
-!
+
 !     *** Fold interactions to side angles -> domain in theta is ***
 !     *** periodic                                               ***
-!
+
    DO ID = 1, IDHGH - MDC
       ID0   = 1 - ID
       DO IS = ISCLW, ISCHG
@@ -2631,52 +2852,53 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  , &
          SA2 (IS,  ID0 ) = SA2 (IS,MDC+ID0)
       ENDDO
    ENDDO
-!
+
 !     *** Put source term together (To save space I=IS and ***
 !     *** J=MDC is used)  ----                             ***
-!
+
    DO I = 1, MSC
       SIGPI = SPCSIG(I) * JACOBI
       DO J = 1, MDC
          SFNL(I,J) =   - 2. * ( SA1(I,J) + SA2(I,J) ) &
-             + ( SA1(I-ISPP,J-IDPP) + SA2(I-ISPP,J+IDPP) ) &
-             + ( SA1(I-ISMM,J+IDMM) + SA2(I-ISMM,J-IDMM) )
-!
+            + ( SA1(I-ISPP,J-IDPP) + SA2(I-ISPP,J+IDPP) ) &
+            + ( SA1(I-ISMM,J+IDMM) + SA2(I-ISMM,J-IDMM) )
+
 !         *** store value in auxiliary array and use values in ***
 !         *** next four sweeps (see subroutine FILNL3)         ***
-!
-         MEMNL4(J,I,KCGRD(1)) = SFNL(I,J) / SIGPI
+
+         MEMNL4(J,I,IGP) = SFNL(I,J) / SIGPI
       ENDDO
    ENDDO
-!
+
 !     *** value source term in every bin ***
-!
+
    IF ( ITEST.GE.150 .AND. TESTFL ) THEN
       DO I=1, MSC
          DO J=1, MDC
-            WRITE(PRINTF,2006) I,J,MEMNL4(J,I,KCGRD(1)),SFNL(I,J), &
-                               SPCSIG(I)
-2006        FORMAT (' I J MEMNL() SFNL() SPCSIG:',2I4,3E12.4)
+            WRITE(PRINTF,"(' I J MEMNL() SFNL() SPCSIG:',2I4,3E12.4)") I,J,MEMNL4(J,I,IGP),SFNL(I,J), &
+               SPCSIG(I)
          ENDDO
       ENDDO
    END IF
-!
+
    RETURN
-!
-END SUBROUTINE SWSNL8
-!
+
+end subroutine SWSNL8
+
 !*******************************************************************
-!
-SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     , &
-                   MEMNL4  ,PLNL4S  ,ISSTOP  ,REDC0   ,REDC1   )
-!
+
+SUBROUTINE FILNL3 (WINDOW, IMATRA, IMATDA, AC2, MEMNL4, PLNL4S, REDC0, REDC1, IGP)
+
 !*******************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2726,6 +2948,12 @@ SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     , &
 !
 !  4. Argument variables
 !
+!     IGP   : grid address of the point being computed
+!             (KCGRD(1) in upstream)
+!     WINDOW: spectral window of the grid point: the directional range
+!             per frequency (IDCMIN, IDCMAX) and the maximum frequency
+!             counter that is propagated (ISSTOP)
+!
 !  7. Common blocks used
 !
 !
@@ -2749,61 +2977,59 @@ SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     , &
 ! 13. Source text
 !
 !*******************************************************************
-!
-   INTEGER   IS      ,ID      ,ISSTOP
-!
+
+   TYPE(spectral_window_t) :: WINDOW
+
+   INTEGER, INTENT(IN) :: IGP
+   INTEGER, SAVE :: IENT = 0
+   INTEGER :: IS, ID, IDDUM
+
    REAL      IMATRA(MDC,MSC)           , &
-             IMATDA(MDC,MSC)           , &
-             AC2(MDC,MSC,MCGRD)        , &
-             PLNL4S(MDC,MSC,NPTST)     , &
-             MEMNL4(MDC,MSC,MCGRD)
-!
-   INTEGER   IDCMIN(MSC)         , &
-             IDCMAX(MSC)
+      IMATDA(MDC,MSC)           , &
+      AC2(MDC,MSC,MCGRD)        , &
+      PLNL4S(MDC,MSC,NPTST)     , &
+      MEMNL4(MDC,MSC,MCGRD)
+
    REAL ::   REDC0 (MDC,MSC,MREDS)
    REAL ::   REDC1 (MDC,MSC,MREDS)
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'FILNL3')
-!
-   DO 990 IS=1, ISSTOP
-      DO 980 IDDUM = IDCMIN(IS), IDCMAX(IS)
+
+   do IS=1, WINDOW%ISSTOP
+      do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-         IF(TESTFL) PLNL4S(ID,IS,IPTST) = MEMNL4(ID,IS,KCGRD(1))
-         IF (MEMNL4(ID,IS,KCGRD(1)).GT.0.) THEN
-            IMATRA(ID,IS) = IMATRA(ID,IS) + MEMNL4(ID,IS,KCGRD(1))
-            REDC0(ID,IS,1)= REDC0(ID,IS,1)+ MEMNL4(ID,IS,KCGRD(1))
+         IF(TESTFL) PLNL4S(ID,IS,IPTST) = MEMNL4(ID,IS,IGP)
+         IF (MEMNL4(ID,IS,IGP).GT.0.) THEN
+            IMATRA(ID,IS) = IMATRA(ID,IS) + MEMNL4(ID,IS,IGP)
+            REDC0(ID,IS,1)= REDC0(ID,IS,1)+ MEMNL4(ID,IS,IGP)
          ELSE
-            IMATDA(ID,IS) = IMATDA(ID,IS) - MEMNL4(ID,IS,KCGRD(1)) / &
-                            MAX(1.E-18,AC2(ID,IS,KCGRD(1)))
-            REDC1(ID,IS,1)= REDC1(ID,IS,1)+ MEMNL4(ID,IS,KCGRD(1)) / &
-                            MAX(1.E-18,AC2(ID,IS,KCGRD(1)))
+            IMATDA(ID,IS) = IMATDA(ID,IS) - MEMNL4(ID,IS,IGP) / &
+               MAX(1.E-18,AC2(ID,IS,IGP))
+            REDC1(ID,IS,1)= REDC1(ID,IS,1)+ MEMNL4(ID,IS,IGP) / &
+               MAX(1.E-18,AC2(ID,IS,IGP))
          END IF
-980   CONTINUE
-990 CONTINUE
-!
+      end do
+   end do
+
    IF ( TESTFL .AND. ITEST.GE.50 ) THEN
-      WRITE(PRINTF,9000) IDCMIN(1),IDCMAX(1),MSC,ISSTOP
-9000  FORMAT(' FILNL3: ID_MIN ID_MAX MSC ISTOP :',4I6)
+      WRITE(PRINTF,"(' FILNL3: ID_MIN ID_MAX MSC ISTOP :',4I6)") WINDOW%IDCMIN(1),WINDOW%IDCMAX(1),MSC,WINDOW%ISSTOP
       IF ( ITEST .GE. 100 ) THEN
-         DO IS=1, ISSTOP
-            DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IS=1, WINDOW%ISSTOP
+            DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
                ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-               WRITE(PRINTF,6001) IS,ID,MEMNL4(ID,IS,KCGRD(1))
-6001           FORMAT(' FILNL3: IS ID MEMNL()          :',2I6,E12.4)
+               WRITE(PRINTF,"(' FILNL3: IS ID MEMNL()          :',2I6,E12.4)") IS,ID,MEMNL4(ID,IS,IGP)
             ENDDO
          ENDDO
       ENDIF
    ENDIF
-!
+
    RETURN
 !     End of FILNL3
-END
-!
+end subroutine FILNL3
+
 !----------------------------------------------------------------------
 SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH, &
-                       IQTYPE,SNL,KCGRD,ICMAX,IERROR )
+   IQTYPE,SNL,KCGRD,ICMAX,IERROR,IGP )
 !----------------------------------------------------------------------
 !
 !   +-------+    ALKYON Hydraulic Consultancy & Research
@@ -2829,13 +3055,12 @@ SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH, &
 !
 !     You should have received a copy of the GNU General Public License
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
+
    USE M_PARALL
    USE serv_xnl4v5
    USE m_xnldata
-!
-   IMPLICIT NONE
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
 !-----------------------------------------------------------------------------------
 !
 !  0. Update history
@@ -2885,6 +3110,7 @@ SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH, &
    REAL   , INTENT(IN) :: DEPTH(NGRID) ! depth array
    INTEGER, INTENT(IN) :: ICMAX ! number of points of the computational stencil
    INTEGER, INTENT(IN) :: KCGRD(ICMAX) ! grid addresses for points of computational stencil
+   INTEGER, INTENT(IN) :: IGP ! current grid address
    REAL   , INTENT(OUT):: SNL(NDIR,NSIG,NGRID) ! nonlinear quadruplet interaction computed with
 !                                                    ! a certain exact method (sigma,dir)
    INTEGER, INTENT(OUT):: IERROR ! Error indicator. If no errors are detected IERR=0
@@ -2920,13 +3146,13 @@ SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH, &
 ! 10. Source code
 !------------------------------------------------------------------------------
 !     Local parameters
-!
+
    INTEGER ISIG,IDIR ! counters
    INTEGER IGRID ! grid index
    INTEGER IQUAD ! type of computational method for Xnl
-!
+
 !     --- assign arrays for intermediate storage of results
-!
+
    REAL AQUAD(NSIG,NDIR) ! action density spectrum A(sigma,dir)
    REAL XNL(NSIG,NDIR) ! transfer rate dA/dt(sigma,dir)
    REAL DIAG(NSIG,NDIR) ! diagonal term (dXnl/dA)
@@ -2934,263 +3160,84 @@ SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH, &
 !------------------------------------------------------------------------------
 !
 !     --- initialisations
-!
+
    IERROR  = 0
-!
-   IGRID   = KCGRD(1) ! set index of current grid index
+
+   IGRID   = IGP ! set index of current grid index
    DIRR(:) = DIR(:,1) ! copy radian directions to single array
-!
+
    SNL(:,:,IGRID)  = 0.
    DIAG            = 0.
-!
+
 !     --- check value of iquad
-!
+
    IF ((IQTYPE.NE.51).AND.(IQTYPE.NE.52).AND.(IQTYPE.NE.53)) THEN
       IERROR = 1
-      GOTO 9999
+      RETURN
    END IF
-!
+
 !  N.B. Take care of different order of indices in QUAD compared to SWAN
 !
 !     --- compute nonlinear interactions per individual spectrum
 !         switch order of indices
-!
+
    DO ISIG = 1, NSIG
       DO IDIR = 1, NDIR
          AQUAD(ISIG,IDIR) = ASWAN(IDIR,ISIG,IGRID)
       END DO
    END DO
-!
+
 !     --- transform parameter iquad of SWAN to the parameter iq_quad as
 !         needed by the QUAD suite
-!
+
    IQUAD = IQTYPE - 50
-!
+
 !     IQTYPE/IQUAD = 51/1   ! deep water transfer
 !     IQTYPE/IQUAD = 52/2   ! deep water transfer with WAM depth scaling
 !     IQTYPE/IQUAD = 53/3   ! finite depth transfer
 !
 !     --- call of main subroutine to compute nonlinear quadruplet interactions
 !         for a given action density spectrum on a given spectral grid
-!
+
    XNL   = 0.
    DIAG  = 0.
    CALL XNL_MAIN( AQUAD,SIGMA,DIRR,NSIG,NDIR,DEPTH(IGRID),IQUAD, &
-                  XNL,DIAG,INODE,IERROR )
-!
-   IF (IERROR.NE.0) GOTO 9999
-!
+      XNL,DIAG,INODE,IERROR )
+
+   IF (IERROR.NE.0) RETURN
+
 !     --- convert nonlinear transfer to SWAN convention, only sequence of indices
-!
+
    DO ISIG = 1, NSIG
       DO IDIR = 1, NDIR
          SNL(IDIR,ISIG,IGRID) = XNL(ISIG,IDIR)
       END DO
    END DO
-!
-9999 CONTINUE
-!
+
    RETURN
-!
-END SUBROUTINE SWINTFXNL
-!
+
+end subroutine SWINTFXNL
+
 !********************************************************************
-!
-SUBROUTINE TCOEF ( W1, W2, W12, K1, K2, K12, DEP, R, S )
-!
-!********************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM3
 
-   IMPLICIT NONE
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-
-!     41.46: James Salmon
-!     42.11: Gal Akrish
-
-!  1. Updates
-
-!     41.46, October 2013: new subroutine
-!     42.11,   April 2024: interaction coeff QuadWave included
-
-!  2. Purpose
-!
-!     Calculates transfer coefficients
-!
-!  3. Method
-!
-!     deterministic Boussinesq model of Madsen and Sorensen (1993)
-!     (Eqs. 5.4a and 5.4f):
-!
-!     R_m,p-m = (k_m + k_p-m)^2 * [0.5 + (w_m*w_p-m / g*h*k_m*k_p-m)]
-!
-!     S_p     = -2/g * ( g*h*k_p + 2*B*g*h^3*k_p^3 - (B+(1/3))*h^2*w_p^2*k_p )
-!
-!     where: B = 1/15
-!
-!     See also Becq-Girard et al (1999), Eqs. 2.5 and 2.6
-!     Further details can be found in Akrish et al (2024), Eqs. (13)-(15)
-!     and Appendix A
-!
-!  4. Argument variables
-!
-!     DEP         water depth
-!     R           numerator of transfer function
-!     S           denominator of transfer function
-!
-!     W1, W2, W12 w_p, w_m, w_I      where I represents the sum or difference, i.e.
-!     K1, K2, K12 k_p, k_m, k_I      I=p-m and I=p+m, respectively
-!
-   REAL :: W1, W2, W12
-   REAL :: K1, K2, K12
-!
-   REAL :: DEP
-!
-   REAL, INTENT(OUT) :: R
-   REAL, INTENT(OUT) :: S
-!
-!  5. Parameter variables
-!
-!     A1          first optimization parameter for QuadWave1D
-!     A2          second optimization parameter for QuadWave1D
-!     A3          third optimization parameter for QuadWave1D
-!
-!     Note: these optimization parameters minimize the error in nonlinearity
-!           while maintaining the dispersion properties of the Bredmose et al (2005)
-!           model
-!
-   REAL, PARAMETER :: A1 = 1.
-   REAL, PARAMETER :: A2 = 0.4 ! note: original value of 1.4 yields too much
-                                !       energy in high-frequency part
-   REAL, PARAMETER :: A3 = 5.5
-!
-!  6. Local variables
-!
-!     ITRF  : indicates type of transfer function for triad interaction
-!             =1; classic Boussinesq: Freilich and Guza (1984), Herbers and Burton (1997)
-!             =2; deterministic Boussinesq of Madsen and Sorensen (1993)
-!             =3; exact second order transfer coefficient of Bredmose et al (2005)
-!             =4; QuadWave of Akrish et al (2024)
-!
-   INTEGER :: IENT, ITRF
-   REAL    :: DEP_2, DEP_3
-   REAL    :: B, B2, B3
-   REAL    :: PROD, KLM, WLM2, FAC1, FAC2
-!
-!  7. SUBROUTINES USED
-
-!  8. SUBROUTINES CALLING
-
-!     ---
-
-!  9. ERROR MESSAGES
-
-!     ---
-
-! 10. REMARKS
-
-!     ---
-
-! 11. STRUCTURE
-
-!     ---
-
-! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
-   IF (LTRACE) CALL STRACE (IENT,'TCOEF')
-!
-   R = 0.
-   S = 1.
-   IF (.NOT.W1.NE.0. .OR. .NOT.K1.NE.0.) RETURN
-!
-   ITRF = INT(PTRIAD(10))
-!
-   DEP_2 = DEP**2
-   DEP_3 = DEP**3
-!
-   B     = 1./15.
-   B2    = 2.*B
-   B3    = B + 1./3.
-!
-   IF ( ITRF.EQ.1 ) THEN !classic Boussinesq
-!          R = 0.75 * (W2 + W12) should be W1! See Herbers and Burton, Eq. 11
-      R = 0.75 * W1
-      S = -DEP * SQRT(GRAV*DEP)
-!
-   ELSEIF ( ITRF.EQ.2 ) THEN !deterministic Boussinesq
-!         to avoid NaN when W2*W12=0=K2*K12, adapt product of K2 and K12
-      PROD = SIGN(MAX(1.E-20, ABS(K2*K12)),K2*K12)
-      R     =  (0.5 + ((W2*W12)/(GRAV*DEP*PROD))) * (K2 + K12)**2
-!
-      S     = (-2./GRAV) * (  (GRAV*DEP*K1) &
-                            + (B2*GRAV*DEP_3*K1**3) &
-                            - (B3*DEP_2*K1*W1**2)   )
-!
-   ELSEIF ( ITRF.EQ.3 .OR. ITRF.EQ.4 ) THEN !Bredmose or QuadWave1D
-      KLM  = K2 + K12
-      WLM2 = GRAV * KLM * TANH(KLM*DEP)
-!
-      FAC1 = ABS(KLM) * DEP * ( ABS(KLM)/ABS(K1) )**A1
-      FAC2 = EXP( -(FAC1/A3)**A2 )
-      IF (ITRF.EQ.3) FAC2 = 1.
-!
-!         to avoid NaN when W2*W12=0, adapt product of W2 and W12
-      PROD = SIGN(MAX(1.E-20, ABS(W2*W12)),W2*W12)
-      R = -0.5 * FAC2 * GRAV / PROD * &
-          ( WLM2 * K2 * K12 + W1 * KLM * (K2*W12 + K12*W2) ) &
-          -0.5 * FAC2 * WLM2 / GRAV * ( W2 * W12 - W1*W1 )
-      S = ( W1*W1 - WLM2 ) / ( K1 - KLM )
-!
-   ENDIF
-!
-   RETURN
-END subroutine TCOEF
-!
 !****************************************************************
-!
-SUBROUTINE FAC3WW ( DEP, SPCSIG )
-!
-!****************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM3
-   USE M_SNL3
 
-   IMPLICIT NONE
-!
-!
+SUBROUTINE FAC3WW ( DEP, SPCSIG, TRIADS )
+
+!****************************************************************
+
+   USE swan_triads, ONLY: TCOEF
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_wave_physics, ONLY: KSCIP1
+   USE swan_diagnostics_level
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -3238,10 +3285,19 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG )
 !
 !     DEP         water depth
 !     SPCSIG      relative frequencies
+!     TRIADS      triad state; on input it says whether the interactions
+!                 are collinear (TCOLL), on output it holds the
+!                 interpolation counters and weight factors of the lower
+!                 and higher harmonics (ISM, ISM1, ISP, ISP1, WISM, WISM1,
+!                 WISP, WISP1, and those of 3/2 times the frequency), the
+!                 frequency-dependent interpolation data (QTRI1) and the
+!                 frequency- and space-dependent scaling factors (QTRI2);
+!                 in upstream these were module variables of M_SNL3
 
+   TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
    REAL :: DEP(MCGRD)
    REAL :: SPCSIG(MSC)
-!
+
 !  6. Local variables
 !
 !     A     :     = (kd)^2
@@ -3288,441 +3344,459 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG )
 !     WNPM  :     wave number of primary harmonic (p-m)
 !     XIS   :     rate between two succeeding frequency counters
 !     XISLN :     log of XIS
-!
-   INTEGER I1, I2, IENT, IP, IS, IS1, IS2, IS3, ISLOW, J
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER I1, I2, IP, IS, IS1, IS2, IS3, ISLOW, J
    REAL    C0, R, S, RINT, W0, WM, WPM, WN0, WNM, WNPM, &
-           XIS, XISLN
+      XIS, XISLN
    REAL    A, ARR(MSC), CG(MSC), CG1, CG2, DEPLOC, DF, DK, FT, ISB, &
-           K(MSC), K1, K2, K3, KB, KM, P, SIG1, SIG2, SIG3, WIS
-!
+      K(MSC), K1, K2, K3, KB, KM, P, SIG1, SIG2, SIG3, WIS
+   REAL    K3A(1), SIG3A(1)
+
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
-   IF (LTRACE) CALL STRACE (IENT,'FAC3WW')
-!
-   QTRI2 = 0.
 
-   IF ( ITRIAD.EQ.1 .OR. ITRIAD.EQ.11 ) THEN
-!
+   ASSOCIATE(ISM => TRIADS%lower_index, &
+      ISM1 => TRIADS%lower_index_next, &
+      ISP => TRIADS%upper_index, &
+      ISP1 => TRIADS%upper_index_next, &
+      WISM => TRIADS%lower_weight, &
+      WISM1 => TRIADS%lower_weight_next, &
+      WISP => TRIADS%upper_weight, &
+      WISP1 => TRIADS%upper_weight_next, &
+      QTRI1 => TRIADS%interpolation, &
+      QTRI2 => TRIADS%scaling, &
+      TCOLL => TRIADS%collinear)
+      IF (LTRACE) CALL STRACE (IENT,'FAC3WW')
+
+      QTRI2 = 0.
+
+      IF ( ITRIAD.EQ.1 .OR. ITRIAD.EQ.11 ) THEN
+
 !        --- compute some indices in sigma space
-!
-      I2    = INT (FLOAT(MSC) / 2.)
-      I1    = I2 - 1
-      XIS   = SPCSIG(I2) / SPCSIG(I1)
-      XISLN = LOG( XIS )
-!
+
+         I2    = INT (FLOAT(MSC) / 2.)
+         I1    = I2 - 1
+         XIS   = SPCSIG(I2) / SPCSIG(I1)
+         XISLN = LOG( XIS )
+
 !        --- indices of second harmonic (self interaction)
-!
-      ISP  (2) = INT( LOG(2.) / XISLN )
-      ISP1 (2) = ISP(2) + 1
-      WISP (2) = (2. - XIS**ISP(2)) / (XIS**ISP1(2) - XIS**ISP(2))
-      WISP1(2) = 1. - WISP(2)
 
-      ISM  (2,1) = INT( LOG(0.5) / XISLN )
-      ISM1 (2,1) = ISM(2,1) - 1
-      WISM (2,1) = (XIS**ISM(2,1) -0.5) / &
-                   (XIS**ISM(2,1) - XIS**ISM1(2,1))
-      WISM1(2,1) = 1. - WISM(2,1)
-!
+         ISP  (2) = INT( LOG(2.) / XISLN )
+         ISP1 (2) = ISP(2) + 1
+         WISP (2) = (2. - XIS**ISP(2)) / (XIS**ISP1(2) - XIS**ISP(2))
+         WISP1(2) = 1. - WISP(2)
+
+         ISM  (2,1) = INT( LOG(0.5) / XISLN )
+         ISM1 (2,1) = ISM(2,1) - 1
+         WISM (2,1) = (XIS**ISM(2,1) -0.5) / &
+            (XIS**ISM(2,1) - XIS**ISM1(2,1))
+         WISM1(2,1) = 1. - WISM(2,1)
+
 !        --- indices of third harmonic (sum interaction)
-!
-      ISP  (3) = INT( LOG(3.) / XISLN )
-      ISP1 (3) = ISP(3) + 1
-      WISP (3) = (3. - XIS**ISP(3)) / (XIS**ISP1(3) - XIS**ISP(3))
-      WISP1(3) = 1. - WISP(3)
 
-      ISM  (3,1) = INT( LOG(1./3.) / XISLN )
-      ISM1 (3,1) = ISM(3,1) - 1
-      WISM (3,1) = (XIS**ISM(3,1) -1./3.) / &
-                   (XIS**ISM(3,1) - XIS**ISM1(3,1))
-      WISM1(3,1) = 1. - WISM(3,1)
+         ISP  (3) = INT( LOG(3.) / XISLN )
+         ISP1 (3) = ISP(3) + 1
+         WISP (3) = (3. - XIS**ISP(3)) / (XIS**ISP1(3) - XIS**ISP(3))
+         WISP1(3) = 1. - WISP(3)
 
-      ISM  (3,2) = INT( LOG(2./3.) / XISLN )
-      ISM1 (3,2) = ISM(3,2) - 1
-      WISM (3,2) = (XIS**ISM(3,2) -2./3.) / &
-                   (XIS**ISM(3,2) - XIS**ISM1(3,2))
-      WISM1(3,2) = 1. - WISM(3,2)
-!
-      DO IP = 2, MCGRD
-!
-         DEPLOC = DEP(IP)
-!
+         ISM  (3,1) = INT( LOG(1./3.) / XISLN )
+         ISM1 (3,1) = ISM(3,1) - 1
+         WISM (3,1) = (XIS**ISM(3,1) -1./3.) / &
+            (XIS**ISM(3,1) - XIS**ISM1(3,1))
+         WISM1(3,1) = 1. - WISM(3,1)
+
+         ISM  (3,2) = INT( LOG(2./3.) / XISLN )
+         ISM1 (3,2) = ISM(3,2) - 1
+         WISM (3,2) = (XIS**ISM(3,2) -2./3.) / &
+            (XIS**ISM(3,2) - XIS**ISM1(3,2))
+         WISM1(3,2) = 1. - WISM(3,2)
+
+         DO IP = 2, MCGRD
+
+            DEPLOC = DEP(IP)
+
 !           --- compute wave number and group velocity
-!
-         IF ( DEPLOC.GT.DEPMIN ) THEN
-            CALL KSCIP1 (MSC, SPCSIG, DEPLOC, K, CG, ARR, ARR)
-         ELSE
-            K  = -1.
-            CG =  0.
-         ENDIF
-!
-         CG1 = 1.
-!
+
+            IF ( DEPLOC.GT.DEPMIN ) THEN
+               CALL KSCIP1 (MSC, SPCSIG, DEPLOC, K, CG)
+            ELSE
+               K  = -1.
+               CG =  0.
+            ENDIF
+
+            CG1 = 1.
+
 !           --- compute LTA scaling factor
-!
-         DO IS = 1, MSC
-!
-            IF (ITRIAD.EQ.11) CG1 = CG(IS)
+
+            DO IS = 1, MSC
+
+               IF (ITRIAD.EQ.11) CG1 = CG(IS)
 
 !              --- bound super harmonic (sum frequency)
-            W0  = SPCSIG(IS)
-            WN0 = K     (IS)
-            C0  = W0 / WN0
+               W0  = SPCSIG(IS)
+               WN0 = K     (IS)
+               C0  = W0 / WN0
 
 !              --- primary wave (half the sum frequency)
-            IF ( IS.GT.-ISM1(2,1) ) THEN
-               WM  = WISM (2,1) * SPCSIG(IS+ISM1(2,1)) + &
+               IF ( IS.GT.-ISM1(2,1) ) THEN
+                  WM  = WISM (2,1) * SPCSIG(IS+ISM1(2,1)) + &
                      WISM1(2,1) * SPCSIG(IS+ISM (2,1))
-               WNM = WISM (2,1) * K     (IS+ISM1(2,1)) + &
+                  WNM = WISM (2,1) * K     (IS+ISM1(2,1)) + &
                      WISM1(2,1) * K     (IS+ISM (2,1))
-            ELSE
-               WM  = 0.
-               WNM = 0.
-            END IF
+               ELSE
+                  WM  = 0.
+                  WNM = 0.
+               END IF
 
 !              compute interaction coefficient of self-self component
-            IF ( DEPLOC.GT.DEPMIN ) THEN
-               CALL TCOEF (W0,WM,WM,WN0,WNM,WNM,DEPLOC,R,S)
-               RINT = R / S
-            ELSE
-               RINT = 0.
-            ENDIF
+               IF ( DEPLOC.GT.DEPMIN ) THEN
+                  CALL TCOEF (W0,WM,WM,WN0,WNM,WNM,DEPLOC,R,S)
+                  RINT = R / S
+               ELSE
+                  RINT = 0.
+               ENDIF
 
-            QTRI2(IS,IP,1) = PTRIAD(1) * CG1 * C0 * RINT**2
+               QTRI2(IS,IP,1) = PTRIAD(1) * CG1 * C0 * RINT**2
 
 !              --- primary wave (one third of the sum frequency)
-            IF ( IS.GT.-ISM1(3,1) ) THEN
-               WPM  = WISM (3,1) * SPCSIG(IS+ISM1(3,1)) + &
-                      WISM1(3,1) * SPCSIG(IS+ISM (3,1))
-               WNPM = WISM (3,1) * K     (IS+ISM1(3,1)) + &
-                      WISM1(3,1) * K     (IS+ISM (3,1))
-            ELSE
-               WPM  = 0.
-               WNPM = 0.
-            END IF
+               IF ( IS.GT.-ISM1(3,1) ) THEN
+                  WPM  = WISM (3,1) * SPCSIG(IS+ISM1(3,1)) + &
+                     WISM1(3,1) * SPCSIG(IS+ISM (3,1))
+                  WNPM = WISM (3,1) * K     (IS+ISM1(3,1)) + &
+                     WISM1(3,1) * K     (IS+ISM (3,1))
+               ELSE
+                  WPM  = 0.
+                  WNPM = 0.
+               END IF
 
 !              --- secondary wave (two third of the sum frequency)
-            IF ( IS.GT.-ISM1(3,2) ) THEN
-               WM  = WISM (3,2) * SPCSIG(IS+ISM1(3,2)) + &
+               IF ( IS.GT.-ISM1(3,2) ) THEN
+                  WM  = WISM (3,2) * SPCSIG(IS+ISM1(3,2)) + &
                      WISM1(3,2) * SPCSIG(IS+ISM (3,2))
-               WNM = WISM (3,2) * K     (IS+ISM1(3,2)) + &
+                  WNM = WISM (3,2) * K     (IS+ISM1(3,2)) + &
                      WISM1(3,2) * K     (IS+ISM (3,2))
-            ELSE
-               WM  = 0.
-               WNM = 0.
-            END IF
+               ELSE
+                  WM  = 0.
+                  WNM = 0.
+               END IF
 
 !              compute interaction coefficient for third harmonic
+               IF ( DEPLOC.GT.DEPMIN ) THEN
+                  CALL TCOEF (W0,WM,WPM,WN0,WNM,WNPM,DEPLOC,R,S)
+                  RINT = R / S
+               ELSE
+                  RINT = 0.
+               ENDIF
+
+               QTRI2(IS,IP,2) = PTRIAD(1) * CG1 * C0 * RINT**2
+
+            ENDDO
+
+         ENDDO
+
+      ELSE IF ( ITRIAD.EQ.2 .OR. ITRIAD.EQ.3 ) THEN
+
+         QTRI1 = 0.
+
+         DO IP = 2, MCGRD
+
+            DEPLOC = DEP(IP)
+
+!           --- compute wave number and group velocity
+
             IF ( DEPLOC.GT.DEPMIN ) THEN
-               CALL TCOEF (W0,WM,WPM,WN0,WNM,WNPM,DEPLOC,R,S)
-               RINT = R / S
+               CALL KSCIP1 (MSC, SPCSIG, DEPLOC, K, CG)
             ELSE
-               RINT = 0.
+               K  = -1.
+               CG =  0.
             ENDIF
 
-            QTRI2(IS,IP,2) = PTRIAD(1) * CG1 * C0 * RINT**2
+            J = 0
 
-         ENDDO
-!
-      ENDDO
-!
-   ELSE IF ( ITRIAD.EQ.2 .OR. ITRIAD.EQ.3 ) THEN
-!
-      QTRI1 = 0.
-!
-      DO IP = 2, MCGRD
-!
-         DEPLOC = DEP(IP)
-!
-!           --- compute wave number and group velocity
-!
-         IF ( DEPLOC.GT.DEPMIN ) THEN
-            CALL KSCIP1 (MSC, SPCSIG, DEPLOC, K, CG, ARR, ARR)
-         ELSE
-            K  = -1.
-            CG =  0.
-         ENDIF
-!
-         J = 0
+            DO IS1 = 1, MSC
 
-         DO IS1 = 1, MSC
-!
 !              --- bound super harmonic
-!
-            SIG1 = SPCSIG(IS1)
-            K1   = K     (IS1)
-            CG1  = CG    (IS1)
-!
+
+               SIG1 = SPCSIG(IS1)
+               K1   = K     (IS1)
+               CG1  = CG    (IS1)
+
 !              --- sum interactions
-!
-            DO IS2 = 1, IS1-1
+
+               DO IS2 = 1, IS1-1
 
 !                 --- secondary wave
-!
-               SIG2 = SPCSIG(IS2)
-               K2   = K     (IS2)
-!
-!                 --- primary wave
-               SIG3 = SIG1 - SIG2
-!
-               J = J + 1
-!
-!                 --- obtain and store interpolation factors
-!
-               IF ( SIG3.GT.SPCSIG(1) ) THEN
-!
-                  ISB = LOG( SIG3/SPCSIG(1) ) / FRINTF
-!
-                  IS3 = INT(ISB)
-                  WIS = ISB - REAL(IS3)
-                  IS3 = IS3 + 1
 
-                  QTRI1(J,1) = WIS
-                  QTRI1(J,2) = FLOAT(IS3)
-!
-               ENDIF
-!
+                  SIG2 = SPCSIG(IS2)
+                  K2   = K     (IS2)
+
+!                 --- primary wave
+                  SIG3 = SIG1 - SIG2
+
+                  J = J + 1
+
+!                 --- obtain and store interpolation factors
+
+                  IF ( SIG3.GT.SPCSIG(1) ) THEN
+
+                     ISB = LOG( SIG3/SPCSIG(1) ) / FRINTF
+
+                     IS3 = INT(ISB)
+                     WIS = ISB - REAL(IS3)
+                     IS3 = IS3 + 1
+
+                     QTRI1(J,1) = WIS
+                     QTRI1(J,2) = FLOAT(IS3)
+
+                  ENDIF
+
 !                 --- compute the wave number of primary component
-!
-               IF ( DEPLOC.GT.DEPMIN ) THEN
-                  CALL KSCIP1 (1, SIG3, DEPLOC, K3, ARR, ARR, ARR)
-               ELSE
-                  K3 = -1.
-               ENDIF
-!
+
+                  IF ( DEPLOC.GT.DEPMIN ) THEN
+                     SIG3A(1) = SIG3
+                     CALL KSCIP1 (1, SIG3A, DEPLOC, K3A)
+                     K3 = K3A(1)
+                  ELSE
+                     K3 = -1.
+                  ENDIF
+
 !                 --- compute the wave number mismatch and frequency step
-!
-               DK = K3 + K2 - K1
-               DF = FRINTF * SIG2 / PI2
-!
+
+                  DK = K3 + K2 - K1
+                  DF = FRINTF * SIG2 / PI2
+
 !                 --- compute and store transfer functions
-!
-               IF ( DEPLOC.GT.DEPMIN ) THEN
-                  CALL TCOEF(SIG1,SIG2, SIG3,K1,K2, K3,DEPLOC,R,S)
-                  RINT = R / S
-                  QTRI2(J,IP,2) = R / S
-                  CALL TCOEF(SIG2,SIG1,-SIG3,K2,K1,-K3,DEPLOC,R,S)
-                  QTRI2(J,IP,3) = R / S
-                  CALL TCOEF(SIG3,SIG1,-SIG2,K3,K1,-K2,DEPLOC,R,S)
-                  QTRI2(J,IP,4) = R / S
-               ELSE
-                  RINT = 0.
-                  QTRI2(J,IP,2:4) = 0.
-               ENDIF
-!
+
+                  IF ( DEPLOC.GT.DEPMIN ) THEN
+                     CALL TCOEF(SIG1,SIG2, SIG3,K1,K2, K3,DEPLOC,R,S)
+                     RINT = R / S
+                     QTRI2(J,IP,2) = R / S
+                     CALL TCOEF(SIG2,SIG1,-SIG3,K2,K1,-K3,DEPLOC,R,S)
+                     QTRI2(J,IP,3) = R / S
+                     CALL TCOEF(SIG3,SIG1,-SIG2,K3,K1,-K2,DEPLOC,R,S)
+                     QTRI2(J,IP,4) = R / S
+                  ELSE
+                     RINT = 0.
+                     QTRI2(J,IP,2:4) = 0.
+                  ENDIF
+
 !                 --- compute and store proportionality factor
 !                     depending on the bispectrum parametrization
-!
-               IF ( ITRIAD.EQ.2 ) THEN
+
+                  IF ( ITRIAD.EQ.2 ) THEN
 !                    SPB of Becq-Girard et al (1999)
-                  KM = MIN(K1,K2,K3) ! according to James Salmon
-                  KB = PTRIAD(6)*KM + PTRIAD(7)
-                  FT = KB * DF / (DK*DK + KB*KB)
-               ELSE IF ( ITRIAD.EQ.3 ) THEN
+                     KM = MIN(K1,K2,K3) ! according to James Salmon
+                     KB = PTRIAD(6)*KM + PTRIAD(7)
+                     FT = KB * DF / (DK*DK + KB*KB)
+                  ELSE IF ( ITRIAD.EQ.3 ) THEN
 !                    based on the quasi-normal closure using parametrized biphase
 !                    (see routine SWFTIM)
-                  FT = DF / MAX( ABS(DK), 0.1*K1 )
-               ENDIF
-!
-               QTRI2(J,IP,1) = PTRIAD(1) * FT * CG1 * RINT
-!
-            ENDDO
-!
+                     FT = DF / MAX( ABS(DK), 0.1*K1 )
+                  ENDIF
+
+                  QTRI2(J,IP,1) = PTRIAD(1) * FT * CG1 * RINT
+
+               ENDDO
+
 !              --- difference interactions
-!
-            DO IS2 = 1, MSC
+
+               DO IS2 = 1, MSC
 
 !                 --- secondary wave
-!
-               SIG2 = SPCSIG(IS2)
-               K2   = K     (IS2)
-!
-!                 --- primary wave
-               SIG3 = SIG1 + SIG2
-!
-               J = J + 1
-!
-!                 --- obtain and store interpolation factors
-!
-               IF ( SIG3.LT.SPCSIG(MSC) ) THEN
-!
-                  ISB = LOG( SIG3/SPCSIG(1) ) / FRINTF
-!
-                  IS3 = INT(ISB)
-                  WIS = ISB - REAL(IS3)
-                  IS3 = IS3 + 1
 
-                  QTRI1(J,1) = WIS
-                  QTRI1(J,2) = FLOAT(IS3)
-!
-               ENDIF
-!
+                  SIG2 = SPCSIG(IS2)
+                  K2   = K     (IS2)
+
+!                 --- primary wave
+                  SIG3 = SIG1 + SIG2
+
+                  J = J + 1
+
+!                 --- obtain and store interpolation factors
+
+                  IF ( SIG3.LT.SPCSIG(MSC) ) THEN
+
+                     ISB = LOG( SIG3/SPCSIG(1) ) / FRINTF
+
+                     IS3 = INT(ISB)
+                     WIS = ISB - REAL(IS3)
+                     IS3 = IS3 + 1
+
+                     QTRI1(J,1) = WIS
+                     QTRI1(J,2) = FLOAT(IS3)
+
+                  ENDIF
+
 !                 --- compute the wave number of primary component
-!
-               IF ( DEPLOC.GT.DEPMIN ) THEN
-                  CALL KSCIP1 (1, SIG3, DEPLOC, K3, ARR, ARR, ARR)
-               ELSE
-                  K3 = -1.
-               ENDIF
-!
+
+                  IF ( DEPLOC.GT.DEPMIN ) THEN
+                     SIG3A(1) = SIG3
+                     CALL KSCIP1 (1, SIG3A, DEPLOC, K3A)
+                     K3 = K3A(1)
+                  ELSE
+                     K3 = -1.
+                  ENDIF
+
 !                 --- compute the wave number mismatch and frequency step
-!
-               DK = K1 + K2 - K3
-               DF = FRINTF * SIG2 / PI2
-!
+
+                  DK = K1 + K2 - K3
+                  DF = FRINTF * SIG2 / PI2
+
 !                 --- compute and store transfer functions
-!
-               IF ( DEPLOC.GT.DEPMIN ) THEN
-                  CALL TCOEF(SIG3,SIG2, SIG1,K3,K2, K1,DEPLOC,R,S)
-                  QTRI2(J,IP,2) = R / S
-                  CALL TCOEF(SIG2,SIG3,-SIG1,K2,K3,-K1,DEPLOC,R,S)
-                  QTRI2(J,IP,3) = R / S
-                  CALL TCOEF(SIG1,SIG3,-SIG2,K1,K3,-K2,DEPLOC,R,S)
-                  RINT = R / S
-                  QTRI2(J,IP,4) = R / S
-               ELSE
-                  RINT = 0.
-                  QTRI2(J,IP,2:4) = 0.
-               ENDIF
-!
+
+                  IF ( DEPLOC.GT.DEPMIN ) THEN
+                     CALL TCOEF(SIG3,SIG2, SIG1,K3,K2, K1,DEPLOC,R,S)
+                     QTRI2(J,IP,2) = R / S
+                     CALL TCOEF(SIG2,SIG3,-SIG1,K2,K3,-K1,DEPLOC,R,S)
+                     QTRI2(J,IP,3) = R / S
+                     CALL TCOEF(SIG1,SIG3,-SIG2,K1,K3,-K2,DEPLOC,R,S)
+                     RINT = R / S
+                     QTRI2(J,IP,4) = R / S
+                  ELSE
+                     RINT = 0.
+                     QTRI2(J,IP,2:4) = 0.
+                  ENDIF
+
 !                 --- compute and store proportionality factor
 !                     depending on the bispectrum parametrization
-!
-               IF ( ITRIAD.EQ.2 ) THEN
+
+                  IF ( ITRIAD.EQ.2 ) THEN
 !                    SPB of Becq-Girard et al (1999)
-                  KM = MIN(K1,K2,K3) ! according to James Salmon
-                  KB = PTRIAD(6)*KM + PTRIAD(7)
-                  FT = KB * DF / (DK*DK + KB*KB)
-               ELSE IF ( ITRIAD.EQ.3 ) THEN
+                     KM = MIN(K1,K2,K3) ! according to James Salmon
+                     KB = PTRIAD(6)*KM + PTRIAD(7)
+                     FT = KB * DF / (DK*DK + KB*KB)
+                  ELSE IF ( ITRIAD.EQ.3 ) THEN
 !                    based on the quasi-normal closure using parametrized biphase
 !                    (see routine SWFTIM)
-                  FT = DF / MAX( ABS(DK), 0.1*K1 )
-               ENDIF
-!
-               QTRI2(J,IP,1) = PTRIAD(1) * FT * CG1 * RINT
-!
-            ENDDO
-!
-         ENDDO
-!
-      ENDDO
-!
-   ELSE IF ( ITRIAD.EQ.5 ) THEN
-!
-      P = PTRIAD(2)
-!
-      QTRI1 = 0.
-!
-      DO IP = 2, MCGRD
-!
-         DEPLOC = DEP(IP)
-!
-!           --- compute wave number and group velocity
-!
-         IF ( DEPLOC.GT.DEPMIN ) THEN
-            CALL KSCIP1 (MSC, SPCSIG, DEPLOC, K, CG, ARR, ARR)
-         ELSE
-            K  = -1.
-            CG =  0.
-         ENDIF
-!
-         J = 0
+                     FT = DF / MAX( ABS(DK), 0.1*K1 )
+                  ENDIF
 
-         DO IS1 = 1, MSC
-!
-!              --- get first wave component
-!
-            SIG1 = SPCSIG(IS1)
-            K1   = K     (IS1)
-            CG1  = CG    (IS1)
-!
-            IF (TCOLL) THEN
-               ISLOW = IS1+1
+                  QTRI2(J,IP,1) = PTRIAD(1) * FT * CG1 * RINT
+
+               ENDDO
+
+            ENDDO
+
+         ENDDO
+
+      ELSE IF ( ITRIAD.EQ.5 ) THEN
+
+         P = PTRIAD(2)
+
+         QTRI1 = 0.
+
+         DO IP = 2, MCGRD
+
+            DEPLOC = DEP(IP)
+
+!           --- compute wave number and group velocity
+
+            IF ( DEPLOC.GT.DEPMIN ) THEN
+               CALL KSCIP1 (MSC, SPCSIG, DEPLOC, K, CG)
             ELSE
-               ISLOW = 1
+               K  = -1.
+               CG =  0.
             ENDIF
-!
-            DO IS2 = ISLOW, MSC
+
+            J = 0
+
+            DO IS1 = 1, MSC
+
+!              --- get first wave component
+
+               SIG1 = SPCSIG(IS1)
+               K1   = K     (IS1)
+               CG1  = CG    (IS1)
+
+               IF (TCOLL) THEN
+                  ISLOW = IS1+1
+               ELSE
+                  ISLOW = 1
+               ENDIF
+
+               DO IS2 = ISLOW, MSC
 
 !                 --- get second wave component
-!
-               SIG2 = SPCSIG(IS2)
-               K2   = K     (IS2)
-               CG2  = CG    (IS2)
-!
-!                 --- determine third component by means of quasi-resonance condition
-               SIG3 = ABS(SIG2 - SIG1)
-!
-               J = J + 1
-!
-               IF ( SIG3.GT.SPCSIG(1) ) THEN
-!
-!                    --- obtain and store interpolation factors
-!
-                  ISB = LOG( SIG3/SPCSIG(1) ) / FRINTF
-!
-                  IS3 = INT(ISB)
-                  WIS = ISB - REAL(IS3)
-                  IS3 = IS3 + 1
 
-                  QTRI1(J,1) = WIS
-                  QTRI1(J,2) = FLOAT(IS3)
-!
+                  SIG2 = SPCSIG(IS2)
+                  K2   = K     (IS2)
+                  CG2  = CG    (IS2)
+
+!                 --- determine third component by means of quasi-resonance condition
+                  SIG3 = ABS(SIG2 - SIG1)
+
+                  J = J + 1
+
+                  IF ( SIG3.GT.SPCSIG(1) ) THEN
+
+!                    --- obtain and store interpolation factors
+
+                     ISB = LOG( SIG3/SPCSIG(1) ) / FRINTF
+
+                     IS3 = INT(ISB)
+                     WIS = ISB - REAL(IS3)
+                     IS3 = IS3 + 1
+
+                     QTRI1(J,1) = WIS
+                     QTRI1(J,2) = FLOAT(IS3)
+
 !                    --- compute the wave number of third component
-!
-                  K3 = (1.-WIS) * K(IS3) + WIS * K(IS3+1)
-!
+
+                     K3 = (1.-WIS) * K(IS3) + WIS * K(IS3+1)
+
 !                    --- compute the mean of the three wave numbers
-!
-                  KM = ( K1 + K2 + K3 ) / 3.
-!
+
+                     KM = ( K1 + K2 + K3 ) / 3.
+
 !                    --- the interactions will be scaled with depth
 !                        note: use truncation of a continued fraction
 !                              to approximate tanh efficiently
 
-                  A = KM*DEPLOC
-                  IF ( A.GT.6 ) THEN
-                     FT = 1./A
-                  ELSE
-                     A  = A*A
-                     FT = 1./(1.+A/(3.+A/(5.+A/(7.+A/(9.+A/11.)))))
-                  ENDIF
-!
-!                    --- compute and store the DCTA scaling factors
-!
-                  QTRI2(J,IP,1) = FT**4 * CG1 * K1**P
-                  QTRI2(J,IP,2) = FT**4 * CG2 * K2**P
-!
-               ENDIF
-!
-            ENDDO
-         ENDDO
-!
-      ENDDO
-!
-   ENDIF
+                     A = KM*DEPLOC
+                     IF ( A.GT.6 ) THEN
+                        FT = 1./A
+                     ELSE
+                        A  = A*A
+                        FT = 1./(1.+A/(3.+A/(5.+A/(7.+A/(9.+A/11.)))))
+                     ENDIF
 
+!                    --- compute and store the DCTA scaling factors
+
+                     QTRI2(J,IP,1) = FT**4 * CG1 * K1**P
+                     QTRI2(J,IP,2) = FT**4 * CG2 * K2**P
+
+                  ENDIF
+
+               ENDDO
+            ENDDO
+
+         ENDDO
+
+      ENDIF
+
+   END ASSOCIATE
    RETURN
-END SUBROUTINE FAC3WW
-!
+end subroutine FAC3WW
+
 !****************************************************************
-!
-SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG, &
-                   IMATRA, IMATDA, REDC0 , REDC1 , &
-                   IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX, &
-                   SMEBRK, PLTRI , URSELL, BIPHAS, QTL2  )
-!
+
+SUBROUTINE SWLTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, SMEBRK, PLTRI, URSELL, BIPHAS, QTL2, TRIADS, IGP)
+
 !****************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM3
-   USE SWCOMM4
-   USE M_SNL3
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -3838,24 +3912,30 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG, &
 !     BIPHAS      parameterized biphase of the spectrum                   41.97
 !     CGO         group velocity
 !     DEP2        water depth
-!     IDCMIN      minimum counter in directional space
-!     IDCMAX      maximum counter in directional space
-!     IDDLOW      minimum direction that is propagated within a sweep
-!     IDDTOP      maximum direction that is propagated within a sweep
+!     IGP         grid address of the point being computed
+!                 (KCGRD(1) in upstream)
 !     IMATDA      main diagonal of the linear system
 !     IMATRA      right-hand side of system of equations
-!     ISSTOP      maximum frequency counter in a sweep
 !     PLTRI       triad contribution in TEST points
 !     QTL2        frequency-dependent scaling factor
 !     REDC0       explicit part of energy redistribution for output purposes
 !     REDC1       implicit part of energy redistribution for output purposes
 !     SMEBRK      average (angular) frequency
 !     SPCSIG      relative frequencies in computational domain in sigma-space
+!     TRIADS      triad state computed by FAC3WW: the interpolation
+!                 counters and weight factors of the lower and higher
+!                 harmonics and of 3/2 times the frequency (in upstream
+!                 module variables of M_SNL3)
 !     URSELL      Ursell number
-!
-   INTEGER IDDLOW, IDDTOP, ISSTOP
-   INTEGER IDCMIN(MSC), IDCMAX(MSC)
+!     WINDOW      spectral window of the grid point: the minimum and
+!                 maximum counter in directional space (IDCMIN, IDCMAX),
+!                 the minimum and maximum direction that is propagated
+!                 within a sweep (IDDLOW, IDDTOP) and the maximum
+!                 frequency counter in a sweep (ISSTOP)
 
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
+   TYPE(triad_state_t), INTENT(IN) :: TRIADS
    REAL :: SMEBRK
    REAL :: AC2(MDC,MSC,MCGRD)
 
@@ -3869,7 +3949,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG, &
    REAL :: QTL2(MSC,2)
    REAL :: REDC0 (MDC,MSC,MREDS)
    REAL :: REDC1 (MDC,MSC,MREDS)
-!
+
 !  6. Local variables
 !
 !     BIPH  :     local biphase
@@ -3904,13 +3984,15 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG, &
 !     SIGPI :     frequency times 2pi
 !     SINBPH:     sine of biphase
 !     STRI  :     total triad contribution
-!
-   INTEGER ID, ID1, ID2, IDD, IDDUM, IDW, IENT, II, IS, ISMAX
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER ID, ID1, ID2, IDD, IDDUM, IDW, II, IS, ISMAX
    REAL    BIPH, CG, DEP, E0, ED0, EDM, EDPM, EE1, EE2, EE3, EM, EPM, &
-           FT, PWDTH, SIGPI, SINBPH, STRI
+      FT, PWDTH, SIGPI, SINBPH, STRI
    REAL    E(MSC), ED(MSC), &
-           SA(MDC,MSC+ISP1(2)), SA3(MDC,MSC+ISP1(3))
-!
+      SA(MDC,MSC+TRIADS%upper_index_next(2)), &
+      SA3(MDC,MSC+TRIADS%upper_index_next(3))
+
 !  9. Subroutines calling
 !
 !     SOURCE
@@ -3929,217 +4011,219 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG, &
 !             Compute interactions and store results in matrix
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
-   IF (LTRACE) CALL STRACE (IENT,'SWLTA')
-!
-   DEP  = DEP2  (KCGRD(1))
-   BIPH = BIPHAS(KCGRD(1))
 
-   CG  = 1.
+   ASSOCIATE(ISM => TRIADS%lower_index, &
+      ISM1 => TRIADS%lower_index_next, &
+      ISP => TRIADS%upper_index, &
+      ISP1 => TRIADS%upper_index_next, &
+      WISM => TRIADS%lower_weight, &
+      WISM1 => TRIADS%lower_weight_next, &
+      WISP => TRIADS%upper_weight, &
+      WISP1 => TRIADS%upper_weight_next)
+      IF (LTRACE) CALL STRACE (IENT,'SWLTA')
 
-   E   = 0.
-   ED  = 0.
-   SA  = 0.
-   SA3 = 0.
-!
+      DEP  = DEP2  (IGP)
+      BIPH = BIPHAS(IGP)
+
+      CG  = 1.
+
+      E   = 0.
+      ED  = 0.
+      SA  = 0.
+      SA3 = 0.
+
 !     --- compute maximum frequency for which interactions are calculated
-!
-   ISMAX = 1
-   DO IS = 1, MSC
-      IF ( SPCSIG(IS) .LT. PTRIAD(2) * SMEBRK ) THEN
-         ISMAX = IS
-      ENDIF
-   ENDDO
-   ISMAX = MIN ( ISMAX, MIN( MSC+ISP1(2),MSC+ISP1(3) ) )
-   IF (ITRIAD.EQ.1 .AND. .NOT.PTRIAD(2).NE.-1.) ISMAX = MSC
-!
-!     --- compute 3 wave-wave interactions
-!
-   IF ( .NOT.URSELL(KCGRD(1)).LT.PTRIAD(5) ) THEN
-!
-!        --- determine sine of biphase
-!
-      SINBPH = SIN(-BIPH)
-!
-!        --- determine directional range for CCA integration
-!
-      IF ( PTRIAD(8).NE.-1. ) THEN
-         PWDTH = PTRIAD(8) * PI/180.
-         IDW = NINT(PWDTH/(2.*DDIR))
-      ELSE
-!           full directional integration
-         IDW = -1
-      ENDIF
-!
-!        --- calculate integral of E(f,t) over all directions, if desired
-      IF ( IDW.EQ.-1 ) THEN
-         ED(:) = SUM(AC2(:,:,KCGRD(1)),DIM=1) * 2.*PI*SPCSIG(:) *DDIR
-      ENDIF
-!
-      DO II = IDDLOW, IDDTOP
-         ID = MOD ( II - 1 + MDC , MDC ) + 1
-!
-!           --- initialize array with E(f) for the direction theta considered
-!
-         E(:) = AC2(ID,:,KCGRD(1)) * 2. * PI * SPCSIG(:)
-!
-!           --- integrate E(f,t) over range dir-p <= theta <= dir+p
-!
-         IF ( IDW.NE.-1 ) THEN
-            ID1 = II - IDW
-            ID2 = II + IDW
-            IF ( .NOT.FULCIR ) THEN
-               ID1 = MAX(ID1,  1)
-               ID2 = MIN(ID2,MDC)
-            ENDIF
-            ED(:) = 0.
-            DO IDDUM = ID1, ID2
-               IDD = MOD( IDDUM - 1 + MDC , MDC ) + 1
-               ED(:) = ED(:) + AC2(IDD,:,KCGRD(1))
-            ENDDO
-            ED(:) = ED(:) * 2. * PI * SPCSIG(:)
-            IF ( IDW.NE.0 ) ED = ED * DDIR
+
+      ISMAX = 1
+      DO IS = 1, MSC
+         IF ( SPCSIG(IS) .LT. PTRIAD(2) * SMEBRK ) THEN
+            ISMAX = IS
          ENDIF
-!
+      ENDDO
+      ISMAX = MIN ( ISMAX, MIN( MSC+ISP1(2),MSC+ISP1(3) ) )
+      IF (ITRIAD.EQ.1 .AND. .NOT.PTRIAD(2).NE.-1.) ISMAX = MSC
+
+!     --- compute 3 wave-wave interactions
+
+      IF ( .NOT.URSELL(IGP).LT.PTRIAD(5) ) THEN
+
+!        --- determine sine of biphase
+
+         SINBPH = SIN(-BIPH)
+
+!        --- determine directional range for CCA integration
+
+         IF ( PTRIAD(8).NE.-1. ) THEN
+            PWDTH = PTRIAD(8) * PI/180.
+            IDW = NINT(PWDTH/(2.*DDIR))
+         ELSE
+!           full directional integration
+            IDW = -1
+         ENDIF
+
+!        --- calculate integral of E(f,t) over all directions, if desired
+         IF ( IDW.EQ.-1 ) THEN
+            ED(:) = SUM(AC2(:,:,IGP),DIM=1) * 2.*PI*SPCSIG(:) *DDIR
+         ENDIF
+
+         DO II = WINDOW%IDDLOW, WINDOW%IDDTOP
+            ID = MOD ( II - 1 + MDC , MDC ) + 1
+
+!           --- initialize array with E(f) for the direction theta considered
+
+            E(:) = AC2(ID,:,IGP) * 2. * PI * SPCSIG(:)
+
+!           --- integrate E(f,t) over range dir-p <= theta <= dir+p
+
+            IF ( IDW.NE.-1 ) THEN
+               ID1 = II - IDW
+               ID2 = II + IDW
+               IF ( .NOT.FULCIR ) THEN
+                  ID1 = MAX(ID1,  1)
+                  ID2 = MIN(ID2,MDC)
+               ENDIF
+               ED(:) = 0.
+               DO IDDUM = ID1, ID2
+                  IDD = MOD( IDDUM - 1 + MDC , MDC ) + 1
+                  ED(:) = ED(:) + AC2(IDD,:,IGP)
+               ENDDO
+               ED(:) = ED(:) * 2. * PI * SPCSIG(:)
+               IF ( IDW.NE.0 ) ED = ED * DDIR
+            ENDIF
+
 !           --- compute LTA contribution
-!
-         DO IS = 1, ISMAX
+
+            DO IS = 1, ISMAX
 
 !              --- bound super harmonic
-            E0  = E (IS)
-            ED0 = ED(IS)
+               E0  = E (IS)
+               ED0 = ED(IS)
 
 !              --- primary wave (self interaction)
-            IF ( IS.GT.-ISM1(2,1) ) THEN
-               EM  = WISM (2,1) * E (IS+ISM1(2,1)) + &
+               IF ( IS.GT.-ISM1(2,1) ) THEN
+                  EM  = WISM (2,1) * E (IS+ISM1(2,1)) + &
                      WISM1(2,1) * E (IS+ISM (2,1))
-               EDM = WISM (2,1) * ED(IS+ISM1(2,1)) + &
+                  EDM = WISM (2,1) * ED(IS+ISM1(2,1)) + &
                      WISM1(2,1) * ED(IS+ISM (2,1))
-            ELSE
-               EM  = 0.
-               EDM = 0.
-            END IF
+               ELSE
+                  EM  = 0.
+                  EDM = 0.
+               END IF
 
 !              --- compute contribution
 !                  (improved collinear approximation)
 
-            FT = QTL2(IS,1) * SINBPH
+               FT = QTL2(IS,1) * SINBPH
 
-            SA(ID,IS) = MAX(0., FT * ( EDM * (EM - E0) - ED0 * EM ))
+               SA(ID,IS) = MAX(0., FT * ( EDM * (EM - E0) - ED0 * EM ))
 
 !              --- primary wave (sum interaction)
-            IF ( IS.GT.-ISM1(3,1) ) THEN
-               EPM  = WISM (3,1) * E (IS+ISM1(3,1)) + &
-                      WISM1(3,1) * E (IS+ISM (3,1))
-               EDPM = WISM (3,1) * ED(IS+ISM1(3,1)) + &
-                      WISM1(3,1) * ED(IS+ISM (3,1))
-            ELSE
-               EPM  = 0.
-               EDPM = 0.
-            END IF
+               IF ( IS.GT.-ISM1(3,1) ) THEN
+                  EPM  = WISM (3,1) * E (IS+ISM1(3,1)) + &
+                     WISM1(3,1) * E (IS+ISM (3,1))
+                  EDPM = WISM (3,1) * ED(IS+ISM1(3,1)) + &
+                     WISM1(3,1) * ED(IS+ISM (3,1))
+               ELSE
+                  EPM  = 0.
+                  EDPM = 0.
+               END IF
 
 !              --- secondary wave (sum interaction)
-            IF ( IS.GT.-ISM1(3,2) ) THEN
-               EM  = WISM (3,2) * E (IS+ISM1(3,2)) + &
+               IF ( IS.GT.-ISM1(3,2) ) THEN
+                  EM  = WISM (3,2) * E (IS+ISM1(3,2)) + &
                      WISM1(3,2) * E (IS+ISM (3,2))
-               EDM = WISM (3,2) * ED(IS+ISM1(3,2)) + &
+                  EDM = WISM (3,2) * ED(IS+ISM1(3,2)) + &
                      WISM1(3,2) * ED(IS+ISM (3,2))
-            ELSE
-               EM  = 0.
-               EDM = 0.
-            END IF
+               ELSE
+                  EM  = 0.
+                  EDM = 0.
+               END IF
 
 !              --- compute quadratic products of energy density
 !                  (improved collinear approximation)
 
-            EE1 = 0.5 * ( EM*EDPM + EDM*EPM )
-            EE2 = 0.5 * ( E0*EDPM + ED0*EPM )
-            EE3 = 0.5 * ( EM*ED0  + EDM*E0  )
+               EE1 = 0.5 * ( EM*EDPM + EDM*EPM )
+               EE2 = 0.5 * ( E0*EDPM + ED0*EPM )
+               EE3 = 0.5 * ( EM*ED0  + EDM*E0  )
 
 !              --- compute contribution
 
-            FT = QTL2(IS,2) * SINBPH
-            IF (ITRIAD.EQ.11) FT = 0.
+               FT = QTL2(IS,2) * SINBPH
+               IF (ITRIAD.EQ.11) FT = 0.
 
-            SA3(ID,IS) = MAX(0., FT * ( EE1 - EE2 - EE3 ))
+               SA3(ID,IS) = MAX(0., FT * ( EE1 - EE2 - EE3 ))
 
+            END DO
          END DO
-      END DO
-!
+
 !         ---  put source term together
-!
-      DO IS = 1, ISSTOP
-         SIGPI = SPCSIG(IS) * 2. * PI
-         IF (ITRIAD.NE.11) CG = CGO(IS,1)
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
-            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-!
+
+         DO IS = 1, WINDOW%ISSTOP
+            SIGPI = SPCSIG(IS) * 2. * PI
+            IF (ITRIAD.NE.11) CG = CGO(IS,1)
+            DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
+               ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+
 !              --- self interaction
-            STRI = SA(ID,IS) - 2.*(WISP (2) * SA(ID,IS+ISP1(2)) + &
-                                   WISP1(2) * SA(ID,IS+ISP (2)))
-!
+               STRI = SA(ID,IS) - 2.*(WISP (2) * SA(ID,IS+ISP1(2)) + &
+                  WISP1(2) * SA(ID,IS+ISP (2)))
+
 !              --- interaction at third harmonic
-            STRI = STRI + &
-                   SA3(ID,IS) - 2.*(WISP (3) * SA3(ID,IS+ISP1(3)) + &
-                                    WISP1(3) * SA3(ID,IS+ISP (3)))
-!
+               STRI = STRI + &
+                  SA3(ID,IS) - 2.*(WISP (3) * SA3(ID,IS+ISP1(3)) + &
+                  WISP1(3) * SA3(ID,IS+ISP (3)))
+
 !              --- make energy flux conservative
-            STRI = CG * STRI
-!
+               STRI = CG * STRI
+
 !              --- store results in rhs and main diagonal according
 !                  to Patankar-rules
-!
-            IF(TESTFL) PLTRI(ID,IS,IPTST) = STRI / SIGPI
-            IF (STRI.GT.0.) THEN
-               IMATRA(ID,IS) = IMATRA(ID,IS) + STRI / SIGPI
-               REDC0(ID,IS,2)= REDC0(ID,IS,2)+ STRI / SIGPI
-            ELSE
-               IMATDA(ID,IS) = IMATDA(ID,IS) - STRI / &
-                               MAX(1.E-18,AC2(ID,IS,KCGRD(1))*SIGPI)
-               REDC1(ID,IS,2)= REDC1(ID,IS,2)+ STRI / &
-                               MAX(1.E-18,AC2(ID,IS,KCGRD(1))*SIGPI)
-            END IF
+
+               IF(TESTFL) PLTRI(ID,IS,IPTST) = STRI / SIGPI
+               IF (STRI.GT.0.) THEN
+                  IMATRA(ID,IS) = IMATRA(ID,IS) + STRI / SIGPI
+                  REDC0(ID,IS,2)= REDC0(ID,IS,2)+ STRI / SIGPI
+               ELSE
+                  IMATDA(ID,IS) = IMATDA(ID,IS) - STRI / &
+                     MAX(1.E-18,AC2(ID,IS,IGP)*SIGPI)
+                  REDC1(ID,IS,2)= REDC1(ID,IS,2)+ STRI / &
+                     MAX(1.E-18,AC2(ID,IS,IGP)*SIGPI)
+               END IF
+            END DO
          END DO
-      END DO
 
-   END IF
-!
+      END IF
+
 !     --- test output
-!
-   IF ( ITEST .GE. 5 .AND. TESTFL ) THEN
-      WRITE(PRINTF,2000) KCGRD(1), ISMAX
-2000  FORMAT (' SWLTA: KCGRD ISMAX  :',2I4)
-      WRITE(PRINTF,2001) GRAV, DEP
-2001  FORMAT (' SWLTA: G DEP   :',2E12.4)
-      WRITE(PRINTF,2002) PTRIAD(1), PTRIAD(2), URSELL(KCGRD(1))
-2002  FORMAT (' SWLTA: P(1) P(2) P4) URSELL  :',4E12.4)
-      WRITE(PRINTF,2003) SMEBRK, BIPH, SIN(-BIPH)
-2003  FORMAT (' SWLTA: SMEBRK B SIN(-B) :',3E12.4)
-   END IF
 
+      IF ( ITEST .GE. 5 .AND. TESTFL ) THEN
+         WRITE(PRINTF,"(' SWLTA: KCGRD ISMAX  :',2I4)") IGP, ISMAX
+         WRITE(PRINTF,"(' SWLTA: G DEP   :',2E12.4)") GRAV, DEP
+         WRITE(PRINTF,"(' SWLTA: P(1) P(2) P4) URSELL  :',4E12.4)") PTRIAD(1), PTRIAD(2), URSELL(IGP)
+         WRITE(PRINTF,"(' SWLTA: SMEBRK B SIN(-B) :',3E12.4)") SMEBRK, BIPH, SIN(-BIPH)
+      END IF
+
+   END ASSOCIATE
    RETURN
-END SUBROUTINE SWLTA
-!
-!****************************************************************
-!
-SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG, &
-                    IMATRA, IMATDA, REDC0 , REDC1 , &
-                    IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX, &
-                    SIGM  , PLTRI , URSELL, BIPHAS, &
-                    QTL1  , QTL2  )
-!
-!****************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM3
-   USE SWCOMM4
-   USE M_SNL3
+end subroutine SWLTA
 
-   IMPLICIT NONE
-!
-!
+!****************************************************************
+
+SUBROUTINE SWDCTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, SIGM, PLTRI, URSELL, BIPHAS, QTL1, QTL2, IGP)
+
+!****************************************************************
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_diagnostics_level
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -4216,13 +4300,10 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG, &
 !     BIPHAS      parameterized biphase of the spectrum
 !     CGO         group velocity
 !     DEP2        water depth
-!     IDCMIN      minimum counter in directional space
-!     IDCMAX      maximum counter in directional space
-!     IDDLOW      minimum direction that is propagated within a sweep
-!     IDDTOP      maximum direction that is propagated within a sweep
+!     IGP         grid address of the point being computed
+!                 (KCGRD(1) in upstream)
 !     IMATDA      main diagonal of the linear system
 !     IMATRA      right-hand side of system of equations
-!     ISSTOP      maximum frequency counter in a sweep
 !     PLTRI       triad contribution in TEST points
 !     QTL1        frequency-dependent interpolation factors
 !     QTL2        frequency-dependent scaling factors
@@ -4231,9 +4312,14 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG, &
 !     SIGM        mean angular frequency
 !     SPCSIG      relative frequencies in computational domain in sigma-space
 !     URSELL      Ursell number
-!
-   INTEGER IDDLOW, IDDTOP, ISSTOP
-   INTEGER IDCMIN(MSC), IDCMAX(MSC)
+!     WINDOW      spectral window of the grid point: the minimum and
+!                 maximum counter in directional space (IDCMIN, IDCMAX),
+!                 the minimum and maximum direction that is propagated
+!                 within a sweep (IDDLOW, IDDTOP) and the maximum
+!                 frequency counter in a sweep (ISSTOP)
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
 
    REAL :: SIGM
    REAL :: AC2(MDC,MSC,MCGRD)
@@ -4246,8 +4332,8 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG, &
    REAL :: BIPHAS(MCGRD)
    REAL :: REDC0 (MDC,MSC,MREDS)
    REAL :: REDC1 (MDC,MSC,MREDS)
-   REAL :: QTL1(MSC4D,2), QTL2(MSC4D,2)
-!
+   REAL :: QTL1(:,:), QTL2(:,:)
+
 !  6. Local variables
 !
 !     BETA  :     proportionality factor for DCTA
@@ -4280,147 +4366,147 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG, &
 !     STRI1 :     triad contribution related to E1
 !     STRI2 :     triad contribution related to E2
 !     WIS   :     interpolation weight factor
-!
-   INTEGER ID, IDDUM, IENT, IS, IS1, IS2, IS3, J
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER ID, IDDUM, IS, IS1, IS2, IS3, J
    REAL    BETA, BIPH, CG, DEP, E1, E2, E3, FT, FT2, &
-           KM, P, SIG1, SIG2, SIG3, SINBPH, &
-           STRI, STRI1, STRI2, WIS
+      KM, P, SIG1, SIG2, SIG3, SINBPH, &
+      STRI, STRI1, STRI2, WIS
    REAL    E(MSC), SAN(MDC,MSC), SAP(MDC,MSC)
-!
+
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWDCTA')
-!
-   DEP  = DEP2(KCGRD(1))
-   BIPH = BIPHAS(KCGRD(1))
+
+   DEP  = DEP2(IGP)
+   BIPH = BIPHAS(IGP)
    P    = PTRIAD(2)
-!
+
    E   = 0.
    SAN = 0.
    SAP = 0.
-!
+
 !     --- compute 3 wave-wave interactions
-!
-   IF ( .NOT.URSELL(KCGRD(1)).LT.PTRIAD(5) ) THEN
-!
+
+   IF ( .NOT.URSELL(IGP).LT.PTRIAD(5) ) THEN
+
 !       --- determine sine of biphase
-!
+
       SINBPH = SIN(-BIPH)
-!
+
 !       --- scaling factor
-!
+
       KM   = SIGM / SQRT(GRAV*DEP)
       FT   = DEP * SIGM
       FT2  = FT * FT
       BETA = PTRIAD(1) / FT2 * SINBPH * KM**(2.-P)
-!
-      DO IDDUM = IDDLOW, IDDTOP
+
+      DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-!
+
 !          --- compute E(sigma) for each direction
-!
-         E(:) = AC2(ID,:,KCGRD(1)) * SPCSIG(:)
-!
+
+         E(:) = AC2(ID,:,IGP) * SPCSIG(:)
+
          J = 0
-!
+
 !          --- compute interactions based on DCTA
-!
+
          DO IS1 = 1, MSC
-!
+
 !             --- get first wave component
-!
+
             SIG1 = SPCSIG(IS1)
             E1   = E     (IS1)
-!
+
             DO IS2 = IS1+1, MSC
-!
+
 !                --- get second wave component
 !                    note: only difference interactions included
-!
+
                SIG2 = SPCSIG(IS2)
                E2   = E     (IS2)
-!
+
 !                --- determine third component by means of quasi-resonance condition
                SIG3 = SIG2 - SIG1
-!
+
                J = J + 1
-!
+
                IF ( SIG3.GT.SPCSIG(1) ) THEN
-!
+
 !                   --- obtain third energy density by means of interpolation
-!
+
                   WIS = QTL1(J,1)
                   IS3 = INT(QTL1(J,2))
 
                   E3 = (1.-WIS) * E(IS3) + WIS * E(IS3+1)
-!
+
 !                   --- assemble the triad contributions
-!
+
                   STRI1 = QTL2(J,1) * E3 * E1
                   STRI2 = QTL2(J,2) * E3 * E2
-!
+
                   SAN(ID,IS1) = SAN(ID,IS1) + STRI1 * FRINTF * SIG2
                   SAP(ID,IS1) = SAP(ID,IS1) + STRI2 * FRINTF * SIG2
-!
+
 !                   --- to include sum interactions as well
-!
+
                   SAN(ID,IS2) = SAN(ID,IS2) + STRI2 * FRINTF * SIG1
                   SAP(ID,IS2) = SAP(ID,IS2) + STRI1 * FRINTF * SIG1
-!
+
                ENDIF
-!
+
             ENDDO
          ENDDO
       ENDDO
-!
+
 !       --- store results in rhs and main diagonal according
 !           to Patankar-rules
-!
-      DO IS = 1, ISSTOP
+
+      DO IS = 1, WINDOW%ISSTOP
          CG = CGO(IS,1)
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-!
+
             STRI = BETA * CG * ( SAP(ID,IS) - SAN(ID,IS) )
             IF(TESTFL) PLTRI(ID,IS,IPTST) = STRI
-!
+
             STRI = BETA * CG * SAP(ID,IS)
             IMATRA(ID,IS)  = IMATRA(ID,IS)  + STRI
             REDC0(ID,IS,2) = REDC0(ID,IS,2) + STRI
-!
+
             STRI = BETA * CG * SAN(ID,IS) / &
-                                       MAX(1.E-18,AC2(ID,IS,KCGRD(1)))
+               MAX(1.E-18,AC2(ID,IS,IGP))
             IMATDA(ID,IS)  = IMATDA(ID,IS)  + STRI
             REDC1(ID,IS,2) = REDC1(ID,IS,2) - STRI
-!
+
          ENDDO
       ENDDO
-!
+
    ENDIF
 
    RETURN
-END SUBROUTINE SWDCTA
-!
-!******************************************************************
-!
-SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR, &
-                     KWAVE , IMATRA, IMATDA, REDC0 , REDC1 , &
-                     IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX, &
-                     ETOT  , SIGM  , PLTRI , URSELL, BIPHAS, &
-                     QTL1  , QTL2  )
-!
-!******************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM3
-   USE SWCOMM4
-   USE M_SNL3
+end subroutine SWDCTA
 
-   IMPLICIT NONE
-!
-!
+!******************************************************************
+
+SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0, REDC1, WINDOW, &
+      ETOT, SIGM, PLTRI, URSELL, BIPHAS, QTL1, QTL2, IGP)
+
+!******************************************************************
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_diagnostics_level
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -4498,13 +4584,10 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR, &
 !     CGO         group velocity
 !     DEP2        water depth
 !     ETOT        total energy in grid point
-!     IDCMIN      minimum counter in directional space
-!     IDCMAX      maximum counter in directional space
-!     IDDLOW      minimum direction that is propagated within a sweep
-!     IDDTOP      maximum direction that is propagated within a sweep
+!     IGP         grid address of the point being computed
+!                 (KCGRD(1) in upstream)
 !     IMATDA      main diagonal of the linear system
 !     IMATRA      right-hand side of system of equations
-!     ISSTOP      maximum frequency counter in a sweep
 !     KWAVE       wave number
 !     PLTRI       triad contribution in TEST points
 !     QTL1        frequency-dependent interpolation factors
@@ -4520,9 +4603,14 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR, &
 !                 (*,6); sine^2 of spectral directions
 !     SPCSIG      relative frequencies in computational domain in sigma-space
 !     URSELL      Ursell number
-!
-   INTEGER IDDLOW, IDDTOP, ISSTOP
-   INTEGER IDCMIN(MSC), IDCMAX(MSC)
+!     WINDOW      spectral window of the grid point: the minimum and
+!                 maximum counter in directional space (IDCMIN, IDCMAX),
+!                 the minimum and maximum direction that is propagated
+!                 within a sweep (IDDLOW, IDDTOP) and the maximum
+!                 frequency counter in a sweep (ISSTOP)
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
 
    REAL :: ETOT, SIGM
    REAL :: AC2(MDC,MSC,MCGRD)
@@ -4536,8 +4624,8 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR, &
    REAL :: BIPHAS(MCGRD)
    REAL :: REDC0 (MDC,MSC,MREDS)
    REAL :: REDC1 (MDC,MSC,MREDS)
-   REAL :: QTL1(MSC4D,2), QTL2(MSC4D,2)
-!
+   REAL :: QTL1(:,:), QTL2(:,:)
+
 !  6. Local variables
 !
 !     BETA  :     proportionality factor for DCTA
@@ -4595,103 +4683,101 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR, &
 !     TH3   :     direction of third component
 !     WID   :     interpolation weight factor in dir space
 !     WIS   :     interpolation weight factor in freq space
-!
+
    INTEGER I3, ID, ID1, ID2, ID3, IDDUM, ID3P, IS, IS1, IS2, IS3, J
    REAL    BETA, BIPH, CG, COS12, COS23, DEP, DS2DD, &
-           E1, E2, E3, ECOS1, ECOS2, ESIN1, ESIN2, ETRSH, FT, FT2, &
-           IDP, K1, K2, K3, K12, KM, P, SIG1, SIG2, SIG3, &
-           SIN12, SINBPH, STRI, STRI1, STRI2, TH1, TH2, TH3, &
-           WIS, WID
+      E1, E2, E3, ECOS1, ECOS2, ESIN1, ESIN2, ETRSH, FT, FT2, &
+      IDP, K1, K2, K3, K12, KM, P, SIG1, SIG2, SIG3, &
+      SIN12, SINBPH, STRI, STRI1, STRI2, TH1, TH2, TH3, &
+      WIS, WID
    REAL    E(MDC,MSC), SAN(MDC,MSC), SAP(MDC,MSC)
    LOGICAL OUTSID
-!
+
 !  9. Subroutines calling
 !
 !     SOURCE
 !
 ! 13. Source text
-!
-   INTEGER IENT
-   SAVE    IENT
-   DATA    IENT/0/
+
+   INTEGER, SAVE :: IENT = 0
    IF (LTRACE) CALL STRACE (IENT,'SWDNCTA')
-!
-   DEP   = DEP2(KCGRD(1))
-   BIPH  = BIPHAS(KCGRD(1))
+
+   DEP   = DEP2(IGP)
+   BIPH  = BIPHAS(IGP)
    P     = PTRIAD(2)
    ETRSH = 1.E-4 * ETOT
-!
+
    SAN = 0.
    SAP = 0.
-!
+
 !     --- consider energy densities
-!
+
    DO ID = 1, MDC
-      E(ID,:) = AC2(ID,:,KCGRD(1)) * SPCSIG(:)
+      E(ID,:) = AC2(ID,:,IGP) * SPCSIG(:)
    END DO
-!
+
 !     --- compute 3 wave-wave interactions
-!
-   IF ( .NOT.URSELL(KCGRD(1)).LT.PTRIAD(5) ) THEN
-!
+
+   IF ( .NOT.URSELL(IGP).LT.PTRIAD(5) ) THEN
+
 !       --- determine sine of biphase
-!
+
       SINBPH = SIN(-BIPH)
-!
+
 !       --- scaling factor
-!
+
       KM   = SIGM / SQRT(GRAV*DEP)
       FT   = DEP * SIGM
       FT2  = FT * FT
       BETA = PTRIAD(1) / FT2 * SINBPH * KM**(2.-P)
-!
-      DO IDDUM = IDDLOW, IDDTOP
+
+      DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
          ID1 = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-!
+
          J = 0
-!
+
          DO IS1 = 1, MSC
-!
+
 !             --- get first wave component
-!
+
             SIG1 = SPCSIG(IS1)
             K1   = KWAVE (IS1,1  )
             E1   = E     (ID1,IS1)
-!
+
             TH1   = SPCDIR(ID1,1)
             ECOS1 = SPCDIR(ID1,2)
             ESIN1 = SPCDIR(ID1,3)
-!
+
             DO IS2 = 1, MSC
-!
+
                J = J + 1
-!
+
                DO ID2 = 1, MDC
-!
+
 !                   --- get second wave component
-!
+
                   SIG2 = SPCSIG(IS2)
                   K2   = KWAVE (IS2,1  )
                   E2   = E     (ID2,IS2)
-!
+
                   TH2   = SPCDIR(ID2,1)
                   ECOS2 = SPCDIR(ID2,2)
                   ESIN2 = SPCDIR(ID2,3)
-!
+
 !                   --- determine third component by means of quasi-resonance condition
                   SIG3 = ABS(SIG2 - SIG1)
-!
+
                   IF ( SIG3.GT.SPCSIG(1) ) THEN
-!
+
 !                      --- compute wave number of the sum or difference wave number vector
-!
+
                      SIN12 = ESIN1*ECOS2 - ECOS1*ESIN2
                      COS12 = ECOS1*ECOS2 + ESIN1*ESIN2
-!
+
                      K12 = SQRT(K1*K1 + K2*K2 - 2. * K1 * K2 * COS12)
-!
+
 !                      --- compute the corresponding wave direction
-!
+
                      IF (SIG2.GT.SIG1) THEN
 !                         difference interactions
                         TH3 = TH2 - ASIN(K1/K12*SIN12)
@@ -4699,14 +4785,14 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR, &
 !                         sum interactions
                         TH3 = TH1 - ASIN(-K2/K12*SIN12)
                      ENDIF
-!
+
 !                      --- obtain third energy density by means of interpolation
-!
+
                      WIS = QTL1(J,1)
                      IS3 = INT(QTL1(J,2))
-!
+
                      OUTSID = .FALSE.
-!
+
                      IF ( FULCIR ) THEN
                         IDP  = ( TH3 - SPCDIR(1,1) ) / DDIR
                         I3   = FLOOR(IDP)
@@ -4716,7 +4802,7 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR, &
                      ELSE
                         TH3 = MOD( (TH3 + PI2), PI2 )
                         IF ( SPCDIR(1,1).LT.0. .AND. &
-                             TH3.GT.SPCDIR(MDC,1) ) TH3 = TH3 - PI2
+                           TH3.GT.SPCDIR(MDC,1) ) TH3 = TH3 - PI2
                         IDP = ( TH3 - SPCDIR(1,1) ) / DDIR
                         IF ( IDP.LT.0. ) THEN
                            OUTSID = .TRUE.
@@ -4732,24 +4818,24 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR, &
                         ENDIF
                         ID3P = ID3 + 1
                      ENDIF
-!
+
                      K3 = (1.-WIS)*KWAVE(IS3,1) + WIS*KWAVE(IS3+1,1)
-!
+
                      IF ( OUTSID ) THEN
                         E3 = -1.
                      ELSE
                         E3 = (1.-WIS)* (1.-WID) * E(ID3 ,IS3  ) + &
-                             (1.-WIS)*     WID  * E(ID3P,IS3  ) + &
-                                 WIS * (1.-WID) * E(ID3 ,IS3+1) + &
-                                 WIS *     WID  * E(ID3P,IS3+1)
+                           (1.-WIS)*     WID  * E(ID3P,IS3  ) + &
+                           WIS * (1.-WID) * E(ID3 ,IS3+1) + &
+                           WIS *     WID  * E(ID3P,IS3+1)
                      ENDIF
-!
+
                      IF ( E3 * FRINTF * SIG3 * DDIR .GT. ETRSH ) THEN
-!
+
 !                         --- scale with angle difference between
 !                             the second and third component using
 !                             the transfer function of Sand (1982)
-!
+
                         COS23 = (K2-K1*COS12) / K12
                         IF (.NOT.SIG2.GT.SIG1) COS23 = -COS23
 
@@ -4759,50 +4845,50 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR, &
                            FT = 1.
                         ENDIF
                         FT2 = FT * FT
-!
+
 !                         --- assemble the triad contributions
-!
+
                         STRI1 = QTL2(J,1) * FT2 * E3 * E1
                         STRI2 = QTL2(J,2) * FT2 * E3 * E2
-!
+
                         DS2DD = FRINTF * SIG2 * DDIR
-!
+
                         SAN(ID1,IS1) = SAN(ID1,IS1) + STRI1 * DS2DD
                         SAP(ID1,IS1) = SAP(ID1,IS1) + STRI2 * DS2DD
-!
+
                      ENDIF
-!
+
                   ENDIF
-!
+
                ENDDO
             ENDDO
-!
+
          ENDDO
       ENDDO
-!
+
 !       --- store results in rhs and main diagonal according
 !           to Patankar-rules
-!
-      DO IS = 1, ISSTOP
+
+      DO IS = 1, WINDOW%ISSTOP
          CG = CGO(IS,1)
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-!
+
             STRI = BETA * CG * ( SAP(ID,IS) - SAN(ID,IS) )
             IF(TESTFL) PLTRI(ID,IS,IPTST) = STRI
-!
+
             STRI = BETA * CG * SAP(ID,IS)
             IMATRA(ID,IS)  = IMATRA(ID,IS)  + STRI
             REDC0(ID,IS,2) = REDC0(ID,IS,2) + STRI
-!
+
             STRI = BETA * CG * SAN(ID,IS) / &
-                                       MAX(1.E-18,AC2(ID,IS,KCGRD(1)))
+               MAX(1.E-18,AC2(ID,IS,IGP))
             IMATDA(ID,IS)  = IMATDA(ID,IS)  + STRI
             REDC1(ID,IS,2) = REDC1(ID,IS,2) - STRI
-!
+
          ENDDO
       ENDDO
-!
+
    ENDIF
 
 CONTAINS
@@ -4810,7 +4896,7 @@ CONTAINS
 REAL FUNCTION SAND( COSNM )
 
    REAL A, COSNM, DD, DM, DM2, DN, DN2, FAC, KDM, KDN, KH, &
-        KM, KN, KNM, SM, SN, GH, ROOTDG
+      KM, KN, KNM, SM, SN, GH, ROOTDG
 
    ROOTDG = SQRT(DEP/GRAV)
 
@@ -4845,20 +4931,20 @@ REAL FUNCTION SAND( COSNM )
 
    IF ( DD*DD.NE.KH ) THEN
       GH = ( DD * ( DM*(KDN*KDN - DN2*DN2) - DN*(KDM*KDM - DM2*DM2) ) &
-             + 2.*DD*DD * ( FAC + DN2*DM2 ) ) / (DD*DD - KH)
+         + 2.*DD*DD * ( FAC + DN2*DM2 ) ) / (DD*DD - KH)
       SAND = 0.5 * ( (GH - FAC - DM2*DN2) / (DN*DM) + DN2 + DM2 )
    ELSE
       SAND = 0.
    ENDIF
 
    RETURN
-END FUNCTION SAND
+end function SAND
 
 REAL FUNCTION SANDN( COSNM )
 
    REAL A, B, C, COSNM, D, DD, DM, DM2, DN, DN2, E, FAC1, FACA, FACB, &
-        FACC, KDM, KDN, KH1, KHC, KM, KN, KNM1, KNMC, SM, SN, &
-        GH1, GHC, ROOTDG
+      FACC, KDM, KDN, KH1, KHC, KM, KN, KNM1, KNMC, SM, SN, &
+      GH1, GHC, ROOTDG
 
    ROOTDG = SQRT(DEP/GRAV)
 
@@ -4911,7 +4997,7 @@ REAL FUNCTION SANDN( COSNM )
       C  = DM  * DN * (DM2 + DN2) - B
       D  = 2. * A
       E  = DD * ( DM*(KDN*KDN - DN2*DN2) - DN*(KDM*KDM - DM2*DM2) ) + &
-           B*D
+         B*D
 
       GH1 = ( E + D * FAC1 ) / (A - KH1)
       GHC = ( E + D * FACC ) / (A - KHC)
@@ -4922,28 +5008,26 @@ REAL FUNCTION SANDN( COSNM )
    ENDIF
 
    RETURN
-END FUNCTION SANDN
+end function SANDN
 
-END SUBROUTINE SWDNCTA
-!
+end subroutine SWDNCTA
+
 !****************************************************************
-!
-SUBROUTINE SWFTIM ( AC2   , SPCSIG, &
-                    IMATRA, IMATDA, REDC0 , REDC1 , &
-                    IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX, &
-                    PLTRI , URSELL, BIPHAS, &
-                    QTL1  , QTL2  )
-!
+
+SUBROUTINE SWFTIM (AC2, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, PLTRI, URSELL, BIPHAS, QTL1, QTL2, IGP)
+
 !****************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM3
-   USE SWCOMM4
-   USE M_SNL3
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_diagnostics_level
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -5011,13 +5095,10 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG, &
 !
 !     AC2         action density
 !     BIPHAS      parameterized biphase of the spectrum
-!     IDCMIN      minimum counter in directional space
-!     IDCMAX      maximum counter in directional space
-!     IDDLOW      minimum direction that is propagated within a sweep
-!     IDDTOP      maximum direction that is propagated within a sweep
+!     IGP         grid address of the point being computed
+!                 (KCGRD(1) in upstream)
 !     IMATDA      main diagonal of the linear system
 !     IMATRA      right-hand side of system of equations
-!     ISSTOP      maximum frequency counter in a sweep
 !     PLTRI       triad contribution in TEST points
 !     QTL1        frequency-dependent interpolation factors
 !     QTL2        frequency-dependent scaling factors
@@ -5025,9 +5106,14 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG, &
 !     REDC1       implicit part of energy redistribution for output purposes
 !     SPCSIG      relative frequencies in computational domain in sigma-space
 !     URSELL      Ursell number
-!
-   INTEGER IDDLOW, IDDTOP, ISSTOP
-   INTEGER IDCMIN(MSC), IDCMAX(MSC)
+!     WINDOW      spectral window of the grid point: the minimum and
+!                 maximum counter in directional space (IDCMIN, IDCMAX),
+!                 the minimum and maximum direction that is propagated
+!                 within a sweep (IDDLOW, IDDTOP) and the maximum
+!                 frequency counter in a sweep (ISSTOP)
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
 
    REAL :: AC2(MDC,MSC,MCGRD)
    REAL :: IMATDA(MDC,MSC), IMATRA(MDC,MSC)
@@ -5037,8 +5123,8 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG, &
    REAL :: BIPHAS(MCGRD)
    REAL :: REDC0 (MDC,MSC,MREDS)
    REAL :: REDC1 (MDC,MSC,MREDS)
-   REAL :: QTL1(MSC4D,2), QTL2(MSC4D,4)
-!
+   REAL :: QTL1(:,:), QTL2(:,:)
+
 !  6. Local variables
 !
 !     BIPH  :     local biphase
@@ -5046,16 +5132,16 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG, &
 !     CDIF  :     contribution due to difference interactions
 !     CSUM  :     contribution due to sum interactions
 !     E     :     energy density as function of frequency
-!     E0    :     energy density of bound super harmonic (=p)
+!     E0    :     energy density of bound super harmonic (=p)             42.11
 !     ED    :     integral energy density over directions
-!     ED0   :     integral energy density over directions of harmonic p
-!     EDM   :     integral energy density over directions of second
+!     ED0   :     integral energy density over directions of harmonic p   42.11 41.44
+!     EDM   :     integral energy density over directions of second       42.11 41.44
 !                 primary harmonic (m)
-!     EDPM  :     integral energy density over directions of first
+!     EDPM  :     integral energy density over directions of first        42.11
 !                 primary harmonic (p-m)
 !     EEx   :     quadratic products of energy density
-!     EM    :     energy density of second primary harmonic (m)
-!     EPM   :     energy density of first primary harmonic (p-m)
+!     EM    :     energy density of second primary harmonic (m)           42.11
+!     EPM   :     energy density of first primary harmonic (p-m)          42.11
 !     FT    :     multiplication factor for triad contribution
 !     ID    :     counter
 !     ID1   :     first directional index
@@ -5078,45 +5164,44 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG, &
 !     WIS   :     interpolation weight factor
 !     WM    :     radian frequency of secondary harmonic (m)
 !     WPM   :     radian frequency of primary harmonic (p-m)
-!
-   INTEGER IENT, II, J
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER II, J
    INTEGER ID, ID1, ID2, IDD, IDDUM, IDW, IM, IP, IPM, IS
    REAL    BIPH, E0, ED0, EDM, EDPM, EM, EPM, FT, &
-           PWDTH, SIGPI, SINBPH, STRI, W0, WIS, WM, WPM
+      PWDTH, SIGPI, SINBPH, STRI, W0, WIS, WM, WPM
    REAL    CC1, CC2, CC3, EE1, EE2, EE3
    REAL    E(MSC), ED(MSC), CDIF(MDC,MSC), CSUM(MDC,MSC)
-!
+
 !  9. Subroutines calling
 !
 !     SOURCE
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWFTIM')
-!
-   BIPH = BIPHAS(KCGRD(1))
-!
+
+   BIPH = BIPHAS(IGP)
+
    E    = 0.
    ED   = 0.
    CDIF = 0.
    CSUM = 0.
-!
+
 !     --- compute 3 wave-wave interactions
-!
-   IF ( .NOT.URSELL(KCGRD(1)).LT.PTRIAD(5) ) THEN
-!
+
+   IF ( .NOT.URSELL(IGP).LT.PTRIAD(5) ) THEN
+
 !        --- determine sine of biphase, if required
-!
+
       IF ( ITRIAD.EQ.2 ) THEN
          SINBPH = 1.
       ELSE IF ( ITRIAD.EQ.3 ) THEN
          SINBPH = SIN(-BIPH)
       ENDIF
-!
+
 !        --- determine directional range for CCA integration
-!
+
       IF ( PTRIAD(8).NE.-1. ) THEN
          PWDTH = PTRIAD(8) * PI/180.
          IDW = NINT(PWDTH/(2.*DDIR))
@@ -5124,21 +5209,21 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG, &
 !           full directional integration
          IDW = -1
       ENDIF
-!
+
 !        --- calculate integral of E(f,t) over all directions, if desired
       IF ( IDW.EQ.-1 ) THEN
-         ED(:) = SUM(AC2(:,:,KCGRD(1)),DIM=1) * 2.*PI*SPCSIG(:) *DDIR
+         ED(:) = SUM(AC2(:,:,IGP),DIM=1) * 2.*PI*SPCSIG(:) *DDIR
       ENDIF
-!
-      DO II = IDDLOW, IDDTOP
+
+      DO II = WINDOW%IDDLOW, WINDOW%IDDTOP
          ID = MOD ( II - 1 + MDC , MDC ) + 1
-!
+
 !           --- initialize array with E(f) for the direction theta considered
-!
-         E(:) = AC2(ID,:,KCGRD(1)) * 2. * PI * SPCSIG(:)
-!
+
+         E(:) = AC2(ID,:,IGP) * 2. * PI * SPCSIG(:)
+
 !           --- integrate E(f,t) over range dir-p <= theta <= dir+p
-!
+
          IF ( IDW.NE.-1 ) THEN
             ID1 = II - IDW
             ID2 = II + IDW
@@ -5149,177 +5234,181 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG, &
             ED(:) = 0.
             DO IDDUM = ID1, ID2
                IDD = MOD( IDDUM - 1 + MDC , MDC ) + 1
-               ED(:) = ED(:) + AC2(IDD,:,KCGRD(1))
+               ED(:) = ED(:) + AC2(IDD,:,IGP)
             ENDDO
             ED(:) = ED(:) * 2. * PI * SPCSIG(:)
             IF ( IDW.NE.0 ) ED = ED * DDIR
          ENDIF
-!
+
          J = 0
-!
+
 !           --- compute full triad integration (collinear)
-!
+
          DO IP = 1, MSC
-!
+
 !              --- bound super harmonic
             E0  = E     (IP)
             ED0 = ED    (IP)
             W0  = SPCSIG(IP)
-!
+
 !              --- sum contribution (m, p - m)
-!
+
             DO IM = 1, IP-1
-!
+
 !                 --- secondary wave
-!
+
                EM  = E     (IM)
                EDM = ED    (IM)
                WM  = SPCSIG(IM)
-!
+
 !                 --- primary wave
-!
+
                WPM = W0 - WM
-!
+
                J = J + 1
-!
+
 !                 --- obtain primary energy density by means of interpolation
-!
+
                IF ( WPM.GT.SPCSIG(1) ) THEN
-!
+
                   WIS = QTL1(J,1)
                   IPM = INT(QTL1(J,2))
 
                   EPM  = (1.-WIS) * E (IPM) + WIS * E (IPM+1)
                   EDPM = (1.-WIS) * ED(IPM) + WIS * ED(IPM+1)
-!
+
                ELSE
-!
+
                   EPM  = 0.
                   EDPM = 0.
-!
+
                ENDIF
-!
+
 !                 --- compute quadratic products of energy density
 !                     (improved collinear approximation)
-!
+
                EE1 = 0.5 * ( EM*EDPM + EDM*EPM )
                EE2 = 0.5 * ( E0*EDPM + ED0*EPM )
                EE3 = 0.5 * ( EM*ED0  + EDM*E0  )
-!
+
 !                 --- assemble the triad contributions
-!
+
                FT = QTL2(J,1) * SINBPH
-!
+
                CC1 = QTL2(J,2)
                CC2 = QTL2(J,3)
                CC3 = QTL2(J,4)
-!
+
                STRI = CC1*EE1 - CC2*EE2 - CC3*EE3
-!
+
                CSUM(ID,IP) = CSUM(ID,IP) + FT * STRI
-!
+
             ENDDO
-!
+
 !              --- difference contribution (p + m, m)
-!
+
             DO IM = 1, MSC
-!
+
 !                 --- secondary wave
-!
+
                EM  = E     (IM)
                EDM = ED    (IM)
                WM  = SPCSIG(IM)
-!
+
 !                 --- primary wave
-!
+
                WPM = W0 + WM
-!
+
                J = J + 1
-!
+
 !                 --- obtain primary energy density by means of interpolation
-!
+
                IF ( WPM.LT.SPCSIG(MSC) ) THEN
-!
+
                   WIS = QTL1(J,1)
                   IPM = INT(QTL1(J,2))
 
                   EPM  = (1.-WIS) * E (IPM) + WIS * E (IPM+1)
                   EDPM = (1.-WIS) * ED(IPM) + WIS * ED(IPM+1)
-!
+
                ELSE
-!
+
                   EPM  = 0.
                   EDPM = 0.
-!
+
                ENDIF
-!
+
 !                 --- compute quadratic products of energy density
 !                     (improved collinear approximation)
-!
+
                EE1 = 0.5 * ( EM*ED0  + EDM*E0  )
                EE2 = 0.5 * ( E0*EDPM + ED0*EPM )
                EE3 = 0.5 * ( EM*EDPM + EDM*EPM )
-!
+
 !                 --- assemble the triad contributions
-!
+
                FT = QTL2(J,1) * SINBPH
-!
+
                CC1 = QTL2(J,2)
                CC2 = QTL2(J,3)
                CC3 = QTL2(J,4)
-!
+
                STRI = CC1*EE1 - CC2*EE2 - CC3*EE3
-!
+
                CDIF(ID,IP) = CDIF(ID,IP) + FT * STRI
-!
+
             ENDDO
-!
+
          ENDDO
-!
+
       ENDDO
-!
+
 !        --- put source term together
-!
-      DO IS = 1, ISSTOP
+
+      DO IS = 1, WINDOW%ISSTOP
          SIGPI = SPCSIG(IS) * 2. * PI
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-!
+
             STRI = 2.*CSUM(ID,IS) - 4.*CDIF(ID,IS)
-!
+
 !              --- store results in rhs and main diagonal according
 !                  to Patankar-rules
-!
+
             IF (TESTFL) PLTRI(ID,IS,IPTST) = STRI / SIGPI
             IF (STRI.GT.0.) THEN
                IMATRA(ID,IS) = IMATRA(ID,IS) + STRI / SIGPI
                REDC0(ID,IS,2)= REDC0(ID,IS,2)+ STRI / SIGPI
             ELSE
                IMATDA(ID,IS) = IMATDA(ID,IS) - STRI / &
-                               MAX(1.E-18,AC2(ID,IS,KCGRD(1))*SIGPI)
+                  MAX(1.E-18,AC2(ID,IS,IGP)*SIGPI)
                REDC1(ID,IS,2)= REDC1(ID,IS,2)+ STRI / &
-                               MAX(1.E-18,AC2(ID,IS,KCGRD(1))*SIGPI)
+                  MAX(1.E-18,AC2(ID,IS,IGP)*SIGPI)
             END IF
          END DO
       END DO
-!
+
    END IF
-!
+
    RETURN
-END
-!
+end subroutine SWFTIM
+
 !****************************************************************
-!
-SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV )
-!
+
+SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV, IGP, &
+   KGRD2, KGRD3 )
+
 !****************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM3
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_wave_physics, ONLY: KSCIP1
+   USE swan_diagnostics_level
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -5366,95 +5455,105 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV )
 !     See Saprykina et al., 2017, Oceanology, vol. 57, 253-264
 !
 !  4. Argument variables
-!
+
+   INTEGER, INTENT(IN) :: IGP, KGRD2, KGRD3
    REAL, INTENT(IN)  :: AC2(MDC,MSC,MCGRD) ! action densities
    REAL, INTENT(IN)  :: BOTLV(MCGRD) ! bottom levels
    REAL, INTENT(OUT) :: DELL ! delta l expressing the
-                                           ! ratio related to periodic
-                                           ! energy exchange
+   ! ratio related to periodi
+   ! energy exchange
    REAL, INTENT(IN)  :: DEP2(MCGRD) ! depths at grid points
-   REAL, INTENT(IN)  :: RDX(MICMAX), & ! geometric coeffs for
-                        RDY(MICMAX) ! spatial derivatives
+!  RDX/RDY assumed-size: reached from the unstructured path with a 2-element
+!  array; only RDX(1:2) is ever read. See the SWTRCF note in swanser.
+   REAL, INTENT(IN)  :: RDX(*), & ! geometric coeffs for
+      RDY(*) ! spatial derivatives
    REAL, INTENT(IN)  :: SPCSIG(MSC) ! relative frequencies
-!
+
 !  6. Local variables
-!
-   INTEGER IENT, ID, IS, ISPK
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER ID, IS, ISPK
    REAL    CG, DEP, DDDS, DDDX, DDDY, EMAX, ETD, &
-           K1, K2, LB, N, ND, SIG1, SIG2
-!
+      K1, K2, LB, N, ND, SIG1, SIG2
+   REAL    CGA(1), KA(1), NA(1), NDA(1), SIGA(1)
+
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'PEREXC')
-!
+
 !     --- determine local depth
-!
-   DEP = DEP2(KCGRD(1))
-!
+
+   DEP = DEP2(IGP)
+
 !     --- calculate peak frequency
-!
+
    EMAX = 0.
    ISPK = -1
    DO IS = 1, MSC
       ETD = 0.
       DO ID = 1, MDC
-         ETD = ETD + SPCSIG(IS)*AC2(ID,IS,KCGRD(1))*DDIR
+         ETD = ETD + SPCSIG(IS)*AC2(ID,IS,IGP)*DDIR
       ENDDO
       IF ( ETD.GT.EMAX ) THEN
          EMAX = ETD
          ISPK = IS
       ENDIF
    ENDDO
-!
+
 !     --- calculate wave numbers of first and second harmonics
-!
+
    IF ( ISPK.GT.0 ) THEN
 !        first harmonic
       SIG1 = SPCSIG(ISPK)
-      CALL KSCIP1 (1, SIG1, DEP, K1, CG, N, ND)
+      SIGA(1) = SIG1
+      CALL KSCIP1 (1, SIGA, DEP, KA, CGA, NA, NDA)
+      K1 = KA(1)
 !        second harmonic
       SIG2 = 2.*SPCSIG(ISPK)
-      CALL KSCIP1 (1, SIG2, DEP, K2, CG, N, ND)
+      SIGA(1) = SIG2
+      CALL KSCIP1 (1, SIGA, DEP, KA, CGA, NA, NDA)
+      K2 = KA(1)
    ELSE
       K1 = 1.
       K2 = 2.*K1 + 1.E-8
    ENDIF
-!
+
 !     --- compute detuning length due to mismatch between
 !         first and second harmonics
-!
+
    LB = MAX ( 1.E-8, PI2 / (K2 - 2.*K1) )
-!
+
 !     --- determine absolute bottom slope
-!
-   DDDX =  RDX(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2))) &
-         + RDX(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
-   DDDY =  RDY(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2))) &
-         + RDY(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
-!
+
+   DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KGRD2)) &
+      + RDX(2) * (BOTLV(IGP) - BOTLV(KGRD3))
+   DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KGRD2)) &
+      + RDY(2) * (BOTLV(IGP) - BOTLV(KGRD3))
+
    DDDS = -1. * ( DDDX + DDDY )
    DDDS = MAX( 1.E-8, ABS(DDDS) )
-!
+
 !     --- compute delta l
-!
+
    DELL = ( DEP / DDDS ) / LB
 
    RETURN
-END
+end subroutine PEREXC
 !****************************************************************
-!
-SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
-!
+
+SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN, IGP, &
+   KGRD2, KGRD3 )
+
 !****************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM3
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_diagnostics_level
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -5506,23 +5605,26 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
 !     number (see routine SINTGRL)
 !
 !  4. Argument variables
-!
+
+   INTEGER, INTENT(IN) :: IGP, KGRD2, KGRD3
    REAL, INTENT(IN)  :: AC2(MDC,MSC,MCGRD) ! action densities
    REAL, INTENT(OUT) :: BIP ! unscaled biphase
    REAL, INTENT(IN)  :: BOTLV(MCGRD) ! bottom levels
    REAL, INTENT(IN)  :: ECOS(MDC), ESIN(MDC) ! cos/sin of spectral dirs
-   REAL, INTENT(IN)  :: RDX(MICMAX), & ! geometric coeffs for
-                        RDY(MICMAX) ! spatial derivatives
+!  RDX/RDY assumed-size: reached from the unstructured path with a 2-element
+!  array; only RDX(1:2) is ever read. See the SWTRCF note in swanser.
+   REAL, INTENT(IN)  :: RDX(*), & ! geometric coeffs for
+      RDY(*) ! spatial derivatives
    REAL, INTENT(IN)  :: SPCSIG(MSC) ! relative frequencies
-!
+
 !  5. Parameter variables
 !
 !     IDIM        number of interpolation nodes related to the bed slopes
 !     JDIM        number of interpolation nodes related to the peak periods
-!
+
    INTEGER, PARAMETER :: IDIM = 8
    INTEGER, PARAMETER :: JDIM = 5
-!
+
 !  6. Local variables
 !
 !     COSDIR    cosine of mean wave direction
@@ -5555,53 +5657,48 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
 !     WI2       second weight factor related to the bed slope
 !     WJ1       first weight factor related to the peak period
 !     WJ2       second weight factor related to the peak period
-!
-   INTEGER IENT, ID, IS, ISPK
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER ID, IS, ISPK
    INTEGER IK(1), JK(1)
-!
+
    REAL    EEX, EEY, EMAX, ET, ETOT, COSDIR, SINDIR
    REAL    DDDX, DDDY, DDDS, RSGN, TP
-   REAL    NDPER(JDIM)
-   REAL    NDSLP(IDIM)
-   REAL    PLBIP(IDIM,JDIM)
+   REAL, PARAMETER :: NDPER(JDIM) = [1., 6., 8., 10., 12.]
+   REAL, PARAMETER :: NDSLP(IDIM) = [0., 0.001, 0.005, 0.01, 0.02, 0.05, 0.111, 0.5]
+   REAL, PARAMETER :: PLBIP(IDIM,JDIM) = RESHAPE([ &
+      0.,0.1,0.5,0.9,2. ,4. ,4. ,4. , &
+      0.,0.1,0.4,0.8,1.5,4. ,4. ,4. , &
+      0.,0.1,0.3,0.6,1.2,3.3,3.3,3.3, &
+      0.,0.1,0.3,0.6,1.2,3.3,3.3,3.3, &
+      0.,0.1,0.3,0.6,1.2,3.3,3.3,3.3], [IDIM, JDIM])
    REAL    POFF(JDIM)
    REAL    SOFF(IDIM)
    REAL    WI1, WI2, WJ1, WJ2
-!
+
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
-!
-   DATA NDPER/1.,6.,8.,10.,12./
-   DATA NDSLP/0.,0.001,0.005,0.01,0.02,0.05,0.111,0.5/
-   DATA PLBIP/0.,0.1,0.5,0.9,2. ,4. ,4. ,4. , &
-              0.,0.1,0.4,0.8,1.5,4. ,4. ,4. , &
-              0.,0.1,0.3,0.6,1.2,3.3,3.3,3.3, &
-              0.,0.1,0.3,0.6,1.2,3.3,3.3,3.3, &
-              0.,0.1,0.3,0.6,1.2,3.3,3.3,3.3/
-!
+
    IF (LTRACE) CALL STRACE (IENT,'SWBIDW')
-!
+
 !     --- initialize biphase
-!
+
    BIP = 0.
-!
+
 !     --- first, calculate the mean wave direction ...
-!
+
    EEX  = 0.
    EEY  = 0.
    ETOT = 0.
    DO ID = 1, MDC
       ET = 0.
       DO IS = 1, MSC
-         ET = ET + SPCSIG(IS)**2 * AC2(ID,IS,KCGRD(1))
+         ET = ET + SPCSIG(IS)**2 * AC2(ID,IS,IGP)
       ENDDO
       ETOT = ETOT + ET
       EEX  = EEX  + ET * ECOS(ID)
       EEY  = EEY  + ET * ESIN(ID)
    ENDDO
-!
+
    IF ( ETOT.GT.0. ) THEN
       COSDIR = EEX / ETOT
       SINDIR = EEY / ETOT
@@ -5609,29 +5706,29 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
 !        if no wave direction found, return
       RETURN
    ENDIF
-!
+
 !     ... next, calculate bottom slope in mean wave direction
-!
-   DDDX =  RDX(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2))) &
-         + RDX(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
-   DDDY =  RDY(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2))) &
-         + RDY(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
-!
+
+   DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KGRD2)) &
+      + RDX(2) * (BOTLV(IGP) - BOTLV(KGRD3))
+   DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KGRD2)) &
+      + RDY(2) * (BOTLV(IGP) - BOTLV(KGRD3))
+
    DDDS = -1. * ( DDDX * COSDIR + DDDY * SINDIR )
-!
+
 !     --- determine sign of the local slope
-!
+
    RSGN = SIGN(1.,-DDDS)
    DDDS = ABS(DDDS)
-!
+
 !     --- calculate peak period
-!
+
    EMAX = 0.
    ISPK = -1
    DO IS = 1, MSC
       ET = 0.
       DO ID = 1, MDC
-         ET = ET + SPCSIG(IS) * AC2(ID,IS,KCGRD(1))
+         ET = ET + SPCSIG(IS) * AC2(ID,IS,IGP)
       ENDDO
       IF ( ET.GT.EMAX ) THEN
          EMAX = ET
@@ -5644,17 +5741,17 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
 !        if no peak period found, return
       RETURN
    ENDIF
-!
+
 !     --- search for closest given values of bed slope and peak period
-!
+
    SOFF = NDSLP - DDDS
    IK = MINLOC(SOFF, MASK=SOFF.GT.0.)
-!
+
    POFF = NDPER - TP
    JK = MINLOC(POFF, MASK=POFF.GT.0.)
-!
+
 !     --- compute interpolation factors
-!
+
    IF ( DDDS.LT.NDSLP(1) ) THEN
       IK(1) = 2
       WI2   = 0.
@@ -5665,7 +5762,7 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
       WI2 = (DDDS - NDSLP(IK(1)-1)) / (NDSLP(IK(1))-NDSLP(IK(1)-1))
    ENDIF
    WI1 = 1. - WI2
-!
+
    IF ( TP.LT.NDPER(1) ) THEN
       JK(1) = 2
       WJ2   = 0.
@@ -5676,38 +5773,44 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
       WJ2 = (TP - NDPER(JK(1)-1)) / (NDPER(JK(1))-NDPER(JK(1)-1))
    ENDIF
    WJ1 = 1. - WJ2
-!
+
 !     --- determine unscaled biphase based on linear interpolation
-!
+
    BIP = WI1 * WJ1 * PLBIP(IK(1)-1,JK(1)-1) + &
-         WI1 * WJ2 * PLBIP(IK(1)-1,JK(1)  ) + &
-         WI2 * WJ1 * PLBIP(IK(1)  ,JK(1)-1) + &
-         WI2 * WJ2 * PLBIP(IK(1)  ,JK(1)  )
-!
+      WI1 * WJ2 * PLBIP(IK(1)-1,JK(1)  ) + &
+      WI2 * WJ1 * PLBIP(IK(1)  ,JK(1)-1) + &
+      WI2 * WJ2 * PLBIP(IK(1)  ,JK(1)  )
+
 !     --- sign of biphase is made consistent, i.e. negative for a
 !         positive slope and vice versa
-!
+
    BIP = RSGN * BIP * PI/6.
-!
+
    RETURN
-END
-!
+end subroutine SWBIDW
+
 !****************************************************************
-!
-SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC )
-!
+
+SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC, BPHTMP )
+
 !****************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM2
-   USE SWCOMM3
-   USE M_SNL3
+
+   USE swan_service_interfaces, ONLY: STPNOW, STRACE
+   USE swan_wave_physics, ONLY: KSCIP1
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE M_GENARR
    USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
+   USE swan_global_grid
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -5748,25 +5851,24 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC )
 !     Spatially averages the De Wit's biphase
 !
 !  4. Argument variables
-!
+
    REAL   , INTENT(OUT) :: BIPHAS(MCGRD)
    REAL   , INTENT(IN)  :: DEP2(MCGRD)
-   INTEGER, INTENT(IN)  :: HSIBC(MCGRD)
-!
+   REAL   , INTENT(IN)  :: HSIBC(MCGRD)
+   REAL   , INTENT(IN)  :: BPHTMP(:)
+
 !  6. Local variables
-!
-   INTEGER :: IENT, I, J, K, ID, IS, IE, JS, JE, MLX, MLY
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER :: I, J, K, ID, IS, IE, JS, JE, MLX, MLY
    INTEGER :: IX, IY, IX1, IX2, IY1, IY2, IXI, IYJ, IND, INDL, ISPK
 
    REAL    :: DXA, DYA, DEPLOC, EMAX, ET, KW, LW
    REAL    :: SIGMA(1), KWAVE(1), ARR(1)
    REAL    :: LPAR, BETA
-   LOGICAL :: STPNOW
-!
+
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SWBIPM')
 
    LPAR = PTRIAD(9)
@@ -5799,7 +5901,7 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC )
                ENDIF
                DEPLOC = DEP2(IND)
                IF ( DEPLOC.GT.DEPMIN ) THEN
-                  CALL KSCIP1(1, SIGMA, DEPLOC, KWAVE, ARR, ARR, ARR)
+                  CALL KSCIP1(1, SIGMA, DEPLOC, KWAVE)
                ELSE
                   KWAVE(1) = 0.
                ENDIF
@@ -5808,8 +5910,8 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC )
          ENDDO
       ENDDO
       ! perform global reductions in parallel run
-      CALL SWREDUCE( K , 1, SWINT , SWSUM )
-      CALL SWREDUCE( KW, 1, SWREAL, SWSUM )
+      CALL SWREDUCE( K , 1, SWSUM )
+      CALL SWREDUCE( KW, 1, SWSUM )
       IF ( STPNOW() ) RETURN
    ENDIF
    IF (K.GE.1) THEN
@@ -5900,4 +6002,6 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC )
 
 !     End of subroutine SWBIPM
    RETURN
-END
+end subroutine SWBIPM
+
+end module swan_nonlinear_interactions

@@ -1,5 +1,13 @@
-subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin )
-!
+module swan_propvel_x
+   use swan_diffraction_state, only: diffraction_state_t
+   implicit none(type, external)
+   private
+   public :: SwanPropvelX
+contains
+
+subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin, diffr, kcgrd, icmax )
+   USE swan_service_interfaces, ONLY: STRACE
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -42,66 +50,69 @@ subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin )
 !   computes wave transport velocities of energy in geographical space
 !
 !   Modules used
-!
-   use ocpcomm4
-   use swcomm3
-   use m_diffr
+
+   use swan_diagnostics_level
+   use swan_physics_selection
+   use swan_spectral_grid
    use SwanGriddata
    use SwanCompdata
-!
-   implicit none
-!
+
+   implicit none(type, external)
+
 !   Argument variables
-!
+
+   integer, intent(in)                           :: icmax ! number of active stencil points
+   integer, dimension(icmax), intent(in)         :: kcgrd ! grid addresses of the stencil points
+
    real, dimension(MDC,MSC,ICMAX), intent(out) :: cax ! wave transport velocity in x-direction
    real, dimension(MDC,MSC,ICMAX), intent(out) :: cay ! wave transport velocity in y-direction
    real, dimension(MSC,ICMAX), intent(in)      :: cgo ! group velocity
    real, dimension(MDC), intent(in)            :: ecos ! help array containing cosine of spectral directions
    real, dimension(MDC), intent(in)            :: esin ! help array containing sine of spectral directions
+   type(diffraction_state_t), intent(in)       :: diffr ! diffraction parameter and its derivatives
    real, dimension(nverts), intent(in)         :: ux2 ! ambient velocity in x-direction at current time level
    real, dimension(nverts), intent(in)         :: uy2 ! ambient velocity in y-direction at current time level
-!
+
 !   Local variables
-!
+
    integer       :: ic ! loop counter over stencil
    integer       :: id ! loop counter over direction bins
    integer, save :: ient = 0 ! number of entries in this subroutine
    integer       :: is ! loop counter over frequency bins
    integer       :: ivert ! vertex index
-   !
-!
+
 !   Structure
 !
 !   Description of the pseudo code
 !
 !   Source text
-!
+
    if (ltrace) call strace (ient,'SwanPropvelX')
 
    do ic = 1, ICMAX
-      !
-      ivert  = vs(ic) ! points in computational stencil
-      !
+
+      ivert  = KCGRD(ic) ! points in computational stencil
+
       do is = 1, MSC
          do id = 1, MDC
             cax(id,is,ic) = cgo(is,ic) * ecos(id)
             cay(id,is,ic) = cgo(is,ic) * esin(id)
          enddo
       enddo
-      !
+
       ! adapt the celerities in case of diffraction
-      !
+
       if ( IDIFFR /= 0 .and. PDIFFR(3) /= 0. ) then
          do is = 1, MSC
             do id = 1 ,MDC
-               cax(id,is,ic) = cax(id,is,ic)*DIFPARAM(ivert)
-               cay(id,is,ic) = cay(id,is,ic)*DIFPARAM(ivert)
+               cax(id,is,ic) = cax(id,is,ic)*diffr%param(ivert)
+               cay(id,is,ic) = cay(id,is,ic)*diffr%param(ivert)
             enddo
          enddo
       endif
-      !
+
       ! ambient currents added
-      !
+
       if ( ICUR /= 0 )  then
          do is = 1, MSC
             do id = 1, MDC
@@ -110,7 +121,9 @@ subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin )
             enddo
          enddo
       endif
-      !
+
    enddo
-    !
+
 end subroutine SwanPropvelX
+
+end module swan_propvel_x

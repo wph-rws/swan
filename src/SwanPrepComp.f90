@@ -1,5 +1,13 @@
+module swan_prep_comp
+   use swan_find_obstacles, only: SwanFindObstacles
+   implicit none(type, external)
+   private
+   public :: SwanPrepComp
+contains
+
 subroutine SwanPrepComp ( cross )
-!
+   USE swan_service_interfaces, ONLY: STRACE
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -40,55 +48,57 @@ subroutine SwanPrepComp ( cross )
 !   Does some preparations before computation is started
 !
 !   Modules used
-!
-   use ocpcomm4
-   use swcomm3
+
+   use swan_diagnostics_level
+   use swan_numerics
    use m_obsta, only: OBSTDONE
    use SwanGriddata
    use SwanGridobjects
-!
-   implicit none
-!
+
+   implicit none(type, external)
+
 !   Argument variables
-!
+
    integer, dimension(nfaces), intent(out) :: cross ! contains sequence number of obstacles for each face
                                                     ! where they crossing or zero if no crossing
 !
 !   Local variables
-!
+
    integer, save                         :: ient = 0 ! number of entries in this subroutine
    integer                               :: ivert ! loop counter over vertices
-   !
+
    type(verttype), dimension(:), pointer :: vert ! datastructure for vertices with their attributes
-!
+
 !   Structure
 !
 !   Description of the pseudo code
 !
 !   Source text
-!
+
    if (ltrace) call strace (ient,'SwanPrepComp')
-   !
+
    ! point to vertex object
-   !
+
    vert => gridobject%vert_grid
-   !
+
    ! deallocate arrays kvertc and kvertf (we don't use them anymore!)
-   !
+
    if (allocated(kvertc)) deallocate(kvertc)
    if (allocated(kvertf)) deallocate(kvertf)
-   !
+
    ! ghost and exception vertices are regarded as vertices with boundary condition
-   !
+
    do ivert = 1, nverts
       if ( vmark(ivert) >= excmark ) vert(ivert)%atti(VBC) = 1
    enddo
-   !
+
    ! find obstacles in computational grid, if present
-   !
+
    if ( NUMOBS > 0 .and. .not.OBSTDONE ) then
       call SwanFindObstacles ( cross )
       OBSTDONE = .true.
    endif
-    !
+
 end subroutine SwanPrepComp
+
+end module swan_prep_comp

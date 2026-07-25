@@ -1,4 +1,4 @@
-!
+
 !     SWAN/OUTPUT       file 1 of 2
 !
 !  Contents of this file:
@@ -14,28 +14,53 @@
 !
 !     main output routine and computation of output quantities
 !
-!***********************************************************************
+!************************************************************************
+
+module swan_output_orchestration
+   use swan_diffraction_state, only: diffraction_state_t
+   use swan_compute_force, only: SwanComputeForce
+   use swan_find_point, only: SwanFindPoint
+   use swan_io_limits, only: LENFNM
+   use swan_output_variables, only: NMOVAR, OVEXCV, OVSNAM, OVSVTY
+   use swan_output_quadrature, only: ALCQ, ALPQ, COSCQ, COSPQ, SINCQ, SINPQ, XPQ, XQLEN, YPQ, YQLEN
+   use swan_output_settings, only: INRHOG, OUTPAR, SNAME
+   implicit none(type, external)
+!  Used across several procedures of this module and nowhere else; moved out
+!  of the central shared state.
+   REAL :: XQP
+   REAL :: YQP
+   private
+   public :: SWOUTP, SWOEXC
+contains
+
 !                                                                      *
 SUBROUTINE SWOUTP (AC2             , &
-                   SPCSIG          ,SPCDIR  , &
-                   COMPDA          ,XYTST   , &
-                   KGRPNT          ,XCGRID  , &
-                   YCGRID          ,OURQT   )
+   SPCSIG          ,SPCDIR  , &
+   COMPDA          ,XYTST   , &
+   KGRPNT          ,XCGRID  , &
+   YCGRID          ,OURQT   ,DIFFR   )
 !                                                                      *
-!***********************************************************************
-!
-   USE TIMECOMM
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+!************************************************************************
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, STPNOW
+   USE swan_services, ONLY: AC2TST
+   USE swan_output_writers, ONLY: SWBLOK, SWBLKP, SWBLKV, SWSPEC, &
+      SWTABP_WITH_OQR
+   USE swan_time, ONLY: default_time_context
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_math_constants
+   USE swan_test_output
    USE OUTP_DATA
    USE M_PARALL
    USE SwanGriddata
    USE SwanIEM, ONLY: ntf, dfiem, Ebig
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -122,6 +147,8 @@ SUBROUTINE SWOUTP (AC2             , &
 !
 !  4. Argument variables
 !
+! i   DIFFR : diffraction parameter per grid point, passed on to SWOEXD
+!             for output quantity DIFPAR
 ! i   OURQT : array indicating at what time requested output              40.51
 !             is processed                                                40.51
 ! i   SPCDIR: (*,1); spectral directions (radians)                        30.82
@@ -130,15 +157,16 @@ SUBROUTINE SWOUTP (AC2             , &
 !             (*,4); cosine^2 of spectral directions                      30.82
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
-! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 ! i   XCGRID: Coordinates of computational grid in x-direction            30.72
 ! i   YCGRID: Coordinates of computational grid in y-direction            30.72
-!
-   REAL*8  OURQT(MAX_OUTP_REQ)
+
+   REAL(KIND=KIND(0.0D0))  OURQT(MAX_OUTP_REQ)
+   TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
    REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
-!
+
 !     AC2     real arr input  action density in all computational points
 !     SPCDIR  real arr input  spectral directions, cosines and sines
 !     UX2     real arr input  current velocity x-comp.
@@ -153,9 +181,7 @@ SUBROUTINE SWOUTP (AC2             , &
 !     SWTABP
 !     SWSPEC
 !     FOR
-!
-   LOGICAL STPNOW
-!
+
 !  9. Subroutines calling
 !
 !     MAIN program
@@ -204,7 +230,7 @@ SUBROUTINE SWOUTP (AC2             , &
 !
 ! 12. Structure
 !
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !     For all output requests do
 !         Call SWORDC (analyzes output req.; gives name of output
 !                      point set, type of output RTYPE
@@ -222,50 +248,52 @@ SUBROUTINE SWOUTP (AC2             , &
 !         If RTYPE = 'TABP' or 'TABD' then call SWTABP for output in
 !                     table
 !         If RTYPE = 'SPEC' then call SWSPEC for spectral output
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !     If program is run in stationary mode                                40.00
 !     Then Close all opened files                                         40.00
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !
 ! 13. Source text
-!
+
    INTEGER   VOQR(NMOVAR)   ,BKC           , &
-             XYTST(*)       ,KGRPNT(MXC,MYC),IERR
-!
+      XYTST(*)       ,KGRPNT(MXC,MYC),IERR
+
    REAL      AC2(MDC,MSC,MCGRD) , &
-             COMPDA(MCGRD,MCMVAR)
+      COMPDA(MCGRD,MCMVAR)
    LOGICAL, ALLOCATABLE :: CROSS(:,:) ! true if obstacle is between
-                                      ! output point and computational
-                                      ! grid point
-!
+   ! output point and computationa
+   ! grid point
+
+   INTEGER, SAVE :: IENT = 0
    INTEGER INDX, ID, IS, ITMP1, ISTAT
+   INTEGER II, IP, IRQ, JJ, MIP, MXK, MXN, MYK, MYN, NVOQP
+   REAL ALPCN, XNLEN, XPCN, YNLEN, YPCN
    REAL DF, FREQS(ntf)
    REAL, ALLOCATABLE :: EBLOC(:,:,:)
-!
+
    INTEGER, ALLOCATABLE :: IONOD(:)
    REAL, ALLOCATABLE :: ACLOC(:), AUX1(:), VOQ(:)
    REAL, ALLOCATABLE :: FORCE(:,:)
    REAL              :: KNUM(MSC), CG(MSC), NE(MSC), NED(MSC)
    TYPE(OPSDAT), POINTER :: CUOPS
    TYPE(ORQDAT), POINTER :: CORQ
-!
+
    LOGICAL   OQPROC(NMOVAR)  , LOGACT
-   CHARACTER RTYPE *4, STYPE *1, PNAME *8, PTYPE *1
-   SAVE IENT
-   DATA IENT /0/
+   CHARACTER(LEN=4) :: RTYPE
+   CHARACTER(LEN=1) :: STYPE, PTYPE
+   CHARACTER(LEN=8) :: PNAME
    CALL STRACE (IENT, 'SWOUTP')
-!
+
 !     processing of output requests
-!
+
    IF (NPTST.GT.0) CALL AC2TST (XYTST, AC2 ,KGRPNT)
-!
+
    IF (NREOQ.EQ.0) THEN
       CALL MSGERR (1, 'no output requested')
       RETURN
    ENDIF
-   IF (ITEST.GE.10) WRITE (PRINTF, 12) NREOQ
-12 FORMAT (1X, I3, ' output requests')
-!
+   IF (ITEST.GE.10) WRITE (PRINTF, "(1X, I3, ' output requests')") NREOQ
+
    IF (LSRFB) THEN
       IF (.NOT.ALLOCATED(EBLOC)) THEN
          ALLOCATE(EBLOC(MDC,ntf,MCGRD),STAT=ISTAT)
@@ -279,269 +307,269 @@ SUBROUTINE SWOUTP (AC2             , &
    ELSE
       IF(.NOT.ALLOCATED(EBLOC)) ALLOCATE(EBLOC(0,0,0))
    ENDIF
-!
+
 !     Repeat for all output requests:
-!
+
    CORQ => FORQ
-   DO 70 IRQ = 1, NREOQ
-!
+   request_loop: do IRQ = 1, NREOQ
+
 !       ***** processing of output instructions *****
-!
+
       BKC   = 0
       NVOQP = 0
-!
+
 !       call SWORDC to analyse output request encoded in array OUTREQ
 !       NVOQP (number of output quantities)
-!
+
       RTYPE = CORQ%RQTYPE
       SNAME = CORQ%PSNAME
       CALL SWORDC (CORQ%OQI, CORQ%OQR, CORQ%IVTYP, RTYPE, &
-                   SNAME, NVOQP, OQPROC, BKC, VOQR, OURQT(IRQ), &
-                   LOGACT)
+         SNAME, NVOQP, OQPROC, BKC, VOQR, OURQT(IRQ), &
+         LOGACT)
       IF (.NOT.LOGACT) THEN
          CORQ => CORQ%NEXTORQ
-         GOTO 70
+         CYCLE request_loop
       END IF
-!
-      IF (SCREEN.NE.PRINTF.AND.IAMMASTER) WRITE (SCREEN, 15) IRQ
-15    FORMAT ('+SWAN is processing output request ', I4)
-      IF (ITEST.GE.10) WRITE(PRINTF,16) IRQ
-16    FORMAT (' SWAN is processing output request ', I4)
-!
-      CUOPS => FOPS
-      DO
-         IF (CUOPS%PSNAME.EQ.SNAME) EXIT
-         IF (.NOT.ASSOCIATED(CUOPS%NEXTOPS)) THEN
-            CALL MSGERR (3, 'Output requested for non-existing points')
-            WRITE (PRINTF, 18) SNAME
-18          FORMAT (' Point set: ', A)
-            GOTO 68
-         END IF
-         CUOPS => CUOPS%NEXTOPS
-      END DO
-!
-      IF (ITEST.GE.80 .OR. IOUTES .GE. 10) &
-         WRITE (PRTEST, 22) IRQ, NVOQP, RTYPE, SNAME
-22    FORMAT (' Test SWOUTP ', 2I6, 2X, A4, 2X, A16)
-!
+
+      request_action: BLOCK
+
+         IF (SCREEN.NE.PRINTF.AND.IAMMASTER) WRITE (SCREEN, "('+SWAN is processing output request ', I4)") IRQ
+         IF (ITEST.GE.10) WRITE(PRINTF,"(' SWAN is processing output request ', I4)") IRQ
+
+         CUOPS => FOPS
+         DO
+            IF (CUOPS%PSNAME.EQ.SNAME) EXIT
+            IF (.NOT.ASSOCIATED(CUOPS%NEXTOPS)) THEN
+               CALL MSGERR (3, 'Output requested for non-existing points')
+               WRITE (PRINTF, "(' Point set: ', A)") SNAME
+               EXIT request_action
+            END IF
+            CUOPS => CUOPS%NEXTOPS
+         END DO
+
+         IF (ITEST.GE.80 .OR. IOUTES .GE. 10) &
+            WRITE (PRTEST, "(' Test SWOUTP ', 2I6, 2X, A4, 2X, A16)") IRQ, NVOQP, RTYPE, SNAME
+
 !       call SWODDC to analyse output data; results: STYPE (type of output
 !       point set), MIP (number of output locations) etc.
-!
-      STYPE = CUOPS%PSTYPE
-      MIP   = CUOPS%MIP
-      CALL SWODDC (CUOPS%OPI, CUOPS%OPR, SNAME, STYPE, MIP, MXK, &
-                   MYK, XNLEN, YNLEN, MXN, MYN, XPCN, YPCN, ALPCN, &
-                   XCGRID,YCGRID,RTYPE)
-!
+
+         STYPE = CUOPS%PSTYPE
+         MIP   = CUOPS%MIP
+         CALL SWODDC (CUOPS%OPI, CUOPS%OPR, SNAME, STYPE, MIP, MXK, &
+            MYK, XNLEN, YNLEN, MXN, MYN, XPCN, YPCN, ALPCN, &
+            XCGRID,YCGRID,RTYPE)
+
 !       assign memory to array VOQ (contains output quantities for all
 !                                   output points)
-      ALLOCATE(VOQ(MIP*NVOQP))
-      VOQ = 0.
-!
+         ALLOCATE(VOQ(MIP*NVOQP))
+         VOQ = 0.
+
 !       assign memory to array CROSS (indicates crossing of obstacles     40.86
 !                                     in between output and grid points)  40.86
-      ALLOCATE(CROSS(4,MIP))
-      CROSS = .FALSE.
-!
+         ALLOCATE(CROSS(4,MIP))
+         CROSS = .FALSE.
+
 !       assign memory to array IONOD (indicates in which subdomain        40.51
 !                                     output points are located)          40.51
-      ALLOCATE(IONOD(MIP))
-      IF (.NOT.PARLL) THEN
-         IONOD = MASTER
-      ELSE
-         IONOD = -999
-      ENDIF
-!
+         ALLOCATE(IONOD(MIP))
+         IF (.NOT.PARLL) THEN
+            IONOD = MASTER
+         ELSE
+            IONOD = -999
+         ENDIF
+
 !       call SWOEXC to calculate quantities dependent only on coordinates
-!
-      CALL SWOEXC (STYPE               , &
-                   CUOPS%OPI           ,CUOPS%OPR           , &
-                   CUOPS%XP            ,CUOPS%YP            , &
-                   MIP                 ,VOQ(1)              , &
-                   VOQ(1+MIP)          ,VOQ(1+2*MIP)        , &
-                   VOQ(1+3*MIP)        ,KGRPNT              , &
-                   XCGRID              ,YCGRID              , &
-                   CROSS                                    )
-!
+
+         CALL SWOEXC (STYPE               , &
+            CUOPS%OPI           ,CUOPS%OPR           , &
+            CUOPS%XP            ,CUOPS%YP            , &
+            MIP                 ,VOQ(1)              , &
+            VOQ(1+MIP)          ,VOQ(1+2*MIP)        , &
+            VOQ(1+3*MIP)        ,KGRPNT              , &
+            XCGRID              ,YCGRID              , &
+            CROSS                                    )
+
 !       Compute wave-induced force on unstructured grid                   40.80
-!
-      IF (OQPROC(20) .AND. OPTG.EQ.5) THEN
-         ALLOCATE(FORCE(nverts,2))
-         CALL SwanComputeForce ( FORCE(1,1), FORCE(1,2), AC2, &
-                                 COMPDA(1,JDP2), COMPDA(1,JHS), &
-                                 SPCSIG, SPCDIR )
-      ELSE
-         ALLOCATE(FORCE(0,0))
-      ENDIF
-!
+
+         IF (OQPROC(20) .AND. OPTG.EQ.5) THEN
+            ALLOCATE(FORCE(nverts,2))
+            CALL SwanComputeForce ( FORCE(1,1), FORCE(1,2), AC2, &
+               COMPDA(1,JDP2), COMPDA(1,JHS), &
+               SPCSIG, SPCDIR )
+         ELSE
+            ALLOCATE(FORCE(0,0))
+         ENDIF
+
 !       call SWOEXD to interpolate quantities which are computed during the
 !       SWAN computation, such as Qb, Dissipation, Ursell etc.
-!
-      CALL SWOEXD (RTYPE, OQPROC, MIP, VOQ(1+2*MIP), &
-                   VOQ(1+3*MIP), VOQR, VOQ(1), &
-                   COMPDA, KGRPNT, FORCE, CROSS, IONOD &
-                   ,IRQ &
-                  )
-      IF (STPNOW()) RETURN
-!
-      DEALLOCATE(FORCE)
-!
-      IF (BKC .GT. 0) THEN
-!
+
+         CALL SWOEXD (RTYPE, OQPROC, MIP, VOQ(1+2*MIP), &
+            VOQ(1+3*MIP), VOQR, VOQ(1), &
+            COMPDA, KGRPNT, FORCE, CROSS, IONOD, DIFFR &
+            ,IRQ &
+            )
+         IF (STPNOW()) RETURN
+
+         DEALLOCATE(FORCE)
+
+         IF (BKC .GT. 0) THEN
+
 !         assign memory to array ACLOC (contains spectrum for one output point)
-!
-         ALLOCATE(ACLOC(MDC*MSC))
-!
+
+            ALLOCATE(ACLOC(MDC*MSC))
+
 !         call SWOEXA to compute quantities for which spectrum is needed
 !         (except wave-induced force)
-!
-         CALL SWOEXA (OQPROC              ,BKC                 , &
-                      MIP                 ,VOQ(1+2*MIP)        , &
-                      VOQ(1+3*MIP)        ,VOQR                , &
-                      VOQ(1)              ,AC2                 , &
-                      ACLOC               ,SPCSIG              , &
-                      KNUM                ,CG                  , &
-                      SPCDIR              ,NE                  , &
-                      NED                 ,KGRPNT              , &
-                      COMPDA(1,JDP2)      ,CROSS               )
-!
+
+            CALL SWOEXA (OQPROC              ,BKC                 , &
+               MIP                 ,VOQ(1+2*MIP)        , &
+               VOQ(1+3*MIP)        ,VOQR                , &
+               VOQ(1)              ,AC2                 , &
+               ACLOC               ,SPCSIG              , &
+               KNUM                ,CG                  , &
+               SPCDIR              ,NE                  , &
+               NED                 ,KGRPNT              , &
+               COMPDA(1,JDP2)      ,CROSS               )
+
 !         call SWOEXF to compute wave-driven force on regular grid
-!
-         IF (OQPROC(20) .AND. OPTG.NE.5) &
-            CALL SWOEXF (MIP                 ,VOQ(1+2*MIP)         , &
-                        VOQ(1+3*MIP)        ,VOQR                 , &
-                        VOQ(1)              ,AC2                  , &
-                        COMPDA(1,JDP2)      ,SPCSIG               , &
-                        KNUM                ,CG                   , &
-                        SPCDIR              ,NE                   , &
-                        NED                 ,KGRPNT               , &
-                        XCGRID              ,YCGRID               , &
-                        COMPDA(1,JHS)       ,IONOD &
-                                                                  )
-!
-         DEALLOCATE(ACLOC)
-      ENDIF
-!
-      IF (ITEST.GE.100 ) THEN
-         WRITE (PRTEST, 23) (VOQR(II), II=1, NMOVAR)
-23       FORMAT (' arrays VOQR and VOQ:', 30I3)
-         DO 25 IP=1, MIN(MIP,20)
-            WRITE (PRTEST, 24) (VOQ(IP+(JJ-1)*MIP), &
-                                JJ=1, NVOQP)
-24          FORMAT (12(1X,E10.4))
-25       CONTINUE
-      ENDIF
-!
+
+            IF (OQPROC(20) .AND. OPTG.NE.5) &
+               CALL SWOEXF (MIP                 ,VOQ(1+2*MIP)         , &
+               VOQ(1+3*MIP)        ,VOQR                 , &
+               VOQ(1)              ,AC2                  , &
+               COMPDA(1,JDP2)      ,SPCSIG               , &
+               KNUM                ,CG                   , &
+               SPCDIR              ,NE                   , &
+               NED                 ,KGRPNT               , &
+               XCGRID              ,YCGRID               , &
+               COMPDA(1,JHS)       ,IONOD &
+               )
+
+            DEALLOCATE(ACLOC)
+         ENDIF
+
+         IF (ITEST.GE.100 ) THEN
+            WRITE (PRTEST, "(' arrays VOQR and VOQ:', 30I3)") (VOQR(II), II=1, NMOVAR)
+            do IP=1, MIN(MIP,20)
+               WRITE (PRTEST, "(12(1X,E10.4))") (VOQ(IP+(JJ-1)*MIP), &
+                  JJ=1, NVOQP)
+            end do
+         ENDIF
+
 !       ***** block output *****
-      IF (RTYPE(1:3) .EQ. 'BLK') THEN
-         IF (RTYPE.EQ.'BLKV') THEN
-            CALL SWBLKV ( CORQ%OQI, CORQ%OQR, CORQ%IVTYP, &
-                          MXK, MYK, VOQR, VOQ(1), STYPE, &
-                          SNAME, IONOD )
-         ELSE IF (PARLL) THEN
-            CALL SWBLKP ( CORQ%OQI, CORQ%IVTYP, MXK, MYK, VOQR, &
-                          VOQ(1), IONOD )
-         ELSE
-            CALL SWBLOK ( RTYPE, CORQ%OQI, CORQ%OQR, CORQ%IVTYP, &
-                          CORQ%FAC, SNAME, MXK, MYK, IRQ, VOQR, &
-                          VOQ(1) )
-         END IF
-         IF (STPNOW()) RETURN
-         GOTO 68
-      ENDIF
-!
+         IF (RTYPE(1:3) .EQ. 'BLK') THEN
+            IF (RTYPE.EQ.'BLKV') THEN
+               CALL SWBLKV ( CORQ%OQI, CORQ%OQR, CORQ%IVTYP, &
+                  MXK, MYK, VOQR, VOQ(1), STYPE, &
+                  SNAME, IONOD )
+            ELSE IF (PARLL) THEN
+               CALL SWBLKP ( CORQ%OQI, CORQ%IVTYP, MXK, MYK, VOQR, &
+                  VOQ(1), IONOD )
+            ELSE
+               CALL SWBLOK ( RTYPE, CORQ%OQI, CORQ%OQR, CORQ%IVTYP, &
+                  CORQ%FAC, SNAME, MXK, MYK, IRQ, VOQR, &
+                  VOQ(1) )
+            END IF
+            IF (STPNOW()) RETURN
+            EXIT request_action
+         ENDIF
+
 !       ***** table output *****
-      IF (RTYPE(1:3) .EQ. 'TAB') THEN
-!NCF         IF (PARLL.AND.(RTYPE.EQ.'TABC')) THEN
-!NCF!            --- use "block" intermediate file facility to pass data between cores
-!NCF            CALL SWBLKP ( CORQ%OQI, CORQ%IVTYP, MIP, 1, VOQR, &
-!NCF                          VOQ(1), IONOD )
-!NCF         ELSE
-!NCF            CALL SWTABP ( RTYPE, CORQ%OQI, CORQ%OQR, CORQ%IVTYP, SNAME, &
-!NNCF         CALL SWTABP ( RTYPE, CORQ%OQI, CORQ%IVTYP, SNAME, &
-                       MIP, VOQR, VOQ(1), IONOD )
-!NCF         ENDIF
-         IF (STPNOW()) RETURN
-         GOTO 68
-      ENDIF
-!
+         IF (RTYPE(1:3) .EQ. 'TAB') THEN
+            IF (PARLL.AND.(RTYPE.EQ.'TABC')) THEN
+!            --- use "block" intermediate file facility to pass data bet
+               CALL SWBLKP ( CORQ%OQI, CORQ%IVTYP, MIP, 1, VOQR, &
+                  VOQ(1), IONOD )
+            ELSE
+               CALL SWTABP_WITH_OQR ( RTYPE, CORQ%OQI, CORQ%OQR, &
+                  CORQ%IVTYP, SNAME, &
+                  MIP, VOQR, VOQ(1), IONOD )
+            ENDIF
+            IF (STPNOW()) RETURN
+            EXIT request_action
+         ENDIF
+
 !       ***** spectral output *****
-      IF (RTYPE(1:2) .EQ. 'SP') THEN
-         IF ( .NOT.LSRFB .OR. &
-              (RTYPE(3:3).NE.'L' .AND. RTYPE(3:3).NE.'B') ) THEN
-            IF (RTYPE(4:4).EQ.'C') THEN
-               ALLOCATE(AUX1(MSC*MDC))
+         IF (RTYPE(1:2) .EQ. 'SP') THEN
+            IF ( .NOT.LSRFB .OR. &
+               (RTYPE(3:3).NE.'L' .AND. RTYPE(3:3).NE.'B') ) THEN
+               IF (RTYPE(4:4).EQ.'C') THEN
+                  ALLOCATE(AUX1(MSC*MDC))
+               ELSE
+                  ALLOCATE(AUX1(3*MSC))
+               ENDIF
+               CALL SWSPEC ( RTYPE, CORQ%OQI, CORQ%OQR, MIP, VOQR, VOQ(1), &
+                  AC2, AUX1, SPCSIG, SPCDIR, COMPDA(1,JDP2), &
+                  KGRPNT, CROSS, IONOD )
             ELSE
-               ALLOCATE(AUX1(3*MSC))
-            ENDIF
-            CALL SWSPEC ( RTYPE, CORQ%OQI, CORQ%OQR, MIP, VOQR, VOQ(1), &
-                          AC2, AUX1, SPCSIG, SPCDIR, COMPDA(1,JDP2), &
-                          KGRPNT, CROSS, IONOD )
-         ELSE
-            ITMP1 = MSC
-            MSC   = ntf
-            IF (RTYPE(4:4).EQ.'C') THEN
-               ALLOCATE(AUX1(MSC*MDC))
-            ELSE
-               ALLOCATE(AUX1(3*MSC))
-            ENDIF
-            DF = PI2 * dfiem
-            FREQS(1) = DF
-            DO IS = 2, MSC
-               FREQS(IS) = FREQS(IS-1) + DF
-            ENDDO
-            DO INDX = 1, MCGRD
-               DO ID = 1, MDC
-                  DO IS = 1, MSC
-                     EBLOC(ID,IS,INDX) = Ebig(ID,IS,INDX) / FREQS(IS) / &
-                                         ( DF * DDIR )
+               ITMP1 = MSC
+               MSC   = ntf
+               IF (RTYPE(4:4).EQ.'C') THEN
+                  ALLOCATE(AUX1(MSC*MDC))
+               ELSE
+                  ALLOCATE(AUX1(3*MSC))
+               ENDIF
+               DF = PI2 * dfiem
+               FREQS(1) = DF
+               DO IS = 2, MSC
+                  FREQS(IS) = FREQS(IS-1) + DF
+               ENDDO
+               DO INDX = 1, MCGRD
+                  DO ID = 1, MDC
+                     DO IS = 1, MSC
+                        EBLOC(ID,IS,INDX) = Ebig(ID,IS,INDX) / FREQS(IS) / &
+                           ( DF * DDIR )
+                     ENDDO
                   ENDDO
                ENDDO
-            ENDDO
-            CALL SWSPEC ( RTYPE, CORQ%OQI, CORQ%OQR, MIP, VOQR, VOQ(1), &
-                          EBLOC, AUX1, FREQS, SPCDIR, COMPDA(1,JDP2), &
-                          KGRPNT, CROSS, IONOD )
-            MSC = ITMP1
+               CALL SWSPEC ( RTYPE, CORQ%OQI, CORQ%OQR, MIP, VOQR, VOQ(1), &
+                  EBLOC, AUX1, FREQS, SPCDIR, COMPDA(1,JDP2), &
+                  KGRPNT, CROSS, IONOD )
+               MSC = ITMP1
+            ENDIF
+            IF (STPNOW()) RETURN
+            DEALLOCATE(AUX1)
+            EXIT request_action
          ENDIF
-         IF (STPNOW()) RETURN
-         DEALLOCATE(AUX1)
-         GOTO 68
-      ENDIF
-!
-60    WRITE (PRINTF, 62) IRQ, NVOQP, RTYPE, SNAME, MIP
-62    FORMAT (' Error in output request ', 2I6, 2X, A4, 2X, A16, I6)
-!
-68    CONTINUE
-      DEALLOCATE(VOQ,CROSS,IONOD)
-      CORQ => CORQ%NEXTORQ
-70 CONTINUE
-   IF (ALLOCATED(EBLOC)) DEALLOCATE(EBLOC)
-!
-!     Termination of output
-!
-200 RETURN
-END SUBROUTINE SWOUTP
 
-!***********************************************************************
+         WRITE (PRINTF, "(' Error in output request ', 2I6, 2X, A4, 2X, A16, I6)") IRQ, NVOQP, RTYPE, SNAME, MIP
+
+      END BLOCK request_action
+      IF (ALLOCATED(VOQ)) DEALLOCATE(VOQ)
+      IF (ALLOCATED(CROSS)) DEALLOCATE(CROSS)
+      IF (ALLOCATED(IONOD)) DEALLOCATE(IONOD)
+      CORQ => CORQ%NEXTORQ
+   end do request_loop
+   IF (ALLOCATED(EBLOC)) DEALLOCATE(EBLOC)
+
+!     Termination of output
+
+   RETURN
+end subroutine SWOUTP
+
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP, &
-                   OQPROC, BKC, &
-                   VOQR, OURQT, LOGACT)
+   OQPROC, BKC, &
+   VOQR, OURQT, LOGACT)
 !                                                                      *
-!***********************************************************************
-!
-   USE TIMECOMM
-!NCF   USE OCPCOMM2
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM3
-   USE SWCOMM4
-!NCF   USE OUTP_DATA
+!************************************************************************
+
+   USE swan_netcdf_output_backend, ONLY: is_netcdf_filename
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_time, ONLY: default_time_context
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_test_output
+   USE OUTP_DATA
    USE M_PARALL
-   USE OUTP_DATA, ONLY: NTVTK
-!
-!
-!
+   USE swan_vtk_output, ONLY: NTVTK
+   use swan_io_limits, only: LENFNM
+
+   CHARACTER(LEN=LENFNM) :: FILENM ! only the netCDF variant uses it here
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -665,37 +693,37 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP, &
 !     -----------------------------------------------------------------   40.00
 !
 ! 13. Source text
-!
+
    INTEGER    VOQR(*), OUTI(*), BKC
    INTEGER    IVTYP(*)
-   REAL*8     OUTR(*)
-   REAL*8     OURQT
-   REAL*8     DIF, TNEXT
+   INTEGER, SAVE :: IENT = 0
+   INTEGER    IVAR, IVT, IVTYPE, NVAR, NVOQP
+   REAL(KIND=KIND(0.0D0))     OUTR(*)
+   REAL(KIND=KIND(0.0D0))     OURQT
+   REAL(KIND=KIND(0.0D0))     DIF, TNEXT
    LOGICAL    OQPROC(NMOVAR), LOGACT
-!NCF   LOGICAL    NCF
-   CHARACTER  PSNAME *(*), RTYPE *(*)
-   SAVE IENT
-   DATA IENT /0/
+   LOGICAL    NCF
+   CHARACTER(LEN=*) :: PSNAME, RTYPE
    CALL STRACE (IENT, 'SWORDC')
-!
+
 !     check time of output action:                                        30.00
    IF (NSTATM.EQ.1) THEN
 !       check time of output action:                                      40.00
 !       DIF  in case that timco is not a fraction of the
 !       computational period and the user do not ask for a periodic plots
-      DIF = TFINC - TIMCO
-      IF (OUTR(1).LT.TINIC) THEN
-         TNEXT = TINIC
+      DIF = default_time_context%TFINC - default_time_context%TIMCO
+      IF (OUTR(1).LT.default_time_context%TINIC) THEN
+         TNEXT = default_time_context%TINIC
       ELSE
          TNEXT = OUTR(1)
       ENDIF
       IF ( PARLL.AND.OURQT.EQ.-9999.) OURQT = OUTR(1)
       IF (ITEST.GE.60) WRITE (PRTEST, *) ' output times ', TNEXT, &
-            OUTR(2), DT, TFINC, TIMCO
-      IF (ABS(DIF).LT.0.5*DT .AND. OUTR(2).LT.0.) THEN
-         OUTR(1) = TIMCO
+         OUTR(2), default_time_context%DT, default_time_context%TFINC, default_time_context%TIMCO
+      IF (ABS(DIF).LT.0.5*default_time_context%DT .AND. OUTR(2).LT.0.) THEN
+         OUTR(1) = default_time_context%TIMCO
          LOGACT = .TRUE.
-      ELSE IF (OUTR(2).GT.0. .AND. TIMCO.GE.TNEXT) THEN
+      ELSE IF (OUTR(2).GT.0. .AND. default_time_context%TIMCO.GE.TNEXT) THEN
          OUTR(1) = TNEXT + OUTR(2)
          LOGACT = .TRUE.
       ELSE
@@ -706,43 +734,42 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP, &
    ELSE
       LOGACT = .TRUE.
    ENDIF
-!
+
 !     action is taken, proceed with analysing output request
 !
 !     Ivtype 1 and 2 are Xp and Yp
-!
+
    OQPROC(1) = .TRUE.
    VOQR(1)   = 1
    OQPROC(2) = .TRUE.
    VOQR(2)   = 2
-!
+
 !     clear VOQR and OQPROC from old information
-!
-   DO 10 IVT = 3, NMOVAR
+
+   do IVT = 3, NMOVAR
       VOQR(IVT)   = 0
       OQPROC(IVT) = .FALSE.
-10 CONTINUE
-!
+   end do
+
 !     Ivtype 24 and 25 are Xc and Yc
-!
+
    OQPROC(24) = .TRUE.
    VOQR(24)   = 3
    OQPROC(25) = .TRUE.
    VOQR(25)   = 4
    NVOQP = 4
-!
+
    NVAR = OUTI(3)
-!
-   DO 20 IVAR = 1, NVAR
+
+   do IVAR = 1, NVAR
       IVTYPE = IVTYP(IVAR)
-!
+
       IF (IVTYPE.LT.1 .OR. IVTYPE.GT.NMOVAR) THEN
          CALL MSGERR (2, 'wrong value for IVTYPE')
-         WRITE (PRINTF, 17) RTYPE, PSNAME, IVTYPE, NVAR
-17       FORMAT (' type, points, var: ', A4, 2X, A8, 2X, 2I8)
-         GOTO 20
+         WRITE (PRINTF, "(' type, points, var: ', A4, 2X, A8, 2X, 2I8)") RTYPE, PSNAME, IVTYPE, NVAR
+         CYCLE
       ENDIF
-!
+
       IF (OVSVTY(IVTYPE).LE.2 .AND. .NOT.OQPROC(IVTYPE)) THEN
 !           output quantity is a scalar
          NVOQP = NVOQP + 1
@@ -753,12 +780,11 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP, &
          VOQR(IVTYPE) = NVOQP-1
       ENDIF
       OQPROC(IVTYPE) = .TRUE.
-      IF (ITEST.GE.80 .OR. IOUTES .GE. 20) WRITE (PRTEST, 22) &
+      IF (ITEST.GE.80 .OR. IOUTES .GE. 20) WRITE (PRTEST, "(' SWORDC, output quantity:', 3I6)") &
          IVAR, IVTYPE, VOQR(IVTYPE)
-22    FORMAT (' SWORDC, output quantity:', 3I6)
-!
+
 !        for spectral width add Tm02 as output quantity                   20.61
-!
+
       IF (IVTYPE.EQ.33) THEN
          IF (.NOT.OQPROC(32)) THEN
             NVOQP = NVOQP + 1
@@ -766,9 +792,9 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP, &
             OQPROC(32) = .TRUE.
          ENDIF
       ENDIF
-!
+
 !        for BFI add steepness and Qp as output quantities                40.64
-!
+
       IF (IVTYPE.EQ.59) THEN
          IF (.NOT.OQPROC(18)) THEN
             NVOQP = NVOQP + 1
@@ -781,13 +807,13 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP, &
             OQPROC(58) = .TRUE.
          ENDIF
       ENDIF
-!
+
 !        include depth and wind required for partitioning output          41.62
-!
+
       IF ((IVTYPE.EQ.100).OR.(IVTYPE.EQ.110).OR. &
-          (IVTYPE.EQ.120).OR.(IVTYPE.EQ.130).OR. &
-          (IVTYPE.EQ.140).OR.(IVTYPE.EQ.150).OR. &
-          (IVTYPE.EQ.160)) THEN
+         (IVTYPE.EQ.120).OR.(IVTYPE.EQ.130).OR. &
+         (IVTYPE.EQ.140).OR.(IVTYPE.EQ.150).OR. &
+         (IVTYPE.EQ.160)) THEN
          IF (.NOT.OQPROC(4)) THEN
             NVOQP = NVOQP + 1
             VOQR(4) = NVOQP
@@ -800,24 +826,24 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP, &
             OQPROC(26) = .TRUE.
          ENDIF
       ENDIF
-!
+
 !        for some quantities compute action densities
-!
+
       IF (IVTYPE.EQ.10 .OR. IVTYPE.EQ.11 .OR. IVTYPE.EQ.12 .OR. &
-          IVTYPE.EQ.13 .OR. IVTYPE.EQ.14 .OR. IVTYPE.EQ.16 .OR. &
-          IVTYPE.EQ.21 .OR. IVTYPE.EQ.22 .OR. IVTYPE.EQ.43 .OR. &
-          IVTYPE.EQ.44 .OR. IVTYPE.EQ.48 .OR. IVTYPE.EQ.53 .OR. &
-          IVTYPE.EQ.58                                          ) &
+         IVTYPE.EQ.13 .OR. IVTYPE.EQ.14 .OR. IVTYPE.EQ.16 .OR. &
+         IVTYPE.EQ.21 .OR. IVTYPE.EQ.22 .OR. IVTYPE.EQ.43 .OR. &
+         IVTYPE.EQ.44 .OR. IVTYPE.EQ.48 .OR. IVTYPE.EQ.53 .OR. &
+         IVTYPE.EQ.58                                          ) &
          BKC = MAX (1, BKC)
-!
+
 !        for some quantities also compute Depth, current, K and Cg
-!
+
       IF (IVTYPE.EQ.15 .OR. IVTYPE.EQ.17 .OR. IVTYPE.EQ.18 .OR. &
-          IVTYPE.EQ.19 .OR. IVTYPE.EQ.20 .OR. IVTYPE.EQ.28 .OR. &
-          IVTYPE.EQ.32 .OR. IVTYPE.EQ.33 .OR. IVTYPE.EQ.42 .OR. &
-          IVTYPE.EQ.47 .OR. IVTYPE.EQ.59 .OR. IVTYPE.EQ.71      ) &
+         IVTYPE.EQ.19 .OR. IVTYPE.EQ.20 .OR. IVTYPE.EQ.28 .OR. &
+         IVTYPE.EQ.32 .OR. IVTYPE.EQ.33 .OR. IVTYPE.EQ.42 .OR. &
+         IVTYPE.EQ.47 .OR. IVTYPE.EQ.59 .OR. IVTYPE.EQ.71      ) &
          BKC = 2
-!
+
       IF (IVTYPE.EQ.11 .AND. ICUR.GT.0) BKC = 2
       IF (BKC.GT.0) THEN
 !           depth must be computed
@@ -833,20 +859,20 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP, &
             OQPROC(5)=.TRUE.
          ENDIF
       ENDIF
-!
+
 !        for partitioning output compute A, depth, current, K and Cg
-!
+
       IF (IVTYPE.EQ.100 .OR. IVTYPE.EQ.110 .OR. IVTYPE.EQ.120 .OR. &
-          IVTYPE.EQ.130 .OR. IVTYPE.EQ.140 .OR. IVTYPE.EQ.150 .OR. &
-          IVTYPE.EQ.160) &
+         IVTYPE.EQ.130 .OR. IVTYPE.EQ.140 .OR. IVTYPE.EQ.150 .OR. &
+         IVTYPE.EQ.160) &
          BKC = 2
-!
-20 CONTINUE
-!
+
+   end do
+
 !     in case of print of spectrum Ux and Uy have to be computed          20.28
-!
+
    IF (     RTYPE(1:2) .EQ. 'SP' &
-       .OR. RTYPE(1:2) .EQ. 'NE') THEN
+      .OR. RTYPE(1:2) .EQ. 'NE') THEN
       OQPROC(4)  = .TRUE.
       VOQR(4)    = NVOQP+1
       NVOQP      = NVOQP+1
@@ -858,46 +884,47 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP, &
          NVOQP     = NVOQP+2
       ENDIF
    ENDIF
-!NCF!
-!NCF!     add significant wave height and wind to any netCDF file             41.40
-!NCF!
-!NCF   FILENM = OUTP_FILES(OUTI(2))
-!NCF   NCF    = INDEX( FILENM, '.NC' ).NE.0 .OR. &
-!NCF            INDEX (FILENM, '.nc' ).NE.0
-!NCF   IF ( NCF ) THEN
-!NCF!        significant wave height must be added
-!NCF      IF (.NOT.OQPROC(10)) THEN
-!NCF         NVOQP = NVOQP + 1
-!NCF         VOQR(10) = NVOQP
-!NCF         OQPROC(10)=.TRUE.
-!NCF      ENDIF
-!NCF!        wind must be added
-!NCF      IF (.NOT.OQPROC(26)) THEN
-!NCF         NVOQP = NVOQP + 2
-!NCF         VOQR(26) = NVOQP-1
-!NCF         OQPROC(26)=.TRUE.
-!NCF      ENDIF
-!NCF   ENDIF
 !
+!     add significant wave height and wind to any netCDF file
+!
+   FILENM = OUTP_FILES(OUTI(2))
+   NCF = is_netcdf_filename(FILENM)
+   IF ( NCF ) THEN
+!        significant wave height must be added
+      IF (.NOT.OQPROC(10)) THEN
+         NVOQP = NVOQP + 1
+         VOQR(10) = NVOQP
+         OQPROC(10)=.TRUE.
+      ENDIF
+!        wind must be added
+      IF (.NOT.OQPROC(26)) THEN
+         NVOQP = NVOQP + 2
+         VOQR(26) = NVOQP-1
+         OQPROC(26)=.TRUE.
+      ENDIF
+   ENDIF
+
    RETURN
 !*    end of subroutine SWORDC   **
-END
-!***********************************************************************
+end subroutine SWORDC
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK, &
-                   XNLEN, YNLEN, MXN, MYN, XPCN, YPCN, ALPCN, &
-                   XCGRID,YCGRID,RTYPE)
+   XNLEN, YNLEN, MXN, MYN, XPCN, YPCN, ALPCN, &
+   XCGRID,YCGRID,RTYPE)
 !                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM3
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM3
-   USE SWCOMM4
+!************************************************************************
+
+   USE swan_service_interfaces, ONLY: STRACE, EQREAL
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid
+   USE swan_test_output
    USE OUTP_DATA
-!
-!
+
+   REAL :: DXK
+   REAL :: DYK
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -956,9 +983,9 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK, &
 !
 !     XCGRID: input  Coordinates of computational grid in x-direction     30.72
 !     YCGRID: input  Coordinates of computational grid in y-direction     30.72
-!
+
    REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
-!
+
 !  PSNAME      Char   input   name of output point set referred to
 !  PSTYPE      Char   input   type of output point set
 !  MIP         Int    outp    number of output points
@@ -972,10 +999,10 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK, &
 !                             x-axis, counterclockwise measured
 !  RTYPE       char   input   indicates type of output; "PLOT" means that
 !                             a spatial plot is made
-   CHARACTER  RTYPE *(*)
+   CHARACTER(LEN=*) :: RTYPE
    INTEGER OPI(2)
    REAL    OPR(5)
-!
+
 !  5. SUBROUTINES CALLING
 !
 !       SWOUTP (SWAN/OUTP)
@@ -1000,14 +1027,16 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK, &
 !       determine name, type and number of output points of
 !       the output point set
 !       ----------------------------------------------------------------
-!
-   CHARACTER  PSNAME *(*), PSTYPE *1
-   LOGICAL    EQREAL
-!
-   SAVE IENT
-   DATA IENT /0/
+
+   CHARACTER(LEN=*) :: PSNAME
+   CHARACTER(LEN=1) :: PSTYPE
+   INTEGER, SAVE :: IENT = 0
+   INTEGER    MIP, MXK, MXN, MYK, MYN
+   REAL       ALPCN, XCLOSE, XCMAX, XCMIN, XNLEN, XPCN
+   REAL       XPMAX, XPMIN, YCMAX, YCMIN, YNLEN, YPCN, YPMAX, YPMIN
+
    CALL STRACE (IENT, 'SWODDC')
-!
+
    ALPQ  = 0.
    COSPQ = 1.
    SINPQ = 0.
@@ -1015,7 +1044,7 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK, &
    ALCQ  = 0.
    COSCQ = COS(ALCQ)
    SINCQ = SIN(ALCQ)
-!
+
    IF (PSTYPE.EQ.'F') THEN
       MXK  = OPI(1)
       MYK  = OPI(2)
@@ -1059,7 +1088,7 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK, &
       YPMIN =  1.E09
       XPMAX = -1.E09
       YPMAX = -1.E09
-!
+
       XPQ   = XPMIN
       YPQ   = YPMIN
       XQP   = -XPQ
@@ -1081,14 +1110,11 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK, &
       YPCN  = 0.
       ALPCN = 0.
       IF (IOUTES .GE. 20) THEN
-         WRITE(PRINTF, 11) MXK ,MYK , XQP ,YQP , DXK ,DYK
-11       FORMAT ('SWODDC :',/,'     MXK ,MYK , XQP     ,YQP       ,DXK' &
-               ,'        ,DYK' &
-               ,/,2(1X,I5), 4(1X,E9.3))
-         IF (PSTYPE .EQ. 'H') WRITE(PRINTF, 12)XCMIN,XCMAX,YCMIN,YCMAX, &
-            XPMAX ,XPMIN
-12       FORMAT(' XCMIN   ,XCMAX    ,YCMIN    ,YCMAX    ,', &
-            'XPMAX    ,XPMIN :',/,6(1X,E9.3))
+         WRITE(PRINTF, &
+               "('SWODDC :',/,'     MXK ,MYK , XQP     ,YQP       ,DXK' ,'        ,DYK' ,/,2(1X,I5), 4(1X,E9.3))") &
+               MXK ,MYK , XQP ,YQP , DXK ,DYK
+         IF (PSTYPE .EQ. 'H') WRITE(PRINTF, &
+               "(' XCMIN   ,XCMAX    ,YCMIN    ,YCMAX    ,', 'XPMAX    ,XPMIN :',/,6(1X,E9.3))")XCMIN,XCMAX,YCMIN,YCMAX,XPMAX ,XPMIN
       ENDIF
    ELSE IF (PSTYPE.EQ.'C' .OR. PSTYPE.EQ.'P') THEN
       MXK = 0
@@ -1124,47 +1150,44 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK, &
    ELSE
       WRITE (PRTEST,'(A)') ' error SWODDC: no PSTYPE defined'
    ENDIF
-!
+
    IF (PSNAME.EQ.'COMPGRID') THEN
       LCOMPGRD=.TRUE.
    ELSE
       LCOMPGRD=.FALSE.
    ENDIF
-!
+
    IF (ITEST.GE.100 .OR. IOUTES .GE. 30) THEN
-      WRITE (PRTEST, 91) PSNAME, PSTYPE, MIP
-91    FORMAT (' Exit SWODDC  ', A16, 2X, A1, 3I6)
-      IF (PSTYPE.EQ.'F' .OR. PSTYPE .EQ. 'H') WRITE (PRTEST, 92) &
-         MXK, MYK, ALPQ, DXK, DYK
-92    FORMAT ('SWODDC : MXK, MYK,   ALPQ,   DXK,     DYK',/, &
-         6X, 2I5, 4(1X,E9.3))
+      WRITE (PRTEST, "(' Exit SWODDC  ', A16, 2X, A1, 3I6)") PSNAME, PSTYPE, MIP
+      IF (PSTYPE.EQ.'F' .OR. PSTYPE .EQ. 'H') WRITE (PRTEST, &
+            "('SWODDC : MXK, MYK,   ALPQ,   DXK,     DYK',/, 6X, 2I5, 4(1X,E9.3))")MXK, MYK, ALPQ, DXK, DYK
    ENDIF
-!
+
    RETURN
 !*    end of subroutine SWODDC   **
-END
-!***********************************************************************
+end subroutine SWODDC
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   , &
-                    X         ,Y          , &
-                    MIP       ,XP         , &
-                    YP        ,XC         , &
-                    YC        ,KGRPNT     , &
-                    XCGRID    ,YCGRID     , &
-                    CROSS                 )
+   X         ,Y          , &
+   MIP       ,XP         , &
+   YP        ,XC         , &
+   YC        ,KGRPNT     , &
+   XCGRID    ,YCGRID     , &
+   CROSS                 )
 !                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM3
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+!************************************************************************
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_services, ONLY: CVMESH, EVALF
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind
+   USE swan_computational_grid
+   USE swan_spherical_geometry
    USE M_PARALL
-!
-!
-!
+   USE swan_global_grid
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1229,22 +1252,27 @@ SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   , &
 !     ---
 !
 !  4. Argument variables
-!
+
+   INTEGER MIP
+!   The output-quadrature grid is built and consumed inside this routine
+!   only, so it is local state rather than a shared module variable.
+   INTEGER MXQ, MYQ
+   REAL    DXQ, DYQ
    INTEGER OPI(2)
-!
+
 !     XCGRID: input  Coordinates of computational grid in x-direction     30.72
 !     YCGRID: input  Coordinates of computational grid in y-direction     30.72
-!
+
    REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
    REAL    OPR(5), X(MIP), Y(MIP)
-!
+
 !     PSTYPE  Char   input    type of output point set
 !     MIP     Int    input    number of output points
 !     XP, YP  real   outp     user coordinates of output point
 !     XC, YC  real   outp     comp. grid coordinates
-!
+
    LOGICAL CROSS(4,MIP) ! true if obstacle is between output point
-                        ! and computational grid point
+   ! and computational grid point
 !
 !  8. Subroutines used
 !
@@ -1259,234 +1287,245 @@ SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   , &
 !     ---
 !
 ! 13. Source text
-!
+
    REAL       XC(*), YC(*), XP(MIP), YP(MIP)
-   CHARACTER  PSTYPE *1
+   CHARACTER(LEN=1) :: PSTYPE
    INTEGER     KGRPNT(MXC,MYC)
+   INTEGER, SAVE :: IENT = 0
+   INTEGER   IP, IXQ, IYQ
    INTEGER   ITMP1, ITMP2, ITMP3, ITMP4, ITMP5, ITMP6
    REAL      RTMP1, RTMP2, RTMP3, RTMP4
-!
-   SAVE IENT
-   DATA IENT /0/
+   REAL      DCXQ, DCYQ, XCA, XCMAX, XCMIN, XP1, XPA, XPMAX, XPMIN
+   REAL      XPP, XX, YCA, YCMAX, YCMIN, YP1, YPA, YPMAX, YPMIN, YPP, YY
+
    CALL STRACE (IENT, 'SWOEXC')
-!
-   IF (PSTYPE.EQ.'F') THEN
-      MXQ   = OPI(1)
-      MYQ   = OPI(2)
-      ALPQ  = OPR(5)
-      COSPQ = COS(ALPQ)
-      SINPQ = SIN(ALPQ)
-      XPQ   = OPR(1)
-      YPQ   = OPR(2)
-      XQLEN = OPR(3)
-      YQLEN = OPR(4)
-      XQP   = -XPQ*COSPQ - YPQ*SINPQ
-      YQP   =  XPQ*SINPQ - YPQ*COSPQ
-      IF (MXQ.GT.1) THEN
-         DXQ = XQLEN/(MXQ-1)
-      ELSE
-         DXQ = 0.01
-      ENDIF
-      IF (MYQ.GT.1) THEN
-         DYQ = YQLEN/(MYQ-1)
-      ELSE
-         DYQ = 0.01
-      ENDIF
-      IP    = 0
-      DO  11  IYQ = 1, MYQ
-         YY  = (IYQ-1)*DYQ
-         XP1 = XPQ - YY*SINPQ
-         YP1 = YPQ + YY*COSPQ
-         DO  10  IXQ = 1, MXQ
-            XX = (IXQ-1)*DXQ
-            IP = IP+1
-            XP(IP) = XP1 + XX*COSPQ
-            YP(IP) = YP1 + XX*SINPQ
-10       CONTINUE
-11    CONTINUE
-   ELSE IF (PSTYPE .EQ. 'H') THEN
-      XCMAX = OPR(1)
-      YCMAX = OPR(2)
-      XCMIN = OPR(3)
-      YCMIN = OPR(4)
-      ALPQ  = OPR(5)
-      MXQ   = OPI(1)
-      MYQ   = OPI(2)
-      COSPQ = COS(ALPQ)
-      SINPQ = SIN(ALPQ)
-      IF (MXQ.GT.1) THEN
-         DCXQ = (XCMAX - XCMIN)/(MXQ-1)
-      ELSE
-         DCXQ = 0.
-      END IF
-      IF (MYQ.GT.1) THEN
-         DCYQ = (YCMAX - YCMIN)/(MYQ-1)
-      ELSE
-         DCYQ = 0.
-      END IF
-      XC(1) = XCMIN
-      YC(1) = YCMIN
+
+   coordinate_transform: BLOCK
+      IF (PSTYPE.EQ.'F') THEN
+         MXQ   = OPI(1)
+         MYQ   = OPI(2)
+         ALPQ  = OPR(5)
+         COSPQ = COS(ALPQ)
+         SINPQ = SIN(ALPQ)
+         XPQ   = OPR(1)
+         YPQ   = OPR(2)
+         XQLEN = OPR(3)
+         YQLEN = OPR(4)
+         XQP   = -XPQ*COSPQ - YPQ*SINPQ
+         YQP   =  XPQ*SINPQ - YPQ*COSPQ
+         IF (MXQ.GT.1) THEN
+            DXQ = XQLEN/(MXQ-1)
+         ELSE
+            DXQ = 0.01
+         ENDIF
+         IF (MYQ.GT.1) THEN
+            DYQ = YQLEN/(MYQ-1)
+         ELSE
+            DYQ = 0.01
+         ENDIF
+         IP    = 0
+         do IYQ = 1, MYQ
+            YY  = (IYQ-1)*DYQ
+            XP1 = XPQ - YY*SINPQ
+            YP1 = YPQ + YY*COSPQ
+            do IXQ = 1, MXQ
+               XX = (IXQ-1)*DXQ
+               IP = IP+1
+               XP(IP) = XP1 + XX*COSPQ
+               YP(IP) = YP1 + XX*SINPQ
+            end do
+         end do
+      ELSE IF (PSTYPE .EQ. 'H') THEN
+         XCMAX = OPR(1)
+         YCMAX = OPR(2)
+         XCMIN = OPR(3)
+         YCMIN = OPR(4)
+         ALPQ  = OPR(5)
+         MXQ   = OPI(1)
+         MYQ   = OPI(2)
+         COSPQ = COS(ALPQ)
+         SINPQ = SIN(ALPQ)
+         IF (MXQ.GT.1) THEN
+            DCXQ = (XCMAX - XCMIN)/(MXQ-1)
+         ELSE
+            DCXQ = 0.
+         END IF
+         IF (MYQ.GT.1) THEN
+            DCYQ = (YCMAX - YCMIN)/(MYQ-1)
+         ELSE
+            DCYQ = 0.
+         END IF
+         XC(1) = XCMIN
+         YC(1) = YCMIN
 !       *** Find XQLEN and YQLEN taken the extreme points    ***
 !       *** that belongs to the frame                        ***
-      XPMIN =  1.E09
-      YPMIN =  1.E09
-      XPMAX = -1.E09
-      YPMAX = -1.E09
-!
-      XPQ   = XPMIN
-      YPQ   = YPMIN
-      XQP   = 0.
-      YQP   = 0.
-      XQLEN = XPMAX - XPMIN
-      YQLEN = YPMAX - YPMIN
-      IF (MXQ.GT.1) THEN
-         DXQ = (XQLEN)/(MXQ-1)
-      ELSE
-         DXQ = 0.
-      END IF
-      IF (MYQ.GT.1) THEN
-         DYQ = (YQLEN)/(MYQ-1)
-      ELSE
-         DYQ = 0.
-      END IF
-      IF (ITEST.GE. 120 ) THEN
-         WRITE(PRINTF,64) XQLEN ,YQLEN ,MXQ ,MYQ , &
-                          DCXQ  ,DCYQ ,XC(1) ,YC(1),DXQ ,DYQ
-64       FORMAT (' SWOEXC FRAME DATA :',/,' XQLEN      ,YQLEN      ', &
-                 ',MXQ ,MYQ , DCXQ    ,DCYQ     ,XC(1)    ,YC(1)', &
-                 '    ,DXQ       ,DYQ',/,1X, &
-            2(1X,E9.3),2(1X,I4),2X,6(1X,E9.3))
-         WRITE(PRINTF,65)XCMIN,XCMAX,YCMIN,YCMAX, &
-                         XPMIN,XPMAX,YPMIN,YPMAX
-65       FORMAT('XCMIN        ,XCMAX  ,YCMIN     ,YCMAX    ,XPMIN', &
-                '   ,XPMAX     ,YPMIN    ,YPMAX   ',/,8(1X,E9.3),/)
-      ENDIF
-      YY    = YCMIN - DCYQ
-      IP    = 0
-      DO 15 IYQ = 1 ,MYQ
-         XX = XCMIN - DCXQ
-         YY = YY    + DCYQ
-         DO 16 IXQ = 1 ,MXQ
-            IP = IP + 1
-            XX = XX + DCXQ
-            XC(IP) = XX - REAL(MXF) + 1.
-            YC(IP) = YY - REAL(MYF) + 1.
-            IF ( XC(IP).GE.-0.01 .AND. XC(IP).LE.REAL(MXC-1)+0.01 .AND. &
-                 YC(IP).GE.-0.01 .AND. YC(IP).LE.REAL(MYC-1)+0.01 ) THEN
-               IF ( KGRPNT(NINT(XC(IP))+1,NINT(YC(IP))+1).GT.1 ) THEN
-                  CALL EVALF (XC(IP)+1.,YC(IP)+1.,XPP,YPP,XCGRID,YCGRID)
-                  XP(IP) = XPP
-                  YP(IP) = YPP
+         XPMIN =  1.E09
+         YPMIN =  1.E09
+         XPMAX = -1.E09
+         YPMAX = -1.E09
+
+         XPQ   = XPMIN
+         YPQ   = YPMIN
+         XQP   = 0.
+         YQP   = 0.
+         XQLEN = XPMAX - XPMIN
+         YQLEN = YPMAX - YPMIN
+         IF (MXQ.GT.1) THEN
+            DXQ = (XQLEN)/(MXQ-1)
+         ELSE
+            DXQ = 0.
+         END IF
+         IF (MYQ.GT.1) THEN
+            DYQ = (YQLEN)/(MYQ-1)
+         ELSE
+            DYQ = 0.
+         END IF
+         IF (ITEST.GE. 120 ) THEN
+            WRITE(PRINTF, &
+                  "(' SWOEXC FRAME DATA :',/,' XQLEN      ,YQLEN      ',&
+                  & ',MXQ ,MYQ , DCXQ    ,DCYQ     ,XC(1)    ,YC(1)', '    ,DXQ       ,DYQ',/,1X,&
+                  & 2(1X,E9.3),2(1X,I4),2X,6(1X,E9.3))") XQLEN ,YQLEN ,MXQ ,MYQ ,DCXQ  ,DCYQ ,XC(1) ,YC(1),DXQ ,DYQ
+            WRITE(PRINTF, &
+                  "('XCMIN        ,XCMAX  ,YCMIN     ,YCMAX    ,XPMIN',&
+                  & '   ,XPMAX     ,YPMIN    ,YPMAX   ',/,8(1X,E9.3),/)")XCMIN,XCMAX,YCMIN,YCMAX,XPMIN,XPMAX,YPMIN,YPMAX
+         ENDIF
+         YY    = YCMIN - DCYQ
+         IP    = 0
+         do IYQ = 1 ,MYQ
+            XX = XCMIN - DCXQ
+            YY = YY    + DCYQ
+            do IXQ = 1 ,MXQ
+               IP = IP + 1
+               XX = XX + DCXQ
+               XC(IP) = XX - REAL(MXF) + 1.
+               YC(IP) = YY - REAL(MYF) + 1.
+               IF ( XC(IP).GE.-0.01 .AND. XC(IP).LE.REAL(MXC-1)+0.01 .AND. &
+                  YC(IP).GE.-0.01 .AND. YC(IP).LE.REAL(MYC-1)+0.01 ) THEN
+                  IF ( KGRPNT(NINT(XC(IP))+1,NINT(YC(IP))+1).GT.1 ) THEN
+                     CALL EVALF (XC(IP)+1.,YC(IP)+1.,XPP,YPP,XCGRID,YCGRID)
+                     XP(IP) = XPP
+                     YP(IP) = YPP
+                  ELSE
+                     XP(IP) = OVEXCV(1)
+                     YP(IP) = OVEXCV(2)
+                  END IF
                ELSE
                   XP(IP) = OVEXCV(1)
                   YP(IP) = OVEXCV(2)
-               END IF
-            ELSE
-               XP(IP) = OVEXCV(1)
-               YP(IP) = OVEXCV(2)
-            ENDIF
-            IF (ITEST.GE.200) WRITE(PRTEST,63) &
-               XP(IP), YP(IP), XC(IP), YC(IP)
-16       CONTINUE
-15    CONTINUE
-      GOTO 85
-   ELSE IF (PSTYPE.EQ.'C' .OR. PSTYPE.EQ.'P' .OR. &
-            PSTYPE.EQ.'N' .OR. PSTYPE.EQ.'U' ) THEN
-      XP = X
-      YP = Y
-   ENDIF
-!
+               ENDIF
+               IF (ITEST.GE.200) WRITE(PRTEST, &
+                     "(' SWOEXC, PROBLEM  COORD:', 2(1X,F12.4),/, '         COMPUT   COORD:', 2(1X,F12.4))")XP(IP), &
+                     YP(IP), XC(IP), YC(IP)
+            end do
+         end do
+         EXIT coordinate_transform
+      ELSE IF (PSTYPE.EQ.'C' .OR. PSTYPE.EQ.'P' .OR. &
+         PSTYPE.EQ.'N' .OR. PSTYPE.EQ.'U' ) THEN
+         XP = X
+         YP = Y
+      ENDIF
+
 !     transform to computational grid
-!
-   IF (ITEST.GE. 150 .AND. OPTG .EQ. 1) &
-      WRITE (PRTEST, 62) XCP, YCP, COSPC, SINPC, DX, DY
-62 FORMAT (' SWOEXC, transf. coeff.:', 8(1X,E12.4))
+
+      IF (ITEST.GE. 150 .AND. OPTG .EQ. 1) &
+         WRITE (PRTEST, "(' SWOEXC, transf. coeff.:', 8(1X,E12.4))") XCP, YCP, COSPC, SINPC, DX, DY
 !     *** The transformation to computational grid depends ***
 !     *** on the grid type: regular(1) , curvilinear(3)    ***
-   DO 70 IP=1, MIP
-      IF (OPTG .EQ. 1) THEN
-         XC(IP) = (XCP + XP(IP)*COSPC + YP(IP)*SINPC) / DX
-         XC(IP) = XC(IP) - REAL(MXF) + 1.
+      do IP=1, MIP
+         IF (OPTG .EQ. 1) THEN
+            XC(IP) = (XCP + XP(IP)*COSPC + YP(IP)*SINPC) / DX
+            XC(IP) = XC(IP) - REAL(MXF) + 1.
 !         repeating grid: XC is shifted to be between 0 and MXC           40.13
-         IF (KREPTX.GT.0) XC(IP) = MODULO (XC(IP), REAL(MXC))
-         IF (ONED) THEN
-            YC(IP) = 0
-         ELSE
-            YC(IP) = (YCP - XP(IP)*SINPC + YP(IP)*COSPC) / DY
-            YC(IP) = YC(IP) - REAL(MYF) + 1.
+            IF (KREPTX.GT.0) XC(IP) = MODULO (XC(IP), REAL(MXC))
+            IF (ONED) THEN
+               YC(IP) = 0
+            ELSE
+               YC(IP) = (YCP - XP(IP)*SINPC + YP(IP)*COSPC) / DY
+               YC(IP) = YC(IP) - REAL(MYF) + 1.
+            ENDIF
+         ELSEIF (OPTG.EQ.3) THEN
+            XPA = XP(IP)
+            YPA = YP(IP)
+            ITMP1  = MXC
+            ITMP2  = MYC
+            ITMP3  = MCGRD
+            ITMP4  = NGRBND
+            ITMP5  = MXF
+            ITMP6  = MYF
+            RTMP1  = XCLMIN
+            RTMP2  = XCLMAX
+            RTMP3  = YCLMIN
+            RTMP4  = YCLMAX
+            MXC    = MXCGL
+            MYC    = MYCGL
+            MCGRD  = MCGRDGL
+            NGRBND = NGRBGL
+            MXF    = 1
+            MYF    = 1
+            XCLMIN = XCGMIN
+            XCLMAX = XCGMAX
+            YCLMIN = YCGMIN
+            YCLMAX = YCGMAX
+            CALL CVMESH (XPA, YPA, XCA, YCA, KGRPGL, XGRDGL ,YGRDGL, &
+               KGRBGL)
+            MXC    = ITMP1
+            MYC    = ITMP2
+            MCGRD  = ITMP3
+            NGRBND = ITMP4
+            MXF    = ITMP5
+            MYF    = ITMP6
+            XCLMIN = RTMP1
+            XCLMAX = RTMP2
+            YCLMIN = RTMP3
+            YCLMAX = RTMP4
+            XC(IP) = XCA - REAL(MXF) + 1.
+            YC(IP) = YCA - REAL(MYF) + 1.
          ENDIF
-      ELSEIF (OPTG.EQ.3) THEN
-         XPA = XP(IP)
-         YPA = YP(IP)
-         ITMP1  = MXC
-         ITMP2  = MYC
-         ITMP3  = MCGRD
-         ITMP4  = NGRBND
-         ITMP5  = MXF
-         ITMP6  = MYF
-         RTMP1  = XCLMIN
-         RTMP2  = XCLMAX
-         RTMP3  = YCLMIN
-         RTMP4  = YCLMAX
-         MXC    = MXCGL
-         MYC    = MYCGL
-         MCGRD  = MCGRDGL
-         NGRBND = NGRBGL
-         MXF    = 1
-         MYF    = 1
-         XCLMIN = XCGMIN
-         XCLMAX = XCGMAX
-         YCLMIN = YCGMIN
-         YCLMAX = YCGMAX
-         CALL CVMESH (XPA, YPA, XCA, YCA, KGRPGL, XGRDGL ,YGRDGL, &
-                      KGRBGL)
-         MXC    = ITMP1
-         MYC    = ITMP2
-         MCGRD  = ITMP3
-         NGRBND = ITMP4
-         MXF    = ITMP5
-         MYF    = ITMP6
-         XCLMIN = RTMP1
-         XCLMAX = RTMP2
-         YCLMIN = RTMP3
-         YCLMAX = RTMP4
-         XC(IP) = XCA - REAL(MXF) + 1.
-         YC(IP) = YCA - REAL(MYF) + 1.
-      ENDIF
-      IF (ITEST.GE.250) WRITE(PRTEST,63) XP(IP), YP(IP), &
-                                         XC(IP), YC(IP)
-70 CONTINUE
-63 FORMAT (' SWOEXC, PROBLEM  COORD:', 2(1X,F12.4),/, &
-           '         COMPUT   COORD:', 2(1X,F12.4))
-85 CONTINUE
-!
+         IF (ITEST.GE.250) WRITE(PRTEST, &
+               "(' SWOEXC, PROBLEM  COORD:', 2(1X,F12.4),/, '         COMPUT   COORD:', 2(1X,F12.4))") XP(IP), YP(IP),XC(IP), YC(IP)
+      end do
+   END BLOCK coordinate_transform
+
    RETURN
-END
-!***********************************************************************
+end subroutine SWOEXC
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
-                   KGRPNT, FORCE, CROSS, IONOD &
-                   ,IRQ &
-                  )
+   KGRPNT, FORCE, CROSS, IONOD, DIFFR &
+   ,IRQ &
+   )
 !                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-   USE TIMECOMM
+!************************************************************************
+
+   USE swan_file_opening, ONLY: FOR
+   USE swan_service_interfaces, ONLY: STRACE, EQREAL, STPNOW
+   USE swan_output_interpolation, ONLY: SwanInterpolateOutput
+   USE swan_structured_output_interpolation, ONLY: SWIPOL
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_input_grids
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_compda_layout
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_spherical_geometry
+   USE swan_time, ONLY: default_time_context
    USE M_PARALL
-   USE M_DIFFR
    USE OUTP_DATA
    USE SwanGriddata
    USE SwanGridobjects
-!METIS   USE SwanParallel
-!
-   IMPLICIT NONE
-!
-!
+   use swan_io_limits, only: LENFNM
+   USE swan_metis_partition_backend, ONLY: metis_vertex_is_resident
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+   CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1572,6 +1611,12 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
 !     XP, YP  real   outp     user coordinates of output point
 !     XC, YC  real   outp     comp. grid coordinates
 !     WX2, WY2  real input    wind components
+!     DIFFR   type   input    diffraction parameter per grid point, which
+!                             is interpolated to the output points for
+!                             output quantity DIFPAR
+!
+   TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
+!
 !
 !  9. Subroutines calling
 !
@@ -1586,7 +1631,8 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
 !       ---
 !
 ! 13. Source text
-!
+
+   INTEGER    MIP
    REAL       XC(*), YC(*), VOQ(MIP,*), COMPDA(MCGRD,MCMVAR)
    REAL       FORCE(nverts,2)
    INTEGER    VOQR(*), KGRPNT(MXC,MYC)
@@ -1595,38 +1641,35 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
    INTEGER    IVERTP, NOWNV
    INTEGER    NREF, IOSTAT
    INTEGER, ALLOCATABLE :: KVERT(:)
-   CHARACTER  RTYPE*4
-   LOGICAL    OQPROC(*), EQREAL
-   LOGICAL    STPNOW
+   CHARACTER(LEN=4) :: RTYPE
+   LOGICAL    OQPROC(*)
    LOGICAL    CROSS(4,MIP)
    LOGICAL, ALLOCATABLE :: LTMP(:)
-!
-   INTEGER MIP,IENT,JJ,IVXP,IVYP,IVDIST,IP,JVQX,JVQY, &
-           KK, IXB, IXE, IYB, IYE, IX, IY, IHLX, IHLY
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER JJ,IVXP,IVYP,IVDIST,IP,JVQX,JVQY, &
+      KK, IXB, IXE, IYB, IYE, IX, IY, IHLX, IHLY
    INTEGER ILPOS
    REAL UXLOC,UYLOC,RDIST,RDX,RDY,RR,UBLOC,F1,RTMP,XP1,YP1
    REAL RVAL1, RVAL2
-!
+
    INTEGER IVTYPE ! temporary counter for NMOVAR, used in VOQR,
-                  ! OQPROC, OVKEYW, etc.
+   ! OQPROC, OVKEYW, etc.
    INTEGER JCOMPDA ! temporary index for COMPDA, corresponds to
-                   ! permanent variable Jw2o1x, etc.
-!
+   ! permanent variable Jw2o1x, etc.
+
    type(verttype), dimension(:), pointer :: vert
-   SAVE IENT
-   DATA IENT /0/
    CALL STRACE (IENT, 'SWOEXD')
-!
+
    vert => gridobject%vert_grid
-   IF (ITEST.GE. 100 .OR. IOUTES .GE. 10) WRITE (PRTEST, 10) &
+   IF (ITEST.GE. 100 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' Entry SWOEXD ', 11L2, I8)") &
       (OQPROC(JJ), JJ=1,10), OQPROC(26), MIP
-10 FORMAT (' Entry SWOEXD ', 11L2, I8)
    IVXP   = 1
    IVYP   = 2
-!
+
 !     distance
-!
-110 IF (OQPROC(3)) THEN
+
+   IF (OQPROC(3)) THEN
       IVDIST = VOQR(3)
       DO IP = 1, MIP
          IF (IP.EQ.1) THEN
@@ -1645,11 +1688,11 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          VOQ(IP,IVDIST) = RDIST
       ENDDO
    ENDIF
-!
+
    IF (OPTG.EQ.5) THEN
-!
+
 !        ---find closest vertex for given point in case of unstructured grid
-!
+
       ALLOCATE(KVERT(MIP))
       IF (.NOT.LCOMPGRD) THEN
          DO IP = 1, MIP
@@ -1660,45 +1703,44 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
             KVERT(IP) = IP
          ENDDO
       ENDIF
-!
+
    ENDIF
-!
+
 !     depth
-!
-120 IF (OQPROC(4)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 4, &
+
+   IF (OQPROC(4)) THEN
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 4, &
          VOQR(4), JDP2
-121   FORMAT (' SWOEXD, type:', 4I3)
       IF (OPTG.NE.5) THEN
          CALL SWIPOL (COMPDA(1,JDP2), OVEXCV(4), XC, YC, MIP, CROSS, &
-                      VOQ(1,VOQR(4)) ,KGRPNT, COMPDA(1,JDP2))
+            VOQ(1,VOQR(4)) ,KGRPNT, COMPDA(1,JDP2))
       ELSE
          CALL SwanInterpolateOutput ( VOQ(1,VOQR(4)), VOQ(1,1), &
-                                      VOQ(1,2), COMPDA(1,JDP2), &
-                                      MIP, KVERT, OVEXCV(4) )
+            VOQ(1,2), COMPDA(1,JDP2), &
+            MIP, KVERT, OVEXCV(4) )
       ENDIF
    ENDIF
-!
+
 !     current velocity
-!
-130 IF (OQPROC(5)) THEN
+
+   IF (OQPROC(5)) THEN
       JVQX = VOQR(5)
       JVQY = JVQX+1
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 5, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 5, &
          VOQR(5), JVX2
       IF (ICUR.EQ.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL (COMPDA(1,JVX2), OVEXCV(5), XC, YC, MIP, CROSS, &
-                         VOQ(1,JVQX) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,JVQX) ,KGRPNT, COMPDA(1,JDP2))
             CALL SWIPOL (COMPDA(1,JVY2), OVEXCV(5), XC, YC, MIP, CROSS, &
-                         VOQ(1,JVQY) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,JVQY) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,JVQX), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JVX2), &
-                                         MIP, KVERT, OVEXCV(5) )
+               VOQ(1,2), COMPDA(1,JVX2), &
+               MIP, KVERT, OVEXCV(5) )
             CALL SwanInterpolateOutput ( VOQ(1,JVQY), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JVY2), &
-                                         MIP, KVERT, OVEXCV(5) )
+               VOQ(1,2), COMPDA(1,JVY2), &
+               MIP, KVERT, OVEXCV(5) )
          ENDIF
          DO IP = 1, MIP
             UXLOC = VOQ(IP,JVQX)
@@ -1713,19 +1755,19 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          ENDDO
       ENDIF
    ENDIF
-!
+
 !     Ubot
-!
-140 IF (OQPROC(6)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 20) WRITE (PRTEST, 121) 6, &
+
+   IF (OQPROC(6)) THEN
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 20) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 6, &
          VOQR(6)
       IF (OPTG.NE.5) THEN
          CALL SWIPOL (COMPDA(1,JUBOT), OVEXCV(6), XC, YC, MIP, CROSS, &
-                      VOQ(1,VOQR(6)) ,KGRPNT, COMPDA(1,JDP2))
+            VOQ(1,VOQR(6)) ,KGRPNT, COMPDA(1,JDP2))
       ELSE
          CALL SwanInterpolateOutput ( VOQ(1,VOQR(6)), VOQ(1,1), &
-                                      VOQ(1,2), COMPDA(1,JUBOT), &
-                                      MIP, KVERT, OVEXCV(6) )
+            VOQ(1,2), COMPDA(1,JUBOT), &
+            MIP, KVERT, OVEXCV(6) )
       ENDIF
       KK = VOQR(6)
       RR = SQRT(2.)
@@ -1734,35 +1776,35 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          IF (.NOT.EQREAL(UBLOC,OVEXCV(6))) VOQ(IP,KK) = RR * UBLOC
       ENDDO
    ENDIF
-!
+
 !     Urms
-!
+
    IF (OQPROC(34)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 34, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 34, &
          VOQR(34)
       IF (OPTG.NE.5) THEN
          CALL SWIPOL (COMPDA(1,JUBOT), OVEXCV(34), XC, YC, MIP, CROSS, &
-                      VOQ(1,VOQR(34)) ,KGRPNT, COMPDA(1,JDP2))
+            VOQ(1,VOQR(34)) ,KGRPNT, COMPDA(1,JDP2))
       ELSE
          CALL SwanInterpolateOutput ( VOQ(1,VOQR(34)), VOQ(1,1), &
-                                      VOQ(1,2), COMPDA(1,JUBOT), &
-                                      MIP, KVERT, OVEXCV(34) )
+            VOQ(1,2), COMPDA(1,JUBOT), &
+            MIP, KVERT, OVEXCV(34) )
       ENDIF
    ENDIF
-!
+
 !     TmBot
-!
+
    IF (OQPROC(50)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 50, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 50, &
          VOQR(50), JPBOT
       IF (JPBOT.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JPBOT),OVEXCV(50),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(50)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(50)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(50)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JPBOT), &
-                                         MIP, KVERT, OVEXCV(50) )
+               VOQ(1,2), COMPDA(1,JPBOT), &
+               MIP, KVERT, OVEXCV(50) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -1770,41 +1812,41 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          ENDDO
       ENDIF
    ENDIF
-!
+
 !     dissipation
-!
+
    IF (OQPROC(7)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 7, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 7, &
          VOQR(7)
       IF (OPTG.NE.5) THEN
          CALL SWIPOL (COMPDA(1,JDISS), OVEXCV(7), XC, YC, MIP, CROSS, &
-                      VOQ(1,VOQR(7)) ,KGRPNT, COMPDA(1,JDP2))
+            VOQ(1,VOQR(7)) ,KGRPNT, COMPDA(1,JDP2))
       ELSE
          CALL SwanInterpolateOutput ( VOQ(1,VOQR(7)), VOQ(1,1), &
-                                      VOQ(1,2), COMPDA(1,JDISS), &
-                                      MIP, KVERT, OVEXCV(7) )
+            VOQ(1,2), COMPDA(1,JDISS), &
+            MIP, KVERT, OVEXCV(7) )
       ENDIF
       IF (INRHOG.EQ.1) THEN
-         DO 152 IP = 1, MIP
+         do IP = 1, MIP
             F1 = VOQ(IP,VOQR(7))
             IF (.NOT.EQREAL(F1,OVEXCV(7))) VOQ(IP,VOQR(7))=F1*RHO*GRAV
-152      CONTINUE
+         end do
       ENDIF
    ENDIF
-!
+
 !     bottom friction dissipation
-!
+
    IF (OQPROC(54)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 54, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 54, &
          VOQR(54), JDSXB
       IF (JDSXB.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JDSXB),OVEXCV(54),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(54)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(54)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(54)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JDSXB), &
-                                         MIP, KVERT, OVEXCV(54) )
+               VOQ(1,2), COMPDA(1,JDSXB), &
+               MIP, KVERT, OVEXCV(54) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -1818,20 +1860,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     wave breaking dissipation
-!
+
    IF (OQPROC(55)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 55, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 55, &
          VOQR(55), JDSXS
       IF (JDSXS.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JDSXS),OVEXCV(55),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(55)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(55)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(55)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JDSXS), &
-                                         MIP, KVERT, OVEXCV(55) )
+               VOQ(1,2), COMPDA(1,JDSXS), &
+               MIP, KVERT, OVEXCV(55) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -1845,20 +1887,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     whitecapping dissipation
-!
+
    IF (OQPROC(56)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 56, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 56, &
          VOQR(56), JDSXW
       IF (JDSXW.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JDSXW),OVEXCV(56),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(56)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(56)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(56)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JDSXW), &
-                                         MIP, KVERT, OVEXCV(56) )
+               VOQ(1,2), COMPDA(1,JDSXW), &
+               MIP, KVERT, OVEXCV(56) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -1872,20 +1914,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     vegetation dissipation
-!
+
    IF (OQPROC(57)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 57, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 57, &
          VOQR(57), JDSXV
       IF (JDSXV.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JDSXV),OVEXCV(57),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(57)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(57)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(57)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JDSXV), &
-                                         MIP, KVERT, OVEXCV(57) )
+               VOQ(1,2), COMPDA(1,JDSXV), &
+               MIP, KVERT, OVEXCV(57) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -1899,20 +1941,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     turbulent dissipation
-!
+
    IF (OQPROC(72)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 72, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 72, &
          VOQR(72), JDSXT
       IF (JDSXT.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JDSXT),OVEXCV(72),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(72)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(72)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(72)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JDSXT), &
-                                         MIP, KVERT, OVEXCV(72) )
+               VOQ(1,2), COMPDA(1,JDSXT), &
+               MIP, KVERT, OVEXCV(72) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -1926,20 +1968,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     fluid mud dissipation
-!
+
    IF (OQPROC(74)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 74, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 74, &
          VOQR(74), JDSXM
       IF (JDSXM.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JDSXM),OVEXCV(74),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(74)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(74)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(74)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JDSXM), &
-                                         MIP, KVERT, OVEXCV(74) )
+               VOQ(1,2), COMPDA(1,JDSXM), &
+               MIP, KVERT, OVEXCV(74) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -1953,20 +1995,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     swell dissipation
-!
+
    IF (OQPROC(75)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 75, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 75, &
          VOQR(75), JDSXL
       IF (JDSXL.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JDSXL),OVEXCV(75),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(75)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(75)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(75)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JDSXL), &
-                                         MIP, KVERT, OVEXCV(75) )
+               VOQ(1,2), COMPDA(1,JDSXL), &
+               MIP, KVERT, OVEXCV(75) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -1980,23 +2022,23 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     dissipation by sea ice: integrated Sice term
-!
+
    IVTYPE=76
    JCOMPDA=JDSXI ! give J-name here, JDSXI/JAICE2/JHICE2
 !     begin block of code that is identical for all new variables
    IF (OQPROC(IVTYPE)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) IVTYPE, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") IVTYPE, &
          VOQR(IVTYPE), JCOMPDA
       IF (JCOMPDA.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JCOMPDA),OVEXCV(IVTYPE),XC,YC, MIP, &
-                    CROSS,VOQ(1,VOQR(IVTYPE)) ,KGRPNT, COMPDA(1,JDP2))
+               CROSS,VOQ(1,VOQR(IVTYPE)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(IVTYPE)),VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JCOMPDA), &
-                                         MIP, KVERT, OVEXCV(IVTYPE) )
+               VOQ(1,2), COMPDA(1,JCOMPDA), &
+               MIP, KVERT, OVEXCV(IVTYPE) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2009,49 +2051,49 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
 !     end block of code that is identical for all new variables
 !
 !     ice concentration (fraction)
-!
+
    IVTYPE=77
    JCOMPDA=JAICE2 ! give J-name here, JDSXI/JAICE2/JHICE2
 !     note special use of VARAICE and PICE
    IF (OQPROC(IVTYPE)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) IVTYPE, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") IVTYPE, &
          VOQR(IVTYPE), JCOMPDA
       IF (VARAICE) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JCOMPDA),OVEXCV(IVTYPE),XC,YC, MIP, &
-                    CROSS,VOQ(1,VOQR(IVTYPE)) ,KGRPNT, COMPDA(1,JDP2))
+               CROSS,VOQ(1,VOQR(IVTYPE)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(IVTYPE)),VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JCOMPDA), &
-                                         MIP, KVERT, OVEXCV(IVTYPE) )
+               VOQ(1,2), COMPDA(1,JCOMPDA), &
+               MIP, KVERT, OVEXCV(IVTYPE) )
          ENDIF
       ELSE
          F1 = PICE(1)
          DO IP = 1, MIP
             IF (.NOT.EQREAL(F1,OVEXCV(IVTYPE))) &
-                                             VOQ(IP,VOQR(IVTYPE)) = F1
+               VOQ(IP,VOQR(IVTYPE)) = F1
          END DO
       ENDIF
    ENDIF
    IVTYPE=-999
    JCOMPDA=-999
-!
+
 !     ice thickness (in meters)
-!
+
    IVTYPE=78
    JCOMPDA=JHICE2 ! give J-name here, JDSXI/JAICE2/JHICE2
 !     note special use of PICE
    IF (OQPROC(IVTYPE)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) IVTYPE, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") IVTYPE, &
          VOQR(IVTYPE), JCOMPDA
       IF (JCOMPDA.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JCOMPDA),OVEXCV(IVTYPE),XC,YC, MIP, &
-                    CROSS,VOQ(1,VOQR(IVTYPE)) ,KGRPNT, COMPDA(1,JDP2))
+               CROSS,VOQ(1,VOQR(IVTYPE)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(IVTYPE)),VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JCOMPDA), &
-                                         MIP, KVERT, OVEXCV(IVTYPE) )
+               VOQ(1,2), COMPDA(1,JCOMPDA), &
+               MIP, KVERT, OVEXCV(IVTYPE) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2061,20 +2103,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
    ENDIF
    IVTYPE=-999
    JCOMPDA=-999
-!
+
 !     energy generation
-!
+
    IF (OQPROC(60)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 60, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 60, &
          VOQR(60), JGENR
       IF (JGENR.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JGENR),OVEXCV(60),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(60)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(60)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(60)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JGENR), &
-                                         MIP, KVERT, OVEXCV(60) )
+               VOQ(1,2), COMPDA(1,JGENR), &
+               MIP, KVERT, OVEXCV(60) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2088,20 +2130,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     wind source term
-!
+
    IF (OQPROC(61)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 61, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 61, &
          VOQR(61), JGSXW
       IF (JGSXW.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JGSXW),OVEXCV(61),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(61)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(61)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(61)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JGSXW), &
-                                         MIP, KVERT, OVEXCV(61) )
+               VOQ(1,2), COMPDA(1,JGSXW), &
+               MIP, KVERT, OVEXCV(61) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2115,20 +2157,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     energy redistribution
-!
+
    IF (OQPROC(62)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 62, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 62, &
          VOQR(62), JREDS
       IF (JREDS.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JREDS),OVEXCV(62),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(62)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(62)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(62)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JREDS), &
-                                         MIP, KVERT, OVEXCV(62) )
+               VOQ(1,2), COMPDA(1,JREDS), &
+               MIP, KVERT, OVEXCV(62) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2142,20 +2184,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     total absolute 4-wave interaction
-!
+
    IF (OQPROC(63)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 63, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 63, &
          VOQR(63), JRSXQ
       IF (JRSXQ.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JRSXQ),OVEXCV(63),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(63)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(63)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(63)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JRSXQ), &
-                                         MIP, KVERT, OVEXCV(63) )
+               VOQ(1,2), COMPDA(1,JRSXQ), &
+               MIP, KVERT, OVEXCV(63) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2169,20 +2211,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     total absolute 3-wave interaction
-!
+
    IF (OQPROC(64)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 64, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 64, &
          VOQR(64), JRSXT
       IF (JRSXT.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JRSXT),OVEXCV(64),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(64)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(64)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(64)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JRSXT), &
-                                         MIP, KVERT, OVEXCV(64) )
+               VOQ(1,2), COMPDA(1,JRSXT), &
+               MIP, KVERT, OVEXCV(64) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2196,20 +2238,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     total absolute Bragg scattering
-!
+
    IF (OQPROC(79)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 79, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 79, &
          VOQR(79), JRSXB
       IF (JRSXB.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JRSXB),OVEXCV(79),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(79)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(79)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(79)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JRSXB), &
-                                         MIP, KVERT, OVEXCV(79) )
+               VOQ(1,2), COMPDA(1,JRSXB), &
+               MIP, KVERT, OVEXCV(79) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2223,20 +2265,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     total absolute QC scattering
-!
+
    IF (OQPROC(80)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 80, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 80, &
          VOQR(80), JRSXC
       IF (JRSXC.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JRSXC),OVEXCV(80),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(80)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(80)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(80)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JRSXC), &
-                                         MIP, KVERT, OVEXCV(80) )
+               VOQ(1,2), COMPDA(1,JRSXC), &
+               MIP, KVERT, OVEXCV(80) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2250,20 +2292,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     energy propagation
-!
+
    IF (OQPROC(65)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 65, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 65, &
          VOQR(65), JTRAN
       IF (JTRAN.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JTRAN),OVEXCV(65),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(65)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(65)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(65)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JTRAN), &
-                                         MIP, KVERT, OVEXCV(65) )
+               VOQ(1,2), COMPDA(1,JTRAN), &
+               MIP, KVERT, OVEXCV(65) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2277,20 +2319,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     xy-propagation
-!
+
    IF (OQPROC(66)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 66, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 66, &
          VOQR(66), JTSXG
       IF (JTSXG.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JTSXG),OVEXCV(66),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(66)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(66)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(66)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JTSXG), &
-                                         MIP, KVERT, OVEXCV(66) )
+               VOQ(1,2), COMPDA(1,JTSXG), &
+               MIP, KVERT, OVEXCV(66) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2304,20 +2346,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     theta-propagation
-!
+
    IF (OQPROC(67)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 67, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 67, &
          VOQR(67), JTSXT
       IF (JTSXT.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JTSXT),OVEXCV(67),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(67)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(67)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(67)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JTSXT), &
-                                         MIP, KVERT, OVEXCV(67) )
+               VOQ(1,2), COMPDA(1,JTSXT), &
+               MIP, KVERT, OVEXCV(67) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2331,20 +2373,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     sigma-propagation
-!
+
    IF (OQPROC(68)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 68, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 68, &
          VOQR(68), JTSXS
       IF (JTSXS.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JTSXS),OVEXCV(68),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(68)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(68)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(68)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JTSXS), &
-                                         MIP, KVERT, OVEXCV(68) )
+               VOQ(1,2), COMPDA(1,JTSXS), &
+               MIP, KVERT, OVEXCV(68) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2358,20 +2400,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     radiation stress
-!
+
    IF (OQPROC(69)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 69, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 69, &
          VOQR(69), JRADS
       IF (JRADS.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JRADS),OVEXCV(69),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(69)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(69)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(69)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JRADS), &
-                                         MIP, KVERT, OVEXCV(69) )
+               VOQ(1,2), COMPDA(1,JRADS), &
+               MIP, KVERT, OVEXCV(69) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2385,20 +2427,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       ENDIF
    ENDIF
-!
+
 !     number of plants per square meter
-!
+
    IF (OQPROC(70)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 70, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 70, &
          VOQR(70), JNPLA2
       IF (JNPLA2.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JNPLA2),OVEXCV(70),XC,YC, MIP, CROSS, &
-                        VOQ(1,VOQR(70)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(70)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(70)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JNPLA2), &
-                                         MIP, KVERT, OVEXCV(70) )
+               VOQ(1,2), COMPDA(1,JNPLA2), &
+               MIP, KVERT, OVEXCV(70) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2406,20 +2448,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          ENDDO
       ENDIF
    ENDIF
-!
+
 !     turbulent viscosity
-!
+
    IF (OQPROC(73)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 73, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 73, &
          VOQR(73), JTURB2
       IF (JTURB2.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JTURB2),OVEXCV(73),XC,YC, MIP, CROSS, &
-                        VOQ(1,VOQR(73)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(73)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(73)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JTURB2), &
-                                         MIP, KVERT, OVEXCV(73) )
+               VOQ(1,2), COMPDA(1,JTURB2), &
+               MIP, KVERT, OVEXCV(73) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2427,35 +2469,35 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          ENDDO
       ENDIF
    ENDIF
-!
+
 !     Qb
-!
+
    IF (OQPROC(8)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 8, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 8, &
          VOQR(8), JQB
       IF (OPTG.NE.5) THEN
          CALL SWIPOL (COMPDA(1,JQB), OVEXCV(8), XC, YC, MIP, CROSS, &
-                      VOQ(1,VOQR(8)) ,KGRPNT, COMPDA(1,JDP2))
+            VOQ(1,VOQR(8)) ,KGRPNT, COMPDA(1,JDP2))
       ELSE
          CALL SwanInterpolateOutput ( VOQ(1,VOQR(8)), VOQ(1,1), &
-                                      VOQ(1,2), COMPDA(1,JQB), &
-                                      MIP, KVERT, OVEXCV(8) )
+            VOQ(1,2), COMPDA(1,JQB), &
+            MIP, KVERT, OVEXCV(8) )
       ENDIF
    ENDIF
-!
+
 !     breaker index                                                       41.96
-!
+
    IF (OQPROC(82)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 82, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 82, &
          VOQR(82), JGAMMA
       IF (JGAMMA.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JGAMMA),OVEXCV(82),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(82)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(82)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(82)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JGAMMA), &
-                                         MIP, KVERT, OVEXCV(82) )
+               VOQ(1,2), COMPDA(1,JGAMMA), &
+               MIP, KVERT, OVEXCV(82) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2463,27 +2505,27 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          ENDDO
       ENDIF
    ENDIF
-!
+
 !     wind velocity                                                       10.07
-!
+
    IF (OQPROC(26)) THEN
       JVQX = VOQR(26)
       JVQY = JVQX+1
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 26, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 26, &
          VOQR(26), JWX2
       IF (VARWI) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL (COMPDA(1,JWX2), OVEXCV(26),XC, YC, MIP, CROSS, &
-                         VOQ(1,JVQX) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,JVQX) ,KGRPNT, COMPDA(1,JDP2))
             CALL SWIPOL (COMPDA(1,JWY2), OVEXCV(26),XC, YC, MIP, CROSS, &
-                         VOQ(1,JVQY) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,JVQY) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,JVQX), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JWX2), &
-                                         MIP, KVERT, OVEXCV(26) )
+               VOQ(1,2), COMPDA(1,JWX2), &
+               MIP, KVERT, OVEXCV(26) )
             CALL SwanInterpolateOutput ( VOQ(1,JVQY), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JWY2), &
-                                         MIP, KVERT, OVEXCV(26) )
+               VOQ(1,2), COMPDA(1,JWY2), &
+               MIP, KVERT, OVEXCV(26) )
          ENDIF
          DO IP = 1, MIP
             UXLOC = VOQ(IP,JVQX)
@@ -2500,71 +2542,71 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          ENDDO
       ENDIF
    ENDIF
-!
+
 !     difference in Hs between iterations                                 20.52
-!
-180 IF (OQPROC(30)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 30, &
+
+   IF (OQPROC(30)) THEN
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 30, &
          VOQR(30), JDHS
       IF (OPTG.NE.5) THEN
          CALL SWIPOL (COMPDA(1,JDHS), OVEXCV(30), XC, YC, MIP, CROSS, &
-                      VOQ(1,VOQR(30)) ,KGRPNT, COMPDA(1,JDP2))
+            VOQ(1,VOQR(30)) ,KGRPNT, COMPDA(1,JDP2))
       ELSE
          CALL SwanInterpolateOutput ( VOQ(1,VOQR(30)), VOQ(1,1), &
-                                      VOQ(1,2), COMPDA(1,JDHS), &
-                                      MIP, KVERT, OVEXCV(30) )
+            VOQ(1,2), COMPDA(1,JDHS), &
+            MIP, KVERT, OVEXCV(30) )
       ENDIF
    ENDIF
-!
+
 !     difference in Tm between iterations                                 20.52
-!
-190 IF (OQPROC(31)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 20) WRITE (PRTEST, 121) 31, &
+
+   IF (OQPROC(31)) THEN
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 20) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 31, &
          VOQR(31), JDTM
       IF (OPTG.NE.5) THEN
          CALL SWIPOL (COMPDA(1,JDTM), OVEXCV(31), XC, YC, MIP, CROSS, &
-                      VOQ(1,VOQR(31)) ,KGRPNT, COMPDA(1,JDP2))
+            VOQ(1,VOQR(31)) ,KGRPNT, COMPDA(1,JDP2))
       ELSE
          CALL SwanInterpolateOutput ( VOQ(1,VOQR(31)), VOQ(1,1), &
-                                      VOQ(1,2), COMPDA(1,JDTM), &
-                                      MIP, KVERT, OVEXCV(31) )
+            VOQ(1,2), COMPDA(1,JDTM), &
+            MIP, KVERT, OVEXCV(31) )
       ENDIF
    ENDIF
-!
+
 !     leak
-!
-200 IF (OQPROC(9)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 20) WRITE (PRTEST, 121) 9, &
+
+   IF (OQPROC(9)) THEN
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 20) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 9, &
          VOQR(9), JLEAK
       IF (OPTG.NE.5) THEN
          CALL SWIPOL (COMPDA(1,JLEAK), OVEXCV(9), XC, YC, MIP, CROSS, &
-                      VOQ(1,VOQR(9)) ,KGRPNT, COMPDA(1,JDP2))
+            VOQ(1,VOQR(9)) ,KGRPNT, COMPDA(1,JDP2))
       ELSE
          CALL SwanInterpolateOutput ( VOQ(1,VOQR(9)), VOQ(1,1), &
-                                      VOQ(1,2), COMPDA(1,JLEAK), &
-                                      MIP, KVERT, OVEXCV(9) )
+            VOQ(1,2), COMPDA(1,JLEAK), &
+            MIP, KVERT, OVEXCV(9) )
       ENDIF
       IF (INRHOG.EQ.1) THEN
-         DO 202 IP = 1, MIP
+         do IP = 1, MIP
             F1 = VOQ(IP,VOQR(9))
             IF (.NOT.EQREAL(F1,OVEXCV(9))) VOQ(IP,VOQR(9))=F1*RHO*GRAV
-202      CONTINUE
+         end do
       ENDIF
    ENDIF
-!
+
 !     Ufric
-!
+
    IF (OQPROC(35)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 20) WRITE (PRTEST, 121) 35, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 20) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 35, &
          VOQR(35), JUSTAR
       IF (JUSTAR.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JUSTAR),OVEXCV(35),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(35)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(35)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(35)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JUSTAR), &
-                                         MIP, KVERT, OVEXCV(35) )
+               VOQ(1,2), COMPDA(1,JUSTAR), &
+               MIP, KVERT, OVEXCV(35) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2572,20 +2614,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          ENDDO
       ENDIF
    ENDIF
-!
+
 !     zelen
-!
+
    IF (OQPROC(36)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 20) WRITE (PRTEST, 121) 36, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 20) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 36, &
          VOQR(36), JZEL
       IF (JZEL.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JZEL), OVEXCV(36), XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(36)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(36)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(36)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JZEL), &
-                                         MIP, KVERT, OVEXCV(36) )
+               VOQ(1,2), COMPDA(1,JZEL), &
+               MIP, KVERT, OVEXCV(36) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2593,20 +2635,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          ENDDO
       ENDIF
    ENDIF
-!
+
 !     TauW
-!
+
    IF (OQPROC(37)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 20) WRITE (PRTEST, 121) 37, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 20) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 37, &
          VOQR(37), JTAUW
       IF (JTAUW.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JTAUW),OVEXCV(37), XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(37)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(37)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(37)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JTAUW), &
-                                         MIP, KVERT, OVEXCV(37) )
+               VOQ(1,2), COMPDA(1,JTAUW), &
+               MIP, KVERT, OVEXCV(37) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2614,20 +2656,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          ENDDO
       ENDIF
    ENDIF
-!
+
 !     Cdrag
-!
+
    IF (OQPROC(38)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 20) WRITE (PRTEST, 121) 38, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 20) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 38, &
          VOQR(38), JCDRAG
       IF (JCDRAG.GT.1) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JCDRAG),OVEXCV(38),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(38)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(38)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(38)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JCDRAG), &
-                                         MIP, KVERT, OVEXCV(38) )
+               VOQ(1,2), COMPDA(1,JCDRAG), &
+               MIP, KVERT, OVEXCV(38) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2635,20 +2677,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          ENDDO
       ENDIF
    ENDIF
-!
+
 !     wave-induced setup                                                  32.02
-!
+
    IF (OQPROC(39)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 39, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 39, &
          VOQR(39), JSETUP
       IF (LSETUP.GT.0) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JSETUP),OVEXCV(39),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(39)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(39)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(39)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JSETUP), &
-                                         MIP, KVERT, OVEXCV(39) )
+               VOQ(1,2), COMPDA(1,JSETUP), &
+               MIP, KVERT, OVEXCV(39) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2656,67 +2698,67 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          ENDDO
       ENDIF
    ENDIF
-!
+
 !     wave-induced force (unstructured grids only!)                       40.80
-!
+
    IF (OQPROC(20).AND.OPTG.EQ.5) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 20, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 20, &
          VOQR(20), 0
       CALL SwanInterpolateOutput ( VOQ(1,VOQR(20)), VOQ(1,1), &
-                                   VOQ(1,2), FORCE(1,1), &
-                                   MIP, KVERT, OVEXCV(20) )
+         VOQ(1,2), FORCE(1,1), &
+         MIP, KVERT, OVEXCV(20) )
       CALL SwanInterpolateOutput ( VOQ(1,VOQR(20)+1), VOQ(1,1), &
-                                   VOQ(1,2), FORCE(1,2), &
-                                   MIP, KVERT, OVEXCV(20) )
+         VOQ(1,2), FORCE(1,2), &
+         MIP, KVERT, OVEXCV(20) )
    ENDIF
-!
+
 !     Ursell
-!
+
    IF (OQPROC(45)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 45, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 45, &
          VOQR(45), JURSEL
       IF (OPTG.NE.5) THEN
          CALL SWIPOL (COMPDA(1,JURSEL), OVEXCV(45),XC, YC, MIP, CROSS, &
-                      VOQ(1,VOQR(45)) ,KGRPNT, COMPDA(1,JDP2))
+            VOQ(1,VOQR(45)) ,KGRPNT, COMPDA(1,JDP2))
       ELSE
          CALL SwanInterpolateOutput ( VOQ(1,VOQR(45)), VOQ(1,1), &
-                                      VOQ(1,2), COMPDA(1,JURSEL), &
-                                      MIP, KVERT, OVEXCV(45) )
+            VOQ(1,2), COMPDA(1,JURSEL), &
+            MIP, KVERT, OVEXCV(45) )
       ENDIF
    ENDIF
-!
+
 !     biphase
-!
+
    IF (OQPROC(83)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 83, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 83, &
          VOQR(83), JBIPH
       IF (OPTG.NE.5) THEN
          CALL SWIPOL (COMPDA(1,JBIPH), OVEXCV(83),XC, YC, MIP, CROSS, &
-                      VOQ(1,VOQR(83)) ,KGRPNT, COMPDA(1,JDP2))
+            VOQ(1,VOQR(83)) ,KGRPNT, COMPDA(1,JDP2))
       ELSE
          CALL SwanInterpolateOutput ( VOQ(1,VOQR(83)), VOQ(1,1), &
-                                      VOQ(1,2), COMPDA(1,JBIPH), &
-                                      MIP, KVERT, OVEXCV(83) )
+            VOQ(1,2), COMPDA(1,JBIPH), &
+            MIP, KVERT, OVEXCV(83) )
       ENDIF
       DO IP = 1, MIP
          F1 = VOQ(IP,VOQR(83))
          IF (.NOT.EQREAL(F1,OVEXCV(83))) VOQ(IP,VOQR(83))=F1*180./PI
       ENDDO
    ENDIF
-!
+
 !     Air-Sea temperature difference
-!
+
    IF (OQPROC(46)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 46, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 46, &
          VOQR(46), JASTD2
       IF (VARAST) THEN
          IF (OPTG.NE.5) THEN
             CALL SWIPOL(COMPDA(1,JASTD2),OVEXCV(46),XC,YC, MIP, CROSS, &
-                        VOQ(1,VOQR(46)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(46)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(46)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JASTD2), &
-                                         MIP, KVERT, OVEXCV(46) )
+               VOQ(1,2), COMPDA(1,JASTD2), &
+               MIP, KVERT, OVEXCV(46) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2724,20 +2766,20 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       END IF
    ENDIF
-!
+
 !       Diffraction parameter                                             40.21
-!
+
    IF (OQPROC(49)) THEN
       IF (IDIFFR.EQ.1) THEN
-         IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 49, &
+         IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 49, &
             VOQR(49), 0
          IF (OPTG.NE.5) THEN
-            CALL SWIPOL (DIFPARAM(:), OVEXCV(49), XC, YC, MIP, CROSS, &
-                         VOQ(1,VOQR(49)) ,KGRPNT, COMPDA(1,JDP2))
+            CALL SWIPOL (diffr%param(:), OVEXCV(49), XC, YC, MIP, CROSS, &
+               VOQ(1,VOQR(49)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(49)), VOQ(1,1), &
-                                         VOQ(1,2), DIFPARAM(:), &
-                                         MIP, KVERT, OVEXCV(49) )
+               VOQ(1,2), diffr%param(:), &
+               MIP, KVERT, OVEXCV(49) )
          ENDIF
       ELSE
          DO IP = 1, MIP
@@ -2745,27 +2787,27 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          ENDDO
       ENDIF
    ENDIF
-!
+
 !     Tsec
-!
+
    IF (OQPROC(41)) THEN
       DO IP = 1, MIP
-         VOQ(IP,VOQR(41)) = REAL(TIMCO) - OUTPAR(1)
+         VOQ(IP,VOQR(41)) = REAL(default_time_context%TIMCO) - OUTPAR(1)
       ENDDO
    ENDIF
-!
+
 !     friction coefficient                                                40.41
-!
+
    IF (OQPROC(27)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 27, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 27, &
          VOQR(27), JFRC2
       IF (VARFR) THEN
          IF (OPTG.NE.5) THEN
-!              interpolation done in all active and non-active points
+!              interpolation done in all active and non-active points     40.91
             RTMP=DEPMIN
             DEPMIN=-10.*ABS(MINVAL(COMPDA(:,JDP2)))
             CALL SWIPOL(COMPDA(1,JFRC2),OVEXCV(27),XC,YC, MIP, CROSS, &
-                        VOQ(1,VOQR(27)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(27)) ,KGRPNT, COMPDA(1,JDP2))
             DEPMIN=RTMP
          ELSE
 !              interpolation done in all active and non-active points     40.91
@@ -2773,8 +2815,8 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
             LTMP(:) = vert(:)%active
             vert(:)%active = .TRUE.
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(27)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JFRC2), &
-                                         MIP, KVERT, OVEXCV(27) )
+               VOQ(1,2), COMPDA(1,JFRC2), &
+               MIP, KVERT, OVEXCV(27) )
             vert(:)%active = LTMP(:)
             DEALLOCATE(LTMP)
          ENDIF
@@ -2789,19 +2831,19 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          END DO
       END IF
    ENDIF
-!
+
 !     water level
-!
+
    IF (OQPROC(51)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 51, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 51, &
          VOQR(51), JWLV2
       IF (VARWLV) THEN
          IF (OPTG.NE.5) THEN
-!             interpolation done in all active and non-active points
+!             interpolation done in all active and non-active points      40.91
             RTMP=DEPMIN
             DEPMIN=-10.*ABS(MINVAL(COMPDA(:,JDP2)))
             CALL SWIPOL(COMPDA(1,JWLV2),OVEXCV(51),XC, YC, MIP, CROSS, &
-                        VOQ(1,VOQR(51)) ,KGRPNT, COMPDA(1,JDP2))
+               VOQ(1,VOQR(51)) ,KGRPNT, COMPDA(1,JDP2))
             DEPMIN=RTMP
          ELSE
 !             interpolation done in all active and non-active points      40.91
@@ -2809,8 +2851,8 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
             LTMP(:) = vert(:)%active
             vert(:)%active = .TRUE.
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(51)), VOQ(1,1), &
-                                         VOQ(1,2), COMPDA(1,JWLV2), &
-                                         MIP, KVERT, OVEXCV(51) )
+               VOQ(1,2), COMPDA(1,JWLV2), &
+               MIP, KVERT, OVEXCV(51) )
             vert(:)%active = LTMP(:)
             DEALLOCATE(LTMP)
          ENDIF
@@ -2824,18 +2866,18 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          IF (.NOT.EQREAL(F1,OVEXCV(51))) VOQ(IP,VOQR(51))=F1 + WLEV
       END DO
    ENDIF
-!
+
 !     bottom level
-!
+
    IF (OQPROC(52)) THEN
-      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, 121) 52, &
+      IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 52, &
          VOQR(52), JBOTLV
       IF (OPTG.NE.5) THEN
-!          interpolation done in all active and non-active points
+!          interpolation done in all active and non-active points         40.91
          RTMP=DEPMIN
          DEPMIN=-10.*ABS(MINVAL(COMPDA(:,JDP2)))
          CALL SWIPOL(COMPDA(1,JBOTLV),OVEXCV(52),XC,YC, MIP, CROSS, &
-                     VOQ(1,VOQR(52)) ,KGRPNT, COMPDA(1,JDP2))
+            VOQ(1,VOQR(52)) ,KGRPNT, COMPDA(1,JDP2))
          DEPMIN=RTMP
       ELSE
 !          interpolation done in all active and non-active points         40.91
@@ -2843,377 +2885,140 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA , &
          LTMP(:) = vert(:)%active
          vert(:)%active = .TRUE.
          CALL SwanInterpolateOutput ( VOQ(1,VOQR(52)), VOQ(1,1), &
-                                      VOQ(1,2), COMPDA(1,JBOTLV), &
-                                      MIP, KVERT, OVEXCV(52) )
+            VOQ(1,2), COMPDA(1,JBOTLV), &
+            MIP, KVERT, OVEXCV(52) )
          vert(:)%active = LTMP(:)
          DEALLOCATE(LTMP)
       ENDIF
    ENDIF
-!
+
 !     correct problem coordinates with offset values
-!
+
    DO IP=1, MIP
       XP1 = VOQ(IP,IVXP)
       IF (.NOT.EQREAL(XP1,OVEXCV(1))) &
-            VOQ(IP,IVXP) = XP1 + XOFFS
+         VOQ(IP,IVXP) = XP1 + XOFFS
       YP1 = VOQ(IP,IVYP)
       IF (.NOT.EQREAL(YP1,OVEXCV(2))) &
-            VOQ(IP,IVYP) = YP1 + YOFFS
+         VOQ(IP,IVYP) = YP1 + YOFFS
    ENDDO
-!
-   IF (.NOT.PARLL) GOTO 900
-!
+
+   IF (PARLL) THEN
+
 !     --- in case of parallel run, mark location points inside own        40.31
 !         subdomain                                                       40.31
 
-   IF ( OPTG.NE.5 ) THEN
-      IF (RTYPE.NE.'BLKV') THEN
-         IHLX = IHALOX
-         IHLY = IHALOY
-      ELSE
-         IHLX = 2
-         IHLY = 2
-      ENDIF
-      IXB = 1+IHLX
-      IF ( LMXF ) IXB = 1
-      IXE = MXC-IHLX
-      IF ( LMXL ) IXE = MXC
-      IYB = 1+IHLY
-      IF ( LMYF ) IYB = 1
-      IYE = MYC-IHLY
-      IF ( LMYL ) IYE = MYC
-      DO IP = 1, MIP
-         IX = INT(XC(IP))
-         IY = INT(YC(IP))
-         RVAL1 = FLOAT(IX)
-         RVAL2 = FLOAT(IY)
-         IF ( .NOT.EQREAL(XC(IP),RVAL1) .OR. EQREAL(XC(IP),0.) .OR. &
-              RTYPE.EQ.'BLKV' ) IX = IX + 1
-         IF ( .NOT.EQREAL(YC(IP),RVAL2) .OR. EQREAL(YC(IP),0.) .OR. &
-              RTYPE.EQ.'BLKV' ) IY = IY + 1
-         IF ( IX.GE.IXB .AND. IX.LE.IXE .AND. &
-              IY.GE.IYB .AND. IY.LE.IYE ) IONOD(IP) = INODE
-      END DO
-   ELSE
-      IF ( .NOT.LCOMPGRD .OR. RTYPE.NE.'BLKV' ) THEN
-         NOWNV = 0
-         DO IP = 1, MIP
-            IF ( KVERT(IP).GT.0 ) THEN
-!                 excludes ghost nodes
-!METIS               IF ( vres(KVERT(IP)) ) THEN
-!METIS                  NOWNV = NOWNV + 1
-!METIS                  IONOD(IP) = INODE
-!METIS               ENDIF
-            ENDIF
-         ENDDO
-      ELSE
-!           this includes ghost nodes as required by Paraview
-         IONOD(1:MIP) = INODE
-      ENDIF
-!
-      IF (.NOT.LCOMPGRD) THEN
-         NREF   =  0
-         IOSTAT = -1
-         FILENM = 'output.set'
-!           append node number to FILENM
-         ILPOS = INDEX ( FILENM, ' ' )-1
-         WRITE(FILENM(ILPOS+1:ILPOS+4),33) INODE
-33       FORMAT('-',I3.3)
-         CALL FOR (NREF, FILENM, 'UU', IOSTAT)
-         IF (STPNOW()) RETURN
-         WRITE(NREF) IRQ, NOWNV
-         DO IP = 1, MIP
-            IF ( KVERT(IP).GT.0 ) THEN
-               IVERTP = ivertg(KVERT(IP))
-            ELSE
-               IVERTP = -1
-            ENDIF
-            IF ( IONOD(IP).EQ.INODE ) WRITE(NREF) IP, IVERTP
-         ENDDO
-      ENDIF
-   ENDIF
-!
-900 IF (ALLOCATED(KVERT)) DEALLOCATE(KVERT)
-!
-   RETURN
-END
-!***********************************************************************
-!                                                                      *
-SUBROUTINE SWIPOL (FINP, EXCVAL, XC, YC, MIP, CROSS, FOUTP, &
-                   KGRPNT, DEP2)
-!                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM3
-   USE SWCOMM4
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.13: Nico Booij
-!     40.41: Marcel Zijlema
-!     40.86: Nico Booij
-!
-!  1. UPDATE
-!
-!     40.00, July 98: no interpolation if one or more corners are dry
-!                     argument DEP2 added
-!                     margin around comp. grid introduced
-!     40.13, Aug. 01: provision for repeating grid
-!                     swcomm4.inc reactivated
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!     40.86, Feb. 08: interpolation over an obstacle prevented
-!
-!  2. PURPOSE
-!
-!       Interpolate the function FINP to the point given by computational
-!       grid coordinates XC and YC; result appears in array FOUTP
-!
-!  3. METHOD
-!
-!       This subroutine computes the contributions from surrounding
-!       points to the function value in an output point. The points used
-!       are indicated in the sketch below.
-!
-!                                                            Y
-!           +-------------------------------------------------->
-!           |
-!           |       .       .       .       .       .       .
-!           |
-!           |
-!           |
-!           |       .       .       *       *       .       .
-!           |
-!           |
-!           |                         o
-!           |       .       .       *       *       .       .
-!           |
-!           |
-!           |
-!           |       .       .       .       .       .       .
-!           |
-!           |
-!           |
-!         X |       .       .       .       .       .       .
-!           |
-!           V
-!
-!                 *   point of the computational grid contributing
-!                       to output point (o)
-!                 .   other grid points
-!
-!  4. PARAMETERLIST
-!
-!       FINP    real a input    array of function values defined on the
-!                               computational grid
-!       EXCVAL  real   input    exception value (assigned if point is outside
-!                               computational grid)
-!       XC, YC  real a input    array containing computational grid coordinates
-!                               of output points
-!       MIP     INT    input    number of output points
-!       FOUTP   real a output   array of interpolated values for the output
-!                               points
-!
-!  5. SUBROUTINES CALLING
-!
-!       SWOEXD
-!
-!  6. SUBROUTINES USED
-!
-!       ---
-!
-!  7. ERROR MESSAGES
-!
-!       ---
-!
-!  8. REMARKS
-!
-!       IINTPC=1: bilinear interpolation
-!       IINTPC=2: higher order interpolation using functions G1 and G2
-!
-!  9. STRUCTURE
-!
-!       ----------------------------------------------------------------
-!       For every output point do
-!           If the output point is near line XCL then
-!               Determine points contributing to the output point
-!               Compute contribution to the projection of the output
-!                 point on line XCL
-!               Compute multiplication factor for interpolation in X-
-!                 direction
-!               Compute contribution for the output point
-!               Add result to value of variable for the output point in
-!                 array IFOP
-!       ----------------------------------------------------------------
-!
-! 10. SOURCE TEXT
-!
-   REAL FINP(MCGRD), FOUTP(MIP), XC(MIP), YC(MIP), DEP2(MCGRD)
-   LOGICAL CROSS(4,MIP) ! true if obstacle is between output point
-                        ! and computational grid point
-   LOGICAL OUTSID
-   INTEGER  KGRPNT(MXC,MYC)
-!
-   REAL*8 :: WW(1:4) ! Interpolation weights for the 4 corners
-   REAL*8 :: SUMWW ! sum of the weights
-   INTEGER :: JX(1:4), JY(1:4) ! grid counters for the 4 corners
-   INTEGER :: INDX(1:4) ! grid counters for the 4 corners
-   INTEGER :: JC ! corner counter
-!
-   SAVE IENT
-   DATA IENT /0/
-   IF (LTRACE) CALL  STRACE (IENT, 'SWIPOL')
-!
-   IF (ITEST.GE.150) WRITE (PRTEST, 61)
-61 FORMAT ('   XC    , YC  ,', &
-      '   JX1, JY1, JX2,  JY2  SX1,  SY1, FOUTP(IP),', &
-      '    INDX1  INDX2  INDX3  INDX4')
-!
-   DO 100 IP=1,MIP
-      IF (XC(IP) .LE. -0.5 .OR. YC(IP) .LE. -0.5) THEN
-         FOUTP(IP) = EXCVAL
-         JX1   = 0
-         JY1   = 0
-         JX2   = 0
-         JY2   = 0
-         SX1   = 0.
-         SX2   = 0.
-         INDX(1:4) = 0
-         GOTO 80
-      ENDIF
-      OUTSID = .FALSE.
-      FOUTP(IP) = 0.
-      JX1 = INT(XC(IP)+3.001) - 2
-      JX2 = JX1 + 1
-      SX2 = XC(IP) + 1. - FLOAT(JX1)
-      SX1 = 1. - SX2
-      IF (JX1.LT.0)   OUTSID = .TRUE.
-      IF (KREPTX .EQ. 0) THEN
-         IF (JX1.GT.MXC) OUTSID = .TRUE.
-         IF (JX1.EQ.MXC) JX2 = MXC
-         IF (JX1.EQ.0)   JX1 = 1
-      ELSE
-         JX1 = 1 + MODULO (JX1-1,MXC)
-         JX2 = 1 + MODULO (JX2-1,MXC)
-      ENDIF
-      IF (ONED) THEN
-         JY1 = 1
-         JY2 = 1
-         SY1 = 0.5
-         SY2 = 0.5
-      ELSE
-         JY1 = INT(YC(IP)+3.001) - 2
-         JY2 = JY1 + 1
-         SY2 = YC(IP) + 1. - FLOAT(JY1)
-         SY1 = 1. - SY2
-         IF (JY1.LT.0)   OUTSID = .TRUE.
-         IF (JY1.GT.MYC) OUTSID = .TRUE.
-         IF (JY1.EQ.MYC) JY2 = MYC
-         IF (JY1.EQ.0)   JY1 = 1
-      ENDIF
-      IF (OUTSID) THEN
-         FOUTP(IP) = EXCVAL
-      ELSE
-         JX(1) = JX1
-         JY(1) = JY1
-         WW(1) = SX1*SY1
-         JX(2) = JX2
-         JY(2) = JY1
-         WW(2) = SX2*SY1
-         JX(3) = JX1
-         JY(3) = JY2
-         WW(3) = SX1*SY2
-         JX(4) = JX2
-         JY(4) = JY2
-         WW(4) = SX2*SY2
-         DO JC = 1, 4
-            INDX(JC) = KGRPNT(JX(JC),JY(JC))
-            IF (WW(JC).LT.0.01) THEN
-               WW(JC) = 0.
-            ELSE
-               IF (INDX(JC).LE.1) THEN
-                  WW(JC) = 0.
-               ELSE IF (DEP2(INDX(JC)).LE.DEPMIN) THEN
-                  OUTSID = .TRUE.
-               ELSE IF (CROSS(JC,IP) .AND. WW(JC).LT.0.999) THEN
-                  WW(JC) = 0.
-               ENDIF
-            ENDIF
-         ENDDO
-         SUMWW = SUM(WW(1:4))
-         IF (OUTSID) THEN
-            FOUTP(IP) = EXCVAL
+      IF ( OPTG.NE.5 ) THEN
+         IF (RTYPE.NE.'BLKV') THEN
+            IHLX = IHALOX
+            IHLY = IHALOY
          ELSE
-            IF (SUMWW.GT.0.1) THEN
-               FOUTP(IP) = SUM(WW*FINP(INDX)) / SUMWW
-            ELSE
-               FOUTP(IP) = EXCVAL
-            ENDIF
+            IHLX = 2
+            IHLY = 2
+         ENDIF
+         IXB = 1+IHLX
+         IF ( LMXF ) IXB = 1
+         IXE = MXC-IHLX
+         IF ( LMXL ) IXE = MXC
+         IYB = 1+IHLY
+         IF ( LMYF ) IYB = 1
+         IYE = MYC-IHLY
+         IF ( LMYL ) IYE = MYC
+         DO IP = 1, MIP
+            IX = INT(XC(IP))
+            IY = INT(YC(IP))
+            RVAL1 = FLOAT(IX)
+            RVAL2 = FLOAT(IY)
+            IF ( .NOT.EQREAL(XC(IP),RVAL1) .OR. EQREAL(XC(IP),0.) .OR. &
+               RTYPE.EQ.'BLKV' ) IX = IX + 1
+            IF ( .NOT.EQREAL(YC(IP),RVAL2) .OR. EQREAL(YC(IP),0.) .OR. &
+               RTYPE.EQ.'BLKV' ) IY = IY + 1
+            IF ( IX.GE.IXB .AND. IX.LE.IXE .AND. &
+               IY.GE.IYB .AND. IY.LE.IYE ) IONOD(IP) = INODE
+         END DO
+      ELSE
+         IF ( .NOT.LCOMPGRD .OR. RTYPE.NE.'BLKV' ) THEN
+            NOWNV = 0
+            DO IP = 1, MIP
+               IF ( KVERT(IP).GT.0 ) THEN
+!                 excludes ghost nodes
+                  IF (metis_vertex_is_resident(KVERT(IP))) THEN
+                     NOWNV = NOWNV + 1
+                     IONOD(IP) = INODE
+                  ENDIF
+               ENDIF
+            ENDDO
+         ELSE
+!           this includes ghost nodes as required by Paraview
+            IONOD(1:MIP) = INODE
+         ENDIF
+
+         IF (.NOT.LCOMPGRD) THEN
+            NREF   =  0
+            IOSTAT = -1
+            FILENM = 'output.set'
+!           append node number to FILENM
+            ILPOS = INDEX ( FILENM, ' ' )-1
+            WRITE(FILENM(ILPOS+1:ILPOS+4),"('-',I3.3)") INODE
+            CALL FOR (NREF, FILENM, 'UU', IOSTAT)
+            IF (STPNOW()) RETURN
+            WRITE(NREF) IRQ, NOWNV
+            DO IP = 1, MIP
+               IF ( KVERT(IP).GT.0 ) THEN
+                  IVERTP = ivertg(KVERT(IP))
+               ELSE
+                  IVERTP = -1
+               ENDIF
+               IF ( IONOD(IP).EQ.INODE ) WRITE(NREF) IP, IVERTP
+            ENDDO
          ENDIF
       ENDIF
-80    IF (ITEST.GE.150) WRITE (PRTEST, 82) &
-         XC(IP) , YC(IP) ,JX1, JY1, JX2,JY2, (WW(JC),JC=1,4), &
-         (INDX(JC), JC=1,4), (FINP(INDX(JC)), JC=1,4)
-82    FORMAT (2(F7.1,1X),4I5, 4(1X,F5.2), 3X,4(2X,I5), 3X, &
-         4(1X,E9.3))
-100 CONTINUE
-!
+
+   END IF
+   IF (ALLOCATED(KVERT)) DEALLOCATE(KVERT)
+
    RETURN
-! * end of subroutine SWIPOL *
-END
-!***********************************************************************
+end subroutine SWOEXD
+!************************************************************************
+!                                                                      *
+
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWOEXA (OQPROC     ,BKC        , &
-                   MIP        ,XC         , &
-                   YC         ,VOQR       , &
-                   VOQ        ,AC2        , &
-                   ACLOC      ,SPCSIG     , &
-                   WK         ,CG         , &
-                   SPCDIR     ,NE         , &
-                   NED        ,KGRPNT     , &
-                   DEPXY      ,CROSS      )
+   MIP        ,XC         , &
+   YC         ,VOQR       , &
+   VOQ        ,AC2        , &
+   ACLOC      ,SPCSIG     , &
+   WK         ,CG         , &
+   SPCDIR     ,NE         , &
+   NED        ,KGRPNT     , &
+   DEPXY      ,CROSS      )
 !                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+!************************************************************************
+
+   USE swan_angle_conversions, ONLY: DEGCNV, ANGRAD, ANGDEG
+   USE swan_structured_output_interpolation, ONLY: SWOINA
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL
+   USE swan_wave_physics, ONLY: KSCIP1
+   USE swan_action_interpolation, ONLY: SwanInterpolateAc
+   USE swan_spectral_integration, ONLY: SwanIntgratSpc
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE OUTP_DATA
    USE SWPARTMD
    USE W3ODATMD, ONLY: WSCUT
    USE SwanIEM, ONLY: ntf, Ebig
-!
-!
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -3306,11 +3111,11 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        , &
 !             (*,4); cosine^2 of spectral directions                      30.82
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
-! i   SPCSIG: Relative frequencies in computational domain in sigma-space 30.82
-!
+! i   SPCSIG: Relative frequencies in computational domain in sigma-space
+
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
-!
+
 !     OQPROC  logic  input    processing of output quantities
 !     MIP     Int    input    number of output points
 !     XC, YC  real   input    comp. grid coordinates
@@ -3344,7 +3149,7 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        , &
 !
 ! 12. Structure
 !
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !     For all output points do
 !         interpolate action density to the output point
 !         If processing of the quantity is requested
@@ -3356,48 +3161,59 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        , &
 !         ------------------------------------------------------------
 !         If processing of the quantity is requested
 !         Then compute energy transport, wavelength etc.
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !
 ! 13. Source text
-!
-   PARAMETER  (NVOTP=94)
+
+   INTEGER, PARAMETER :: NVOTP = 94
+   INTEGER    MIP
    REAL       XC(MIP)        ,YC(MIP)       ,AC2(MDC,MSC,MCGRD), &
-              VOQ(MIP,*)     , &
-              WK(*)          , &
-              CG(*)          ,ACLOC(MDC,MSC), &
-              NE(*)          ,NED(*)        ,DEPXY(MCGRD), ECS(MDC)
+      VOQ(MIP,*)     , &
+      WK(*)          , &
+      CG(*)          ,ACLOC(MDC,MSC), &
+      NE(*)          ,NED(*)        ,DEPXY(MCGRD), ECS(MDC)
    LOGICAL    CROSS(4,MIP)
-!
-   INTEGER    VOQR(*)        ,BKC           ,IVOTP(NVOTP)      , &
-              KGRPNT(MXC,MYC)
-!
-   INTEGER    NP             ,DIMXPT
-   INTEGER    ITMP1
+
+   INTEGER    VOQR(*), BKC, KGRPNT(MXC,MYC)
+   INTEGER, PARAMETER :: IVOTP(NVOTP) = [ &
+      10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 28, 32, 33, &
+      100, 101, 102, 103, 104, 105, 106, 107, 108, 109, &
+      110, 111, 112, 113, 114, 115, 116, 117, 118, 119, &
+      120, 121, 122, 123, 124, 125, 126, 127, 128, 129, &
+      130, 131, 132, 133, 134, 135, 136, 137, 138, 139, &
+      140, 141, 142, 143, 144, 145, 146, 147, 148, 149, &
+      150, 151, 152, 153, 154, 155, 156, 157, 158, 159, &
+      160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 171, &
+      42, 43, 44, 47, 48, 53, 58, 59, 71, 81]
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER    NP, DIMXPT, ITMP1
+   INTEGER    ID, IDIRM, II, IP, IPT, IPTSW, IS, ISC, ISIGM, ITP, IVTYPE
    REAL       UABS           ,UDIR
+   REAL       A, AHFR, APTAIL, APTOT, CETAIL, CEX, CEY, CGE
+   REAL       CIA, CIAC, CIAS, CIB, CIBC, CIBS, CKTAIL
+   REAL       COSFN1, COSFN2, COSFND, CTAIL, DEP, DEPLOC, DIRDEG
+   REAL       DS, DSIG, DSSW, E1, E2, E3, EAD, EADD, ECTAIL, ECTOT
+   REAL       ED, EDI, EEX, EEY, EFTAIL, EFTOT, EHFR, EKTOT
+   REAL       EMAX, EMAXD, EMAXU, EPTAIL, EPTOT, ESTOT, ETAIL
+   REAL       ETD, ETF, ETOT, FF, FMAX, FMIN, FND, FSWELL
+   REAL       OMEG, OMEG1, OMEG1P, OMEG2, P, PPTAIL, Q, QP, R
+   REAL       SIG, SIG1, SIG2, SIG2P, SIG3, SIGP
+   REAL       SINFN1, SINFN2, SINFND, SKK, STPNS, SX, SY, T
+   REAL       THETA, TM02, TPER, UXD, UXLOC, UYLOC, WLMEAN, XP, YP
    REAL, ALLOCATABLE :: XPT(:,:)
-!
+
    REAL, ALLOCATABLE :: FLUX(:,:,:), FLOC(:,:)
    REAL, ALLOCATABLE :: EBLOC(:,:)
-!
-   LOGICAL    OQPROC(*), EQREAL
-   LOGICAL :: EXCPT ! if true value in point is undefined
+
+   LOGICAL    OQPROC(*)
+   LOGICAL :: EXCPT, VALID_OUTPUT ! interpolation status for this point
    INTEGER    NOSWLL
-   SAVE IENT, IVOTP
-   DATA IENT /0/
-   DATA IVOTP /10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 28, 32, 33, &
-               100, 101, 102, 103, 104, 105, 106, 107, 108, 109, &
-               110, 111, 112, 113, 114, 115, 116, 117, 118, 119, &
-               120, 121, 122, 123, 124, 125, 126, 127, 128, 129, &
-               130, 131, 132, 133, 134, 135, 136, 137, 138, 139, &
-               140, 141, 142, 143, 144, 145, 146, 147, 148, 149, &
-               150, 151, 152, 153, 154, 155, 156, 157, 158, 159, &
-               160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 171, &
-               42, 43, 44, 47, 48, 53, 58, 59, 71, 81/
    CALL STRACE (IENT, 'SWOEXA')
-!
+
 !     in case of transport of energy, compute the energy flux in all grid points
 !     (energy flux will then be interpolated at output points!)
-!
+
    IF (OQPROC(15).OR.OQPROC(19)) THEN
       IF(.NOT.ALLOCATED(FLUX)) ALLOCATE(FLUX(MDC,MSC,MCGRD))
       IF(.NOT.ALLOCATED(FLOC)) ALLOCATE(FLOC(MDC,MSC))
@@ -3409,1762 +3225,1562 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        , &
          ENDDO
       ENDDO
    ENDIF
-!
+
 !     in case of surfbeat, allocate help array for interpolation of bound infragravity energy
-!
+
    IF(OQPROC(81).AND..NOT.ALLOCATED(EBLOC)) ALLOCATE(EBLOC(MDC,ntf))
-!
+
 !     loop over all output points
-!
-   DO 800 IP=1,MIP
-      DEP = VOQ(IP,VOQR(4))
-!
+
+   do IP=1,MIP
+      VALID_OUTPUT = .FALSE.
+      point_output: BLOCK
+         DEP = VOQ(IP,VOQR(4))
+
 !       assign exception value if depth is negative or point is outside grid
-!
-      IF (DEP.LE.0.)                    GOTO 700
-      IF (EQREAL(DEP,OVEXCV(4)))        GOTO 700
-      IF (OPTG.NE.5) THEN
-         IF (KREPTX.EQ.0) THEN
+
+         IF (DEP.LE.0.)                    EXIT point_output
+         IF (EQREAL(DEP,OVEXCV(4)))        EXIT point_output
+         IF (OPTG.NE.5) THEN
+            IF (KREPTX.EQ.0) THEN
 !            non-repeating grid                                           40.13
-            IF (XC(IP) .LT. -0.01)            GOTO 700
-            IF (XC(IP) .GT. REAL(MXC-1)+0.01) GOTO 700
+               IF (XC(IP) .LT. -0.01)            EXIT point_output
+               IF (XC(IP) .GT. REAL(MXC-1)+0.01) EXIT point_output
+            ENDIF
+            IF (YC(IP) .LT. -0.01)            EXIT point_output
+            IF (YC(IP) .GT. REAL(MYC-1)+0.01) EXIT point_output
          ENDIF
-         IF (YC(IP) .LT. -0.01)            GOTO 700
-         IF (YC(IP) .GT. REAL(MYC-1)+0.01) GOTO 700
-      ENDIF
-!
+
 !       first the action density spectrum is interpolated
-!
-      IF (OPTG.NE.5) THEN
-         CALL SWOINA (XC(IP), YC(IP), AC2, ACLOC, KGRPNT, DEPXY, &
-                      CROSS(1,IP), EXCPT)
-         IF (OQPROC(15).OR.OQPROC(19)) &
-            CALL SWOINA (XC(IP), YC(IP), FLUX, FLOC, KGRPNT, DEPXY, &
-                         CROSS(1,IP), EXCPT)
-         IF (LSRFB.AND.OQPROC(81)) THEN
-            ITMP1 = MSC
-            MSC   = ntf
-            CALL SWOINA (XC(IP), YC(IP), Ebig, EBLOC, KGRPNT, DEPXY, &
-                         CROSS(1,IP), EXCPT)
-            MSC = ITMP1
-         ENDIF
-      ELSE
-         IF (.NOT.LCOMPGRD) THEN
-            IF (.NOT.EQREAL(VOQ(IP,1),OVEXCV(1))) XP=VOQ(IP,1)-XOFFS
-            IF (.NOT.EQREAL(VOQ(IP,2),OVEXCV(2))) YP=VOQ(IP,2)-YOFFS
-            CALL SwanInterpolateAc ( ACLOC, XP, YP, AC2, EXCPT )
+
+         IF (OPTG.NE.5) THEN
+            CALL SWOINA (XC(IP), YC(IP), AC2, ACLOC, KGRPNT, DEPXY, &
+               CROSS(1,IP), EXCPT)
             IF (OQPROC(15).OR.OQPROC(19)) &
-               CALL SwanInterpolateAc ( FLOC, XP, YP, FLUX, EXCPT )
+               CALL SWOINA (XC(IP), YC(IP), FLUX, FLOC, KGRPNT, DEPXY, &
+               CROSS(1,IP), EXCPT)
+            IF (LSRFB.AND.OQPROC(81)) THEN
+               ITMP1 = MSC
+               MSC   = ntf
+               CALL SWOINA (XC(IP), YC(IP), Ebig, EBLOC, KGRPNT, DEPXY, &
+                  CROSS(1,IP), EXCPT)
+               MSC = ITMP1
+            ENDIF
          ELSE
-            ACLOC(:,:) = AC2(:,:,IP)
-            IF (OQPROC(15).OR.OQPROC(19)) FLOC(:,:) = FLUX(:,:,IP)
-            EXCPT = .FALSE.
+            IF (.NOT.LCOMPGRD) THEN
+               IF (.NOT.EQREAL(VOQ(IP,1),OVEXCV(1))) XP=VOQ(IP,1)-XOFFS
+               IF (.NOT.EQREAL(VOQ(IP,2),OVEXCV(2))) YP=VOQ(IP,2)-YOFFS
+               CALL SwanInterpolateAc ( ACLOC, XP, YP, AC2, EXCPT )
+               IF (OQPROC(15).OR.OQPROC(19)) &
+                  CALL SwanInterpolateAc ( FLOC, XP, YP, FLUX, EXCPT )
+            ELSE
+               ACLOC(:,:) = AC2(:,:,IP)
+               IF (OQPROC(15).OR.OQPROC(19)) FLOC(:,:) = FLUX(:,:,IP)
+               EXCPT = .FALSE.
+            ENDIF
          ENDIF
-      ENDIF
 !       check variance on negativity in case of QCM
-      IF (IQCM.NE.0) THEN
-         ETOT = 0.
-         DO IS = 1, MSC
-            DO ID = 1, MDC
-               ETOT = ETOT + SPCSIG(IS)**2 * ACLOC(ID,IS)
-            ENDDO
-         ENDDO
-         IF (ETOT.LT.0.) EXCPT = .TRUE.
-      ENDIF
-      IF (EXCPT) GOTO 700
-!
-!       coefficient for high frequency tail
-!
-      EFTAIL = 1. / (PWTAIL(1) - 1.)
-!
-!       significant wave height
-!
-      IVTYPE = 10
-      IF (OQPROC(IVTYPE)) THEN
-         IF (OUTPAR(6).EQ.0.) THEN
-!            integration over [0,inf]                                     40.87
+         IF (IQCM.NE.0) THEN
             ETOT = 0.
+            DO IS = 1, MSC
+               DO ID = 1, MDC
+                  ETOT = ETOT + SPCSIG(IS)**2 * ACLOC(ID,IS)
+               ENDDO
+            ENDDO
+            IF (ETOT.LT.0.) EXCPT = .TRUE.
+         ENDIF
+         IF (EXCPT) EXIT point_output
+
+!       coefficient for high frequency tail
+
+         EFTAIL = 1. / (PWTAIL(1) - 1.)
+
+!       significant wave height
+
+         IVTYPE = 10
+         IF (OQPROC(IVTYPE)) THEN
+            IF (OUTPAR(6).EQ.0.) THEN
+!            integration over [0,inf]                                     40.87
+               ETOT = 0.
 !            trapezoidal rule is applied
-            DO ID=1, MDC
-               DO IS=2,MSC
-                  DS=SPCSIG(IS)-SPCSIG(IS-1)
-                  EAD = 0.5*(SPCSIG(IS)*ACLOC(ID,IS)+ &
-                             SPCSIG(IS-1)*ACLOC(ID,IS-1))*DS*DDIR
-                  ETOT = ETOT + EAD
-               ENDDO
-               IF (MSC .GT. 3) THEN
+               DO ID=1, MDC
+                  DO IS=2,MSC
+                     DS=SPCSIG(IS)-SPCSIG(IS-1)
+                     EAD = 0.5*(SPCSIG(IS)*ACLOC(ID,IS)+ &
+                        SPCSIG(IS-1)*ACLOC(ID,IS-1))*DS*DDIR
+                     ETOT = ETOT + EAD
+                  ENDDO
+                  IF (MSC .GT. 3) THEN
 !                contribution of tail to total energy density
-                  EHFR = ACLOC(ID,MSC) * SPCSIG(MSC)
-                  ETOT = ETOT + DDIR * EHFR * SPCSIG(MSC) * EFTAIL
-               ENDIF
-            ENDDO
-         ELSE
+                     EHFR = ACLOC(ID,MSC) * SPCSIG(MSC)
+                     ETOT = ETOT + DDIR * EHFR * SPCSIG(MSC) * EFTAIL
+                  ENDIF
+               ENDDO
+            ELSE
 !            integration over [fmin,fmax]                                 40.87
-            FMIN = PI2*OUTPAR(21)
-            FMAX = PI2*OUTPAR(36)
-            ECS  = 1.
-            ETOT = SwanIntgratSpc(0. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                  WK , ECS , 0.  , 0.    , ACLOC      , &
-                                  1  )
+               FMIN = PI2*OUTPAR(21)
+               FMAX = PI2*OUTPAR(36)
+               ECS  = 1.
+               ETOT = SwanIntgratSpc(0. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , 0.  , 0.    , ACLOC      , &
+                  1  )
+            ENDIF
+            IF (ETOT .GE. 0.) THEN
+               VOQ(IP,VOQR(IVTYPE)) = 4.*SQRT(ETOT)
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = 0.
+            ENDIF
+            IF (ITEST.GE.100) THEN
+               WRITE(PRINTF, "(' SWOEXA: POINT ', I5, 2X, A, 1X, E12.4)") IP, OVSNAM(IVTYPE), VOQ(IP,VOQR(IVTYPE))
+            ENDIF
          ENDIF
-         IF (ETOT .GE. 0.) THEN
-            VOQ(IP,VOQR(IVTYPE)) = 4.*SQRT(ETOT)
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = 0.
-         ENDIF
-         IF (ITEST.GE.100) THEN
-            WRITE(PRINTF, 222) IP, OVSNAM(IVTYPE), VOQ(IP,VOQR(IVTYPE))
-         ENDIF
-      ENDIF
-!
+
 !       swell wave height
-!
-      IVTYPE = 44
-      IF (OQPROC(IVTYPE)) THEN
-         ETOT = 0.
-         FSWELL = PI2 * OUTPAR(5)
+
+         IVTYPE = 44
+         IF (OQPROC(IVTYPE)) THEN
+            ETOT = 0.
+            FSWELL = PI2 * OUTPAR(5)
 !         trapezoidal rule is applied
-         DO IS = 2, MSC
-            DS = SPCSIG(IS)-SPCSIG(IS-1)
-            IF (SPCSIG(IS).LE.FSWELL) THEN
-               CIA = 0.5 * SPCSIG(IS-1) * DS * DDIR
-               CIB = 0.5 * SPCSIG(IS  ) * DS * DDIR
-            ELSE
-               DSSW = FSWELL-SPCSIG(IS-1)
-               CIB = 0.5 * FSWELL * DDIR * DSSW**2 / DS
-               CIA = 0.5 * (SPCSIG(IS-1)+FSWELL) * DSSW * DDIR - CIB
-            ENDIF
-            DO ID = 1, MDC
-               EAD = CIA * ACLOC(ID,IS-1) + CIB * ACLOC(ID,IS)
-               ETOT = ETOT + EAD
-            ENDDO
-            IF (SPCSIG(IS).GT.FSWELL) EXIT
-         ENDDO
-         IF (ETOT .GE. 0.) THEN
-            VOQ(IP,VOQR(IVTYPE)) = 4.*SQRT(ETOT)
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = 0.
-         ENDIF
-         IF (ITEST.GE.100) THEN
-            WRITE(PRINTF, 222) IP, OVSNAM(IVTYPE), VOQ(IP,VOQR(IVTYPE))
-222         FORMAT(' SWOEXA: POINT ', I5, 2X, A, 1X, E12.4)
-         ENDIF
-      ENDIF
-!
-!       average relative period                              modified 10.09
-!
-      IVTYPE = 28
-      IF (OQPROC(IVTYPE)) THEN
-         IF (OUTPAR(14).EQ.0.) THEN
-!             integration over [0,inf]                                    40.87
-            APTOT = 0.
-            EPTOT = 0.
-            DO ID=1, MDC
-               DO IS=1,MSC
-                  SIG2P = SPCSIG(IS) ** 2
-                  APTOT = APTOT + SIG2P * ACLOC(ID,IS)
-                  EPTOT = EPTOT + SPCSIG(IS) * SIG2P * ACLOC(ID,IS)
-               ENDDO
-            ENDDO
-            APTOT = APTOT * FRINTF
-            EPTOT = EPTOT * FRINTF
-            IF (MSC .GT. 3) THEN
-               PPTAIL = PWTAIL(1) - 1.
-               APTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               PPTAIL = PWTAIL(1) - 2.
-               EPTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               DO ID = 1, MDC
-!                  contribution of tail to total energy density
-                  AHFR = SIG2P * ACLOC(ID,MSC)
-                  APTOT = APTOT + APTAIL * AHFR
-                  EHFR = SPCSIG(MSC) * AHFR
-                  EPTOT = EPTOT + EPTAIL * EHFR
-               ENDDO
-            ENDIF
-         ELSE
-!             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(29)
-            FMAX = PI2*OUTPAR(44)
-            ECS  = 1.
-            APTOT=SwanIntgratSpc(0. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK , ECS , 0.  , 0.    , ACLOC      , &
-                                 1  )
-            EPTOT=SwanIntgratSpc(1. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK , ECS , 0.  , 0.    , ACLOC      , &
-                                 1  )
-         ENDIF
-         IF (EPTOT.GT.0.) THEN
-            TPER = 2.*PI * APTOT / EPTOT
-            VOQ(IP,VOQR(IVTYPE)) = TPER
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-      IVTYPE = 11
-      IF (ICUR.EQ.0.AND.OQPROC(IVTYPE)) THEN
-         IF (OUTPAR(7).EQ.0.) THEN
-!             integration over [0,inf]                                    40.87
-            APTOT = 0.
-            EPTOT = 0.
-            DO ID=1, MDC
-               DO IS=1,MSC
-                  SIG2P = SPCSIG(IS) ** 2
-                  APTOT = APTOT + SIG2P * ACLOC(ID,IS)
-                  EPTOT = EPTOT + SPCSIG(IS) * SIG2P * ACLOC(ID,IS)
-               ENDDO
-            ENDDO
-            APTOT = APTOT * FRINTF
-            EPTOT = EPTOT * FRINTF
-            IF (MSC .GT. 3) THEN
-               PPTAIL = PWTAIL(1) - 1.
-               APTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               PPTAIL = PWTAIL(1) - 2.
-               EPTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               DO ID = 1, MDC
-!                  contribution of tail to total energy density
-                  AHFR = SIG2P * ACLOC(ID,MSC)
-                  APTOT = APTOT + APTAIL * AHFR
-                  EHFR = SPCSIG(MSC) * AHFR
-                  EPTOT = EPTOT + EPTAIL * EHFR
-               ENDDO
-            ENDIF
-         ELSE
-!             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(22)
-            FMAX = PI2*OUTPAR(37)
-            ECS  = 1.
-            APTOT=SwanIntgratSpc(0. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK , ECS , 0.  , 0.    , ACLOC      , &
-                                 1  )
-            EPTOT=SwanIntgratSpc(1. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK , ECS , 0.  , 0.    , ACLOC      , &
-                                 1  )
-         ENDIF
-         IF (EPTOT.GT.0.) THEN
-            TPER = 2.*PI * APTOT / EPTOT
-            VOQ(IP,VOQR(IVTYPE)) = TPER
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-!       average relative period                              modified 10.09
-!
-      IVTYPE = 43
-      IF (OQPROC(IVTYPE)) THEN
-         IF (OUTPAR(18).EQ.0.) THEN
-!             integration over [0,inf]                                    40.87
-            APTOT = 0.
-            EPTOT = 0.
-            DO ID=1, MDC
-               DO IS=1,MSC
-                  SIG2P = SPCSIG(IS) ** (OUTPAR(2)+1.)
-                  APTOT = APTOT + SIG2P * ACLOC(ID,IS)
-                  EPTOT = EPTOT + SPCSIG(IS) * SIG2P * ACLOC(ID,IS)
-               ENDDO
-            ENDDO
-            APTOT = APTOT * FRINTF
-            EPTOT = EPTOT * FRINTF
-            IF (MSC .GT. 3) THEN
-               PPTAIL = PWTAIL(1) - OUTPAR(2)
-               APTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               PPTAIL = PWTAIL(1) - OUTPAR(2) - 1.
-               EPTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               DO ID = 1, MDC
-!                  contribution of tail to total energy density
-                  AHFR = SIG2P * ACLOC(ID,MSC)
-                  APTOT = APTOT + APTAIL * AHFR
-                  EHFR = SPCSIG(MSC) * AHFR
-                  EPTOT = EPTOT + EPTAIL * EHFR
-               ENDDO
-            ENDIF
-         ELSE
-!             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(33)
-            FMAX = PI2*OUTPAR(48)
-            ECS  = 1.
-            APTOT = SwanIntgratSpc(OUTPAR(2)-1., FMIN , FMAX, SPCSIG, &
-                                   SPCDIR(1,1) , WK   , ECS , 0.    , &
-                                   0.          , ACLOC, 1   )
-            EPTOT = SwanIntgratSpc(OUTPAR(2)   , FMIN , FMAX, SPCSIG, &
-                                   SPCDIR(1,1) , WK   , ECS , 0.    , &
-                                   0.          , ACLOC, 1   )
-         ENDIF
-         IF (EPTOT.GT.0.) THEN
-            TPER = 2.*PI * APTOT / EPTOT
-            VOQ(IP,VOQR(IVTYPE)) = TPER
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-      IVTYPE = 42
-      IF (ICUR.EQ.0.AND.OQPROC(IVTYPE)) THEN
-         IF (OUTPAR(17).EQ.0.) THEN
-!             integration over [0,inf]                                    40.87
-            APTOT = 0.
-            EPTOT = 0.
-            DO ID=1, MDC
-               DO IS=1,MSC
-                  SIG2P = SPCSIG(IS) ** (OUTPAR(2)+1.)
-                  APTOT = APTOT + SIG2P * ACLOC(ID,IS)
-                  EPTOT = EPTOT + SPCSIG(IS) * SIG2P * ACLOC(ID,IS)
-               ENDDO
-            ENDDO
-            APTOT = APTOT * FRINTF
-            EPTOT = EPTOT * FRINTF
-            IF (MSC .GT. 3) THEN
-               PPTAIL = PWTAIL(1) - OUTPAR(2)
-               APTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               PPTAIL = PWTAIL(1) - OUTPAR(2) - 1.
-               EPTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               DO ID = 1, MDC
-!                  contribution of tail to total energy density
-                  AHFR = SIG2P * ACLOC(ID,MSC)
-                  APTOT = APTOT + APTAIL * AHFR
-                  EHFR = SPCSIG(MSC) * AHFR
-                  EPTOT = EPTOT + EPTAIL * EHFR
-               ENDDO
-            ENDIF
-         ELSE
-!             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(32)
-            FMAX = PI2*OUTPAR(47)
-            ECS  = 1.
-            APTOT = SwanIntgratSpc(OUTPAR(2)-1., FMIN , FMAX, SPCSIG, &
-                                   SPCDIR(1,1) , WK   , ECS , 0.    , &
-                                   0.          , ACLOC, 1   )
-            EPTOT = SwanIntgratSpc(OUTPAR(2)   , FMIN , FMAX, SPCSIG, &
-                                   SPCDIR(1,1) , WK   , ECS , 0.    , &
-                                   0.          , ACLOC, 1   )
-         ENDIF
-         IF (EPTOT.GT.0.) THEN
-            TPER = 2.*PI * APTOT / EPTOT
-            VOQ(IP,VOQR(IVTYPE)) = TPER
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-!       peak period
-!
-      IVTYPE = 12
-      IF (OQPROC(IVTYPE)) THEN
-         EMAX = 0.
-         ISIGM = -1
-         DO IS = 1, MSC
-            ETD = 0.
-            DO ID = 1, MDC
-               ETD = ETD + SPCSIG(IS)*ACLOC(ID,IS)*DDIR
-            ENDDO
-            IF (ETD.GT.EMAX) THEN
-               EMAX  = ETD
-               ISIGM = IS
-            ENDIF
-         ENDDO
-         IF (ISIGM.GT.0) THEN
-            VOQ(IP,VOQR(IVTYPE)) = 2.*PI/SPCSIG(ISIGM)
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-!       peak period based on parabolic fitting                            40.51
-!
-      IVTYPE = 53
-      IF (OQPROC(IVTYPE)) THEN
-         EMAX = 0.
-         ETD  = 0.
-         ISIGM = -1
-         DO IS = 1, MSC
-            ED  = ETD
-            ETD = 0.
-            DO ID = 1, MDC
-               ETD = ETD + SPCSIG(IS)*ACLOC(ID,IS)*DDIR
-            END DO
-            IF (ETD.GT.EMAX) THEN
-               EMAX  = ETD
-               ISIGM = IS
-               EMAXD = ED
-               EMAXU = 0.
-               IF (IS.LT.MSC) THEN
-                  DO ID = 1, MDC
-                     EMAXU = EMAXU + SPCSIG(IS+1)*ACLOC(ID,IS+1)*DDIR
-                  END DO
-               ELSE
-                  EMAXU = EMAX
-               END IF
-            END IF
-         END DO
-         IF (ISIGM.GT.1 .AND. ISIGM.LT.MSC) THEN
-            SIG1 = SPCSIG(ISIGM-1)
-            SIG2 = SPCSIG(ISIGM+1)
-            SIG3 = SPCSIG(ISIGM  )
-            E1   = EMAXD
-            E2   = EMAXU
-            E3   = EMAX
-            P    = SIG1+SIG2
-            Q    = (E1-E2)/(SIG1-SIG2)
-            R    = SIG1+SIG3
-            T    = (E1-E3)/(SIG1-SIG3)
-            A    = (T-Q)/(R-P)
-            IF (A.LT.0) THEN
-               SIGP = (-Q+P*A)/(2.*A)
-            ELSE
-               SIGP = SIG3
-            END IF
-            VOQ(IP,VOQR(IVTYPE)) = 2.*PI/SIGP
-         ELSE IF (ISIGM.EQ.1) THEN
-            VOQ(IP,VOQR(IVTYPE)) = 2.*PI/SPCSIG(1)
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         END IF
-      END IF
-!
-!       peak direction
-!
-      IVTYPE = 14
-      IF (OQPROC(IVTYPE)) THEN
-         EMAX = 0.
-         IDIRM = -1
-         DO ID = 1, MDC
-            ETF = 0.
             DO IS = 2, MSC
                DS = SPCSIG(IS)-SPCSIG(IS-1)
-               E1 = SPCSIG(IS-1)*ACLOC(ID,IS-1)
-               E2 = SPCSIG(IS)*ACLOC(ID,IS)
-               ETF = ETF + DS * (E1+E2)
+               IF (SPCSIG(IS).LE.FSWELL) THEN
+                  CIA = 0.5 * SPCSIG(IS-1) * DS * DDIR
+                  CIB = 0.5 * SPCSIG(IS  ) * DS * DDIR
+               ELSE
+                  DSSW = FSWELL-SPCSIG(IS-1)
+                  CIB = 0.5 * FSWELL * DDIR * DSSW**2 / DS
+                  CIA = 0.5 * (SPCSIG(IS-1)+FSWELL) * DSSW * DDIR - CIB
+               ENDIF
+               DO ID = 1, MDC
+                  EAD = CIA * ACLOC(ID,IS-1) + CIB * ACLOC(ID,IS)
+                  ETOT = ETOT + EAD
+               ENDDO
+               IF (SPCSIG(IS).GT.FSWELL) EXIT
             ENDDO
-            IF (ETF.GT.EMAX) THEN
-               EMAX  = ETF
-               IDIRM = ID
+            IF (ETOT .GE. 0.) THEN
+               VOQ(IP,VOQR(IVTYPE)) = 4.*SQRT(ETOT)
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = 0.
             ENDIF
-         ENDDO
-         IF (IDIRM.GT.0) THEN
-!
+            IF (ITEST.GE.100) THEN
+               WRITE(PRINTF, "(' SWOEXA: POINT ', I5, 2X, A, 1X, E12.4)") IP, OVSNAM(IVTYPE), VOQ(IP,VOQR(IVTYPE))
+            ENDIF
+         ENDIF
+
+!       average relative period                              modified 10.09
+
+         IVTYPE = 28
+         IF (OQPROC(IVTYPE)) THEN
+            IF (OUTPAR(14).EQ.0.) THEN
+!             integration over [0,inf]                                    40.87
+               APTOT = 0.
+               EPTOT = 0.
+               DO ID=1, MDC
+                  DO IS=1,MSC
+                     SIG2P = SPCSIG(IS) ** 2
+                     APTOT = APTOT + SIG2P * ACLOC(ID,IS)
+                     EPTOT = EPTOT + SPCSIG(IS) * SIG2P * ACLOC(ID,IS)
+                  ENDDO
+               ENDDO
+               APTOT = APTOT * FRINTF
+               EPTOT = EPTOT * FRINTF
+               IF (MSC .GT. 3) THEN
+                  PPTAIL = PWTAIL(1) - 1.
+                  APTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                  PPTAIL = PWTAIL(1) - 2.
+                  EPTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                  DO ID = 1, MDC
+!                  contribution of tail to total energy density
+                     AHFR = SIG2P * ACLOC(ID,MSC)
+                     APTOT = APTOT + APTAIL * AHFR
+                     EHFR = SPCSIG(MSC) * AHFR
+                     EPTOT = EPTOT + EPTAIL * EHFR
+                  ENDDO
+               ENDIF
+            ELSE
+!             integration over [fmin,fmax]                                40.87
+               FMIN = PI2*OUTPAR(29)
+               FMAX = PI2*OUTPAR(44)
+               ECS  = 1.
+               APTOT=SwanIntgratSpc(0. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , 0.  , 0.    , ACLOC      , &
+                  1  )
+               EPTOT=SwanIntgratSpc(1. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , 0.  , 0.    , ACLOC      , &
+                  1  )
+            ENDIF
+            IF (EPTOT.GT.0.) THEN
+               TPER = 2.*PI * APTOT / EPTOT
+               VOQ(IP,VOQR(IVTYPE)) = TPER
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+         IVTYPE = 11
+         IF (ICUR.EQ.0.AND.OQPROC(IVTYPE)) THEN
+            IF (OUTPAR(7).EQ.0.) THEN
+!             integration over [0,inf]                                    40.87
+               APTOT = 0.
+               EPTOT = 0.
+               DO ID=1, MDC
+                  DO IS=1,MSC
+                     SIG2P = SPCSIG(IS) ** 2
+                     APTOT = APTOT + SIG2P * ACLOC(ID,IS)
+                     EPTOT = EPTOT + SPCSIG(IS) * SIG2P * ACLOC(ID,IS)
+                  ENDDO
+               ENDDO
+               APTOT = APTOT * FRINTF
+               EPTOT = EPTOT * FRINTF
+               IF (MSC .GT. 3) THEN
+                  PPTAIL = PWTAIL(1) - 1.
+                  APTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                  PPTAIL = PWTAIL(1) - 2.
+                  EPTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                  DO ID = 1, MDC
+!                  contribution of tail to total energy density
+                     AHFR = SIG2P * ACLOC(ID,MSC)
+                     APTOT = APTOT + APTAIL * AHFR
+                     EHFR = SPCSIG(MSC) * AHFR
+                     EPTOT = EPTOT + EPTAIL * EHFR
+                  ENDDO
+               ENDIF
+            ELSE
+!             integration over [fmin,fmax]                                40.87
+               FMIN = PI2*OUTPAR(22)
+               FMAX = PI2*OUTPAR(37)
+               ECS  = 1.
+               APTOT=SwanIntgratSpc(0. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , 0.  , 0.    , ACLOC      , &
+                  1  )
+               EPTOT=SwanIntgratSpc(1. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , 0.  , 0.    , ACLOC      , &
+                  1  )
+            ENDIF
+            IF (EPTOT.GT.0.) THEN
+               TPER = 2.*PI * APTOT / EPTOT
+               VOQ(IP,VOQR(IVTYPE)) = TPER
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+!       average relative period                              modified 10.09
+
+         IVTYPE = 43
+         IF (OQPROC(IVTYPE)) THEN
+            IF (OUTPAR(18).EQ.0.) THEN
+!             integration over [0,inf]                                    40.87
+               APTOT = 0.
+               EPTOT = 0.
+               DO ID=1, MDC
+                  DO IS=1,MSC
+                     SIG2P = SPCSIG(IS) ** (OUTPAR(2)+1.)
+                     APTOT = APTOT + SIG2P * ACLOC(ID,IS)
+                     EPTOT = EPTOT + SPCSIG(IS) * SIG2P * ACLOC(ID,IS)
+                  ENDDO
+               ENDDO
+               APTOT = APTOT * FRINTF
+               EPTOT = EPTOT * FRINTF
+               IF (MSC .GT. 3) THEN
+                  PPTAIL = PWTAIL(1) - OUTPAR(2)
+                  APTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                  PPTAIL = PWTAIL(1) - OUTPAR(2) - 1.
+                  EPTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                  DO ID = 1, MDC
+!                  contribution of tail to total energy density
+                     AHFR = SIG2P * ACLOC(ID,MSC)
+                     APTOT = APTOT + APTAIL * AHFR
+                     EHFR = SPCSIG(MSC) * AHFR
+                     EPTOT = EPTOT + EPTAIL * EHFR
+                  ENDDO
+               ENDIF
+            ELSE
+!             integration over [fmin,fmax]                                40.87
+               FMIN = PI2*OUTPAR(33)
+               FMAX = PI2*OUTPAR(48)
+               ECS  = 1.
+               APTOT = SwanIntgratSpc(OUTPAR(2)-1., FMIN , FMAX, SPCSIG, &
+                  SPCDIR(1,1) , WK   , ECS , 0.    , &
+                  0.          , ACLOC, 1   )
+               EPTOT = SwanIntgratSpc(OUTPAR(2)   , FMIN , FMAX, SPCSIG, &
+                  SPCDIR(1,1) , WK   , ECS , 0.    , &
+                  0.          , ACLOC, 1   )
+            ENDIF
+            IF (EPTOT.GT.0.) THEN
+               TPER = 2.*PI * APTOT / EPTOT
+               VOQ(IP,VOQR(IVTYPE)) = TPER
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+         IVTYPE = 42
+         IF (ICUR.EQ.0.AND.OQPROC(IVTYPE)) THEN
+            IF (OUTPAR(17).EQ.0.) THEN
+!             integration over [0,inf]                                    40.87
+               APTOT = 0.
+               EPTOT = 0.
+               DO ID=1, MDC
+                  DO IS=1,MSC
+                     SIG2P = SPCSIG(IS) ** (OUTPAR(2)+1.)
+                     APTOT = APTOT + SIG2P * ACLOC(ID,IS)
+                     EPTOT = EPTOT + SPCSIG(IS) * SIG2P * ACLOC(ID,IS)
+                  ENDDO
+               ENDDO
+               APTOT = APTOT * FRINTF
+               EPTOT = EPTOT * FRINTF
+               IF (MSC .GT. 3) THEN
+                  PPTAIL = PWTAIL(1) - OUTPAR(2)
+                  APTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                  PPTAIL = PWTAIL(1) - OUTPAR(2) - 1.
+                  EPTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                  DO ID = 1, MDC
+!                  contribution of tail to total energy density
+                     AHFR = SIG2P * ACLOC(ID,MSC)
+                     APTOT = APTOT + APTAIL * AHFR
+                     EHFR = SPCSIG(MSC) * AHFR
+                     EPTOT = EPTOT + EPTAIL * EHFR
+                  ENDDO
+               ENDIF
+            ELSE
+!             integration over [fmin,fmax]                                40.87
+               FMIN = PI2*OUTPAR(32)
+               FMAX = PI2*OUTPAR(47)
+               ECS  = 1.
+               APTOT = SwanIntgratSpc(OUTPAR(2)-1., FMIN , FMAX, SPCSIG, &
+                  SPCDIR(1,1) , WK   , ECS , 0.    , &
+                  0.          , ACLOC, 1   )
+               EPTOT = SwanIntgratSpc(OUTPAR(2)   , FMIN , FMAX, SPCSIG, &
+                  SPCDIR(1,1) , WK   , ECS , 0.    , &
+                  0.          , ACLOC, 1   )
+            ENDIF
+            IF (EPTOT.GT.0.) THEN
+               TPER = 2.*PI * APTOT / EPTOT
+               VOQ(IP,VOQR(IVTYPE)) = TPER
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+!       peak period
+
+         IVTYPE = 12
+         IF (OQPROC(IVTYPE)) THEN
+            EMAX = 0.
+            ISIGM = -1
+            DO IS = 1, MSC
+               ETD = 0.
+               DO ID = 1, MDC
+                  ETD = ETD + SPCSIG(IS)*ACLOC(ID,IS)*DDIR
+               ENDDO
+               IF (ETD.GT.EMAX) THEN
+                  EMAX  = ETD
+                  ISIGM = IS
+               ENDIF
+            ENDDO
+            IF (ISIGM.GT.0) THEN
+               VOQ(IP,VOQR(IVTYPE)) = 2.*PI/SPCSIG(ISIGM)
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+!       peak period based on parabolic fitting                            40.51
+
+         IVTYPE = 53
+         IF (OQPROC(IVTYPE)) THEN
+            EMAX = 0.
+            ETD  = 0.
+            ISIGM = -1
+            DO IS = 1, MSC
+               ED  = ETD
+               ETD = 0.
+               DO ID = 1, MDC
+                  ETD = ETD + SPCSIG(IS)*ACLOC(ID,IS)*DDIR
+               END DO
+               IF (ETD.GT.EMAX) THEN
+                  EMAX  = ETD
+                  ISIGM = IS
+                  EMAXD = ED
+                  EMAXU = 0.
+                  IF (IS.LT.MSC) THEN
+                     DO ID = 1, MDC
+                        EMAXU = EMAXU + SPCSIG(IS+1)*ACLOC(ID,IS+1)*DDIR
+                     END DO
+                  ELSE
+                     EMAXU = EMAX
+                  END IF
+               END IF
+            END DO
+            IF (ISIGM.GT.1 .AND. ISIGM.LT.MSC) THEN
+               SIG1 = SPCSIG(ISIGM-1)
+               SIG2 = SPCSIG(ISIGM+1)
+               SIG3 = SPCSIG(ISIGM  )
+               E1   = EMAXD
+               E2   = EMAXU
+               E3   = EMAX
+               P    = SIG1+SIG2
+               Q    = (E1-E2)/(SIG1-SIG2)
+               R    = SIG1+SIG3
+               T    = (E1-E3)/(SIG1-SIG3)
+               A    = (T-Q)/(R-P)
+               IF (A.LT.0) THEN
+                  SIGP = (-Q+P*A)/(2.*A)
+               ELSE
+                  SIGP = SIG3
+               END IF
+               VOQ(IP,VOQR(IVTYPE)) = 2.*PI/SIGP
+            ELSE IF (ISIGM.EQ.1) THEN
+               VOQ(IP,VOQR(IVTYPE)) = 2.*PI/SPCSIG(1)
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            END IF
+         END IF
+
+!       peak direction
+
+         IVTYPE = 14
+         IF (OQPROC(IVTYPE)) THEN
+            EMAX = 0.
+            IDIRM = -1
+            DO ID = 1, MDC
+               ETF = 0.
+               DO IS = 2, MSC
+                  DS = SPCSIG(IS)-SPCSIG(IS-1)
+                  E1 = SPCSIG(IS-1)*ACLOC(ID,IS-1)
+                  E2 = SPCSIG(IS)*ACLOC(ID,IS)
+                  ETF = ETF + DS * (E1+E2)
+               ENDDO
+               IF (ETF.GT.EMAX) THEN
+                  EMAX  = ETF
+                  IDIRM = ID
+               ENDIF
+            ENDDO
+            IF (IDIRM.GT.0) THEN
+
 !            *** Convert (if necessary) from nautical degrees ***         32.01
 !            *** to cartesian degrees                         ***         32.01
-!
-            IF (BNAUT) THEN
-               VOQ(IP,VOQR(IVTYPE)) = ANGDEG( SPCDIR(IDIRM,1) )
-            ELSE
-               VOQ(IP,VOQR(IVTYPE)) = ANGDEG( (ALCQ + SPCDIR(IDIRM,1)) )
-            ENDIF
-            VOQ(IP,VOQR(IVTYPE)) = DEGCNV( VOQ(IP,VOQR(IVTYPE)) )
-!
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-!       mean direction
-!
-      IVTYPE = 13
-      IF (OQPROC(IVTYPE)) THEN
-         IF (OUTPAR(8).EQ.0.) THEN
-!             integration over [0,inf]                                    40.87
-            ETOT = 0.
-            EEX  = 0.
-            EEY  = 0.
-            DO ID=1, MDC
-               EAD = 0.
-               DO IS=2,MSC
-                  DS=SPCSIG(IS)-SPCSIG(IS-1)
-                  EDI = 0.5*(SPCSIG(IS)*ACLOC(ID,IS)+ &
-                             SPCSIG(IS-1)*ACLOC(ID,IS-1))*DS
-                  EAD = EAD + EDI
-               ENDDO
-               IF (MSC .GT. 3) THEN
-!                  contribution of tail to total energy density
-                  EHFR = ACLOC(ID,MSC) * SPCSIG(MSC)
-                  EAD = EAD + EHFR * SPCSIG(MSC) * EFTAIL
-               ENDIF
-               EAD = EAD * DDIR
-               ETOT = ETOT + EAD
-               EEX  = EEX + EAD * SPCDIR(ID,2)
-               EEY  = EEY + EAD * SPCDIR(ID,3)
-            ENDDO
-         ELSE
-!             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(23)
-            FMAX = PI2*OUTPAR(38)
-            ECS  = 1.
-            ETOT= SwanIntgratSpc(0. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK , ECS , 0.  , 0.    , ACLOC      , &
-                                 1  )
-            EEX = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK, SPCDIR(1,2), 0., 0., ACLOC, 1)
-            EEY = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK, SPCDIR(1,3), 0., 0., ACLOC, 1)
-         ENDIF
-         IF (ETOT.GT.0.) THEN
-            IF (BNAUT) THEN
-               DIRDEG = ATAN2(EEY,EEX) * 180./PI
-            ELSE
-               DIRDEG = (ALCQ + ATAN2(EEY,EEX)) * 180./PI
-            ENDIF
-            IF (DIRDEG.LT.0.) DIRDEG = DIRDEG + 360.
-!
-!             *** Convert (if necessary) from nautical degrees ***        32.01
-!             *** to cartesian degrees                         ***        32.01
-!
-            VOQ(IP,VOQR(IVTYPE)) = DEGCNV( DIRDEG )
-!
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-!       directional spread
-!
-      IVTYPE = 16
-      IF (OQPROC(IVTYPE)) THEN
-         IF (OUTPAR(10).EQ.0.) THEN
-!             integration over [0,inf]                                    40.87
-            ETOT = 0.
-            EEX  = 0.
-            EEY  = 0.
-            DO ID=1, MDC
-               EAD = 0.
-               DO IS=2,MSC
-                  DS=SPCSIG(IS)-SPCSIG(IS-1)
-                  EDI = 0.5*(SPCSIG(IS)*ACLOC(ID,IS)+ &
-                             SPCSIG(IS-1)*ACLOC(ID,IS-1))*DS
-                  EAD = EAD + EDI
-               ENDDO
-               IF (MSC .GT. 3) THEN
-!                  contribution of tail to total energy density
-                  EHFR = ACLOC(ID,MSC) * SPCSIG(MSC)
-                  EAD = EAD + EHFR * SPCSIG(MSC) * EFTAIL
-               ENDIF
-               EAD = EAD * DDIR
-               ETOT = ETOT + EAD
-               EEX  = EEX + EAD * SPCDIR(ID,2)
-               EEY  = EEY + EAD * SPCDIR(ID,3)
-            ENDDO
-         ELSE
-!             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(25)
-            FMAX = PI2*OUTPAR(40)
-            ECS  = 1.
-            ETOT= SwanIntgratSpc(0. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK , ECS , 0.  , 0.    , ACLOC      , &
-                                 1  )
-            EEX = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK, SPCDIR(1,2), 0., 0., ACLOC, 1)
-            EEY = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK, SPCDIR(1,3), 0., 0., ACLOC, 1)
-         ENDIF
-         IF (ETOT.GT.0.) THEN
-            FF = MIN (1., SQRT(EEX*EEX+EEY*EEY)/ETOT)
-            VOQ(IP,VOQR(IVTYPE)) = SQRT(2.-2.*FF) *180./PI
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-!       average relative period (Tm-10)                                   40.41
-!
-      IVTYPE = 48
-      IF (OQPROC(IVTYPE)) THEN
-         IF (OUTPAR(20).EQ.0.) THEN
-!             integration over [0,inf]                                    40.87
-            APTOT = 0.
-            EPTOT = 0.
-            DO ID=1, MDC
-               DO IS=1,MSC
-                  SIG2P = SPCSIG(IS)
-                  APTOT = APTOT + SIG2P * ACLOC(ID,IS)
-                  EPTOT = EPTOT + SPCSIG(IS) * SIG2P * ACLOC(ID,IS)
-               ENDDO
-            ENDDO
-            APTOT = APTOT * FRINTF
-            EPTOT = EPTOT * FRINTF
-            IF (MSC .GT. 3) THEN
-               PPTAIL = PWTAIL(1)
-               APTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               PPTAIL = PWTAIL(1) - 1.
-               EPTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               DO ID = 1, MDC
-!                  contribution of tail to total energy density
-                  AHFR = SIG2P * ACLOC(ID,MSC)
-                  APTOT = APTOT + APTAIL * AHFR
-                  EHFR = SPCSIG(MSC) * AHFR
-                  EPTOT = EPTOT + EPTAIL * EHFR
-               ENDDO
-            ENDIF
-         ELSE
-!             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(35)
-            FMAX = PI2*OUTPAR(50)
-            ECS  = 1.
-            APTOT=SwanIntgratSpc(-1., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK , ECS , 0.  , 0.    , ACLOC      , &
-                                 1  )
-            EPTOT=SwanIntgratSpc( 0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK , ECS , 0.  , 0.    , ACLOC      , &
-                                 1  )
-         ENDIF
-         IF (EPTOT.GT.0.) THEN
-            TPER = 2.*PI * APTOT / EPTOT
-            VOQ(IP,VOQR(IVTYPE)) = TPER
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-      IVTYPE = 47
-      IF (ICUR.EQ.0.AND.OQPROC(IVTYPE)) THEN
-         IF (OUTPAR(19).EQ.0.) THEN
-!             integration over [0,inf]                                    40.87
-            APTOT = 0.
-            EPTOT = 0.
-            DO ID=1, MDC
-               DO IS=1,MSC
-                  SIG2P = SPCSIG(IS)
-                  APTOT = APTOT + SIG2P * ACLOC(ID,IS)
-                  EPTOT = EPTOT + SPCSIG(IS) * SIG2P * ACLOC(ID,IS)
-               ENDDO
-            ENDDO
-            APTOT = APTOT * FRINTF
-            EPTOT = EPTOT * FRINTF
-            IF (MSC .GT. 3) THEN
-               PPTAIL = PWTAIL(1)
-               APTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               PPTAIL = PWTAIL(1) - 1.
-               EPTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               DO ID = 1, MDC
-!                  contribution of tail to total energy density
-                  AHFR = SIG2P * ACLOC(ID,MSC)
-                  APTOT = APTOT + APTAIL * AHFR
-                  EHFR = SPCSIG(MSC) * AHFR
-                  EPTOT = EPTOT + EPTAIL * EHFR
-               ENDDO
-            ENDIF
-         ELSE
-!             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(34)
-            FMAX = PI2*OUTPAR(49)
-            ECS  = 1.
-            APTOT=SwanIntgratSpc(-1., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK , ECS , 0.  , 0.    , ACLOC      , &
-                                 1  )
-            EPTOT=SwanIntgratSpc( 0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK , ECS , 0.  , 0.    , ACLOC      , &
-                                 1  )
-         ENDIF
-         IF (EPTOT.GT.0.) THEN
-            TPER = 2.*PI * APTOT / EPTOT
-            VOQ(IP,VOQR(IVTYPE)) = TPER
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-!       peakedness (Qp)                                                   40.64
-!
-      IVTYPE = 58
-      IF (OQPROC(IVTYPE)) THEN
-         ETOT  = 0.
-         ESTOT = 0.
-         DO ID=1, MDC
-            DO IS = 1, MSC
-               SIG   = SPCSIG(IS)
-               EADD  = SIG**2 * ACLOC(ID,IS) * FRINTF * DDIR
-               ETOT  = ETOT  + EADD
-            ENDDO
-         ENDDO
-         DO IS = 1, MSC
-            SIG = SPCSIG(IS)
-            EADD = 0.
-            DO ID=1, MDC
-               EADD = EADD + SIG * ACLOC(ID,IS) * DDIR
-            ENDDO
-            ESTOT = ESTOT + SIG**2 * EADD**2 * FRINTF
-         ENDDO
-         IF (ETOT.GT.0.) THEN
-            VOQ(IP,VOQR(IVTYPE)) = 2.*ESTOT/(ETOT * ETOT)
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-!       bound infragravity wave height                                    41.85
-!
-      IVTYPE = 81
-      IF (OQPROC(IVTYPE)) THEN
-!          integration over infragravity frequencies
-         ETOT = 0.
-         DO ID=1, MDC
-            DO IS=1, ntf
-               ETOT = ETOT + EBLOC(ID,IS)
-            ENDDO
-         ENDDO
-         IF (ETOT .GE. 0.) THEN
-            VOQ(IP,VOQR(IVTYPE)) = 4.*SQRT(ETOT)
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = 0.
-         ENDIF
-         IF (ITEST.GE.100) THEN
-            WRITE(PRINTF, 222) IP, OVSNAM(IVTYPE), VOQ(IP,VOQR(IVTYPE))
-         ENDIF
-      ENDIF
-!
-      IF (BKC.EQ.1) GOTO 800
-!
-!       compute k and Cg
-!
-      DEPLOC = VOQ(IP,VOQR(4))
-      CALL KSCIP1 (MSC, SPCSIG, DEPLOC, WK, CG, NE, NED)
-      IF (ITEST.GE.100 .OR. IOUTES .GE. 20) THEN
-         WRITE (PRTEST, *) ' Depth: ', DEPLOC
-         DO 870 ISC = 1, MIN(MSC,20)
-            WRITE (PRTEST, 860) ISC, SPCSIG(ISC), WK(ISC), CG(ISC)
-860         FORMAT (' i, SPCSIG, sigma, k, cg ', I2, 3(1X, E12.4))
-870      CONTINUE
-      ENDIF
-!
-!       transport direction
-!
-      IVTYPE = 15
-      IF (OQPROC(IVTYPE)) THEN
-         IF (ICUR.EQ.0) THEN
-            UXLOC = 0.
-            UYLOC = 0.
-         ELSE
-            UXLOC = VOQ(IP,VOQR(5))
-            UYLOC = VOQ(IP,VOQR(5)+1)
-         ENDIF
-         IF (OUTPAR(9).EQ.0) THEN
-!             integration over [0,inf]                                    40.87
-            CEX = 0.
-            CEY = 0.
-            ETOT = 0.
-            DO ISIGM = 1, MSC
-               IF (ISIGM.EQ.1) THEN
-                  DSIG = 0.5 * (SPCSIG(2) - SPCSIG(1))
-               ELSE IF (ISIGM.EQ.MSC) THEN
-                  DSIG = 0.5 * (SPCSIG(MSC) - SPCSIG(MSC-1))
-               ELSE
-                  DSIG = 0.5 * (SPCSIG(ISIGM+1) - SPCSIG(ISIGM-1))
-               ENDIF
-               SIG2 = SPCSIG(ISIGM)
-               DO ID=1,MDC
-                  CGE = DSIG * SIG2 * FLOC(ID,ISIGM)
-                  CEX = CEX + CGE * SPCDIR(ID,2)
-                  CEY = CEY + CGE * SPCDIR(ID,3)
-                  IF (ICUR.EQ.1) THEN
-                     ETOT = ETOT + DSIG * SIG2 * ACLOC(ID,ISIGM)
-                  ENDIF
-               ENDDO
-            ENDDO
-         ELSE
-!             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(24)
-            FMAX = PI2*OUTPAR(39)
-            ECS  = 1.
-            IF (ICUR.EQ.1) &
-               ETOT=SwanIntgratSpc(0.,FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                   WK, ECS, 0., 0., ACLOC, 1)
-            CEX = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 CG, SPCDIR(1,2), 0., 0., FLOC, 1)
-            CEY = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 CG, SPCDIR(1,3), 0., 0., FLOC, 1)
-         ENDIF
-!
-         IF (ICUR.EQ.1) THEN
-            CEX = CEX + ETOT * UXLOC
-            CEY = CEY + ETOT * UYLOC
-         ENDIF
-!
-         IF (OQPROC(IVTYPE)) THEN
-            IF (CEX.EQ.0. .AND. CEY.EQ.0.) THEN
-               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-            ELSE
+
                IF (BNAUT) THEN
-                  DIRDEG = ATAN2(CEY,CEX) * 180./PI
+                  VOQ(IP,VOQR(IVTYPE)) = ANGDEG( SPCDIR(IDIRM,1) )
                ELSE
-                  DIRDEG = (ALCQ + ATAN2(CEY,CEX)) * 180./PI
+                  VOQ(IP,VOQR(IVTYPE)) = ANGDEG( (ALCQ + SPCDIR(IDIRM,1)) )
+               ENDIF
+               VOQ(IP,VOQR(IVTYPE)) = DEGCNV( VOQ(IP,VOQR(IVTYPE)) )
+
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+!       mean direction
+
+         IVTYPE = 13
+         IF (OQPROC(IVTYPE)) THEN
+            IF (OUTPAR(8).EQ.0.) THEN
+!             integration over [0,inf]                                    40.87
+               ETOT = 0.
+               EEX  = 0.
+               EEY  = 0.
+               DO ID=1, MDC
+                  EAD = 0.
+                  DO IS=2,MSC
+                     DS=SPCSIG(IS)-SPCSIG(IS-1)
+                     EDI = 0.5*(SPCSIG(IS)*ACLOC(ID,IS)+ &
+                        SPCSIG(IS-1)*ACLOC(ID,IS-1))*DS
+                     EAD = EAD + EDI
+                  ENDDO
+                  IF (MSC .GT. 3) THEN
+!                  contribution of tail to total energy density
+                     EHFR = ACLOC(ID,MSC) * SPCSIG(MSC)
+                     EAD = EAD + EHFR * SPCSIG(MSC) * EFTAIL
+                  ENDIF
+                  EAD = EAD * DDIR
+                  ETOT = ETOT + EAD
+                  EEX  = EEX + EAD * SPCDIR(ID,2)
+                  EEY  = EEY + EAD * SPCDIR(ID,3)
+               ENDDO
+            ELSE
+!             integration over [fmin,fmax]                                40.87
+               FMIN = PI2*OUTPAR(23)
+               FMAX = PI2*OUTPAR(38)
+               ECS  = 1.
+               ETOT= SwanIntgratSpc(0. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , 0.  , 0.    , ACLOC      , &
+                  1  )
+               EEX = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK, SPCDIR(1,2), 0., 0., ACLOC, 1)
+               EEY = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK, SPCDIR(1,3), 0., 0., ACLOC, 1)
+            ENDIF
+            IF (ETOT.GT.0.) THEN
+               IF (BNAUT) THEN
+                  DIRDEG = ATAN2(EEY,EEX) * 180./PI
+               ELSE
+                  DIRDEG = (ALCQ + ATAN2(EEY,EEX)) * 180./PI
                ENDIF
                IF (DIRDEG.LT.0.) DIRDEG = DIRDEG + 360.
-!
+
+!             *** Convert (if necessary) from nautical degrees ***        32.01
+!             *** to cartesian degrees                         ***        32.01
+
+               VOQ(IP,VOQR(IVTYPE)) = DEGCNV( DIRDEG )
+
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+!       directional spread
+
+         IVTYPE = 16
+         IF (OQPROC(IVTYPE)) THEN
+            IF (OUTPAR(10).EQ.0.) THEN
+!             integration over [0,inf]                                    40.87
+               ETOT = 0.
+               EEX  = 0.
+               EEY  = 0.
+               DO ID=1, MDC
+                  EAD = 0.
+                  DO IS=2,MSC
+                     DS=SPCSIG(IS)-SPCSIG(IS-1)
+                     EDI = 0.5*(SPCSIG(IS)*ACLOC(ID,IS)+ &
+                        SPCSIG(IS-1)*ACLOC(ID,IS-1))*DS
+                     EAD = EAD + EDI
+                  ENDDO
+                  IF (MSC .GT. 3) THEN
+!                  contribution of tail to total energy density
+                     EHFR = ACLOC(ID,MSC) * SPCSIG(MSC)
+                     EAD = EAD + EHFR * SPCSIG(MSC) * EFTAIL
+                  ENDIF
+                  EAD = EAD * DDIR
+                  ETOT = ETOT + EAD
+                  EEX  = EEX + EAD * SPCDIR(ID,2)
+                  EEY  = EEY + EAD * SPCDIR(ID,3)
+               ENDDO
+            ELSE
+!             integration over [fmin,fmax]                                40.87
+               FMIN = PI2*OUTPAR(25)
+               FMAX = PI2*OUTPAR(40)
+               ECS  = 1.
+               ETOT= SwanIntgratSpc(0. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , 0.  , 0.    , ACLOC      , &
+                  1  )
+               EEX = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK, SPCDIR(1,2), 0., 0., ACLOC, 1)
+               EEY = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK, SPCDIR(1,3), 0., 0., ACLOC, 1)
+            ENDIF
+            IF (ETOT.GT.0.) THEN
+               FF = MIN (1., SQRT(EEX*EEX+EEY*EEY)/ETOT)
+               VOQ(IP,VOQR(IVTYPE)) = SQRT(2.-2.*FF) *180./PI
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+!       average relative period (Tm-10)                                   40.41
+
+         IVTYPE = 48
+         IF (OQPROC(IVTYPE)) THEN
+            IF (OUTPAR(20).EQ.0.) THEN
+!             integration over [0,inf]                                    40.87
+               APTOT = 0.
+               EPTOT = 0.
+               DO ID=1, MDC
+                  DO IS=1,MSC
+                     SIG2P = SPCSIG(IS)
+                     APTOT = APTOT + SIG2P * ACLOC(ID,IS)
+                     EPTOT = EPTOT + SPCSIG(IS) * SIG2P * ACLOC(ID,IS)
+                  ENDDO
+               ENDDO
+               APTOT = APTOT * FRINTF
+               EPTOT = EPTOT * FRINTF
+               IF (MSC .GT. 3) THEN
+                  PPTAIL = PWTAIL(1)
+                  APTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                  PPTAIL = PWTAIL(1) - 1.
+                  EPTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                  DO ID = 1, MDC
+!                  contribution of tail to total energy density
+                     AHFR = SIG2P * ACLOC(ID,MSC)
+                     APTOT = APTOT + APTAIL * AHFR
+                     EHFR = SPCSIG(MSC) * AHFR
+                     EPTOT = EPTOT + EPTAIL * EHFR
+                  ENDDO
+               ENDIF
+            ELSE
+!             integration over [fmin,fmax]                                40.87
+               FMIN = PI2*OUTPAR(35)
+               FMAX = PI2*OUTPAR(50)
+               ECS  = 1.
+               APTOT=SwanIntgratSpc(-1., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , 0.  , 0.    , ACLOC      , &
+                  1  )
+               EPTOT=SwanIntgratSpc( 0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , 0.  , 0.    , ACLOC      , &
+                  1  )
+            ENDIF
+            IF (EPTOT.GT.0.) THEN
+               TPER = 2.*PI * APTOT / EPTOT
+               VOQ(IP,VOQR(IVTYPE)) = TPER
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+         IVTYPE = 47
+         IF (ICUR.EQ.0.AND.OQPROC(IVTYPE)) THEN
+            IF (OUTPAR(19).EQ.0.) THEN
+!             integration over [0,inf]                                    40.87
+               APTOT = 0.
+               EPTOT = 0.
+               DO ID=1, MDC
+                  DO IS=1,MSC
+                     SIG2P = SPCSIG(IS)
+                     APTOT = APTOT + SIG2P * ACLOC(ID,IS)
+                     EPTOT = EPTOT + SPCSIG(IS) * SIG2P * ACLOC(ID,IS)
+                  ENDDO
+               ENDDO
+               APTOT = APTOT * FRINTF
+               EPTOT = EPTOT * FRINTF
+               IF (MSC .GT. 3) THEN
+                  PPTAIL = PWTAIL(1)
+                  APTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                  PPTAIL = PWTAIL(1) - 1.
+                  EPTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                  DO ID = 1, MDC
+!                  contribution of tail to total energy density
+                     AHFR = SIG2P * ACLOC(ID,MSC)
+                     APTOT = APTOT + APTAIL * AHFR
+                     EHFR = SPCSIG(MSC) * AHFR
+                     EPTOT = EPTOT + EPTAIL * EHFR
+                  ENDDO
+               ENDIF
+            ELSE
+!             integration over [fmin,fmax]                                40.87
+               FMIN = PI2*OUTPAR(34)
+               FMAX = PI2*OUTPAR(49)
+               ECS  = 1.
+               APTOT=SwanIntgratSpc(-1., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , 0.  , 0.    , ACLOC      , &
+                  1  )
+               EPTOT=SwanIntgratSpc( 0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , 0.  , 0.    , ACLOC      , &
+                  1  )
+            ENDIF
+            IF (EPTOT.GT.0.) THEN
+               TPER = 2.*PI * APTOT / EPTOT
+               VOQ(IP,VOQR(IVTYPE)) = TPER
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+!       peakedness (Qp)                                                   40.64
+
+         IVTYPE = 58
+         IF (OQPROC(IVTYPE)) THEN
+            ETOT  = 0.
+            ESTOT = 0.
+            DO ID=1, MDC
+               DO IS = 1, MSC
+                  SIG   = SPCSIG(IS)
+                  EADD  = SIG**2 * ACLOC(ID,IS) * FRINTF * DDIR
+                  ETOT  = ETOT  + EADD
+               ENDDO
+            ENDDO
+            DO IS = 1, MSC
+               SIG = SPCSIG(IS)
+               EADD = 0.
+               DO ID=1, MDC
+                  EADD = EADD + SIG * ACLOC(ID,IS) * DDIR
+               ENDDO
+               ESTOT = ESTOT + SIG**2 * EADD**2 * FRINTF
+            ENDDO
+            IF (ETOT.GT.0.) THEN
+               VOQ(IP,VOQR(IVTYPE)) = 2.*ESTOT/(ETOT * ETOT)
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+!       bound infragravity wave height                                    41.85
+
+         IVTYPE = 81
+         IF (OQPROC(IVTYPE)) THEN
+!          integration over infragravity frequencies
+            ETOT = 0.
+            DO ID=1, MDC
+               DO IS=1, ntf
+                  ETOT = ETOT + EBLOC(ID,IS)
+               ENDDO
+            ENDDO
+            IF (ETOT .GE. 0.) THEN
+               VOQ(IP,VOQR(IVTYPE)) = 4.*SQRT(ETOT)
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = 0.
+            ENDIF
+            IF (ITEST.GE.100) THEN
+               WRITE(PRINTF, "(' SWOEXA: POINT ', I5, 2X, A, 1X, E12.4)") IP, OVSNAM(IVTYPE), VOQ(IP,VOQR(IVTYPE))
+            ENDIF
+         ENDIF
+
+         IF (BKC.EQ.1) THEN
+            VALID_OUTPUT = .TRUE.
+            EXIT point_output
+         END IF
+
+!       compute k and Cg
+
+         DEPLOC = VOQ(IP,VOQR(4))
+         CALL KSCIP1 (MSC, SPCSIG, DEPLOC, WK, CG, NE, NED)
+         IF (ITEST.GE.100 .OR. IOUTES .GE. 20) THEN
+            WRITE (PRTEST, *) ' Depth: ', DEPLOC
+            do ISC = 1, MIN(MSC,20)
+               WRITE (PRTEST, "(' i, SPCSIG, sigma, k, cg ', I2, 3(1X, E12.4))") ISC, SPCSIG(ISC), WK(ISC), CG(ISC)
+            end do
+         ENDIF
+
+!       transport direction
+
+         IVTYPE = 15
+         IF (OQPROC(IVTYPE)) THEN
+            IF (ICUR.EQ.0) THEN
+               UXLOC = 0.
+               UYLOC = 0.
+            ELSE
+               UXLOC = VOQ(IP,VOQR(5))
+               UYLOC = VOQ(IP,VOQR(5)+1)
+            ENDIF
+            IF (OUTPAR(9).EQ.0) THEN
+!             integration over [0,inf]                                    40.87
+               CEX = 0.
+               CEY = 0.
+               ETOT = 0.
+               DO ISIGM = 1, MSC
+                  IF (ISIGM.EQ.1) THEN
+                     DSIG = 0.5 * (SPCSIG(2) - SPCSIG(1))
+                  ELSE IF (ISIGM.EQ.MSC) THEN
+                     DSIG = 0.5 * (SPCSIG(MSC) - SPCSIG(MSC-1))
+                  ELSE
+                     DSIG = 0.5 * (SPCSIG(ISIGM+1) - SPCSIG(ISIGM-1))
+                  ENDIF
+                  SIG2 = SPCSIG(ISIGM)
+                  DO ID=1,MDC
+                     CGE = DSIG * SIG2 * FLOC(ID,ISIGM)
+                     CEX = CEX + CGE * SPCDIR(ID,2)
+                     CEY = CEY + CGE * SPCDIR(ID,3)
+                     IF (ICUR.EQ.1) THEN
+                        ETOT = ETOT + DSIG * SIG2 * ACLOC(ID,ISIGM)
+                     ENDIF
+                  ENDDO
+               ENDDO
+            ELSE
+!             integration over [fmin,fmax]                                40.87
+               FMIN = PI2*OUTPAR(24)
+               FMAX = PI2*OUTPAR(39)
+               ECS  = 1.
+               IF (ICUR.EQ.1) &
+                  ETOT=SwanIntgratSpc(0.,FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK, ECS, 0., 0., ACLOC, 1)
+               CEX = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  CG, SPCDIR(1,2), 0., 0., FLOC, 1)
+               CEY = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  CG, SPCDIR(1,3), 0., 0., FLOC, 1)
+            ENDIF
+
+            IF (ICUR.EQ.1) THEN
+               CEX = CEX + ETOT * UXLOC
+               CEY = CEY + ETOT * UYLOC
+            ENDIF
+
+            IF (OQPROC(IVTYPE)) THEN
+               IF (CEX.EQ.0. .AND. CEY.EQ.0.) THEN
+                  VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+               ELSE
+                  IF (BNAUT) THEN
+                     DIRDEG = ATAN2(CEY,CEX) * 180./PI
+                  ELSE
+                     DIRDEG = (ALCQ + ATAN2(CEY,CEX)) * 180./PI
+                  ENDIF
+                  IF (DIRDEG.LT.0.) DIRDEG = DIRDEG + 360.
+
 !               *** Convert (if necessary) from nautical degrees ***      32.01
 !               *** to cartesian degrees                         ***      32.01
-!
-               VOQ(IP,VOQR(IVTYPE)) = DEGCNV( DIRDEG )
-!
+
+                  VOQ(IP,VOQR(IVTYPE)) = DEGCNV( DIRDEG )
+
+               ENDIF
             ENDIF
          ENDIF
-      ENDIF
-!
+
 !       transport vector
-!
-      IVTYPE = 19
-      IF (OQPROC(IVTYPE)) THEN
-         IF (ICUR.EQ.0) THEN
-            UXLOC = 0.
-            UYLOC = 0.
-         ELSE
-            UXLOC = VOQ(IP,VOQR(5))
-            UYLOC = VOQ(IP,VOQR(5)+1)
-         ENDIF
-         IF (OUTPAR(13).EQ.0) THEN
+
+         IVTYPE = 19
+         IF (OQPROC(IVTYPE)) THEN
+            IF (ICUR.EQ.0) THEN
+               UXLOC = 0.
+               UYLOC = 0.
+            ELSE
+               UXLOC = VOQ(IP,VOQR(5))
+               UYLOC = VOQ(IP,VOQR(5)+1)
+            ENDIF
+            IF (OUTPAR(13).EQ.0) THEN
 !             integration over [0,inf]                                    40.87
-            CEX = 0.
-            CEY = 0.
-            ETOT = 0.
-            DO ISIGM = 1, MSC
-               IF (ISIGM.EQ.1) THEN
-                  DSIG = 0.5 * (SPCSIG(2) - SPCSIG(1))
-               ELSE IF (ISIGM.EQ.MSC) THEN
-                  DSIG = 0.5 * (SPCSIG(MSC) - SPCSIG(MSC-1))
-               ELSE
-                  DSIG = 0.5 * (SPCSIG(ISIGM+1) - SPCSIG(ISIGM-1))
-               ENDIF
-               SIG2 = SPCSIG(ISIGM)
-               DO ID=1,MDC
-                  CGE = DSIG * SIG2 * FLOC(ID,ISIGM)
-                  CEX = CEX + CGE * SPCDIR(ID,2)
-                  CEY = CEY + CGE * SPCDIR(ID,3)
-                  IF (ICUR.EQ.1) THEN
-                     ETOT = ETOT + DSIG * SIG2 * ACLOC(ID,ISIGM)
+               CEX = 0.
+               CEY = 0.
+               ETOT = 0.
+               DO ISIGM = 1, MSC
+                  IF (ISIGM.EQ.1) THEN
+                     DSIG = 0.5 * (SPCSIG(2) - SPCSIG(1))
+                  ELSE IF (ISIGM.EQ.MSC) THEN
+                     DSIG = 0.5 * (SPCSIG(MSC) - SPCSIG(MSC-1))
+                  ELSE
+                     DSIG = 0.5 * (SPCSIG(ISIGM+1) - SPCSIG(ISIGM-1))
                   ENDIF
+                  SIG2 = SPCSIG(ISIGM)
+                  DO ID=1,MDC
+                     CGE = DSIG * SIG2 * FLOC(ID,ISIGM)
+                     CEX = CEX + CGE * SPCDIR(ID,2)
+                     CEY = CEY + CGE * SPCDIR(ID,3)
+                     IF (ICUR.EQ.1) THEN
+                        ETOT = ETOT + DSIG * SIG2 * ACLOC(ID,ISIGM)
+                     ENDIF
+                  ENDDO
                ENDDO
-            ENDDO
-         ELSE
+            ELSE
 !             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(28)
-            FMAX = PI2*OUTPAR(43)
-            ECS  = 1.
-            IF (ICUR.EQ.1) &
-               ETOT=SwanIntgratSpc(0.,FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                   WK, ECS, 0., 0., ACLOC, 1)
-            CEX = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 CG, SPCDIR(1,2), 0., 0., FLOC, 1)
-            CEY = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 CG, SPCDIR(1,3), 0., 0., FLOC, 1)
-            CEX = CEX/DDIR
-            CEY = CEY/DDIR
+               FMIN = PI2*OUTPAR(28)
+               FMAX = PI2*OUTPAR(43)
+               ECS  = 1.
+               IF (ICUR.EQ.1) &
+                  ETOT=SwanIntgratSpc(0.,FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK, ECS, 0., 0., ACLOC, 1)
+               CEX = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  CG, SPCDIR(1,2), 0., 0., FLOC, 1)
+               CEY = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  CG, SPCDIR(1,3), 0., 0., FLOC, 1)
+               CEX = CEX/DDIR
+               CEY = CEY/DDIR
+            ENDIF
+
+            IF (ICUR.EQ.1) THEN
+               CEX = CEX + ETOT * UXLOC
+               CEY = CEY + ETOT * UYLOC
+            ENDIF
+
+            SX = CEX * DDIR
+            SY = CEY * DDIR
+            IF (INRHOG.EQ.1) THEN
+               SX = SX * RHO * GRAV
+               SY = SY * RHO * GRAV
+            ENDIF
+            VOQ(IP,VOQR(IVTYPE))   = COSCQ*SX - SINCQ*SY
+            VOQ(IP,VOQR(IVTYPE)+1) = SINCQ*SX + COSCQ*SY
          ENDIF
-!
-         IF (ICUR.EQ.1) THEN
-            CEX = CEX + ETOT * UXLOC
-            CEY = CEY + ETOT * UYLOC
-         ENDIF
-!
-         SX = CEX * DDIR
-         SY = CEY * DDIR
-         IF (INRHOG.EQ.1) THEN
-            SX = SX * RHO * GRAV
-            SY = SY * RHO * GRAV
-         ENDIF
-         VOQ(IP,VOQR(IVTYPE))   = COSCQ*SX - SINCQ*SY
-         VOQ(IP,VOQR(IVTYPE)+1) = SINCQ*SX + COSCQ*SY
-      ENDIF
-!
+
 !       average wave length
-!
-      IVTYPE = 17
-      IF (OQPROC(IVTYPE)) THEN
-         IF (OUTPAR(11).EQ.0) THEN
+
+         IVTYPE = 17
+         IF (OQPROC(IVTYPE)) THEN
+            IF (OUTPAR(11).EQ.0) THEN
 !             integration over [0,inf]                                    40.87
-            ETOT  = 0.
-            EKTOT = 0.
+               ETOT  = 0.
+               EKTOT = 0.
 !             new integration method involving FRINTF                     20.59
-            DO IS=1, MSC
-               SIG2 = (SPCSIG(IS))**2
-               SKK  = SIG2 * (WK(IS))**OUTPAR(3)
-               DO ID=1,MDC
-                  ETOT  = ETOT + SIG2 * ACLOC(ID,IS)
-                  EKTOT = EKTOT + SKK * ACLOC(ID,IS)
+               DO IS=1, MSC
+                  SIG2 = (SPCSIG(IS))**2
+                  SKK  = SIG2 * (WK(IS))**OUTPAR(3)
+                  DO ID=1,MDC
+                     ETOT  = ETOT + SIG2 * ACLOC(ID,IS)
+                     EKTOT = EKTOT + SKK * ACLOC(ID,IS)
+                  ENDDO
                ENDDO
-            ENDDO
-            ETOT  = FRINTF * ETOT
-            EKTOT = FRINTF * EKTOT
-            IF (MSC .GT. 3) THEN
+               ETOT  = FRINTF * ETOT
+               EKTOT = FRINTF * EKTOT
+               IF (MSC .GT. 3) THEN
 !                contribution of tail to total energy density
-               PPTAIL = PWTAIL(1) - 1.
-               CETAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               PPTAIL = PWTAIL(1) - 1. - 2.*OUTPAR(3)
-               IF (PPTAIL.LE.0.) THEN
-                  CALL MSGERR (2,'error tail computation')
-                  GOTO 480
+                  PPTAIL = PWTAIL(1) - 1.
+                  CETAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                  PPTAIL = PWTAIL(1) - 1. - 2.*OUTPAR(3)
+                  IF (PPTAIL.LE.0.) THEN
+                     CALL MSGERR (2,'error tail computation')
+                  ELSE
+                     CKTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                     DO ID=1,MDC
+                        ETOT  = ETOT + CETAIL * SIG2 * ACLOC(ID,MSC)
+                        EKTOT = EKTOT + CKTAIL * SKK * ACLOC(ID,MSC)
+                     ENDDO
+                  ENDIF
                ENDIF
-               CKTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               DO ID=1,MDC
-                  ETOT   = ETOT + CETAIL * SIG2 * ACLOC(ID,MSC)
-                  EKTOT  = EKTOT + CKTAIL * SKK * ACLOC(ID,MSC)
-               ENDDO
-480            CONTINUE
-            ENDIF
-            IF (EKTOT.GT.0.) THEN
-               WLMEAN = PI2 * (ETOT / EKTOT) ** (1./OUTPAR(3))
-               VOQ(IP,VOQR(IVTYPE)) = WLMEAN
+               IF (EKTOT.GT.0.) THEN
+                  WLMEAN = PI2 * (ETOT / EKTOT) ** (1./OUTPAR(3))
+                  VOQ(IP,VOQR(IVTYPE)) = WLMEAN
+               ELSE
+                  VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+               ENDIF
             ELSE
-               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-            ENDIF
-         ELSE
 !             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(26)
-            FMAX = PI2*OUTPAR(41)
-            ECS  = 1.
-            ETOT  = SwanIntgratSpc(OUTPAR(3)-1., FMIN , FMAX, SPCSIG, &
-                                   SPCDIR(1,1) , WK   , ECS , 0.    , &
-                                   0.          , ACLOC, 3   )
-            EKTOT = SwanIntgratSpc(OUTPAR(3)   , FMIN , FMAX, SPCSIG, &
-                                   SPCDIR(1,1) , WK   , ECS , 0.    , &
-                                   0.          , ACLOC, 3   )
-            IF (EKTOT.GT.0.) THEN
-               WLMEAN = PI2 * ETOT / EKTOT
-               VOQ(IP,VOQR(IVTYPE)) = WLMEAN
-            ELSE
-               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+               FMIN = PI2*OUTPAR(26)
+               FMAX = PI2*OUTPAR(41)
+               ECS  = 1.
+               ETOT  = SwanIntgratSpc(OUTPAR(3)-1., FMIN , FMAX, SPCSIG, &
+                  SPCDIR(1,1) , WK   , ECS , 0.    , &
+                  0.          , ACLOC, 3   )
+               EKTOT = SwanIntgratSpc(OUTPAR(3)   , FMIN , FMAX, SPCSIG, &
+                  SPCDIR(1,1) , WK   , ECS , 0.    , &
+                  0.          , ACLOC, 3   )
+               IF (EKTOT.GT.0.) THEN
+                  WLMEAN = PI2 * ETOT / EKTOT
+                  VOQ(IP,VOQR(IVTYPE)) = WLMEAN
+               ELSE
+                  VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+               ENDIF
             ENDIF
          ENDIF
-      ENDIF
-!
+
 !       steepness
-!
-      IVTYPE = 18
-      IF (OQPROC(IVTYPE)) THEN
-         IF (OUTPAR(12).EQ.0) THEN
+
+         IVTYPE = 18
+         IF (OQPROC(IVTYPE)) THEN
+            IF (OUTPAR(12).EQ.0) THEN
 !             integration over [0,inf]                                    40.87
-            ETOT  = 0.
-            EKTOT = 0.
+               ETOT  = 0.
+               EKTOT = 0.
 !             new integration method involving FRINTF                     20.59
-            DO IS=1, MSC
-               SIG2 = (SPCSIG(IS))**2
-               SKK  = SIG2 * (WK(IS))**OUTPAR(3)
-               DO ID=1,MDC
-                  ETOT  = ETOT + SIG2 * ACLOC(ID,IS)
-                  EKTOT = EKTOT + SKK * ACLOC(ID,IS)
+               DO IS=1, MSC
+                  SIG2 = (SPCSIG(IS))**2
+                  SKK  = SIG2 * (WK(IS))**OUTPAR(3)
+                  DO ID=1,MDC
+                     ETOT  = ETOT + SIG2 * ACLOC(ID,IS)
+                     EKTOT = EKTOT + SKK * ACLOC(ID,IS)
+                  ENDDO
                ENDDO
-            ENDDO
-            ETOT  = FRINTF * ETOT
-            EKTOT = FRINTF * EKTOT
-            IF (MSC .GT. 3) THEN
+               ETOT  = FRINTF * ETOT
+               EKTOT = FRINTF * EKTOT
+               IF (MSC .GT. 3) THEN
 !                contribution of tail to total energy density
-               PPTAIL = PWTAIL(1) - 1.
-               CETAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               PPTAIL = PWTAIL(1) - 1. - 2.*OUTPAR(3)
-               IF (PPTAIL.LE.0.) THEN
-                  CALL MSGERR (2,'error tail computation')
-                  GOTO 481
+                  PPTAIL = PWTAIL(1) - 1.
+                  CETAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                  PPTAIL = PWTAIL(1) - 1. - 2.*OUTPAR(3)
+                  IF (PPTAIL.LE.0.) THEN
+                     CALL MSGERR (2,'error tail computation')
+                  ELSE
+                     CKTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+                     DO ID=1,MDC
+                        ETOT  = ETOT + CETAIL * SIG2 * ACLOC(ID,MSC)
+                        EKTOT = EKTOT + CKTAIL * SKK * ACLOC(ID,MSC)
+                     ENDDO
+                  ENDIF
                ENDIF
-               CKTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-               DO ID=1,MDC
-                  ETOT   = ETOT + CETAIL * SIG2 * ACLOC(ID,MSC)
-                  EKTOT  = EKTOT + CKTAIL * SKK * ACLOC(ID,MSC)
-               ENDDO
-481            CONTINUE
-            ENDIF
-            IF (EKTOT.GT.0.) THEN
-               WLMEAN = PI2 * (ETOT / EKTOT) ** (1./OUTPAR(3))
-               VOQ(IP,VOQR(IVTYPE)) = 4.* SQRT(ETOT*DDIR) / WLMEAN
+               IF (EKTOT.GT.0.) THEN
+                  WLMEAN = PI2 * (ETOT / EKTOT) ** (1./OUTPAR(3))
+                  VOQ(IP,VOQR(IVTYPE)) = 4.* SQRT(ETOT*DDIR) / WLMEAN
+               ELSE
+                  VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+               ENDIF
             ELSE
-               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-            ENDIF
-         ELSE
 !             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(27)
-            FMAX = PI2*OUTPAR(42)
-            ECS  = 1.
-            ETOT  = SwanIntgratSpc(0.          , FMIN , FMAX, SPCSIG, &
-                                   SPCDIR(1,1) , WK   , ECS , 0.    , &
-                                   0.          , ACLOC, 1   )
-            EPTOT = SwanIntgratSpc(OUTPAR(3)-1., FMIN , FMAX, SPCSIG, &
-                                   SPCDIR(1,1) , WK   , ECS , 0.    , &
-                                   0.          , ACLOC, 3   )
-            EKTOT = SwanIntgratSpc(OUTPAR(3)   , FMIN , FMAX, SPCSIG, &
-                                   SPCDIR(1,1) , WK   , ECS , 0.    , &
-                                   0.          , ACLOC, 3   )
-            IF (EKTOT.GT.0.) THEN
-               WLMEAN = PI2 * EPTOT / EKTOT
-               VOQ(IP,VOQR(IVTYPE)) = 4.* SQRT(ETOT) / WLMEAN
-            ELSE
-               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+               FMIN = PI2*OUTPAR(27)
+               FMAX = PI2*OUTPAR(42)
+               ECS  = 1.
+               ETOT  = SwanIntgratSpc(0.          , FMIN , FMAX, SPCSIG, &
+                  SPCDIR(1,1) , WK   , ECS , 0.    , &
+                  0.          , ACLOC, 1   )
+               EPTOT = SwanIntgratSpc(OUTPAR(3)-1., FMIN , FMAX, SPCSIG, &
+                  SPCDIR(1,1) , WK   , ECS , 0.    , &
+                  0.          , ACLOC, 3   )
+               EKTOT = SwanIntgratSpc(OUTPAR(3)   , FMIN , FMAX, SPCSIG, &
+                  SPCDIR(1,1) , WK   , ECS , 0.    , &
+                  0.          , ACLOC, 3   )
+               IF (EKTOT.GT.0.) THEN
+                  WLMEAN = PI2 * EPTOT / EKTOT
+                  VOQ(IP,VOQR(IVTYPE)) = 4.* SQRT(ETOT) / WLMEAN
+               ELSE
+                  VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+               ENDIF
             ENDIF
          ENDIF
-      ENDIF
-!
+
 !       average absolute period Tm01                                      40.00
-!
-      IVTYPE = 11
-      IF (ICUR.GT.0 .AND. OQPROC(IVTYPE)) THEN
-         UXLOC = VOQ(IP,VOQR(5))
-         UYLOC = VOQ(IP,VOQR(5)+1)
-         IF (OUTPAR(7).EQ.0) THEN
-!             integration over [0,inf]                                    40.87
-            ETOT = 0.
-            EFTOT = 0.
-            PPTAIL = PWTAIL(1) - 1.
-            ETAIL  = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-            PPTAIL = PWTAIL(1) - 2.
-            EFTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-            DO ID=1, MDC
-               THETA = SPCDIR(ID,1) + ALCQ
-               UXD = UXLOC*COS(THETA) + UYLOC*SIN(THETA)
-               DO IS = 1, MSC
-                  OMEG = SPCSIG(IS) + WK(IS) * UXD
-                  EADD = FRINTF * SPCSIG(IS)**2 * ACLOC(ID,IS)
-                  ETOT = ETOT + EADD
-                  EFTOT = EFTOT + EADD * OMEG
-               ENDDO
-               IF (MSC .GT. 3) THEN
-!                  contribution of tail to total energy density
-                  EADD = SPCSIG(MSC)**2 * ACLOC(ID,MSC)
-                  ETOT = ETOT + ETAIL * EADD
-                  EFTOT = EFTOT + EFTAIL * OMEG * EADD
-               ENDIF
-            ENDDO
-         ELSE
-!             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(22)
-            FMAX = PI2*OUTPAR(37)
-            ECS  = 1.
-            ETOT =SwanIntgratSpc(0. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK , ECS , UXLOC, UYLOC, ACLOC      , &
-                                 2  )
-            EFTOT=SwanIntgratSpc(1. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK , ECS , UXLOC, UYLOC, ACLOC      , &
-                                 2  )
-         ENDIF
-         IF (EFTOT.GT.0.) THEN
-            TPER = 2.*PI * ETOT / EFTOT
-            VOQ(IP,VOQR(IVTYPE)) = TPER
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-!       average absolute period (case with current)                       10.09
-!
-      IVTYPE = 42
-      IF (ICUR.GT.0 .AND. OQPROC(IVTYPE)) THEN
-         UXLOC = VOQ(IP,VOQR(5))
-         UYLOC = VOQ(IP,VOQR(5)+1)
-         IF (OUTPAR(17).EQ.0) THEN
-!             integration over [0,inf]                                    40.87
-            ETOT = 0.
-            EFTOT = 0.
-            PPTAIL = PWTAIL(1) - OUTPAR(2)
-            ETAIL  = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-            PPTAIL = PWTAIL(1) - OUTPAR(2) - 1.
-            EFTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-            DO ID=1, MDC
-               THETA = SPCDIR(ID,1) + ALCQ
-               UXD = UXLOC*COS(THETA) + UYLOC*SIN(THETA)
-               DO IS = 1, MSC
-                  OMEG = SPCSIG(IS) + WK(IS) * UXD
-                  OMEG1P = OMEG ** (OUTPAR(2)-1.)
-                  EADD = OMEG1P * FRINTF * SPCSIG(IS)**2 * ACLOC(ID,IS)
-                  ETOT = ETOT + EADD
-                  EFTOT = EFTOT + EADD * OMEG
-               ENDDO
-               IF (MSC .GT. 3) THEN
-!                  contribution of tail to total energy density
-                  EADD = OMEG1P * SPCSIG(MSC)**2 * ACLOC(ID,MSC)
-                  ETOT = ETOT + ETAIL * EADD
-                  EFTOT = EFTOT + EFTAIL * OMEG * EADD
-               ENDIF
-            ENDDO
-         ELSE
-!             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(32)
-            FMAX = PI2*OUTPAR(47)
-            ECS  = 1.
-            ETOT  = SwanIntgratSpc(OUTPAR(2)-1., FMIN , FMAX, SPCSIG, &
-                                   SPCDIR(1,1) , WK   , ECS , UXLOC , &
-                                   UYLOC       , ACLOC, 2   )
-            EFTOT = SwanIntgratSpc(OUTPAR(2)   , FMIN , FMAX, SPCSIG, &
-                                   SPCDIR(1,1) , WK   , ECS , UXLOC , &
-                                   UYLOC       , ACLOC, 2   )
-         ENDIF
-         IF (EFTOT.GT.0.) THEN
-            TPER = 2.*PI * ETOT / EFTOT
-            VOQ(IP,VOQR(IVTYPE)) = TPER
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-!       zero-crossing period Tm02                                         20.61
-!
-      IVTYPE = 32
-      IF (OQPROC(IVTYPE)) THEN
-         IF (ICUR.GT.0) THEN
+
+         IVTYPE = 11
+         IF (ICUR.GT.0 .AND. OQPROC(IVTYPE)) THEN
             UXLOC = VOQ(IP,VOQR(5))
             UYLOC = VOQ(IP,VOQR(5)+1)
-         ENDIF
-         IF (OUTPAR(15).EQ.0) THEN
+            IF (OUTPAR(7).EQ.0) THEN
 !             integration over [0,inf]                                    40.87
-            ETOT  = 0.
-            EFTOT = 0.
-            PPTAIL = PWTAIL(1) - 1.
-            ETAIL  = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-            PPTAIL = PWTAIL(1) - 3.
-            EFTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-            DO ID=1, MDC
-               IF (ICUR.GT.0) THEN
-                  THETA = SPCDIR(ID,1) + ALCQ
-                  UXD   = UXLOC*COS(THETA) + UYLOC*SIN(THETA)
-               ENDIF
-               DO IS=1,MSC
-                  EADD  = SPCSIG(IS)**2 * ACLOC(ID,IS) * FRINTF
-                  IF (ICUR.GT.0) THEN
-                     OMEG  = SPCSIG(IS) + WK(IS) * UXD
-                     OMEG2 = OMEG**2
-                  ELSE
-                     OMEG2 = SPCSIG(IS)**2
-                  ENDIF
-                  ETOT  = ETOT + EADD
-                  EFTOT = EFTOT + EADD * OMEG2
-               ENDDO
-               IF (MSC .GT. 3) THEN
-!                  contribution of tail to total energy density
-                  EADD  = SPCSIG(MSC)**2 * ACLOC(ID,MSC)
-                  ETOT  = ETOT  + ETAIL * EADD
-                  EFTOT = EFTOT + EFTAIL * OMEG2 * EADD
-               ENDIF
-            ENDDO
-         ELSE
-!             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(30)
-            FMAX = PI2*OUTPAR(45)
-            ECS  = 1.
-            IF (ICUR.GT.0) THEN
-               ITP = 2
-            ELSE
-               ITP = 1
-            ENDIF
-            ETOT  = SwanIntgratSpc(0.          , FMIN , FMAX, SPCSIG, &
-                                   SPCDIR(1,1) , WK   , ECS , UXLOC , &
-                                   UYLOC       , ACLOC, ITP )
-            EFTOT = SwanIntgratSpc(2.          , FMIN , FMAX, SPCSIG, &
-                                   SPCDIR(1,1) , WK   , ECS , UXLOC , &
-                                   UYLOC       , ACLOC, ITP )
-         ENDIF
-         IF (EFTOT.GT.0.) THEN
-            VOQ(IP,VOQR(IVTYPE)) = 2.*PI * SQRT(ETOT/EFTOT)
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-!       frequency spectral width (kappa)                                  20.61
-!
-      IVTYPE = 33
-      IF (OQPROC(IVTYPE)) THEN
-         TM02 = VOQ(IP,VOQR(32))
-         IF (ICUR.GT.0) THEN
-            UXLOC = VOQ(IP,VOQR(5))
-            UYLOC = VOQ(IP,VOQR(5)+1)
-         ENDIF
-         ETOT  = 0.
-         ECTOT = 0.
-         ESTOT = 0.
-         IF (OUTPAR(16).EQ.0) THEN
-!             integration over [0,inf]                                    40.87
-            PPTAIL = PWTAIL(1) - 1.
-            ECTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-            DO  ID=1, MDC
-               IF (ICUR.GT.0) THEN
-                  THETA = SPCDIR(ID,1) + ALCQ
-                  UXD   = UXLOC*COS(THETA) + UYLOC*SIN(THETA)
-               ENDIF
-               DO  IS = 1, MSC
-                  SIG = SPCSIG(IS)
-                  IF (ICUR.GT.0) THEN
-                     OMEG = SIG + WK(IS) * UXD
-                  ELSE
-                     OMEG = SIG
-                  ENDIF
-                  FND = OMEG * TM02
-                  COSFND = COS(FND)
-                  SINFND = SIN(FND)
-                  EADD   = SIG**2 * ACLOC(ID,IS) * FRINTF
-                  ETOT  = ETOT  + EADD
-                  ECTOT = ECTOT + COSFND * EADD
-                  ESTOT = ESTOT + SINFND * EADD
-               ENDDO
-               IF (MSC .GT. 3) THEN
-!                 contribution of tail to total energy density
-                  EADD  = ECTAIL * SIG**2 * ACLOC(ID,MSC)
-                  ETOT  = ETOT  + EADD
-                  ECTOT = ECTOT + COSFND * EADD
-                  ESTOT = ESTOT + SINFND * EADD
-               ENDIF
-            ENDDO
-         ELSE
-!             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(31)
-            FMAX = PI2*OUTPAR(46)
-            DO ID = 1, MDC
-               IF (ICUR.GT.0) THEN
+               ETOT = 0.
+               EFTOT = 0.
+               PPTAIL = PWTAIL(1) - 1.
+               ETAIL  = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+               PPTAIL = PWTAIL(1) - 2.
+               EFTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+               DO ID=1, MDC
                   THETA = SPCDIR(ID,1) + ALCQ
                   UXD = UXLOC*COS(THETA) + UYLOC*SIN(THETA)
-               ENDIF
-               DO IS = 2, MSC
-                  SIG1 = SPCSIG(IS-1)
-                  SIG2 = SPCSIG(IS  )
-                  IF (ICUR.GT.0) THEN
-                     OMEG1 = SIG1 + WK(IS-1) * UXD
-                     OMEG2 = SIG2 + WK(IS  ) * UXD
-                  ELSE
-                     OMEG1 = SIG1
-                     OMEG2 = SIG2
+                  DO IS = 1, MSC
+                     OMEG = SPCSIG(IS) + WK(IS) * UXD
+                     EADD = FRINTF * SPCSIG(IS)**2 * ACLOC(ID,IS)
+                     ETOT = ETOT + EADD
+                     EFTOT = EFTOT + EADD * OMEG
+                  ENDDO
+                  IF (MSC .GT. 3) THEN
+!                  contribution of tail to total energy density
+                     EADD = SPCSIG(MSC)**2 * ACLOC(ID,MSC)
+                     ETOT = ETOT + ETAIL * EADD
+                     EFTOT = EFTOT + EFTAIL * OMEG * EADD
                   ENDIF
-                  COSFN1 = COS(OMEG1 * TM02)
-                  SINFN1 = SIN(OMEG1 * TM02)
-                  COSFN2 = COS(OMEG2 * TM02)
-                  SINFN2 = SIN(OMEG2 * TM02)
-                  DS = SIG2 - SIG1
-                  IF ( SIG1.GE.FMIN .AND. SIG2.LE.FMAX ) THEN
-                     CIA  = 0.5*SIG1 * DS
-                     CIB  = 0.5*SIG2 * DS
-                     CIAC = 0.5*COSFN1 * SIG1 * DS
-                     CIBC = 0.5*COSFN2 * SIG2 * DS
-                     CIAS = 0.5*SINFN1 * SIG1 * DS
-                     CIBS = 0.5*SINFN2 * SIG2 * DS
-                  ELSEIF ( SIG2.GT.FMAX ) THEN
-                     DSSW = FMAX - SIG1
+               ENDDO
+            ELSE
+!             integration over [fmin,fmax]                                40.87
+               FMIN = PI2*OUTPAR(22)
+               FMAX = PI2*OUTPAR(37)
+               ECS  = 1.
+               ETOT =SwanIntgratSpc(0. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , UXLOC, UYLOC, ACLOC      , &
+                  2  )
+               EFTOT=SwanIntgratSpc(1. , FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , UXLOC, UYLOC, ACLOC      , &
+                  2  )
+            ENDIF
+            IF (EFTOT.GT.0.) THEN
+               TPER = 2.*PI * ETOT / EFTOT
+               VOQ(IP,VOQR(IVTYPE)) = TPER
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+!       average absolute period (case with current)                       10.09
+
+         IVTYPE = 42
+         IF (ICUR.GT.0 .AND. OQPROC(IVTYPE)) THEN
+            UXLOC = VOQ(IP,VOQR(5))
+            UYLOC = VOQ(IP,VOQR(5)+1)
+            IF (OUTPAR(17).EQ.0) THEN
+!             integration over [0,inf]                                    40.87
+               ETOT = 0.
+               EFTOT = 0.
+               PPTAIL = PWTAIL(1) - OUTPAR(2)
+               ETAIL  = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+               PPTAIL = PWTAIL(1) - OUTPAR(2) - 1.
+               EFTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+               DO ID=1, MDC
+                  THETA = SPCDIR(ID,1) + ALCQ
+                  UXD = UXLOC*COS(THETA) + UYLOC*SIN(THETA)
+                  DO IS = 1, MSC
+                     OMEG = SPCSIG(IS) + WK(IS) * UXD
+                     OMEG1P = OMEG ** (OUTPAR(2)-1.)
+                     EADD = OMEG1P * FRINTF * SPCSIG(IS)**2 * ACLOC(ID,IS)
+                     ETOT = ETOT + EADD
+                     EFTOT = EFTOT + EADD * OMEG
+                  ENDDO
+                  IF (MSC .GT. 3) THEN
+!                  contribution of tail to total energy density
+                     EADD = OMEG1P * SPCSIG(MSC)**2 * ACLOC(ID,MSC)
+                     ETOT = ETOT + ETAIL * EADD
+                     EFTOT = EFTOT + EFTAIL * OMEG * EADD
+                  ENDIF
+               ENDDO
+            ELSE
+!             integration over [fmin,fmax]                                40.87
+               FMIN = PI2*OUTPAR(32)
+               FMAX = PI2*OUTPAR(47)
+               ECS  = 1.
+               ETOT  = SwanIntgratSpc(OUTPAR(2)-1., FMIN , FMAX, SPCSIG, &
+                  SPCDIR(1,1) , WK   , ECS , UXLOC , &
+                  UYLOC       , ACLOC, 2   )
+               EFTOT = SwanIntgratSpc(OUTPAR(2)   , FMIN , FMAX, SPCSIG, &
+                  SPCDIR(1,1) , WK   , ECS , UXLOC , &
+                  UYLOC       , ACLOC, 2   )
+            ENDIF
+            IF (EFTOT.GT.0.) THEN
+               TPER = 2.*PI * ETOT / EFTOT
+               VOQ(IP,VOQR(IVTYPE)) = TPER
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+!       zero-crossing period Tm02                                         20.61
+
+         IVTYPE = 32
+         IF (OQPROC(IVTYPE)) THEN
+            IF (ICUR.GT.0) THEN
+               UXLOC = VOQ(IP,VOQR(5))
+               UYLOC = VOQ(IP,VOQR(5)+1)
+            ENDIF
+            IF (OUTPAR(15).EQ.0) THEN
+!             integration over [0,inf]                                    40.87
+               ETOT  = 0.
+               EFTOT = 0.
+               PPTAIL = PWTAIL(1) - 1.
+               ETAIL  = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+               PPTAIL = PWTAIL(1) - 3.
+               EFTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+               DO ID=1, MDC
+                  IF (ICUR.GT.0) THEN
+                     THETA = SPCDIR(ID,1) + ALCQ
+                     UXD   = UXLOC*COS(THETA) + UYLOC*SIN(THETA)
+                  ENDIF
+                  DO IS=1,MSC
+                     EADD  = SPCSIG(IS)**2 * ACLOC(ID,IS) * FRINTF
                      IF (ICUR.GT.0) THEN
-                        OMEG2=FMAX+(WK(IS)*DSSW+WK(IS-1)*(DS-DSSW))*UXD/DS
+                        OMEG  = SPCSIG(IS) + WK(IS) * UXD
+                        OMEG2 = OMEG**2
                      ELSE
-                        OMEG2=FMAX
+                        OMEG2 = SPCSIG(IS)**2
                      ENDIF
-                     COSFN2 = COS(OMEG2 * TM02)
-                     SINFN2 = SIN(OMEG2 * TM02)
-                     CIBC   = 0.5*COSFN2 * FMAX * DSSW**2 / DS
-                     CIAC   = 0.5*(COSFN1*SIG1 + COSFN2*FMAX)*DSSW - CIBC
-                     CIBS   = 0.5*SINFN2 * FMAX * DSSW**2 / DS
-                     CIAS   = 0.5*(SINFN1*SIG1 + SINFN2*FMAX)*DSSW - CIBS
-                     CIB    = 0.5*FMAX * DSSW**2 / DS
-                     CIA    = 0.5*(SIG1 + FMAX)*DSSW - CIB
-                  ELSEIF ( SIG2.GT.FMIN ) THEN
-                     DSSW = SIG2 - FMIN
+                     ETOT  = ETOT + EADD
+                     EFTOT = EFTOT + EADD * OMEG2
+                  ENDDO
+                  IF (MSC .GT. 3) THEN
+!                  contribution of tail to total energy density
+                     EADD  = SPCSIG(MSC)**2 * ACLOC(ID,MSC)
+                     ETOT  = ETOT  + ETAIL * EADD
+                     EFTOT = EFTOT + EFTAIL * OMEG2 * EADD
+                  ENDIF
+               ENDDO
+            ELSE
+!             integration over [fmin,fmax]                                40.87
+               FMIN = PI2*OUTPAR(30)
+               FMAX = PI2*OUTPAR(45)
+               ECS  = 1.
+               IF (ICUR.GT.0) THEN
+                  ITP = 2
+               ELSE
+                  ITP = 1
+               ENDIF
+               ETOT  = SwanIntgratSpc(0.          , FMIN , FMAX, SPCSIG, &
+                  SPCDIR(1,1) , WK   , ECS , UXLOC , &
+                  UYLOC       , ACLOC, ITP )
+               EFTOT = SwanIntgratSpc(2.          , FMIN , FMAX, SPCSIG, &
+                  SPCDIR(1,1) , WK   , ECS , UXLOC , &
+                  UYLOC       , ACLOC, ITP )
+            ENDIF
+            IF (EFTOT.GT.0.) THEN
+               VOQ(IP,VOQR(IVTYPE)) = 2.*PI * SQRT(ETOT/EFTOT)
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+!       frequency spectral width (kappa)                                  20.61
+
+         IVTYPE = 33
+         IF (OQPROC(IVTYPE)) THEN
+            TM02 = VOQ(IP,VOQR(32))
+            IF (ICUR.GT.0) THEN
+               UXLOC = VOQ(IP,VOQR(5))
+               UYLOC = VOQ(IP,VOQR(5)+1)
+            ENDIF
+            ETOT  = 0.
+            ECTOT = 0.
+            ESTOT = 0.
+            IF (OUTPAR(16).EQ.0) THEN
+!             integration over [0,inf]                                    40.87
+               PPTAIL = PWTAIL(1) - 1.
+               ECTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+               DO  ID=1, MDC
+                  IF (ICUR.GT.0) THEN
+                     THETA = SPCDIR(ID,1) + ALCQ
+                     UXD   = UXLOC*COS(THETA) + UYLOC*SIN(THETA)
+                  ENDIF
+                  DO  IS = 1, MSC
+                     SIG = SPCSIG(IS)
                      IF (ICUR.GT.0) THEN
-                        OMEG1=FMIN+(WK(IS-1)*DSSW+WK(IS)*(DS-DSSW))*UXD/DS
+                        OMEG = SIG + WK(IS) * UXD
                      ELSE
-                        OMEG1=FMIN
+                        OMEG = SIG
+                     ENDIF
+                     FND = OMEG * TM02
+                     COSFND = COS(FND)
+                     SINFND = SIN(FND)
+                     EADD   = SIG**2 * ACLOC(ID,IS) * FRINTF
+                     ETOT  = ETOT  + EADD
+                     ECTOT = ECTOT + COSFND * EADD
+                     ESTOT = ESTOT + SINFND * EADD
+                  ENDDO
+                  IF (MSC .GT. 3) THEN
+!                 contribution of tail to total energy density
+                     EADD  = ECTAIL * SIG**2 * ACLOC(ID,MSC)
+                     ETOT  = ETOT  + EADD
+                     ECTOT = ECTOT + COSFND * EADD
+                     ESTOT = ESTOT + SINFND * EADD
+                  ENDIF
+               ENDDO
+            ELSE
+!             integration over [fmin,fmax]                                40.87
+               FMIN = PI2*OUTPAR(31)
+               FMAX = PI2*OUTPAR(46)
+               DO ID = 1, MDC
+                  IF (ICUR.GT.0) THEN
+                     THETA = SPCDIR(ID,1) + ALCQ
+                     UXD = UXLOC*COS(THETA) + UYLOC*SIN(THETA)
+                  ENDIF
+                  DO IS = 2, MSC
+                     SIG1 = SPCSIG(IS-1)
+                     SIG2 = SPCSIG(IS  )
+                     IF (ICUR.GT.0) THEN
+                        OMEG1 = SIG1 + WK(IS-1) * UXD
+                        OMEG2 = SIG2 + WK(IS  ) * UXD
+                     ELSE
+                        OMEG1 = SIG1
+                        OMEG2 = SIG2
                      ENDIF
                      COSFN1 = COS(OMEG1 * TM02)
                      SINFN1 = SIN(OMEG1 * TM02)
-                     CIAC   = 0.5*COSFN1 * FMIN * DSSW**2 / DS
-                     CIBC   = 0.5*(COSFN2*SIG2 + COSFN1*FMIN)*DSSW - CIAC
-                     CIAS   = 0.5*SINFN1 * FMIN * DSSW**2 / DS
-                     CIBS   = 0.5*(SINFN2*SIG2 + SINFN1*FMIN)*DSSW - CIAS
-                     CIA    = 0.5*FMIN * DSSW**2 / DS
-                     CIB    = 0.5*(SIG2 + FMIN)*DSSW - CIA
-                  ELSE
-                     CIA  = 0.
-                     CIB  = 0.
-                     CIAC = 0.
-                     CIBC = 0.
-                     CIAS = 0.
-                     CIBS = 0.
-                  ENDIF
-                  ETOT = ETOT  + CIA *ACLOC(ID,IS-1) + CIB *ACLOC(ID,IS)
-                  ECTOT= ECTOT + CIAC*ACLOC(ID,IS-1) + CIBC*ACLOC(ID,IS)
-                  ESTOT= ESTOT + CIAS*ACLOC(ID,IS-1) + CIBS*ACLOC(ID,IS)
-                  IF ( SIG2.GT.FMAX ) EXIT
-               ENDDO
-            ENDDO
-!             --- add tail contribution, if appropriate
-            IF ( FMAX.GT.SPCSIG(MSC) ) THEN
-               IF ( MSC.GT.3 ) THEN
-                  ECTAIL = 1. / (PWTAIL(1) - 1.)
-                  IF ( FMAX.GT.100. ) THEN
-                     CTAIL = 0.
-                  ELSE
-                     CTAIL = FMAX * (SPCSIG(MSC)/FMAX)**PWTAIL(1)
-                  ENDIF
-                  DO ID = 1, MDC
-                     IF (ICUR.GT.0) THEN
-                        THETA = SPCDIR(ID,1) + ALCQ
-                        UXD   = UXLOC*COS(THETA) + UYLOC*SIN(THETA)
-                        OMEG2 = SPCSIG(MSC) + WK(MSC) * UXD
-                     ELSE
-                        OMEG2 = SPCSIG(MSC)
-                     ENDIF
                      COSFN2 = COS(OMEG2 * TM02)
                      SINFN2 = SIN(OMEG2 * TM02)
-                     EHFR = ACLOC(ID,MSC) * SPCSIG(MSC)
-                     ETOT  = ETOT  + EHFR*(SPCSIG(MSC)-CTAIL) * ECTAIL
-                     ECTOT = ECTOT + EHFR*(COSFN2*SPCSIG(MSC) - &
-                                          COS(FMAX*TM02)*CTAIL)*ECTAIL
-                     ESTOT = ESTOT + EHFR*(SINFN2*SPCSIG(MSC) - &
-                                          SIN(FMAX*TM02)*CTAIL)*ECTAIL
+                     DS = SIG2 - SIG1
+                     IF ( SIG1.GE.FMIN .AND. SIG2.LE.FMAX ) THEN
+                        CIA  = 0.5*SIG1 * DS
+                        CIB  = 0.5*SIG2 * DS
+                        CIAC = 0.5*COSFN1 * SIG1 * DS
+                        CIBC = 0.5*COSFN2 * SIG2 * DS
+                        CIAS = 0.5*SINFN1 * SIG1 * DS
+                        CIBS = 0.5*SINFN2 * SIG2 * DS
+                     ELSEIF ( SIG2.GT.FMAX ) THEN
+                        DSSW = FMAX - SIG1
+                        IF (ICUR.GT.0) THEN
+                           OMEG2=FMAX+(WK(IS)*DSSW+WK(IS-1)*(DS-DSSW))*UXD/DS
+                        ELSE
+                           OMEG2=FMAX
+                        ENDIF
+                        COSFN2 = COS(OMEG2 * TM02)
+                        SINFN2 = SIN(OMEG2 * TM02)
+                        CIBC   = 0.5*COSFN2 * FMAX * DSSW**2 / DS
+                        CIAC   = 0.5*(COSFN1*SIG1 + COSFN2*FMAX)*DSSW - CIBC
+                        CIBS   = 0.5*SINFN2 * FMAX * DSSW**2 / DS
+                        CIAS   = 0.5*(SINFN1*SIG1 + SINFN2*FMAX)*DSSW - CIBS
+                        CIB    = 0.5*FMAX * DSSW**2 / DS
+                        CIA    = 0.5*(SIG1 + FMAX)*DSSW - CIB
+                     ELSEIF ( SIG2.GT.FMIN ) THEN
+                        DSSW = SIG2 - FMIN
+                        IF (ICUR.GT.0) THEN
+                           OMEG1=FMIN+(WK(IS-1)*DSSW+WK(IS)*(DS-DSSW))*UXD/DS
+                        ELSE
+                           OMEG1=FMIN
+                        ENDIF
+                        COSFN1 = COS(OMEG1 * TM02)
+                        SINFN1 = SIN(OMEG1 * TM02)
+                        CIAC   = 0.5*COSFN1 * FMIN * DSSW**2 / DS
+                        CIBC   = 0.5*(COSFN2*SIG2 + COSFN1*FMIN)*DSSW - CIAC
+                        CIAS   = 0.5*SINFN1 * FMIN * DSSW**2 / DS
+                        CIBS   = 0.5*(SINFN2*SIG2 + SINFN1*FMIN)*DSSW - CIAS
+                        CIA    = 0.5*FMIN * DSSW**2 / DS
+                        CIB    = 0.5*(SIG2 + FMIN)*DSSW - CIA
+                     ELSE
+                        CIA  = 0.
+                        CIB  = 0.
+                        CIAC = 0.
+                        CIBC = 0.
+                        CIAS = 0.
+                        CIBS = 0.
+                     ENDIF
+                     ETOT = ETOT  + CIA *ACLOC(ID,IS-1) + CIB *ACLOC(ID,IS)
+                     ECTOT= ECTOT + CIAC*ACLOC(ID,IS-1) + CIBC*ACLOC(ID,IS)
+                     ESTOT= ESTOT + CIAS*ACLOC(ID,IS-1) + CIBS*ACLOC(ID,IS)
+                     IF ( SIG2.GT.FMAX ) EXIT
                   ENDDO
-               ENDIF
-            ENDIF
-         ENDIF
-         IF (ETOT.GT.0.) THEN
-            VOQ(IP,VOQR(IVTYPE)) = &
-                           SQRT(ECTOT*ECTOT+ESTOT*ESTOT) / ETOT
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-!       average absolute period Tm-10 (case with current)
-!
-      IVTYPE = 47
-      IF (ICUR.GT.0 .AND. OQPROC(IVTYPE)) THEN
-         UXLOC = VOQ(IP,VOQR(5))
-         UYLOC = VOQ(IP,VOQR(5)+1)
-         IF (OUTPAR(19).EQ.0.) THEN
-!             integration over [0,inf]                                    40.87
-            ETOT = 0.
-            EFTOT = 0.
-            PPTAIL = PWTAIL(1)
-            ETAIL  = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-            PPTAIL = PWTAIL(1) - 1.
-            EFTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
-            DO ID=1, MDC
-               THETA = SPCDIR(ID,1) + ALCQ
-               UXD = UXLOC*COS(THETA) + UYLOC*SIN(THETA)
-               DO IS = 1, MSC
-                  OMEG = SPCSIG(IS) + WK(IS) * UXD
-                  OMEG1P = OMEG ** (-1.)
-                  EADD = OMEG1P * FRINTF * SPCSIG(IS)**2 * ACLOC(ID,IS)
-                  ETOT = ETOT + EADD
-                  EFTOT = EFTOT + EADD * OMEG
                ENDDO
-               IF (MSC .GT. 3) THEN
+!             --- add tail contribution, if appropriate
+               IF ( FMAX.GT.SPCSIG(MSC) ) THEN
+                  IF ( MSC.GT.3 ) THEN
+                     ECTAIL = 1. / (PWTAIL(1) - 1.)
+                     IF ( FMAX.GT.100. ) THEN
+                        CTAIL = 0.
+                     ELSE
+                        CTAIL = FMAX * (SPCSIG(MSC)/FMAX)**PWTAIL(1)
+                     ENDIF
+                     DO ID = 1, MDC
+                        IF (ICUR.GT.0) THEN
+                           THETA = SPCDIR(ID,1) + ALCQ
+                           UXD   = UXLOC*COS(THETA) + UYLOC*SIN(THETA)
+                           OMEG2 = SPCSIG(MSC) + WK(MSC) * UXD
+                        ELSE
+                           OMEG2 = SPCSIG(MSC)
+                        ENDIF
+                        COSFN2 = COS(OMEG2 * TM02)
+                        SINFN2 = SIN(OMEG2 * TM02)
+                        EHFR = ACLOC(ID,MSC) * SPCSIG(MSC)
+                        ETOT  = ETOT  + EHFR*(SPCSIG(MSC)-CTAIL) * ECTAIL
+                        ECTOT = ECTOT + EHFR*(COSFN2*SPCSIG(MSC) - &
+                           COS(FMAX*TM02)*CTAIL)*ECTAIL
+                        ESTOT = ESTOT + EHFR*(SINFN2*SPCSIG(MSC) - &
+                           SIN(FMAX*TM02)*CTAIL)*ECTAIL
+                     ENDDO
+                  ENDIF
+               ENDIF
+            ENDIF
+            IF (ETOT.GT.0.) THEN
+               VOQ(IP,VOQR(IVTYPE)) = &
+                  SQRT(ECTOT*ECTOT+ESTOT*ESTOT) / ETOT
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+!       average absolute period Tm-10 (case with current)
+
+         IVTYPE = 47
+         IF (ICUR.GT.0 .AND. OQPROC(IVTYPE)) THEN
+            UXLOC = VOQ(IP,VOQR(5))
+            UYLOC = VOQ(IP,VOQR(5)+1)
+            IF (OUTPAR(19).EQ.0.) THEN
+!             integration over [0,inf]                                    40.87
+               ETOT = 0.
+               EFTOT = 0.
+               PPTAIL = PWTAIL(1)
+               ETAIL  = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+               PPTAIL = PWTAIL(1) - 1.
+               EFTAIL = 1. / (PPTAIL * (1. + PPTAIL * (FRINTH-1.)))
+               DO ID=1, MDC
+                  THETA = SPCDIR(ID,1) + ALCQ
+                  UXD = UXLOC*COS(THETA) + UYLOC*SIN(THETA)
+                  DO IS = 1, MSC
+                     OMEG = SPCSIG(IS) + WK(IS) * UXD
+                     OMEG1P = OMEG ** (-1.)
+                     EADD = OMEG1P * FRINTF * SPCSIG(IS)**2 * ACLOC(ID,IS)
+                     ETOT = ETOT + EADD
+                     EFTOT = EFTOT + EADD * OMEG
+                  ENDDO
+                  IF (MSC .GT. 3) THEN
 !                  contribution of tail to total energy density
-                  EADD = OMEG1P * SPCSIG(MSC)**2 * ACLOC(ID,MSC)
-                  ETOT = ETOT + ETAIL * EADD
-                  EFTOT = EFTOT + EFTAIL * OMEG * EADD
+                     EADD = OMEG1P * SPCSIG(MSC)**2 * ACLOC(ID,MSC)
+                     ETOT = ETOT + ETAIL * EADD
+                     EFTOT = EFTOT + EFTAIL * OMEG * EADD
+                  ENDIF
+               ENDDO
+            ELSE
+!             integration over [fmin,fmax]                                40.87
+               FMIN = PI2*OUTPAR(34)
+               FMAX = PI2*OUTPAR(49)
+               ECS  = 1.
+               ETOT =SwanIntgratSpc(-1., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , UXLOC, UYLOC, ACLOC      , &
+                  2  )
+               EFTOT=SwanIntgratSpc( 0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
+                  WK , ECS , UXLOC, UYLOC, ACLOC      , &
+                  2  )
+            ENDIF
+            IF (EFTOT.GT.0.) THEN
+               TPER = 2.*PI * ETOT / EFTOT
+               VOQ(IP,VOQR(IVTYPE)) = TPER
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+!       Benjamin-Feir Index (BFI)                                         40.64
+
+         IVTYPE = 59
+         IF (OQPROC(IVTYPE)) THEN
+            STPNS = VOQ(IP,VOQR(18))
+            QP    = VOQ(IP,VOQR(58))
+            IF ( STPNS.NE.OVEXCV(18) .AND. QP.NE.OVEXCV(58) ) THEN
+               VOQ(IP,VOQR(IVTYPE)) = SQRT(PI2)*STPNS*QP
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+            ENDIF
+         ENDIF
+
+!       peak wave length                                                  41.15
+
+         IVTYPE = 71
+         IF (OQPROC(IVTYPE)) THEN
+            EMAX = 0.
+            ISIGM = -1
+            DO IS = 1, MSC
+               ETD = 0.
+               DO ID = 1, MDC
+                  ETD = ETD + WK(IS)*ACLOC(ID,IS)*DDIR
+               ENDDO
+               IF (ETD.GT.EMAX) THEN
+                  EMAX  = ETD
+                  ISIGM = IS
                ENDIF
             ENDDO
-         ELSE
-!             integration over [fmin,fmax]                                40.87
-            FMIN = PI2*OUTPAR(34)
-            FMAX = PI2*OUTPAR(49)
-            ECS  = 1.
-            ETOT =SwanIntgratSpc(-1., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK , ECS , UXLOC, UYLOC, ACLOC      , &
-                                 2  )
-            EFTOT=SwanIntgratSpc( 0., FMIN, FMAX, SPCSIG, SPCDIR(1,1), &
-                                 WK , ECS , UXLOC, UYLOC, ACLOC      , &
-                                 2  )
-         ENDIF
-         IF (EFTOT.GT.0.) THEN
-            TPER = 2.*PI * ETOT / EFTOT
-            VOQ(IP,VOQR(IVTYPE)) = TPER
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-!       Benjamin-Feir Index (BFI)                                         40.64
-!
-      IVTYPE = 59
-      IF (OQPROC(IVTYPE)) THEN
-         STPNS = VOQ(IP,VOQR(18))
-         QP    = VOQ(IP,VOQR(58))
-         IF ( STPNS.NE.OVEXCV(18) .AND. QP.NE.OVEXCV(58) ) THEN
-            VOQ(IP,VOQR(IVTYPE)) = SQRT(PI2)*STPNS*QP
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-         ENDIF
-      ENDIF
-!
-!       peak wave length                                                  41.15
-!
-      IVTYPE = 71
-      IF (OQPROC(IVTYPE)) THEN
-         EMAX = 0.
-         ISIGM = -1
-         DO IS = 1, MSC
-            ETD = 0.
-            DO ID = 1, MDC
-               ETD = ETD + WK(IS)*ACLOC(ID,IS)*DDIR
-            ENDDO
-            IF (ETD.GT.EMAX) THEN
-               EMAX  = ETD
-               ISIGM = IS
+            IF (ISIGM.GT.0) THEN
+               VOQ(IP,VOQR(IVTYPE)) = 2.*PI/WK(ISIGM)
+            ELSE
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
             ENDIF
-         ENDDO
-         IF (ISIGM.GT.0) THEN
-            VOQ(IP,VOQR(IVTYPE)) = 2.*PI/WK(ISIGM)
-         ELSE
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
          ENDIF
-      ENDIF
-!
+
 !       partitioning output according to Hanson and Phillips (2001)
-!
-      IF ( OQPROC(100).OR.OQPROC(110).OR.OQPROC(120).OR. &
-           OQPROC(130).OR.OQPROC(140).OR.OQPROC(150).OR. &
-           OQPROC(160) ) THEN
+
+         IF ( OQPROC(100).OR.OQPROC(110).OR.OQPROC(120).OR. &
+            OQPROC(130).OR.OQPROC(140).OR.OQPROC(150).OR. &
+            OQPROC(160) ) THEN
 !         to achieve minimum storage but guaranteed storage of all        41.62
 !         partitions DIMXPT = ((MSC+1)/2) * ((MDC-1)/2)                   41.62
-         DIMXPT = ((MSC+1)/2) * ((MDC-1)/2)
-         ALLOCATE (XPT(7,0:DIMXPT))
-         XPT = 0.
+            DIMXPT = ((MSC+1)/2) * ((MDC-1)/2)
+            ALLOCATE (XPT(7,0:DIMXPT))
+            XPT = 0.
 !         compute wind parameters, for partitioning routine               41.62
-         UABS = SQRT(VOQ(IP,VOQR(26))**2+VOQ(IP,VOQR(26)+1)**2)
-         UDIR = ATAN2(VOQ(IP,VOQR(26)+1),VOQ(IP,VOQR(26)))*180./PI
+            UABS = SQRT(VOQ(IP,VOQR(26))**2+VOQ(IP,VOQR(26)+1)**2)
+            UDIR = ATAN2(VOQ(IP,VOQR(26)+1),VOQ(IP,VOQR(26)))*180./PI
 !          IF (UDIR.LT.360.) UDIR = UDIR + 360.                            41.62   !Check the computation of UDIR. does this work only if comp is NAUT??
 !
 !         compute partitioning and integral parameters per partition      41.62
-         CALL SWPART (TRANSPOSE(ACLOC), UABS, UDIR, VOQ(IP,VOQR(4)), &
-                      WK, SPCSIG, SPCDIR, NP, XPT, DIMXPT)
-!
+            CALL SWPART (TRANSPOSE(ACLOC), UABS, UDIR, VOQ(IP,VOQR(4)), &
+               WK, SPCSIG, SPCDIR, NP, XPT, DIMXPT)
+
 !         requested number of swells
-         NOSWLL = INT(OUTPAR(51))
-         IF (OQPROC(100)) VOQ(IP,VOQR(100:100+NOSWLL)) = 0.
-         IF (OQPROC(110)) VOQ(IP,VOQR(110:110+NOSWLL)) = 0.
-         IF (OQPROC(120)) VOQ(IP,VOQR(120:120+NOSWLL)) = 0.
-         IF (OQPROC(130)) VOQ(IP,VOQR(130:130+NOSWLL)) = 0.
-         IF (OQPROC(140)) VOQ(IP,VOQR(140:140+NOSWLL)) = 0.
-         IF (OQPROC(150)) VOQ(IP,VOQR(150:150+NOSWLL)) = 0.
-         IF (OQPROC(160)) VOQ(IP,VOQR(160:160+NOSWLL)) = 0.
-!
+            NOSWLL = INT(OUTPAR(51))
+            IF (OQPROC(100)) VOQ(IP,VOQR(100:100+NOSWLL)) = 0.
+            IF (OQPROC(110)) VOQ(IP,VOQR(110:110+NOSWLL)) = 0.
+            IF (OQPROC(120)) VOQ(IP,VOQR(120:120+NOSWLL)) = 0.
+            IF (OQPROC(130)) VOQ(IP,VOQR(130:130+NOSWLL)) = 0.
+            IF (OQPROC(140)) VOQ(IP,VOQR(140:140+NOSWLL)) = 0.
+            IF (OQPROC(150)) VOQ(IP,VOQR(150:150+NOSWLL)) = 0.
+            IF (OQPROC(160)) VOQ(IP,VOQR(160:160+NOSWLL)) = 0.
+
 !         limit number of partitions in output to 10                      41.62
-         NP = MIN(NP,10)
-         IF (NP.GT.0) THEN
-            IF (OQPROC(171)) VOQ(IP,VOQR(171)) = NINT(REAL(NP))
-            IF (OQPROC(100)) THEN
+            NP = MIN(NP,10)
+            IF (NP.GT.0) THEN
+               IF (OQPROC(171)) VOQ(IP,VOQR(171)) = NINT(REAL(NP))
+               IF (OQPROC(100)) THEN
 !              XPT(:,0) are values for the total wave field, not required 41.62
-               ! wind sea partition
-               IF ( (XPT(6,1).GE.WSCUT).AND.(XPT(1,1).GE.0.) ) THEN
-                  VOQ(IP,VOQR(100)) = XPT(1,1)
-               ELSE
-                  VOQ(IP,VOQR(100)) = 0.
-               ENDIF
-               ! swell partitions
-               DO IPT = 1, NOSWLL
-                  IPTSW = IPT
-                  ! swell index starts at 2 if there is wind sea
-                  IF (XPT(6,1) .GE. WSCUT) IPTSW = IPT+1
-                  IF ( XPT(1,IPTSW).GE.0. ) THEN
-                     VOQ(IP,VOQR(100+IPT)) = XPT(1,IPTSW)
+                  ! wind sea partition                                       41.72
+                  IF ( (XPT(6,1).GE.WSCUT).AND.(XPT(1,1).GE.0.) ) THEN
+                     VOQ(IP,VOQR(100)) = XPT(1,1)
                   ELSE
-                     VOQ(IP,VOQR(100+IPT)) = 0.
+                     VOQ(IP,VOQR(100)) = 0.
                   ENDIF
-               ENDDO
-            ENDIF
-            IF (OQPROC(110)) THEN
-               IF ( XPT(6,1).GE.WSCUT ) THEN
-                  VOQ(IP,VOQR(110)) = XPT(2,1)
+                  ! swell partitions                                         41.72
+                  DO IPT = 1, NOSWLL
+                     IPTSW = IPT
+                     ! swell index starts at 2 if there is wind sea          41.72
+                     IF (XPT(6,1) .GE. WSCUT) IPTSW = IPT+1
+                     IF ( XPT(1,IPTSW).GE.0. ) THEN
+                        VOQ(IP,VOQR(100+IPT)) = XPT(1,IPTSW)
+                     ELSE
+                        VOQ(IP,VOQR(100+IPT)) = 0.
+                     ENDIF
+                  ENDDO
                ENDIF
-               DO IPT = 1, NOSWLL
-                  IPTSW = IPT
-                  IF (XPT(6,1) .GE. WSCUT) IPTSW = IPT+1
-                  VOQ(IP,VOQR(110+IPT)) = XPT(2,IPTSW)
-               ENDDO
-            ENDIF
-            IF (OQPROC(120)) THEN
-               IF ( XPT(6,1).GE.WSCUT ) THEN
-                  VOQ(IP,VOQR(120)) = XPT(3,1)
+               IF (OQPROC(110)) THEN
+                  IF ( XPT(6,1).GE.WSCUT ) THEN
+                     VOQ(IP,VOQR(110)) = XPT(2,1)
+                  ENDIF
+                  DO IPT = 1, NOSWLL
+                     IPTSW = IPT
+                     IF (XPT(6,1) .GE. WSCUT) IPTSW = IPT+1
+                     VOQ(IP,VOQR(110+IPT)) = XPT(2,IPTSW)
+                  ENDDO
                ENDIF
-               DO IPT = 1, NOSWLL
-                  IPTSW = IPT
-                  IF (XPT(6,1) .GE. WSCUT) IPTSW = IPT+1
-                  VOQ(IP,VOQR(120+IPT)) = XPT(3,IPTSW)
-               ENDDO
-            ENDIF
-            IF (OQPROC(130)) THEN
-               IF ( XPT(6,1).GE.WSCUT ) THEN
-                  VOQ(IP,VOQR(130)) = XPT(4,1)
+               IF (OQPROC(120)) THEN
+                  IF ( XPT(6,1).GE.WSCUT ) THEN
+                     VOQ(IP,VOQR(120)) = XPT(3,1)
+                  ENDIF
+                  DO IPT = 1, NOSWLL
+                     IPTSW = IPT
+                     IF (XPT(6,1) .GE. WSCUT) IPTSW = IPT+1
+                     VOQ(IP,VOQR(120+IPT)) = XPT(3,IPTSW)
+                  ENDDO
                ENDIF
-               DO IPT = 1, NOSWLL
-                  IPTSW = IPT
-                  IF (XPT(6,1) .GE. WSCUT) IPTSW = IPT+1
-                  VOQ(IP,VOQR(130+IPT)) = XPT(4,IPTSW)
-               ENDDO
-            ENDIF
-            IF (OQPROC(140)) THEN
-               IF ( XPT(6,1).GE.WSCUT ) THEN
-                  VOQ(IP,VOQR(140)) = XPT(5,1)
+               IF (OQPROC(130)) THEN
+                  IF ( XPT(6,1).GE.WSCUT ) THEN
+                     VOQ(IP,VOQR(130)) = XPT(4,1)
+                  ENDIF
+                  DO IPT = 1, NOSWLL
+                     IPTSW = IPT
+                     IF (XPT(6,1) .GE. WSCUT) IPTSW = IPT+1
+                     VOQ(IP,VOQR(130+IPT)) = XPT(4,IPTSW)
+                  ENDDO
                ENDIF
-               DO IPT = 1, NOSWLL
-                  IPTSW = IPT
-                  IF (XPT(6,1) .GE. WSCUT) IPTSW = IPT+1
-                  VOQ(IP,VOQR(140+IPT)) = XPT(5,IPTSW)
-               ENDDO
-            ENDIF
-            IF (OQPROC(150)) THEN
-               IF ( XPT(6,1).GE.WSCUT ) THEN
-                  VOQ(IP,VOQR(150)) = XPT(6,1)
+               IF (OQPROC(140)) THEN
+                  IF ( XPT(6,1).GE.WSCUT ) THEN
+                     VOQ(IP,VOQR(140)) = XPT(5,1)
+                  ENDIF
+                  DO IPT = 1, NOSWLL
+                     IPTSW = IPT
+                     IF (XPT(6,1) .GE. WSCUT) IPTSW = IPT+1
+                     VOQ(IP,VOQR(140+IPT)) = XPT(5,IPTSW)
+                  ENDDO
                ENDIF
-               DO IPT = 1, NOSWLL
-                  IPTSW = IPT
-                  IF (XPT(6,1) .GE. WSCUT) IPTSW = IPT+1
-                  VOQ(IP,VOQR(150+IPT)) = XPT(6,IPTSW)
-               ENDDO
-            ENDIF
-            IF (OQPROC(160)) THEN
-               IF ( XPT(6,1).GE.WSCUT ) THEN
-                  VOQ(IP,VOQR(160)) = XPT(7,1)
+               IF (OQPROC(150)) THEN
+                  IF ( XPT(6,1).GE.WSCUT ) THEN
+                     VOQ(IP,VOQR(150)) = XPT(6,1)
+                  ENDIF
+                  DO IPT = 1, NOSWLL
+                     IPTSW = IPT
+                     IF (XPT(6,1) .GE. WSCUT) IPTSW = IPT+1
+                     VOQ(IP,VOQR(150+IPT)) = XPT(6,IPTSW)
+                  ENDDO
                ENDIF
-               DO IPT = 1, NOSWLL
-                  IPTSW = IPT
-                  IF (XPT(6,1) .GE. WSCUT) IPTSW = IPT+1
-                  VOQ(IP,VOQR(160+IPT)) = XPT(7,IPTSW)
-               ENDDO
+               IF (OQPROC(160)) THEN
+                  IF ( XPT(6,1).GE.WSCUT ) THEN
+                     VOQ(IP,VOQR(160)) = XPT(7,1)
+                  ENDIF
+                  DO IPT = 1, NOSWLL
+                     IPTSW = IPT
+                     IF (XPT(6,1) .GE. WSCUT) IPTSW = IPT+1
+                     VOQ(IP,VOQR(160+IPT)) = XPT(7,IPTSW)
+                  ENDDO
+               ENDIF
             ENDIF
+            DEALLOCATE (XPT)
          ENDIF
-         DEALLOCATE (XPT)
-      ENDIF
-!
-      GOTO 800
-!
+
+         VALID_OUTPUT = .TRUE.
+      END BLOCK point_output
+
 !       points on land: assign exception value
-!
-700   DO 730 II = 1, NVOTP
-         IVTYPE = IVOTP(II)
-         IF (OQPROC(IVTYPE)) THEN
-            VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
-            IF (OVSVTY(IVTYPE).EQ.3) THEN
-               VOQ(IP,VOQR(IVTYPE)+1) = OVEXCV(IVTYPE)
+
+      IF (.NOT. VALID_OUTPUT) THEN
+         do II = 1, NVOTP
+            IVTYPE = IVOTP(II)
+            IF (OQPROC(IVTYPE)) THEN
+               VOQ(IP,VOQR(IVTYPE)) = OVEXCV(IVTYPE)
+               IF (OVSVTY(IVTYPE).EQ.3) THEN
+                  VOQ(IP,VOQR(IVTYPE)+1) = OVEXCV(IVTYPE)
+               ENDIF
             ENDIF
-         ENDIF
-730   CONTINUE
-!
-800 CONTINUE
-!
+         end do
+      END IF
+   end do
+
    IF (ALLOCATED(FLUX)) DEALLOCATE(FLUX)
    IF (ALLOCATED(FLOC)) DEALLOCATE(FLOC)
-!
+
    IF (ALLOCATED(EBLOC)) DEALLOCATE(EBLOC)
-!
+
    RETURN
 !     end of subroutine SWOEXA
-END
-!***********************************************************************
-!                                                                      *
-SUBROUTINE SWOINA (XC, YC, AC2, ACLOC, KGRPNT, DEPXY, CROSS,EXCPT)
-!                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM3
-   USE SWCOMM4
-!
-!
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published by
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. AUTHORS
-!
-!     30.72: IJsbrand Haagsma
-!     40.13: Nico Booij
-!     40.41: Marcel Zijlema
-!     40.86: Nico Booij
-!
-!  1. Update
-!
-!     10.10, Aug. 94: separated from subr. SWOEXA
-!     30.50,        : If depth on one of the corners is negative value 0
-!                     is returned
-!     30.72, Sept 97: Replaced DO-block with one CONTINUE to DO-block with
-!                     two CONTINUE's
-!     40.13, Aug. 01: provision for repeating grid (KREPTX>0)
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!     40.86, Feb. 08: modification to prevent interpolation over an obstacle
-!
-!  2. Purpose
-!
-!       interpolates local action density ACLOC from array AC2
-!
-!  4. Argument list
-!
-!       XC, YC  real   input    comp. grid coordinates
-!       AC2     real a input    action densities
-!       ACLOC   real a outp     local action density spectrum
-!
-!  5. SUBROUTINES CALLING
-!
-!       SWOEXA (SWAN/OUTP)
-!
-! 10. SOURCE TEXT
-!
-   LOGICAL :: EXCPT ! if true value is undefined
-   LOGICAL :: CROSS(4) ! true if obstacle is between output point
-                        ! and computational grid point
-   REAL     XC, YC, AC2(MDC,MSC,MCGRD), ACLOC(MDC, MSC), &
-            DEPXY(MCGRD)
-!
-   INTEGER  KGRPNT(MXC,MYC)
-!
-   REAL :: WW(1:4) ! Interpolation weights for the 4 corners
-   REAL :: SUMWW ! sum of the weights
-   INTEGER :: INDX(1:4) ! grid counters for the 4 corners
-   INTEGER :: JX(1:4), JY(1:4) ! grid counters for the 4 corners
-   INTEGER :: JC ! corner counter
-   SAVE IENT
-   DATA IENT /0/
-   CALL STRACE (IENT, 'SWOINA')
-!
-   EXCPT = .FALSE.
-   WW(1:4) = 0.
-   SUMWW = 0.
-   ACLOC = 0.
-   JX1 = INT(XC+3.) - 2
-   JX2 = JX1+1
-   SX2 = XC + 1. - FLOAT(JX1)
-   SX1 = 1. - SX2
-   IF (KREPTX .EQ. 0) THEN
-      IF (SX1.LT.0.01 .OR. JX1.EQ.0)   THEN
-         SX1 = 0.
-         SX2 = 1.
-         JX1 = MAX(1,JX1)
-      ENDIF
-      IF (SX2.LT.0.01 .OR. JX1.EQ.MXC) THEN
-         SX2 = 0.
-         SX1 = 1.
-         JX2 = MIN(MXC,JX2)
-      ENDIF
-   ELSE
-!       repeating grid                                                    40.13
-      JX1 = 1 + MODULO (JX1-1, MXC)
-      JX2 = 1 + MODULO (JX2-1, MXC)
-   ENDIF
-!
-   IF (ONED) THEN
-      JY1 = 1
-      JY2 = 1
-      SY1 = 0.5
-      SY2 = 0.5
-   ELSE
-      JY1 = INT(YC+3.) - 2
-      JY2 = JY1+1
-      SY2 = YC + 1. - FLOAT(JY1)
-      SY1 = 1. - SY2
-      IF (SY1.LT.0.01 .OR. JY1.EQ.0) THEN
-         SY1 = 0.
-         SY2 = 1.
-         JY1 = MAX(1,JY1)
-      ENDIF
-      IF (SY2.LT.0.01 .OR. JY1.EQ.MYC) THEN
-         SY2 = 0.
-         SY1 = 1.
-         JY2 = MIN(MYC,JY2)
-      ENDIF
-   ENDIF
-!
-!      *** Using indirect addressing for AC2   ***
-!
-   DO 91 ISIGM = 1, MSC
-      DO 90 ID  = 1, MDC
-         ACLOC(ID,ISIGM) = 0.
-90    CONTINUE
-91 CONTINUE
-!
-   IF (.NOT.EXCPT) THEN
-      JX(1) = JX1
-      JY(1) = JY1
-      WW(1) = SX1*SY1
-      JX(2) = JX2
-      JY(2) = JY1
-      WW(2) = SX2*SY1
-      JX(3) = JX1
-      JY(3) = JY2
-      WW(3) = SX1*SY2
-      JX(4) = JX2
-      JY(4) = JY2
-      WW(4) = SX2*SY2
-      DO JC = 1, 4
-         INDX(JC) = KGRPNT(JX(JC),JY(JC))
-         IF (WW(JC).LT.0.01) THEN
-            WW(JC) = 0.
-         ELSE
-            IF (INDX(JC).LE.1) THEN
-               WW(JC) = 0.
-            ELSE IF (DEPXY(INDX(JC)).LE.DEPMIN) THEN
-!              dry point
-               EXCPT =  .TRUE.
-            ELSE IF (CROSS(JC) .AND. WW(JC).LT.0.999) THEN
-!              obstacle                                                   40.86
-               WW(JC) = 0.
-            ENDIF
-         ENDIF
-      ENDDO
-      SUMWW = SUM(WW(1:4))
-      IF (.NOT.EXCPT) THEN
-         IF (SUMWW.GT.0.01) THEN
-            DO JC = 1, 4
-               IF (WW(JC).GT.1.E-6) THEN
-                  DO ISIGM = 1, MSC
-                     DO ID = 1, MDC
-                        ACLOC(ID,ISIGM) = ACLOC(ID,ISIGM) + &
-                                 WW(JC)*AC2(ID,ISIGM,INDX(JC))
-                     ENDDO
-                  ENDDO
-               ENDIF
-            ENDDO
-            IF (SUMWW.LT.0.999999) THEN
-               DO ISIGM = 1, MSC
-                  DO ID = 1, MDC
-                     ACLOC(ID,ISIGM) = ACLOC(ID,ISIGM) / SUMWW
-                  ENDDO
-               ENDDO
-            ENDIF
-         ELSE
-            EXCPT =  .TRUE.
-         ENDIF
-      ENDIF
-   ENDIF
-   IF (ITEST.GE. 10) WRITE (PRTEST, 89) &
-      XC, YC, (JX(JC), JY(JC), WW(JC), INDX(JC), CROSS(JC), JC=1,4), &
-      SUMWW
-89 FORMAT (' SWOINA ', 2F9.3, 4(2X, 2I5, F6.3, 1X, I4, 1X, L1), 2X, &
-                       F6.3)
-900 RETURN
-!     end of subroutine SWOINA
-END
-!
-!***********************************************************************
+end subroutine SWOEXA
+!************************************************************************
 !                                                                      *
 SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     , &
-                   VOQ      ,AC2      ,DEP2     ,SPCSIG   , &
-                   WK       ,CG       ,SPCDIR   ,NE       , &
-                   NED      ,KGRPNT   ,XCGRID   ,YCGRID   , &
-                   HS       ,IONOD &
-                                                          )
+   VOQ      ,AC2      ,DEP2     ,SPCSIG   , &
+   WK       ,CG       ,SPCDIR   ,NE       , &
+   NED      ,KGRPNT   ,XCGRID   ,YCGRID   , &
+   HS       ,IONOD &
+   )
 !                                                                      *
-!***********************************************************************
-!
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
+!************************************************************************
+
+   USE swan_service_interfaces, ONLY: STRACE, EQREAL
+   USE swan_wave_physics, ONLY: KSCIP1
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE M_PARALL
-!
-   IMPLICIT NONE
-!
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -5275,7 +4891,7 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     , &
 !     VOQR    input  location in VOQ of a certain outp quant.
 !     VOQ     output values of output quantities
 !     WK      local  wavenumber in output point
-!
+
    INTEGER MIP, VOQR(*) ,KGRPNT(MXC,MYC)
    INTEGER IONOD(*)
    REAL    AC2(MDC,MSC,MCGRD), CG(*), DEP2(MCGRD), NE(*), NED(*)
@@ -5285,8 +4901,7 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     , &
    REAL    XC(MIP), YC(MIP)
    REAL    XCGRID(MXC,MYC), YCGRID(MXC,MYC)
    REAL    VOQ(MIP,*), WK(*)
-   LOGICAL    EQREAL
-!
+
 !  5. Parameter variables
 !
 !     ---
@@ -5340,16 +4955,17 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     , &
 !                  point under consideration, respectively.
 !     SYLO, SYUP   weight coefficients for the lower and upper y-level of the
 !                  point under consideration, respectively.
-!
+
    REAL        ACWAV, ACWI, ACWJ, ACWX, ACWY, DDET, DDI, DDJ, DDX, &
-               DDY, DIX, DIY,DJX, DJY, DS2, DXI, DXJ, DYI, DYJ, DEP, &
-               DEPLOC, FX,FY, FXADD, FYADD, NAX, NAY, RRDI, RRDJ, &
-               SIG, SXLO, SXUP, SYLO, SYUP, CSLAT
-   INTEGER     ID, IENT, IND1, IND2, IND3, IND4, IND5, IND6, IND7, &
-               IND8, IND9, IP, IS, IVTYPE, JX, JXLO, JXUP, JY, &
-               JYLO, JYUP
-   LOGICAL     ONX, ONY
-!
+      DDY, DIX, DIY,DJX, DJY, DS2, DXI, DXJ, DYI, DYJ, DEP, &
+      DEPLOC, FX,FY, FXADD, FYADD, NAX, NAY, RRDI, RRDJ, &
+      SIG, SXLO, SXUP, SYLO, SYUP, CSLAT
+   INTEGER, SAVE :: IENT = 0
+   INTEGER     ID, IND1, IND2, IND3, IND4, IND5, IND6, IND7, &
+      IND8, IND9, IP, IS, IVTYPE, JX, JXLO, JXUP, JY, &
+      JYLO, JYUP
+   LOGICAL     ONX, ONY, VALID_FORCE
+
 !  7. Common blocks used
 !
 !
@@ -5360,11 +4976,9 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     , &
 !                      terminated or not
 !     STRACE           Tracing routine for debugging
 !     SWEXCHG          exchanges AC2 at subdomain boundaries
-!TIMG!     SWTSTA           Start timing for a section of code
-!TIMG!     SWTSTO           Stop timing for a section of code
-!
-   LOGICAL STPNOW
-!
+!     SWTSTA           Start timing for a section of code
+!     SWTSTO           Stop timing for a section of code
+
 !  9. Subroutines calling
 !
 !     SWOUTP (SWAN/OUTP)
@@ -5398,7 +5012,7 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     , &
 !
 ! 12. Structure
 !
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !     For all output points do
 !         Initialize both force components as 0
 !         Determine neighbouring points to be used for gradients in
@@ -5408,281 +5022,278 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     , &
 !             determine derivative of nE with respect to X
 !             determine derivative of nE with respect to Y
 !             calculate contribution to force components
-!     ----------------------------------------------------------------
+!     ----------------------------------------------------------------    40.17
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT /0/
+
    CALL STRACE (IENT, 'SWOEXF')
-!
+
    IVTYPE = 20
-!
+
 !     loop over all output points
-!
-   DO 800 IP=1,MIP
-      DEP = VOQ(IP,VOQR(4))
-      IF (DEP.LE.0.)                  GOTO 700
-      IF (EQREAL(DEP,OVEXCV(4)))      GOTO 700
-      IF (KREPTX .EQ. 0) THEN
-         IF (XC(IP).LT.-0.01)            GOTO 700
-         IF (XC(IP).GT.REAL(MXC-1)+0.01) GOTO 700
-      ENDIF
-      IF (YC(IP).LT.-0.01)            GOTO 700
-      IF (YC(IP).GT.REAL(MYC-1)+0.01) GOTO 700
-      IF (PARLL .AND. IONOD(IP).NE.INODE) GOTO 700
-!
-!       first the action density spectrum is interpolated
-!
-      FX  = 0.
-      FY  = 0.
-      JX  = NINT(XC(IP))
-      RRDI = 1.
-      ONX = .FALSE.
-      IF (KREPTX.EQ.0 .AND. JX.EQ.0) THEN
-         JXLO = 1
-         JXUP = 2
-         JX   = 1
-         SXUP = XC(IP)
-         SXLO = 1.-SXUP
-      ELSE IF (KREPTX.EQ.0 .AND. JX.EQ.MXC-1) THEN
-         JXLO = MXC-1
-         JXUP = MXC
-         SXLO = REAL(MXC-1)-XC(IP)
-         SXUP = 1.-SXLO
-         JX   = JX+1
-      ELSE IF (XC(IP).LT.REAL(JX)-0.01) THEN
-         JXLO = JX
-         JXUP = JX+1
-         SXLO = REAL(JX)-XC(IP)
-         SXUP = 1.-SXLO
-         JX   = JX+1
-      ELSE IF (XC(IP).GT.REAL(JX)+0.01) THEN
-         JXLO = JX+1
-         JXUP = JX+2
-         SXUP = XC(IP)-REAL(JX)
-         SXLO = 1.-SXUP
-         JX   = JX+1
-      ELSE
-         JXLO = JX
-         JXUP = JX+2
-         RRDI = 0.5
-         JX   = JX+1
-         ONX  = .TRUE.
-      ENDIF
-      IF (KREPTX .GT. 0) THEN
-         JX   = 1 + MODULO (JX-1, MXC)
-         JXLO = 1 + MODULO (JXLO-1, MXC)
-         JXUP = 1 + MODULO (JXUP-1, MXC)
-      ENDIF
-      IF (ONED) THEN
-         JYLO = 1
-         JYUP = 1
-         JY   = 1
-         RRDJ = 0.
-         ONY  = .TRUE.
-      ELSE
-         JY   = NINT(YC(IP))
-         RRDJ = 1.
-         ONY  = .FALSE.
-         IF (JY.EQ.0) THEN
-            JYLO = 1
-            JYUP = 2
-            JY   = 1
-            SYUP = YC(IP)
-            SYLO = 1.-SYUP
-         ELSE IF (JY.EQ.MYC-1) THEN
-            JYLO = MYC-1
-            JYUP = MYC
-            SYLO = REAL(MYC-1)-YC(IP)
-            SYUP = 1.-SYLO
-            JY   = JY+1
-         ELSE IF (YC(IP).LT.REAL(JY)-0.01) THEN
-            JYLO = JY
-            JYUP = JY+1
-            SYLO = REAL(JY)-YC(IP)
-            SYUP = 1.-SYLO
-            JY   = JY+1
-         ELSE IF (YC(IP).GT.REAL(JY)+0.01) THEN
-            JYLO = JY+1
-            JYUP = JY+2
-            SYUP = YC(IP)-REAL(JY)
-            SYLO = 1.-SYUP
-            JY   = JY+1
-         ELSE
-            JYLO = JY
-            JYUP = JY+2
-            RRDJ = 0.5
-            JY  = JY+1
-            ONY = .TRUE.
+
+   do IP=1,MIP
+      VALID_FORCE = .FALSE.
+      force_point: BLOCK
+         DEP = VOQ(IP,VOQR(4))
+         IF (DEP.LE.0.)                  EXIT force_point
+         IF (EQREAL(DEP,OVEXCV(4)))      EXIT force_point
+         IF (KREPTX .EQ. 0) THEN
+            IF (XC(IP).LT.-0.01)            EXIT force_point
+            IF (XC(IP).GT.REAL(MXC-1)+0.01) EXIT force_point
          ENDIF
-      ENDIF
-!
+         IF (YC(IP).LT.-0.01)            EXIT force_point
+         IF (YC(IP).GT.REAL(MYC-1)+0.01) EXIT force_point
+         IF (PARLL .AND. IONOD(IP).NE.INODE) EXIT force_point
+
+!       first the action density spectrum is interpolated
+
+         FX  = 0.
+         FY  = 0.
+         JX  = NINT(XC(IP))
+         RRDI = 1.
+         ONX = .FALSE.
+         IF (KREPTX.EQ.0 .AND. JX.EQ.0) THEN
+            JXLO = 1
+            JXUP = 2
+            JX   = 1
+            SXUP = XC(IP)
+            SXLO = 1.-SXUP
+         ELSE IF (KREPTX.EQ.0 .AND. JX.EQ.MXC-1) THEN
+            JXLO = MXC-1
+            JXUP = MXC
+            SXLO = REAL(MXC-1)-XC(IP)
+            SXUP = 1.-SXLO
+            JX   = JX+1
+         ELSE IF (XC(IP).LT.REAL(JX)-0.01) THEN
+            JXLO = JX
+            JXUP = JX+1
+            SXLO = REAL(JX)-XC(IP)
+            SXUP = 1.-SXLO
+            JX   = JX+1
+         ELSE IF (XC(IP).GT.REAL(JX)+0.01) THEN
+            JXLO = JX+1
+            JXUP = JX+2
+            SXUP = XC(IP)-REAL(JX)
+            SXLO = 1.-SXUP
+            JX   = JX+1
+         ELSE
+            JXLO = JX
+            JXUP = JX+2
+            RRDI = 0.5
+            JX   = JX+1
+            ONX  = .TRUE.
+         ENDIF
+         IF (KREPTX .GT. 0) THEN
+            JX   = 1 + MODULO (JX-1, MXC)
+            JXLO = 1 + MODULO (JXLO-1, MXC)
+            JXUP = 1 + MODULO (JXUP-1, MXC)
+         ENDIF
+         IF (ONED) THEN
+            JYLO = 1
+            JYUP = 1
+            JY   = 1
+            RRDJ = 0.
+            ONY  = .TRUE.
+         ELSE
+            JY   = NINT(YC(IP))
+            RRDJ = 1.
+            ONY  = .FALSE.
+            IF (JY.EQ.0) THEN
+               JYLO = 1
+               JYUP = 2
+               JY   = 1
+               SYUP = YC(IP)
+               SYLO = 1.-SYUP
+            ELSE IF (JY.EQ.MYC-1) THEN
+               JYLO = MYC-1
+               JYUP = MYC
+               SYLO = REAL(MYC-1)-YC(IP)
+               SYUP = 1.-SYLO
+               JY   = JY+1
+            ELSE IF (YC(IP).LT.REAL(JY)-0.01) THEN
+               JYLO = JY
+               JYUP = JY+1
+               SYLO = REAL(JY)-YC(IP)
+               SYUP = 1.-SYLO
+               JY   = JY+1
+            ELSE IF (YC(IP).GT.REAL(JY)+0.01) THEN
+               JYLO = JY+1
+               JYUP = JY+2
+               SYUP = YC(IP)-REAL(JY)
+               SYLO = 1.-SYUP
+               JY   = JY+1
+            ELSE
+               JYLO = JY
+               JYUP = JY+2
+               RRDJ = 0.5
+               JY  = JY+1
+               ONY = .TRUE.
+            ENDIF
+         ENDIF
+
 !       *** Using indirect addressing for arrays AC2 and DEP2 ***
-      IND1 = KGRPNT(JXLO,JYLO)
-      IND2 = KGRPNT(JXUP,JYLO)
-      IND3 = KGRPNT(JXUP,JYUP)
-      IND4 = KGRPNT(JXLO,JYUP)
-      IND5 = KGRPNT(JXLO,JY  )
-      IND6 = KGRPNT(JXUP,JY  )
-      IND7 = KGRPNT(JX  ,JYLO)
-      IND8 = KGRPNT(JX  ,JYUP)
-      IND9 = KGRPNT(JX  ,JY  )
-      IF (ONY) THEN
-         IF (DEP2(IND5).LE.DEPMIN .OR. .NOT. HS(IND5).NE.0.) GOTO 700
-         IF (DEP2(IND6).LE.DEPMIN .OR. .NOT. HS(IND6).NE.0.) GOTO 700
-      ELSE
-         IF (DEP2(IND1).LE.DEPMIN .OR. .NOT. HS(IND1).NE.0.) GOTO 700
-         IF (DEP2(IND2).LE.DEPMIN .OR. .NOT. HS(IND2).NE.0.) GOTO 700
-         IF (DEP2(IND3).LE.DEPMIN .OR. .NOT. HS(IND3).NE.0.) GOTO 700
-         IF (DEP2(IND4).LE.DEPMIN .OR. .NOT. HS(IND4).NE.0.) GOTO 700
-      ENDIF
-      IF (ONX) THEN
-         IF (DEP2(IND7).LE.DEPMIN .OR. .NOT. HS(IND7).NE.0.) GOTO 700
-         IF (DEP2(IND8).LE.DEPMIN .OR. .NOT. HS(IND8).NE.0.) GOTO 700
-      ELSE
-         IF (DEP2(IND1).LE.DEPMIN .OR. .NOT. HS(IND1).NE.0.) GOTO 700
-         IF (DEP2(IND2).LE.DEPMIN .OR. .NOT. HS(IND2).NE.0.) GOTO 700
-         IF (DEP2(IND3).LE.DEPMIN .OR. .NOT. HS(IND3).NE.0.) GOTO 700
-         IF (DEP2(IND4).LE.DEPMIN .OR. .NOT. HS(IND4).NE.0.) GOTO 700
-      ENDIF
-!
+         IND1 = KGRPNT(JXLO,JYLO)
+         IND2 = KGRPNT(JXUP,JYLO)
+         IND3 = KGRPNT(JXUP,JYUP)
+         IND4 = KGRPNT(JXLO,JYUP)
+         IND5 = KGRPNT(JXLO,JY  )
+         IND6 = KGRPNT(JXUP,JY  )
+         IND7 = KGRPNT(JX  ,JYLO)
+         IND8 = KGRPNT(JX  ,JYUP)
+         IND9 = KGRPNT(JX  ,JY  )
+         IF (ONY) THEN
+            IF (DEP2(IND5).LE.DEPMIN .OR. .NOT. HS(IND5).NE.0.) EXIT force_point
+            IF (DEP2(IND6).LE.DEPMIN .OR. .NOT. HS(IND6).NE.0.) EXIT force_point
+         ELSE
+            IF (DEP2(IND1).LE.DEPMIN .OR. .NOT. HS(IND1).NE.0.) EXIT force_point
+            IF (DEP2(IND2).LE.DEPMIN .OR. .NOT. HS(IND2).NE.0.) EXIT force_point
+            IF (DEP2(IND3).LE.DEPMIN .OR. .NOT. HS(IND3).NE.0.) EXIT force_point
+            IF (DEP2(IND4).LE.DEPMIN .OR. .NOT. HS(IND4).NE.0.) EXIT force_point
+         ENDIF
+         IF (ONX) THEN
+            IF (DEP2(IND7).LE.DEPMIN .OR. .NOT. HS(IND7).NE.0.) EXIT force_point
+            IF (DEP2(IND8).LE.DEPMIN .OR. .NOT. HS(IND8).NE.0.) EXIT force_point
+         ELSE
+            IF (DEP2(IND1).LE.DEPMIN .OR. .NOT. HS(IND1).NE.0.) EXIT force_point
+            IF (DEP2(IND2).LE.DEPMIN .OR. .NOT. HS(IND2).NE.0.) EXIT force_point
+            IF (DEP2(IND3).LE.DEPMIN .OR. .NOT. HS(IND3).NE.0.) EXIT force_point
+            IF (DEP2(IND4).LE.DEPMIN .OR. .NOT. HS(IND4).NE.0.) EXIT force_point
+         ENDIF
+
 !       determine depth and (x,y) derivatives w.r.t. i and j
-!
-      IF (ONY) THEN
-         DDI = RRDI * (DEP2(IND6)-DEP2(IND5))
-         DXI = RRDI * (XCGRID(JXUP,JY)-XCGRID(JXLO,JY))
-         DYI = RRDI * (YCGRID(JXUP,JY)-YCGRID(JXLO,JY))
-      ELSE
-         DDI = RRDI * (SYUP*(DEP2(IND3)-DEP2(IND4)) + &
-                       SYLO*(DEP2(IND2)-DEP2(IND1)))
-         DXI = RRDI * (SYUP*(XCGRID(JXUP,JYUP)-XCGRID(JXLO,JYUP)) + &
-                       SYLO*(XCGRID(JXUP,JYLO)-XCGRID(JXLO,JYLO)))
-         DYI = RRDI * (SYUP*(YCGRID(JXUP,JYUP)-YCGRID(JXLO,JYUP)) + &
-                       SYLO*(YCGRID(JXUP,JYLO)-YCGRID(JXLO,JYLO)))
-      ENDIF
-      IF (ONX) THEN
-         DDJ = RRDJ * (DEP2(IND8)-DEP2(IND7))
-         DXJ = RRDJ * (XCGRID(JX,JYUP)-XCGRID(JX,JYLO))
-         DYJ = RRDJ * (YCGRID(JX,JYUP)-YCGRID(JX,JYLO))
-      ELSE
-         DDJ = RRDJ * (SXUP*(DEP2(IND3)-DEP2(IND2)) + &
-                       SXLO*(DEP2(IND4)-DEP2(IND1)))
-         DXJ = RRDJ * (SXUP*(XCGRID(JXUP,JYUP)-XCGRID(JXUP,JYLO)) + &
-                       SXLO*(XCGRID(JXLO,JYUP)-XCGRID(JXLO,JYLO)))
-         DYJ = RRDJ * (SXUP*(YCGRID(JXUP,JYUP)-YCGRID(JXUP,JYLO)) + &
-                       SXLO*(YCGRID(JXLO,JYUP)-YCGRID(JXLO,JYLO)))
-      ENDIF
-      IF (KSPHER.GT.0) THEN
+
+         IF (ONY) THEN
+            DDI = RRDI * (DEP2(IND6)-DEP2(IND5))
+            DXI = RRDI * (XCGRID(JXUP,JY)-XCGRID(JXLO,JY))
+            DYI = RRDI * (YCGRID(JXUP,JY)-YCGRID(JXLO,JY))
+         ELSE
+            DDI = RRDI * (SYUP*(DEP2(IND3)-DEP2(IND4)) + &
+               SYLO*(DEP2(IND2)-DEP2(IND1)))
+            DXI = RRDI * (SYUP*(XCGRID(JXUP,JYUP)-XCGRID(JXLO,JYUP)) + &
+               SYLO*(XCGRID(JXUP,JYLO)-XCGRID(JXLO,JYLO)))
+            DYI = RRDI * (SYUP*(YCGRID(JXUP,JYUP)-YCGRID(JXLO,JYUP)) + &
+               SYLO*(YCGRID(JXUP,JYLO)-YCGRID(JXLO,JYLO)))
+         ENDIF
+         IF (ONX) THEN
+            DDJ = RRDJ * (DEP2(IND8)-DEP2(IND7))
+            DXJ = RRDJ * (XCGRID(JX,JYUP)-XCGRID(JX,JYLO))
+            DYJ = RRDJ * (YCGRID(JX,JYUP)-YCGRID(JX,JYLO))
+         ELSE
+            DDJ = RRDJ * (SXUP*(DEP2(IND3)-DEP2(IND2)) + &
+               SXLO*(DEP2(IND4)-DEP2(IND1)))
+            DXJ = RRDJ * (SXUP*(XCGRID(JXUP,JYUP)-XCGRID(JXUP,JYLO)) + &
+               SXLO*(XCGRID(JXLO,JYUP)-XCGRID(JXLO,JYLO)))
+            DYJ = RRDJ * (SXUP*(YCGRID(JXUP,JYUP)-YCGRID(JXUP,JYLO)) + &
+               SXLO*(YCGRID(JXLO,JYUP)-YCGRID(JXLO,JYLO)))
+         ENDIF
+         IF (KSPHER.GT.0) THEN
 !         spherical coordinates are used; first compute cos(latitude)     40.13
-         CSLAT = COS(DEGRAD*(YOFFS+YCGRID(JX,JY)))
+            CSLAT = COS(DEGRAD*(YOFFS+YCGRID(JX,JY)))
 !         LENDEG is the length of one degree of the sphere                40.13
-         DXI = DXI * LENDEG * CSLAT
-         DYI = DYI * LENDEG
-         DXJ = DXJ * LENDEG * CSLAT
-         DYJ = DYJ * LENDEG
-      ENDIF
-!
+            DXI = DXI * LENDEG * CSLAT
+            DYI = DYI * LENDEG
+            DXJ = DXJ * LENDEG * CSLAT
+            DYJ = DYJ * LENDEG
+         ENDIF
+
 !       coefficients from transformation from (i,j)-gradients to (x,y)-gradients
-!
-      IF (JXUP.EQ.JXLO .AND. JYUP.EQ.JYLO) THEN
+
+         IF (JXUP.EQ.JXLO .AND. JYUP.EQ.JYLO) THEN
 !         point surrounded by dry points                                  30.81
-         DIX  = 0.
-         DIY  = 0.
-         DJX  = 0.
-         DJY  = 0.
-      ELSE IF (JXUP.EQ.JXLO) THEN
+            DIX  = 0.
+            DIY  = 0.
+            DJX  = 0.
+            DJY  = 0.
+         ELSE IF (JXUP.EQ.JXLO) THEN
 !         no forces in i-direction                                        30.81
-         DS2  = DXJ**2 + DYJ**2
-         DIX  = 0.
-         DIY  = 0.
-         DJX  = DXJ/DS2
-         DJY  = DYJ/DS2
-      ELSE IF (JYUP.EQ.JYLO) THEN
+            DS2  = DXJ**2 + DYJ**2
+            DIX  = 0.
+            DIY  = 0.
+            DJX  = DXJ/DS2
+            DJY  = DYJ/DS2
+         ELSE IF (JYUP.EQ.JYLO) THEN
 !         no forces in j-direction                                        30.81
-         DS2  = DXI**2 + DYI**2
-         DIX  = DXI/DS2
-         DIY  = DYI/DS2
-         DJX  = 0.
-         DJY  = 0.
-      ELSE
+            DS2  = DXI**2 + DYI**2
+            DIX  = DXI/DS2
+            DIY  = DYI/DS2
+            DJX  = 0.
+            DJY  = 0.
+         ELSE
 !         coefficients for transformation from                            30.81
 !         (i,j)-gradients to (x,y)-gradients                              30.81
-         DDET = DXI*DYJ - DXJ*DYI
-         DIX  =  DYJ / DDET
-         DIY  = -DXJ / DDET
-         DJX  = -DYI / DDET
-         DJY  =  DXI / DDET
-      ENDIF
+            DDET = DXI*DYJ - DXJ*DYI
+            DIX  =  DYJ / DDET
+            DIY  = -DXJ / DDET
+            DJX  = -DYI / DDET
+            DJY  =  DXI / DDET
+         ENDIF
 !       spatial depth gradients:
-      DDX  = DDI*DIX + DDJ*DJX
-      DDY  = DDI*DIY + DDJ*DJY
-!
-      IF (ITEST.GE.80 .OR. IOUTES .GE. 20) WRITE (PRTEST, 88) IP, &
-         JXLO, JXUP, JYLO, JYUP ,SXLO, SXUP, SYLO, SYUP, &
-         DIX, DIY, DJX, DJY
-88    FORMAT (' SWOEXF ', 5I6, 2X, 4F7.4, 2X, 4E12.4)
-!
+         DDX  = DDI*DIX + DDJ*DJX
+         DDY  = DDI*DIY + DDJ*DJY
+
+         IF (ITEST.GE.80 .OR. IOUTES .GE. 20) WRITE (PRTEST, "(' SWOEXF ', 5I6, 2X, 4F7.4, 2X, 4E12.4)") IP, &
+            JXLO, JXUP, JYLO, JYUP ,SXLO, SXUP, SYLO, SYUP, &
+            DIX, DIY, DJX, DJY
+
 !       compute NE and NED
-!
-      DEPLOC = VOQ(IP,VOQR(4))
-      CALL KSCIP1 (MSC, SPCSIG, DEPLOC, WK, CG, NE, NED)
-      IF (ITEST.GE.100 .OR. IOUTES .GE. 20) THEN
-         WRITE (PRTEST, 98)  DEPLOC, DDX, DDY
-98       FORMAT (' depth & gradient ', 4(1X,F9.4))
-         DO 100 IS = 1, MIN(MSC,20)
-            WRITE (PRTEST, 99) IS, SPCSIG(IS), NE(IS), &
-                               NED(IS)
-99          FORMAT (' i, SPCSIG, N, Nd ', I2, 3(1X, E12.4))
-100      CONTINUE
-      ENDIF
-!
-      DO 300 ID  = 1, MDC
-         DO 290 IS = 1, MSC
-            SIG = SPCSIG(IS)
-!
+
+         DEPLOC = VOQ(IP,VOQR(4))
+         CALL KSCIP1 (MSC, SPCSIG, DEPLOC, WK, CG, NE, NED)
+         IF (ITEST.GE.100 .OR. IOUTES .GE. 20) THEN
+            WRITE (PRTEST, "(' depth gradient ', 4(1X,F9.4))")  DEPLOC, DDX, DDY
+            do IS = 1, MIN(MSC,20)
+               WRITE (PRTEST, "(' i, SPCSIG, N, Nd ', I2, 3(1X, E12.4))") IS, SPCSIG(IS), NE(IS), &
+                  NED(IS)
+            end do
+         ENDIF
+
+         do ID  = 1, MDC
+            do IS = 1, MSC
+               SIG = SPCSIG(IS)
+
 !           ACWAV is local action density
-!
-            IF (ONX.AND.ONY) THEN
-               ACWAV = AC2(ID,IS,IND9)
-            ELSE IF (ONX) THEN
-               ACWAV = SYLO * AC2(ID,IS,IND7) + &
-                       SYUP * AC2(ID,IS,IND8)
-            ELSE IF (ONY) THEN
-               ACWAV = SXLO * AC2(ID,IS,IND5) + &
-                       SXUP * AC2(ID,IS,IND6)
-            ELSE
-               ACWAV = SXLO * (SYLO * AC2(ID,IS,IND1) + &
-                               SYUP * AC2(ID,IS,IND4)) + &
-                       SXUP * (SYLO * AC2(ID,IS,IND2) + &
-                               SYUP * AC2(ID,IS,IND3))
-            ENDIF
-!
+
+               IF (ONX.AND.ONY) THEN
+                  ACWAV = AC2(ID,IS,IND9)
+               ELSE IF (ONX) THEN
+                  ACWAV = SYLO * AC2(ID,IS,IND7) + &
+                     SYUP * AC2(ID,IS,IND8)
+               ELSE IF (ONY) THEN
+                  ACWAV = SXLO * AC2(ID,IS,IND5) + &
+                     SXUP * AC2(ID,IS,IND6)
+               ELSE
+                  ACWAV = SXLO * (SYLO * AC2(ID,IS,IND1) + &
+                     SYUP * AC2(ID,IS,IND4)) + &
+                     SXUP * (SYLO * AC2(ID,IS,IND2) + &
+                     SYUP * AC2(ID,IS,IND3))
+               ENDIF
+
 !           ACWX is X-gradient of local action density, ACWY is Y-gradient
-!
-            IF (ONY) THEN
-               ACWI = RRDI * (AC2(ID,IS,IND6) - &
-                              AC2(ID,IS,IND5))
-            ELSE
-               ACWI = RRDI * (SYLO * (AC2(ID,IS,IND2) - &
-                                      AC2(ID,IS,IND1)) + &
-                              SYUP * (AC2(ID,IS,IND3) - &
-                                      AC2(ID,IS,IND4)))
-            ENDIF
-            IF (ONX) THEN
-               ACWJ = RRDJ * (AC2(ID,IS,IND8) - &
-                              AC2(ID,IS,IND7))
-            ELSE
-               ACWJ = RRDJ * (SXLO * (AC2(ID,IS,IND4) - &
-                                      AC2(ID,IS,IND1)) + &
-                              SXUP * (AC2(ID,IS,IND3) - &
-                                      AC2(ID,IS,IND2)))
-            ENDIF
-!
+
+               IF (ONY) THEN
+                  ACWI = RRDI * (AC2(ID,IS,IND6) - &
+                     AC2(ID,IS,IND5))
+               ELSE
+                  ACWI = RRDI * (SYLO * (AC2(ID,IS,IND2) - &
+                     AC2(ID,IS,IND1)) + &
+                     SYUP * (AC2(ID,IS,IND3) - &
+                     AC2(ID,IS,IND4)))
+               ENDIF
+               IF (ONX) THEN
+                  ACWJ = RRDJ * (AC2(ID,IS,IND8) - &
+                     AC2(ID,IS,IND7))
+               ELSE
+                  ACWJ = RRDJ * (SXLO * (AC2(ID,IS,IND4) - &
+                     AC2(ID,IS,IND1)) + &
+                     SXUP * (AC2(ID,IS,IND3) - &
+                     AC2(ID,IS,IND2)))
+               ENDIF
+
 !           spatial action density gradients:                             30.55
-            ACWX = ACWI*DIX + ACWJ*DJX
-            ACWY = ACWI*DIY + ACWJ*DJY
-!
+               ACWX = ACWI*DIX + ACWJ*DJX
+               ACWY = ACWI*DIY + ACWJ*DJY
+
 !           NAX is the derivative of N * Ac.dens.  w.r.t. X
 !           So NAX = @(N*Ac)/@X =Ac*@N/@X +N*@Ac/@X
 !
@@ -5692,34 +5303,39 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     , &
 !                                        = NED * DDX
 !
 !           Anologously for NAY.
-!
-            NAX = NE(IS) * ACWX + NED(IS) * DDX * ACWAV
-            NAY = NE(IS) * ACWY + NED(IS) * DDY * ACWAV
-            FXADD = - ( (SPCDIR(ID,4) + 1.) * NAX - 0.5 * ACWX + &
-                         SPCDIR(ID,5) * NAY ) * SIG
-            FYADD = - ( (SPCDIR(ID,6) + 1.) * NAY - 0.5 * ACWY + &
-                         SPCDIR(ID,5) * NAX ) * SIG
-!
+
+               NAX = NE(IS) * ACWX + NED(IS) * DDX * ACWAV
+               NAY = NE(IS) * ACWY + NED(IS) * DDY * ACWAV
+               FXADD = - ( (SPCDIR(ID,4) + 1.) * NAX - 0.5 * ACWX + &
+                  SPCDIR(ID,5) * NAY ) * SIG
+               FYADD = - ( (SPCDIR(ID,6) + 1.) * NAY - 0.5 * ACWY + &
+                  SPCDIR(ID,5) * NAX ) * SIG
+
 !           integration
-!
-            FX = FX + SIG * FXADD
-            FY = FY + SIG * FYADD
-290      CONTINUE
-300   CONTINUE
-!
-      FX = RHO * GRAV * FX * DDIR * FRINTF
-      FY = RHO * GRAV * FY * DDIR * FRINTF
-      VOQ(IP,VOQR(IVTYPE))   = (COSCQ*FX - SINCQ*FY)
-      VOQ(IP,VOQR(IVTYPE)+1) = (SINCQ*FX + COSCQ*FY)
-      GOTO 800
-!
+
+               FX = FX + SIG * FXADD
+               FY = FY + SIG * FYADD
+            end do
+         end do
+
+         FX = RHO * GRAV * FX * DDIR * FRINTF
+         FY = RHO * GRAV * FY * DDIR * FRINTF
+         VOQ(IP,VOQR(IVTYPE))   = (COSCQ*FX - SINCQ*FY)
+         VOQ(IP,VOQR(IVTYPE)+1) = (SINCQ*FX + COSCQ*FY)
+         VALID_FORCE = .TRUE.
+      END BLOCK force_point
+
 !       points on land: assign exception value
-!
-700   VOQ(IP,VOQR(IVTYPE))   = OVEXCV(IVTYPE)
-      VOQ(IP,VOQR(IVTYPE)+1) = OVEXCV(IVTYPE)
-!
-800 CONTINUE
-!
+
+      IF (.NOT. VALID_FORCE) THEN
+         VOQ(IP,VOQR(IVTYPE))   = OVEXCV(IVTYPE)
+         VOQ(IP,VOQR(IVTYPE)+1) = OVEXCV(IVTYPE)
+      END IF
+
+   end do
+
    RETURN
 !     end of subroutine SWOEXF
-END
+end subroutine SWOEXF
+
+end module swan_output_orchestration

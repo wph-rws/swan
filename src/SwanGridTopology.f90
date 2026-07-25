@@ -1,5 +1,16 @@
+module swan_grid_topology
+   use swan_grid_cell, only: SwanGridCell
+   use swan_grid_face, only: SwanGridFace
+   use swan_grid_vert, only: SwanGridVert
+   use swan_print_grid_info, only: SwanPrintGridInfo
+   implicit none(type, external)
+   private
+   public :: SwanGridTopology
+contains
+
 subroutine SwanGridTopology
-!
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -45,28 +56,34 @@ subroutine SwanGridTopology
 !   region in a structure useful to the rest of the program
 !
 !   Modules used
-!
-   use ocpcomm4
+
+   use swan_diagnostics_level
    use SwanGriddata
    use SwanGridobjects
-!
-   implicit none
-!
+   use SwanSpatialIndex, only: SwanSpatialIndexReset
+
+   implicit none(type, external)
+
 !   Local variables
-!
+
    integer, save :: ient = 0 ! number of entries in this subroutine
    integer       :: istat ! indicate status of allocation
-!
+
 !   Structure
 !
 !   Description of the pseudo code
 !
 !   Source text
-!
+
    if (ltrace) call strace (ient,'SwanGridTopology')
-   !
+
+   ! cached coordinates and boundary faces belong to the previous topology;
+   ! invalidate them even if the new grid happens to have the same size
+
+   call SwanSpatialIndexReset
+
    ! allocate arrays vert, cell and face
-   !
+
    allocate(gridobject%vert_grid(nverts), stat = istat)
    if ( istat == 0 ) allocate(gridobject%cell_grid(ncells), stat = istat)
    if ( istat == 0 ) allocate(gridobject%face_grid(nfaces), stat = istat)
@@ -74,21 +91,23 @@ subroutine SwanGridTopology
       call msgerr ( 4, 'Allocation problem in SwanGridTopology: array vert, cell or face' )
       return
    endif
-   !
+
    ! setup the vertices
-   !
+
    call SwanGridVert ( nverts, xcugrd, ycugrd, vmark )
-   !
+
    ! setup the cells
-   !
+
    call SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
-   !
+
    ! setup the faces
-   !
+
    call SwanGridFace ( nfaces, ncells, nverts, xcugrd, ycugrd, kvertf )
-   !
+
    ! print some info about the grid
-   !
+
    call SwanPrintGridInfo
-    !
+
 end subroutine SwanGridTopology
+
+end module swan_grid_topology

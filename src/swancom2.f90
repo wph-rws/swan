@@ -1,4 +1,4 @@
-!
+
 !     SWAN/COMPU      file 2 of 5
 !
 !     PROGRAM SWANCOM2.FOR
@@ -23,22 +23,35 @@
 !     PLTSRC  (store the values for plot of the source terms and spec.)
 !
 !****************************************************************
-!
-SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     , &
-                 IMATDA  ,KWAVE   ,SPCSIG  ,UBOT    ,UX2     , &
-                 UY2     ,IDCMIN  ,IDCMAX  ,IT      ,ITER    , &
-                 SWPDIR  ,PLBTFR  ,ISSTOP  ,DISSC1  ,VARFR   , &
-                 FRCOEF  )
-!
+
+module swan_dissipation
+   use swan_source_workspaces, only: wcap_workspace_t
+   use swan_output_variables, only: OVEXCV
+   implicit none(type, external)
+   private
+   public :: SBOT, SVEG, STURBV, SMUD, SICE, FRABRE, SSURF, SWCAP, SWCAP8
+   public :: BRKPAR, PLTSRC
+contains
+
+SUBROUTINE SBOT (ABRBOT, DEP2, ECOS, ESIN, AC2, IMATDA, KWAVE, SPCSIG, UBOT, UX2, UY2, WINDOW, IT, &
+      ITER, SWPDIR, PLBTFR, DISSC1, VARFR, FRCOEF, IGP, IXCG, IYCG)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -196,10 +209,12 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     , &
 !
 !  4. Argument variables
 !
-!     SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP, IXCG, IYCG
    REAL    SPCSIG(MSC)
-!
+
 !     INTEGERS :
 !     --------
 !
@@ -290,91 +305,87 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     , &
 !     -------------------------------------------------------------
 !
 ! 13. Source text
-!
-   INTEGER  IENT, ID     ,IDDUM, IS     ,ISSTOP, IT, ITER, J, SWPDIR
-!
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER :: ID, IDDUM, IS, IT, ITER, J, SWPDIR
+
    REAL     AKN    ,XDUM   ,KD     ,SBOTEO,FACB  , &
-            CFW    ,FW     ,CURR   ,UC    ,ABRBOT, &
-            ADUM   ,CDUM   ,DDUM
+      CFW    ,FW     ,CURR   ,UC    ,ABRBOT, &
+      ADUM   ,CDUM   ,DDUM
    REAL     CFBOT(MSC)
    REAL     DSP    ,ETOT   ,EEX    ,EEY   ,EAD
    REAL     S      ,D      ,PHI    ,THETA , &
-            DAST   ,THETAC ,RIPH   ,RIPW
-!
+      DAST   ,THETAC ,RIPH   ,RIPW
+
    LOGICAL  VARFR
-!
+
    REAL     AC2(MDC,MSC,MCGRD)        , &
-            DEP2(MCGRD)               , &
-            ECOS(MDC)                 , &
-            ESIN(MDC)                 , &
-            IMATDA(MDC,MSC)           , &
-            KWAVE(MSC,MICMAX)         , &
-            PLBTFR(MDC,MSC,NPTST)     , &
-            UBOT(MCGRD)               , &
-            UX2(MCGRD)                , &
-            UY2(MCGRD)                , &
-            DISSC1(MDC,MSC,1:MDISP)   , &
-            FRCOEF(MCGRD)
-!
-   INTEGER  IDCMIN(MSC)               , &
-            IDCMAX(MSC)
-!
-   SAVE IENT
-   DATA IENT/0/
+      DEP2(MCGRD)               , &
+      ECOS(MDC)                 , &
+      ESIN(MDC)                 , &
+      IMATDA(MDC,MSC)           , &
+      KWAVE(MSC,MICMAX)         , &
+      PLBTFR(MDC,MSC,NPTST)     , &
+      UBOT(MCGRD)               , &
+      UX2(MCGRD)                , &
+      UY2(MCGRD)                , &
+      DISSC1(MDC,MSC,1:MDISP)   , &
+      FRCOEF(MCGRD)
+
    IF (LTRACE) CALL STRACE (IENT,'SBOT')
-!
-   IF ( IBOT .GE. 1 .AND. DEP2(KCGRD(1)) .GT. 0.) THEN
+
+   IF ( IBOT .GE. 1 .AND. DEP2(IGP) .GT. 0.) THEN
       IF (IBOT.EQ.1) THEN
-!
+
 !         *** Jonswap model ***
 !
 !         PBOT(3) = GAMMA (a) in the Jonswap formulation
-!
+
          CFBOT = PBOT(3) / GRAV**2
       ELSEIF (IBOT.EQ.2) THEN
-!
+
 !         *** Collins model ***
 !
 !         PBOT(2) = [cfw]
-!
+
          IF (VARFR) THEN
-            CFW = FRCOEF(KCGRD(1))
+            CFW = FRCOEF(IGP)
          ELSE
             CFW = PBOT(2)
          ENDIF
-         CFBOT = CFW * UBOT(KCGRD(1)) / GRAV
+         CFBOT = CFW * UBOT(IGP) / GRAV
       ELSEIF (IBOT.EQ.3) THEN
-!
+
 !             *** Madsen model ***
-!
+
          IF (VARFR) THEN
-            AKN = FRCOEF(KCGRD(1))
+            AKN = FRCOEF(IGP)
          ELSE
             AKN = PBOT(5)
          ENDIF
          IF (.NOT. AKN.NE.0.) AKN = 0.001
-!
+
 !           *** PBOT(4) = Mf                      ***
 !           *** AKN = PBOT(5) = [kn]  (roughness) ***
-!
+
          IF ( (ABRBOT / AKN ) .GT. 1.57 ) THEN
             XDUM = PBOT(4) + LOG10 ( ABRBOT / AKN )
-!
+
 !               *** solving the implicit equation using a Newton ***
 !               *** Rapshon iteration proces : a + log a = b     ***
 !               *** the start value for ADUM = 0.3 because 0.3626 ***
 !               *** is the minimum value of ADUM with b=-0.08.    ***
-!
+
             ADUM = 0.3
-            DO 28 J = 1, 50
+            do J = 1, 50
                CDUM  = ADUM
                DDUM  = ( ADUM + LOG10(ADUM) - XDUM ) / &
-                                                 ( 1.+ ( 1. / ADUM) )
+                  ( 1.+ ( 1. / ADUM) )
                ADUM  = ADUM - DDUM
-               IF ( ABS(CDUM - ADUM) .LT. 1.E-4 ) GOTO 29
-28          CONTINUE
-            WRITE(*,*) ' error in iteration fw: Madsen formulation'
-29          CONTINUE
+               IF ( ABS(CDUM - ADUM) .LT. 1.E-4 ) EXIT
+            end do
+            IF ( ABS(CDUM - ADUM) .GE. 1.E-4 ) &
+               WRITE(*,*) ' error in iteration fw: Madsen formulation'
 !                                                 1               1
 !               *** computation of FW -->  A = ----- --> FW = -----
 !                                              4 uFW          16 A**2
@@ -382,19 +393,19 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     , &
          ELSE
             FW = 0.3
          ENDIF
-         CFBOT =  UBOT(KCGRD(1)) * FW / (SQRT(2.) * GRAV)
+         CFBOT =  UBOT(IGP) * FW / (SQRT(2.) * GRAV)
       ELSEIF ( IBOT.EQ.4 ) THEN
-!
+
 !            *** Jonswap model with variable friction coefficient  ***
 !            *** as function of frequency-dependent directional    ***
 !                spreading (varies linearly between 0.038 - 0.067) ***
-!
+
          DO IS = 1, MSC
             ETOT = 0.
             EEX  = 0.
             EEY  = 0.
             DO ID = 1, MDC
-               EAD  = SPCSIG(IS)*AC2(ID,IS,KCGRD(1))
+               EAD  = SPCSIG(IS)*AC2(ID,IS,IGP)
                ETOT = ETOT + EAD
                EEX  = EEX  + EAD * ECOS(ID)
                EEY  = EEY  + EAD * ESIN(ID)
@@ -411,12 +422,12 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     , &
                CFBOT(IS) = PBOT(7)
             ELSE
                CFBOT(IS) = PBOT(6) + (PBOT(7)-PBOT(6))*(DSP-PBOT(8))/ &
-                                     (PBOT(9)-PBOT(8))
+                  (PBOT(9)-PBOT(8))
             ENDIF
             CFBOT(IS) = CFBOT(IS) / GRAV**2
          ENDDO
       ELSEIF ( IBOT.EQ.5 ) THEN
-!
+
 !       *** ripples model ***
 !
 !          set some constants
@@ -443,11 +454,11 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     , &
             ENDIF
          ELSE
 !          set friction factor obtained from previous time step or iteration
-            FW = FRCOEF(KCGRD(1))
+            FW = FRCOEF(IGP)
          ENDIF
 
 !          mobility number
-         PHI = ((UBOT(KCGRD(1)))**2)/((S-1.)*GRAV*D)
+         PHI = ((UBOT(IGP))**2)/((S-1.)*GRAV*D)
 
 !          Shields entrainment parameter
          THETA = 0.5 * FW * PHI
@@ -460,7 +471,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     , &
 
          IF ( THETA.LE.1. .AND. THETA.GE.THETAC ) THEN
 !          case for mobile seabed where ripples are likely to occur
-
+!
 !             calculation of ripple height
             IF ( PHI.GT.10 ) THEN
                RIPH = ABRBOT*(21.*PHI**(-1.85))
@@ -494,78 +505,82 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     , &
          ENDIF
 
 !          bottom friction coefficient based on friction factor
-         CFBOT = UBOT(KCGRD(1)) * FW / (SQRT(2.) * GRAV)
+         CFBOT = UBOT(IGP) * FW / (SQRT(2.) * GRAV)
 
 !          save friction factor to FRCOEF for next time step or iteration
          IF (( SWPDIR .EQ. 1) .OR. &
-             ( SWPDIR .EQ. 2 .AND. IXCGRD(1) .EQ. 1) .OR. &
-             ( SWPDIR .EQ. 3 .AND. IYCGRD(1) .EQ. 1) .OR. &
-             ( SWPDIR .EQ. 4 .AND. &
-                 (IXCGRD(1).EQ.MXC .AND. IYCGRD(1).EQ.1) )) THEN
+            ( SWPDIR .EQ. 2 .AND. IXCG .EQ. 1) .OR. &
+            ( SWPDIR .EQ. 3 .AND. IYCG .EQ. 1) .OR. &
+            ( SWPDIR .EQ. 4 .AND. &
+            (IXCG.EQ.MXC .AND. IYCG.EQ.1) )) THEN
 !          save only for first encounter in a sweep
-            FRCOEF(KCGRD(1)) = FW
+            FRCOEF(IGP) = FW
          ENDIF
       ENDIF
-!
+
 !       *** test output ***
-!
+
       IF (TESTFL .AND. ITEST.GE.60) THEN
-         WRITE (PRTEST, 910) IBOT, KCGRD(1), DEP2(KCGRD(1)), CFBOT(1)
-910      FORMAT (' SBOT :IBOT INDX DEP CFBOT:', 2I5, 2E12.4)
+         WRITE (PRTEST, "(' SBOT :IBOT INDX DEP CFBOT:', 2I5, 2E12.4)") IBOT, IGP, DEP2(IGP), CFBOT(1)
       ENDIF
-!
-      DO 700 IS = 1, ISSTOP
-         KD = KWAVE(IS,1) * DEP2(KCGRD(1))
+
+      do IS = 1, WINDOW%ISSTOP
+         KD = KWAVE(IS,1) * DEP2(IGP)
          IF ( KD .LT. 10. ) THEN
             FACB = CFBOT(IS) * (SPCSIG(IS) / SINH(KD)) **2
-!
-            DO 690 IDDUM = IDCMIN(IS) , IDCMAX(IS)
+
+            do IDDUM = WINDOW%IDCMIN(IS) , WINDOW%IDCMAX(IS)
                ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-!
+
                SBOTEO = FACB
                IF (IBOT.EQ.2 .AND. ICUR.EQ.1 .AND. PBOT(1).GT.0.) THEN
 !               additional dissipation due to current, seldom used
-                  CURR = UX2(KCGRD(1))*ECOS(ID) + UY2(KCGRD(1))*ESIN(ID)
+                  CURR = UX2(IGP)*ECOS(ID) + UY2(IGP)*ESIN(ID)
                   UC   = ABS(CURR)
 !               PBOT(1) = [cfc]
                   SBOTEO = FACB + PBOT(1) * UC * &
-                                 (SPCSIG(IS) / SINH(KD)) **2
+                     (SPCSIG(IS) / SINH(KD)) **2
                ENDIF
-!
+
 !             *** store the results in the array IMATDA             ***
 !             *** if testfl store results in array for isoline plot ***
-!
+
                IMATDA(ID,IS) = IMATDA(ID,IS) + SBOTEO
                IF (TESTFL) PLBTFR(ID,IS,IPTST) = -1.* SBOTEO
                DISSC1(ID,IS,3) = DISSC1(ID,IS,3) + SBOTEO
-690         CONTINUE
+            end do
          ENDIF
-700   CONTINUE
-!
+      end do
+
    ENDIF
-!
+
 !     End of subroutine SBOT
    RETURN
-END
-!
+end subroutine SBOT
+
 !****************************************************************
-!
-SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    , &
-                  KWAVE  ,KMESPC   ,PLVEGT , &
-                  IDCMIN ,IDCMAX   ,ISSTOP ,DISSC1    , &
-                  NPLA2  )
-!
+
+SUBROUTINE SVEG (DEP2, IMATDA, ETOT, SMEBRK, KWAVE, KMESPC, PLVEGT, WINDOW, DISSC1, NPLA2, IGP)
+
 !****************************************************************
-!
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_input_grids
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_vegetation_layers, ONLY: ILMAX
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE M_GENARR
-!
-   IMPLICIT NONE
-!
-!
+   USE swan_vegetation_layers
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -734,34 +749,37 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    , &
 !     DEP2        water depth
 !     DISSC1      dissipation coefficient
 !     ETOT        total energy per spatial gridpoint
-!     IDCMIN      frequency dependent counter in directional space
-!     IDCMAX      frequency dependent counter in directional space
+!     IGP         grid address of the point being computed
+!                 (KCGRD(1) in upstream)
 !     IMATDA      coefficients of diagonal of matrix
-!     ISSTOP      maximum counter of wave component in frequency
-!                 space that is propagated
 !     KMESPC      mean average wavenumber according to the WAM-formulation
 !     KWAVE       wave number
 !     NPLA2       number of plants per square meter (depth-averaged)
 !     PLVEGT      array containing the vegetation source term for test-output
 !     SMEBRK      mean frequency according to first order moment
-!
-   INTEGER ISSTOP, IDCMIN(MSC), IDCMAX(MSC)
+!     WINDOW      spectral window of the grid point: the frequency
+!                 dependent counters in directional space (IDCMIN,
+!                 IDCMAX) and the maximum counter of wave component in
+!                 frequency space that is propagated (ISSTOP)
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
    REAL    DEP2(MCGRD)          , &
-           IMATDA(MDC,MSC)      , &
-           KWAVE(MSC,MICMAX)    , &
-           DISSC1(MDC,MSC,MDISP), &
-           PLVEGT(MDC,MSC,NPTST), &
-           NPLA2 (MCGRD)
+      IMATDA(MDC,MSC)      , &
+      KWAVE(MSC,MICMAX)    , &
+      DISSC1(MDC,MSC,MDISP), &
+      PLVEGT(MDC,MSC,NPTST), &
+      NPLA2 (MCGRD)
    REAL    ETOT, SMEBRK, KMESPC
-!
+
 !  5. Parameter variables
 !
 !     ALFU        (orbital) velocity reduction factor by canopies
 !     NIP         total number of subintervals used by Simpson's rule
-!
+
    INTEGER, PARAMETER :: NIP  = 20
    REAL   , PARAMETER :: ALFU = 1.
-!
+
 !  6. Local variables
 !
 !     A     :     auxiliary variable
@@ -795,13 +813,14 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    , &
 !     ZDH   :     vertical point z between -depth to 0 or - value water clearance in water column
 !     ZH    :     cumulative layer thickness for velocities, bottom up
 !                 (z+d between 0 and vegetation height or depth value in water column)
-!
-   INTEGER ID, IDDUM, IENT, IK, IL, IS
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER ID, IDDUM, IK, IL, IS
    REAL    A, B, C, D, KD, KVEGH, LAYPRT, SINHK, SLAYH, &
-           SLAYH1, SLAYH2, SVEG1, SVEG2
+      SLAYH1, SLAYH2, SVEG1, SVEG2
    REAL    DZ, EKZ, KC, KZ, MU, ZDH, ZH
    REAL    DCIP(0:NIP,MSC), FDD(MSC), SVEGET(MSC)
-!
+
 !  9. Subroutines calling
 !
 !     SOURCE
@@ -836,9 +855,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    , &
 !           distributed over the vertical
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SVEG')
 
 !     --- compute total sum of layer thicknesses
@@ -851,14 +868,14 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    , &
    IF ( IVEG.EQ.1 ) THEN
 
 !     --- Suzuki et al. (2011)
-
+!
 !        --- compute layer-independent vegetation dissipation factor
 
-      KD    = KMESPC * DEP2(KCGRD(1))
+      KD    = KMESPC * DEP2(IGP)
       IF ( KD.GT.10. ) RETURN
       C     = 3.*KMESPC*(COSH(KD))**3
       SVEG1 = SQRT(2./PI)*GRAV**2 * (KMESPC/SMEBRK)**3 * SQRT(ETOT)/C
-      IF ( VARNPL ) SVEG1 = SVEG1 * NPLA2(KCGRD(1))
+      IF ( VARNPL ) SVEG1 = SVEG1 * NPLA2(IGP)
 
 !        --- compute dissipation factor for each layer and summed up
 
@@ -867,7 +884,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    , &
       D     = 0.
       SVEG2 = 0.
 
-      IF ( DEP2(KCGRD(1)).GT.SLAYH ) THEN
+      IF ( DEP2(IGP).GT.SLAYH ) THEN
 
          DO IL = 1, ILMAX
             KVEGH = KVEGH + KMESPC * LAYH(IL)
@@ -881,7 +898,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    , &
             SVEG2 = SVEG2 + VEGDRL(IL)*VEGDIL(IL)*VEGNSL(IL)*(A + B)
          END DO
 
-      ELSE IF ( DEP2(KCGRD(1)).LT.LAYH(1) ) THEN
+      ELSE IF ( DEP2(IGP).LT.LAYH(1) ) THEN
 
          SINHK = SINH(KD)
          A     = SINHK**3
@@ -895,11 +912,11 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    , &
          LAYPRT = 0.
          VGLOOP : DO IL = 1, ILMAX
             SLAYH1 = SLAYH1 + LAYH(IL)
-            IF (DEP2(KCGRD(1)).LE.SLAYH1) THEN
+            IF (DEP2(IGP).LE.SLAYH1) THEN
                DO IK = 1, IL-1
                   SLAYH2 = SLAYH2 + LAYH(IK)
                END DO
-               LAYPRT = DEP2(KCGRD(1)) - SLAYH2
+               LAYPRT = DEP2(IGP) - SLAYH2
                DO IK = 1, IL-1
                   KVEGH = KVEGH + KMESPC * LAYH(IK)
                   SINHK = SINH(KVEGH)
@@ -933,93 +950,91 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    , &
    ELSE IF ( IVEG.EQ.2 ) THEN
 
 !     --- Jacobsen et al. (2019)
-
+!
 !        --- compute layer- and frequency-independent canopy dissipation factor
 
       SVEG1 = SQRT(2./PI)*(1/GRAV) * ALFU**3 * &
-                                    VEGDRL(1) * VEGDIL(1) * VEGNSL(1)
-      IF ( VARNPL ) SVEG1 = SVEG1 * NPLA2(KCGRD(1))
+         VEGDRL(1) * VEGDIL(1) * VEGNSL(1)
+      IF ( VARNPL ) SVEG1 = SVEG1 * NPLA2(IGP)
 
       SVEGET = 0.
-      IF ( .NOT. SVEG1.NE.0. ) GOTO 90
+      IF ( SVEG1.NE.0. ) THEN
 
 !        --- determine integration interval (submerged vegetation is assumed)
 
-      DZ = MIN( SLAYH, DEP2(KCGRD(1)) ) / REAL(NIP)
+         DZ = MIN( SLAYH, DEP2(IGP) ) / REAL(NIP)
 
 !        --- integration from bottom to surface using Simpson's rule
 
-      DO IK = 0, NIP
+         DO IK = 0, NIP
 
-         ZH  = DZ * REAL(IK)
-         ZDH = ZH - DEP2(KCGRD(1))
+            ZH  = DZ * REAL(IK)
+            ZDH = ZH - DEP2(IGP)
 
-         MU = 0.
+            MU = 0.
 
-         DO IS = 1, ISSTOP
+            DO IS = 1, WINDOW%ISSTOP
 
-            KD = KWAVE(IS,1) * DEP2(KCGRD(1))
-            KC = KWAVE(IS,1) * ZH
-            KZ = KWAVE(IS,1) * ZDH
+               KD = KWAVE(IS,1) * DEP2(IGP)
+               KC = KWAVE(IS,1) * ZH
+               KZ = KWAVE(IS,1) * ZDH
 
-            IF ( KD.LT.20. ) THEN
-               ! for all wave-water regimes
-               FDD(IS) = ( SPCSIG(IS) * COSH(KC)/SINH(KD) )**2
-            ELSE
-               !option A: deep water orbital velocity
-               EKZ     = EXP(KZ)
-               FDD(IS) = ( SPCSIG(IS) * EKZ )**2
-               !option B: very small energy in very high frequencies, neglect its dissipation
-               !FDD(IS) = 0.
-            END IF
+               IF ( KD.LT.20. ) THEN
+                  ! for all wave-water regimes
+                  FDD(IS) = ( SPCSIG(IS) * COSH(KC)/SINH(KD) )**2
+               ELSE
+                  !option A: deep water orbital velocity
+                  EKZ     = EXP(KZ)
+                  FDD(IS) = ( SPCSIG(IS) * EKZ )**2
+                  !option B: very small energy in very high frequencies,
+                  !FDD(IS) = 0.
+               END IF
 
 !              --- compute first order moment
 
-            DO ID = 1, MDC
-               MU = MU + FDD(IS) * SPCSIG(IS)**2 * AC2(ID,IS,KCGRD(1))
+               DO ID = 1, MDC
+                  MU = MU + FDD(IS) * SPCSIG(IS)**2 * AC2(ID,IS,IGP)
+               END DO
+
+            END DO
+
+!           --- integrate Su in frequencies and directions
+
+            MU = MU * DDIR * FRINTF
+
+!           --- determine weight coefficient for integration based on Simpson's rule
+
+            IF ( IK.EQ.0 .OR. IK.EQ.NIP ) THEN
+               C = 1. / 3.
+            ELSE IF ( MOD(IK,2).EQ.0 ) THEN
+               C = 2. / 3.
+            ELSE
+               C = 4. / 3.
+            END IF
+
+!           --- compute frequency-distributed dissipation per integration point
+
+            DO IS = 1, WINDOW%ISSTOP
+               DCIP(IK,IS) = C * FDD(IS) * SQRT(MU)
             END DO
 
          END DO
 
-!           --- integrate Su in frequencies and directions
+         ! --- compute dissipation per frequency
 
-         MU = MU * DDIR * FRINTF
-
-!           --- determine weight coefficient for integration based on Simpson's rule
-
-         IF ( IK.EQ.0 .OR. IK.EQ.NIP ) THEN
-            C = 1. / 3.
-         ELSE IF ( MOD(IK,2).EQ.0 ) THEN
-            C = 2. / 3.
-         ELSE
-            C = 4. / 3.
-         END IF
-
-!           --- compute frequency-distributed dissipation per integration point
-
-         DO IS = 1, ISSTOP
-            DCIP(IK,IS) = C * FDD(IS) * SQRT(MU)
-         END DO
-
-      END DO
-
-      ! --- compute dissipation per frequency
-
-      SVEGET = SVEG1 * SUM(DCIP,1) * DZ
-
-90    CONTINUE
+         SVEGET = SVEG1 * SUM(DCIP,1) * DZ
+      END IF
 
    END IF
-!
+
 !     *** test output ***
-!
+
    IF (TESTFL .AND. ITEST.GE.60) THEN
-      WRITE (PRTEST, 110) IVEG, KCGRD(1), DEP2(KCGRD(1)), SVEGET(1)
-110   FORMAT (' SVEG :IVEG INDX DEP VEGFAC:', 2I5, 2E12.4)
+      WRITE (PRTEST, "(' SVEG :IVEG INDX DEP VEGFAC:', 2I5, 2E12.4)") IVEG, IGP, DEP2(IGP), SVEGET(1)
    END IF
 
-   DO IS = 1, ISSTOP
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+   DO IS = 1, WINDOW%ISSTOP
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
 !           *** store the results in the array IMATDA ***
@@ -1033,24 +1048,25 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    , &
    END DO
 
    RETURN
-END
-!
-!****************************************************************
-!
-SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  , &
-                   IDCMIN  ,IDCMAX  ,ISSTOP  , &
-                   KWAVE   ,DISSC1  ,PLTURB  )
-!
-!****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-   USE M_WCAP, ONLY: SIGPOW
-!
-   IMPLICIT NONE
+end subroutine SVEG
 
-!
+!****************************************************************
+
+SUBROUTINE STURBV (TURBV2, DEP2, IMATDA, WINDOW, KWAVE, DISSC1, PLTURB, SIGPOW, IGP, IXCG, IYCG, ICMAX)
+
+!****************************************************************
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1079,32 +1095,47 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  , &
 !
 !
 !  0. Authors
-
+!
 !     40.35: Nico Booij
-
+!
 !  1. Updates
-
+!
 !     40.35, July 04: new subroutine
-
+!
 !  2. Purpose
-
+!
 !     Computation of the dissipation term due to turbulent viscosity
-
+!
 !  3. Method
-
+!
 !     ITURBV=1: see Tolman
-
+!
 !  4. Argument variables
+!
+!     ICMAX       number of points in the computational stencil,
+!                 the second extent of KWAVE
+!     IGP         grid address of the point being computed
+!                 (KCGRD(1) in upstream)
+!     IXCG        index in x-direction of the point being computed,
+!                 for test output (IXCGRD(1) in upstream)
+!     IYCG        index in y-direction of the point being computed,
+!                 for test output (IYCGRD(1) in upstream)
+!     SIGPOW      powers of the relative frequency: SIGPOW(IS,n) is
+!                 SPCSIG(IS)**n, n = 1 to 6
+!     WINDOW      spectral window of the grid point: the frequency
+!                 dependent counters in directional space (IDCMIN,
+!                 IDCMAX) and the maximum counter of wave component in
+!                 frequency space that is propagated (ISSTOP)
 
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP, IXCG, IYCG, ICMAX
    REAL             :: IMATDA(1:MDC,1:MSC) ! main diagonal of matrix
    REAL, INTENT(IN) :: KWAVE(1:MSC,1:ICMAX) ! wave number
    REAL             :: DISSC1(1:MDC,1:MSC,1:MDISP) ! total dissipation in spectral domain
    REAL, INTENT(IN) :: TURBV2(1:MCGRD) ! turbulent viscosity at current time
    REAL, INTENT(IN) :: DEP2(1:MCGRD) ! water depth
    REAL             :: PLTURB(MDC,MSC,NPTST)
-
-   INTEGER :: IDCMIN(1:MSC), IDCMAX(1:MSC)
-   INTEGER :: ISSTOP
+   REAL, INTENT(IN) :: SIGPOW(:,:)
 
 !  5. Local variables
 
@@ -1115,23 +1146,23 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  , &
    REAL :: XKD ! dimensionless depth
 
 !  8. Subroutines used
-
+!
 !     ---
-
+!
 !  9. Subroutines calling
-
+!
 !     SOURCE
-
+!
 ! 10. Error Messages
-
+!
 !     ---
-
+!
 ! 11. Remarks
-
+!
 !     ---
-
+!
 ! 12. Structure
-
+!
 !     ------------------------------------------------------------
 !     If local turbulent viscosity is >0
 !     Then For all spectral frequencies do
@@ -1139,30 +1170,29 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  , &
 !              For every spectral direction do
 !                  add CVISC to matrix diagonal (IMATDA)
 !     -------------------------------------------------------------
-
+!
 ! 13. Source text
 
    INTEGER, SAVE :: IENT = 0
    IF (LTRACE) CALL STRACE (IENT,'STURBV')
 
-   VISCLOC = TURBV2(KCGRD(1))
+   VISCLOC = TURBV2(IGP)
 
-   IF (TESTFL .AND. ITEST.GE.60) WRITE (PRTEST, 20) &
-      IXCGRD(1)-1, IYCGRD(1)-1, VISCLOC, &
+   IF (TESTFL .AND. ITEST.GE.60) WRITE (PRTEST, "( 'test STURBV, point ', 2I3, 3X, 2E12.4)") &
+      IXCG-1, IYCG-1, VISCLOC, &
       PTURBV(1)
-20 FORMAT ( 'test STURBV, point ', 2I3, 3X, 2E12.4)
 
    IF (VISCLOC .GT. 0.) THEN
       IF (ITURBV.EQ.1) THEN
 
 !         *** Tolman's model ***
-         DO IS = 1, ISSTOP
+         DO IS = 1, WINDOW%ISSTOP
 !           expression: Pt * K * k * sigma^2 / g * (tanh(kd) - kd/(cosh(kd)^2))
-            XKD = KWAVE(IS,1) * DEP2(KCGRD(1))
+            XKD = KWAVE(IS,1) * DEP2(IGP)
             CVISC = PTURBV(1) * VISCLOC * KWAVE(IS,1) * &
-                    SIGPOW(IS,2) / GRAV * &
-                    (TANH(MIN(30.,XKD)) - XKD/((COSH(MIN(30.,XKD)))**2))
-            DO IDDUM = IDCMIN(IS) , IDCMAX(IS)
+               SIGPOW(IS,2) / GRAV * &
+               (TANH(MIN(30.,XKD)) - XKD/((COSH(MIN(30.,XKD)))**2))
+            DO IDDUM = WINDOW%IDCMIN(IS) , WINDOW%IDCMAX(IS)
                ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
 !              *** store the results in the array IMATDA             ***
@@ -1171,31 +1201,30 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  , &
                IMATDA(ID,IS) = IMATDA(ID,IS) + CVISC
                IF (TESTFL) PLTURB(ID,IS,IPTST) = -1.* CVISC
                DISSC1(ID,IS,6) = DISSC1(ID,IS,6) + CVISC
-!
+
             ENDDO
          ENDDO
       ENDIF
    ENDIF
 
    RETURN
-END subroutine STURBV
-!
+end subroutine STURBV
+
 !****************************************************************
-!
-SUBROUTINE SMUD ( DEP2    ,IMATDA  , &
-                  KMUD    ,CGMUD   ,DMW     , &
-                  IDCMIN  ,IDCMAX  ,ISSTOP  , &
-                  DISSC1  ,PLMUD   )
-!
+
+SUBROUTINE SMUD (DEP2, IMATDA, KMUD, CGMUD, DMW, WINDOW, DISSC1, PLMUD, IGP, ICMAX)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_test_output
+   USE swan_diagnostics_level
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1248,15 +1277,21 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  , &
 !     DISSC1      dissipation coefficient
 !     DMW         mud dissipation rate (calculated via routine NG and
 !                 it represents the imaginary part of the wave number)
-!     IDCMIN      frequency dependent counter in directional space
-!     IDCMAX      frequency dependent counter in directional space
+!     ICMAX       number of points in the computational stencil,
+!                 the second extent of CGMUD, DMW and KMUD
+!     IGP         grid address of the point being computed
+!                 (KCGRD(1) in upstream)
 !     IMATDA      coefficients of diagonal of matrix
-!     ISSTOP      maximum counter of wave component in frequency
-!                 space that is propagated
 !     KMUD        muddy wave number (calculated via routine KSCIP2 and
 !                 it represents the real part of the wave number)
 !     PLMUD       array containing the fluid mud source term for test-output
-!
+!     WINDOW      spectral window of the grid point: the frequency
+!                 dependent counters in directional space (IDCMIN,
+!                 IDCMAX) and the maximum counter of wave component in
+!                 frequency space that is propagated (ISSTOP)
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP, ICMAX
    REAL             :: IMATDA(1:MDC,1:MSC)
    REAL, INTENT(IN) :: CGMUD(1:MSC,1:ICMAX)
    REAL, INTENT(IN) :: DMW(1:MSC,1:ICMAX)
@@ -1265,9 +1300,6 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  , &
    REAL, INTENT(IN) :: DEP2(1:MCGRD)
    REAL             :: PLMUD(MDC,MSC,NPTST)
 
-   INTEGER :: IDCMIN(1:MSC), IDCMAX(1:MSC)
-   INTEGER :: ISSTOP
-!
 !  5. Parameter variables
 !
 !     ---
@@ -1279,13 +1311,13 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  , &
 !     IS          counter in frequency space
 !     KD          dimensionless depth
 !     SMUDWD      source term containing fluid mud-induced wave dissipation
-!
-   INTEGER :: IENT
+
+   INTEGER, SAVE :: IENT = 0
    INTEGER :: ID, IDDUM, IS
 
    REAL    :: KD
    REAL    :: SMUDWD
-!
+
 !  7. Common blocks used
 !
 !     ---
@@ -1317,20 +1349,18 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  , &
 !     ---
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SMUD')
-!
-   DO IS = 1, ISSTOP
-!
-      KD = KMUD(IS,1) * DEP2(KCGRD(1))
-!
+
+   DO IS = 1, WINDOW%ISSTOP
+
+      KD = KMUD(IS,1) * DEP2(IGP)
+
       IF ( KD.LT.10. ) THEN
 
          SMUDWD = 2. * DMW(IS,1) * CGMUD(IS,1)
 
-         DO IDDUM = IDCMIN(IS) , IDCMAX(IS)
+         DO IDDUM = WINDOW%IDCMIN(IS) , WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
 !              *** store the results in the array IMATDA             ***
@@ -1339,31 +1369,32 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  , &
             IMATDA(ID,IS) = IMATDA(ID,IS) + SMUDWD
             IF (TESTFL) PLMUD(ID,IS,IPTST) = -1.* SMUDWD
             DISSC1(ID,IS,7) = DISSC1(ID,IS,7) + SMUDWD
-!
+
          ENDDO
 
       ENDIF
-!
+
    ENDDO
 
    RETURN
-END
-!
+end subroutine SMUD
+
 !****************************************************************
-!
-SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  , &
-                  DISSC1  , PLICE   , AICELOC , HICELOC , &
-                  SPCSIG  , CG      )
-!
+
+SUBROUTINE SICE (IMATDA, WINDOW, DISSC1, PLICE, AICELOC, HICELOC, SPCSIG, CG)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1428,17 +1459,19 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  , &
 !
 !  4. Argument variables
 !
-!     IDCMIN      frequency dependent lower bound in directional index space
-!     IDCMAX      frequency dependent upper bound in directional index space
+!     WINDOW      spectral window of the grid point: the frequency
+!                 dependent lower and upper bound in directional index
+!                 space (IDCMIN, IDCMAX) and the maximum counter of
+!                 wave component in frequency space that is propagated
+!                 (ISSTOP)
 !     IMATDA      coefficients of diagonal of matrix
-!     ISSTOP      maximum counter of wave component in frequency
-!                 space that is propagated
 !     DISSC1      dissipation coefficient
 !     PLICE       array containing the ice source term for test-output
 !     CG          group velocity without currents, but includes depth effects
 !                 (We use lower case "o" to avoid confusion with "zero")
 !     SPCSIG      Relative frequencies in computational domain in sigma-space
-!
+
+   TYPE(spectral_window_t) :: WINDOW
    REAL             :: IMATDA(1:MDC,1:MSC)
    REAL             :: DISSC1(1:MDC,1:MSC,1:MDISP)
    REAL             :: PLICE(MDC,MSC,NPTST)
@@ -1446,8 +1479,6 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  , &
    REAL, INTENT(IN) :: SPCSIG(MSC)
    REAL, INTENT(IN) :: CG(MSC,MICMAX) ! or just CG(:,:) ! "CGo" in calling routine
 
-   INTEGER, INTENT(IN) :: ISSTOP, IDCMIN(1:MSC), IDCMAX(1:MSC)
-!
 !  5. Parameter variables
 !
 !     ---
@@ -1462,8 +1493,8 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  , &
 !     AICELOC     local ice fraction
 !     HICELOC     local ice thickness
 !     KI          spatial dissipation rate of amplitude (exponential)
-!
-   INTEGER :: IENT
+
+   INTEGER, SAVE :: IENT = 0
    INTEGER :: ID, IDDUM, IS
 
    REAL    :: KI(MSC)
@@ -1472,7 +1503,7 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  , &
    REAL    :: CHF ! used by D15, M18, R21B
    REAL    :: NPF, NPH ! used by R21B
    REAL    :: FREQ
-!
+
 !  7. Common blocks used
 !
 !     Modules SWCOMM3 SWCOMM4 OCPCOMM4 are used.
@@ -1511,11 +1542,9 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  , &
 !     ---
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SICE')
-!
+
    IF ( IICE.EQ.3 ) THEN ! R19
 !     Rename variables, for more readable code
       C0 = PSICE(2)
@@ -1541,14 +1570,14 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  , &
 
    if_ice: IF ( AICELOC.GT.0. ) THEN
 
-      ki_calc: DO IS = 1, ISSTOP
-!
+      ki_calc: DO IS = 1, WINDOW%ISSTOP
+
          FREQ = SPCSIG(IS) / PI2
 
          IF ( IICE.EQ.3 ) THEN ! R19
 !...for Sice method=IC4M2/R19, ki= C0*f^0 + C1*f^1 ... + C6*f^6
             KI(IS) = C0 + C1*FREQ    + C2*FREQ**2 + C3*FREQ**3 &
-                        + C4*FREQ**4 + C5*FREQ**5 + C6*FREQ**6
+               + C4*FREQ**4 + C5*FREQ**5 + C6*FREQ**6
          ELSEIF ( IICE.EQ.4 ) THEN ! D15
             KI(IS) = CHF * HICELOC * FREQ**2.13
          ELSEIF ( IICE.EQ.5 ) THEN ! M18
@@ -1561,10 +1590,10 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  , &
 
       ENDDO ki_calc
 
-      ki_use: DO IS = 1, ISSTOP
+      ki_use: DO IS = 1, WINDOW%ISSTOP
          SICEWD = 2. * KI(IS) * CG(IS,1) * AICELOC
 
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
 !     *** store the results in the array IMATDA             ***
@@ -1573,26 +1602,27 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  , &
             IMATDA(ID,IS) = IMATDA(ID,IS) + SICEWD
             IF (TESTFL) PLICE(ID,IS,IPTST) = -1.* SICEWD
             DISSC1(ID,IS,8) = DISSC1(ID,IS,8) + SICEWD
-!
+
          ENDDO
       ENDDO ki_use
    ENDIF if_ice
 
    RETURN
-END SUBROUTINE SICE
-!
+end subroutine SICE
+
 !****************************************************************
-!
+
 SUBROUTINE FRABRE ( HM, ETOT, QBLOC, KTETA )
-!
+
 !****************************************************************
-!
-   USE SWCOMM4
-   USE OCPCOMM4
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1689,9 +1719,9 @@ SUBROUTINE FRABRE ( HM, ETOT, QBLOC, KTETA )
 !     HM      input  maximum wave height
 !     KTETA   input  number of directional partitions
 !     QBLOC   output second iteration of the fraction of breaking waves
-!
+
    REAL    ETOT,  HM,  KTETA, QBLOC
-!
+
 !  5. Parameter variables
 !
 !  6. Local variables
@@ -1701,10 +1731,10 @@ SUBROUTINE FRABRE ( HM, ETOT, QBLOC, KTETA )
 !     IENT    number of entries
 !     QO      first estimate of the fraction of breaking waves
 !     Z       dummy variable
-!
-   INTEGER IENT
+
+   INTEGER, SAVE :: IENT = 0
    REAL    B,  B2,  QO,  Z
-!
+
 !  7. Common blocks used
 !
 !
@@ -1734,63 +1764,62 @@ SUBROUTINE FRABRE ( HM, ETOT, QBLOC, KTETA )
 !   ------------------------------------------------------------
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'FRABRE')
-!
+
    IF ( (HM .GT. 0.) .AND. (ETOT .GE. 0.) ) THEN
       B = SQRT(8. * ETOT / (HM*HM) )
       B = B / SQRT(KTETA)
    ELSE
       B = 0.0
    END IF
-!
+
    IF ( B .LE. 0.5 ) THEN
       QO = 0.
    ELSE IF ( B .LE. 1.0 ) THEN
       QO = (2.*B - 1.)**2
    END IF
-!
+
    IF ( B .LE. 0.2 ) THEN
       QBLOC = 0.0
    ELSE IF ( B .LT. 1.0 ) THEN
-!
+
 !       *** second iteration to find Qb ***
-!
+
       B2 = B*B
       Z  = EXP((QO-1.)/B2)
       QBLOC = QO - B2 * (QO-Z)/(B2-Z)
    ELSE
       QBLOC = 1.0
    END IF
-!
+
    IF ( TESTFL .AND. ITEST .GE. 110 ) THEN
-      WRITE (PRINTF,6120) ETOT, HM, B, QBLOC
-6120  FORMAT (' FRABRE: ETOT  HM  B  QB     : ',4E12.4)
+      WRITE (PRINTF,"(' FRABRE: ETOT  HM  B  QB     : ',4E12.4)") ETOT, HM, B, QBLOC
    END IF
-!
+
 !     End of subroutine FRABRE
    RETURN
-END
-!
+end subroutine FRABRE
+
 !****************************************************************
-!
-SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   , &
-                  KMESPC  ,SPCSIG  ,AC2     ,IMATRA  , &
-                  IMATDA  ,IDCMIN  ,IDCMAX  ,PLWBRK  , &
-                  ISSTOP  ,DISSC0  ,DISSC1  ,DISBK   ,ITER    )
-!
+
+SUBROUTINE SSURF (ETOT, HM, QB, SMEBRK, KTETA, KMESPC, SPCSIG, AC2, IMATRA, IMATDA, WINDOW, PLWBRK, &
+      DISSC0, DISSC1, DISBK, ITER, SIGM_WAM, IGP)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-   USE M_WCAP, ONLY: SIGM_WAM
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_spectral_integration, ONLY: SwanIntgratSpc
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -1837,7 +1866,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   , &
 !
 !     30.62, Aug. 97: Prevented a possible division by zero
 !     30.82, Sep. 98: Changed indices of PLWBRK-array declaration
-!     30.82, Oct. 98: Made subroutine intrinsic DOUBLE PRECISION
+!     30.82, Oct. 98: Made subroutine intrinsic REAL(KIND=KIND(0.0D0))
 !     30.81, Sep. 99: Argumentlist reduced
 !     40.13, Jan. 01: PLWBRK corrected (dissipation test output)
 !     40.41, Oct. 04: common blocks replaced by modules, include files removed
@@ -1992,32 +2021,39 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   , &
 !     ETOT    input :   Total energy per spatial gridpoint
 !     HM      input :   Maximum wave height
 !     ICMAX   input :   Maximum number of elements in KCGRD array
-!     IDCMIN  input :   Minimum number for counter IDDUM
-!     IDCMAX  input :   Maximum number for counter IDDUM
+!     IGP     input :   Grid address of the point being computed
+!                       (KCGRD(1) in upstream)
 !     IMATDA  output:   Coefficient of diagonal matrix (2D)
 !     IMATRA  output:   Coefficient of righthandside of matrix
-!     ISSTOP  input :   Maximum for counter IS
 !     ITER    input :   iteration counter
 !     KMESPC  input :   Mean average wavenumber according to the WAM-formulation
 !     KTETA   input :   number of directional partitions
 !     PLWBRK  output:   array containing the surf breaking source term
 !                       for test-output
 !     QB      input :   Fraction of breaking waves
+!     SIGM_WAM input:   Mean frequency according to the WAM-formulation,
+!                       computed in SINTGRL; used when ISURF = 6
+!                       (in upstream read from module M_WCAP)
 !     SMEBRK  input :   Mean frequency according to first order moment
-!
-   INTEGER        ISSTOP, &
-            IDCMIN(MSC), IDCMAX(MSC), ITER
-!
+!     WINDOW  input :   Spectral window of the grid point: the minimum and
+!                       maximum number for counter IDDUM (IDCMIN, IDCMAX)
+!                       and the maximum for counter IS (ISSTOP)
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
+   REAL, INTENT(IN) :: SIGM_WAM
+   INTEGER :: ITER
+
    REAL     AC2(MDC,MSC,MCGRD)   , &
-            DISSC0(MDC,MSC,MDISP), &
-            DISSC1(MDC,MSC,MDISP), &
-            IMATDA(MDC,MSC)      , &
-            IMATRA(MDC,MSC)      , &
-            PLWBRK(MDC,MSC,NPTST)
+      DISSC0(MDC,MSC,MDISP), &
+      DISSC1(MDC,MSC,MDISP), &
+      IMATDA(MDC,MSC)      , &
+      IMATRA(MDC,MSC)      , &
+      PLWBRK(MDC,MSC,NPTST)
    REAL     SPCSIG(MSC)
-!
+
    REAL     ETOT,  HM,  QB, SMEBRK, KMESPC, KTETA, DISBK
-!
+
 !  5. Parameter variables
 !
 !  6. Local variables
@@ -2034,16 +2070,15 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   , &
 !     SURFA1  Coefficient for new source term in matrix equation
 !     WS      Wavebreaking source term coefficient = DTOT/ETOT
 !     SbrD    Derivative of source term for surf breaking (Sbr) to action density
-!
-   INTEGER          ID,       IDDUM,   IENT,   IS
+
+   INTEGER, SAVE :: IENT = 0
+   INTEGER          ID,       IDDUM,   IS
    REAL             PP,       FAC,     EPTOT,  ETOT0, FMEAN, &
-                    ECS(MDC), FMIN,    FMAX,   FRFAC(MSC)
-   DOUBLE PRECISION BB,       DIS0,    SbrD, &
-                    SURFA0,   SURFA1,  WS  , &
-                    TEMP1 ,   TEMP2
-   REAL             SwanIntgratSpc
-!
-!
+      ECS(MDC), FMIN,    FMAX,   FRFAC(MSC)
+   REAL(KIND=KIND(0.0D0)) BB,       DIS0,    SbrD, &
+      SURFA0,   SURFA1,  WS  , &
+      TEMP1 ,   TEMP2
+
 !  7. Common blocks used
 !
 !
@@ -2082,23 +2117,21 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   , &
 !     -------------------------------------------------------------
 !
 ! 13. Source text
-!
-   SAVE IENT
-   DATA IENT/0/
+
    IF (LTRACE) CALL STRACE (IENT,'SSURF')
-!
+
 !     ALFA = PSURF(1)   <default = 1.0>
-!
+
    BB = 8D0 * DBLE(ETOT) / ( DBLE(KTETA) * DBLE(HM)**2 )
    SURFA0 = 0D0
    SURFA1 = 0D0
-!
+
    WS = 0D0
-!
+
    IF ( ISURF.LE.3 .OR. ISURF.EQ.6 .OR. ISURF.EQ.7 ) THEN
-!
+
 !        --- Battjes and Janssen (1978)
-!
+
       IF ( ISURF.NE.6 ) THEN
 !           use fm_0,1
          FMEAN = SMEBRK
@@ -2106,12 +2139,12 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   , &
 !           use WAM definition
          FMEAN = SIGM_WAM
       ENDIF
-!
+
       IF (REAL(BB) .GT. 0. .AND. &
-          REAL(ABS(BB - DBLE(QB))) .GT. 0.) THEN
+         REAL(ABS(BB - DBLE(QB))) .GT. 0.) THEN
          IF ( BB .LT. 1D0 ) THEN
             WS  = ( DBLE(PSURF(1)) / DBLE(PI)) * &
-                    DBLE(QB) * DBLE(FMEAN) / BB
+               DBLE(QB) * DBLE(FMEAN) / BB
             SbrD = WS * (1D0 - DBLE(QB)) / (BB - DBLE(QB))
          ELSE
             WS  = ( DBLE(PSURF(1)) / DBLE(PI)) * DBLE(FMEAN)
@@ -2123,18 +2156,18 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   , &
          SURFA0 = 0D0
          SURFA1 = 0D0
       ENDIF
-!
+
    ELSEIF ( ISURF.EQ.4 ) THEN
-!
+
 !        --- Thornton and Guza (1983)
-!
+
       IF ( BB.GT.0D0 ) THEN
          IF ( BB.LT.1D0 ) THEN
             WS = 75D-2*DBLE(PSURF(4))*DBLE(PSURF(1))**3*DBLE(SMEBRK)* &
-                 BB**(0.5*(PSURF(5)+1))/DBLE(SQRT(PI))
+               BB**(0.5*(PSURF(5)+1))/DBLE(SQRT(PI))
          ELSE
             WS = 75D-2*DBLE(PSURF(4))*DBLE(PSURF(1))**3*DBLE(SMEBRK)/ &
-                 DBLE(SQRT(PI))
+               DBLE(SQRT(PI))
          ENDIF
          SbrD   = 5D-1*DBLE(3.+PSURF(5))*WS
          SURFA0 = SbrD - WS
@@ -2143,20 +2176,20 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   , &
          SURFA0 = 0D0
          SURFA1 = 0D0
       ENDIF
-!
+
    ENDIF
-!
+
 !     --- store bulk dissipation for QC surf breaking
-!
+
    IF ( ETOT.GT.0. ) THEN
       DISBK = -REAL(WS)
    ELSE
       DISBK = 0.
    ENDIF
-!
+
 !     *** store the results for surf wave breaking  ***
 !     *** in the matrices IMATDA and IMATRA         ***
-!
+
    FRFAC = 1.
    IF (IFRSRF.EQ.1) THEN
       PP    = PSURF(16)
@@ -2164,12 +2197,12 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   , &
       FMAX  = PI2*PSURF(18)
       ECS   = 1.
       ETOT0 = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, ECS, SPCSIG, &
-                             ECS, 0., 0., AC2(1,1,KCGRD(1)), 1 )
+         ECS, 0., 0., AC2(1,1,IGP), 1 )
       EPTOT = SwanIntgratSpc(PP, FMIN, FMAX, SPCSIG, ECS, SPCSIG, &
-                             ECS, 0., 0., AC2(1,1,KCGRD(1)), 1 )
+         ECS, 0., 0., AC2(1,1,IGP), 1 )
       FAC   = ETOT0/EPTOT
       IF ( ETOT0.GT.1.E-8 ) THEN
-         DO IS = 1, ISSTOP
+         DO IS = 1, WINDOW%ISSTOP
             FRFAC(IS) = FAC*SPCSIG(IS)**PP
          END DO
       END IF
@@ -2180,53 +2213,51 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   , &
       TEMP1 = 0D0
       TEMP2 = 0D0
    ENDIF
-   DO 101 IS = 1, ISSTOP
+   do IS = 1, WINDOW%ISSTOP
       SURFA0 = TEMP1*FRFAC(IS)
       SURFA1 = TEMP2*FRFAC(IS)
-      DO 100 IDDUM = IDCMIN(IS), IDCMAX(IS)
+      do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
          IMATDA(ID,IS) = IMATDA(ID,IS) + REAL(SURFA1)
-         DIS0 = SURFA0 * DBLE(AC2(ID,IS,KCGRD(1)))
+         DIS0 = SURFA0 * DBLE(AC2(ID,IS,IGP))
          IMATRA(ID,IS) = IMATRA(ID,IS) + REAL(DIS0)
          IF (TESTFL) PLWBRK(ID,IS,IPTST) = REAL(SURFA0-SURFA1)
          DISSC0(ID,IS,2) = DISSC0(ID,IS,2) - REAL(DIS0)
          DISSC1(ID,IS,2) = DISSC1(ID,IS,2) + REAL(SURFA1)
-100   CONTINUE
-101 CONTINUE
-!
+      end do
+   end do
+
 !     *** test output ***
-!
+
    IF ( TESTFL .AND. ITEST .GE. 110 ) THEN
-      WRITE(PRINTF,6021) SURFA1,SURFA0
-6021  FORMAT (' SSURF : SURFA1 SURFA0     :',2D12.4)
-      WRITE(PRINTF,6020) HM, QB, ETOT, SMEBRK
-6020  FORMAT ('       : HM QB ETOT SMEBRK :',4E12.4)
+      WRITE(PRINTF,"(' SSURF : SURFA1 SURFA0     :',2D12.4)") SURFA1,SURFA0
+      WRITE(PRINTF,"('       : HM QB ETOT SMEBRK :',4E12.4)") HM, QB, ETOT, SMEBRK
    END IF
-!
-!
+
 !     end of the subroutine SSURF
    RETURN
-END
-!
+end subroutine SSURF
+
 !****************************************************************
-!
-SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     , &
-                   IDCMIN  ,IDCMAX  ,ISSTOP  , &
-                   ETOT    ,IMATDA  ,IMATRA  ,PLWCAP  , &
-                   CGO     ,UFRIC   ,CAS     , &
-                   DEP2    ,DISSC1  ,DISSC0  )
-!
+
+SUBROUTINE SWCAP  (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLWCAP, CGO, UFRIC, &
+      CAS, DEP2, DISSC1, DISSC0, WCAP_WORKSPACE, IGP)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-   USE M_WCAP
-!
-   IMPLICIT NONE
-!
-!
-!
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2360,11 +2391,9 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     , &
 !     DISSC0: Dissipation coefficient as explicit part (meant for output)
 !     DISSC1: Dissipation coefficient as implicit part (meant for output)
 !     ETOT  : Total wave energy density
-!     IDCMIN: Counter that indicates the minimum direction that is propagated in the sweep
-!     IDCMAX: Counter that indicates the maximum direction that is propagated in the sweep
+!     IGP   : Grid address of the point being computed (KCGRD(1) in upstream)
 !     IMATDA: The values at the diagonal of the matrix that is solved numerically
 !     IMATRA: The values at the right-hand side of the equation that is solved numerically
-!     ISSTOP: Maximum counter in frequency space that is propagated within a sweep
 !     KWAVE : Wavenumber
 !     PLWCAP: Array containing the whitecapping source term for test-output
 !     SPCDIR: (*,1); spectral directions (radians)
@@ -2375,9 +2404,18 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     , &
 !             (*,6); sine^2 of spectral directions
 !     SPCSIG: Relative frequencies in computational domain in sigma-space
 !     UFRIC : wind friction velocity
-!
-   INTEGER, INTENT(IN) :: ISSTOP, IDCMIN(MSC), IDCMAX(MSC)
-!
+!     WCAP_WORKSPACE: Integral parameters of the spectrum at this point,
+!             computed in SINTGRL: total action (ACTOT), energy moments,
+!             and mean wavenumbers and frequencies (KM_WAM, SIGM_WAM and
+!             others); in upstream these were module variables of M_WCAP
+!     WINDOW: Spectral window of the grid point: the counters that indicate
+!             the minimum and maximum direction that is propagated in the
+!             sweep (IDCMIN, IDCMAX) and the maximum counter in frequency
+!             space that is propagated within a sweep (ISSTOP)
+
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
+   TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
    REAL, INTENT(IN)    :: AC2(MDC,MSC,MCGRD), DEP2(MCGRD)
    REAL, INTENT(IN)    :: ETOT
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint   40.22
@@ -2389,7 +2427,6 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     , &
    REAL, INTENT(IN)    :: UFRIC
    REAL, INTENT(IN)    :: CGO(MSC,MICMAX)
    REAL, INTENT(IN)    :: CAS(MDC,MSC,MICMAX)
-!
 !  6. Local variables
 !
 !     A     : Exponential term in the Longuet Higgins expression
@@ -2417,20 +2454,20 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     , &
 !     WCAP  : Whitecapping source-term
 !     WCCUR : Whitecapping source term due to opposing current
 !     WCIMPL: Implicit part of the whitecapping source-term
-!
+
    INTEGER, SAVE     :: IENT = 0
    INTEGER           :: ID, IDDUM, IS, ID1, ID2
-!
+
    REAL              :: A, C_BJ, HM, HRMS, N1, N2
    REAL              :: QB_WC, SIG0, STP_OV, STP_PM
-!
+
    REAL              :: B, P, BRKD, FBR
    REAL              :: PWCAP1, PWCAP2, PWCAP9, PWCAP10, PWCAP11
    REAL              :: FAC1, FAC2
    REAL              :: EF(MSC)
    REAL              :: C_K(MSC), C_LH(MSC), WCAP(MSC), WCIMPL(MSC)
    REAL              :: WCCUR(MDC,MSC)
-!
+
 !     8. REMARKS
 !
 !        alpha : PWCAP( 7)
@@ -2460,253 +2497,266 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     , &
 !     ------------------------------------------------------------
 !
 ! 13. Source text
-!
-   IF (LTRACE) CALL STRACE (IENT,'SWCAP')
-!
+
+   ASSOCIATE(ACTOT => WCAP_WORKSPACE%total_action, &
+      EDRKTOT => WCAP_WORKSPACE%energy_over_root_wavenumber, &
+      EKTOT => WCAP_WORKSPACE%energy_times_wavenumber, &
+      ETOT1 => WCAP_WORKSPACE%first_energy_moment, &
+      ETOT2 => WCAP_WORKSPACE%second_energy_moment, &
+      ETOT4 => WCAP_WORKSPACE%fourth_energy_moment, &
+      KM_WAM => WCAP_WORKSPACE%mean_wavenumber_wam, &
+      KM01 => WCAP_WORKSPACE%mean_wavenumber_01, &
+      SIGM_WAM => WCAP_WORKSPACE%mean_frequency_wam, &
+      SIGM_10 => WCAP_WORKSPACE%mean_frequency_10, &
+      SIGM01 => WCAP_WORKSPACE%mean_frequency_01)
+      IF (LTRACE) CALL STRACE (IENT,'SWCAP')
+
 ! Initialisation
-!
-   IF (ETOT.LE.0.) RETURN
-   IF (ETOT2.LE.0.) RETURN
-   IF (ETOT4.LE.0.) RETURN
-   IF (ACTOT.LE.0.) RETURN
-   IF (EDRKTOT.LE.0.) RETURN
-!
-   WCIMPL = 0.
-   WCCUR  = 0.
-!
+
+      IF (ETOT.LE.0.) RETURN
+      IF (ETOT2.LE.0.) RETURN
+      IF (ETOT4.LE.0.) RETURN
+      IF (ACTOT.LE.0.) RETURN
+      IF (EDRKTOT.LE.0.) RETURN
+
+      WCIMPL = 0.
+      WCCUR  = 0.
+
 ! Calculate coefficients
-!
-   IF ((IWCAP.EQ.1).OR. &
-       (IWCAP.EQ.2).OR. &
-       (IWCAP.EQ.5)    ) THEN
-!
+
+      IF ((IWCAP.EQ.1).OR. &
+         (IWCAP.EQ.2).OR. &
+         (IWCAP.EQ.5)    ) THEN
+
 ! Calculate C_K
-!
-      STP_OV = KM_WAM * SQRT(ETOT)
-      STP_PM = SQRT(PWCAP(2))
-      N1     = PWCAP(11)
-      N2     = 2. * PWCAP(9)
-      C_K(:) = PWCAP(1) * (1. - PWCAP(10) + &
-               PWCAP(10) * (KWAVE(:,1) / KM_WAM)**N1) * &
-               (STP_OV / STP_PM)**N2
-!
-   ENDIF
-!
-   IF ((IWCAP.EQ.4).OR. &
-       (IWCAP.EQ.5)    ) THEN
-!
+
+         STP_OV = KM_WAM * SQRT(ETOT)
+         STP_PM = SQRT(PWCAP(2))
+         N1     = PWCAP(11)
+         N2     = 2. * PWCAP(9)
+         C_K(:) = PWCAP(1) * (1. - PWCAP(10) + &
+            PWCAP(10) * (KWAVE(:,1) / KM_WAM)**N1) * &
+            (STP_OV / STP_PM)**N2
+
+      ENDIF
+
+      IF ((IWCAP.EQ.4).OR. &
+         (IWCAP.EQ.5)    ) THEN
+
 ! Calculate values for Hm and Qb
-!
-      HRMS   = SQRT(8. * ETOT)
-      IF (IWCAP.EQ.4) HM = PWCAP(6) / KM01
-      IF (IWCAP.EQ.5) HM = PWCAP(6) / KM01 ! (PWCAP(8) * KM_WAM)
-      CALL FRABRE(HM, ETOT, QB_WC, 1.)
-!
+
+         HRMS   = SQRT(8. * ETOT)
+         IF (IWCAP.EQ.4) HM = PWCAP(6) / KM01
+         IF (IWCAP.EQ.5) HM = PWCAP(6) / KM01 ! (PWCAP(8) * KM_WAM)
+         CALL FRABRE(HM, ETOT, QB_WC, 1.)
+
 ! Calculate C_BJ
-!
-      IF (HRMS.GE.HM) THEN
-         C_BJ = PWCAP(7)  /  PI
-      ELSE IF (HRMS.GT.0.) THEN
-         C_BJ = (PWCAP(7) *  HM**2 * QB_WC) / (PI * HRMS**2)
-      ELSE
-         C_BJ = 0.
-      END IF
-   ENDIF
-!
-   IF (IWCAP.EQ.3) THEN
-!
+
+         IF (HRMS.GE.HM) THEN
+            C_BJ = PWCAP(7)  /  PI
+         ELSE IF (HRMS.GT.0.) THEN
+            C_BJ = (PWCAP(7) *  HM**2 * QB_WC) / (PI * HRMS**2)
+         ELSE
+            C_BJ = 0.
+         END IF
+      ENDIF
+
+      IF (IWCAP.EQ.3) THEN
+
 ! Calculate C_LH
-!
-      SIG0 = SQRT(ETOT2 / ETOT)
-!
+
+         SIG0 = SQRT(ETOT2 / ETOT)
+
 !       A = -(1./8.)*(ETOT2**2/(ETOT*ETOT4))*(GRAV**2/(ETOT*SIG0**4))
 !       rewrite to prevent underflow
-!
-      A = -(1./8.) * GRAV**2 / ETOT4
-      DO IS=1, ISSTOP
+
+         A = -(1./8.) * GRAV**2 / ETOT4
+         DO IS=1, WINDOW%ISSTOP
 !          C_LH(IS) = PWCAP(5) * SQRT((ETOT * SIG0**4) / GRAV**2) *
 !     &               EXP(A) * SIG0 * (SPCSIG(IS) / SIG0)**2
 !          rewrite to prevent underflow:
-!
-         C_LH(IS) = PWCAP(5) * EXP(A) * SQRT(ETOT2) * SPCSIG(IS)**2 / &
-                    GRAV
-      END DO
-   END IF
-!
+
+            C_LH(IS) = PWCAP(5) * EXP(A) * SQRT(ETOT2) * SPCSIG(IS)**2 / &
+               GRAV
+         END DO
+      END IF
+
 ! Calculate dissipation according to Alves & Banner (2003)                40.53
-!
-   IF ( IWCAP.EQ.7 ) THEN
-!
+
+      IF ( IWCAP.EQ.7 ) THEN
+
 ! Calculate C_K                                                           40.63
 !
 ! Note: use the default parameters of Komen et al. (1984) except Cds
 !       which is slightly larger
-!
-      PWCAP1  = 3.00E-5
-      PWCAP2  = 3.02E-3
-      PWCAP9  = 2.
-      PWCAP10 = 0.
-      PWCAP11 = 1.
-!
-      C_K    = 0.
-      STP_OV = KM_WAM * SQRT(ETOT)
-      STP_PM = SQRT(PWCAP2)
-      N1     = PWCAP11
-      N2     = 2. * PWCAP9
-      C_K(:) = PWCAP1 * (1. - PWCAP10 + &
-               PWCAP10 * (KWAVE(:,1) / KM_WAM)**N1) * &
-               (STP_OV / STP_PM)**N2
-!
-      BRKD = PWCAP(12)
-!                                                                         40.53
+
+         PWCAP1  = 3.00E-5
+         PWCAP2  = 3.02E-3
+         PWCAP9  = 2.
+         PWCAP10 = 0.
+         PWCAP11 = 1.
+
+         C_K    = 0.
+         STP_OV = KM_WAM * SQRT(ETOT)
+         STP_PM = SQRT(PWCAP2)
+         N1     = PWCAP11
+         N2     = 2. * PWCAP9
+         C_K(:) = PWCAP1 * (1. - PWCAP10 + &
+            PWCAP10 * (KWAVE(:,1) / KM_WAM)**N1) * &
+            (STP_OV / STP_PM)**N2
+
+         BRKD = PWCAP(12)
+
 !  Loop to calculate B(k)                                                 40.53
-!                                                                         40.53
-      DO IS = 1, ISSTOP
-!                                                                         40.53
+
+         DO IS = 1, WINDOW%ISSTOP
+
 !  Calculate E(f)                                                         40.53
-!                                                                         40.53
-         EF(IS) = 0.
-         DO ID = 1,MDC
-            EF(IS) = EF(IS) + AC2(ID,IS,KCGRD(1))*SPCSIG(IS)*PI2*DDIR
-         ENDDO
-!                                                                         40.53
-!  Calculate saturation spectrum B(k) from E(f)                           40.53
-!                                                                         40.53
-         B = (1./PI2) * CGO(IS,1) * KWAVE(IS,1)**3 * EF(IS)
-!
-!  Calculate weighting factor between breaking and non-breaking           40.63
-!
-         FBR = 0.5 * (1. + TANH( 10.*( SQRT(B/BRKD) - 1.) ))
-!                                                                         40.53
-!  Calculate exponent P of the relative saturation B/Br                   40.53
-!                                                                         40.53
-         P = 3. + TANH( 25.76 * (UFRIC*KWAVE(IS,1)/SPCSIG(IS)-0.1) )
-!                                                                         40.53
-!  Calculate WCAP(IS) from B(k) and P                                     40.53
-!
-         FAC1 = (B/BRKD)**(P/2.)
-         FAC2 = SQRT(GRAV*KWAVE(IS,1))
-!                                                                         40.53
-         WCAP(IS) = FBR * PWCAP(1) * FAC1 * &
-            (FAC2/SPCSIG(IS))**(P/2.-1.) * FAC2 + &
-            (1.-FBR) * C_K(IS) * SIGM_10 * (KWAVE(IS,1) / KM_WAM)
-!                                                                         42.04
-!  Calculate enhanced current-induced dissipation WCCUR(ID,IS)            42.04
-!                                                                         42.04
-         IF ( ICUR.EQ.1 .AND. IWCCUR.EQ.1 ) THEN
-            DO ID = 1, MDC
-               WCCUR(ID,IS) = MAX( CAS(ID,IS,1)/SPCSIG(IS), 0. )
+
+            EF(IS) = 0.
+            DO ID = 1,MDC
+               EF(IS) = EF(IS) + AC2(ID,IS,IGP)*SPCSIG(IS)*PI2*DDIR
             ENDDO
-            WCCUR(:,IS) = PWCAP(14) * FAC1 * WCCUR(:,IS)
-         ENDIF
-!
-      END DO
-   END IF
-!
-   IF ( IWCAP.LT.7 ) THEN
-!
+
+!  Calculate saturation spectrum B(k) from E(f)                           40.53
+
+            B = (1./PI2) * CGO(IS,1) * KWAVE(IS,1)**3 * EF(IS)
+
+!  Calculate weighting factor between breaking and non-breaking           40.63
+
+            FBR = 0.5 * (1. + TANH( 10.*( SQRT(B/BRKD) - 1.) ))
+
+!  Calculate exponent P of the relative saturation B/Br                   40.53
+
+            P = 3. + TANH( 25.76 * (UFRIC*KWAVE(IS,1)/SPCSIG(IS)-0.1) )
+
+!  Calculate WCAP(IS) from B(k) and P                                     40.53
+
+            FAC1 = (B/BRKD)**(P/2.)
+            FAC2 = SQRT(GRAV*KWAVE(IS,1))
+
+            WCAP(IS) = FBR * PWCAP(1) * FAC1 * &
+               (FAC2/SPCSIG(IS))**(P/2.-1.) * FAC2 + &
+               (1.-FBR) * C_K(IS) * SIGM_10 * (KWAVE(IS,1) / KM_WAM)
+
+!  Calculate enhanced current-induced dissipation WCCUR(ID,IS)            42.04
+
+            IF ( ICUR.EQ.1 .AND. IWCCUR.EQ.1 ) THEN
+               DO ID = 1, MDC
+                  WCCUR(ID,IS) = MAX( CAS(ID,IS,1)/SPCSIG(IS), 0. )
+               ENDDO
+               WCCUR(:,IS) = PWCAP(14) * FAC1 * WCCUR(:,IS)
+            ENDIF
+
+         END DO
+      END IF
+
+      IF ( IWCAP.LT.7 ) THEN
+
 ! Calculate the whitecapping source term WCAP(IS)
-!
-      DO IS=1, ISSTOP
-         IF ((IWCAP.EQ.1).OR. &
-             (IWCAP.EQ.2).OR. &
-            ((IWCAP.EQ.5).AND.(C_BJ.LE.C_K(IS)))) THEN
-            WCAP(IS) = C_K(IS) * SIGM_10 * (KWAVE(IS,1) / KM_WAM)
-         ELSE IF (IWCAP.EQ.3) THEN
-            WCAP(IS) = C_LH(IS)
-         ELSE IF ((IWCAP.EQ.4).OR. &
-            ((IWCAP.EQ.5).AND.(C_BJ.GE.C_K(IS)))) THEN
-            IF (IWCAP.EQ.4) WCAP(IS) = C_BJ*SIGM01 *(KWAVE(IS,1)/KM01  )
-            IF (IWCAP.EQ.5) WCAP(IS) = C_BJ*SIGM_10*(KWAVE(IS,1)/KM_WAM)
-!
+
+         DO IS=1, WINDOW%ISSTOP
+            IF ((IWCAP.EQ.1).OR. &
+               (IWCAP.EQ.2).OR. &
+               ((IWCAP.EQ.5).AND.(C_BJ.LE.C_K(IS)))) THEN
+               WCAP(IS) = C_K(IS) * SIGM_10 * (KWAVE(IS,1) / KM_WAM)
+            ELSE IF (IWCAP.EQ.3) THEN
+               WCAP(IS) = C_LH(IS)
+            ELSE IF ((IWCAP.EQ.4).OR. &
+               ((IWCAP.EQ.5).AND.(C_BJ.GE.C_K(IS)))) THEN
+               IF (IWCAP.EQ.4) WCAP(IS) = C_BJ*SIGM01 *(KWAVE(IS,1)/KM01  )
+               IF (IWCAP.EQ.5) WCAP(IS) = C_BJ*SIGM_10*(KWAVE(IS,1)/KM_WAM)
+
 ! Calculate a term that is added to both sides of the equation to compensate
 ! for the strong non-linearity in the fraction of breaking waves Qb
-!
-            IF (HRMS.LT.HM) THEN
-               WCIMPL(IS)=WCAP(IS) * ((1.-QB_WC)/((HRMS**2/HM**2)-QB_WC))
-               WCAP(IS)  =WCAP(IS) + WCIMPL(IS)
+
+               IF (HRMS.LT.HM) THEN
+                  WCIMPL(IS)=WCAP(IS) * ((1.-QB_WC)/((HRMS**2/HM**2)-QB_WC))
+                  WCAP(IS)  =WCAP(IS) + WCIMPL(IS)
+               END IF
+            ELSE
+               CALL MSGERR(2,'Whitecapping is inactive')
+               WRITE (PRINTF,*) 'Occurs in gridpoint: ', IGP
             END IF
-         ELSE
-            CALL MSGERR(2,'Whitecapping is inactive')
-            WRITE (PRINTF,*) 'Occurs in gridpoint: ', KCGRD(1)
-         END IF
+         END DO
+
+      END IF
+
+! Fill the diagonal of the matrix and the PLWCAP-array
+
+      DO IS=1, WINDOW%ISSTOP
+
+!        Only fill the values for the current sweep
+
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
+            ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+            IMATDA(ID,IS)   = IMATDA(ID,IS)   + WCAP(IS)
+            DISSC1(ID,IS,1) = DISSC1(ID,IS,1) + WCAP(IS)
+            IF (TESTFL) PLWCAP(ID,IS,IPTST) = -1.*(WCAP(IS)-WCIMPL(IS))
+         END DO
       END DO
 
-   END IF
-!
-! Fill the diagonal of the matrix and the PLWCAP-array
-!
-   DO IS=1, ISSTOP
-!
-!        Only fill the values for the current sweep
-!
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
-         ID = MOD(IDDUM - 1 + MDC, MDC) + 1
-         IMATDA(ID,IS)   = IMATDA(ID,IS)   + WCAP(IS)
-         DISSC1(ID,IS,1) = DISSC1(ID,IS,1) + WCAP(IS)
-         IF (TESTFL) PLWCAP(ID,IS,IPTST) = -1.*(WCAP(IS)-WCIMPL(IS))
-      END DO
-   END DO
-!
 ! Add the implicit part to the right-hand side, if appropriate
-!
-   IF ((IWCAP.EQ.4).OR. &
-       (IWCAP.EQ.5)) THEN
-      DO IS=1, ISSTOP
-!
+
+      IF ((IWCAP.EQ.4).OR. &
+         (IWCAP.EQ.5)) THEN
+         DO IS=1, WINDOW%ISSTOP
+
 !       Only fill the values for the current sweep
-!
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
-            ID = MOD(IDDUM - 1 + MDC, MDC) + 1
-            IMATRA(ID,IS)   = IMATRA(ID,IS) + &
-                              WCIMPL(IS) * AC2(ID,IS,KCGRD(1))
-            DISSC0(ID,IS,1) = DISSC0(ID,IS,1) + &
-                              WCIMPL(IS) * AC2(ID,IS,KCGRD(1))
+
+            DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
+               ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+               IMATRA(ID,IS)   = IMATRA(ID,IS) + &
+                  WCIMPL(IS) * AC2(ID,IS,IGP)
+               DISSC0(ID,IS,1) = DISSC0(ID,IS,1) + &
+                  WCIMPL(IS) * AC2(ID,IS,IGP)
+            END DO
          END DO
-      END DO
-   END IF
-!
+      END IF
+
 ! Add extra dissipation on opposing current, if appropriate               41.11
-!
-   IF ( IWCAP.EQ.7 .AND. IWCCUR.EQ.1 ) THEN
-!
-      DO IS=1, ISSTOP
-!
+
+      IF ( IWCAP.EQ.7 .AND. IWCCUR.EQ.1 ) THEN
+
+         DO IS=1, WINDOW%ISSTOP
+
 !           Only fill the values for the current sweep
-!
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
-            ID = MOD(IDDUM - 1 + MDC, MDC) + 1
-            IMATDA(ID,IS)   = IMATDA(ID,IS)   + WCCUR(ID,IS)
-            DISSC1(ID,IS,1) = DISSC1(ID,IS,1) + WCCUR(ID,IS)
-            IF (TESTFL) PLWCAP(ID,IS,IPTST) = PLWCAP(ID,IS,IPTST) - &
-                                              WCCUR(ID,IS)
+
+            DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
+               ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+               IMATDA(ID,IS)   = IMATDA(ID,IS)   + WCCUR(ID,IS)
+               DISSC1(ID,IS,1) = DISSC1(ID,IS,1) + WCCUR(ID,IS)
+               IF (TESTFL) PLWCAP(ID,IS,IPTST) = PLWCAP(ID,IS,IPTST) - &
+                  WCCUR(ID,IS)
+            END DO
          END DO
-      END DO
-!
-   ENDIF
-!
+
+      ENDIF
+
+   END ASSOCIATE
    RETURN
-END SUBROUTINE SWCAP
-!
+end subroutine SWCAP
+
 !****************************************************************
-!
-SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     , &
-                   IDCMIN  ,IDCMAX  ,ISSTOP  , &
-                   ETOT    ,IMATDA  ,IMATRA  ,PLWCAP  , &
-                   CGO     ,UFRIC   , &
-                   DEP2    ,DISSC1  ,DISSC0  )
-!
+
+SUBROUTINE SWCAP8 (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLWCAP, CGO, UFRIC, &
+      DEP2, DISSC1, DISSC0, WCAP_WORKSPACE, IGP)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-   USE M_WCAP
+
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
    USE SdsBabanin
-!
-   IMPLICIT NONE
-!
-!
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2754,8 +2804,9 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     , &
 !
 !     See WCAP_DELFT
 
-   INTEGER, INTENT(IN) :: ISSTOP, IDCMIN(MSC), IDCMAX(MSC)
-!
+   TYPE(spectral_window_t) :: WINDOW
+   INTEGER, INTENT(IN) :: IGP
+   TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
    REAL, INTENT(IN)    :: AC2(MDC,MSC,MCGRD), DEP2(MCGRD)
    REAL, INTENT(IN)    :: ETOT
    REAL, INTENT(IN)    :: KWAVE(MSC,MICMAX)
@@ -2765,11 +2816,11 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     , &
    REAL, INTENT(INOUT) :: DISSC0(MDC,MSC,MDISP),DISSC1(MDC,MSC,MDISP)
    REAL, INTENT(IN)    :: UFRIC
    REAL, INTENT(IN)    :: CGO(MSC,MICMAX)
-!
+
 !  6. Local variables
 !
 !     See WCAP_DELFT
-!
+
    INTEGER, SAVE     :: IENT = 0
    INTEGER           :: ID, IDDUM, IS
 !     INTEGER           :: ID1, ID2, IF, IL, MXWCP
@@ -2780,15 +2831,15 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     , &
 !    &                     DSTEEP, EBIN, XFAC
 !     REAL              :: CPOW, CTOT, GAMMAF
 !     REAL              :: BINSIZE
-!
+
    REAL, ALLOCATABLE :: WCAP(:)
 
 !     REAL              :: B, P, BRKD, FBR
 !     REAL              :: PWCAP1, PWCAP2, PWCAP9, PWCAP10, PWCAP11
    REAL              :: EF(MSC)
-!
-!     CHARACTER*20 NUMSTR, CHARS
-   CHARACTER*80 MSGSTR
+
+!     CHARACTER(LEN=20) NUMSTR, CHARS
+   CHARACTER(LEN=80) MSGSTR
 
    REAL    EDENS(MSC)
    REAL    ANAR(MSC)
@@ -2796,7 +2847,7 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     , &
    REAL    FREQ(MSC)
 
 !NRL      REAL TAUX,TAUY,CINV,CTH,STH,EN,ENCHECK
-
+!
 !     REAL    FOURIERA1,FOURIERB1,FOURIERM1,DTHETA,THETA
 !
 !     8. REMARKS
@@ -2804,64 +2855,76 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     , &
 !     9. STRUCTURE
 !
 ! 13. Source text
-!
-   IF (LTRACE) CALL STRACE (IENT,'SWCAP8')
-!
-   IF (IWCAP.NE.8) THEN
-!
+
+   ASSOCIATE(ACTOT => WCAP_WORKSPACE%total_action, &
+      EDRKTOT => WCAP_WORKSPACE%energy_over_root_wavenumber, &
+      EKTOT => WCAP_WORKSPACE%energy_times_wavenumber, &
+      ETOT1 => WCAP_WORKSPACE%first_energy_moment, &
+      ETOT2 => WCAP_WORKSPACE%second_energy_moment, &
+      ETOT4 => WCAP_WORKSPACE%fourth_energy_moment, &
+      KM_WAM => WCAP_WORKSPACE%mean_wavenumber_wam, &
+      KM01 => WCAP_WORKSPACE%mean_wavenumber_01, &
+      SIGM_WAM => WCAP_WORKSPACE%mean_frequency_wam, &
+      SIGM_10 => WCAP_WORKSPACE%mean_frequency_10, &
+      SIGM01 => WCAP_WORKSPACE%mean_frequency_01)
+      IF (LTRACE) CALL STRACE (IENT,'SWCAP8')
+
+      IF (IWCAP.NE.8) THEN
+
 ! Error message
-!
-      MSGSTR = 'Value for IWCAP should be 8'
-      CALL MSGERR ( 4, MSGSTR )
-      RETURN
-   END IF
-!
+
+         MSGSTR = 'Value for IWCAP should be 8'
+         CALL MSGERR ( 4, MSGSTR )
+         RETURN
+      END IF
+
 ! Initialisation
-!
-   IF (ETOT.LE.0.) RETURN
-   IF (ETOT2.LE.0.) RETURN
-   IF (ETOT4.LE.0.) RETURN
-   IF (ACTOT.LE.0.) RETURN
-   IF (EDRKTOT.LE.0.) RETURN
-!
-   ALLOCATE ( WCAP(MSC))
 
-   DO  IS = 1, MSC
-      EDENS(IS) = 0.
-      DO  ID = 1, MDC
-         EDENS(IS) = EDENS(IS) + SPCSIG(IS) * AC2(ID,IS,KCGRD(1))
+      IF (ETOT.LE.0.) RETURN
+      IF (ETOT2.LE.0.) RETURN
+      IF (ETOT4.LE.0.) RETURN
+      IF (ACTOT.LE.0.) RETURN
+      IF (EDRKTOT.LE.0.) RETURN
+
+      ALLOCATE ( WCAP(MSC))
+
+      DO  IS = 1, MSC
+         EDENS(IS) = 0.
+         DO  ID = 1, MDC
+            EDENS(IS) = EDENS(IS) + SPCSIG(IS) * AC2(ID,IS,IGP)
+         END DO
+         EDENS(IS)=EDENS(IS)*DDIR*(2.0*PI) ! multiply by 2pi, so it is m^2/Hz not m^2/(radHz)
+         FREQ(IS)=SPCSIG(IS)/(2.0*PI) ! divide by 2pi, so it is Hz not radHz
       END DO
-      EDENS(IS)=EDENS(IS)*DDIR*(2.0*PI) ! multiply by 2pi, so it is m^2/Hz not m^2/(radHz)
-      FREQ(IS)=SPCSIG(IS)/(2.0*PI) ! divide by 2pi, so it is Hz not radHz
-   END DO
 
-   ! BEGIN Calculations for ANAR
+      ! BEGIN Calculations for ANAR
+      !
+      ! Here, we have 4 options
+      !  1) Use Babanin calculation for ANAR, which is the amplitude of
+      !  2) Use more conventional RMS spreading calculation, but convert
+      !      2a) Erick's regression
+      !      2b) David's regression
+      !  3) Use ANAR=1.0, which basically means omitting the effect of s
+      !
+      ! At revision 358, we have 2a commented and 2b used...but ANAR is
+      ! At revision >358, we use (3) here , thus no longer wasting compu
 
-   ! Here, we have 4 options
-   !  1) Use Babanin calculation for ANAR, which is the amplitude of Dtheta after it's been normalized to integrate to 1
-   !  2) Use more conventional RMS spreading calculation, but convert to an "equivalent" Babanin ANAR using a regression:
-   !      2a) Erick's regression
-   !      2b) David's regression
-   !  3) Use ANAR=1.0, which basically means omitting the effect of spreading on Sds
+      DO  IS = 1, MSC
+         ANAR(IS)=1.0
+      END DO
 
-   ! At revision 358, we have 2a commented and 2b used...but ANAR is set to 1.0 anyway within calc_Sds , so the computation time is wasted
-   ! At revision >358, we use (3) here , thus no longer wasting computation time integrating for an ANAR that is not used.
-
-   DO  IS = 1, MSC
-      ANAR(IS)=1.0
-   END DO
-
-   ! END  Calculations for ANAR
-
+      ! END  Calculations for ANAR
+!
 !
 ! Calculate the whitecapping source term WCAP(IS)
-!
-   CALL CALC_SDS(MSC,EDENS,FREQ,WCAP,ANAR,TESTFL,KWAVE,CGO)
+
+      CALL CALC_SDS(MSC,EDENS,FREQ,WCAP,ANAR,TESTFL,KWAVE,CGO)
 
 !       DO IS=1, ISSTOP
 !            WCAP(IS) = C_K(IS) * SIGM_10 * (KWAVE(IS,1) / KM_WAM)
 !       END DO
-
+!
+!
 ! calculate stress (test point only)
 !NRL      IF(TESTFL)THEN
 !NRL         TAUX=0.0
@@ -2884,46 +2947,45 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     , &
 !NRL      ENDIF
 !
 ! Fill the diagonal of the matrix and the PLWCAP-array
-!
 
-   DO IS=1, ISSTOP
-!
+      DO IS=1, WINDOW%ISSTOP
+
 !         Only fill the values for the current sweep
-!
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
-         ID = MOD(IDDUM - 1 + MDC, MDC) + 1
-         IMATDA(ID,IS)   = IMATDA(ID,IS)   + WCAP(IS)
-         DISSC1(ID,IS,1) = DISSC1(ID,IS,1) + WCAP(IS)
-         IF (TESTFL) PLWCAP(ID,IS,IPTST) = -1.*(WCAP(IS))
+
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
+            ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+            IMATDA(ID,IS)   = IMATDA(ID,IS)   + WCAP(IS)
+            DISSC1(ID,IS,1) = DISSC1(ID,IS,1) + WCAP(IS)
+            IF (TESTFL) PLWCAP(ID,IS,IPTST) = -1.*(WCAP(IS))
+         END DO
       END DO
-   END DO
 
-!
 ! Calculations complete
-!
 
-   DEALLOCATE (WCAP)
-!
+      DEALLOCATE (WCAP)
+
+   END ASSOCIATE
    RETURN
-END SUBROUTINE SWCAP8
-!
+end subroutine SWCAP8
+
 !****************************************************************
-!
-SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
-                   SPCSIG  ,DEP2    ,BOTLV   , &
-                   RDX     ,RDY     ,KWAVE   , &
-                   IDDLOW  ,IDDTOP  ,FDIR    ,KTETA   )
-!
+
+SUBROUTINE BRKPAR (BRCOEF, ECOS, ESIN, AC2, SPCSIG, DEP2, BOTLV, RDX, RDY, KWAVE, WINDOW, FDIR, KTETA, KM_WAM, IGP, KGRD2, KGRD3)
+
 !****************************************************************
-!
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
-   USE M_WCAP, ONLY: KM_WAM
-!
-   IMPLICIT NONE
-!
-!
+
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -2968,7 +3030,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
 !     30.72, Feb. 98: Introduced generic names XCGRID, YCGRID and SPCSIG for SWAN
 !     40.02, Oct. 00: KWAVE removed
 !     40.22, Oct. 01: PSURF(2) is kept constant, BRCOEF added as argument
-!     40.08, Mar. 03: Dimensioning of RDX, RDX changed to be consistent
+!     40.08, Mar. 03: Dimensioning of RDX, RDX changed to be consistent   40.08
 !                     with other subroutines
 !     40.41, Oct. 04: common blocks replaced by modules, include files removed
 !     41.03, Feb. 09: extension with spatially varying breaker parameter
@@ -3018,24 +3080,28 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
 !
 !
 !  4. Argument variables
-!
+
+   TYPE(spectral_window_t) :: WINDOW
+   REAL, INTENT(IN) :: KM_WAM
+   INTEGER, INTENT(IN) :: IGP, KGRD2, KGRD3
    REAL, INTENT(OUT) :: BRCOEF ! variable breaker coefficient
    REAL, INTENT(OUT) :: KTETA ! number of directional partitions
 
-!     SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!
+!     SPCSIG: Relative frequencies in computational domain in sigma-space
+
    REAL, INTENT(IN)  :: SPCSIG(MSC)
    REAL, INTENT(IN)  :: AC2(MDC,MSC,MCGRD) ! action densities
    REAL, INTENT(IN)  :: ECOS(MDC), ESIN(MDC) ! Cos and Sin of Theta
    REAL, INTENT(IN)  :: DEP2(MCGRD) ! depths at grid points
    REAL, INTENT(IN)  :: BOTLV(MCGRD) ! bottom depth
-!
+
 !     RDX, RDY:  coefficients to obtain spatial derivatives               40.22
-   REAL, INTENT(IN)  :: RDX(MICMAX), RDY(MICMAX)
+!  RDX/RDY assumed-size: reached from the unstructured path with a 2-element
+!  array; only RDX(1:2) is ever read. See the SWTRCF note in swanser.
+   REAL, INTENT(IN)  :: RDX(*), RDY(*)
    REAL, INTENT(IN)  :: KWAVE(MSC,MICMAX)
    REAL, INTENT(IN)  :: FDIR ! represents first spectral direction
-   INTEGER, INTENT(IN) :: IDDLOW, IDDTOP
-!
+
 !        INTEGERS :
 !        ----------
 !        IS          Counter of relative frequency band
@@ -3097,37 +3163,45 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
 !     10. SOURCE
 !
 !************************************************************************
-!
+
    INTEGER :: ID    ,IS ! counters
    INTEGER :: ISIGM
    INTEGER :: IS2
-!
+
    INTEGER :: IDMIN ! minimum direction counter within sweep
    INTEGER :: IDMAX ! maximum direction counter within sweep
    INTEGER :: IDDIR ! direction counter of mean wave direction
-!
+
    REAL  :: ETOTS ,EEX   ,EEY   , &
-            EAD   ,SIGMA1,COSDIR,SINDIR,DDDX  , &
-            DDDY  ,DDDS  ,DETOT
+      EAD   ,SIGMA1,COSDIR,SINDIR,DDDX  , &
+      DDDY  ,DDDS  ,DETOT
    REAL  :: EMAX, ETD, KP, KPD
    REAL  :: E1, E2, W1, W2, ED(1:MSC)
    REAL  :: DSPR ! directional spread in radians
    REAL  :: FAC1, FAC2
-!
+
    INTEGER, SAVE :: IENT=0
    IF (LTRACE) CALL STRACE (IENT,'BRKPAR')
-!
+
+!  BRKPAR receives the coherent sweep window because its two former bound
+!  arguments belong to that tuple.  The present breaker formulations do not
+!  inspect either bound; retain that explicit fact without manufacturing a
+!  numerical dependency merely to silence an unused-dummy diagnostic.
+   ASSOCIATE (UNUSED_WINDOW => WINDOW)
+      CONTINUE
+   END ASSOCIATE
+
    IF (ISURF .EQ. 1 &
-                                   ) THEN
+      ) THEN
       BRCOEF = PSURF(2)
    ELSEIF (ISURF .EQ. 4) THEN
       BRCOEF = PSURF(4)
    ELSE IF ( ISURF.EQ.2 ) THEN
-!
+
 !        calculate breaker index according to Nelson (1987)
 !
 !        *** determine the mean wave direction ***
-!
+
       EEX   = 0.
       EEY   = 0.
       ETOTS = 0.
@@ -3135,14 +3209,14 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
          EAD = 0.
          DO IS = 1, MSC
             SIGMA1 = SPCSIG(IS)
-            DETOT  = SIGMA1**2 * AC2(ID,IS,KCGRD(1))
+            DETOT  = SIGMA1**2 * AC2(ID,IS,IGP)
             EAD    = EAD + DETOT
          ENDDO
          ETOTS = ETOTS + EAD
          EEX   = EEX + EAD * ECOS(ID)
          EEY   = EEY + EAD * ESIN(ID)
       ENDDO
-!
+
       IF ( ETOTS .GT. 0. ) THEN
          COSDIR = EEX / ETOTS
          SINDIR = EEY / ETOTS
@@ -3150,35 +3224,35 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
          COSDIR = 1.
          SINDIR = 0.
       ENDIF
-!
+
 !        *** determine bottom slope in mean wave direction ***
-!
-      DDDX =  RDX(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2))) &
-            + RDX(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
-      DDDY =  RDY(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2))) &
-            + RDY(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
-!
+
+      DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KGRD2)) &
+         + RDX(2) * (BOTLV(IGP) - BOTLV(KGRD3))
+      DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KGRD2)) &
+         + RDY(2) * (BOTLV(IGP) - BOTLV(KGRD3))
+
       DDDS = -1. * ( DDDX * COSDIR + DDDY * SINDIR )
-!
+
 !        *** calculate breaking coefficient according to Nelson (1987) ***
-!
+
       IF ( DDDS .GE. 0. ) THEN
          DDDS   = MAX ( 1.E-6 , DDDS)
          BRCOEF = PSURF(4) + PSURF(7) * EXP ( -PSURF(8) / DDDS )
       ELSE
          BRCOEF = PSURF(6)
       ENDIF
-!
+
    ELSE IF ( ISURF.EQ.3 ) THEN
-!
+
 !        calculate breaker index according to Ruessink et al (2003)
-!
+
       EMAX = 0.
       ISIGM = -1
       DO IS = 1, MSC
          ETD = 0.
          DO ID = 1, MDC
-            ETD = ETD + SPCSIG(IS)*AC2(ID,IS,KCGRD(1))*DDIR
+            ETD = ETD + SPCSIG(IS)*AC2(ID,IS,IGP)*DDIR
          ENDDO
          IF (ETD.GT.EMAX) THEN
             EMAX  = ETD
@@ -3190,9 +3264,9 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
       ELSE
          KP = 0.
       ENDIF
-!
-      KPD = KP*DEP2(KCGRD(1))
-!
+
+      KPD = KP*DEP2(IGP)
+
       IF ( KPD.LT.0.) THEN
          BRCOEF = 0.73
       ELSE
@@ -3200,35 +3274,35 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
          BRCOEF = MIN( 1.2, BRCOEF)
          BRCOEF = MAX( 0.3, BRCOEF)
       ENDIF
-!
+
    ELSE IF ( ISURF.EQ.6 ) THEN
-!
+
 !        calculate breaker index according to beta-kd model
 !
 !        --- determine absolute bottom slope
-!
-      DDDX =  RDX(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2))) &
-            + RDX(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
-      DDDY =  RDY(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2))) &
-            + RDY(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
-!
+
+      DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KGRD2)) &
+         + RDX(2) * (BOTLV(IGP) - BOTLV(KGRD3))
+      DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KGRD2)) &
+         + RDY(2) * (BOTLV(IGP) - BOTLV(KGRD3))
+
       DDDS = -1. * ( DDDX + DDDY )
-!
+
 !        made almost flat negative slope positive
 !        limit slope to no steeper than 1:10
-!
+
       IF ( DDDS.GT.-1.E-5 ) DDDS = ABS(DDDS)
       IF ( (1./ABS(DDDS)) .LT. 10. ) DDDS = 0.1
-!
+
 !        --- compute dimensionless depth
-!
-      KPD = KM_WAM * DEP2(KCGRD(1))
-!
+
+      KPD = KM_WAM * DEP2(IGP)
+
 !        --- calculate gamma
-!
+
       FAC1 = PSURF(4) + PSURF(5) * ABS(DDDS)
       FAC2 = PSURF(6) + PSURF(7) * KPD
-!
+
       IF ( FAC1.GT.0.) THEN
          IF ( FAC2.GT.0. ) THEN
             IF ( FAC1.GT.5.*FAC2 ) THEN
@@ -3242,14 +3316,14 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
       ELSE
          BRCOEF = 0.
       ENDIF
-!
+
    ELSE IF ( ISURF.EQ.7 ) THEN
-!
+
 !        calculate breaker index based on Saprykina et al. (2017)
 !
 !        --- first, compute E(sigma)
-      ED(:) = SUM(AC2(:,:,KCGRD(1)),DIM=1) * SPCSIG(:) * DDIR
-!
+      ED(:) = SUM(AC2(:,:,IGP),DIM=1) * SPCSIG(:) * DDIR
+
 !        --- next, compute peak frequency
       EMAX = 0.
       ISIGM = -1
@@ -3259,7 +3333,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
             ISIGM = IS
          ENDIF
       ENDDO
-!
+
 !        --- then obtain first and second harmonics
       IF ( ISIGM.GT.0 ) THEN
 !           first harmonic
@@ -3267,7 +3341,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
 !           second harmonic
          IS2 = INT( LOG(2.) / FRINTF )
          W2 = (2. - EXP(FRINTF)**IS2) / &
-                            (EXP(FRINTF)**(IS2+1) - EXP(FRINTF)**IS2)
+            (EXP(FRINTF)**(IS2+1) - EXP(FRINTF)**IS2)
          W1 = 1. - W2
          IF ( ISIGM+IS2.LT.MSC ) THEN
             E2 = W1 * ED(ISIGM+IS2) + W2 * ED(ISIGM+IS2+1)
@@ -3275,7 +3349,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
             E2 = 0.
          ENDIF
       ENDIF
-!
+
 !        --- finally, compute the breaker index, as follows:
 !            if relative energy of the second harmonic is more than
 !            35% then breaker index is constant, otherwise
@@ -3289,15 +3363,15 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
 !           note: the actual breaker index is computed in routine SINTGRL
          BRCOEF = -1.
       ENDIF
-!
+
    ENDIF
-!
+
 !     take into account effect of wave directionality                     41.47
-!
+
    IF ( IDISRF.EQ.1 ) THEN
-!
+
 !        --- first determine directional spreading
-!
+
       EEX   = 0.
       EEY   = 0.
       ETOTS = 0.
@@ -3305,14 +3379,14 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
          EAD = 0.
          DO IS = 1, MSC
             SIGMA1 = SPCSIG(IS)
-            DETOT  = SIGMA1**2 * AC2(ID,IS,KCGRD(1))
+            DETOT  = SIGMA1**2 * AC2(ID,IS,IGP)
             EAD    = EAD + DETOT
          ENDDO
          ETOTS = ETOTS + EAD
          EEX   = EEX + EAD * ECOS(ID)
          EEY   = EEY + EAD * ESIN(ID)
       ENDDO
-!
+
       IF ( ETOTS .GT. 0. ) THEN
          COSDIR = EEX / ETOTS
          SINDIR = EEY / ETOTS
@@ -3321,49 +3395,51 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     , &
       ELSE
          DSPR   = 0.
       ENDIF
-!
+
       KTETA = MAX(1.,DSPR/((PSURF(15)/180.)*PI))
    ELSE
       KTETA = 1.
    ENDIF
-!
-!     *** test output ***
-!
-   IF ( TESTFL .AND. ITEST .GE. 40 ) THEN
-      WRITE(PRINTF,600) KCGRD(1), ATAN2(SINDIR,COSDIR)*180./PI, &
-                        DEP2(KCGRD(1)), DDDS, BRCOEF
-600   FORMAT (' BRKPAR: point nr, dir, depth, slope, br.coeff:', &
-              I4,4(1X,E12.4))
-   END IF
-!
-   RETURN
-END subroutine BRKPAR
-!
-!********************************************************************
-!
-SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        , &
-                   PLWCAP        ,PLBTFR        , &
-                   PLWBRK        ,PLNL4S        , &
-                   PLNL4D        ,PLTRI         , &
-                   PLVEGT        ,PLTURB        , &
-                   PLMUD         ,PLICE         , &
-                   PLBRAG        ,PLQCS         , &
-                   PLSWEL        , &
-                   AC2           ,SPCSIG        , &
-                   DEP2          ,XYTST         , &
-                                  KGRPNT        )
-!
-!****************************************************************
-!
-   USE SWCOMM1
-   USE SWCOMM2
-   USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
 
-   IMPLICIT NONE
-!
-!
+!     *** test output ***
+
+   IF ( TESTFL .AND. ITEST .GE. 40 ) THEN
+      WRITE(PRINTF,"(' BRKPAR: point nr, dir, depth, slope, br.coeff:', I4,4(1X,E12.4))") IGP, ATAN2(SINDIR,COSDIR)*180./PI, &
+         DEP2(IGP), DDDS, BRCOEF
+   END IF
+
+   RETURN
+end subroutine BRKPAR
+
+!********************************************************************
+
+SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        , &
+   PLWCAP        ,PLBTFR        , &
+   PLWBRK        ,PLNL4S        , &
+   PLNL4D        ,PLTRI         , &
+   PLVEGT        ,PLTURB        , &
+   PLMUD         ,PLICE         , &
+   PLBRAG        ,PLQCS         , &
+   PLSWEL        , &
+   AC2           ,SPCSIG        , &
+   DEP2          ,XYTST         , &
+   KGRPNT        )
+
+!****************************************************************
+
+   USE swan_spectrum_output, ONLY: WRSPEC
+   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_computational_grid_kind
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_math_constants
+   USE swan_test_output
+   USE swan_diagnostics_level
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
 !     | Faculty of Civil Engineering and Geosciences              |
@@ -3477,51 +3553,59 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        , &
 !   ----------------------------------------------------------------
 !
 !     10. SOURCE
-!
+
    INTEGER     IS    ,ID
-   INTEGER     IENT  ,INDX  ,LOOP
+   INTEGER, SAVE :: IENT = 0
+   INTEGER     INDX  ,LOOP
    REAL        SWND  ,SIG2AC
-!
+
 !     SIGACT      product of sigma and action density, i.e. energy density
 !     WCAP        integral of whitecapping dissipation
-!
+
    REAL        WCAP  ,BTFR  ,WBRK  ,NL4   ,FAC   ,SIGACT, &
-               VEGT  , &
-               TRBV  , &
-               DMUD  , &
-               DICE  , &
-               NL4S  ,NL4D  ,TRIA  ,BRAG  ,QC    ,ENERGY,ENRSIG
+      VEGT  , &
+      TRBV  , &
+      DMUD  , &
+      DICE  , &
+      NL4S  ,NL4D  ,TRIA  ,BRAG  ,QC    ,ENERGY,ENRSIG
    REAL        SWEL
-!
-   INTEGER     XYTST(*),KGRPNT(MXC,MYC)
-!
-!
+
+   INTEGER     XYTST(*)
+!     KGRPNT is the structured-grid point index, dereferenced only on the
+!     OPTG /= 5 branch below; the unstructured path (OPTG == 5) uses XYTST
+!     instead and never touches it. KGRPNT is OPTIONAL so unstructured callers
+!     can omit it.
+!     History: before swancom2 became a module, PLTSRC had no explicit
+!     interface, and the unstructured caller (SwanCompUnstruc) passed a scalar
+!     for this rank-2 dummy -- a rank mismatch that compiled silently but was
+!     invalid Fortran. Making it OPTIONAL and omitting it there is behaviour-
+!     preserving because the value was never actually dereferenced.
+   INTEGER, OPTIONAL :: KGRPNT(MXC,MYC)
+
    REAL        AC2(MDC,MSC,MCGRD)          , &
-               SPCSIG(MSC)                 , &
-               PLWNDS(MDC,MSC,NPTST)       , &
-               PLWNDD(MDC,MSC,NPTST)       , &
-               PLWCAP(MDC,MSC,NPTST)       , &
-               PLBTFR(MDC,MSC,NPTST)       , &
-               PLMUD (MDC,MSC,NPTST)       , &
-               PLICE (MDC,MSC,NPTST)       , &
-               PLVEGT(MDC,MSC,NPTST)       , &
-               PLTURB(MDC,MSC,NPTST)       , &
-               PLBRAG(MDC,MSC,NPTST)       , &
-               PLQCS (MDC,MSC,NPTST)       , &
-               PLWBRK(MDC,MSC,NPTST)       , &
-               PLSWEL(MDC,MSC,NPTST)       , &
-               PLNL4S(MDC,MSC,NPTST)       , &
-               PLNL4D(MDC,MSC,NPTST)       , &
-               PLTRI (MDC,MSC,NPTST)       , &
-               DEP2(MCGRD)
-!
-   SAVE IENT
-   DATA IENT/0/
+      SPCSIG(MSC)                 , &
+      PLWNDS(MDC,MSC,NPTST)       , &
+      PLWNDD(MDC,MSC,NPTST)       , &
+      PLWCAP(MDC,MSC,NPTST)       , &
+      PLBTFR(MDC,MSC,NPTST)       , &
+      PLMUD (MDC,MSC,NPTST)       , &
+      PLICE (MDC,MSC,NPTST)       , &
+      PLVEGT(MDC,MSC,NPTST)       , &
+      PLTURB(MDC,MSC,NPTST)       , &
+      PLBRAG(MDC,MSC,NPTST)       , &
+      PLQCS (MDC,MSC,NPTST)       , &
+      PLWBRK(MDC,MSC,NPTST)       , &
+      PLSWEL(MDC,MSC,NPTST)       , &
+      PLNL4S(MDC,MSC,NPTST)       , &
+      PLNL4D(MDC,MSC,NPTST)       , &
+      PLTRI (MDC,MSC,NPTST)       , &
+      DEP2(MCGRD)
+
    IF (LTRACE) CALL STRACE (IENT,'PLTSRC')
-!
+
 !     *** compute the 1D spectra ***
-!
-   DO 300 IPTST = 1, NPTST
+
+   do IPTST = 1, NPTST
       IF (OPTG.NE.5) THEN
          LXDMP = XYTST(2*IPTST-1)
          LYDMP = XYTST(2*IPTST)
@@ -3530,10 +3614,10 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        , &
          INDX = XYTST(IPTST)
       ENDIF
       IF (IFPAR.GT.0) THEN
-!
+
 !         *** for the parameter output we first integrate ***
 !         *** over all frequencies and directions         ***             40.00
-!
+
          ENERGY = 0.
          ENRSIG = 0.
          SWND = 0.
@@ -3549,22 +3633,22 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        , &
          TRIA = 0.
          BRAG = 0.
          QC   = 0.
-         DO 60 IS = 1, MSC
-            DO 50 ID = 1, MDC
-!
+         do IS = 1, MSC
+            do ID = 1, MDC
+
 !             *** ENERGY density ***
-!
+
                SIG2AC = SPCSIG(IS)**2 * AC2(ID,IS,INDX)
                ENERGY = ENERGY + SIG2AC
                ENRSIG = ENRSIG + SPCSIG(IS) * SIG2AC
-!
+
 !             *** wind input ***
-!
+
                SWND = SWND + PLWNDS(ID,IS,IPTST) * SPCSIG(IS)**2 &
-                           + PLWNDD(ID,IS,IPTST) * SIG2AC
-!
+                  + PLWNDD(ID,IS,IPTST) * SIG2AC
+
 !             *** dissipation processes ***
-!
+
                WCAP = WCAP + PLWCAP(ID,IS,IPTST) * SIG2AC
                BTFR = BTFR + PLBTFR(ID,IS,IPTST) * SIG2AC
                VEGT = VEGT + PLVEGT(ID,IS,IPTST) * SIG2AC
@@ -3573,29 +3657,29 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        , &
                DICE = DICE + PLICE (ID,IS,IPTST) * SIG2AC
                WBRK = WBRK + PLWBRK(ID,IS,IPTST) * SIG2AC
                SWEL = SWEL + PLSWEL(ID,IS,IPTST) * SIG2AC
-!
+
 !             *** nonlinear interactions ***
-!
+
                TRIA = TRIA + ABS(PLTRI (ID,IS,IPTST)) * SPCSIG(IS)**2
-!
+
                IF ( IQUAD .EQ. 1) THEN
                   NL4  = NL4  + ABS(PLNL4D(ID,IS,IPTST) * SIG2AC + &
-                                    PLNL4S(ID,IS,IPTST) * SPCSIG(IS)**2)
+                     PLNL4S(ID,IS,IPTST) * SPCSIG(IS)**2)
                ELSE
                   NL4  = NL4  + ABS(PLNL4S(ID,IS,IPTST)) * SPCSIG(IS)**2
                END IF
-!
+
 !             Bragg scattering
-!
+
                BRAG = BRAG + ABS(PLBRAG(ID,IS,IPTST)) * SPCSIG(IS)**2
-!
+
 !             QC scattering
-!
+
                QC = QC + ABS(PLQCS(ID,IS,IPTST)) * SPCSIG(IS)**2
-!
-50          CONTINUE
-60       CONTINUE
-!
+
+            end do
+         end do
+
          IF (ENERGY.GT.0.) THEN
             ENERGY = ENERGY * FRINTF * DDIR
             ENRSIG = ENRSIG * FRINTF * DDIR
@@ -3612,44 +3696,41 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        , &
             NL4    = NL4    * FRINTF * DDIR
             BRAG   = BRAG   * FRINTF * DDIR
             QC     = QC     * FRINTF * DDIR
-!
+
             IF(JPSWEL.NE.12)THEN ! See Remarks.
-               WRITE (IFPAR, 70) 4.*SQRT(ENERGY), PI2*ENERGY/ENRSIG, &
-                        SWND, WCAP, BTFR, VEGT, TRBV, DMUD, DICE, &
-                        WBRK, TRIA, NL4, BRAG, QC
-70             FORMAT(14(1X,E12.4))
+               WRITE (IFPAR, "(14(1X,E12.4))") 4.*SQRT(ENERGY), PI2*ENERGY/ENRSIG, &
+                  SWND, WCAP, BTFR, VEGT, TRBV, DMUD, DICE, &
+                  WBRK, TRIA, NL4, BRAG, QC
             ELSE
-               WRITE (IFPAR, 71) 4.*SQRT(ENERGY), PI2*ENERGY/ENRSIG, &
-                        SWND, WCAP, SWEL, BTFR, VEGT, TRBV, DMUD, DICE, &
-                        WBRK, TRIA, NL4, BRAG, QC
-71             FORMAT(15(1X,E12.4))
+               WRITE (IFPAR, "(15(1X,E12.4))") 4.*SQRT(ENERGY), PI2*ENERGY/ENRSIG, &
+                  SWND, WCAP, SWEL, BTFR, VEGT, TRBV, DMUD, DICE, &
+                  WBRK, TRIA, NL4, BRAG, QC
             ENDIF
          ELSE
             IF(JPSWEL.NE.12)THEN ! See Remarks.
-               WRITE (IFPAR, 70) OVEXCV(10), OVEXCV(28), OVEXCV(7), &
-                   OVEXCV(7), OVEXCV(7), &
-                   OVEXCV(7), OVEXCV(7), OVEXCV(7), OVEXCV(7), &
-                   OVEXCV(7), OVEXCV(7), OVEXCV(7), OVEXCV(7), OVEXCV(7)
+               WRITE (IFPAR, "(14(1X,E12.4))") OVEXCV(10), OVEXCV(28), OVEXCV(7), &
+                  OVEXCV(7), OVEXCV(7), &
+                  OVEXCV(7), OVEXCV(7), OVEXCV(7), OVEXCV(7), &
+                  OVEXCV(7), OVEXCV(7), OVEXCV(7), OVEXCV(7), OVEXCV(7)
             ELSE
-               WRITE (IFPAR, 71) OVEXCV(10), OVEXCV(28), OVEXCV(7), &
-                   OVEXCV(7), OVEXCV(7), OVEXCV(7), &
-                   OVEXCV(7), OVEXCV(7), OVEXCV(7), OVEXCV(7), &
-                   OVEXCV(7), OVEXCV(7), OVEXCV(7), OVEXCV(7), OVEXCV(7)
+               WRITE (IFPAR, "(15(1X,E12.4))") OVEXCV(10), OVEXCV(28), OVEXCV(7), &
+                  OVEXCV(7), OVEXCV(7), OVEXCV(7), &
+                  OVEXCV(7), OVEXCV(7), OVEXCV(7), OVEXCV(7), &
+                  OVEXCV(7), OVEXCV(7), OVEXCV(7), OVEXCV(7), OVEXCV(7)
             ENDIF
          ENDIF
       ENDIF
-!
+
       IF (IFS1D.GT.0) THEN
          IF (DEP2(INDX).LE.0.) THEN
-            WRITE (IFS1D, 80) 'NODATA'
+            WRITE (IFS1D, "(A, I6)") 'NODATA'
          ELSE
-            WRITE (IFS1D, 80) 'Test point ', IPTST
-80          FORMAT (A, I6)
-!
+            WRITE (IFS1D, "(A, I6)") 'Test point ', IPTST
+
 !         *** for the output of 1D spectra we integrate over ***
 !         *** all directions                                 ***
-!
-            DO 160 IS = 1, MSC
+
+            do IS = 1, MSC
                SWND = 0.
                WCAP = 0.
                BTFR = 0.
@@ -3665,16 +3746,16 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        , &
                BRAG = 0.
                QC   = 0.
                ENERGY = 0.
-               DO 150 ID = 1, MDC
+               do ID = 1, MDC
                   SIGACT = SPCSIG(IS) * AC2(ID,IS,INDX)
-!
+
 !               *** wind input ***
-!
+
                   SWND = SWND + PLWNDS(ID,IS,IPTST) * SPCSIG(IS) + &
-                                PLWNDD(ID,IS,IPTST) * SIGACT
-!
+                     PLWNDD(ID,IS,IPTST) * SIGACT
+
 !               *** dissipation processes ***
-!
+
                   WCAP = WCAP + PLWCAP(ID,IS,IPTST) * SIGACT
                   BTFR = BTFR + PLBTFR(ID,IS,IPTST) * SIGACT
                   VEGT = VEGT + PLVEGT(ID,IS,IPTST) * SIGACT
@@ -3683,61 +3764,59 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        , &
                   DICE = DICE + PLICE (ID,IS,IPTST) * SIGACT
                   WBRK = WBRK + PLWBRK(ID,IS,IPTST) * SIGACT
                   SWEL = SWEL + PLSWEL(ID,IS,IPTST) * SIGACT
-!
+
 !               *** nonlinear interactions ***
-!
+
                   TRIA = TRIA + PLTRI (ID,IS,IPTST) * SPCSIG(IS)
-!
+
                   NL4S = NL4S + PLNL4S(ID,IS,IPTST) * SPCSIG(IS)
-!
+
                   IF ( IQUAD .EQ. 1) THEN
                      NL4D = NL4D + PLNL4D(ID,IS,IPTST) * SIGACT
                   END IF
-!
+
                   BRAG = BRAG + PLBRAG(ID,IS,IPTST) * SPCSIG(IS)
-!
+
                   QC = QC + PLQCS(ID,IS,IPTST) * SPCSIG(IS)
-!
+
 !               *** energy density ***
-!
+
                   ENERGY = ENERGY + SIGACT
 
-150            CONTINUE
+               end do
                NL4 = NL4S + NL4D
 !             factor 2*PI introduced to account for density per Hz        40.00
 !             instead of per rad/s.
 !             factor DDIR is due to integration over directions
                FAC = PI2 * DDIR
                IF(JPSWEL.NE.12)THEN
-                  WRITE (IFS1D,170) ENERGY*FAC, SWND*FAC, WCAP*FAC, &
-                                    BTFR*FAC, VEGT*FAC, TRBV*FAC, DMUD*FAC, &
-                                    DICE*FAC, WBRK*FAC, TRIA*FAC, NL4*FAC, &
-                                    BRAG*FAC, QC*FAC
-170               FORMAT(13(1X,E12.4))
+                  WRITE (IFS1D,"(13(1X,E12.4))") ENERGY*FAC, SWND*FAC, WCAP*FAC, &
+                     BTFR*FAC, VEGT*FAC, TRBV*FAC, DMUD*FAC, &
+                     DICE*FAC, WBRK*FAC, TRIA*FAC, NL4*FAC, &
+                     BRAG*FAC, QC*FAC
                ELSE
-                  WRITE (IFS1D,171) ENERGY*FAC, SWND*FAC, WCAP*FAC,SWEL*FAC, &
-                                    BTFR*FAC, VEGT*FAC, TRBV*FAC, DMUD*FAC, &
-                                    DICE*FAC, WBRK*FAC, TRIA*FAC, NL4*FAC, &
-                                    BRAG*FAC, QC*FAC
-171               FORMAT(14(1X,E12.4))
+                  WRITE (IFS1D,"(14(1X,E12.4))") ENERGY*FAC, SWND*FAC, WCAP*FAC,SWEL*FAC, &
+                     BTFR*FAC, VEGT*FAC, TRBV*FAC, DMUD*FAC, &
+                     DICE*FAC, WBRK*FAC, TRIA*FAC, NL4*FAC, &
+                     BRAG*FAC, QC*FAC
                ENDIF
-160         CONTINUE
+            end do
          ENDIF
       ENDIF
-!
+
 !       output of 2D distributions of source terms
-!
+
       IF (IFS2D.GT.0) THEN
          IF (DEP2(INDX).LE.0.) THEN
             DO LOOP = 1, 10
-               WRITE (IFS2D, 80) 'NODATA'
+               WRITE (IFS2D, "(A, I6)") 'NODATA'
             ENDDO
          ELSE
             DO IS = 1, MSC
                DO ID = 1, MDC
                   SIGACT = SPCSIG(IS) * AC2(ID,IS,INDX)
                   PLWNDS(ID,IS,IPTST) = PLWNDS(ID,IS,IPTST) * SPCSIG(IS) &
-                                      + PLWNDD(ID,IS,IPTST) * SIGACT
+                     + PLWNDD(ID,IS,IPTST) * SIGACT
                   PLWCAP(ID,IS,IPTST) = PLWCAP(ID,IS,IPTST) * SIGACT
                   PLBTFR(ID,IS,IPTST) = PLBTFR(ID,IS,IPTST) * SIGACT
                   PLVEGT(ID,IS,IPTST) = PLVEGT(ID,IS,IPTST) * SIGACT
@@ -3748,7 +3827,7 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        , &
                   PLSWEL(ID,IS,IPTST) = PLSWEL(ID,IS,IPTST) * SIGACT
                   PLTRI (ID,IS,IPTST) = PLTRI (ID,IS,IPTST) * SPCSIG(IS)
                   PLNL4S(ID,IS,IPTST) = PLNL4S(ID,IS,IPTST) * SPCSIG(IS) &
-                                      + PLNL4D(ID,IS,IPTST) * SIGACT
+                     + PLNL4D(ID,IS,IPTST) * SIGACT
                   PLBRAG(ID,IS,IPTST) = PLBRAG(ID,IS,IPTST) * SPCSIG(IS)
                   PLQCS (ID,IS,IPTST) = PLQCS (ID,IS,IPTST) * SPCSIG(IS)
 !               PLWNDD is used temporarily for energy density             40.00
@@ -3772,11 +3851,11 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        , &
             CALL WRSPEC (IFS2D, PLQCS (1,1,IPTST))
          ENDIF
       ENDIF
-!
+
 !       *** set arrays zero: ***
-!
-      DO 200 IS = 1, MSC
-         DO 100 ID = 1, MDC
+
+      do IS = 1, MSC
+         do ID = 1, MDC
             PLWNDS(ID,IS,IPTST) = 0.
             PLWNDD(ID,IS,IPTST) = 0.
             PLWCAP(ID,IS,IPTST) = 0.
@@ -3792,11 +3871,13 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        , &
             PLNL4D(ID,IS,IPTST) = 0.
             PLBRAG(ID,IS,IPTST) = 0.
             PLQCS (ID,IS,IPTST) = 0.
-100      CONTINUE
-200   CONTINUE
-!
-300 CONTINUE
-!
+         end do
+      end do
+
+   end do
+
    RETURN
 !     end of subroutine PLTSRC
-END
+end subroutine PLTSRC
+
+end module swan_dissipation
