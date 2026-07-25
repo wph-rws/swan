@@ -7550,7 +7550,7 @@ SUBROUTINE PHILIM(AC2,AC2OLD,CGO,KWAVE,SPCSIG,ANYBIN,ISLMIN,NFLIM, &
 !     ID    : Counter for directional (theta) space
 !     IS    : Counter for frequency (sigma) space
 
-   INTEGER ID,IS
+   INTEGER ID,IS,NLIMIT
 
 !     DAC2MX: Maximum deviation of action density AC2 between iterations
 
@@ -7562,23 +7562,31 @@ SUBROUTINE PHILIM(AC2,AC2OLD,CGO,KWAVE,SPCSIG,ANYBIN,ISLMIN,NFLIM, &
       DO IS=1,MSC
          DAC2MX=ABS((PNUMS(PNUMS_LIMGRW)*0.0081)/ &
             (2.*SPCSIG(IS)*(KWAVE(IS,1)**3)*CGO(IS,1)))
-         DO ID=1,MDC
-            IF (ANYBIN(ID,IS) .AND. &
-               AC2(ID,IS,IGP).GT.AC2OLD(ID,IS)+DAC2MX) THEN
-               AC2(ID,IS,IGP)=AC2OLD(ID,IS)+DAC2MX
-               NFLIM(IGP) = NFLIM(IGP) + 1
-               ISLMIN(IGP) = MIN(IS,ISLMIN(IGP))
-            END IF
-         END DO
+         NLIMIT=0
          IF (QB_LOC.LT.PNUMS(PNUMS_QBCOEF)) THEN
             DO ID=1,MDC
-               IF (ANYBIN(ID,IS) .AND. &
-                  AC2(ID,IS,IGP).LT.AC2OLD(ID,IS)-DAC2MX) THEN
-                  AC2(ID,IS,IGP)=AC2OLD(ID,IS)-DAC2MX
-                  NFLIM(IGP) = NFLIM(IGP) + 1
-                  ISLMIN(IGP) = MIN(IS,ISLMIN(IGP))
+               IF (ANYBIN(ID,IS)) THEN
+                  IF (AC2(ID,IS,IGP).GT.AC2OLD(ID,IS)+DAC2MX) THEN
+                     AC2(ID,IS,IGP)=AC2OLD(ID,IS)+DAC2MX
+                     NLIMIT=NLIMIT+1
+                  ELSE IF (AC2(ID,IS,IGP).LT.AC2OLD(ID,IS)-DAC2MX) THEN
+                     AC2(ID,IS,IGP)=AC2OLD(ID,IS)-DAC2MX
+                     NLIMIT=NLIMIT+1
+                  END IF
                END IF
             END DO
+         ELSE
+            DO ID=1,MDC
+               IF (ANYBIN(ID,IS) .AND. &
+                  AC2(ID,IS,IGP).GT.AC2OLD(ID,IS)+DAC2MX) THEN
+                  AC2(ID,IS,IGP)=AC2OLD(ID,IS)+DAC2MX
+                  NLIMIT=NLIMIT+1
+               END IF
+            END DO
+         END IF
+         IF (NLIMIT.GT.0) THEN
+            NFLIM(IGP) = NFLIM(IGP) + NLIMIT
+            ISLMIN(IGP) = MIN(IS,ISLMIN(IGP))
          END IF
       END DO
    END IF
