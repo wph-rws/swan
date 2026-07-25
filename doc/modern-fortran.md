@@ -162,6 +162,52 @@ C library, which can never be Fortran interfaces. That is the floor.
 `scripts/strict_diagnostics.py` enforces it. Measure with a *clean* build — an
 incremental one only reports the files it recompiled.
 
+### What the remaining warnings are, and where not to start
+
+The 1,546 that remain are dominated by `-Wconversion-extra` (493),
+`-Wunused-variable` (259), `-Wcompare-reals` (226), `-Wfunction-elimination`
+(163) and `-Wmaybe-uninitialized` (155).
+
+A sample of five `-Wmaybe-uninitialized` clusters was checked against the code
+to judge whether the category is worth working through:
+
+| Site | Verdict |
+|---|---|
+| `SwanGridCell` `vn`/`vp` | False positive — the cell is attached to the vertex by construction, so the search loop always hits. |
+| `swancom4` `MI4S` and friends | **Real defect**, fixed: an empty `MDIA LAMBDA` list left the spectral range assigned from uninitialised locals. Guarded in the parser. |
+| `swancom2` `C0`–`C5` | False positive — set and used under the same `IICE == 3` branch. |
+| `swanser` `IXMIN`/`IYMIN` | Reachable only if the entire computational grid has no active point; degenerate rather than live. |
+| descriptor temporaries (`*.dim[0].ubound`, `*.offset`) | Artefacts of optimised array descriptors, not source-level defects. |
+
+The yield is low but not zero. Two lessons for anyone continuing: prefer reports
+about *named locals* over descriptor temporaries, and resist silencing them with
+an initialiser — that hides the next real one instead of surfacing it.
+
+`-Wunused-variable` looks like the easier target and is not:
+
+- More than half sits in vendored numerics, `mod_xnl4v5.f90` (95) and
+  `SdsBabanin.f90` (43). Editing those buys a lower count and pays for it in
+  merge friction on the next import from Delft.
+- **Switch variants hide real uses.** GNU Fortran only sees the variant it
+  compiles. `swanparll.f90` carries 1,671 switch-prefixed lines and
+  `swancom1.f90` 378, so a declaration that looks unused in the serial build may
+  well be used under `!MPI`, `!JAC`, `!TIMG` or `!MatL4`. Removing it breaks a
+  configuration nothing builds by default.
+
+The safe order is therefore: leave the vendored files alone, and check every
+other candidate against the switch-prefixed lines in the *raw* source before
+removing it — the generated source has already dropped the inactive variants.
+
+The same blind spot cuts the other way when a procedure moves into a module.
+Its `USE` line is then visible to *every* variant, while the calls to it stay
+behind their own switch prefix — and a default build compiles clean either way.
+So the rule is: **an import used only from a switch-prefixed call site carries
+that same prefix**. `SWRECVAC` and `SWSENDAC` do not exist under `!JAC`,
+`SWSYNC` is only called under `!JAC`, and the `!MatL4` and `!JAC` bodies need
+`INTSTR` while the default ones do not; each of those imports therefore sits
+behind the prefix of the variant that uses it. The only way to know is to build
+the variant, which is why every one of them has a registered test.
+
 ## Guarding the result
 
 Two mechanisms keep this from eroding, both of which were checked in each
@@ -172,15 +218,15 @@ gate.
   cases compare their table and block output against references generated from
   a build of 23 July 2026, before any of this work. The current build reproduces all
   six files. Text has to match exactly apart from trailing blanks, which the MPI
-  output path strips; numbers are compared to a relative tolerance of 1e-3. See
-  `examples/reference_check.py`.
+  output path strips; numbers are compared to a relative tolerance of 1e-3.
+  NaN and infinity parse as floats but fail the comparison outright: they carry
+  nothing a tolerance can act on, and NaN would otherwise pass by comparing
+  unequal to everything. See `examples/reference_check.py`.
 - **The diagnostic inventory cannot grow.** `scripts/strict_diagnostics.py`
   builds clean with the strict warning set and fails when any category exceeds
-  its recorded budget. Shrinking a category is a deliberate act ending in
-  `--update-budget`.
-
-Verification runs in four configurations: serial, MPI (including a two-process
-case), netCDF and OpenMP.
+  its recorded budget. A category the budget has never seen has an implicit
+  budget of zero, so an entirely new kind of warning fails too. Shrinking a
+  category is a deliberate act ending in `--update-budget`.
 
 ### Why the numeric comparison is not bit-exact
 
@@ -199,12 +245,28 @@ Do that serially or with MPI, which are reproducible.
 The optimized LTO build now passes without the former
 `-fno-strict-aliasing` workaround. Its quick-test center table and significant
 wave-height block are byte-identical to the baseline and ordinary Release
-builds. Serial, OpenMP, MPI, LTO, netCDF and timing-instrumented builds pass
-their registered tests; the MPI smoke test runs on two processes.
+builds. Every build option the project offers passes its registered tests:
+serial, OpenMP, MPI (also on two processes), MPI+netCDF, netCDF, LTO, TIMG,
+METIS, MATL4, JAC, FFRO and the debug-invariant build.
+
+Two of those options change the answer rather than the code path around it, and
+they have their own stored references instead of being exempt from comparison:
+
+| Option | What changes | Where it shows |
+|---|---|---|
+| `JAC` | Jacobi subdomain exchange instead of following the wavefront across them | only on more than one MPI process |
+| `FFRO` | fixed-front (`!FXFRO`) vertex ordering instead of the graph-coloured one | the unstructured case |
+
+Both were checked against binaries built from the pre-modernization baseline in
+the same configuration and are byte-identical to them, so the difference is the
+scheme and not this work.
 
 These checks demonstrate compatibility for the included regression cases. They
 are not a claim that compiler diagnostics are already clean or that every
-production scenario is covered.
+production scenario is covered. `-fcheck=all` in particular is *not* green: the
+runs stop on an unallocated `XYTST` passed as an actual argument in
+`swanpre1.f90`, which the baseline does identically. The unit tests do pass
+under it.
 
 ## Remaining migration boundary
 

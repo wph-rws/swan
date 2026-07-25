@@ -54,6 +54,7 @@ def run(
     mpi_executable: str | None = None,
     mpi_processes: int = 1,
     mpi_numproc_flag: str = "-n",
+    reference_name: str = "reference",
 ) -> None:
     for name in GENERATED_FILES:
         path = case_directory / name
@@ -94,7 +95,7 @@ def run(
             "SWAN did not create norm_end. Inspect quick_test.prt and quick_test.erf."
         )
 
-    reference_directory = Path(__file__).resolve().parent / "reference"
+    reference_directory = Path(__file__).resolve().parent / reference_name
     if compare_with_reference(case_directory, reference_directory,
                               ("quick_test_center.tbl", "quick_test_hs.blk")):
         print("Results match the stored reference.")
@@ -127,6 +128,14 @@ def main() -> int:
         default="-n",
         help="launcher option used before the process count (default: -n)",
     )
+    parser.add_argument(
+        "--reference",
+        default="reference",
+        help="reference directory beside this script (default: reference). The "
+        "JAC solver sweeps the grid in a different order and so reaches a "
+        "slightly different converged state; it has its own reference rather "
+        "than being exempt from the comparison.",
+    )
     arguments = parser.parse_args()
     source_directory = Path(__file__).resolve().parent
     case_directory = (
@@ -149,6 +158,7 @@ def main() -> int:
             arguments.mpi_exec,
             arguments.mpi_processes,
             arguments.mpi_numproc_flag,
+            arguments.reference,
         )
     except (FileNotFoundError, OSError, RuntimeError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)

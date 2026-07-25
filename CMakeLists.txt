@@ -189,6 +189,16 @@ if( BUILD_TESTING )
             --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/quick
   )
   if( MPI )
+    # The Jacobi sweep exchanges action density between subdomains once per
+    # iteration instead of following the wavefront across them, so a run split
+    # over two processes converges to a slightly different state. That is the
+    # scheme, not a defect, and it has its own reference; on one process the two
+    # schemes agree, which is why only this test distinguishes them.
+    if( JAC )
+      set( QUICK_TEST_MPI_REFERENCE reference-jac )
+    else()
+      set( QUICK_TEST_MPI_REFERENCE reference )
+    endif()
     add_test(
       NAME quick_test_mpi
       COMMAND ${Python3_EXECUTABLE}
@@ -198,8 +208,18 @@ if( BUILD_TESTING )
               --mpi-exec ${MPIEXEC_EXECUTABLE}
               --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
               --mpi-processes 2
+              --reference ${QUICK_TEST_MPI_REFERENCE}
     )
     set_tests_properties( quick_test_mpi PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
+  endif()
+  # FFRO selects the fixed-front vertex ordering (!FXFRO) instead of the
+  # graph-coloured one, which changes the order the unstructured solver sweeps
+  # the mesh and so its converged state. That case has its own reference; the
+  # structured cases are unaffected and fall back to the shared one.
+  if( FFRO )
+    set( NONSTATIONARY_REFERENCE reference-ffro )
+  else()
+    set( NONSTATIONARY_REFERENCE reference )
   endif()
   add_test(
     NAME nonstationary_examples
@@ -207,6 +227,7 @@ if( BUILD_TESTING )
             ${CMAKE_SOURCE_DIR}/examples/nonstationary/run.py
             --swan-executable $<TARGET_FILE:${EXE}>
             --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/nonstationary
+            --reference ${NONSTATIONARY_REFERENCE}
   )
   add_test(
     NAME nonlinear_interactions

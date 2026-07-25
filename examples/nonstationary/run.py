@@ -64,7 +64,8 @@ def clean_case(case_directory: Path, basename: str) -> None:
             path.unlink()
 
 
-def run_case(executable: Path, example_directory: Path, case: str) -> float:
+def run_case(executable: Path, example_directory: Path, case: str,
+             reference_name: str = "reference") -> float:
     basename = CASES[case]
     case_directory = example_directory / case
     clean_case(case_directory, basename)
@@ -97,7 +98,11 @@ def run_case(executable: Path, example_directory: Path, case: str) -> float:
         if not (case_directory / f"{basename}{suffix}").is_file():
             raise RuntimeError(f"{case} case did not create {basename}{suffix}")
 
-    reference_directory = Path(__file__).resolve().parent / case / "reference"
+    reference_directory = Path(__file__).resolve().parent / case / reference_name
+    #  Only the unstructured case has a variant-specific reference; the
+    #  structured cases traverse the grid the same way whatever the switch.
+    if not reference_directory.is_dir():
+        reference_directory = Path(__file__).resolve().parent / case / "reference"
     names = tuple(f"{basename}{suffix}" for suffix in ("_center.tbl", "_hs.blk"))
     if compare_with_reference(case_directory, reference_directory, names):
         print(f"{case} results match the stored reference.")
@@ -120,6 +125,14 @@ def main() -> int:
         "--work-directory",
         help="run in this directory instead of writing results beside the examples",
     )
+    parser.add_argument(
+        "--reference",
+        default="reference",
+        help="reference directory inside a case (default: reference). The "
+        "fixed-front unstructured ordering visits the vertices in a different "
+        "order and converges to a slightly different state, so it has its own "
+        "reference rather than being exempt from the comparison.",
+    )
     arguments = parser.parse_args()
     source_directory = Path(__file__).resolve().parent
     example_directory = (
@@ -139,7 +152,8 @@ def main() -> int:
                 )
         selected = CASES if arguments.case == "all" else (arguments.case,)
         for case in selected:
-            elapsed = run_case(executable, example_directory, case)
+            elapsed = run_case(executable, example_directory, case,
+                               arguments.reference)
             print(f"{case.capitalize()} case completed normally in {elapsed:.2f} seconds.")
             print(f"Results: {example_directory / case}")
     except (FileNotFoundError, OSError, RuntimeError) as error:
