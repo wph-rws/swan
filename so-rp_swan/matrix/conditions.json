@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "description": "Compact so-rp regression matrix spanning forcing, barrier state, exposure and BG2 sector edges.",
+  "conditions": [
+    {
+      "id": "u20_d310_lp300_open",
+      "description": "Existing controlled reference condition",
+      "direction_deg": 310,
+      "wind_speed_ms": 20,
+      "water_level_cm": 300,
+      "osk_state": "open",
+      "tags": ["reference", "osk_open", "exposed"]
+    },
+    {
+      "id": "u02_d090_l0000_open",
+      "description": "Low-wind sheltered condition",
+      "direction_deg": 90,
+      "wind_speed_ms": 2,
+      "water_level_cm": 0,
+      "osk_state": "open",
+      "tags": ["low_wind", "osk_open", "sheltered"]
+    },
+    {
+      "id": "u20_d300_lm200_open",
+      "description": "Lowest operational water level",
+      "direction_deg": 300,
+      "wind_speed_ms": 20,
+      "water_level_cm": -200,
+      "osk_state": "open",
+      "tags": ["low_water", "osk_open", "exposed"]
+    },
+    {
+      "id": "u20_d300_lp650_open",
+      "description": "Highest operational water level",
+      "direction_deg": 300,
+      "wind_speed_ms": 20,
+      "water_level_cm": 650,
+      "osk_state": "open",
+      "tags": ["high_water", "osk_open", "exposed"]
+    },
+    {
+      "id": "u20_d310_lp300_closed",
+      "description": "Reference forcing with closed Oosterscheldekering",
+      "direction_deg": 310,
+      "wind_speed_ms": 20,
+      "water_level_cm": 300,
+      "osk_state": "gesloten",
+      "tags": ["osk_closed", "exposed"]
+    },
+    {
+      "id": "u20_d120_lp300_open",
+      "description": "Sheltered easterly sector",
+      "direction_deg": 120,
+      "wind_speed_ms": 20,
+      "water_level_cm": 300,
+      "osk_state": "open",
+      "tags": ["osk_open", "sheltered"]
+    },
+    {
+      "id": "u40_d300_lp300_open",
+      "description": "High-wind exposed condition",
+      "direction_deg": 300,
+      "wind_speed_ms": 40,
+      "water_level_cm": 300,
+      "osk_state": "open",
+      "tags": ["osk_open", "exposed"]
+    },
+    {
+      "id": "u20_d315_lp300_open",
+      "description": "Upper edge of BG2 sector 286-315",
+      "direction_deg": 315,
+      "wind_speed_ms": 20,
+      "water_level_cm": 300,
+      "osk_state": "open",
+      "tags": ["osk_open", "sector_boundary"]
+    },
+    {
+      "id": "u20_d316_lp300_open",
+      "description": "Lower edge of BG2 sector 316-345",
+      "direction_deg": 316,
+      "wind_speed_ms": 20,
+      "water_level_cm": 300,
+      "osk_state": "open",
+      "tags": ["osk_open", "sector_boundary"]
+    },
+    {
+      "id": "u20_d346_lp300_open",
+      "description": "Lower edge of the north-wrapping BG2 sector",
+      "direction_deg": 346,
+      "wind_speed_ms": 20,
+      "water_level_cm": 300,
+      "osk_state": "open",
+      "tags": ["osk_open", "sector_boundary"]
+    }
+  ],
+  "targets": [
+    {
+      "id": "premodern_4151",
+      "description": "Pre-modernization 41.51 code-equivalence baseline",
+      "executable": "comparison/bin/swan-current-e0e4da5-dirty.exe",
+      "physics": "default",
+      "swan_family": "modern"
+    },
+    {
+      "id": "bss_4131",
+      "description": "Operational BSS 41.31A.1 physics reference",
+      "executable": "swan41.31A.1/swan_4131A_1_del_l64_i18_omp.exe",
+      "physics": "default",
+      "swan_family": "bss",
+      "library_directories": ["swan41.31A.1/libraries"]
+    },
+    {
+      "id": "current_4151_default",
+      "description": "Current code with the 41.51 default physics",
+      "executable": "../build-so-rp-current/bin/swan.exe",
+      "physics": "default",
+      "swan_family": "modern"
+    },
+    {
+      "id": "current_4151_legacy",
+      "description": "Current code with explicit 41.31-compatible defaults",
+      "executable": "../build-so-rp-current/bin/swan.exe",
+      "physics": "legacy-4131",
+      "swan_family": "modern"
+    }
+  ]
+}

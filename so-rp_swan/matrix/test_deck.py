@@ -10,12 +10,27 @@ import pytest
 import bg2
 import deck
 
-REFERENCE = bg2.ROOT / "runs" / "current_converged" / "so-rp_osk.swn"
+# The pinned expected deck. It is a tracked copy of
+# runs/current_converged/so-rp_osk.swn, which is one of the four byte-identical
+# controlled decks the whole 41.31/41.51 comparison rests on. The run
+# directories themselves are too large for version control, so the fixture
+# keeps this acceptance criterion testable from a bare checkout.
+REFERENCE = Path(__file__).parent / "reference" / "so-rp_osk_u20_d310_lp300_open.swn"
+OPERATIONAL_REFERENCE = bg2.ROOT / "runs" / "current_converged" / "so-rp_osk.swn"
 KNOWN = deck.Condition("reference", 310, 20, 300, "open")
 
 
 def test_known_condition_reproduces_the_reference_deck_byte_for_byte():
     assert generate_default() == REFERENCE.read_text()
+
+
+@pytest.mark.skipif(
+    not OPERATIONAL_REFERENCE.is_file(),
+    reason="controlled run directories are not in version control",
+)
+def test_fixture_still_matches_the_controlled_run_directory():
+    """Guard against the tracked fixture drifting from the operational deck."""
+    assert REFERENCE.read_bytes() == OPERATIONAL_REFERENCE.read_bytes()
 
 
 def test_operational_level_format_is_awk_compatible():

@@ -1,0 +1,27 @@
+1
+
+                    Execution started at 20260724.091619         
+
+
+
+                    ---------------------------------------
+                                     SWAN
+                    SIMULATION OF WAVES IN NEAR SHORE AREAS
+                             VERSION NUMBER 41.31               
+                    ---------------------------------------
+
+
+    
+ PROJECT 'SMOKE' '01'
+    
+ STOP
+  ** No computation requested **
+ ** Severe error     : no valid computational grid; check command CGRID
+ ** Severe error     : no valid comp. grid; check command READ BOT or READ UNSTRU
+ ** Severe error     : Bottom grid not defined
+ ** Error            : It is not recommended to use quadruplets
+ ** Error            : in combination with zero wind conditions.
+ ** No start of computation because of error level:  3
+ ** To ignore this error, change [maxerr] with the SET command
+    
+ ** Terminating error:  unexpected end of command input

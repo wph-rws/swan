@@ -16,3 +16,10 @@
 *.node -text
 *.dep -text
 *.bot -text
+
+# Operationele so-rp-invoer is een verificatiereferentie: de vastgelegde
+# resultaten zijn met exact deze bytes geproduceerd, inclusief CRLF.
+# uitvoerpunten.par definieert de 135 punten waarover de natte-puntstatistiek
+# wordt berekend.
+/so-rp_swan/par/uitvoerpunten.par -text
+/so-rp_swan/par/swan2wtz/*.csv -text

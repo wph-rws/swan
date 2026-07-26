@@ -1,0 +1,224 @@
+make: Entering directory '/tmp/swan4131src.FVKJYv'
+make FOR=gfortran FFLAGS="-O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp" \
+        FFLAGS90="-O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp" \
+                INCS="" LIBS="-static-libgcc" OBJS="swmod1.o swmod2.o SwanSpectPart.o m_constants.o m_fileio.o serv_xnl4v5.o mod_xnl4v5.o SwanGriddata.o SwanGridobjects.o SwanCompdata.o SdsBabanin.o  swan2coh.o swanmain.o swanpre1.o swanpre2.o swancom1.o swancom2.o swancom3.o swancom4.o swancom5.o swanout1.o swanout2.o swanser.o swanparll.o SwanReadGrid.o SwanReadADCGrid.o SwanReadTriangleGrid.o SwanReadEasymeshGrid.o SwanInitCompGrid.o SwanCheckGrid.o SwanCreateEdges.o SwanGridTopology.o SwanGridVert.o SwanGridCell.o SwanGridFace.o SwanPrintGridInfo.o SwanFindPoint.o SwanPointinMesh.o SwanBpntlist.o SwanPrepComp.o SwanVertlist.o SwanCompUnstruc.o SwanDispParm.o SwanPropvelX.o SwanSweepSel.o SwanPropvelS.o SwanTranspAc.o SwanTranspX.o SwanDiffPar.o SwanGSECorr.o SwanGradDepthorK.o SwanGradVel.o SwanInterpolatePoint.o SwanInterpolateAc.o SwanInterpolateOutput.o SwanConvAccur.o SwanConvStopc.o SwanThreadBounds.o SwanFindObstacles.o SwanCrossObstacle.o SwanComputeForce.o SwanIntgratSpc.o SwanBndStruc.o SwanReadfort18.o SwanPunCollect.o SwanSumOverNodes.o SwanMinOverNodes.o SwanMaxOverNodes.o ocpids.o ocpcre.o ocpmix.o" swan.exe
+make[1]: Entering directory '/tmp/swan4131src.FVKJYv'
+gfortran swmod1.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swmod2.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran SwanSpectPart.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran m_constants.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran m_fileio.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran serv_xnl4v5.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran mod_xnl4v5.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanGriddata.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanGridobjects.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanCompdata.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SdsBabanin.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran swan2coh.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran swanmain.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swanpre1.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swanpre2.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swancom1.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swancom2.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swancom3.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swancom4.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swancom5.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swanout1.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swanout2.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+m_constants.f90:31:5:
+
+   31 | use SWCOMM3
+      |     1
+Fatal Error: Cannot open module file ‘swcomm3.mod’ for reading at (1): No such file or directory
+compilation terminated.
+swanout2.f:22:10:
+
+   22 |       USE OCPCOMM2                                                        40.41
+      |          1
+Fatal Error: Cannot open module file ‘ocpcomm2.mod’ for reading at (1): No such file or directory
+m_fileio.f90:104:5:
+
+  104 | use M_PARALL
+      |     1
+Fatal Error: Cannot open module file ‘m_parall.mod’ for reading at (1): No such file or directory
+compilation terminated.
+compilation terminated.
+swanpre2.f:24:10:
+
+   24 |       USE OCPCOMM4                                                        40.41
+      |          1
+Fatal Error: Cannot open module file ‘ocpcomm4.mod’ for reading at (1): No such file or directory
+compilation terminated.
+SdsBabanin.f90:9:9:
+
+    9 |     USE SWCOMM1, ONLY: CHTIME
+      |         1
+Fatal Error: Cannot open module file ‘swcomm1.mod’ for reading at (1): No such file or directory
+compilation terminated.
+swancom3.f:38:10:
+
+   38 |       USE SWCOMM3                                                         40.41
+      |          1
+Fatal Error: Cannot open module file ‘swcomm3.mod’ for reading at (1): No such file or directory
+compilation terminated.
+swancom5.f:38:10:
+
+   38 |       USE SWCOMM2                                                         40.41
+      |          1
+Fatal Error: Cannot open module file ‘swcomm2.mod’ for reading at (1): No such file or directory
+compilation terminated.
+swancom1.f:53:10:
+
+   53 |       USE TIMECOMM                                                        40.41
+      |          1
+Fatal Error: Cannot open module file ‘timecomm.mod’ for reading at (1): No such file or directory
+compilation terminated.
+SwanCompdata.f90:52:9:
+
+   52 |     use swcomm3
+      |         1
+Fatal Error: Cannot open module file ‘swcomm3.mod’ for reading at (1): No such file or directory
+compilation terminated.
+swanmain.f:154:10:
+
+  154 |       USE TIMECOMM                                                        40.41
+      |          1
+Fatal Error: Cannot open module file ‘timecomm.mod’ for reading at (1): No such file or directory
+swmod2.f:190:10:
+
+  190 |       USE OCPCOMM2
+      |          1
+Fatal Error: Cannot open module file ‘ocpcomm2.mod’ for reading at (1): No such file or directory
+compilation terminated.
+swanout1.f:27:10:
+
+   27 |       USE TIMECOMM                                                        40.41
+      |          1
+Fatal Error: Cannot open module file ‘timecomm.mod’ for reading at (1): No such file or directory
+compilation terminated.
+make[1]: *** [Makefile:214: m_constants.o] Error 1
+make[1]: *** Waiting for unfinished jobs....
+make[1]: *** [Makefile:214: SdsBabanin.o] Error 1
+SwanSpectPart.f:237:10:
+
+  237 |       USE SWCOMM3 , ONLY: MSC, MDC                                        41.62
+      |          1
+Fatal Error: Cannot open module file ‘swcomm3.mod’ for reading at (1): No such file or directory
+compilation terminated.
+swanpre1.f:25:10:
+
+   25 |       USE TIMECOMM                                                        40.41
+      |          1
+Fatal Error: Cannot open module file ‘timecomm.mod’ for reading at (1): No such file or directory
+compilation terminated.
+swancom4.f:59:10:
+
+   59 |       USE SWCOMM3                                                         40.41
+      |          1
+Fatal Error: Cannot open module file ‘swcomm3.mod’ for reading at (1): No such file or directory
+compilation terminated.
+make[1]: *** [Makefile:211: swancom3.o] Error 1
+make[1]: *** [Makefile:211: swanout2.o] Error 1
+make[1]: *** [Makefile:211: SwanSpectPart.o] Error 1
+make[1]: *** [Makefile:214: SwanCompdata.o] Error 1
+make[1]: *** [Makefile:211: swancom4.o] Error 1
+compilation terminated.
+swancom2.f:35:10:
+
+   35 |       USE SWCOMM3                                                         40.41
+      |          1
+Fatal Error: Cannot open module file ‘swcomm3.mod’ for reading at (1): No such file or directory
+mod_xnl4v5.f90:490:5:
+
+  490 | use m_fileio
+      |     1
+Fatal Error: Cannot open module file ‘m_fileio.mod’ for reading at (1): No such file or directory
+compilation terminated.
+compilation terminated.
+make[1]: *** [Makefile:214: m_fileio.o] Error 1
+make[1]: *** [Makefile:211: swanmain.o] Error 1
+make[1]: *** [Makefile:214: mod_xnl4v5.o] Error 1
+make[1]: *** [Makefile:211: swanpre1.o] Error 1
+make[1]: *** [Makefile:211: swanpre2.o] Error 1
+make[1]: *** [Makefile:211: swancom1.o] Error 1
+make[1]: *** [Makefile:211: swancom2.o] Error 1
+make[1]: *** [Makefile:211: swanout1.o] Error 1
+make[1]: *** [Makefile:211: swmod2.o] Error 1
+make[1]: *** [Makefile:211: swancom5.o] Error 1
+make[1]: Leaving directory '/tmp/swan4131src.FVKJYv'
+make: *** [Makefile:149: omp] Error 2
+make: Leaving directory '/tmp/swan4131src.FVKJYv'
+make: Entering directory '/tmp/swan4131src.FVKJYv'
+make FOR=gfortran FFLAGS="-O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp" \
+        FFLAGS90="-O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp" \
+                INCS="" LIBS="-static-libgcc" OBJS="swmod1.o swmod2.o SwanSpectPart.o m_constants.o m_fileio.o serv_xnl4v5.o mod_xnl4v5.o SwanGriddata.o SwanGridobjects.o SwanCompdata.o SdsBabanin.o  swan2coh.o swanmain.o swanpre1.o swanpre2.o swancom1.o swancom2.o swancom3.o swancom4.o swancom5.o swanout1.o swanout2.o swanser.o swanparll.o SwanReadGrid.o SwanReadADCGrid.o SwanReadTriangleGrid.o SwanReadEasymeshGrid.o SwanInitCompGrid.o SwanCheckGrid.o SwanCreateEdges.o SwanGridTopology.o SwanGridVert.o SwanGridCell.o SwanGridFace.o SwanPrintGridInfo.o SwanFindPoint.o SwanPointinMesh.o SwanBpntlist.o SwanPrepComp.o SwanVertlist.o SwanCompUnstruc.o SwanDispParm.o SwanPropvelX.o SwanSweepSel.o SwanPropvelS.o SwanTranspAc.o SwanTranspX.o SwanDiffPar.o SwanGSECorr.o SwanGradDepthorK.o SwanGradVel.o SwanInterpolatePoint.o SwanInterpolateAc.o SwanInterpolateOutput.o SwanConvAccur.o SwanConvStopc.o SwanThreadBounds.o SwanFindObstacles.o SwanCrossObstacle.o SwanComputeForce.o SwanIntgratSpc.o SwanBndStruc.o SwanReadfort18.o SwanPunCollect.o SwanSumOverNodes.o SwanMinOverNodes.o SwanMaxOverNodes.o ocpids.o ocpcre.o ocpmix.o" swan.exe
+make[1]: Entering directory '/tmp/swan4131src.FVKJYv'
+gfortran swmod2.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran SwanSpectPart.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran m_constants.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran m_fileio.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran mod_xnl4v5.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanCompdata.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SdsBabanin.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran swanmain.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swanpre1.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swanpre2.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swancom1.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swancom2.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swancom3.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swancom4.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swancom5.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swanout1.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swanout2.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swanser.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swanparll.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran SwanReadGrid.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanReadADCGrid.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanReadTriangleGrid.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanReadEasymeshGrid.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanInitCompGrid.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanCheckGrid.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanCreateEdges.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanGridTopology.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanGridVert.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanGridCell.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanGridFace.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanPrintGridInfo.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanFindPoint.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanPointinMesh.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanBpntlist.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanPrepComp.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanVertlist.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanCompUnstruc.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanDispParm.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanPropvelX.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanSweepSel.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanPropvelS.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanTranspAc.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanTranspX.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanDiffPar.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanGSECorr.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanGradDepthorK.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanGradVel.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanInterpolatePoint.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanInterpolateAc.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanInterpolateOutput.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanConvAccur.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanConvStopc.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanThreadBounds.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanFindObstacles.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanCrossObstacle.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanComputeForce.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanIntgratSpc.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanBndStruc.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanReadfort18.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanPunCollect.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanSumOverNodes.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanMinOverNodes.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran SwanMaxOverNodes.f90 -c -O -w -fno-second-underscore -fallow-argument-mismatch -ffree-line-length-none -fopenmp 
+gfortran ocpids.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran ocpcre.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran ocpmix.f -c -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp 
+gfortran swmod1.o swmod2.o SwanSpectPart.o m_constants.o m_fileio.o serv_xnl4v5.o mod_xnl4v5.o SwanGriddata.o SwanGridobjects.o SwanCompdata.o SdsBabanin.o  swan2coh.o swanmain.o swanpre1.o swanpre2.o swancom1.o swancom2.o swancom3.o swancom4.o swancom5.o swanout1.o swanout2.o swanser.o swanparll.o SwanReadGrid.o SwanReadADCGrid.o SwanReadTriangleGrid.o SwanReadEasymeshGrid.o SwanInitCompGrid.o SwanCheckGrid.o SwanCreateEdges.o SwanGridTopology.o SwanGridVert.o SwanGridCell.o SwanGridFace.o SwanPrintGridInfo.o SwanFindPoint.o SwanPointinMesh.o SwanBpntlist.o SwanPrepComp.o SwanVertlist.o SwanCompUnstruc.o SwanDispParm.o SwanPropvelX.o SwanSweepSel.o SwanPropvelS.o SwanTranspAc.o SwanTranspX.o SwanDiffPar.o SwanGSECorr.o SwanGradDepthorK.o SwanGradVel.o SwanInterpolatePoint.o SwanInterpolateAc.o SwanInterpolateOutput.o SwanConvAccur.o SwanConvStopc.o SwanThreadBounds.o SwanFindObstacles.o SwanCrossObstacle.o SwanComputeForce.o SwanIntgratSpc.o SwanBndStruc.o SwanReadfort18.o SwanPunCollect.o SwanSumOverNodes.o SwanMinOverNodes.o SwanMaxOverNodes.o ocpids.o ocpcre.o ocpmix.o -O -w -fno-second-underscore -fallow-argument-mismatch -fopenmp -o swan.exe  -static-libgcc
+make[1]: Leaving directory '/tmp/swan4131src.FVKJYv'
+make: Leaving directory '/tmp/swan4131src.FVKJYv'
