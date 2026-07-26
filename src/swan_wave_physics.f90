@@ -6,7 +6,7 @@ module swan_wave_physics
    implicit none(type, external)
    private
 
-   public :: kscip1, kscip2
+   public :: kscip1, kscip1_kernel, kscip2
 
 contains
 
@@ -21,24 +21,41 @@ contains
          group_number_depth_derivative(frequency_count)
 
       integer, save :: entry_count = 0
+
+      if (LTRACE) call strace(entry_count, 'KSCIP1')
+
+      call kscip1_kernel(frequency_count, frequencies, depth, GRAV, wave_number, &
+                         group_velocity, group_number, &
+                         group_number_depth_derivative)
+   end subroutine kscip1
+
+   pure subroutine kscip1_kernel(frequency_count, frequencies, depth, gravity, &
+                                 wave_number, group_velocity, group_number, &
+                                 group_number_depth_derivative)
+      integer, intent(in) :: frequency_count
+      real(swan_real), intent(in) :: frequencies(frequency_count), depth, gravity
+      real(swan_real), intent(out) :: wave_number(frequency_count)
+      real(swan_real), intent(out), optional :: group_velocity(frequency_count)
+      real(swan_real), intent(out), optional :: group_number(frequency_count)
+      real(swan_real), intent(out), optional :: &
+         group_number_depth_derivative(frequency_count)
+
       integer :: frequency_index
       real(swan_real) :: c, fac1, fac2, fac3, group_number_value
       real(swan_real) :: group_velocity_value, knd, nd_value
       real(swan_real) :: root_depth_over_gravity, snd, snd2
       real(swan_real) :: sqrt_gravity_depth
 
-      if (LTRACE) call strace(entry_count, 'KSCIP1')
-
-      root_depth_over_gravity = sqrt(depth / GRAV)
-      sqrt_gravity_depth = root_depth_over_gravity * GRAV
+      root_depth_over_gravity = sqrt(depth / gravity)
+      sqrt_gravity_depth = root_depth_over_gravity * gravity
 
       do frequency_index = 1, frequency_count
          snd = frequencies(frequency_index) * root_depth_over_gravity
          if (snd >= 2.5_swan_real) then
             wave_number(frequency_index) = &
-               frequencies(frequency_index)**2 / GRAV
+               frequencies(frequency_index)**2 / gravity
             group_velocity_value = &
-               0.5_swan_real * GRAV / frequencies(frequency_index)
+               0.5_swan_real * gravity / frequencies(frequency_index)
             group_number_value = 0.5_swan_real
             nd_value = 0.0_swan_real
          else if (snd < 1.0e-6_swan_real) then
@@ -48,7 +65,7 @@ contains
             nd_value = 0.0_swan_real
          else
             snd2 = snd * snd
-            c = sqrt(GRAV * depth / &
+            c = sqrt(gravity * depth / &
                (snd2 + 1.0_swan_real / &
                (1.0_swan_real + 0.666_swan_real * snd2 + &
                 0.445_swan_real * snd2**2 - 0.105_swan_real * snd2**3 + &
@@ -79,7 +96,7 @@ contains
             group_number_depth_derivative(frequency_index) = nd_value
          end if
       end do
-   end subroutine kscip1
+   end subroutine kscip1_kernel
 
    subroutine kscip2(frequency_count, frequencies, depth, wave_number, &
                      group_velocity, group_number, group_number_depth_derivative, &

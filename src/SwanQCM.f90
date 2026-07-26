@@ -1161,7 +1161,8 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
                       plwbrk, dissc0, dissc1, genc0 , genc1 , redc0 , redc1 , &
                       spcsig, spcdir, idcmin, idcmax, isstop, ecos  , esin  , &
                       etot  , hm    , qb    , smebrk, kteta , kmespc, cft   , &
-                      rft   , sft   , wft   , wsave , cfd   , wfd   , wsavd   &
+                      rft   , sft   , wft   , wsave , cfd   , wfd   , wsavd , &
+                      sigm_wam                                               &
                                                                             )
 
 !   --|-----------------------------------------------------------|--
@@ -1239,6 +1240,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
     real                                     , intent(in   ) :: kteta  ! number of directional partitions
     real                                     , intent(in   ) :: qb     ! fraction of breaking waves
     real                                     , intent(in   ) :: smebrk ! mean frequency according to first order moment
+    real                                     , intent(in   ) :: sigm_wam ! mean frequency according to WAM
 
     real           , dimension(MDC,MSC,MCGRD), intent(in   ) :: ac2    ! action density at current time level
     complex(kind=8), dimension(myd,mxd)      , intent(inout) :: cfd    ! Fourier coefficients (FFT) for surf breaking
@@ -1334,7 +1336,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
        call SSURF ( etot  , hm    , qb    , smebrk, kteta , kmespc, spcsig, ac2   ,  &
                     imatra, imatda, idcmin, idcmax, plwbrk,                          &
-                    isstop, dissc0, dissc1, disbk , iter  )
+                    isstop, dissc0, dissc1, disbk , iter  , sigm_wam )
 
        ! calculate the QC surf breaking for all sweeps together from the
        ! second iteration onwards

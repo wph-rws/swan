@@ -32,6 +32,7 @@
 !****************************************************************
 
 module swan_propagation
+   use swan_diffraction_state, only: diffraction_state_t
    implicit none(type, external)
    private
    public :: SWGEOM, SWPSEL, SPROXY, SPROSD, DSPHER, STRSXY, SORDUP, SANDL
@@ -833,7 +834,7 @@ end subroutine SWPSEL
 SUBROUTINE SPROXY (CAX        ,&
 &CAY        ,CGO        ,ECOS       ,&
 &ESIN       ,UX2        ,UY2        ,&
-&SWPDIR&
+&SWPDIR     ,DIFFR&
 &)
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -842,9 +843,10 @@ SUBROUTINE SPROXY (CAX        ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE M_DIFFR
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
 
 
 !   --|-----------------------------------------------------------|--
@@ -1059,8 +1061,8 @@ SUBROUTINE SPROXY (CAX        ,&
          IF (IDIFFR.EQ.1 .AND. PDIFFR(3).NE.0.) THEN
             do IS = 1, MSC
                do ID = 1 ,MDC
-                  CAX(ID,IS,IC) = CAX(ID,IS,IC)*DIFPARAM(KCGRD(IC))
-                  CAY(ID,IS,IC) = CAY(ID,IS,IC)*DIFPARAM(KCGRD(IC))
+                  CAX(ID,IS,IC) = CAX(ID,IS,IC)*diffr%param(KCGRD(IC))
+                  CAY(ID,IS,IC) = CAY(ID,IS,IC)*diffr%param(KCGRD(IC))
                end do
             end do
          END IF
@@ -1109,7 +1111,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 &RDX        ,RDY        ,&
 &CAX        ,CAY        ,&
 &XCGRID     ,YCGRID     ,&
-&IDDLOW     ,IDDTOP&
+&IDDLOW     ,IDDTOP     ,DIFFR&
 &)
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -1121,10 +1123,11 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
    USE swan_time, ONLY: default_time_context
    USE OCPCOMM4
    USE M_PARALL
-   USE M_DIFFR
    USE SwanIEM, ONLY: ntf, dfiem, sflog
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
 
 
 !   --|-----------------------------------------------------------|--
@@ -1577,9 +1580,9 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 
 !            --- adapt the velocity in case of diffraction
             IF (IDIFFR.EQ.1) THEN
-               CAD(ID,IS,1) = DIFPARAM(KCG1)*CAD(ID,IS,1)&
-               &- DIFPARDX(KCG1)*CGO(IS,1)*ESIN(ID)&
-               &+ DIFPARDY(KCG1)*CGO(IS,1)*ECOS(ID)
+               CAD(ID,IS,1) = diffr%param(KCG1)*CAD(ID,IS,1)&
+               &- diffr%dpardx(KCG1)*CGO(IS,1)*ESIN(ID)&
+               &+ diffr%dpardy(KCG1)*CGO(IS,1)*ECOS(ID)
             ENDIF
 
          ELSE
@@ -1596,14 +1599,14 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
                &COSCOS(ID)*DUXDY ! add currents, Christof
             ELSE IF (IDIFFR.EQ.1) THEN
                CAS(ID,IS,1) = CAST1*(CAST2+CAST3+CAST4) -&
-               &DIFPARAM(KCG1)*CAST5*&
+               &diffr%param(KCG1)*CAST5*&
                &(COSCOS(ID)*DUXDX +&
                &SINCOS(ID)*(DUXDY+DUYDX) +&
                &SINSIN(ID)*DUYDY)
 
-               CAD(ID,IS,1) = DIFPARAM(KCG1)*CAD_TMP -&
-               &DIFPARDX(KCG1)*CGO(IS,1)*ESIN(ID) +&
-               &DIFPARDY(KCG1)*CGO(IS,1)*ECOS(ID) +&
+               CAD(ID,IS,1) = diffr%param(KCG1)*CAD_TMP -&
+               &diffr%dpardx(KCG1)*CGO(IS,1)*ESIN(ID) +&
+               &diffr%dpardy(KCG1)*CGO(IS,1)*ECOS(ID) +&
                &SINCOS(ID)*(DUXDX-DUYDY) +&
                &SINSIN(ID)*DUYDX -&
                &COSCOS(ID)*DUXDY
@@ -5490,7 +5493,7 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
 end subroutine SWFLXD
 !****************************************************************
 
-SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
+SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , DIFFR ,&
 &CROSS , XCGRID, YCGRID, XYTST )
    USE swan_service_interfaces, ONLY: STRACE, EQREAL, STPNOW
    USE swan_parallel, ONLY: SWEXCHG
@@ -5502,10 +5505,11 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE M_DIFFR
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(diffraction_state_t), INTENT(INOUT) :: DIFFR
 
 
 !   --|-----------------------------------------------------------|--
@@ -5562,7 +5566,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
 !     Parameters governing numerical computation of diffraction
 !     coefficient and its spatial derivatives:
 !
-!     DIFPARAM=SQRT(1+delta)
+!     diffr%param=SQRT(1+delta)
 !
 !     Near land and obstacles derivatives are assumed to be zero
 !
@@ -5811,8 +5815,8 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
 !     --- initially, set all values to zero
    DENOM(1:MCGRD) = 0.
    LAPE (1:MCGRD) = 0.
-   DIFPARDX(1:MCGRD) = 0.
-   DIFPARDY(1:MCGRD) = 0.
+   diffr%dpardx(1:MCGRD) = 0.
+   diffr%dpardy(1:MCGRD) = 0.
 
 !     --- loop over all X-connections
    DO IX = MAX(IX1,2), MIN(IX2+1,MXC)
@@ -5919,16 +5923,16 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
          TMP = 0.
       END IF
       IF (TMP.LT.-1.) THEN
-         DIFPARAM(IND) = 0.
+         diffr%param(IND) = 0.
       ELSE
-         DIFPARAM(IND) = SQRT(1.+TMP)
+         diffr%param(IND) = SQRT(1.+TMP)
       END IF
    END DO
-!WFR   CALL SWEXCHG(DIFPARAM(:),KGRPNT)
-!JAC   CALL SWEXCHG(DIFPARAM(:),0,KGRPNT)
+!WFR   CALL SWEXCHG(diffr%param(:),KGRPNT)
+!JAC   CALL SWEXCHG(diffr%param(:),0,KGRPNT)
    IF (STPNOW()) RETURN
 
-!     --- calculate spatial derivatives of DIFPARAM
+!     --- calculate spatial derivatives of diffr%param
 !
 !     --- loop over all X-connections
    DO IX = MAX(IX1,2), MIN(IX2,MXC-1)
@@ -5958,8 +5962,8 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
             ENDIF
             DXLOC = ABS(DXLOC)
             IF (EQREAL(DXLOC,0.)) DXLOC=0.01
-            TMP = (DIFPARAM(INDR) - DIFPARAM(INDL))/(2.*DXLOC)
-            DIFPARDX(IND) = DIFPARDX(IND) + TMP
+            TMP = (diffr%param(INDR) - diffr%param(INDL))/(2.*DXLOC)
+            diffr%dpardx(IND) = diffr%dpardx(IND) + TMP
          END IF
       END DO
    END DO
@@ -5989,8 +5993,8 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
             IF ( KSPHER.GT.0 ) DYLOC = DYLOC * LENDEG
             DYLOC = ABS(DYLOC)
             IF (EQREAL(DYLOC,0.)) DYLOC=0.01
-            TMP = (DIFPARAM(INDT) - DIFPARAM(INDB))/(2.*DYLOC)
-            DIFPARDY(IND) = DIFPARDY(IND) + TMP
+            TMP = (diffr%param(INDT) - diffr%param(INDB))/(2.*DYLOC)
+            diffr%dpardy(IND) = diffr%dpardy(IND) + TMP
          END IF
       END DO
    END DO
@@ -6000,10 +6004,10 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
 
    IF ( OPTG.EQ.1 ) THEN
       DO IND = 1, MCGRD
-         TMP_X = DIFPARDX(IND)
-         TMP_Y = DIFPARDY(IND)
-         DIFPARDX(IND) = COSPC * TMP_X - SINPC * TMP_Y
-         DIFPARDY(IND) = SINPC * TMP_X + COSPC * TMP_Y
+         TMP_X = diffr%dpardx(IND)
+         TMP_Y = diffr%dpardy(IND)
+         diffr%dpardx(IND) = COSPC * TMP_X - SINPC * TMP_Y
+         diffr%dpardy(IND) = SINPC * TMP_X + COSPC * TMP_Y
       END DO
    END IF
 
@@ -6015,8 +6019,8 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
          IY  = XYTST(2*IS)
          IND = KGRPNT(IX,IY)
          WRITE (PRTEST, "(10(1X,E12.4))") EN(IND), LAPE(IND),&
-         &DIFPARAM(IND),&
-         &DIFPARDX(IND), DIFPARDY(IND)
+         &diffr%param(IND),&
+         &diffr%dpardx(IND), diffr%dpardy(IND)
       END DO
    END IF
 

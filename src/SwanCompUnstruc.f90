@@ -1,4 +1,8 @@
 module swan_comp_unstruc
+   use swan_triad_state, only: triad_state_t
+   use swan_snl4_tables, only: snl4_tables_t
+   use swan_spectral_powers, only: spectral_powers_t
+   use swan_source_workspaces, only: thread_workspaces_t
    use swan_conv_accur, only: SwanConvAccur
    use swan_conv_stopc, only: SwanConvStopc
    use swan_diff_par, only: SwanDiffPar
@@ -14,8 +18,10 @@ module swan_comp_unstruc
    public :: SwanCompUnstruc
 contains
 
-subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it )
+subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it, &
+                             diffr, triads, snl4, spectral_powers, thread_workspaces )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, SWTSTA, SWTSTO
+   use swan_diffraction_state, only: diffraction_state_t
    use swan_computation, only: SWPRSET, SINTGRL, SOLPRE, SOLMAT, SOLMT1, SOURCE, PHILIM, RESCALE, SWSIP
    use swan_services, only: SWTRCF, SWACC
 
@@ -118,7 +124,6 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
     use SwanGridobjects
     use SwanCompdata
     use SwanQCM
-    use m_snl3
     use m_parall
     use swan_fftw_compat, only: cfft2i
 !METIS    use SwanParallel
@@ -142,6 +147,11 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
                                                              ! (*,5): cosine*sine of spectral directions
                                                              ! (*,6): sine^2 of spectral directions
     real, dimension(MSC), intent(in)               :: spcsig ! relative frequency bins
+    type(diffraction_state_t), intent(inout)       :: diffr  ! diffraction parameter and its derivatives
+    type(triad_state_t), intent(inout)              :: triads
+    type(snl4_tables_t), intent(inout)              :: snl4
+    type(spectral_powers_t), intent(in)              :: spectral_powers
+    type(thread_workspaces_t), intent(inout)         :: thread_workspaces
 
 !   Parameter variables
 
@@ -188,6 +198,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
     integer                               :: swpdir    ! sweep counter
     integer                               :: swpnr     ! sweep number
     integer                               :: tid       ! thread number
+    integer                               :: thread_count
     integer, dimension(3)                 :: v         ! vertices in present cell
     integer                               :: vb        ! vertex of begin of present face
     integer                               :: ve        ! vertex of end of present face
@@ -335,6 +346,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
 
 !$  integer, external :: omp_get_num_threads ! number of OpenMP threads being used
 !$  integer, external :: omp_get_thread_num  ! get thread number
+!$  integer, external :: omp_get_max_threads
 !
 !   Structure
 !
@@ -359,10 +371,14 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
     IYCGRD(1) = -9999  ! quadruplets are calculated once in each vertex during an iteration
 
     tid   = 0
+    thread_count = 1
+!$  thread_count = omp_get_max_threads()
+    call thread_workspaces%ensure_unstructured(thread_count)
 
     ! print all the settings used in SWAN run
 
-    if ( it == 1 .and. ITEST > 0 ) call SWPRSET (spcsig,spcdir)
+    if ( it == 1 .and. ITEST > 0 ) call SWPRSET (spcsig, spcdir,&
+                                                  triads%collinear)
 
     ! print test points
 
@@ -605,9 +621,11 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
 !TIMG    call SWTSTA(135)
     if ( IQUAD == 4 ) then
        ! cache the MDIA coefficients once and set the widest spectral range over all quadruplets
-       call SWPRE4W ( xis, snlc1, dal1, dal2, dal3, spcsig, wwint, wwawg, wwswg )
+       call SWPRE4W (xis, snlc1, dal1, dal2, dal3, spcsig, wwint, wwawg,&
+                     wwswg, snl4)
     elseif ( IQUAD > 0 ) then
-       call FAC4WW ( xis, snlc1, dal1, dal2, dal3, spcsig, wwint, wwawg, wwswg )
+       call FAC4WW (xis, snlc1, dal1, dal2, dal3, spcsig, wwint, wwawg,&
+                    wwswg, snl4)
     endif
 !TIMG    call SWTSTO(135)
     !$omp end single
@@ -617,7 +635,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
     !$omp single
 !TIMG    call SWTSTA(134)
     if ( ITRIAD > 0 ) then
-       if ( it == 1 .or. DYNDEP ) call FAC3WW ( compda(1,JDP2), spcsig )
+       if ( it == 1 .or. DYNDEP ) call FAC3WW (compda(1,JDP2), spcsig,&
+                                                triads)
     endif
 !TIMG    call SWTSTO(134)
     !$omp end single
@@ -663,11 +682,11 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
           allocate(qtl1(  0,0))
           allocate(qtl2(MSC,2))
        else if (ITRIAD == 2 .or. ITRIAD == 3) then
-          allocate(qtl1(MSC4D,2))
-          allocate(qtl2(MSC4D,4))
+          allocate(qtl1(triads%frequency_dimension,2))
+          allocate(qtl2(triads%frequency_dimension,4))
        else if (ITRIAD == 5) then
-          allocate(qtl1(MSC4D,2))
-          allocate(qtl2(MSC4D,2))
+          allocate(qtl1(triads%frequency_dimension,2))
+          allocate(qtl2(triads%frequency_dimension,2))
        endif
     else
        allocate(qtl1(0,0))
@@ -808,12 +827,14 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
 
        ! calculate diffraction parameter and its derivatives
 
-       if ( IDIFFR /= 0 ) call SwanDiffPar ( ac2, compda(1,JDP2), spcsig )
+       if ( IDIFFR /= 0 ) call SwanDiffPar ( ac2, compda(1,JDP2), spcsig, diffr )
 
        ! spatially filter the De Wit's biphase to prevent abrupt changes
        ! note: just copy the unfiltered one to array BIPHAS
 
-       if ( IBIPH == 3 ) call SWBIPM ( compda(1,JBIPH), compda(1,JDP2), compda(1,JHSIBC) )
+       if ( IBIPH == 3 ) call SWBIPM (compda(1,JBIPH), compda(1,JDP2),&
+                                      compda(1,JHSIBC),&
+                                      triads%biphase_unfiltered)
 
        ! all vertices are set untagged except non-active ones
 
@@ -944,7 +965,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
                       ! compute wave transport velocities in points of stencil for all directions
 
 !TIMG                      call SWTSTA(111)
-                      call SwanPropvelX ( cax, cay, compda(1,JVX2), compda(1,JVY2), cgo, spcdir(1,2), spcdir(1,3) )
+                      call SwanPropvelX ( cax, cay, compda(1,JVX2), compda(1,JVY2), cgo, spcdir(1,2), spcdir(1,3), diffr )
 !TIMG                      call SWTSTO(111)
 
                       ! get local contravariant base vectors and their directions at present vertex
@@ -1026,7 +1047,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
                                              iddtop          , spcdir(1,2)   , spcdir(1,3)   , spcdir(1,4)   , &
                                              spcdir(1,5)     , spcdir(1,6)   , rdx           , rdy           , &
                                              dhdx            , dhdy          , dkdx          , dkdy          , &
-                                             duxdx           , duxdy         , duydx         , duydy         )
+                                             duxdx           , duxdy         , duydx         , duydy         , &
+                                             diffr           )
 !TIMG                         call SWTSTO(113)
 
                          ! estimate action density in case of first iteration at cold start in stationary mode
@@ -1058,7 +1080,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
                                        hs              , compda(1,JQB)   , hm   , kmespc        , smebrk, kteta           , &
                                        compda(1,JPBOT) , compda(1,JBOTLV), compda(1,JGAMMA)                       , swpnr , &
                                        urmstop         ,                                                                    &
-                                       iddlow          , iddtop          )
+                                       iddlow          , iddtop          , triads, spectral_powers%value,&
+                                       thread_workspaces%unstructured(tid)%source%wcap)
 !TIMG                         call SWTSTO(116)
 
                          compda(ivert,JHS) = hs
@@ -1151,20 +1174,20 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
                             ! fill in the triad interpolation and scaling factors for current grid point
 
                             if (ITRIAD == 1 .or. ITRIAD == 11) then
-                               qtl2(:,1) = qtri2(:,KCGRD(1),1)
-                               qtl2(:,2) = qtri2(:,KCGRD(1),2)
+                               qtl2(:,1) = triads%scaling(:,KCGRD(1),1)
+                               qtl2(:,2) = triads%scaling(:,KCGRD(1),2)
                             else if (ITRIAD == 2 .or. ITRIAD == 3) then
-                               qtl1(:,1) = qtri1(:,1)
-                               qtl1(:,2) = qtri1(:,2)
-                               qtl2(:,1) = qtri2(:,KCGRD(1),1)
-                               qtl2(:,2) = qtri2(:,KCGRD(1),2)
-                               qtl2(:,3) = qtri2(:,KCGRD(1),3)
-                               qtl2(:,4) = qtri2(:,KCGRD(1),4)
+                               qtl1(:,1) = triads%interpolation(:,1)
+                               qtl1(:,2) = triads%interpolation(:,2)
+                               qtl2(:,1) = triads%scaling(:,KCGRD(1),1)
+                               qtl2(:,2) = triads%scaling(:,KCGRD(1),2)
+                               qtl2(:,3) = triads%scaling(:,KCGRD(1),3)
+                               qtl2(:,4) = triads%scaling(:,KCGRD(1),4)
                             else if (ITRIAD == 5) then
-                               qtl1(:,1) = qtri1(:,1)
-                               qtl1(:,2) = qtri1(:,2)
-                               qtl2(:,1) = qtri2(:,KCGRD(1),1)
-                               qtl2(:,2) = qtri2(:,KCGRD(1),2)
+                               qtl1(:,1) = triads%interpolation(:,1)
+                               qtl1(:,2) = triads%interpolation(:,2)
+                               qtl2(:,1) = triads%scaling(:,KCGRD(1),1)
+                               qtl2(:,2) = triads%scaling(:,KCGRD(1),2)
                             endif
 
                             ! compute the source terms
@@ -1203,7 +1226,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
                                           compda(1,JAICE2)    , compda(1,JHICE2)    ,                                             &
                                           compda(1,JURSEL)    , anybin              , reflso              , compda(1,JTAUW)     , &
                                           compda(1,JBIPH)                                                                         &
-                                         ,urmstop                                                                                 &
+                                         ,urmstop              ,triads              ,snl4               ,spectral_powers,&
+                                         thread_workspaces%unstructured(tid)%source%wcap&
                                                                                                                                 )
                             endif
                             if ( IQCM > 0 .or. IGEN == 4 ) then
@@ -1219,8 +1243,9 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
                                             spcdir(1,2)        , spcdir(1,3)         , etot                , hm                 , &
                                             qbloc              , smebrk              , kteta               , kmespc             , &
                                             cft                , rft                 , sft                 , wft                , &
-                                            wsave              , cfd                 , wfd                 , wsavd                &
-                                                                                                                                )
+                                            wsave              , cfd                 , wfd                 , wsavd              , &
+                                            thread_workspaces%unstructured(tid)%source%wcap%mean_frequency_wam                    &
+                                                                                                                                 )
                             endif
 !TIMG                            call SWTSTO(117)
 

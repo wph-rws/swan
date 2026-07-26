@@ -4,9 +4,9 @@ program test_physics_kernels
 !  numbers, so they stay meaningful if the implementation is ever rewritten:
 !  a run that shifts by a fraction of a percent shows up here as a broken
 !  identity instead of as a moved figure at the end of a full simulation.
-   use swan_wave_physics, only: kscip1
-   use swan_spectrum_transform, only: gammaf
-   use swan_geometry, only: tcross
+   use swan_wave_physics, only: kscip1, kscip1_kernel
+   use swan_spectrum_transform, only: gammaf, gammaf_kernel
+   use swan_geometry, only: tcross, tcross_kernel
    use swcomm3, only: GRAV
    implicit none
 
@@ -16,6 +16,7 @@ program test_physics_kernels
    call test_group_velocity_identity
    call test_gamma_function
    call test_line_crossing
+   call test_pure_kernel_equivalence
 
 contains
 
@@ -154,10 +155,54 @@ contains
          "TCROSS reported a crossing between parallel segments")
    end subroutine test_line_crossing
 
+!  The public legacy entries retain tracing and shared compatibility state.
+!  Their mathematical results must remain identical to the pure kernels.
+   subroutine test_pure_kernel_equivalence
+      integer, parameter :: n = 5
+      real :: sigma(n), wrapper_k(n), kernel_k(n)
+      real :: wrapper_cg(n), kernel_cg(n), wrapper_n(n), kernel_n(n)
+      real :: saved_grav
+      logical :: wrapper_on_obstacle, kernel_on_obstacle
+      logical :: wrapper_crossing, kernel_crossing
+
+      saved_grav = GRAV
+      GRAV = 9.81
+      sigma = [0.1, 0.5, 1.0, 2.0, 4.0]
+
+      call kscip1(n, sigma, 7.5, wrapper_k, wrapper_cg, wrapper_n)
+      call kscip1_kernel(n, sigma, 7.5, GRAV, kernel_k, kernel_cg, kernel_n)
+      call require(all(same_bits(wrapper_k, kernel_k)), &
+         "KSCIP1 wrapper differs from its pure kernel")
+      call require(all(same_bits(wrapper_cg, kernel_cg)), &
+         "KSCIP1 group velocity differs from its pure kernel")
+      call require(all(same_bits(wrapper_n, kernel_n)), &
+         "KSCIP1 group number differs from its pure kernel")
+
+      call require(same_bits(gammaf(0.75), gammaf_kernel(0.75)), &
+         "GAMMAF wrapper differs from its pure kernel")
+
+      wrapper_crossing = tcross(0.0, 2.0, 1.0, 1.0, 1.0, 1.0, 0.0, 2.0, &
+                                wrapper_on_obstacle)
+      call tcross_kernel(0.0, 2.0, 1.0, 1.0, 1.0, 1.0, 0.0, 2.0, &
+                         kernel_crossing, kernel_on_obstacle)
+      call require(wrapper_crossing .eqv. kernel_crossing, &
+         "TCROSS wrapper differs from its pure kernel")
+      call require(wrapper_on_obstacle .eqv. kernel_on_obstacle, &
+         "TCROSS endpoint classification differs from its pure kernel")
+
+      GRAV = saved_grav
+   end subroutine test_pure_kernel_equivalence
+
    logical function close(actual, expected, tolerance)
       real, intent(in) :: actual, expected, tolerance
       close = abs(actual - expected) <= tolerance * max(abs(expected), 1.0)
    end function close
+
+   elemental logical function same_bits(actual, expected)
+      real, intent(in) :: actual, expected
+
+      same_bits = transfer(actual, 0) == transfer(expected, 0)
+   end function same_bits
 
    subroutine require(condition, message)
       logical, intent(in) :: condition

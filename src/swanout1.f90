@@ -17,6 +17,7 @@
 !************************************************************************
 
 module swan_output_orchestration
+   use swan_diffraction_state, only: diffraction_state_t
    use swan_compute_force, only: SwanComputeForce
    use swan_find_point, only: SwanFindPoint
    implicit none(type, external)
@@ -29,7 +30,7 @@ SUBROUTINE SWOUTP (AC2             ,&
 &SPCSIG          ,SPCDIR  ,&
 &COMPDA          ,XYTST   ,&
 &KGRPNT          ,XCGRID  ,&
-&YCGRID          ,OURQT   )
+&YCGRID          ,OURQT   ,DIFFR   )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, STPNOW
    USE swan_services, ONLY: AC2TST
    USE swan_output_writers, ONLY: SWBLOK, SWBLKP, SWBLKV, SWSPEC, SWTABP
@@ -147,6 +148,7 @@ SUBROUTINE SWOUTP (AC2             ,&
 ! i   YCGRID: Coordinates of computational grid in y-direction
 
    REAL(KIND=KIND(0.0D0))  OURQT(MAX_OUTP_REQ)
+    TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
    REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
@@ -390,7 +392,7 @@ SUBROUTINE SWOUTP (AC2             ,&
 
       CALL SWOEXD (RTYPE, OQPROC, MIP, VOQ(1+2*MIP),&
       &VOQ(1+3*MIP), VOQR, VOQ(1),&
-      &COMPDA, KGRPNT, FORCE, CROSS, IONOD&
+      &COMPDA, KGRPNT, FORCE, CROSS, IONOD, DIFFR&
       &,IRQ&
       &)
       IF (STPNOW()) RETURN
@@ -1466,7 +1468,7 @@ end subroutine SWOEXC
 !************************************************************************
 !                                                                      *
 SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA ,&
-&KGRPNT, FORCE, CROSS, IONOD&
+&KGRPNT, FORCE, CROSS, IONOD, DIFFR&
 &,IRQ&
 &)
    USE swan_file_opening, ONLY: FOR
@@ -1483,13 +1485,14 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA ,&
    USE SWCOMM4
    USE swan_time, ONLY: default_time_context
    USE M_PARALL
-   USE M_DIFFR
    USE OUTP_DATA
    USE SwanGriddata
    USE SwanGridobjects
 !METIS   USE SwanParallel
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
 
 
 !   --|-----------------------------------------------------------|--
@@ -2734,11 +2737,11 @@ IF (OQPROC(9)) THEN
          IF (ITEST.GE.50 .OR. IOUTES .GE. 10) WRITE (PRTEST, "(' SWOEXD, type:', 4I3)") 49,&
          &VOQR(49), 0
          IF (OPTG.NE.5) THEN
-            CALL SWIPOL (DIFPARAM(:), OVEXCV(49), XC, YC, MIP, CROSS,&
+            CALL SWIPOL (diffr%param(:), OVEXCV(49), XC, YC, MIP, CROSS,&
             &VOQ(1,VOQR(49)) ,KGRPNT, COMPDA(1,JDP2))
          ELSE
             CALL SwanInterpolateOutput ( VOQ(1,VOQR(49)), VOQ(1,1),&
-            &VOQ(1,2), DIFPARAM(:),&
+            &VOQ(1,2), diffr%param(:),&
             &MIP, KVERT, OVEXCV(49) )
          ENDIF
       ELSE

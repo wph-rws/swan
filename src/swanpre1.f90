@@ -17,6 +17,9 @@
 !************************************************************************
 
 module swan_command_reading
+   use swan_triad_state, only: triad_state_t
+   use swan_snl4_tables, only: snl4_tables_t
+   use swan_spectral_powers, only: spectral_powers_t
    use swan_input_helpers, only: REPARM
    use swan_create_edges, only: SwanCreateEdges
    use swan_grid_topology, only: SwanGridTopology
@@ -32,7 +35,7 @@ module swan_command_reading
 contains
 
 !                                                                      *
-SUBROUTINE SWREAD (COMPUT)
+SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
    USE swan_array_copy, ONLY: SWCOPI
    USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
    USE swan_angle_conversions, ONLY: DEGCNV, ANGRAD, ANGDEG
@@ -55,8 +58,6 @@ SUBROUTINE SWREAD (COMPUT)
    USE SWCOMM3
    USE SWCOMM4
    USE OUTP_DATA
-   USE M_SNL4
-   USE M_SNL3
    USE M_GENARR
    USE M_OBSTA
    USE M_PARALL
@@ -468,6 +469,9 @@ SUBROUTINE SWREAD (COMPUT)
    INTEGER   TIMARR(6)
    CHARACTER(LEN=8)  :: PSNAME, PNAME
    CHARACTER(LEN=*)  :: COMPUT
+   TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
+   TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
+   TYPE(spectral_powers_t), INTENT(INOUT) :: SPECTRAL_POWERS
    CHARACTER(LEN=1)  :: PTYPE
    INTEGER, SAVE :: IENT = 0       ! number of entries to this subr
    INTEGER, SAVE :: LWINDR = 0     ! if non-zero, there is wind
@@ -478,6 +482,8 @@ SUBROUTINE SWREAD (COMPUT)
    INTEGER :: INDX(1)
    LOGICAL :: SWELLSET = .FALSE.
    LOGICAL :: WCAPSET  = .FALSE.
+
+   ASSOCIATE(TCOLL => TRIADS%collinear)
 
    CALL STRACE (IENT, 'SWREAD')
 
@@ -1810,7 +1816,7 @@ CALL NWLINE
 
       IF(.NOT.ALLOCATED(SPCSIG)) ALLOCATE(SPCSIG(MSC))
       IF(.NOT.ALLOCATED(SPCDIR)) ALLOCATE(SPCDIR(MDC,6))
-      CALL SSFILL(SPCSIG,SPCDIR)
+      CALL SSFILL(SPCSIG,SPCDIR,SPECTRAL_POWERS)
 
       IF (ITEST.GE. 20) THEN
          IF(OPTG .EQ. 1)WRITE (PRINTF,"('GRID: REGULAR RECTANGULAR')")
@@ -3162,8 +3168,8 @@ CALL NWLINE
 !     ----------------------------------------------------------------
 
    IF (KEYWIS('MDIA')) THEN
-      IF (ALLOCATED(LAMBDA)) THEN
-         DEALLOCATE (LAMBDA,CNL4_1,CNL4_2)
+      IF (ALLOCATED(SNL4%lambda)) THEN
+         DEALLOCATE (SNL4%lambda,SNL4%coefficient_1,SNL4%coefficient_2)
       ENDIF
       ALLOCATE (RLAMBDA(1000))
       CALL INKEYW ('STA', '   ')
@@ -3178,37 +3184,39 @@ CALL NWLINE
                ILAMBDA = ILAMBDA + 1
             ENDIF
          ENDDO
-         MDIA = ILAMBDA
+         SNL4%quadruplet_count = ILAMBDA
 !        Reject an empty lambda list. With MDIA = 0 the loop over the
 !        quadruplets in SWPRE4W does not execute, so MSC4MI/MSC4MA and
 !        MDC4MI/MDC4MA would be assigned from uninitialised locals and the
 !        derived spectral range MSCMAX/MDCMAX would be meaningless. This is
 !        the only path that can set MDIA below one.
-         IF (MDIA.LT.1) CALL MSGERR (4,&
+         IF (SNL4%quadruplet_count.LT.1) CALL MSGERR (4,&
          &'MDIA LAMBDA requires at least one non-negative [lambda] value')
-         ALLOCATE (LAMBDA(MDIA))
-         LAMBDA(1:MDIA) = RLAMBDA(1:MDIA)
+         ALLOCATE (SNL4%lambda(SNL4%quadruplet_count))
+         SNL4%lambda(1:SNL4%quadruplet_count) =&
+         &RLAMBDA(1:SNL4%quadruplet_count)
          DEALLOCATE (RLAMBDA)
       ELSE
          CALL WRNKEY
       END IF
       CALL INKEYW ('STA', '   ')
-      ALLOCATE (CNL4_1(MDIA),CNL4_2(MDIA))
+      ALLOCATE (SNL4%coefficient_1(SNL4%quadruplet_count),&
+      &SNL4%coefficient_2(SNL4%quadruplet_count))
       IF (KEYWIS('CNL4_12')) THEN
-         DO ICNL4=1,MDIA
-            CALL INREAL('CNL4_1',CNL4_1(ICNL4),'REQ',0.)
-            CALL INREAL('CNL4_2',CNL4_2(ICNL4),'REQ',0.)
+         DO ICNL4=1,SNL4%quadruplet_count
+            CALL INREAL('CNL4_1',SNL4%coefficient_1(ICNL4),'REQ',0.)
+            CALL INREAL('CNL4_2',SNL4%coefficient_2(ICNL4),'REQ',0.)
          END DO
       ELSEIF (KEYWIS('CNL4')) THEN
-         DO ICNL4=1,MDIA
-            CALL INREAL('CNL4',CNL4_1(ICNL4),'REQ',0.)
+         DO ICNL4=1,SNL4%quadruplet_count
+            CALL INREAL('CNL4',SNL4%coefficient_1(ICNL4),'REQ',0.)
          END DO
-         CNL4_2 = CNL4_1
+         SNL4%coefficient_2 = SNL4%coefficient_1
       ELSE
          CALL WRNKEY
       END IF
-      CNL4_1 = CNL4_1 * ((2.*PI)**9)
-      CNL4_2 = CNL4_2 * ((2.*PI)**9)
+      SNL4%coefficient_1 = SNL4%coefficient_1 * ((2.*PI)**9)
+      SNL4%coefficient_2 = SNL4%coefficient_2 * ((2.*PI)**9)
       CYCLE command_loop
    ENDIF
 
@@ -3710,6 +3718,7 @@ CALL NWLINE
 
 !   * end of subroutine SWREAD *
    END DO command_loop
+   END ASSOCIATE
 
 CONTAINS
 
@@ -4589,7 +4598,7 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
 end subroutine SREDEP
 !************************************************************************
 !                                                                      *
-SUBROUTINE SSFILL (SPCSIG, SPCDIR)
+SUBROUTINE SSFILL (SPCSIG, SPCDIR, SPECTRAL_POWERS)
    USE swan_service_interfaces, ONLY: STRACE
 !                                                                      *
 !************************************************************************
@@ -4601,7 +4610,6 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR)
    USE SWCOMM2
    USE SWCOMM3
    USE SWCOMM4
-   USE M_WCAP
 
 
 !   --|-----------------------------------------------------------|--
@@ -4671,6 +4679,7 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR)
 
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
+   TYPE(spectral_powers_t), INTENT(INOUT) :: SPECTRAL_POWERS
 
 
 !  5. SUBROUTINES CALLING
@@ -4700,11 +4709,6 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR)
    REAL    :: OLDDIR, SFAC
    CALL STRACE(IENT,'SSFILL')
 
-!     Allocate arrays in module M_WCAP
-
-   IF (.NOT.ALLOCATED(SIGPOW)) ALLOCATE (SIGPOW(MSC,6))
-
-
 !     distribution of spectral frequencies
 !
 !     FRINTF is the frequency integration factor (=df/f)
@@ -4719,12 +4723,7 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR)
 
 !     Calculate powers of sigma and store in global array
 
-   SIGPOW(:,1) = SPCSIG
-   SIGPOW(:,2) = SPCSIG**2
-   SIGPOW(:,3) = SPCSIG * SIGPOW(:,2)
-   SIGPOW(:,4) = SPCSIG * SIGPOW(:,3)
-   SIGPOW(:,5) = SPCSIG * SIGPOW(:,4)
-   SIGPOW(:,6) = SPCSIG * SIGPOW(:,5)
+   CALL SPECTRAL_POWERS%REBUILD(SPCSIG)
 
 !     distribution of spectral directions
 

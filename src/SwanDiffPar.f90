@@ -1,10 +1,11 @@
 module swan_diff_par
+   use swan_diffraction_state, only: diffraction_state_t
    implicit none(type, external)
    private
    public :: SwanDiffPar
 contains
 
-subroutine SwanDiffPar ( ac2, dep2, spcsig )
+subroutine SwanDiffPar ( ac2, dep2, spcsig, diffr )
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_wave_physics, ONLY: KSCIP1
    USE swan_spectral_integration, ONLY: SwanIntgratSpc
@@ -86,7 +87,6 @@ subroutine SwanDiffPar ( ac2, dep2, spcsig )
     use swcomm2
     use swcomm3
     use swcomm4
-    use m_diffr
     use SwanGriddata
     use SwanGridobjects
 
@@ -97,6 +97,7 @@ subroutine SwanDiffPar ( ac2, dep2, spcsig )
     real, dimension(MDC,MSC,nverts), intent(in) :: ac2      ! action density at current time level
     real, dimension(nverts), intent(in)         :: dep2     ! water depth at current time level
     real, dimension(MSC), intent(in)            :: spcsig   ! relative frequency bins
+    type(diffraction_state_t), intent(inout)    :: diffr    ! diffraction parameter and its derivatives
 
 !   Local variables
 
@@ -221,7 +222,7 @@ subroutine SwanDiffPar ( ac2, dep2, spcsig )
 
     ! compute diffraction parameter in vertices
 
-    DIFPARAM = 1.
+    diffr%param = 1.
 
     vertexloop : do ivert = 1, nverts
 
@@ -363,7 +364,7 @@ subroutine SwanDiffPar ( ac2, dep2, spcsig )
              delta = 0.
           endif
 
-          if ( delta > -1. ) DIFPARAM(ivert) = sqrt(1.+delta)
+          if ( delta > -1. ) diffr%param(ivert) = sqrt(1.+delta)
 
        endif
 
@@ -377,8 +378,8 @@ subroutine SwanDiffPar ( ac2, dep2, spcsig )
 
     ! compute derivatives of diffraction parameter in vertices
 
-    DIFPARDX = 0.
-    DIFPARDY = 0.
+    diffr%dpardx = 0.
+    diffr%dpardy = 0.
 
     vertexloop2 : do ivert = 1, nverts
 
@@ -411,7 +412,7 @@ subroutine SwanDiffPar ( ac2, dep2, spcsig )
 
           ! determine diffraction parameter in centroid in present cell
 
-          difp0 = ( DIFPARAM(v(1)) + DIFPARAM(v(2)) + DIFPARAM(v(3)) )/ 3.
+          difp0 = ( diffr%param(v(1)) + diffr%param(v(2)) + diffr%param(v(3)) )/ 3.
 
           ! get next cell in counterclockwise direction
 
@@ -428,7 +429,7 @@ subroutine SwanDiffPar ( ac2, dep2, spcsig )
 
           ! determine diffraction parameter in centroid of next cell
 
-          difp1 = ( DIFPARAM(v(1)) + DIFPARAM(v(2)) + DIFPARAM(v(3)) )/ 3.
+          difp1 = ( diffr%param(v(1)) + diffr%param(v(2)) + diffr%param(v(3)) )/ 3.
 
           ! compute contribution to area of centroid dual
 
@@ -458,8 +459,8 @@ subroutine SwanDiffPar ( ac2, dep2, spcsig )
 
           endif
 
-          DIFPARDX(ivert) = dgxdx
-          DIFPARDY(ivert) = dgydy
+          diffr%dpardx(ivert) = dgxdx
+          diffr%dpardy(ivert) = dgydy
 
        endif
 

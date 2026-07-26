@@ -1,4 +1,5 @@
 module swan_propvel_s
+   use swan_diffraction_state, only: diffraction_state_t
    implicit none(type, external)
    private
    public :: SwanPropvelS
@@ -10,7 +11,8 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
                           iddtop, ecos  , esin  , coscos, &
                           sincos, sinsin, rdx   , rdy   , &
                           dhdx  , dhdy  , dkdx  , dkdy  , &
-                          duxdx , duxdy , duydx , duydy )
+                          duxdx , duxdy , duydx , duydy , &
+                          diffr )
    USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
@@ -75,7 +77,6 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
     use swcomm2
     use swcomm3
     use swcomm4
-    use m_diffr
     use SwanGriddata
     use SwanGridobjects
     use SwanCompdata
@@ -113,6 +114,7 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
     real, dimension(2), intent(in)             :: rdx    ! first component of contravariant base vector rdx(b) = a^(b)_1
     real, dimension(2), intent(in)             :: rdy    ! second component of contravariant base vector rdy(b) = a^(b)_2
     real, dimension(MSC), intent(in)           :: spcsig ! relative frequency bins
+    type(diffraction_state_t), intent(in)      :: diffr  ! diffraction parameter and its derivatives
 
 !   Local variables
 
@@ -202,7 +204,7 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
 
           cs(1) =  kwave(is,1) * spcsig(is) / sinh (2.* kd)
           cs(5) = -cgo(is,1) * kwave(is,1)
-          if ( IDIFFR /= 0 ) cs(5) = cs(5)*DIFPARAM(iv1)
+          if ( IDIFFR /= 0 ) cs(5) = cs(5)*diffr%param(iv1)
 
           cs( 6) = cs(1) * cs(2)
           cs( 7) = cs(1) * (cs(3)+cs(4))
@@ -274,7 +276,7 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
              id = mod ( iddum - 1 + MDC , MDC ) + 1
 
              cad(id,is) = esin(id)*cd(2) - ecos(id)*cd(3)
-             if ( IDIFFR /= 0 ) cad(id,is) = cad(id,is)*DIFPARAM(iv1) - DIFPARDX(iv1)*cgo(is,1)*esin(id) + DIFPARDY(iv1)*cgo(is,1)*ecos(id)
+             if ( IDIFFR /= 0 ) cad(id,is) = cad(id,is)*diffr%param(iv1) - diffr%dpardx(iv1)*cgo(is,1)*esin(id) + diffr%dpardy(iv1)*cgo(is,1)*ecos(id)
              if ( ICUR   /= 0 ) cad(id,is) = cad(id,is) + sincos(id)*(duxdx-duydy) + sinsin(id)*duydx - coscos(id)*duxdy
 
           enddo

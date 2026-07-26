@@ -3,6 +3,8 @@ program test_contexts
       keywis, rdinit, getkar
    use swan_kinds, only: swan_double
    use swan_time, only: dttime, dtinti, time_context_t
+   use swan_spectral_powers, only: spectral_powers_t
+   use swan_source_workspaces, only: wcap_workspace_t
    use swan_io_context, only: io_context_t, diagnostics_context_t, &
       capture_io_context, apply_io_context, &
       capture_diagnostics_context, apply_diagnostics_context
@@ -18,8 +20,77 @@ program test_contexts
    call test_error_reporting
    call test_file_opening_context
    call test_reader_own_log
+   call test_spectral_powers
+   call test_wcap_dry_point_invariants
 
 contains
+
+   subroutine test_wcap_dry_point_invariants
+      type(wcap_workspace_t) :: workspace
+
+      workspace%total_action = 1.0
+      workspace%first_energy_moment = 2.0
+      workspace%second_energy_moment = 3.0
+      workspace%fourth_energy_moment = 4.0
+      workspace%energy_over_root_wavenumber = 5.0
+      workspace%energy_times_wavenumber = 6.0
+      workspace%mean_frequency_wam = 7.0
+
+      call workspace%begin_point()
+
+      call require(same_bits(workspace%total_action, 1.0),&
+         "dry-point ACTOT carry-over changed")
+      call require(same_bits(workspace%first_energy_moment, 2.0),&
+         "dry-point ETOT1 carry-over changed")
+      call require(same_bits(workspace%second_energy_moment, 3.0),&
+         "dry-point ETOT2 carry-over changed")
+      call require(same_bits(workspace%fourth_energy_moment, 4.0),&
+         "dry-point ETOT4 carry-over changed")
+      call require(same_bits(workspace%energy_over_root_wavenumber, 5.0),&
+         "dry-point EDRKTOT carry-over changed")
+      call require(same_bits(workspace%energy_times_wavenumber, 6.0),&
+         "dry-point EKTOT carry-over changed")
+      call require(same_bits(workspace%mean_frequency_wam, 7.0),&
+         "dry-point SIGM_WAM carry-over changed")
+      call require(same_bits(workspace%mean_wavenumber_wam, 10.0) .and.&
+                   same_bits(workspace%mean_wavenumber_01, 10.0) .and.&
+                   same_bits(workspace%mean_frequency_01, 10.0) .and.&
+                   same_bits(workspace%mean_frequency_10, 10.0),&
+         "unconditional whitecapping point defaults changed")
+   end subroutine test_wcap_dry_point_invariants
+
+   subroutine test_spectral_powers
+      type(spectral_powers_t) :: powers
+      real :: first_grid(3), second_grid(2)
+      integer :: exponent
+
+      first_grid = [0.5, 1.0, 2.0]
+      call powers%rebuild(first_grid)
+      call require(all(shape(powers%value) == [3, 6]),&
+         "spectral powers got the wrong initial shape")
+      do exponent = 1, 6
+         call require(all(abs(powers%value(:,exponent) -&
+            first_grid**exponent) < 1.0e-6),&
+            "spectral powers do not match the frequency formula")
+      end do
+
+      first_grid = [0.25, 0.75, 1.25]
+      call powers%rebuild(first_grid)
+      call require(all(abs(powers%value(:,6) - first_grid**6) < 1.0e-6),&
+         "same-size spectral rebuild retained old values")
+
+      second_grid = [0.3, 0.9]
+      call powers%rebuild(second_grid)
+      call require(all(shape(powers%value) == [2, 6]),&
+         "changed-size spectral rebuild retained the old shape")
+
+      call powers%clear()
+      call require(.not. allocated(powers%value),&
+         "spectral cleanup left its table allocated")
+      call powers%rebuild(first_grid)
+      call require(all(shape(powers%value) == [3, 6]),&
+         "spectral powers could not be reused after cleanup")
+   end subroutine test_spectral_powers
 
    subroutine test_reader_own_log
       use swan_input_parser, only: inkeyw
@@ -330,5 +401,11 @@ contains
 
       if (.not. condition) error stop message
    end subroutine require
+
+   elemental logical function same_bits(actual, expected)
+      real, intent(in) :: actual, expected
+
+      same_bits = transfer(actual, 0) == transfer(expected, 0)
+   end function same_bits
 
 end program test_contexts

@@ -1,10 +1,11 @@
 module swan_propvel_x
+   use swan_diffraction_state, only: diffraction_state_t
    implicit none(type, external)
    private
    public :: SwanPropvelX
 contains
 
-subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin )
+subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin, diffr )
    USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
@@ -52,7 +53,6 @@ subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin )
 
     use ocpcomm4
     use swcomm3
-    use m_diffr
     use SwanGriddata
     use SwanCompdata
 
@@ -65,6 +65,7 @@ subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin )
     real, dimension(MSC,ICMAX), intent(in)      :: cgo  ! group velocity
     real, dimension(MDC), intent(in)            :: ecos ! help array containing cosine of spectral directions
     real, dimension(MDC), intent(in)            :: esin ! help array containing sine of spectral directions
+    type(diffraction_state_t), intent(in)       :: diffr ! diffraction parameter and its derivatives
     real, dimension(nverts), intent(in)         :: ux2  ! ambient velocity in x-direction at current time level
     real, dimension(nverts), intent(in)         :: uy2  ! ambient velocity in y-direction at current time level
 
@@ -101,8 +102,8 @@ subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin )
        if ( IDIFFR /= 0 .and. PDIFFR(3) /= 0. ) then
           do is = 1, MSC
              do id = 1 ,MDC
-                cax(id,is,ic) = cax(id,is,ic)*DIFPARAM(ivert)
-                cay(id,is,ic) = cay(id,is,ic)*DIFPARAM(ivert)
+                cax(id,is,ic) = cax(id,is,ic)*diffr%param(ivert)
+                cay(id,is,ic) = cay(id,is,ic)*diffr%param(ivert)
              enddo
           enddo
        endif

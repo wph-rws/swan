@@ -58,6 +58,8 @@
 !******************************************************************
 
 module swan_nonlinear_interactions
+   use swan_triad_state, only: triad_state_t
+   use swan_snl4_tables, only: snl4_tables_t
    implicit none(type, external)
    private
    public :: FAC4WW, RANGE4, SWPRE4W, SWSNL1, SWSNL2, SWSNL3, SWSNL4, SWSNL8
@@ -67,7 +69,7 @@ contains
 
 SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
 &DAL1  ,DAL2  ,DAL3         ,SPCSIG,&
-&WWINT ,WWAWG ,WWSWG                )
+&WWINT ,WWAWG ,WWSWG, SNL4          )
    USE swan_service_interfaces, ONLY: STRACE
 
 !******************************************************************
@@ -75,7 +77,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE M_SNL4
+   TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -237,7 +239,8 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
 
    IF (LTRACE) CALL STRACE (IENT,'FAC4WW')
 
-   IF (ALLOCATED(AF11)) DEALLOCATE(AF11)
+   IF (ALLOCATED(SNL4%frequency_power_11))&
+   &DEALLOCATE(SNL4%frequency_power_11)
 
 !     *** Compute frequency indices                               ***
 !     *** XIS is the relative increment of the relative frequency ***
@@ -436,13 +439,13 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
    WWSWG(7) = SWG7
    WWSWG(8) = SWG8
 
-   ALLOCATE (AF11(MSC4MI:MSC4MA))
+   ALLOCATE (SNL4%frequency_power_11(MSC4MI:MSC4MA))
 
 !     *** Fill scaling array (f**11)                     ***
 !     *** compute the radian frequency**11 for IS=1, MSC ***
 
    do IS=1, MSC
-      AF11(IS) = ( SPCSIG(IS) / ( 2. * PI ) )**11
+      SNL4%frequency_power_11(IS) = ( SPCSIG(IS) / ( 2. * PI ) )**11
    end do
 
 !     *** compute the radian frequency for the IS = MSC+1, ISHGH ***
@@ -450,7 +453,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
    FREQ   = SPCSIG(MSC) / ( 2. * PI )
    do IS = MSC+1, ISHGH
       FREQ   = FREQ * XIS
-      AF11(IS) = FREQ**11
+      SNL4%frequency_power_11(IS) = FREQ**11
    end do
 
 !     *** compute the radian frequency for IS = 0, ISLOW ***
@@ -458,7 +461,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
    FREQ   = SPCSIG(1) / ( 2. * PI )
    do IS = 0, ISLOW, -1
       FREQ   = FREQ / XIS
-      AF11(IS) = FREQ**11
+      SNL4%frequency_power_11(IS) = FREQ**11
    end do
 
 !     *** test output ***
@@ -670,7 +673,7 @@ end subroutine RANGE4
 
 SUBROUTINE SWPRE4W (XIS   ,SNLC1 ,&
 &DAL1  ,DAL2  ,DAL3  ,SPCSIG,&
-&WWINT ,WWAWG ,WWSWG        )
+&WWINT ,WWAWG ,WWSWG, SNL4  )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !********************************************************************
@@ -678,7 +681,7 @@ SUBROUTINE SWPRE4W (XIS   ,SNLC1 ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE M_SNL4
+   TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
 
 !  2. Purpose
 !
@@ -716,29 +719,40 @@ SUBROUTINE SWPRE4W (XIS   ,SNLC1 ,&
    IF (LTRACE) CALL STRACE (IENT,'SWPRE4W')
 
    REBUILD = .TRUE.
-   IF ( ALLOCATED(WWINTM) .AND. ALLOCATED(WWAWGM) .AND.&
-   &ALLOCATED(WWSWGM) .AND. ALLOCATED(DAL1M)  .AND.&
-   &ALLOCATED(DAL2M)  .AND. ALLOCATED(DAL3M)  .AND.&
-   &ALLOCATED(AF11)   .AND. ALLOCATED(SIGSAV) .AND.&
+   IF ( ALLOCATED(SNL4%cached_indices) .AND.&
+   &ALLOCATED(SNL4%cached_angular_weights) .AND.&
+   &ALLOCATED(SNL4%cached_spectral_weights) .AND.&
+   &ALLOCATED(SNL4%cached_dal1) .AND. ALLOCATED(SNL4%cached_dal2) .AND.&
+   &ALLOCATED(SNL4%cached_dal3) .AND.&
+   &ALLOCATED(SNL4%frequency_power_11) .AND. ALLOCATED(SIGSAV) .AND.&
    &ALLOCATED(LAMSAV) ) THEN
-      IF ( SIZE(WWINTM,1).EQ.24 .AND. SIZE(WWINTM,2).EQ.MDIA .AND.&
-      &SIZE(WWAWGM,1).EQ.8  .AND. SIZE(WWAWGM,2).EQ.MDIA .AND.&
-      &SIZE(WWSWGM,1).EQ.8  .AND. SIZE(WWSWGM,2).EQ.MDIA .AND.&
-      &SIZE(DAL1M).EQ.MDIA  .AND. SIZE(DAL2M).EQ.MDIA .AND.&
-      &SIZE(DAL3M).EQ.MDIA  .AND. SIZE(SIGSAV).EQ.MSC .AND.&
-      &SIZE(LAMSAV).EQ.MDIA ) THEN
+      IF ( SIZE(SNL4%cached_indices,1).EQ.24 .AND.&
+      &SIZE(SNL4%cached_indices,2).EQ.SNL4%quadruplet_count .AND.&
+      &SIZE(SNL4%cached_angular_weights,1).EQ.8 .AND.&
+      &SIZE(SNL4%cached_angular_weights,2).EQ.SNL4%quadruplet_count .AND.&
+      &SIZE(SNL4%cached_spectral_weights,1).EQ.8 .AND.&
+      &SIZE(SNL4%cached_spectral_weights,2).EQ.SNL4%quadruplet_count .AND.&
+      &SIZE(SNL4%cached_dal1).EQ.SNL4%quadruplet_count .AND.&
+      &SIZE(SNL4%cached_dal2).EQ.SNL4%quadruplet_count .AND.&
+      &SIZE(SNL4%cached_dal3).EQ.SNL4%quadruplet_count .AND.&
+      &SIZE(SIGSAV).EQ.MSC .AND.&
+      &SIZE(LAMSAV).EQ.SNL4%quadruplet_count ) THEN
          REBUILD = .FALSE.
-         IF ( MDISAV.NE.MDIA .OR. MSCSAV.NE.MSC .OR. MDCSAV.NE.MDC )&
+         IF ( MDISAV.NE.SNL4%quadruplet_count .OR.&
+         &MSCSAV.NE.MSC .OR. MDCSAV.NE.MDC )&
          &REBUILD = .TRUE.
          IF ( DDIRSAV.NE.DDIR .OR. GRAVSAV.NE.GRAV .OR. PISAV.NE.PI )&
          &REBUILD = .TRUE.
          IF ( .NOT.REBUILD ) THEN
-            IF ( ANY(SIGSAV.NE.SPCSIG) .OR. ANY(LAMSAV.NE.LAMBDA) )&
+            IF ( ANY(SIGSAV.NE.SPCSIG) .OR.&
+            &ANY(LAMSAV.NE.SNL4%lambda) )&
             &REBUILD = .TRUE.
          ENDIF
          IF ( .NOT.REBUILD ) THEN
-            IF ( LBOUND(AF11,1).NE.WWINTM(15,1) .OR.&
-            &UBOUND(AF11,1).NE.WWINTM(16,1) ) REBUILD = .TRUE.
+            IF ( LBOUND(SNL4%frequency_power_11,1).NE.&
+            &SNL4%cached_indices(15,1) .OR.&
+            &UBOUND(SNL4%frequency_power_11,1).NE.&
+            &SNL4%cached_indices(16,1) ) REBUILD = .TRUE.
          ENDIF
       ENDIF
    ENDIF
@@ -746,31 +760,37 @@ SUBROUTINE SWPRE4W (XIS   ,SNLC1 ,&
    IF ( .NOT.REBUILD ) THEN
       XIS   = XISSAV
       SNLC1 = SNLSAV
-      WWINT(1:24) = WWINTM(1:24,MDIA)
-      WWAWG(1:8)  = WWAWGM(1:8,MDIA)
-      WWSWG(1:8)  = WWSWGM(1:8,MDIA)
-      DAL1 = DAL1M(MDIA)
-      DAL2 = DAL2M(MDIA)
-      DAL3 = DAL3M(MDIA)
-      PQUAD(1) = LAMBDA(MDIA)
-      MSC4MI = WWINTM(15,1)
-      MSC4MA = WWINTM(16,1)
-      MDC4MI = WWINTM(17,1)
-      MDC4MA = WWINTM(18,1)
-      MSCMAX = WWINTM(19,1)
-      MDCMAX = WWINTM(20,1)
+      WWINT(1:24) = SNL4%cached_indices(1:24,SNL4%quadruplet_count)
+      WWAWG(1:8) = SNL4%cached_angular_weights(1:8,SNL4%quadruplet_count)
+      WWSWG(1:8) = SNL4%cached_spectral_weights(1:8,SNL4%quadruplet_count)
+      DAL1 = SNL4%cached_dal1(SNL4%quadruplet_count)
+      DAL2 = SNL4%cached_dal2(SNL4%quadruplet_count)
+      DAL3 = SNL4%cached_dal3(SNL4%quadruplet_count)
+      PQUAD(1) = SNL4%lambda(SNL4%quadruplet_count)
+      MSC4MI = SNL4%cached_indices(15,1)
+      MSC4MA = SNL4%cached_indices(16,1)
+      MDC4MI = SNL4%cached_indices(17,1)
+      MDC4MA = SNL4%cached_indices(18,1)
+      MSCMAX = SNL4%cached_indices(19,1)
+      MDCMAX = SNL4%cached_indices(20,1)
       RETURN
    ENDIF
 
-   IF (ALLOCATED(WWINTM)) DEALLOCATE(WWINTM)
-   IF (ALLOCATED(WWAWGM)) DEALLOCATE(WWAWGM)
-   IF (ALLOCATED(WWSWGM)) DEALLOCATE(WWSWGM)
-   IF (ALLOCATED(DAL1M )) DEALLOCATE(DAL1M )
-   IF (ALLOCATED(DAL2M )) DEALLOCATE(DAL2M )
-   IF (ALLOCATED(DAL3M )) DEALLOCATE(DAL3M )
+   IF (ALLOCATED(SNL4%cached_indices)) DEALLOCATE(SNL4%cached_indices)
+   IF (ALLOCATED(SNL4%cached_angular_weights))&
+   &DEALLOCATE(SNL4%cached_angular_weights)
+   IF (ALLOCATED(SNL4%cached_spectral_weights))&
+   &DEALLOCATE(SNL4%cached_spectral_weights)
+   IF (ALLOCATED(SNL4%cached_dal1)) DEALLOCATE(SNL4%cached_dal1)
+   IF (ALLOCATED(SNL4%cached_dal2)) DEALLOCATE(SNL4%cached_dal2)
+   IF (ALLOCATED(SNL4%cached_dal3)) DEALLOCATE(SNL4%cached_dal3)
    ISTAT = 0
-   ALLOCATE (WWINTM(24,MDIA), WWAWGM(8,MDIA), WWSWGM(8,MDIA),&
-   &DAL1M(MDIA)    , DAL2M(MDIA)   , DAL3M(MDIA),&
+   ALLOCATE (SNL4%cached_indices(24,SNL4%quadruplet_count),&
+   &SNL4%cached_angular_weights(8,SNL4%quadruplet_count),&
+   &SNL4%cached_spectral_weights(8,SNL4%quadruplet_count),&
+   &SNL4%cached_dal1(SNL4%quadruplet_count),&
+   &SNL4%cached_dal2(SNL4%quadruplet_count),&
+   &SNL4%cached_dal3(SNL4%quadruplet_count),&
    &STAT=ISTAT)
    IF ( ISTAT.NE.0 ) THEN
       CALL MSGERR (4,&
@@ -778,17 +798,17 @@ SUBROUTINE SWPRE4W (XIS   ,SNLC1 ,&
       RETURN
    ENDIF
 
-   DO IDIA = 1, MDIA
-      PQUAD(1) = LAMBDA(IDIA)
+   DO IDIA = 1, SNL4%quadruplet_count
+      PQUAD(1) = SNL4%lambda(IDIA)
       CALL FAC4WW (XIS   ,SNLC1 ,&
       &DAL1  ,DAL2  ,DAL3  ,SPCSIG,&
-      &WWINT ,WWAWG ,WWSWG )
-      WWINTM(1:24,IDIA) = WWINT(1:24)
-      WWAWGM(1:8,IDIA)  = WWAWG(1:8)
-      WWSWGM(1:8,IDIA)  = WWSWG(1:8)
-      DAL1M(IDIA) = DAL1
-      DAL2M(IDIA) = DAL2
-      DAL3M(IDIA) = DAL3
+      &WWINT ,WWAWG ,WWSWG, SNL4 )
+      SNL4%cached_indices(1:24,IDIA) = WWINT(1:24)
+      SNL4%cached_angular_weights(1:8,IDIA) = WWAWG(1:8)
+      SNL4%cached_spectral_weights(1:8,IDIA) = WWSWG(1:8)
+      SNL4%cached_dal1(IDIA) = DAL1
+      SNL4%cached_dal2(IDIA) = DAL2
+      SNL4%cached_dal3(IDIA) = DAL3
       IF ( IDIA.EQ.1 ) THEN
          MI4S = MSC4MI
          MA4S = MSC4MA
@@ -811,32 +831,33 @@ SUBROUTINE SWPRE4W (XIS   ,SNLC1 ,&
    MSCMAX = MSC4MA - MSC4MI + 1
    MDCMAX = MDC4MA - MDC4MI + 1
 
-   DO IDIA = 1, MDIA
-      WWINTM(15,IDIA) = MSC4MI
-      WWINTM(16,IDIA) = MSC4MA
-      WWINTM(17,IDIA) = MDC4MI
-      WWINTM(18,IDIA) = MDC4MA
-      WWINTM(19,IDIA) = MSCMAX
-      WWINTM(20,IDIA) = MDCMAX
+   DO IDIA = 1, SNL4%quadruplet_count
+      SNL4%cached_indices(15,IDIA) = MSC4MI
+      SNL4%cached_indices(16,IDIA) = MSC4MA
+      SNL4%cached_indices(17,IDIA) = MDC4MI
+      SNL4%cached_indices(18,IDIA) = MDC4MA
+      SNL4%cached_indices(19,IDIA) = MSCMAX
+      SNL4%cached_indices(20,IDIA) = MDCMAX
    ENDDO
 
 !     *** refill scaling array (f**11) for the widest range; ***
 !     *** the values do not depend on the quadruplet         ***
 
-   IF (ALLOCATED(AF11)) DEALLOCATE(AF11)
-   ALLOCATE (AF11(MSC4MI:MSC4MA))
+   IF (ALLOCATED(SNL4%frequency_power_11))&
+   &DEALLOCATE(SNL4%frequency_power_11)
+   ALLOCATE (SNL4%frequency_power_11(MSC4MI:MSC4MA))
    DO IS = 1, MSC
-      AF11(IS) = ( SPCSIG(IS) / ( 2. * PI ) )**11
+      SNL4%frequency_power_11(IS) = ( SPCSIG(IS) / ( 2. * PI ) )**11
    ENDDO
    FREQ = SPCSIG(MSC) / ( 2. * PI )
    DO IS = MSC+1, MSC4MA
       FREQ = FREQ * XIS
-      AF11(IS) = FREQ**11
+      SNL4%frequency_power_11(IS) = FREQ**11
    ENDDO
    FREQ = SPCSIG(1) / ( 2. * PI )
    DO IS = 0, MSC4MI, -1
       FREQ = FREQ / XIS
-      AF11(IS) = FREQ**11
+      SNL4%frequency_power_11(IS) = FREQ**11
    ENDDO
 
 !     *** remember the exact cache identity and reusable scalar outputs
@@ -844,7 +865,7 @@ SUBROUTINE SWPRE4W (XIS   ,SNLC1 ,&
    IF (ALLOCATED(SIGSAV)) DEALLOCATE(SIGSAV)
    IF (ALLOCATED(LAMSAV)) DEALLOCATE(LAMSAV)
    ISTAT = 0
-   ALLOCATE (SIGSAV(MSC), LAMSAV(MDIA), STAT=ISTAT)
+   ALLOCATE (SIGSAV(MSC), LAMSAV(SNL4%quadruplet_count), STAT=ISTAT)
    IF ( ISTAT.NE.0 ) THEN
       IF (ALLOCATED(SIGSAV)) DEALLOCATE(SIGSAV)
       IF (ALLOCATED(LAMSAV)) DEALLOCATE(LAMSAV)
@@ -853,8 +874,8 @@ SUBROUTINE SWPRE4W (XIS   ,SNLC1 ,&
       RETURN
    ENDIF
    SIGSAV = SPCSIG
-   LAMSAV = LAMBDA
-   MDISAV = MDIA
+   LAMSAV = SNL4%lambda
+   MDISAV = SNL4%quadruplet_count
    MSCSAV = MSC
    MDCSAV = MDC
    DDIRSAV = DDIR
@@ -876,7 +897,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 &FACHFR  ,ISSTOP  ,DAL1    ,DAL2    ,DAL3    ,&
 &SFNL    ,DSNL    ,DEP2    ,AC2     ,IMATDA  ,&
 &IMATRA  ,PLNL4S  ,PLNL4D  ,&
-&IDDLOW  ,IDDTOP  ,REDC0   ,REDC1   )
+&IDDLOW  ,IDDTOP  ,REDC0   ,REDC1, SNL4 )
    USE swan_service_interfaces, ONLY: STRACE
 
 !********************************************************************
@@ -884,7 +905,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE M_SNL4
+   TYPE(snl4_tables_t), INTENT(IN) :: SNL4
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1099,6 +1120,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 
    LOGICAL   LTSTFL
 
+   ASSOCIATE(AF11 => SNL4%frequency_power_11)
    IF (LTRACE) CALL STRACE (IENT,'SWSNL1')
 
 !     evaluate the test-output condition once; the per-bin loop below
@@ -1356,6 +1378,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
       WRITE(PRINTF,*)
    END IF
 
+   END ASSOCIATE
    RETURN
 !     End of the subroutine SWSNL1
 end subroutine SWSNL1
@@ -1367,7 +1390,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 &SA2     ,SPCSIG  ,SNLC1   ,DAL1    ,DAL2    ,&
 &DAL3    ,SFNL    ,DEP2    ,AC2     ,KMESPC  ,&
 &REDC0   ,REDC1   ,IMATDA  ,IMATRA  ,&
-&FACHFR  ,PLNL4S  ,         IDCMIN  ,IDCMAX  )
+&FACHFR  ,PLNL4S  ,         IDCMIN  ,IDCMAX, SNL4 )
    USE swan_service_interfaces, ONLY: STRACE
 
 !*******************************************************************
@@ -1375,7 +1398,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE M_SNL4
+   TYPE(snl4_tables_t), INTENT(IN) :: SNL4
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1545,6 +1568,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 
    LOGICAL   LTSTFL
 
+   ASSOCIATE(AF11 => SNL4%frequency_power_11)
    IF (LTRACE) CALL STRACE (IENT,'SWSNL2')
 
 !     evaluate the test-output condition once; the per-bin loop below
@@ -1811,6 +1835,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
       WRITE(PRINTF,*)
    END IF
 
+   END ASSOCIATE
    RETURN
 !     End of SWSNL2
 end subroutine SWSNL2
@@ -1821,7 +1846,7 @@ end subroutine SWSNL2
 SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
 &UE      ,SA1     ,SA2     ,SPCSIG  ,SNLC1   ,&
 &DAL1    ,DAL2    ,DAL3    ,SFNL    ,DEP2    ,&
-&AC2     ,KMESPC  ,MEMNL4  ,FACHFR           )
+&AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4     )
    USE swan_service_interfaces, ONLY: STRACE
 
 !*******************************************************************
@@ -1829,7 +1854,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE M_SNL4
+   TYPE(snl4_tables_t), INTENT(IN) :: SNL4
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -2017,6 +2042,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
 
    LOGICAL   LTSTFL
 
+   ASSOCIATE(AF11 => SNL4%frequency_power_11)
    IF (LTRACE) CALL STRACE (IENT,'SWSNL3')
 
 !     evaluate the test-output condition once; the per-bin loop below
@@ -2196,6 +2222,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
       END IF
    END IF
 
+   END ASSOCIATE
    RETURN
 
 end subroutine SWSNL3
@@ -2207,7 +2234,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
 &DAL1    ,DAL2    ,DAL3    ,DEP2    ,&
 &AC2     ,KMESPC  ,MEMNL4  ,FACHFR  ,&
 &IDIA    ,ITER    ,UE      ,SA1     ,&
-&SA2     ,SFNL    )
+&SA2     ,SFNL    ,SNL4)
    USE swan_service_interfaces, ONLY: STRACE
 
 !*******************************************************************
@@ -2215,7 +2242,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE M_SNL4
+   TYPE(snl4_tables_t), INTENT(IN) :: SNL4
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -2405,6 +2432,9 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
 
    LOGICAL   LTSTFL
 
+   ASSOCIATE(AF11 => SNL4%frequency_power_11,&
+   &CNL4_1 => SNL4%coefficient_1,&
+   &CNL4_2 => SNL4%coefficient_2)
    IF (LTRACE) CALL STRACE (IENT,'SWSNL4')
 
 !     evaluate the test-output condition once; the per-bin loop below
@@ -2591,6 +2621,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
       END IF
    END IF
 
+   END ASSOCIATE
    RETURN
 
 end subroutine SWSNL4
@@ -2598,16 +2629,16 @@ end subroutine SWSNL4
 !*********************************************************************
 SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
 &SNLC1   ,DAL1    ,DAL2    ,DAL3    ,SFNL    ,&
-&DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR  )
+&DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4 )
    USE swan_service_interfaces, ONLY: STRACE
 !*********************************************************************
 
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE M_SNL4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   TYPE(snl4_tables_t), INTENT(IN) :: SNL4
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -2769,6 +2800,7 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
    &SA1A    ,SA1B    ,SA2A    ,SA2B    ,&
    &JACOBI  ,SIGPI
 
+   ASSOCIATE(AF11 => SNL4%frequency_power_11)
    IF (LTRACE) CALL STRACE (IENT,'SWSNL8')
 
    ISLOW  = WWINT(9)
@@ -2877,6 +2909,7 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
       ENDDO
    END IF
 
+   END ASSOCIATE
    RETURN
 
 end subroutine SWSNL8
@@ -3211,7 +3244,7 @@ end subroutine SWINTFXNL
 
 !****************************************************************
 
-SUBROUTINE FAC3WW ( DEP, SPCSIG )
+SUBROUTINE FAC3WW ( DEP, SPCSIG, TRIADS )
    USE swan_triads, ONLY: TCOEF
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_wave_physics, ONLY: KSCIP1
@@ -3220,9 +3253,9 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG )
 
    USE OCPCOMM4
    USE SWCOMM3
-   USE M_SNL3
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
 
 
 !   --|-----------------------------------------------------------|--
@@ -3333,6 +3366,17 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG )
 
 ! 13. Source text
 
+   ASSOCIATE(ISM => TRIADS%lower_index,&
+   &ISM1 => TRIADS%lower_index_next,&
+   &ISP => TRIADS%upper_index,&
+   &ISP1 => TRIADS%upper_index_next,&
+   &WISM => TRIADS%lower_weight,&
+   &WISM1 => TRIADS%lower_weight_next,&
+   &WISP => TRIADS%upper_weight,&
+   &WISP1 => TRIADS%upper_weight_next,&
+   &QTRI1 => TRIADS%interpolation,&
+   &QTRI2 => TRIADS%scaling,&
+   &TCOLL => TRIADS%collinear)
    IF (LTRACE) CALL STRACE (IENT,'FAC3WW')
 
    QTRI2 = 0.
@@ -3741,6 +3785,7 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG )
 
    ENDIF
 
+   END ASSOCIATE
    RETURN
 end subroutine FAC3WW
 
@@ -3749,7 +3794,7 @@ end subroutine FAC3WW
 SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 &IMATRA, IMATDA, REDC0 , REDC1 ,&
 &IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
-&SMEBRK, PLTRI , URSELL, BIPHAS, QTL2  )
+&SMEBRK, PLTRI , URSELL, BIPHAS, QTL2, TRIADS )
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -3757,9 +3802,9 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
    USE OCPCOMM4
    USE SWCOMM3
    USE SWCOMM4
-   USE M_SNL3
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   TYPE(triad_state_t), INTENT(IN) :: TRIADS
 
 
 !   --|-----------------------------------------------------------|--
@@ -3949,7 +3994,8 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
    REAL    BIPH, CG, DEP, E0, ED0, EDM, EDPM, EE1, EE2, EE3, EM, EPM,&
    &FT, PWDTH, SIGPI, SINBPH, STRI
    REAL    E(MSC), ED(MSC),&
-   &SA(MDC,MSC+ISP1(2)), SA3(MDC,MSC+ISP1(3))
+   &SA(MDC,MSC+TRIADS%upper_index_next(2)),&
+   &SA3(MDC,MSC+TRIADS%upper_index_next(3))
 
 !  9. Subroutines calling
 !
@@ -3970,6 +4016,14 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !
 ! 13. Source text
 
+   ASSOCIATE(ISM => TRIADS%lower_index,&
+   &ISM1 => TRIADS%lower_index_next,&
+   &ISP => TRIADS%upper_index,&
+   &ISP1 => TRIADS%upper_index_next,&
+   &WISM => TRIADS%lower_weight,&
+   &WISM1 => TRIADS%lower_weight_next,&
+   &WISP => TRIADS%upper_weight,&
+   &WISP1 => TRIADS%upper_weight_next)
    IF (LTRACE) CALL STRACE (IENT,'SWLTA')
 
    DEP  = DEP2  (KCGRD(1))
@@ -4153,6 +4207,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
       WRITE(PRINTF,"(' SWLTA: SMEBRK B SIN(-B) :',3E12.4)") SMEBRK, BIPH, SIN(-BIPH)
    END IF
 
+   END ASSOCIATE
    RETURN
 end subroutine SWLTA
 
@@ -4170,7 +4225,6 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
    USE OCPCOMM4
    USE SWCOMM3
    USE SWCOMM4
-   USE M_SNL3
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -4281,7 +4335,7 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
    REAL :: BIPHAS(MCGRD)
    REAL :: REDC0 (MDC,MSC,MREDS)
    REAL :: REDC1 (MDC,MSC,MREDS)
-   REAL :: QTL1(MSC4D,2), QTL2(MSC4D,2)
+   REAL :: QTL1(:,:), QTL2(:,:)
 
 !  6. Local variables
 !
@@ -4451,7 +4505,6 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
    USE OCPCOMM4
    USE SWCOMM3
    USE SWCOMM4
-   USE M_SNL3
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -4571,7 +4624,7 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
    REAL :: BIPHAS(MCGRD)
    REAL :: REDC0 (MDC,MSC,MREDS)
    REAL :: REDC1 (MDC,MSC,MREDS)
-   REAL :: QTL1(MSC4D,2), QTL2(MSC4D,2)
+   REAL :: QTL1(:,:), QTL2(:,:)
 
 !  6. Local variables
 !
@@ -4973,7 +5026,6 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
    USE OCPCOMM4
    USE SWCOMM3
    USE SWCOMM4
-   USE M_SNL3
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -5071,7 +5123,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
    REAL :: BIPHAS(MCGRD)
    REAL :: REDC0 (MDC,MSC,MREDS)
    REAL :: REDC1 (MDC,MSC,MREDS)
-   REAL :: QTL1(MSC4D,2), QTL2(MSC4D,4)
+   REAL :: QTL1(:,:), QTL2(:,:)
 
 !  6. Local variables
 !
@@ -5734,7 +5786,7 @@ end subroutine SWBIDW
 
 !****************************************************************
 
-SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC )
+SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC, BPHTMP )
    USE swan_service_interfaces, ONLY: STPNOW, STRACE
    USE swan_wave_physics, ONLY: KSCIP1
 
@@ -5743,7 +5795,6 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC )
    USE OCPCOMM4
    USE SWCOMM2
    USE SWCOMM3
-   USE M_SNL3
    USE M_GENARR
    USE M_PARALL
 
@@ -5794,6 +5845,7 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC )
    REAL   , INTENT(OUT) :: BIPHAS(MCGRD)
    REAL   , INTENT(IN)  :: DEP2(MCGRD)
    REAL   , INTENT(IN)  :: HSIBC(MCGRD)
+   REAL   , INTENT(IN)  :: BPHTMP(:)
 
 !  6. Local variables
 

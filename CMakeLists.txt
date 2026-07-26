@@ -214,6 +214,18 @@ if( BUILD_TESTING )
             --swan-executable $<TARGET_FILE:${EXE}>
             --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/quick
   )
+
+  # The quick test leaves DIFFRAC off, so no other registered case reaches
+  # DIFPAR or the diffraction terms in the propagation velocities. This case
+  # is the quick test plus DIFFRAC; its reference was produced before the
+  # diffraction state was moved out of M_DIFFR.
+  add_test(
+    NAME diffraction
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/examples/diffraction/run.py
+            --swan-executable $<TARGET_FILE:${EXE}>
+            --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/diffraction
+  )
   if( MPI )
     # The Jacobi sweep exchanges action density between subdomains once per
     # iteration instead of following the wavefront across them, so a run split

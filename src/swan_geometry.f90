@@ -1,7 +1,7 @@
 MODULE swan_geometry
    IMPLICIT NONE(TYPE, EXTERNAL)
    PRIVATE
-   PUBLIC :: TCROSS
+   PUBLIC :: TCROSS, TCROSS_KERNEL
 
 CONTAINS
 
@@ -112,7 +112,6 @@ LOGICAL FUNCTION TCROSS (X1, X2, X3, X4, Y1, Y2, Y3, Y4, X1ONOBST)
 
    REAL, INTENT(IN) :: X1, X2, X3, X4, Y1, Y2, Y3, Y4
    LOGICAL, INTENT(OUT) :: X1ONOBST
-   REAL :: EPS
 
 !  5. Parameter variables
 !
@@ -126,7 +125,6 @@ LOGICAL FUNCTION TCROSS (X1, X2, X3, X4, Y1, Y2, Y3, Y4, X1ONOBST)
 !     MIU        coefficient in vector equation for obstacle (or stencil points)
 
    INTEGER, SAVE :: IENT = 0
-   REAL       A, B, C, D, DIV1, E, F, LMBD, MIU
 
 !  8. Subroutines used
 !
@@ -149,6 +147,25 @@ LOGICAL FUNCTION TCROSS (X1, X2, X3, X4, Y1, Y2, Y3, Y4, X1ONOBST)
 ! 13. Source text
 ! ======================================================================
    IF (LTRACE) CALL STRACE (IENT,'TCROSS')
+
+   CALL TCROSS_KERNEL(X1, X2, X3, X4, Y1, Y2, Y3, Y4, TCROSS, X1ONOBST)
+
+   IF (TCROSS .AND. ITEST .GE. 120) THEN
+      WRITE(PRINTF,"(' Obstacle crossing :',/, ' Coordinates of comp grid points and corners of obstacle:',/, ' P1(',E10.4,',',E10.4,')',' P2(',E10.4,',',E10.4,')',/, ' P3(',E10.4,',',E10.4,')',' P4(',E10.4,',',E10.4,')')")X1,Y1,X2,Y2,X3,Y3,X4,Y4
+   ENDIF
+
+!     End of subroutine TCROSS
+   RETURN
+end function TCROSS
+
+PURE SUBROUTINE TCROSS_KERNEL (X1, X2, X3, X4, Y1, Y2, Y3, Y4, CROSSING, X1ONOBST)
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+   REAL, INTENT(IN) :: X1, X2, X3, X4, Y1, Y2, Y3, Y4
+   LOGICAL, INTENT(OUT) :: CROSSING
+   LOGICAL, INTENT(OUT) :: X1ONOBST
+   REAL :: EPS
+   REAL :: A, B, C, D, DIV1, E, F, LMBD, MIU
 
    EPS = EPSILON(X1)*SQRT((X2-X1)*(X2-X1)+(Y2-Y1)*(Y2-Y1))
    IF (EPS ==0.) EPS = TINY(X1)
@@ -197,17 +214,12 @@ LOGICAL FUNCTION TCROSS (X1, X2, X3, X4, Y1, Y2, Y3, Y4, X1ONOBST)
       ENDIF
 
 !       *** test output ***
-      IF (ITEST .GE. 120) THEN
-         WRITE(PRINTF,"(' Obstacle crossing :',/, ' Coordinates of comp grid points and corners of obstacle:',/, ' P1(',E10.4,',',E10.4,')',' P2(',E10.4,',',E10.4,')',/, ' P3(',E10.4,',',E10.4,')',' P4(',E10.4,',',E10.4,')')")X1,Y1,X2,Y2,X3,Y3,X4,Y4
-      ENDIF
-
-      TCROSS = .TRUE.
+      CROSSING = .TRUE.
    ELSE
-      TCROSS = .FALSE.
+      CROSSING = .FALSE.
    ENDIF
 
-!     End of subroutine TCROSS
    RETURN
-end function TCROSS
+end subroutine TCROSS_KERNEL
 
 END MODULE swan_geometry

@@ -1,6 +1,7 @@
 ! This file contains data and routines for surfbeat (Infragravity Energy Model)
 
 module SwanIEM
+use swan_spectral_powers, only: spectral_powers_t
    USE swan_spectrum_transform, ONLY: CHGBAS
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
    USE swan_wave_physics, ONLY: KSCIP1
@@ -78,7 +79,7 @@ module SwanIEM
 
 contains
 
-subroutine SwanIEMinitig
+subroutine SwanIEMinitig(spectral_powers)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -136,10 +137,10 @@ subroutine SwanIEMinitig
     use SWCOMM2 , only: NBGRPT
     use SWCOMM3 , only: DDIR, FRINTF, FRINTH, MCGRD, MXC, MYC, MSC, MDC, PI2
     use M_GENARR, only: SPCSIG, AC2, KGRPNT
-    use M_WCAP  , only: SIGPOW
     use M_PARALL, only: NBGGL
 
     implicit none(type, external)
+    type(spectral_powers_t), intent(inout) :: spectral_powers
 
 !   Local variables
 
@@ -269,19 +270,7 @@ subroutine SwanIEMinitig
 
     endif
 
-    ! reallocate SIGPOW
-
-    if (allocated(SIGPOW)) deallocate(SIGPOW)
-    allocate(SIGPOW(MSC,6))
-
-    ! calculate powers of sigma and store in array
-
-    SIGPOW(:,1) = SPCSIG
-    SIGPOW(:,2) = SPCSIG**2
-    SIGPOW(:,3) = SPCSIG * SIGPOW(:,2)
-    SIGPOW(:,4) = SPCSIG * SIGPOW(:,3)
-    SIGPOW(:,5) = SPCSIG * SIGPOW(:,4)
-    SIGPOW(:,6) = SPCSIG * SIGPOW(:,5)
+    call spectral_powers%rebuild(SPCSIG)
 
     ! reallocate and refill Ebig to be used as boundary condition at obstacle
     ! (see routine SWTRCF)

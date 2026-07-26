@@ -28,6 +28,11 @@
 !                                                                      *
 
 module swan_driver
+   use swan_diffraction_state, only: diffraction_state_t
+   use swan_triad_state, only: triad_state_t
+   use swan_snl4_tables, only: snl4_tables_t
+   use swan_spectral_powers, only: spectral_powers_t
+   use swan_source_workspaces, only: thread_workspaces_t
    use swan_input_helpers, only: LSPLIT
    use swan_comp_unstruc, only: SwanCompUnstruc
    use swan_prep_comp, only: SwanPrepComp
@@ -73,6 +78,14 @@ SUBROUTINE SWMAIN
 !METIS   USE SwanParallel
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+!  De diffractietoestand hoort bij de run; de driver is de eigenaar en geeft
+!  hem expliciet door aan voorbereiding, berekening, uitvoer en opruiming.
+   TYPE(diffraction_state_t) :: DIFFRACTION
+   TYPE(triad_state_t) :: TRIADS
+   TYPE(snl4_tables_t) :: SNL4
+   TYPE(spectral_powers_t) :: SPECTRAL_POWERS
+   TYPE(thread_workspaces_t) :: THREAD_WORKSPACES
 
 
 !   --|-----------------------------------------------------------|--
@@ -307,7 +320,7 @@ SUBROUTINE SWMAIN
    ISTAT =0
 
 !TIMG   CALL SWTSTA(2)
-   CALL SWINIT (INERR)
+   CALL SWINIT (INERR, SNL4)
 !TIMG   CALL SWTSTO(2)
    IF (INERR.GT.0) RETURN
    IF (STPNOW()) RETURN
@@ -322,7 +335,7 @@ SUBROUTINE SWMAIN
 !       --- read and process user commands
 !
 !TIMG      CALL SWTSTA(3)
-      CALL SWREAD (COMPUT)
+      CALL SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 !TIMG      CALL SWTSTO(3)
       IF (STPNOW()) RETURN
 
@@ -339,7 +352,7 @@ SUBROUTINE SWMAIN
 
 !       --- surfbeat: initialize variables and arrays for 2nd COMPUTE
 
-      IF ( ntf.GT.0 ) CALL SwanIEMinitig
+      IF ( ntf.GT.0 ) CALL SwanIEMinitig(SPECTRAL_POWERS)
 
 !       --- allocate some arrays meant for computation
 
@@ -364,7 +377,7 @@ SUBROUTINE SWMAIN
 !
 !TIMG      CALL SWTSTA(4)
       CALL SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID, YCGRID, KGRPNT,&
-      &KGRBND, SPCDIR, SPCSIG )
+      &KGRBND, SPCDIR, SPCSIG, DIFFRACTION, TRIADS )
       IF (OPTG.EQ.5) CALL SwanPrepComp ( CROSS )
       IF (STPNOW()) RETURN
       ALOBND = .FALSE.
@@ -539,12 +552,14 @@ SUBROUTINE SWMAIN
 !                structured grid
                   CALL SWCOMP( AC1   , AC2   , COMPDA, SPCDIR, SPCSIG,&
                   &XYTST , IT    , KGRPNT, XCGRID, YCGRID,&
-                  &CROSS )
+                  &CROSS , DIFFRACTION, TRIADS, SNL4, SPECTRAL_POWERS,&
+                  &THREAD_WORKSPACES )
                ELSE
 !                unstructured grid
                   CALL SwanCompUnstruc ( AC2   , AC1   , COMPDA,&
                   &SPCSIG, SPCDIR, XYTST ,&
-                  &CROSS , IT    )
+                  &CROSS , IT    , DIFFRACTION, TRIADS, SNL4,&
+                  &SPECTRAL_POWERS, THREAD_WORKSPACES )
                ENDIF
 !TIMG               CALL SWTSTO(8)
                IF (STPNOW()) RETURN
@@ -596,7 +611,7 @@ SUBROUTINE SWMAIN
 !
 !TIMG            CALL SWTSTA(9)
             CALL SWOUTP ( AC2   , SPCSIG, SPCDIR, COMPDA, XYTST ,&
-            &KGRPNT, XCGRID, YCGRID, OURQT )
+            &KGRPNT, XCGRID, YCGRID, OURQT , DIFFRACTION )
 !TIMG            CALL SWTSTO(9)
             IF (STPNOW()) RETURN
 
@@ -680,14 +695,15 @@ SUBROUTINE SWMAIN
    IF (ALLOCATED(CROSS )) DEALLOCATE(CROSS )
    IF (ALLOCATED(OURQT )) DEALLOCATE(OURQT )
    IF (ALLOCATED(BLKND )) DEALLOCATE(BLKND )
-   CALL SWCLME
+   CALL SWCLME (DIFFRACTION, TRIADS, SNL4, SPECTRAL_POWERS,&
+   &THREAD_WORKSPACES)
 
    RETURN
 !     end of subroutine SWMAIN
 end subroutine SWMAIN
 !************************************************************************
 !                                                                      *
-SUBROUTINE SWINIT (INERR)
+SUBROUTINE SWINIT (INERR, SNL4)
    USE swan_service_interfaces, ONLY: STPNOW, BUGFIX
    USE swan_ocean_pack_init, ONLY: OCPINI
 !                                                                      *
@@ -706,12 +722,13 @@ SUBROUTINE SWINIT (INERR)
    USE M_GENARR, ONLY: XYTST, DEPTH, FRIC, UXB, UYB, WXI, WYI, WLEVL,&
    &ASTDF, MUDLF, NPLAF, TURBF, AICEF, HICEF, LAYH, VEGDIL, VEGDRL,&
    &VEGNSL, HSSF, TSSF, DSSF
-   USE M_SNL4
    USE M_BNDSPEC
    USE M_PARALL
    USE SwanGriddata
    USE SwanIEM, only: sflog
    USE SwanQCM
+
+   TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
 
 
 !   --|-----------------------------------------------------------|--
@@ -1100,13 +1117,15 @@ SUBROUTINE SWINIT (INERR)
 
 !     Set the defaults for the MDIA:
 
-   MDIA  = 6
-   ALLOCATE(LAMBDA(MDIA),CNL4_1(MDIA),CNL4_2(MDIA))
-   LAMBDA = (/0.08,0.09,0.11,0.15,0.16,0.29/)
-   CNL4_1 = (/8.77,-13.82,10.02,-15.92,14.41,0.65/)
-   CNL4_2 = CNL4_1
-   CNL4_1 = CNL4_1 * ((2.*PI)**9)
-   CNL4_2 = CNL4_2 * ((2.*PI)**9)
+   SNL4%quadruplet_count = 6
+   ALLOCATE(SNL4%lambda(SNL4%quadruplet_count),&
+   &SNL4%coefficient_1(SNL4%quadruplet_count),&
+   &SNL4%coefficient_2(SNL4%quadruplet_count))
+   SNL4%lambda = (/0.08,0.09,0.11,0.15,0.16,0.29/)
+   SNL4%coefficient_1 = (/8.77,-13.82,10.02,-15.92,14.41,0.65/)
+   SNL4%coefficient_2 = SNL4%coefficient_1
+   SNL4%coefficient_1 = SNL4%coefficient_1 * ((2.*PI)**9)
+   SNL4%coefficient_2 = SNL4%coefficient_2 * ((2.*PI)**9)
 
 !     *** Initial conditions ***
    ICOND = 0
@@ -3494,7 +3513,7 @@ end subroutine SWINIT
 !************************************************************************
 !                                                                      *
 SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
-&KGRPNT, KGRBND, SPCDIR, SPCSIG )
+&KGRPNT, KGRBND, SPCDIR, SPCSIG, DIFFR, TRIADS )
    USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
    USE swan_services, ONLY: SWOBST
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
@@ -3509,10 +3528,8 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
    USE SWCOMM3
    USE SWCOMM4
    USE M_OBSTA
-   USE M_SNL3
    USE M_BNDSPEC
    USE M_PARALL
-   USE M_DIFFR
    USE SwanGriddata
    USE SwanCompdata
    USE SwanIEM
@@ -3596,6 +3613,8 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
 !     XCGRID: input  Coordinates of computational grid in x-direction
 !     YCGRID: input  Coordinates of computational grid in y-direction
 
+   TYPE(diffraction_state_t), INTENT(INOUT) :: DIFFR
+   TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
    REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
    REAL    SPCDIR(MDC,6)  ,    SPCSIG(MSC)
 
@@ -4041,15 +4060,11 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
 !     --- allocate arrays for diffraction and set prop scheme to BSBT
 
    IF ( IDIFFR.EQ.1 ) THEN
-      IF (.NOT.ALLOCATED(DIFPARAM)) ALLOCATE(DIFPARAM(1:MCGRD))
-      IF (.NOT.ALLOCATED(DIFPARDX)) ALLOCATE(DIFPARDX(1:MCGRD))
-      IF (.NOT.ALLOCATED(DIFPARDY)) ALLOCATE(DIFPARDY(1:MCGRD))
+      CALL DIFFR%RESIZE(MCGRD)
       PROPSN = 1
       PROPSS = 1
    ELSE
-      IF (.NOT.ALLOCATED(DIFPARAM)) ALLOCATE(DIFPARAM(0))
-      IF (.NOT.ALLOCATED(DIFPARDX)) ALLOCATE(DIFPARDX(0))
-      IF (.NOT.ALLOCATED(DIFPARDY)) ALLOCATE(DIFPARDY(0))
+      CALL DIFFR%RESIZE(0)
    END IF
 
 !     --- check surfbeat
@@ -4146,29 +4161,7 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
 
    IF ( ITRIAD.GT.0 ) THEN
 !        *** allocate frequency- and space-dependent data for triads
-      IF (ITRIAD.EQ.1 .OR. ITRIAD.EQ.11) THEN
-         MSC4D = MSC
-         ISTAT=0
-         IF (.NOT.ALLOCATED(QTRI2))&
-         &ALLOCATE(QTRI2(MSC,MCGRD,2),STAT=ISTAT)
-         IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(0,0))
-      ELSE IF (ITRIAD.EQ.2 .OR. ITRIAD.EQ.3) THEN
-         MSC4D = MSC*MSC+MSC*(MSC-1)/2
-         IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(MSC4D,2))
-         ISTAT=0
-         IF (.NOT.ALLOCATED(QTRI2))&
-         &ALLOCATE(QTRI2(MSC4D,MCGRD,4),STAT=ISTAT)
-      ELSE IF (ITRIAD.EQ.5) THEN
-         IF (TCOLL) THEN
-            MSC4D = MSC*(MSC-1)/2
-         ELSE
-            MSC4D = MSC*MSC
-         ENDIF
-         IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(MSC4D,2))
-         ISTAT=0
-         IF (.NOT.ALLOCATED(QTRI2))&
-         &ALLOCATE(QTRI2(MSC4D,MCGRD,2),STAT=ISTAT)
-      ENDIF
+      CALL TRIADS%resize(ITRIAD, MSC, MCGRD, IBIPH, ISTAT)
       IF ( ISTAT.NE.0 ) THEN
          CHARS(1) = NUMSTR(ISTAT,RNAN,'(I6)')
          CALL TXPBLA(CHARS(1),IF1,IL1)
@@ -4179,13 +4172,7 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
          RETURN
       END IF
    ELSE
-      IF (.NOT.ALLOCATED(QTRI1)) ALLOCATE(QTRI1(0,0  ))
-      IF (.NOT.ALLOCATED(QTRI2)) ALLOCATE(QTRI2(0,0,0))
-   ENDIF
-
-   IF (IBIPH.EQ.3) THEN
-      IF (.NOT.ALLOCATED(BPHTMP)) ALLOCATE(BPHTMP(MCGRD))
-      BPHTMP = 0.
+      CALL TRIADS%resize(ITRIAD, MSC, MCGRD, IBIPH, ISTAT)
    ENDIF
 
 !     reset full directional integration parameter for CCA approach
@@ -8013,18 +8000,14 @@ SUBROUTINE SWINCO (AC2    ,COMPDA ,&
 end subroutine SWINCO
 !****************************************************************
 
-SUBROUTINE SWCLME
+SUBROUTINE SWCLME ( DIFFR, TRIADS, SNL4, SPECTRAL_POWERS, THREAD_WORKSPACES )
 
 !****************************************************************
 
-   USE M_WCAP
    USE OUTP_DATA
-   USE M_SNL4
-   USE M_SNL3
    USE M_BNDSPEC
    USE M_GENARR
    USE M_PARALL
-   USE M_DIFFR
    USE SwanGriddata
    USE SwanCompdata
    USE SwanIEM
@@ -8033,6 +8016,12 @@ SUBROUTINE SWCLME
 !METIS   USE SwanParallel
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(diffraction_state_t), INTENT(INOUT) :: DIFFR
+   TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
+   TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
+   TYPE(spectral_powers_t), INTENT(INOUT) :: SPECTRAL_POWERS
+   TYPE(thread_workspaces_t), INTENT(INOUT) :: THREAD_WORKSPACES
 
 
 !   --|-----------------------------------------------------------|--
@@ -8089,11 +8078,9 @@ SUBROUTINE SWCLME
 !
 ! 13. Source text
 
-   IF (ALLOCATED(SIGPOW))   DEALLOCATE(SIGPOW)
-   IF (ALLOCATED(AF11  ))   DEALLOCATE(AF11  )
-   IF (ALLOCATED(CNL4_1))   DEALLOCATE(CNL4_1)
-   IF (ALLOCATED(CNL4_2))   DEALLOCATE(CNL4_2)
-   IF (ALLOCATED(LAMBDA))   DEALLOCATE(LAMBDA)
+   CALL SPECTRAL_POWERS%CLEAR()
+   CALL THREAD_WORKSPACES%CLEAR()
+   CALL SNL4%CLEAR()
    IF (ALLOCATED(KGRPNT))   DEALLOCATE(KGRPNT)
    IF (ALLOCATED(KGRBND))   DEALLOCATE(KGRBND)
    IF (ALLOCATED(XYTST ))   DEALLOCATE(XYTST )
@@ -8115,9 +8102,7 @@ SUBROUTINE SWCLME
    IF (ALLOCATED(YGRDGL))   DEALLOCATE(YGRDGL)
    IF (ALLOCATED(KGRPGL))   DEALLOCATE(KGRPGL)
    IF (ALLOCATED(KGRBGL))   DEALLOCATE(KGRBGL)
-   IF (ALLOCATED(DIFPARAM)) DEALLOCATE(DIFPARAM)
-   IF (ALLOCATED(DIFPARDX)) DEALLOCATE(DIFPARDX)
-   IF (ALLOCATED(DIFPARDY)) DEALLOCATE(DIFPARDY)
+   CALL DIFFR%CLEAR()
    IF (ALLOCATED(MUDLF ))   DEALLOCATE(MUDLF )
    IF (ALLOCATED(AICEF ))   DEALLOCATE(AICEF )
    IF (ALLOCATED(HICEF ))   DEALLOCATE(HICEF )
@@ -8130,9 +8115,7 @@ SUBROUTINE SWCLME
    IF (ALLOCATED(HSSF  ))   DEALLOCATE(HSSF  )
    IF (ALLOCATED(TSSF  ))   DEALLOCATE(TSSF  )
    IF (ALLOCATED(DSSF  ))   DEALLOCATE(DSSF  )
-   IF (ALLOCATED(BPHTMP))   DEALLOCATE(BPHTMP)
-   IF (ALLOCATED(QTRI1 ))   DEALLOCATE(QTRI1 )
-   IF (ALLOCATED(QTRI2 ))   DEALLOCATE(QTRI2 )
+   CALL TRIADS%CLEAR()
 
    IF (ALLOCATED(xcugrd  )) DEALLOCATE(xcugrd  )
    IF (ALLOCATED(ycugrd  )) DEALLOCATE(ycugrd  )

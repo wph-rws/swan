@@ -25,6 +25,7 @@
 !****************************************************************
 
 module swan_dissipation
+   use swan_source_workspaces, only: wcap_workspace_t
    implicit none(type, external)
    private
    public :: SBOT, SVEG, STURBV, SMUD, SICE, FRABRE, SSURF, SWCAP, SWCAP8
@@ -1043,7 +1044,7 @@ end subroutine SVEG
 
 SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
 &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-&KWAVE   ,DISSC1  ,PLTURB  )
+&KWAVE   ,DISSC1  ,PLTURB, SIGPOW)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -1051,7 +1052,6 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE M_WCAP, ONLY: SIGPOW
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1107,6 +1107,7 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
    REAL, INTENT(IN) :: TURBV2(1:MCGRD)             ! turbulent viscos
    REAL, INTENT(IN) :: DEP2(1:MCGRD)               ! water depth
    REAL             :: PLTURB(MDC,MSC,NPTST)
+   REAL, INTENT(IN) :: SIGPOW(:,:)
 
    INTEGER :: IDCMIN(1:MSC), IDCMAX(1:MSC)
    INTEGER :: ISSTOP
@@ -1779,7 +1780,7 @@ end subroutine FRABRE
 SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 &KMESPC  ,SPCSIG  ,AC2     ,IMATRA  ,&
 &IMATDA  ,IDCMIN  ,IDCMAX  ,PLWBRK  ,&
-&ISSTOP  ,DISSC0  ,DISSC1  ,DISBK   ,ITER    )
+&ISSTOP  ,DISSC0  ,DISSC1  ,DISBK   ,ITER, SIGM_WAM)
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_spectral_integration, ONLY: SwanIntgratSpc
 
@@ -1788,9 +1789,9 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE M_WCAP, ONLY: SIGM_WAM
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   REAL, INTENT(IN) :: SIGM_WAM
 
 
 !   --|-----------------------------------------------------------|--
@@ -2212,7 +2213,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 &ETOT    ,IMATDA  ,IMATRA  ,PLWCAP  ,&
 &CGO     ,UFRIC   ,CAS     ,&
-&DEP2    ,DISSC1  ,DISSC0  )
+&DEP2    ,DISSC1  ,DISSC0, WCAP_WORKSPACE)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
@@ -2220,9 +2221,9 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE M_WCAP
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
 
 
 
@@ -2388,7 +2389,6 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
    REAL, INTENT(IN)    :: UFRIC
    REAL, INTENT(IN)    :: CGO(MSC,MICMAX)
    REAL, INTENT(IN)    :: CAS(MDC,MSC,MICMAX)
-
 !  6. Local variables
 !
 !     A     : Exponential term in the Longuet Higgins expression
@@ -2460,6 +2460,17 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !
 ! 13. Source text
 
+   ASSOCIATE(ACTOT => WCAP_WORKSPACE%total_action,&
+   &EDRKTOT => WCAP_WORKSPACE%energy_over_root_wavenumber,&
+   &EKTOT => WCAP_WORKSPACE%energy_times_wavenumber,&
+   &ETOT1 => WCAP_WORKSPACE%first_energy_moment,&
+   &ETOT2 => WCAP_WORKSPACE%second_energy_moment,&
+   &ETOT4 => WCAP_WORKSPACE%fourth_energy_moment,&
+   &KM_WAM => WCAP_WORKSPACE%mean_wavenumber_wam,&
+   &KM01 => WCAP_WORKSPACE%mean_wavenumber_01,&
+   &SIGM_WAM => WCAP_WORKSPACE%mean_frequency_wam,&
+   &SIGM_10 => WCAP_WORKSPACE%mean_frequency_10,&
+   &SIGM01 => WCAP_WORKSPACE%mean_frequency_01)
    IF (LTRACE) CALL STRACE (IENT,'SWCAP')
 
 ! Initialisation
@@ -2684,6 +2695,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 
    ENDIF
 
+   END ASSOCIATE
    RETURN
 end subroutine SWCAP
 
@@ -2693,7 +2705,7 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 &ETOT    ,IMATDA  ,IMATRA  ,PLWCAP  ,&
 &CGO     ,UFRIC   ,&
-&DEP2    ,DISSC1  ,DISSC0  )
+&DEP2    ,DISSC1  ,DISSC0, WCAP_WORKSPACE)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
@@ -2701,10 +2713,10 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE M_WCAP
    USE SdsBabanin
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
 
 
 !   --|-----------------------------------------------------------|--
@@ -2805,6 +2817,17 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !
 ! 13. Source text
 
+   ASSOCIATE(ACTOT => WCAP_WORKSPACE%total_action,&
+   &EDRKTOT => WCAP_WORKSPACE%energy_over_root_wavenumber,&
+   &EKTOT => WCAP_WORKSPACE%energy_times_wavenumber,&
+   &ETOT1 => WCAP_WORKSPACE%first_energy_moment,&
+   &ETOT2 => WCAP_WORKSPACE%second_energy_moment,&
+   &ETOT4 => WCAP_WORKSPACE%fourth_energy_moment,&
+   &KM_WAM => WCAP_WORKSPACE%mean_wavenumber_wam,&
+   &KM01 => WCAP_WORKSPACE%mean_wavenumber_01,&
+   &SIGM_WAM => WCAP_WORKSPACE%mean_frequency_wam,&
+   &SIGM_10 => WCAP_WORKSPACE%mean_frequency_10,&
+   &SIGM01 => WCAP_WORKSPACE%mean_frequency_01)
    IF (LTRACE) CALL STRACE (IENT,'SWCAP8')
 
    IF (IWCAP.NE.8) THEN
@@ -2905,6 +2928,7 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 
    DEALLOCATE (WCAP)
 
+   END ASSOCIATE
    RETURN
 end subroutine SWCAP8
 
@@ -2913,7 +2937,7 @@ end subroutine SWCAP8
 SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 &SPCSIG  ,DEP2    ,BOTLV   ,&
 &RDX     ,RDY     ,KWAVE   ,&
-&IDDLOW  ,IDDTOP  ,FDIR    ,KTETA   )
+&IDDLOW  ,IDDTOP  ,FDIR    ,KTETA, KM_WAM)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -2921,9 +2945,9 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   USE M_WCAP, ONLY: KM_WAM
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   REAL, INTENT(IN) :: KM_WAM
 
 
 !   --|-----------------------------------------------------------|--

@@ -60,6 +60,11 @@ module swan_computation
 !  De !TIMG-timers worden uit meerdere procedures van deze module
 !  aangeroepen, dus hun interface hoort op moduleniveau zichtbaar te zijn.
    use swan_service_interfaces, only: SWTSTA, SWTSTO
+   use swan_diffraction_state, only: diffraction_state_t
+   use swan_triad_state, only: triad_state_t
+   use swan_snl4_tables, only: snl4_tables_t
+   use swan_spectral_powers, only: spectral_powers_t
+   use swan_source_workspaces, only: thread_workspaces_t, wcap_workspace_t
    implicit none(type, external)
    private
 !  Entry points used by the driver (SWCOMP) and by the unstructured solver,
@@ -74,7 +79,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 &XYTST      ,&
 &IT         ,KGRPNT     ,&
 &XCGRID     ,YCGRID     ,&
-&CROSS      )
+&CROSS      ,DIFFR      ,TRIADS, SNL4, SPECTRAL_POWERS, THREAD_WORKSPACES)
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_parallel, ONLY: SWCOLLECT, SWEXCHG
 !  The remaining imports are used only from switch-hidden call sites, so each
@@ -100,7 +105,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    USE SWCOMM4
    USE SwanQCM
    USE M_PARALL
-   USE M_SNL3, ONLY: MSC4D
    USE m_constants, ONLY: init_constants
    USE m_xnldata
    USE m_fileio
@@ -109,6 +113,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+    TYPE(diffraction_state_t), INTENT(INOUT) :: DIFFR
+    TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
+    TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
+    TYPE(spectral_powers_t), INTENT(IN) :: SPECTRAL_POWERS
+    TYPE(thread_workspaces_t), INTENT(INOUT) :: THREAD_WORKSPACES
 
 
 !   --|-----------------------------------------------------------|--
@@ -949,6 +959,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !     Add variables for OMP thread parameters.
 !$ INTEGER, EXTERNAL :: OMP_GET_NUM_THREADS, OMP_GET_THREAD_NUM
+!$ INTEGER, EXTERNAL :: OMP_GET_MAX_THREADS
+   INTEGER :: THREAD_COUNT, THREAD_INDEX
    INTEGER I1GRD,I2GRD,I1MYC,I2MYC
 
    INTEGER, SAVE :: IENT = 0
@@ -980,7 +992,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
    IF (LTRACE) CALL STRACE (IENT,'SWCOMP')
 
-   IF (IT .EQ. 1 .AND. ITEST.GE.1) CALL SWPRSET (SPCSIG,SPCDIR)
+   THREAD_COUNT = 1
+!$ THREAD_COUNT = OMP_GET_MAX_THREADS()
+   CALL THREAD_WORKSPACES%ENSURE_STRUCTURED(THREAD_COUNT)
+
+   IF (IT .EQ. 1 .AND. ITEST.GE.1) CALL SWPRSET (SPCSIG,SPCDIR,&
+   &TRIADS%collinear)
 
 !     *** print test points ***
 
@@ -999,18 +1016,19 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !            spectral range over all quadruplets
       CALL SWPRE4W (XIS   ,SNLC1 ,&
       &DAL1  ,DAL2  ,DAL3  ,SPCSIG,&
-      &WWINT ,WWAWG ,WWSWG )
+      &WWINT ,WWAWG ,WWSWG, SNL4 )
    ELSE IF ( IQUAD.GE.1 ) THEN
       CALL FAC4WW (XIS   ,SNLC1 ,&
       &DAL1  ,DAL2  ,DAL3  ,SPCSIG,&
-      &WWINT ,WWAWG ,WWSWG )
+      &WWINT ,WWAWG ,WWSWG, SNL4 )
    ENDIF
 !TIMG   CALL SWTSTO(135)
 !
 !     --- store frequency- and space-dependent data for triads
 !TIMG   CALL SWTSTA(134)
    IF ( ITRIAD.GT.0 ) THEN
-      IF (IT.EQ.1 .OR. DYNDEP) CALL FAC3WW ( COMPDA(1,JDP2), SPCSIG )
+      IF (IT.EQ.1 .OR. DYNDEP) CALL FAC3WW (COMPDA(1,JDP2), SPCSIG,&
+      &TRIADS)
    ENDIF
 !TIMG   CALL SWTSTO(134)
 !
@@ -1223,7 +1241,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !----------------------------------------------------------------------
 !
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP& PRIVATE(ITER, SWPDIR, IX, IY, II, IJ, IK) &
+!$OMP& PRIVATE(ITER, SWPDIR, IX, IY, II, IJ, IK, THREAD_INDEX) &
 !$OMP& PRIVATE(CAX, CAY, CAX1, CAY1, CAS, CAD, CGO, KWAVE, DMW) &
 !$OMP& PRIVATE(SIGFT, CGFT, UXFT, UYFT, CFT, RFT, SFT, WFT, WSAVE) &
 !$OMP& PRIVATE(CFD, WFD, WSAVD) &
@@ -1252,6 +1270,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$OMP END MASTER
 !TIMG
 !TIMG   CALL SWTSTA(101)
+!
+   THREAD_INDEX = 1
+!$ THREAD_INDEX = OMP_GET_THREAD_NUM() + 1
 !
 !----------------------------------------------------------------------
 !     Begin allocate private arrays.
@@ -1323,11 +1344,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
          ALLOCATE(QTL1(  0,0))
          ALLOCATE(QTL2(MSC,2))
       ELSE IF (ITRIAD.EQ.2 .OR. ITRIAD.EQ.3) THEN
-         ALLOCATE(QTL1(MSC4D,2))
-         ALLOCATE(QTL2(MSC4D,4))
+         ALLOCATE(QTL1(TRIADS%frequency_dimension,2))
+         ALLOCATE(QTL2(TRIADS%frequency_dimension,4))
       ELSE IF (ITRIAD.EQ.5) THEN
-         ALLOCATE(QTL1(MSC4D,2))
-         ALLOCATE(QTL2(MSC4D,2))
+         ALLOCATE(QTL1(TRIADS%frequency_dimension,2))
+         ALLOCATE(QTL2(TRIADS%frequency_dimension,2))
       ENDIF
    ELSE
 !        *** no triads ***
@@ -1722,13 +1743,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       --- calculate diffraction parameter and its derivatives
 !TIMG      CALL SWTSTA(137)
       IF ( IDIFFR.GT.0 )&
-      &CALL DIFPAR( AC2   , SPCSIG, KGRPNT, COMPDA(1,JDP2),&
+      &CALL DIFPAR( AC2   , SPCSIG, KGRPNT, COMPDA(1,JDP2), DIFFR ,&
       &CROSS , XCGRID, YCGRID, XYTST  )
 !TIMG      CALL SWTSTO(137)
 !
 !       --- spatially filter the De Wit's biphase to prevent abrupt changes
       IF (IBIPH.EQ.3) CALL SWBIPM ( COMPDA(1,JBIPH ), COMPDA(1,JDP2),&
-      &COMPDA(1,JHSIBC)                )
+      &COMPDA(1,JHSIBC), TRIADS%biphase_unfiltered )
 
 !----------------------------------------------------------------------
 !     End master thread region.
@@ -2075,7 +2096,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &MEMQCM           ,MEMQCB           ,&
                            &ISLMIN           ,NFLIM            ,NRSCAL           ,&
                            &MEMSINA          ,MEMSINB          ,&
-                           &CAX1             ,CAY1&
+                           &CAX1             ,CAY1             ,DIFFR,&
+                           &TRIADS           ,SNL4             ,SPECTRAL_POWERS,&
+                           &THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%WCAP&
                            &)
 !TIMG                           CALL SWTSTO(104)
 !MPI                           IF (STPNOW()) RETURN
@@ -2547,7 +2570,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &MEMQCM   ,MEMQCB   ,&
                &ISLMIN   ,NFLIM    ,NRSCAL   ,&
                &MEMSINA  ,MEMSINB  ,&
-               &CAX1,CAY1&
+               &CAX1,CAY1,DIFFR,TRIADS,SNL4,SPECTRAL_POWERS,WCAP_WORKSPACE&
                &)
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_services, ONLY: SWTRCF
@@ -2565,9 +2588,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE SWCOMM4
                   USE SwanQCM
                   USE M_PARALL
-                  USE M_SNL3
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
+
+    TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
+    TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
+    TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
+    TYPE(spectral_powers_t), INTENT(IN) :: SPECTRAL_POWERS
+    TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
 
 
 !   --|-----------------------------------------------------------|--
@@ -3026,7 +3054,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   &SWTSDA(MDC,MSC,NPTSTA,MTSVAR)         ,&
                   &WWAWG(*)                              ,&
                   &WWSWG(*)                              ,&
-                  &QTL1(MSC4D,*) ,QTL2(MSC4D,*)          ,&
+                  &QTL1(:,:) ,QTL2(:,:)                  ,&
                   &RDX(MICMAX)   ,RDY(MICMAX)            ,&
                   &OBREDF(MDC,MSC,2)                     ,&
                   &REFLSO(MDC,MSC)
@@ -3353,7 +3381,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      CALL SPROXY (CAX1            ,&
                      &CAY1           ,CGO            ,SPCDIR(1,2)    ,&
                      &SPCDIR(1,3)    ,COMPDA(1,JVX1) ,COMPDA(1,JVY1) ,&
-                     &SWPDIR&
+                     &SWPDIR         ,DIFFR&
                      &)
 !TIMG                     CALL SWTSTO(111)
 
@@ -3376,7 +3404,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   CALL SPROXY (CAX            ,&
                   &CAY            ,CGO            ,SPCDIR(1,2)    ,&
                   &SPCDIR(1,3)    ,COMPDA(1,JVX2) ,COMPDA(1,JVY2) ,&
-                  &SWPDIR&
+                  &SWPDIR         ,DIFFR&
                   &)
 !TIMG                  CALL SWTSTO(111)
 !
@@ -3414,7 +3442,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   &RDX            ,RDY            ,&
                   &CAX            ,CAY            ,&
                   &XCGRID         ,YCGRID         ,&
-                  &IDDLOW         ,IDDTOP&
+                  &IDDLOW         ,IDDTOP         ,DIFFR&
                   &)
 !TIMG                  CALL SWTSTO(113)
 !
@@ -3461,20 +3489,20 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !           for current grid point
 
                      IF (ITRIAD.EQ.1 .OR. ITRIAD.EQ.11) THEN
-                        QTL2(:,1) = QTRI2(:,KCGRD(1),1)
-                        QTL2(:,2) = QTRI2(:,KCGRD(1),2)
+                        QTL2(:,1) = TRIADS%scaling(:,KCGRD(1),1)
+                        QTL2(:,2) = TRIADS%scaling(:,KCGRD(1),2)
                      ELSE IF (ITRIAD.EQ.2 .OR. ITRIAD.EQ.3) THEN
-                        QTL1(:,1) = QTRI1(:,1)
-                        QTL1(:,2) = QTRI1(:,2)
-                        QTL2(:,1) = QTRI2(:,KCGRD(1),1)
-                        QTL2(:,2) = QTRI2(:,KCGRD(1),2)
-                        QTL2(:,3) = QTRI2(:,KCGRD(1),3)
-                        QTL2(:,4) = QTRI2(:,KCGRD(1),4)
+                        QTL1(:,1) = TRIADS%interpolation(:,1)
+                        QTL1(:,2) = TRIADS%interpolation(:,2)
+                        QTL2(:,1) = TRIADS%scaling(:,KCGRD(1),1)
+                        QTL2(:,2) = TRIADS%scaling(:,KCGRD(1),2)
+                        QTL2(:,3) = TRIADS%scaling(:,KCGRD(1),3)
+                        QTL2(:,4) = TRIADS%scaling(:,KCGRD(1),4)
                      ELSE IF (ITRIAD.EQ.5) THEN
-                        QTL1(:,1) = QTRI1(:,1)
-                        QTL1(:,2) = QTRI1(:,2)
-                        QTL2(:,1) = QTRI2(:,KCGRD(1),1)
-                        QTL2(:,2) = QTRI2(:,KCGRD(1),2)
+                        QTL1(:,1) = TRIADS%interpolation(:,1)
+                        QTL1(:,2) = TRIADS%interpolation(:,2)
+                        QTL2(:,1) = TRIADS%scaling(:,KCGRD(1),1)
+                        QTL2(:,2) = TRIADS%scaling(:,KCGRD(1),2)
                      ENDIF
 
 !       *** estimate action density in case of first iteration ***
@@ -3514,7 +3542,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &COMPDA(1,JBOTLV) ,COMPDA(1,JGAMMA) ,&
                      &SWPDIR           ,&
                      &URMSTOP          ,&
-                     &IDDLOW           ,IDDTOP           )
+                     &IDDLOW           ,IDDTOP, TRIADS,&
+                     &SPECTRAL_POWERS%value, WCAP_WORKSPACE )
 !TIMG                     CALL SWTSTO(116)
 
                      COMPDA(KCGRD(1),JHS) = HS
@@ -3614,7 +3643,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &COMPDA(1,JAICE2)    ,COMPDA(1,JHICE2)    ,&
                         &COMPDA(1,JURSEL)    ,LSWMAT(1,1,JABIN)   ,REFLSO              ,&
                         &COMPDA(1,JTAUW)     ,COMPDA(1,JBIPH)&
-                        &,URMSTOP&
+                        &,URMSTOP            ,TRIADS, SNL4, SPECTRAL_POWERS,&
+                        &WCAP_WORKSPACE&
                         &)
                      ENDIF
                      IF ( IQCM.GT.0 .OR. IGEN.EQ.4 ) THEN
@@ -3634,7 +3664,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &SMEBRK              , KTETA               , KMESPC            ,&
                         &CFT                 , RFT                 , SFT               ,&
                         &WFT                 , WSAVE               , CFD               ,&
-                        &WFD                 , WSAVD&
+                        &WFD                 , WSAVD               ,&
+                        &WCAP_WORKSPACE%mean_frequency_wam&
                         &)
                      ENDIF
 !TIMG                     CALL SWTSTO(117)
@@ -3870,7 +3901,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                end subroutine SWOMPU
 !****************************************************************
 
-               SUBROUTINE SWPRSET (SPCSIG,SPCDIR)
+               SUBROUTINE SWPRSET (SPCSIG,SPCDIR,TCOLL)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -3880,9 +3911,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE SWCOMM3
                   USE SWCOMM4
                   USE SwanIEM, only: ntf, dfiem, sflog
-                  USE M_SNL3, ONLY: TCOLL
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
+                  LOGICAL, INTENT(IN) :: TCOLL
 
 
 !   --|-----------------------------------------------------------|--
@@ -5389,7 +5420,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &TMBOT   ,BOTLV   ,GAMBR   ,&
                &SWPDIR  ,&
                &URMSTOP ,&
-               &IDDLOW  ,IDDTOP  )
+&IDDLOW  ,IDDTOP, TRIADS, SIGPOW, WCAP_WORKSPACE )
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_nonlinear_interactions, ONLY: PEREXC, SWBIDW
    USE swan_dissipation, ONLY: BRKPAR, FRABRE
@@ -5400,10 +5431,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE SWCOMM1
                   USE SWCOMM3
                   USE SWCOMM4
-                  USE M_WCAP
-                  USE M_SNL3, ONLY: BPHTMP
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
+                  TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
+                  REAL, INTENT(IN) :: SIGPOW(:,:)
+                  TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
 
 
 
@@ -5647,15 +5679,23 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 ! 13. Source text:
 
+                  ASSOCIATE(ACTOT => WCAP_WORKSPACE%total_action,&
+                  &EDRKTOT => WCAP_WORKSPACE%energy_over_root_wavenumber,&
+                  &EKTOT => WCAP_WORKSPACE%energy_times_wavenumber,&
+                  &ETOT1 => WCAP_WORKSPACE%first_energy_moment,&
+                  &ETOT2 => WCAP_WORKSPACE%second_energy_moment,&
+                  &ETOT4 => WCAP_WORKSPACE%fourth_energy_moment,&
+                  &KM_WAM => WCAP_WORKSPACE%mean_wavenumber_wam,&
+                  &KM01 => WCAP_WORKSPACE%mean_wavenumber_01,&
+                  &SIGM_WAM => WCAP_WORKSPACE%mean_frequency_wam,&
+                  &SIGM_10 => WCAP_WORKSPACE%mean_frequency_10,&
+                  &SIGM01 => WCAP_WORKSPACE%mean_frequency_01)
+
                   IF (LTRACE) CALL STRACE (IENT,'SINTGRL')
 
 !     --- initialisation
 
-                  KM_WAM  = 10.
-                  KM01    = 10.
-
-                  SIGM01  = 10.
-                  SIGM_10 = 10.
+                  CALL WCAP_WORKSPACE%BEGIN_POINT()
 
                   HS      = 0.
                   HM      = 0.1
@@ -5797,7 +5837,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !             --- scale biphase
                            BIPH = SQRT(TANH(URSELL(KCGRD(1)))) * BIPH
 !             --- in between -90 and 90 deg
-                           BPHTMP(KCGRD(1)) = MIN( 0.5*PI, MAX( -0.5*PI, BIPH ) )
+                           TRIADS%biphase_unfiltered(KCGRD(1)) =&
+                           &MIN(0.5*PI, MAX(-0.5*PI, BIPH))
 !             note: this biphase will be spatially averaged at the
 !                   start of next iteration (see routine SWCOMP)
                         ENDIF
@@ -5814,7 +5855,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      CALL BRKPAR (BRCOEF, SPCDIR(1,2), SPCDIR(1,3), AC2,&
                      &SIGPOW(:,1), DEP2, BOTLV,&
                      &RDX, RDY, KWAVE, IDDLOW, IDDTOP, SPCDIR(1,1),&
-                     &KTETA )
+                     &KTETA, WCAP_WORKSPACE%mean_wavenumber_wam )
 
                      IF (ISURF.EQ.6) THEN
 !           in case of BKD store breaker index
@@ -5892,6 +5933,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   KMESPC = KM_WAM
                   SMEBRK = SIGM01
 
+                  END ASSOCIATE
                   RETURN
 
                end subroutine SINTGRL
@@ -6718,7 +6760,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &AICE2      ,HICE2      ,&
                &URSELL     ,ANYBIN     ,REFLSO     ,&
                &TAUWV      ,BIPHAS&
-               &,URMSTOP&
+               &,URMSTOP   ,TRIADS, SNL4, SPECTRAL_POWERS, WCAP_WORKSPACE&
                &)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
    USE swan_nonlinear_interactions, ONLY: FILNL3, RANGE4, SWDCTA, SWDNCTA, SWFTIM, SWINTFXNL, SWLTA, SWSNL1, SWSNL2, SWSNL3, SWSNL4, SWSNL8
@@ -6734,12 +6776,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE SWCOMM2
                   USE SWCOMM3
                   USE SWCOMM4
-                  USE M_SNL4
-                  USE M_SNL3
                   USE SdsBabanin
                   USE SwanBraggScat
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
+                  TYPE(triad_state_t), INTENT(IN) :: TRIADS
+                  TYPE(snl4_tables_t), INTENT(IN) :: SNL4
+                  TYPE(spectral_powers_t), INTENT(IN) :: SPECTRAL_POWERS
+                  TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
 
 
 !   --|-----------------------------------------------------------|--
@@ -7140,7 +7184,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   REAL  :: NPLA2(MCGRD)
                   REAL  :: TURBV2(MCGRD)
                   REAL  :: MUDL2(MCGRD)
-                  REAL  :: QTL1(MSC4D,*), QTL2(MSC4D,*)
+                  REAL  :: QTL1(:,:), QTL2(:,:)
                   REAL, INTENT(IN)  :: AICE2(MCGRD)
                   REAL, INTENT(IN)  :: HICE2(MCGRD)
                   REAL  :: REFLSO(MDC,MSC)
@@ -7247,7 +7291,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                      CALL STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
                      &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-                     &KWAVE   ,DISSC1  ,PLTURB  )
+                     &KWAVE   ,DISSC1  ,PLTURB, SPECTRAL_POWERS%value)
                   END IF
 !TIMG                  CALL SWTSTO(143)
 !
@@ -7272,7 +7316,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      CALL SSURF (ETOT    ,HM      ,QBLOC   ,SMEBRK  ,KTETA   ,&
                      &KMESPC  ,SPCSIG  ,AC2     ,IMATRA  ,&
                      &IMATDA  ,IDCMIN  ,IDCMAX  ,PLWBRK  ,&
-                     &ISSTOP  ,DISSC0  ,DISSC1  ,DISBK   ,ITER    )
+                     &ISSTOP  ,DISSC0  ,DISSC1  ,DISBK   ,ITER,&
+                     &WCAP_WORKSPACE%mean_frequency_wam )
 
                   END IF
 !TIMG                  CALL SWTSTO(131)
@@ -7378,12 +7423,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
                      &ETOT    ,IMATDA  ,IMATRA  ,PLWCAP  ,&
                      &CGO     ,UFRIC   ,CAS     ,&
-                     &DEP2    ,DISSC1  ,DISSC0  )
+                     &DEP2    ,DISSC1  ,DISSC0,&
+                     &WCAP_WORKSPACE)
                      IF (IWCAP.EQ.8) CALL SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2 ,&
                      &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
                      &ETOT    ,IMATDA  ,IMATRA  ,PLWCAP  ,&
                      &CGO     ,UFRIC   ,&
-                     &DEP2    ,DISSC1  ,DISSC0  )
+                     &DEP2    ,DISSC1  ,DISSC0, WCAP_WORKSPACE)
                   END IF
 
 !     For now, we only call SSWELL if Babanin physics are in use
@@ -7427,7 +7473,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            CALL SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
                            &IMATRA, IMATDA, REDC0 , REDC1 ,&
                            &IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
-                           &SMEBRK, PLTRI , URSELL, BIPHAS, QTL2  )
+                           &SMEBRK, PLTRI , URSELL, BIPHAS, QTL2, TRIADS )
                         ELSEIF (ITRIAD.EQ.2 .OR. ITRIAD.EQ.3) THEN
 !             SPB or FTIM
                            CALL SWFTIM ( AC2   , SPCSIG,&
@@ -7437,7 +7483,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &QTL1  , QTL2  )
                         ELSEIF (ITRIAD.EQ.5) THEN
 !             DCTA
-                           IF ( TCOLL ) THEN
+                           IF ( TRIADS%collinear ) THEN
                               CALL SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
                               &IMATRA, IMATDA, REDC0 , REDC1 ,&
                               &IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
@@ -7490,7 +7536,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &FACHFR  ,ISSTOP  ,DAL1    ,DAL2    ,DAL3    ,&
                         &SFNL    ,DSNL    ,DEP2    ,AC2     ,IMATDA  ,&
                         &IMATRA  ,PLNL4S  ,PLNL4D                    ,&
-                        &IDDLOW  ,IDDTOP  ,REDC0   ,REDC1   )
+                        &IDDLOW  ,IDDTOP  ,REDC0   ,REDC1, SNL4 )
 
                      ELSE IF ( IQUAD .EQ. 2) THEN
 
@@ -7502,7 +7548,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &SA2     ,SPCSIG  ,SNLC1   ,DAL1    ,DAL2    ,&
                         &DAL3    ,SFNL    ,DEP2    ,AC2     ,KMESPC  ,&
                         &REDC0   ,REDC1   ,IMATDA  ,IMATRA  ,&
-                        &FACHFR  ,PLNL4S  ,         IDCMIN  ,IDCMAX  )
+                        &FACHFR  ,PLNL4S  ,         IDCMIN  ,IDCMAX, SNL4 )
 
                      ELSE IF ( IQUAD .EQ. 3) THEN
 
@@ -7520,7 +7566,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            CALL SWSNL3 (                  WWINTL  ,WWAWG   ,&
                            &UE      ,SA1     ,SA2     ,SPCSIG  ,SNLC1   ,&
                            &DAL1    ,DAL2    ,DAL3    ,SFNL    ,DEP2    ,&
-                           &AC2     ,KMESPC  ,MEMNL4  ,FACHFR           )
+                           &AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4     )
 
                         ELSE IF ( ITER .GT. 1 .AND. ( SWPDIR .EQ. 1 .OR.&
                         &( SWPDIR .EQ. 2 .AND. IX .EQ. 1) .OR.&
@@ -7530,7 +7576,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            CALL SWSNL3 (                  WWINTL  ,WWAWG   ,&
                            &UE      ,SA1     ,SA2     ,SPCSIG  ,SNLC1   ,&
                            &DAL1    ,DAL2    ,DAL3    ,SFNL    ,DEP2    ,&
-                           &AC2     ,KMESPC  ,MEMNL4  ,FACHFR           )
+                           &AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4     )
 
                         ENDIF
 
@@ -7548,23 +7594,23 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &( SWPDIR .EQ. 2 .AND. IX .EQ. 1) .OR.&
                         &( SWPDIR .EQ. 3 .AND. IY .EQ. 1) .OR.&
                         &( SWPDIR .EQ. 4 .AND. (IX.EQ.MXC .AND. IY.EQ.1))))) THEN
-                           DO IDIA=1,MDIA
+                           DO IDIA=1,SNL4%quadruplet_count
 !             --- restore the coefficients of this quadruplet from the
 !                 cache filled by SWPRE4W into thread-local copies;
 !                 FACHFR is set above and does not depend on the
 !                 quadruplet
-                              WWINT4(1:24) = WWINTM(1:24,IDIA)
-                              WWAWG4(1:8)  = WWAWGM(1:8,IDIA)
-                              DAL14 = DAL1M(IDIA)
-                              DAL24 = DAL2M(IDIA)
-                              DAL34 = DAL3M(IDIA)
+                              WWINT4(1:24) = SNL4%cached_indices(1:24,IDIA)
+                              WWAWG4(1:8) = SNL4%cached_angular_weights(1:8,IDIA)
+                              DAL14 = SNL4%cached_dal1(IDIA)
+                              DAL24 = SNL4%cached_dal2(IDIA)
+                              DAL34 = SNL4%cached_dal3(IDIA)
                               CALL RANGE4 (WWINT4,IDDLOW,IDDTOP )
                               CALL SWSNL4 (WWINT4  ,WWAWG4  ,&
                               &SPCSIG  ,SNLC1   ,&
                               &DAL14   ,DAL24   ,DAL34   ,DEP2    ,&
                               &AC2     ,KMESPC  ,MEMNL4  ,FACHFR  ,&
                               &IDIA    ,ITER    ,UE      ,SA1     ,&
-                              &SA2     ,SFNL    )
+                              &SA2     ,SFNL    ,SNL4)
                            END DO
                         ENDIF
 
@@ -7590,7 +7636,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                            CALL SWSNL8 (WWINTL  ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
                            &SNLC1   ,DAL1    ,DAL2    ,DAL3    ,SFNL    ,&
-                           &DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR  )
+                           &DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4 )
 
                         ELSE IF ( ITER .GT. 1 .AND. ( SWPDIR .EQ. 1 .OR.&
                         &( SWPDIR .EQ. 2 .AND. IX .EQ. 1) .OR.&
@@ -7599,7 +7645,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                            CALL SWSNL8 (WWINTL  ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
                            &SNLC1   ,DAL1    ,DAL2    ,DAL3    ,SFNL    ,&
-                           &DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR  )
+                           &DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4 )
 
                         ENDIF
 

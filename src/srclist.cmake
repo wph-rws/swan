@@ -20,6 +20,11 @@ ${SWAN_GENERATED_SRC}/swan_geometry.f90
 ${SWAN_GENERATED_SRC}/swan_legacy_io.f90
 ${SWAN_GENERATED_SRC}/swmod1.f90
 ${SWAN_GENERATED_SRC}/swan_io_context.f90
+${SWAN_GENERATED_SRC}/swan_diffraction_state.f90
+${SWAN_GENERATED_SRC}/swan_triad_state.f90
+${SWAN_GENERATED_SRC}/swan_snl4_tables.f90
+${SWAN_GENERATED_SRC}/swan_spectral_powers.f90
+${SWAN_GENERATED_SRC}/swan_source_workspaces.f90
 ${SWAN_GENERATED_SRC}/swmod2.f90
 ${SWAN_GENERATED_SRC}/SwanSpectPart.f90
 ${SWAN_GENERATED_SRC}/m_constants.f90
