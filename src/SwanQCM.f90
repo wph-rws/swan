@@ -1,7 +1,7 @@
 ! This file contains data and routines for quasi-coherent modelling (QCM)
 
 module SwanQCM
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE, STPNOW
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, STPNOW, SWTSTA, SWTSTO
    USE swan_wave_physics, ONLY: KSCIP1
    USE swan_input_interpolation, ONLY: SVALQI
    USE swan_point_interpolation, ONLY: SwanInterpolatePoint
@@ -53,7 +53,7 @@ module SwanQCM
 !
 !   Modules used
 
-    implicit none
+    implicit none(type, external)
 
 !   Module variables
 
@@ -152,7 +152,7 @@ subroutine SWQCINIT ( BGRIDP, COMPDA )
     use m_parall
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -731,7 +731,7 @@ subroutine SWQCDFT ( sigft, cgft, dep2, kwave, cgo, cft, rft, sft, wft, wsave )
     use SwanGriddata
     use SwanCompdata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -980,7 +980,7 @@ subroutine SWQCUFT ( uxft, uyft, dep2, ux2, uy2, cft, rft, sft, wft, wsave )
     use SwanGriddata
     use SwanCompdata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -1220,7 +1220,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
     use swcomm3
     use swcomm4
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -1459,7 +1459,7 @@ subroutine SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig )
     use swcomm3
     use swcomm4
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -1700,7 +1700,7 @@ subroutine SwanGradWig ( W, dwdx, dwdy, ac2, dep2, spcdir, spcsig )
     use SwanGridobjects
     use SwanCompdata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -2094,7 +2094,7 @@ subroutine SWQCSCAT ( memqcm, W, dwdx, dwdy, sigft, cgft, uxft, uyft, dep2, kwav
     use ocpcomm4
     use swcomm3
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -2411,7 +2411,7 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
     use ocpcomm4
     use swcomm3
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -3233,7 +3233,7 @@ subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbr
     use swcomm3
     use swcomm4
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -3386,7 +3386,7 @@ subroutine tukeywin ( a, n )
     use ocpcomm4, only: ltrace
     use swcomm3 , only: pi
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

@@ -19,7 +19,7 @@
 module swan_output_orchestration
    use swan_compute_force, only: SwanComputeForce
    use swan_find_point, only: SwanFindPoint
-   implicit none
+   implicit none(type, external)
    private
    public :: SWOUTP, SWOEXC
 contains
@@ -1489,7 +1489,7 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA ,&
    USE SwanGridobjects
 !METIS   USE SwanParallel
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -4729,7 +4729,7 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
    USE SWCOMM4
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 

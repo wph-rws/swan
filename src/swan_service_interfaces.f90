@@ -13,11 +13,13 @@ module swan_service_interfaces
 !     parser, which uses this module.
 !
    use swan_parallel_state, only: MASTER, INODE, IAMMASTER, PARLL
-   implicit none
+   implicit none(type, external)
    private
 
    public :: eqreal, eqdble
    public :: msgerr, stpnow, strace, txpbla
+   public :: swtsta, swtsto, swprti
+   public :: swi2b, swr2b
    public :: tabhed, bugfix
 
    interface
@@ -27,6 +29,32 @@ module swan_service_interfaces
          character(len=*), intent(inout) :: text
          integer, intent(out)             :: first, last
       end subroutine txpbla
+
+!     SWTSTA and SWTSTO are the switch activated timers in swanser.f90. Only a
+!     !TIMG build compiles them, but declaring them unconditionally costs
+!     nothing and is what lets their callers use IMPLICIT NONE(TYPE, EXTERNAL):
+!     without an explicit interface a !TIMG build cannot resolve the calls.
+      subroutine swtsta(itimer)
+         integer, intent(in) :: itimer
+      end subroutine swtsta
+
+      subroutine swtsto(itimer)
+         integer, intent(in) :: itimer
+      end subroutine swtsto
+
+      subroutine swprti
+      end subroutine swprti
+
+!     SWI2B and SWR2B are the !MatL4 byte converters, also in swanser.f90.
+      subroutine swi2b(ival, bval)
+         integer, intent(in)  :: ival
+         integer, intent(out) :: bval(4)
+      end subroutine swi2b
+
+      subroutine swr2b(rval, bval)
+         real,    intent(in)  :: rval
+         integer, intent(out) :: bval(4)
+      end subroutine swr2b
    end interface
 
 contains
@@ -44,7 +72,7 @@ SUBROUTINE STRACE (IENT, SUBNAM, DIAG, IO)
    USE swan_parallel_state, ONLY: MASTER, INODE, IAMMASTER, PARLL
    USE swan_io_context, ONLY: diagnostics_context_t, io_context_t
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -174,7 +202,7 @@ SUBROUTINE MSGERR (LEV,STRING,DIAG,IO)
    USE swan_parallel_state, ONLY: MASTER, INODE, IAMMASTER, PARLL
    USE swan_io_context, ONLY: diagnostics_context_t, io_context_t
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -334,7 +362,7 @@ LOGICAL FUNCTION STPNOW(DIAG)
 
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !     DIAG : optional error/trace context. When present its error status is
 !            used instead of the OCPCOMM4 globals, so an isolated run can be
@@ -444,7 +472,7 @@ SUBROUTINE TABHED (PROGNM, LPR)
    USE OCPCOMM3
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -538,7 +566,7 @@ LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
    USE OCPCOMM3
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -658,7 +686,7 @@ LOGICAL FUNCTION EQDBLE (DBLE1, DBLE2)
 
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

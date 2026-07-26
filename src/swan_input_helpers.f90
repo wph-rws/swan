@@ -35,7 +35,7 @@ module swan_input_helpers
 !     They live here rather than in swan_service_interfaces because they use
 !     swan_input_parser, which in turn uses that module.
 !
-   implicit none
+   implicit none(type, external)
    private
    public :: REPARM, LSPLIT
 contains
@@ -52,7 +52,7 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
    USE OCPCOMM3
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -279,7 +279,7 @@ SUBROUTINE LSPLIT(RELINE, DATITM, NUMITM)
    USE OCPCOMM3
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

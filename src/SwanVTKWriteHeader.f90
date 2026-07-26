@@ -1,5 +1,5 @@
 module swan_vtk_write_header
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanVTKWriteHeader
 contains
@@ -58,7 +58,7 @@ subroutine SwanVTKWriteHeader ( uvtk, pstype, nvar, ivtyp, mxkf, mxkl, mykf, myk
     use outp_data
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

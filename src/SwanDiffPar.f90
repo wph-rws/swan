@@ -1,5 +1,5 @@
 module swan_diff_par
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanDiffPar
 contains
@@ -90,7 +90,7 @@ subroutine SwanDiffPar ( ac2, dep2, spcsig )
     use SwanGriddata
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

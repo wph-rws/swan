@@ -55,7 +55,7 @@
 !                                                                      *
 module swan_services
    use swan_cross_obstacle, only: SwanCrossObstacle
-   implicit none
+   implicit none(type, external)
    private
    public :: AC2TST, CVCHEK, CVMESH, EVALF, SWOBST, SWTRCF, HSOBND, SWACC, MKPATH
 contains
@@ -1613,7 +1613,7 @@ SUBROUTINE SWOBST (XCGRID, YCGRID, KGRPNT, CROSS)
    USE SWCOMM3
    USE M_OBSTA
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -1838,7 +1838,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
    USE SwanCompdata
    USE SwanIEM, only: ntf, Ebig
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -2502,7 +2502,7 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
    USE SWCOMM3
    USE SWCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 
@@ -3057,7 +3057,7 @@ SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX)
    USE SWCOMM3
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -3170,7 +3170,7 @@ SUBROUTINE MKPATH ( PATH, IERR )
 
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -3996,7 +3996,7 @@ SUBROUTINE TXPBLA(TEXT,IF,IL)
 
 !****************************************************************
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

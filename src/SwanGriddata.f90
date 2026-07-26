@@ -47,7 +47,7 @@ module SwanGriddata
 !
 !   none
 
-    implicit none
+    implicit none(type, external)
 
 !   Module parameters
 

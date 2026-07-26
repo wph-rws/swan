@@ -2,7 +2,7 @@
 !   based on work of Babanin, Young, Tsagareli, Ardhuin and others
 MODULE SDSBABANIN
    USE swan_service_interfaces, ONLY: STRACE
-  IMPLICIT NONE
+  IMPLICIT NONE(TYPE, EXTERNAL)
 
 CONTAINS
 
@@ -23,7 +23,7 @@ CONTAINS
     ! whether using "U" vs "D" method)
     ! LOGICAL UPWARDS : true if concave up
 
-    IMPLICIT NONE
+    IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
@@ -298,7 +298,7 @@ CONTAINS
     USE OCPCOMM4
 !ESMF    USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
 
-    IMPLICIT NONE
+    IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
@@ -743,7 +743,7 @@ CONTAINS
 
     USE SWCOMM1, ONLY: CHTIME
 
-    IMPLICIT NONE
+    IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
@@ -1222,7 +1222,7 @@ CONTAINS
 
     USE SWCOMM3, ONLY: WNDSCL
 
-    IMPLICIT NONE
+    IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
@@ -1354,7 +1354,7 @@ CONTAINS
       USE SWCOMM4
       USE OCPCOMM4
 
-      IMPLICIT NONE
+      IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -1593,7 +1593,7 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
     use swcomm4
     use ocpcomm4
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -1691,7 +1691,7 @@ end subroutine filsin
     !
     !****************************************************************
 
-    IMPLICIT NONE
+    IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
@@ -1934,7 +1934,7 @@ end subroutine filsin
 !        SOURCE
 !-------------------------------------------------------------------------------------
 
-    IMPLICIT NONE
+    IMPLICIT NONE(TYPE, EXTERNAL)
 
     LOGICAL, INTENT(IN) :: TESTFL
     INTEGER, INTENT(IN) :: ISSTOP,MDC,IPTST
@@ -2078,7 +2078,7 @@ end subroutine filsin
 
     USE SWCOMM3, ONLY : KCGRD, DDIR, MSC, B1Z
 
-    IMPLICIT NONE
+    IMPLICIT NONE(TYPE, EXTERNAL)
 
     ! Subroutine arguments:
     LOGICAL, INTENT(IN)   :: TESTFL
@@ -2179,7 +2179,7 @@ end subroutine filsin
   SUBROUTINE integrate(ansNum, x,y,np)
 !-------------------------------------------------------------------------
 
-    IMPLICIT NONE
+    IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
@@ -2239,7 +2239,7 @@ end subroutine filsin
 !       CD      Real   O   Drag coefficient.
 !     ----------------------------------------------------------------
 !/
-      IMPLICIT NONE
+      IMPLICIT NONE(TYPE, EXTERNAL)
 !/
 !/ ------------------------------------------------------------------- /
 !/ Parameter list
@@ -2388,7 +2388,7 @@ end subroutine filsin
       USE SWCOMM4
       USE OCPCOMM4
 
-      IMPLICIT NONE
+      IMPLICIT NONE(TYPE, EXTERNAL)
 !/
 !/ ------------------------------------------------------------------- /
 !/ Parameter list
@@ -2569,7 +2569,7 @@ end subroutine filsin
   REAL FUNCTION KUIK(E_AT_FREQ,DTHETA_RAD,CTH,STH,DIAGNOSTICS)
 !------------------------------------------------------------------------------
 
-  IMPLICIT NONE
+  IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !     SWAN (Simulating WAves Nearshore); a third generation wave model

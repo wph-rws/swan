@@ -1,5 +1,5 @@
 module swan_transp_x
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanTranspX
 contains
@@ -58,7 +58,7 @@ subroutine SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
     use SwanGriddata
     use SwanCompdata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

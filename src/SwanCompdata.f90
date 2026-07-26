@@ -52,7 +52,7 @@ module SwanCompdata
 
     use swcomm3
 
-    implicit none
+    implicit none(type, external)
 
 !   Module parameters
 !

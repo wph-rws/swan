@@ -58,7 +58,7 @@
 !******************************************************************
 
 module swan_nonlinear_interactions
-   implicit none
+   implicit none(type, external)
    private
    public :: FAC4WW, RANGE4, SWPRE4W, SWSNL1, SWSNL2, SWSNL3, SWSNL4, SWSNL8
    public :: FILNL3, SWINTFXNL, FAC3WW, SWLTA, SWDCTA, SWDNCTA, SWFTIM
@@ -2607,7 +2607,7 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
    USE OCPCOMM4
    USE M_SNL4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -3049,7 +3049,7 @@ SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH,&
    USE serv_xnl4v5
    USE m_xnldata
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 !-----------------------------------------------------------------------
 !
 !  0. Update history
@@ -3222,7 +3222,7 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG )
    USE SWCOMM3
    USE M_SNL3
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -3759,7 +3759,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
    USE SWCOMM4
    USE M_SNL3
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -4172,7 +4172,7 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
    USE SWCOMM4
    USE M_SNL3
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -4453,7 +4453,7 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
    USE SWCOMM4
    USE M_SNL3
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -4975,7 +4975,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
    USE SWCOMM4
    USE M_SNL3
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -5352,7 +5352,7 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV )
    USE OCPCOMM4
    USE SWCOMM3
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -5494,7 +5494,7 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
    USE OCPCOMM4
    USE SWCOMM3
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -5747,7 +5747,7 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC )
    USE M_GENARR
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

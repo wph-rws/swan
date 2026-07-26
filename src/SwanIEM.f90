@@ -50,7 +50,7 @@ module SwanIEM
 !
 !   Modules used
 
-    implicit none
+    implicit none(type, external)
 
 !   Module variables
 
@@ -139,7 +139,7 @@ subroutine SwanIEMinitig
     use M_WCAP  , only: SIGPOW
     use M_PARALL, only: NBGGL
 
-    implicit none
+    implicit none(type, external)
 
 !   Local variables
 
@@ -370,7 +370,7 @@ subroutine SwanIEMmeanwav ( AC2, HSIBC, SPCSIG, KGRPNT, HS )
     use OCPCOMM4
     use SWCOMM3, only: DDIR, FRINTF, MXC, MYC, MCGRD, MSC, MDC, GRAV, PI2, PWIND
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -546,7 +546,7 @@ subroutine SwanIEMncalc
     use OCPCOMM4
     use SWCOMM3, only: MDC, PI2
 
-    implicit none
+    implicit none(type, external)
 
 !   Parameter variables
 
@@ -736,7 +736,7 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
     use OCPCOMM4
     use SWCOMM3, only: DEPMIN, DX, GRAV, PI, DDIR, FRINTF, MXC, MYC, MCGRD, MDC, MSC, PWIND, PSURF
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

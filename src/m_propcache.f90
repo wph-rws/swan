@@ -1,5 +1,5 @@
 module m_propcache
-  implicit none
+  implicit none(type, external)
   private
 
   logical, public, save :: prop_cache_valid = .false.

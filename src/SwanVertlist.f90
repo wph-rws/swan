@@ -1,5 +1,5 @@
 module swan_vertlist
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanVertlist
 contains
@@ -75,7 +75,7 @@ subroutine SwanVertlist ( compda )
     use SwanGridobjects
     use SwanCompdata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

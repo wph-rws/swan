@@ -1,6 +1,6 @@
 module swan_prep_comp
    use swan_find_obstacles, only: SwanFindObstacles
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanPrepComp
 contains
@@ -55,7 +55,7 @@ subroutine SwanPrepComp ( cross )
     use SwanGriddata
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

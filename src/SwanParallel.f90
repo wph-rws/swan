@@ -53,7 +53,7 @@ module SwanParallel
 !
 !   none
 
-    implicit none
+    implicit none(type, external)
 
 !   Module variables
 !
@@ -161,7 +161,7 @@ subroutine SwanDecomposition ( logcom )
     use m_parall
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -265,7 +265,7 @@ subroutine SwanMeshPartition
     use m_parall
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Parameter variables
 
@@ -597,7 +597,7 @@ subroutine SwanCommAdmin
     use m_parall
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Parameter variables
 
@@ -1054,7 +1054,7 @@ subroutine SwanUvExchgI ( ifld )
     use m_parall
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -1205,7 +1205,7 @@ subroutine SwanUvExchgR ( fld )
     use m_parall
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -1353,7 +1353,7 @@ subroutine SwanCollBpntlist
     use SwanGriddata
     use SwanCompdata
 
-    implicit none
+    implicit none(type, external)
 
 !   Local variables
 
@@ -1684,7 +1684,7 @@ subroutine hpsort ( n, ia )
 
     use ocpcomm4, only: ltrace
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

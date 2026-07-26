@@ -1,6 +1,6 @@
 module swan_find_point
    use swan_pointin_mesh, only: SwanPointinMesh
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanFindPoint
 contains
@@ -55,7 +55,7 @@ subroutine SwanFindPoint ( x, y, kvert )
     use SwanGridobjects
     use SwanSpatialIndex
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

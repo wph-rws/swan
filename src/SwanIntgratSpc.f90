@@ -1,5 +1,5 @@
 module swan_spectral_integration
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanIntgratSpc
 
@@ -58,7 +58,7 @@ real function SwanIntgratSpc ( p, fmin, fmax, spcsig, theta, wpar, ecs, uloc, vl
     use swcomm1
     use swcomm3
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

@@ -1,6 +1,6 @@
 module swan_point_interpolation
    use swan_find_point, only: SwanFindPoint
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanInterpolatePoint
 
@@ -60,7 +60,7 @@ subroutine SwanInterpolatePoint ( foutp, x, y, finp, excval )
     use SwanGriddata
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

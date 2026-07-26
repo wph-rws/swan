@@ -23,7 +23,7 @@
 !         %datamax       real       maximum expected data value
 !         %varid         int        nc90_var_id
         use netcdf
-        implicit none
+        implicit none(type, external)
         private
         public                                       :: nctable, nctable_record
         public                                       :: get_nctable_record, set_nctable_convention_nautical

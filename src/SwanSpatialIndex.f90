@@ -64,7 +64,7 @@ module SwanSpatialIndex
 
     use SwanGriddata, only: nverts, nfaces, xcugrd, ycugrd
 
-    implicit none
+    implicit none(type, external)
 
     public
 
@@ -89,7 +89,7 @@ subroutine SwanSpatialIndexReset
 
 !   Invalidates all cached grid data. Called whenever grid topology is rebuilt
 
-    implicit none
+    implicit none(type, external)
 
     if ( allocated(bptr)  ) deallocate(bptr)
     if ( allocated(blist) ) deallocate(blist)
@@ -108,7 +108,7 @@ subroutine SwanSpatialIndexBuild
 
 !   Bins all vertices of the unstructured grid into a uniform bucket grid
 
-    implicit none
+    implicit none(type, external)
 
     integer :: ibkt   ! flattened bucket index
     integer :: istat  ! status of allocation
@@ -189,7 +189,7 @@ integer function SwanBucketNr ( x, y )
 
 !   Returns the flattened bucket number for the given point (clamped to the bucket grid)
 
-    implicit none
+    implicit none(type, external)
 
     real, intent(in) :: x ! x-coordinate of given point
     real, intent(in) :: y ! y-coordinate of given point
@@ -209,7 +209,7 @@ subroutine SwanNearestVertex ( x, y, kvert )
 !   Finds the vertex closest to the given point; result is identical to a
 !   linear first-minimum scan over all vertices
 
-    implicit none
+    implicit none(type, external)
 
     integer, intent(out) :: kvert ! closest vertex index of given point
     real, intent(in)     :: x     ! x-coordinate of given point
@@ -305,7 +305,7 @@ subroutine SwanNearestVertexLinear ( x, y, kvert )
 
 !   Allocation-failure fallback with the exact former scan semantics
 
-    implicit none
+    implicit none(type, external)
 
     integer, intent(out) :: kvert
     real, intent(in)     :: x
@@ -334,7 +334,7 @@ subroutine SwanBndFaceCache
 
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
     integer :: iface ! loop counter over faces
     integer :: istat ! status of allocation

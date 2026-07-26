@@ -7,7 +7,7 @@
 
 module swan_ocean_pack_init
    use swan_time, only: DTSTTI, DTTIST
-   implicit none
+   implicit none(type, external)
    private
 !  OCPINI is the only entry point the driver needs; OCDTIM (processor-time
 !  formatting) is used only from here.
@@ -30,7 +30,7 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
    USE OCPCOMM4
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -376,7 +376,7 @@ end subroutine OCPINI
 !*****************************************************************
 !                                                                *
 SUBROUTINE OCDTIM (PRCTIM)
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 !                                                                *
 !*****************************************************************
 !

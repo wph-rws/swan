@@ -1,5 +1,5 @@
 module swan_input_interpolation
-   implicit none
+   implicit none(type, external)
    private
    public :: SVALQI
 
@@ -15,7 +15,7 @@ REAL FUNCTION SVALQI (XP, YP, IGRID, ARRINP, ZERO ,IXC ,IYC)
    USE SWCOMM2
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

@@ -22,7 +22,7 @@ module swan_input_processing
    use swan_bpntlist, only: SwanBpntlist
    use swan_find_point, only: SwanFindPoint
    use swan_pointin_mesh, only: SwanPointinMesh
-   implicit none
+   implicit none(type, external)
    private
    public :: SPROUT, SVARTP, SWBOUN, RETSTP
 contains
@@ -2570,7 +2570,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
    USE SwanCompdata
 !METIS   USE SwanParallel
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -3960,7 +3960,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
    USE M_BNDSPEC
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -4447,7 +4447,7 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
    USE M_BNDSPEC
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -5023,7 +5023,7 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
    USE SWCOMM4
    USE M_BNDSPEC
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -5531,7 +5531,7 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
    USE SwanGriddata
    USE SwanGridobjects
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

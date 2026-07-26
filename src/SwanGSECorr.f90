@@ -1,5 +1,5 @@
 module swan_gse_corr
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanGSECorr
 contains
@@ -56,7 +56,7 @@ subroutine SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, 
     use SwanGridobjects
     use SwanCompdata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

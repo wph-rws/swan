@@ -64,7 +64,7 @@ module swn_outnc
     use SWCOMM4
     use swan_time, only: default_time_context
 
-    implicit none
+    implicit none(type, external)
 
 !   Module parameters
 !

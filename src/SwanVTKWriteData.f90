@@ -1,5 +1,5 @@
 module swan_vtk_write_data
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanVTKWriteData
 contains
@@ -59,7 +59,7 @@ subroutine SwanVTKWriteData ( uvtk, pstype, nvar, ivtyp, voqr, data, lenp, mxk, 
     use SwanGriddata
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

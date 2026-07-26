@@ -3,7 +3,7 @@ module swan_grid_topology
    use swan_grid_face, only: SwanGridFace
    use swan_grid_vert, only: SwanGridVert
    use swan_print_grid_info, only: SwanPrintGridInfo
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanGridTopology
 contains
@@ -62,7 +62,7 @@ subroutine SwanGridTopology
     use SwanGridobjects
     use SwanSpatialIndex, only: SwanSpatialIndexReset
 
-    implicit none
+    implicit none(type, external)
 
 !   Local variables
 

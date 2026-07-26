@@ -1,5 +1,5 @@
 module swan_cross_obstacle
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanCrossObstacle
 contains
@@ -54,7 +54,7 @@ logical function SwanCrossObstacle ( xv, yv, xobs, yobs )
 
     use ocpcomm4
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

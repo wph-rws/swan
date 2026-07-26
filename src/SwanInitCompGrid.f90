@@ -1,6 +1,6 @@
 module swan_init_comp_grid
    use swan_check_grid, only: SwanCheckGrid
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanInitCompGrid
 contains
@@ -56,7 +56,7 @@ subroutine SwanInitCompGrid ( logcom )
     use m_parall
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

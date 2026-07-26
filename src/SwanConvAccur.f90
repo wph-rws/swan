@@ -1,5 +1,5 @@
 module swan_conv_accur
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanConvAccur
 contains
@@ -57,7 +57,7 @@ subroutine SwanConvAccur ( accur, hscurr, tmcurr, delhs, deltm, xytst, spcsig, a
     use SwanGriddata
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

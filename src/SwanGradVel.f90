@@ -1,5 +1,5 @@
 module swan_grad_vel
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanGradVel
 contains
@@ -61,7 +61,7 @@ subroutine SwanGradVel ( dep2, ux2, uy2, duxdx, duxdy, duydx, duydy, ivert )
     use SwanGriddata
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -232,8 +232,15 @@ subroutine SwanGradVel ( dep2, ux2, uy2, duxdx, duxdy, duydx, duydy, ivert )
     enddo
 
     ! if ratio between max and min depth is too large, set gradients to zero and skip to next vertex
+    ! (disabled upstream check; it left the routine the same way the DEPMIN escape above does)
     !
-    !if ( dpmax > drat * dpmin ) goto 10
+    !if ( dpmax > drat * dpmin ) then
+    !   duxdx = 0.
+    !   duxdy = 0.
+    !   duydx = 0.
+    !   duydy = 0.
+    !   return
+    !endif
     !
     ! if area is non-positive, give error and go to next vertex
 

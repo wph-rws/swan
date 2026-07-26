@@ -41,7 +41,7 @@
 !******************************************************************
 
 MODULE M_CONVERGENCE_SHARED
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
    PRIVATE
    PUBLIC :: SACCUR_HSMN2, SACCUR_SMN2, SACCUR_NINDX
    PUBLIC :: SACCUR_WETGRD, SACCUR_IACCUR
@@ -57,7 +57,10 @@ MODULE M_CONVERGENCE_SHARED
 END MODULE M_CONVERGENCE_SHARED
 
 module swan_computation
-   implicit none
+!  De !TIMG-timers worden uit meerdere procedures van deze module
+!  aangeroepen, dus hun interface hoort op moduleniveau zichtbaar te zijn.
+   use swan_service_interfaces, only: SWTSTA, SWTSTO
+   implicit none(type, external)
    private
 !  Entry points used by the driver (SWCOMP) and by the unstructured solver,
 !  which reuses the structured sweep building blocks.
@@ -105,7 +108,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    USE swan_fftw_compat, ONLY: cfft2i
 !ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -2379,7 +2382,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   IF (MODGAM .AND. ACCUR.GE.PNUMS(37)) MODGAM = .FALSE.
 
 !       *** if accuracy has been reached then the iteration ***
-!       *** can be terminated ---> goto 470                 ***
+!       *** can be terminated ---> EXIT iteration_loop      ***
 
                   IF ( (ITER.NE.1 .OR. PNUMS(21).EQ.0.) .AND.&
                   &ACCUR.GE.PNUMS(4) ) EXIT iteration_loop
@@ -2564,7 +2567,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE M_PARALL
                   USE M_SNL3
 
-                  IMPLICIT NONE
+                  IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -3879,7 +3882,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE SwanIEM, only: ntf, dfiem, sflog
                   USE M_SNL3, ONLY: TCOLL
 
-                  IMPLICIT NONE
+                  IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -4342,7 +4345,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      NINDX => SACCUR_NINDX, WETGRD => SACCUR_WETGRD, &
                      IACCUR => SACCUR_IACCUR
 
-                  IMPLICIT NONE
+                  IMPLICIT NONE(TYPE, EXTERNAL)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -5400,7 +5403,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE M_WCAP
                   USE M_SNL3, ONLY: BPHTMP
 
-                  IMPLICIT NONE
+                  IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 
@@ -6736,7 +6739,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE SdsBabanin
                   USE SwanBraggScat
 
-                  IMPLICIT NONE
+                  IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -7739,7 +7742,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   USE SWCOMM3
 
-                  IMPLICIT NONE
+                  IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -7895,7 +7898,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE SWCOMM3
                   USE swan_time, ONLY: default_time_context
 
-                  IMPLICIT NONE
+                  IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 
@@ -8039,7 +8042,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE OCPCOMM4
                   USE M_PARALL
 
-                  IMPLICIT NONE
+                  IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -8224,7 +8227,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE OCPCOMM4
                   USE M_PARALL
 
-                  IMPLICIT NONE
+                  IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -8825,7 +8828,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE OCPCOMM4
                   USE M_PARALL
 
-                  IMPLICIT NONE
+                  IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -9324,7 +9327,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   USE OCPCOMM4
 
-                  IMPLICIT NONE
+                  IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -9442,7 +9445,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE M_CONVERGENCE_SHARED, ONLY: &
                      WETGRD => SWSTPC_WETGRD, IACCUR => SWSTPC_IACCUR
 
-                  IMPLICIT NONE
+                  IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -9810,7 +9813,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE OCPCOMM4
                   USE SWCOMM3
 
-                  IMPLICIT NONE
+                  IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 
@@ -10364,7 +10367,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE OCPCOMM4
                   USE SWCOMM3
 
-                  IMPLICIT NONE
+                  IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

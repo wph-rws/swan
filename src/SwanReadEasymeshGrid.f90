@@ -1,5 +1,5 @@
 module swan_read_easymesh_grid
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanReadEasymeshGrid
 contains
@@ -57,7 +57,7 @@ subroutine SwanReadEasymeshGrid ( basenm, lenfnm )
     use ocpcomm4
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

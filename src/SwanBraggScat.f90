@@ -51,7 +51,7 @@ module SwanBraggScat
 !
 !   Modules used
 
-    implicit none
+    implicit none(type, external)
 
 !   Module variables
 
@@ -119,7 +119,7 @@ subroutine SWBRBOT
     use m_genarr, only: DEPTH, XCGRID, YCGRID, KGRPNT
     use SwanGriddata, only: nverts, xcugrd, ycugrd
 
-    implicit none
+    implicit none(type, external)
 
 !   Local variables
 
@@ -613,7 +613,7 @@ subroutine SWFBXY ( dep2, mudl2, spcsig, spcdir )
     use swcomm2
     use swcomm3
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -822,7 +822,7 @@ subroutine SWFB ( fbd, dep2, kwave, ecos, esin )
     use ocpcomm4
     use swcomm3
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -995,7 +995,7 @@ subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, iss
     use swcomm3
     use swcomm4
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -1146,7 +1146,7 @@ subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax
     use swcomm3
     use swcomm4
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -1297,7 +1297,7 @@ subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin )
     use ocpcomm4
     use swcomm3
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -1428,7 +1428,7 @@ subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 )
     use swcomm3
     use swcomm4
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

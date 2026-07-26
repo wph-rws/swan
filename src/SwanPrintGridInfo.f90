@@ -1,5 +1,5 @@
 module swan_print_grid_info
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanPrintGridInfo
 contains
@@ -52,7 +52,7 @@ subroutine SwanPrintGridInfo
     use SwanGriddata
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Local variables
 

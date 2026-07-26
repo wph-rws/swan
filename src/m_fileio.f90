@@ -1,6 +1,6 @@
 !-----------------------------------------------------------------------------!
 module m_fileio
-implicit none
+implicit none(type, external)
 !-----------------------------------------------------------------------------!
 !
 !   +-------+    ALKYON Hydraulic Consultancy & Research
@@ -99,7 +99,7 @@ subroutine z_fileio(filename,qual,iufind,iunit,iostat)                        !
 
 
 use M_PARALL
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -383,7 +383,7 @@ subroutine z_fclose(iunit)                                                    !
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -437,7 +437,7 @@ subroutine z_flunit(iunit,ierr)                                               !
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !

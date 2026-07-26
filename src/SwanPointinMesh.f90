@@ -1,5 +1,5 @@
 module swan_pointin_mesh
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanPointinMesh
 contains
@@ -58,7 +58,7 @@ logical function SwanPointinMesh ( x, y )
     use SwanGridobjects
     use SwanSpatialIndex
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

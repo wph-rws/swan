@@ -2,7 +2,7 @@ module swan_read_grid
    use swan_read_adc_grid, only: SwanReadADCGrid
    use swan_read_easymesh_grid, only: SwanReadEasymeshGrid
    use swan_read_triangle_grid, only: SwanReadTriangleGrid
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanReadGrid
 contains
@@ -60,7 +60,7 @@ subroutine SwanReadGrid ( basenm, lenfnm )
     use swcomm3
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

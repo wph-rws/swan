@@ -1,5 +1,5 @@
 module swan_read_triangle_grid
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanReadTriangleGrid
 contains
@@ -57,7 +57,7 @@ subroutine SwanReadTriangleGrid ( basenm, lenfnm )
     use ocpcomm4
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

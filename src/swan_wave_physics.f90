@@ -3,7 +3,7 @@ module swan_wave_physics
    use swan_service_interfaces, only: strace
    use OCPCOMM4, only: LTRACE
    use SWCOMM3, only: GRAV, PMUD
-   implicit none
+   implicit none(type, external)
    private
 
    public :: kscip1, kscip2

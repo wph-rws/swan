@@ -28,7 +28,7 @@ module m_xnldata
 !          5.06   11/04/2005  iq_qrule  added (Rule for quadrature)
 !                             iq_nsimp  added (Number of points for Simpson rule)
 !------------------------------------------------------------------------------------
-implicit none
+implicit none(type, external)
 
 character(len=60) q_version    ! version string
 
@@ -489,7 +489,7 @@ use m_fileio
 use m_constants, only: dera, pih, rade, sqrtg, trshdep
 ! do not use m_xnldata
 
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -872,7 +872,7 @@ subroutine xnl_main(aspec,sigma,angle,nsig,ndir,depth,iquad,xnl,diag, &
 ! do not use m_xnldata
 use serv_xnl4v5
 
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -999,7 +999,7 @@ end if
 !!if (iquad /= i_qlast .and. i_qmain/=1) then
 !!  call q_error('e','IQUAD','Value of IQUAD differs from initial value')
 !!  ierror = 1
-!!  goto 9999
+!!  exit xnl_main_flow
 !!end if
 !-----------------------------------------------------------------------------+
 !  main choice between various options                                        |
@@ -1089,7 +1089,7 @@ subroutine q_addtail(xnl,diag,nsig,na,pf_tail)
 !
 !
 ! do not use m_xnldata
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -1215,7 +1215,7 @@ subroutine q_allocate
 !
 !
 ! do not use m_xnldata
-implicit none
+implicit none(type, external)
 
 
 !  0. Update history
@@ -1523,7 +1523,7 @@ subroutine q_chkconfig
 ! 10. Source code
 !-------------------------------------------------------------------------------------------
 ! do not use m_xnldata
-implicit none
+implicit none(type, external)
 
 call q_stack('+Q_CHKCONFIG')
 
@@ -1683,7 +1683,7 @@ subroutine q_chkcons(xnl,nk,ndir,sum_e,sum_a,sum_mx,sum_my)
 !
 !
 ! do not use m_xnldata
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -1808,7 +1808,7 @@ subroutine q_chkres(k1x,k1y,k2x,k2y,k3x,k3y,k4x,k4y,dep,sum_kx,sum_ky,sum_w)
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -1916,7 +1916,7 @@ subroutine q_cmplocus(ka,kb,km,kw,loclen)
 ! do not use m_xnldata
 use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5
-implicit none
+implicit none(type, external)
 !-------------------------------------------------------------------------------
 !  0. Update history
 !
@@ -2223,7 +2223,7 @@ subroutine q_ctrgrid(itask,igrid)
 !
 ! do not use m_xnldata
 use m_fileio
-implicit none
+implicit none(type, external)
 !------------------------------------------------------------------------------
 !  0. Update history
 !
@@ -2708,7 +2708,7 @@ subroutine q_dscale(n,sigma,angle,nsig,nang,depth,grav,q_dfac)
 
 
 use serv_xnl4v5
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -2860,7 +2860,7 @@ subroutine q_error(err_type,err_name,err_msg)
 !
 ! do not use m_xnldata
 use m_fileio
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -3061,7 +3061,7 @@ subroutine q_getlocus(ik1,ia1,ik3,ia3,ifnd)
 use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5
 !----------------------------------------------------------------------------------
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -3544,7 +3544,7 @@ subroutine q_init
 use m_fileio
 use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5
-implicit none
+implicit none(type, external)
 !--------------------------------------------------------------------------------
 !  0. Update history
 !
@@ -3855,7 +3855,7 @@ subroutine q_locpos(ka,kb,km,kw,loclen)
 use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5, only: z_root2
 
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -4674,7 +4674,7 @@ subroutine q_modify
 ! do not use m_xnldata
 use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5
-implicit none
+implicit none(type, external)
 !--------------------------------------------------------------------------------
 !  0. Update history
 !
@@ -5142,7 +5142,7 @@ subroutine q_nearest(ik,ia,w1,w2,w3,w4)
 !
 !
 ! do not use m_xnldata
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -5300,7 +5300,7 @@ subroutine q_polar2(kmin,kmax,kx_beg,ky_beg,kx_end,ky_end,loclen,ierr)
 use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5, only: z_wnumb
 
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -5575,7 +5575,7 @@ use m_fileio
 use serv_xnl4v5
 !--------------------------------------------------------------------------------
 
-implicit none
+implicit none(type, external)
 
 
 !  0. Update history
@@ -5874,7 +5874,7 @@ subroutine q_searchgrid(depth,igrid)
 !
 !
 ! do not use m_xnldata
-implicit none
+implicit none(type, external)
 !------------------------------------------------------------------------------
 !  0. Update history
 !
@@ -6151,7 +6151,7 @@ subroutine q_stack(mod_name)
 !
 ! do not use m_xnldata
 use m_fileio
-implicit none
+implicit none(type, external)
 
 
 !  0. Update history
@@ -6282,7 +6282,7 @@ use m_fileio
 use serv_xnl4v5
 !--------------------------------------------------------------------------------
 
-implicit none
+implicit none(type, external)
 
 
 !  0. Update history
@@ -6511,7 +6511,7 @@ subroutine q_symmetry(k1x,k1y,k3x,k3y,k4x,k4y,symfac,nloc)
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-implicit none
+implicit none(type, external)
 !--------------------------------------------------------------------------------
 !  0. Update history
 !
@@ -6612,7 +6612,7 @@ subroutine q_t13v4(ik1,ia1,ik3,ia3,t13,diagk1,diagk3)
 !
 ! do not use m_xnldata
 use m_constants, only: dera, pih, rade, sqrtg, trshdep
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -6976,7 +6976,7 @@ subroutine q_weight
 !
 !
 ! do not use m_xnldata
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -7200,7 +7200,7 @@ subroutine q_loc_w1w3(k1x,k1y,k3x,k3y,npts,k2x,k2y,k4x,k4y,s)
 
 
 
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -7350,7 +7350,7 @@ subroutine q_xnl4v4(aspec,sigma,angle,nsig,nang,depth,xnl,diag,ierror)
 ! do not use m_xnldata
 use m_constants, only: dera, pih, rade, sqrtg, trshdep
 use serv_xnl4v5
-implicit none
+implicit none(type, external)
 !------------------------------------------------------------------------------
 !  0. Update history
 !
@@ -7787,7 +7787,7 @@ real function x_cosk(k)
 ! do not use m_xnldata
 use serv_xnl4v5, only: z_wnumb
 
-implicit none
+implicit none(type, external)
 !--------------------------------------------------------------------------------
 !  0. Update history
 !
@@ -7884,7 +7884,7 @@ real function x_cple(k1x,k1y,k2x,k2y,k3x,k3y,k4x,k4y,iq_cple,depth,grav)
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -8000,7 +8000,7 @@ real function x_flocus(kxx,kyy)
 !
 ! do not use m_xnldata
 use m_constants, only: dera, pih, rade, sqrtg, trshdep
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -8111,7 +8111,7 @@ real function x_jacobian(x2,y2,x4,y4)
 ! do not use m_xnldata
 !% use serv_xnl4v5, only: z_cmpcg
 
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -8237,7 +8237,7 @@ real function x_disper(k,d)
 !
 !
 ! do not use m_xnldata
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -8340,7 +8340,7 @@ real function x_locus1(k2)
 !
 ! do not use m_xnldata
 use m_constants, only: dera, pih, rade, sqrtg, trshdep
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -8443,7 +8443,7 @@ real function x_locus2(lambda)
 !
 ! do not use m_xnldata
 use m_constants, only: dera, pih, rade, sqrtg, trshdep
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -8528,7 +8528,7 @@ real function xc_hh(w1x0,w1y0,w2x0,w2y0,w3x0,w3y0,z4x,z4y,h)
 !
 !  factor EPS included
 
-implicit none
+implicit none(type, external)
 
 real z4x,z4y  ! dummy arguments
 
@@ -8877,7 +8877,7 @@ real function xc_webb(k1x,k1y,k2x,k2y,k3x,k3y,k4x,k4y,grav)
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !

@@ -1,5 +1,5 @@
 module swan_grid_cell
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanGridCell
 contains
@@ -58,7 +58,7 @@ subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
     use swcomm3
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

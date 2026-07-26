@@ -31,7 +31,7 @@
 !****************************************************************
 
 module swan_parallel
-   implicit none
+   implicit none(type, external)
    private
 !  The exchange routines are defined behind switch lines further down, so the
 !  end of this module lies at the end of the file. Only SWEXCHG has both a !JAC
@@ -46,7 +46,7 @@ contains
 
 SUBROUTINE SWINITMPI
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
-   USE swan_service_interfaces, ONLY: MSGERR, TXPBLA
+   USE swan_service_interfaces, ONLY: MSGERR, TXPBLA, SWTSTA, SWTSTO
 
 !****************************************************************
 !
@@ -54,7 +54,7 @@ SUBROUTINE SWINITMPI
    USE OCPCOMM4
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -231,7 +231,7 @@ SUBROUTINE SWEXITMPI
 !MPI   USE MPI
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -352,7 +352,7 @@ SUBROUTINE SWSYNC
    USE OCPCOMM4
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -1179,7 +1179,7 @@ SUBROUTINE SWPARTIT ( IPOWN, MXC, MYC )
    USE OCPCOMM4
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -1348,7 +1348,7 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
    USE OCPCOMM4
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -1691,7 +1691,7 @@ SUBROUTINE SWDECOMP
    USE SWCOMM3
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -2598,7 +2598,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
    USE M_GENARR
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -2882,7 +2882,7 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
    USE M_PARALL
    USE SwanGriddata, ONLY: nvertsg
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -3313,7 +3313,7 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
    USE OUTP_DATA
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -3661,7 +3661,7 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 !NCF   USE swn_outnc, ONLY: swn_outnc_colspc
    USE SwanGriddata, ONLY: xcugrdgl, ycugrdgl
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -4051,7 +4051,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
 !NCF   USE SwanGridData, ONLY: XCUGRDGL, YCUGRDGL
 !NCF   USE swn_outnc
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

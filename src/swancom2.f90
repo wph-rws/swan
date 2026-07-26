@@ -25,7 +25,7 @@
 !****************************************************************
 
 module swan_dissipation
-   implicit none
+   implicit none(type, external)
    private
    public :: SBOT, SVEG, STURBV, SMUD, SICE, FRABRE, SSURF, SWCAP, SWCAP8
    public :: BRKPAR, PLTSRC
@@ -44,7 +44,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
    USE SWCOMM4
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -570,7 +570,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
    USE OCPCOMM4
    USE M_GENARR
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -1053,7 +1053,7 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
    USE OCPCOMM4
    USE M_WCAP, ONLY: SIGPOW
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -1198,7 +1198,7 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
    USE SWCOMM4
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -1365,7 +1365,7 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  ,&
    USE SWCOMM4
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -1593,7 +1593,7 @@ SUBROUTINE FRABRE ( HM, ETOT, QBLOC, KTETA )
    USE SWCOMM4
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -1790,7 +1790,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
    USE OCPCOMM4
    USE M_WCAP, ONLY: SIGM_WAM
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -2222,7 +2222,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
    USE OCPCOMM4
    USE M_WCAP
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 
@@ -2704,7 +2704,7 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
    USE M_WCAP
    USE SdsBabanin
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -2923,7 +2923,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
    USE OCPCOMM4
    USE M_WCAP, ONLY: KM_WAM
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -3365,7 +3365,7 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        ,&
    USE SWCOMM4
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

@@ -1,5 +1,5 @@
 module swan_bpntlist
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanBpntlist
 contains
@@ -71,7 +71,7 @@ subroutine SwanBpntlist
     use SwanCompdata
     use OUTP_DATA                                                       ! 41.14
 
-    implicit none
+    implicit none(type, external)
 
 !   Local variables
 

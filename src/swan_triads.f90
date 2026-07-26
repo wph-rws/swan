@@ -1,5 +1,5 @@
 MODULE swan_triads
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
    PRIVATE
    PUBLIC :: TCOEF
 
@@ -13,7 +13,7 @@ SUBROUTINE TCOEF ( W1, W2, W12, K1, K2, K12, DEP, R, S )
    USE OCPCOMM4
    USE SWCOMM3
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

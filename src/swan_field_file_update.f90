@@ -1,5 +1,5 @@
 MODULE swan_field_file_update
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
    PRIVATE
    PUBLIC :: FLFILE
 
@@ -23,7 +23,7 @@ SUBROUTINE FLFILE (IGR1, IGR2,&
    USE M_PARALL
    USE SwanGriddata
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

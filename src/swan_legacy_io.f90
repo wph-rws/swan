@@ -1,5 +1,5 @@
 MODULE swan_legacy_io
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
    PRIVATE
    PUBLIC :: INAR2D, COPYCH
 
@@ -16,7 +16,7 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM,&
    USE OCPCOMM3
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -385,7 +385,7 @@ SUBROUTINE COPYCH (STRING, MOVE, IARRAY, LENARR, IERR)
 
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

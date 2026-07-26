@@ -1,5 +1,5 @@
 module swan_check_grid
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanCheckGrid
 contains
@@ -59,7 +59,7 @@ subroutine SwanCheckGrid
     use SwanGriddata
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Local variables
 

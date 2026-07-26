@@ -196,6 +196,17 @@ if( BUILD_TESTING )
   target_link_libraries( test_physics_kernels PRIVATE swan${VERSION} )
   add_test( NAME physics_kernels COMMAND test_physics_kernels )
 
+  # The context migration is designed around the thread-private state inventory,
+  # so an undocumented THREADPRIVATE symbol has to fail a build rather than
+  # silently invalidate the ownership design.
+  add_test(
+    NAME thread_state_manifest
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/check_thread_state.py
+            --source-dir ${CMAKE_SOURCE_DIR}/src
+            --manifest ${CMAKE_SOURCE_DIR}/doc/thread-state-manifest.md
+  )
+
   add_test(
     NAME quick_test
     COMMAND ${Python3_EXECUTABLE}

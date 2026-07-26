@@ -15,7 +15,7 @@ MODULE swan_io_context
 !     contexts one at a time, matching the pattern of time_context_t and
 !     command_reader_t.
 !
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
    PRIVATE
    PUBLIC :: io_context_t, diagnostics_context_t
    PUBLIC :: default_io_context, default_diagnostics_context

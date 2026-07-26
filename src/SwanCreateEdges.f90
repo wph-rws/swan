@@ -1,5 +1,5 @@
 module swan_create_edges
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanCreateEdges
 contains
@@ -55,7 +55,7 @@ subroutine SwanCreateEdges
     use ocpcomm4
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Local variables
 

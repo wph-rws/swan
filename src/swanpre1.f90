@@ -23,7 +23,10 @@ module swan_command_reading
    use swan_init_comp_grid, only: SwanInitCompGrid
    use swan_read_grid, only: SwanReadGrid
    use swan_input_processing, only: SPROUT, SVARTP, SWBOUN, RETSTP
-   implicit none
+!  De !TIMG-timers worden uit meerdere procedures van deze module
+!  aangeroepen, dus hun interface hoort op moduleniveau zichtbaar te zijn.
+   use swan_service_interfaces, only: SWTSTA, SWTSTO
+   implicit none(type, external)
    private
    public :: SWREAD
 contains
@@ -63,7 +66,7 @@ SUBROUTINE SWREAD (COMPUT)
    USE SwanQCM, only: mkxc, mkyc
 !METIS   USE SwanParallel
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -5255,7 +5258,7 @@ SUBROUTINE CGBOUN (KGRPNT, KGRBND)
    USE OCPCOMM4
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -5618,7 +5621,7 @@ SUBROUTINE SEPARAREA(IX, IY, KGRPNT,IDIR)
    USE SWCOMM3
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

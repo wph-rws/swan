@@ -1,5 +1,5 @@
 module swan_read_adc_grid
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanReadADCGrid
 contains
@@ -65,7 +65,7 @@ subroutine SwanReadADCGrid
     use m_genarr
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Local variables
 

@@ -1,5 +1,5 @@
 module swan_grad_depthor_k
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanGradDepthorK
 contains
@@ -62,7 +62,7 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
     use SwanGriddata
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 
@@ -222,7 +222,13 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
 
        ! if ratio between max and min depth is too large, set gradients to zero and skip to next vertex
        !
-       !if ( dpmax > drat * dpmin ) goto 10
+       ! (disabled upstream check; it left the depth_gradient block the same way the DEPMIN escape above does)
+       !
+       !if ( dpmax > drat * dpmin ) then
+       !   dhdx = 0.
+       !   dhdy = 0.
+       !   exit depth_gradient
+       !endif
        !
        ! if area is non-positive, give error and go to next vertex
 
@@ -382,7 +388,13 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
 
        ! if ratio between max and min depth is too large, set gradients to zero and skip to next vertex
        !
-       !if ( dpmax > drat * dpmin ) goto 30
+       ! (disabled upstream check; it left the wave_number_gradient block the same way the DEPMIN escape above does)
+       !
+       !if ( dpmax > drat * dpmin ) then
+       !   dkdx = 0.
+       !   dkdy = 0.
+       !   exit wave_number_gradient
+       !endif
        !
        ! if area is non-positive, give error and go to next vertex
 

@@ -1,6 +1,6 @@
 module swan_fftw_compat
   use, intrinsic :: iso_c_binding
-  implicit none
+  implicit none(type, external)
 
   include 'fftw3.f03'
 
@@ -211,7 +211,7 @@ end module swan_fftw_compat
 subroutine cfft2i(l, m, wsave, lensav, ier)
   use, intrinsic :: iso_c_binding, only: c_double
   use swan_fftw_compat, only: ensure_plans
-  implicit none
+  implicit none(type, external)
 
   integer, intent(in) :: l, m, lensav
   real(c_double), intent(out) :: wsave(lensav)
@@ -233,7 +233,7 @@ end subroutine cfft2i
 subroutine cfft2f(ldim, l, m, c, wsave, lensav, work, lenwrk, ier)
   use, intrinsic :: iso_c_binding, only: c_double, c_double_complex
   use swan_fftw_compat, only: execute_transform
-  implicit none
+  implicit none(type, external)
 
   integer, intent(in) :: ldim, l, m, lensav, lenwrk
   complex(c_double_complex), intent(inout) :: c(ldim,m)
@@ -264,7 +264,7 @@ end subroutine cfft2f
 subroutine cfft2b(ldim, l, m, c, wsave, lensav, work, lenwrk, ier)
   use, intrinsic :: iso_c_binding, only: c_double, c_double_complex
   use swan_fftw_compat, only: execute_transform
-  implicit none
+  implicit none(type, external)
 
   integer, intent(in) :: ldim, l, m, lensav, lenwrk
   complex(c_double_complex), intent(inout) :: c(ldim,m)

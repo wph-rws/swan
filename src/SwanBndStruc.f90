@@ -1,5 +1,5 @@
 module swan_bnd_struc
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanBndStruc
 contains
@@ -60,7 +60,7 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
     use SWCOMM3
     use OUTP_DATA
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

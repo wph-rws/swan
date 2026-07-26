@@ -28,7 +28,7 @@
 !****************************************************************
 
 module swan_wind_source
-   implicit none
+   implicit none(type, external)
    private
    public :: WNDPAR, WINDP1, WINDP3, SWIND0, SWIND3, SWIND4, SWIND5
 contains
@@ -46,7 +46,7 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
    USE SWCOMM4
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -566,7 +566,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
    USE SWCOMM4
    USE SDSBABANIN
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -1520,7 +1520,7 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
    USE SWCOMM4
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -1832,7 +1832,7 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
    USE OCPCOMM4
 !ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -2082,7 +2082,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
    USE OCPCOMM4
 !ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -2632,7 +2632,7 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
    USE OCPCOMM4
 !ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

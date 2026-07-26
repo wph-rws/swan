@@ -4,7 +4,7 @@ MODULE swan_text_utilities
 !     routines. Kept in its own module because DTSTTI needs UPCASE while the
 !     parser needs swan_time: holding UPCASE here breaks that cycle.
 !
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
    PRIVATE
    PUBLIC :: UPCASE
 
@@ -18,7 +18,7 @@ SUBROUTINE UPCASE (CHARST)
    USE OCPCOMM3
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

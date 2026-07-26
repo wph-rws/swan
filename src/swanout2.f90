@@ -16,11 +16,11 @@
 !************************************************************************
 
 module swan_output_writers
-   use swan_service_interfaces, only: MSGERR   ! used by the !MatL4/!MatL5 SWRMAT variants
+   use swan_service_interfaces, only: MSGERR, TXPBLA, SWI2B, SWR2B   ! SWI2B/SWR2B feed the !MatL4 SWRMAT variants
    use swan_vtk_write_data, only: SwanVTKWriteData
    use swan_vtk_write_header, only: SwanVTKWriteHeader
    use swan_vtkp_data_sets, only: SwanVTKPDataSets
-   implicit none
+   implicit none(type, external)
    private
 !  SWTABP and SWRMAT are defined behind switch lines (!NCF/!NNCF, !MatL4/!MatL5)
 !  further down; the end of this module therefore lies at the end of the file.
@@ -600,7 +600,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
       USE OUTP_DATA
       USE M_PARALL
 
-      IMPLICIT NONE
+      IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -748,7 +748,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
       USE M_PARALL
       USE OUTP_DATA
 
-      IMPLICIT NONE
+      IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -996,7 +996,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
       USE SWCOMM4, ONLY: KSPHER
       USE OCPCOMM4
 
-      IMPLICIT NONE
+      IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

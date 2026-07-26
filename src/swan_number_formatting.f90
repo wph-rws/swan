@@ -1,5 +1,5 @@
 MODULE swan_number_formatting
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
    PRIVATE
    PUBLIC :: INTSTR, NUMSTR
 
@@ -9,7 +9,7 @@ CHARACTER(LEN=20) FUNCTION INTSTR ( IVAL )
 
 !****************************************************************
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -97,7 +97,7 @@ CHARACTER(LEN=20) FUNCTION NUMSTR ( IVAL, RVAL, FORM )
 
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

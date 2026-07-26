@@ -1,6 +1,6 @@
 module swan_find_obstacles
    use swan_cross_obstacle, only: SwanCrossObstacle
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanFindObstacles
 contains
@@ -59,7 +59,7 @@ subroutine SwanFindObstacles ( cross )
     use SwanGriddata
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

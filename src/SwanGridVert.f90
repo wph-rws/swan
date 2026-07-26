@@ -1,5 +1,5 @@
 module swan_grid_vert
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanGridVert
 contains
@@ -55,7 +55,7 @@ subroutine SwanGridVert ( nverts, xcugrd, ycugrd, vmark )
     use ocpcomm4
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

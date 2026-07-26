@@ -32,7 +32,7 @@ module swan_driver
    use swan_comp_unstruc, only: SwanCompUnstruc
    use swan_prep_comp, only: SwanPrepComp
    use swan_vertlist, only: SwanVertlist
-   implicit none
+   implicit none(type, external)
    private
 !  SWMAIN is the only entry point the main program needs; the eighteen
 !  remaining routines (initialisation, preparation, boundary and restart
@@ -51,7 +51,7 @@ SUBROUTINE SWMAIN
 !TIMG   USE swan_time, ONLY: DCUMTM, NCUMTM
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_file_opening, ONLY: FOR
-   USE swan_service_interfaces, ONLY: MSGERR, TXPBLA, STPNOW
+   USE swan_service_interfaces, ONLY: MSGERR, TXPBLA, STPNOW, SWTSTA, SWTSTO, SWPRTI
 !                                                                      *
 !************************************************************************
 
@@ -72,7 +72,7 @@ SUBROUTINE SWMAIN
    USE SwanGriddata
 !METIS   USE SwanParallel
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -6606,7 +6606,7 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC,&
    USE SWCOMM3
    USE M_PARALL, ONLY: IAMMASTER
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -7286,7 +7286,7 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER,&
    USE OCPCOMM4
    USE SWCOMM3
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -8032,7 +8032,7 @@ SUBROUTINE SWCLME
    USE SwanQCM
 !METIS   USE SwanParallel
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -8210,7 +8210,7 @@ PROGRAM SWAN
 !                                                                      *
 !************************************************************************
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

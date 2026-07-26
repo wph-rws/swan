@@ -9,13 +9,13 @@ module swan_comp_unstruc
    use swan_propvel_x, only: SwanPropvelX
    use swan_sweep_sel, only: SwanSweepSel
    use swan_transp_ac, only: SwanTranspAc
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanCompUnstruc
 contains
 
 subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it )
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, SWTSTA, SWTSTO
    use swan_computation, only: SWPRSET, SINTGRL, SOLPRE, SOLMAT, SOLMT1, SOURCE, PHILIM, RESCALE, SWSIP
    use swan_services, only: SWTRCF, SWACC
 
@@ -123,7 +123,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it 
     use swan_fftw_compat, only: cfft2i
 !METIS    use SwanParallel
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

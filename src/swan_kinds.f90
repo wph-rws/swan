@@ -1,6 +1,6 @@
 module swan_kinds
    use, intrinsic :: iso_fortran_env, only: int32, int64, real32, real64
-   implicit none
+   implicit none(type, external)
    private
 
    ! Preserve SWAN's established single-precision numerical model while

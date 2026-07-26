@@ -1,5 +1,5 @@
 module swan_propvel_x
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanPropvelX
 contains
@@ -56,7 +56,7 @@ subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin )
     use SwanGriddata
     use SwanCompdata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

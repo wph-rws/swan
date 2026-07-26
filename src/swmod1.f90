@@ -60,7 +60,7 @@ MODULE OCPCOMM2
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -179,7 +179,7 @@ MODULE OCPCOMM3
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -280,7 +280,7 @@ MODULE OCPCOMM4
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -443,7 +443,7 @@ MODULE SWCOMM1
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -1355,7 +1355,7 @@ MODULE SWCOMM2
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -1573,7 +1573,7 @@ MODULE SWCOMM3
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -2615,7 +2615,7 @@ MODULE SWCOMM4
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !

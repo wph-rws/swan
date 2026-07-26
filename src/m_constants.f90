@@ -1,7 +1,7 @@
 !------------------------------------------------------------------------------
 module m_constants
 use swan_kinds, only: swan_real
-implicit none
+implicit none(type, external)
 private
 
 public :: dera, init_constants, pih, rade, sqrtg, trshdep

@@ -8,7 +8,7 @@ MODULE swan_parallel_state
 !     be real module procedures instead of external symbols. M_PARALL uses and
 !     re-exports this module, so its own users are unaffected.
 !
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
    PUBLIC
 
 !     MASTER    : rank of the master process

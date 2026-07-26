@@ -63,7 +63,7 @@ MODULE M_WCAP
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !  5. Argument variables
@@ -191,7 +191,7 @@ MODULE OUTP_DATA
 
    USE OCPCOMM2
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !  5. Argument variables
@@ -412,7 +412,7 @@ MODULE M_SNL4
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -530,7 +530,7 @@ MODULE M_SNL3
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -644,7 +644,7 @@ MODULE M_BNDSPEC
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -852,7 +852,7 @@ MODULE M_OBSTA
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -995,7 +995,7 @@ MODULE M_GENARR
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -1205,7 +1205,7 @@ MODULE M_PARALL
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
    PRIVATE :: MSGERR
 
 !     Type-safe interfaces for collective communication.  The legacy
@@ -1720,7 +1720,7 @@ MODULE M_DIFFR
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !

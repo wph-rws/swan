@@ -1,5 +1,5 @@
 module swan_vtkp_data_sets
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanVTKPDataSets
 contains
@@ -59,7 +59,7 @@ subroutine SwanVTKPDataSets ( upvt, pstype, nvar, ivtyp, mxk, myk, vtkfile, upvd
     use m_parall
     use outp_data
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

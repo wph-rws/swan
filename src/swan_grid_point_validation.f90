@@ -1,7 +1,7 @@
 module swan_grid_point_validation
    use swan_service_interfaces, only: strace
    use SWCOMM3, only: MXC, MYC
-   implicit none
+   implicit none(type, external)
    private
 
    public :: pvalid, validbp
@@ -28,7 +28,7 @@ LOGICAL FUNCTION VALIDBP (IX, IY, KGRPNT,WNP)
    USE SWCOMM3
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

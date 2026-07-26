@@ -135,7 +135,7 @@
       module agioncmd
         use netcdf
         use nctablemd
-        implicit none
+        implicit none(type, external)
         real, parameter                              :: AGIONCMD_VERSION = 1.5
         real, parameter                              :: AGNC_DUMMY = NF90_FILL_FLOAT
         integer(kind=1), parameter                   :: AGNC_FILL_BYTE = -2**7

@@ -1,5 +1,5 @@
 module swan_grid_face
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanGridFace
 contains
@@ -55,7 +55,7 @@ subroutine SwanGridFace ( nfaces, ncells, nverts, xcugrd, ycugrd, kvertf )
     use ocpcomm4
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

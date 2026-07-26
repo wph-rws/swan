@@ -1,5 +1,5 @@
 module swan_conv_stopc
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanConvStopc
 contains
@@ -67,7 +67,7 @@ subroutine SwanConvStopc ( accur, hscurr, hsprev, hsdifc, tmcurr, tmprev, tmdifc
     use SwanGriddata
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

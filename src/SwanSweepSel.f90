@@ -1,5 +1,5 @@
 module swan_sweep_sel
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanSweepSel
 contains
@@ -85,7 +85,7 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
     use swcomm3
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

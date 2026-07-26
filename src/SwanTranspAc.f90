@@ -1,7 +1,7 @@
 module swan_transp_ac
    use swan_gse_corr, only: SwanGSECorr
    use swan_transp_x, only: SwanTranspX
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanTranspAc
 contains
@@ -12,7 +12,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
                           obredf, idcmin, idcmax, iscmin, iscmax, &
                           iddlow, iddtop, isslow, isstop, anyblk, &
                           trac0 , trac1 )
-   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_service_interfaces, ONLY: STRACE, SWTSTA, SWTSTO
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -65,7 +65,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
     use swcomm4
     use SwanGriddata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

@@ -1,5 +1,5 @@
 module swan_disp_parm
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanDispParm
 contains
@@ -58,7 +58,7 @@ subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig )
     use SwanGriddata
     use SwanCompdata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

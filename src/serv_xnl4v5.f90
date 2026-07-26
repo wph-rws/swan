@@ -1,5 +1,5 @@
 module serv_xnl4v5
-implicit none
+implicit none(type, external)
 contains
 SUBROUTINE y_gauleg(x1,x2,x,w,n)
 !-------------------------------------------------------------------
@@ -71,7 +71,7 @@ subroutine z_cmpcg(sigma,depth,grav,cg)
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -145,7 +145,7 @@ subroutine z_intp1(x1,y1,x2,y2,n1,n2,ierr)                                    !
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !
@@ -465,7 +465,7 @@ subroutine z_steps(x,dx,nx)
 !
 !     Compute bandwidth of spectral discretization
 
-implicit none
+implicit none(type, external)
 
 integer, intent(in) :: nx     ! Number of elements in array
 real, intent(in)    :: x(nx)  ! Input data array with elements
@@ -579,7 +579,7 @@ real function z_root2(func,x1,x2,xacc,iprint,ierr)
 !                   if no file is connected to this unit, no output is written
 
 
-implicit none
+implicit none(type, external)
 
 interface
    real function func(x)
@@ -764,7 +764,7 @@ subroutine z_upper(str)
 !
 !     Name    I/O  Type  Description
 
-implicit none
+implicit none(type, external)
 character(len=*), intent(inout) :: str  ! Character string to be converted
 
 !  4. Subroutines used
@@ -820,7 +820,7 @@ real function z_wnumb(w,d,grav)
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-implicit none
+implicit none(type, external)
 
 !  0. Update history
 !

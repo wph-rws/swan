@@ -1,6 +1,6 @@
 MODULE swan_time
    USE swan_kinds, ONLY: swan_double
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
    PRIVATE
    PUBLIC :: time_context_t, default_time_context
    PUBLIC :: DTTIME, DTINTI, DTRETI, DTTIWR, DTSTTI, DTTIST
@@ -61,7 +61,7 @@ REAL FUNCTION DTTIME (INTTIM, CONTEXT)
    USE OCPCOMM3
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -198,7 +198,7 @@ SUBROUTINE DTINTI (TIMESC, INTTIM, CONTEXT)
 !                                                                  *
 !*******************************************************************
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -399,7 +399,7 @@ SUBROUTINE DTRETI (TSTRNG, IOPT, TIMESC, CONTEXT)
 !                                                                *
 !*****************************************************************
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -493,7 +493,7 @@ CHARACTER(LEN=18) FUNCTION DTTIWR (IOPT, TIMESC, CONTEXT)
 !                                                                *
 !*****************************************************************
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -587,7 +587,7 @@ end function DTTIWR
 SUBROUTINE DTSTTI (IOPT, TIMSTR, DTTIME)
    USE swan_text_utilities, ONLY: UPCASE
    USE swan_service_interfaces, ONLY: MSGERR
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 !                                                                *
 !*****************************************************************
 !
@@ -727,7 +727,7 @@ end subroutine DTSTTI
 !                                                                *
 SUBROUTINE DTTIST (IOPT, TIMSTR, DTTIME)
    USE swan_service_interfaces, ONLY: MSGERR
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 !                                                                *
 !*****************************************************************
 !

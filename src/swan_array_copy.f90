@@ -1,5 +1,5 @@
 module swan_array_copy
-   implicit none
+   implicit none(type, external)
    private
    public :: SWCOPR, SWCOPI
 
@@ -12,7 +12,7 @@ SUBROUTINE SWCOPR ( ARR1, ARR2, LENGTH )
 
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -125,7 +125,7 @@ SUBROUTINE SWCOPI ( IARR1, IARR2, LENGTH )
 
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

@@ -1,5 +1,5 @@
 MODULE swan_spectrum_output
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
    PRIVATE
    PUBLIC :: WRSPEC, SWCMSP
 
@@ -14,7 +14,7 @@ SUBROUTINE WRSPEC (NREF, ACLOC)
    USE SWCOMM3
    USE OUTP_DATA
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

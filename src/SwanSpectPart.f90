@@ -61,7 +61,7 @@ MODULE W3ODATMD
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -173,7 +173,7 @@ MODULE SWPARTMD
 !
 !     ---
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -282,7 +282,7 @@ CONTAINS
 !
 !     ---
 
-      IMPLICIT NONE
+      IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -532,7 +532,7 @@ CONTAINS
 !
 !     ---
 
-      IMPLICIT NONE
+      IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -671,7 +671,7 @@ CONTAINS
 !
 !     ---
 
-      IMPLICIT NONE
+      IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -900,7 +900,7 @@ CONTAINS
 !
 !     ---
 
-      IMPLICIT NONE
+      IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !
@@ -1245,7 +1245,7 @@ CONTAINS
 !
 !     ---
 
-      IMPLICIT NONE
+      IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
 !

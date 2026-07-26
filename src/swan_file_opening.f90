@@ -1,5 +1,5 @@
 module swan_file_opening
-   implicit none
+   implicit none(type, external)
    private
    public :: FOR
 
@@ -15,7 +15,7 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT, IO)
    USE OCPCOMM3
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--

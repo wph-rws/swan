@@ -1,5 +1,5 @@
 module swan_propvel_s
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanPropvelS
 contains
@@ -80,7 +80,7 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
     use SwanGridobjects
     use SwanCompdata
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

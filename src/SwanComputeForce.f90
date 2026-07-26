@@ -1,5 +1,5 @@
 module swan_compute_force
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanComputeForce
 contains
@@ -64,7 +64,7 @@ subroutine SwanComputeForce ( fx, fy, ac2, dep2, hs, spcsig, spcdir )
     use SwanGriddata
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

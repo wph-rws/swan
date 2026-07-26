@@ -1,6 +1,6 @@
 module swan_output_interpolation
    use swan_geometry, only: TCROSS
-   implicit none
+   implicit none(type, external)
    private
    public :: SwanInterpolateOutput
 
@@ -69,7 +69,7 @@ subroutine SwanInterpolateOutput ( foutp, x, y, finp, mip, kvert, excval )
     use SwanGriddata
     use SwanGridobjects
 
-    implicit none
+    implicit none(type, external)
 
 !   Argument variables
 

@@ -32,7 +32,7 @@
 !****************************************************************
 
 module swan_propagation
-   implicit none
+   implicit none(type, external)
    private
    public :: SWGEOM, SWPSEL, SPROXY, SPROSD, DSPHER, STRSXY, SORDUP, SANDL
    public :: STRSSI, STRSSB, STRSD, SPREDT, SWAPAR, SWAPRE, ADDDIS, SWFLXD, DIFPAR
@@ -49,7 +49,7 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
    USE OCPCOMM4
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -249,7 +249,7 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
    USE OCPCOMM4
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -844,7 +844,7 @@ SUBROUTINE SPROXY (CAX        ,&
    USE OCPCOMM4
    USE M_DIFFR
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -1124,7 +1124,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
    USE M_DIFFR
    USE SwanIEM, ONLY: ntf, dfiem, sflog
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -1739,7 +1739,7 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
    USE SWCOMM4
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -2212,7 +2212,7 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
    USE SWCOMM4
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -2540,7 +2540,7 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
    USE OCPCOMM4
    USE swan_time, ONLY: default_time_context
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 
@@ -3350,7 +3350,7 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
    USE SWCOMM4
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -4018,7 +4018,7 @@ SUBROUTINE STRSDFV (DD      ,IDCMIN  ,&
    USE SWCOMM4
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -4266,7 +4266,7 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
    USE SWCOMM4
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -4814,7 +4814,7 @@ SUBROUTINE SWAPRE ( DEP, MUDL, SPCSIG )
    USE m_propcache, ONLY: prop_cache_valid, prop_kwave,&
    &prop_cgo, prop_dmw, prop_cache_reset
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
    REAL DEP(MCGRD), MUDL(MCGRD), SPCSIG(MSC)
    INTEGER IP, ISTAT
@@ -4891,7 +4891,7 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     ,&
 
    USE SWCOMM3
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
@@ -5197,7 +5197,7 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
    USE SWCOMM4
    USE OCPCOMM4
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 
@@ -5505,7 +5505,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  ,&
    USE M_DIFFR
    USE M_PARALL
 
-   IMPLICIT NONE
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
 
 !   --|-----------------------------------------------------------|--
