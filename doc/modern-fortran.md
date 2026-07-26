@@ -29,10 +29,25 @@ input/output formats while making unsafe interfaces visible and removable.
   context as the first argument. Calls made inside the parser propagate that
   context; two readers therefore do not consume or overwrite each other's
   keyword, line and value state. `OCPCOMM1` has been removed.
+- Diffraction, triad and quadruplet lookup state now have separate owners:
+  `diffraction_state_t`, `triad_state_t` and `snl4_tables_t`. The driver passes
+  those objects explicitly; the former `M_DIFFR`, `M_SNL3` and `M_SNL4`
+  storage modules no longer exist.
+- The shared `SIGPOW` array is `spectral_powers_t`. Its two former writers,
+  ordinary spectral-grid setup and IEM reinitialization, use one `rebuild`
+  contract and cleanup uses `clear`.
+- Whitecapping's eleven formerly `THREADPRIVATE` scalars are held in a
+  `wcap_workspace_t` per structured or unstructured solver thread. The solver
+  boundary chooses the active workspace; source-term kernels do not query the
+  OpenMP runtime. The historical carry-over semantics of the seven
+  conditionally written fields are pinned by bitwise invariant tests.
 - The `KSCIP1` and `KSCIP2` dispersion APIs make secondary results optional.
   Callers that only need a wave number no longer pass the same work array as
   several output arguments. This removes a Fortran aliasing violation and
   avoids unused array writes.
+- `KSCIP1`, `GAMMAF` and `TCROSS` retain their traced legacy entry points but
+  delegate their mathematics to directly tested pure kernels. `GAMMAF`'s
+  scalar kernel is elemental.
 - MPI reductions use typed `MPI_ALLREDUCE` calls with `MPI_IN_PLACE`. Explicit
   buffer counts are validated where the Fortran rank exposes the available
   size. The unused legacy send/reduction implementations have been removed.
@@ -143,7 +158,7 @@ as follows:
 
 | Diagnostic inventory | Before | Interface layer | Current | Reduction |
 |---|---:|---:|---:|---:|
-| All warnings | 4,443 | 1,508 | 1,546 | 65% |
+| All warnings | 4,443 | 1,508 | 1,534 | 65% |
 | Implicit-interface warnings | 3,229 | 288 | 2 | 99.9% |
 
 The "interface layer" column is the state after explicit interfaces were added
@@ -155,7 +170,7 @@ total warning count rose slightly, which is expected rather than a regression:
 once the compiler knows the dummy argument types, so making several thousand
 calls checkable exposes conversions that were previously invisible. The
 categories behind the current total are dominated by `-Wconversion-extra`
-(493), `-Wunused-variable` (256) and `-Wcompare-reals` (226).
+(493), `-Wunused-variable` (259) and `-Wcompare-reals` (226).
 
 Two implicit-interface call sites remain, both `METIS_*` calls into the external
 C library, which can never be Fortran interfaces. That is the floor.
@@ -164,9 +179,9 @@ incremental one only reports the files it recompiled.
 
 ### What the remaining warnings are, and where not to start
 
-The 1,546 that remain are dominated by `-Wconversion-extra` (493),
+The 1,534 that remain are dominated by `-Wconversion-extra` (493),
 `-Wunused-variable` (259), `-Wcompare-reals` (226), `-Wfunction-elimination`
-(163) and `-Wmaybe-uninitialized` (155).
+(163) and `-Wmaybe-uninitialized` (143).
 
 A sample of five `-Wmaybe-uninitialized` clusters was checked against the code
 to judge whether the category is worth working through:
@@ -353,12 +368,14 @@ Two styles sit side by side, and the difference carries meaning:
 ### What remains shared
 
 Long-lived mutable data modules are still extensive. The contexts cover the
-clock, the command parser, the I/O streams and the diagnostic status: a reader
-can own its input file, its log and its error state, and the file opener draws
-from its unit range. The computational state has not moved. Grid and spectral
-dimensions, physics settings and output request tables live in sixteen shared
-data modules, so SWAN runs one case per process.
+clock, command parser, I/O streams, diagnostic status, diffraction, nonlinear
+interaction tables, spectral powers and the whitecapping thread-workspace. A
+reader can own its input file, its log and its error state, and the file opener
+draws from its unit range. Grid dimensions, most physics settings and output
+request tables remain in the broad `SWCOMM*`/`OCPCOMM*` families, so SWAN still
+runs one case per process.
 
 The accurate description is therefore “standard Fortran 2018 with a modular,
-compiler-checked interface layer over a still-shared computational state,” not
-“everything is modern Fortran.”
+compiler-checked interface layer and explicit ownership for the migrated
+subsystems over a still partly shared case state,” not “everything is modern
+Fortran.”

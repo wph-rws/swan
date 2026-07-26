@@ -21,11 +21,11 @@ program test_contexts
    call test_file_opening_context
    call test_reader_own_log
    call test_spectral_powers
-   call test_wcap_dry_point_invariants
+   call test_wcap_zero_energy_invariants
 
 contains
 
-   subroutine test_wcap_dry_point_invariants
+   subroutine test_wcap_zero_energy_invariants
       type(wcap_workspace_t) :: workspace
 
       workspace%total_action = 1.0
@@ -39,25 +39,25 @@ contains
       call workspace%begin_point()
 
       call require(same_bits(workspace%total_action, 1.0),&
-         "dry-point ACTOT carry-over changed")
+         "zero-energy ACTOT carry-over changed")
       call require(same_bits(workspace%first_energy_moment, 2.0),&
-         "dry-point ETOT1 carry-over changed")
+         "zero-energy ETOT1 carry-over changed")
       call require(same_bits(workspace%second_energy_moment, 3.0),&
-         "dry-point ETOT2 carry-over changed")
+         "zero-energy ETOT2 carry-over changed")
       call require(same_bits(workspace%fourth_energy_moment, 4.0),&
-         "dry-point ETOT4 carry-over changed")
+         "zero-energy ETOT4 carry-over changed")
       call require(same_bits(workspace%energy_over_root_wavenumber, 5.0),&
-         "dry-point EDRKTOT carry-over changed")
+         "zero-energy EDRKTOT carry-over changed")
       call require(same_bits(workspace%energy_times_wavenumber, 6.0),&
-         "dry-point EKTOT carry-over changed")
+         "zero-energy EKTOT carry-over changed")
       call require(same_bits(workspace%mean_frequency_wam, 7.0),&
-         "dry-point SIGM_WAM carry-over changed")
+         "zero-energy SIGM_WAM carry-over changed")
       call require(same_bits(workspace%mean_wavenumber_wam, 10.0) .and.&
                    same_bits(workspace%mean_wavenumber_01, 10.0) .and.&
                    same_bits(workspace%mean_frequency_01, 10.0) .and.&
                    same_bits(workspace%mean_frequency_10, 10.0),&
          "unconditional whitecapping point defaults changed")
-   end subroutine test_wcap_dry_point_invariants
+   end subroutine test_wcap_zero_energy_invariants
 
    subroutine test_spectral_powers
       type(spectral_powers_t) :: powers

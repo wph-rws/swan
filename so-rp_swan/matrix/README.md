@@ -34,6 +34,14 @@ pytest -q so-rp_swan/matrix so-rp_swan/comparison/test_result_stats.py
 ```
 
 The full manifest represents 40 production-size SWAN runs and is therefore not
-part of the daily test suite. The reference condition has been executed
-end-to-end for all four targets; hashes, results and scope are recorded in
-`VALIDATION.md`.
+part of the daily test suite. All 40 final sign-off runs, their exact
+default-equivalence result, wet-point compatibility statistics, hashes and
+serial/MPI companion gates are recorded in `VALIDATION.md`.
+
+After a complete run, enforce exact current-default equivalence to the
+pre-modernization 41.51 target and summarize the 41.31 compatibility residual
+over the shared wet output points with:
+
+```sh
+python so-rp_swan/matrix/analyze_validation.py RUNS_ROOT
+```

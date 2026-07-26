@@ -1,37 +1,81 @@
 # Matrix validation
 
-Validation date: 2026-07-25. Condition:
-`u20_d310_lp300_open` (20 m/s from 310°, NAP +3.00 m, open barrier), eight
-OpenMP threads, `MXITST=50`.
+Final validation date: 2026-07-26. Final run root:
+`runs-validation-full-final-2026-07-26`. The matrix contains ten conditions,
+four targets and therefore 40 production-size runs. Every run used four OpenMP
+threads, returned status zero, wrote `norm_end`, rank-appropriate `PRINT`,
+block, table and both spectrum files, and passed the runner's explicit
+normal-end and nonempty-output checks.
 
-The manifest contains ten conditions and four targets (40 entries). Every
-default- and legacy-physics deck was generated and structurally validated. The
-reference condition was then run end-to-end for all four targets. All runs
-returned status zero, wrote `norm_end`, `PRINT`, block, table and both spectrum
-files, and passed the explicit normal-end and nonempty-output checks.
+The four target runners were pinned to non-overlapping CPU sets. This matters
+for throughput because each runner sets `OMP_PLACES=cores` and
+`OMP_PROC_BIND=close`; it has no effect on the numerical comparison.
 
-| Target | Executable SHA-256 (prefix) | Wet points | Mean point Hsig | Wall time |
-|---|---|---:|---:|---:|
-| pre-modernization 41.51 | `ed0a45d87aff` | 132 (3 dry) | 1.645319 m | 163.76 s |
-| BSS 41.31A.1 | `c392f287bc3f` | 132 (3 dry) | 1.290126 m | 76.60 s |
-| current 41.51 default | `ca52afaa7ecc` | 132 (3 dry) | 1.645319 m | 190.97 s |
-| current 41.51 legacy defaults | `ca52afaa7ecc` | 132 (3 dry) | 1.291079 m | 162.54 s |
+## Wet-point results
 
-The current executable was rebuilt from the working tree before the final two
-runs. Current 41.51 default versus the distinct pre-modernization executable is
-exactly equal over all 71,685 wet field cells and all 132 wet output points:
-bias, RMS and maximum absolute Hsig difference are all zero.
+The gate first proves equal wet/dry masks within each comparison pair and only
+then computes statistics. The reference condition has 132 wet and three dry
+requested points. Low wind and low water legitimately have fewer wet points;
+the table reports the actual shared mask and never includes `EXCV=-9`.
 
-Current 41.51 with `GEN3 KOMEN DRAG FIT` and the explicit old triad defaults
-versus BSS has field bias −0.000380 m, RMS 0.004080 m and maximum absolute
-difference 0.104611 m. At the 132 wet requested points the bias is +0.000953 m,
-RMS 0.005644 m and maximum absolute difference 0.017770 m. This is the already
-documented version/implementation residual, not a modernization regression.
+| Condition | Wet/dry points | Current default mean Hsig (m) | Default max abs vs premodern (m) | BSS mean Hsig (m) | Current legacy mean Hsig (m) | Legacy bias vs BSS (m) | Legacy RMS (m) | Legacy max abs (m) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `u20_d310_lp300_open` | 132/3 | 1.645319 | 0.000000 | 1.290126 | 1.291079 | +0.000953 | 0.005644 | 0.017770 |
+| `u02_d090_l0000_open` | 128/7 | 0.018129 | 0.000000 | 0.017858 | 0.017858 | +0.000000 | 0.000000 | 0.000000 |
+| `u20_d300_lm200_open` | 119/16 | 1.241231 | 0.000000 | 0.903059 | 0.903668 | +0.000609 | 0.001149 | 0.005070 |
+| `u20_d300_lp650_open` | 132/3 | 1.893785 | 0.000000 | 1.453601 | 1.454590 | +0.000989 | 0.005130 | 0.019380 |
+| `u20_d310_lp300_closed` | 132/3 | 1.641627 | 0.000000 | 1.286907 | 1.287859 | +0.000952 | 0.005644 | 0.017770 |
+| `u20_d120_lp300_open` | 132/3 | 0.859827 | 0.000000 | 0.585327 | 0.585327 | -0.000000 | 0.000005 | 0.000050 |
+| `u40_d300_lp300_open` | 132/3 | 3.448175 | 0.000000 | 2.197290 | 2.196340 | -0.000951 | 0.001841 | 0.005990 |
+| `u20_d315_lp300_open` | 132/3 | 1.625411 | 0.000000 | 1.266784 | 1.267937 | +0.001153 | 0.004940 | 0.015780 |
+| `u20_d316_lp300_open` | 132/3 | 1.617083 | 0.000000 | 1.259290 | 1.259721 | +0.000431 | 0.003772 | 0.008940 |
+| `u20_d346_lp300_open` | 132/3 | 1.448489 | 0.000000 | 1.069668 | 1.070214 | +0.000546 | 0.000986 | 0.001840 |
 
-Run-to-run behavior is already pinned by the project regression evidence:
-this structured so-rp reference is stable, while the unstructured OpenMP case
-has an approximately 2e-4 relative last-digit spread. The runner exposes
-`--repetitions` and records each repeat separately so that spread can be
-remeasured for any new condition or executable. The remaining 36 manifest
-entries are the formal migration/sign-off matrix; they were intentionally not
-run as part of this implementation validation.
+The current 41.51-default result is **exactly equal in all 10 conditions** to
+the distinct pre-modernization 41.51 executable, both over every shared wet
+field cell and every shared wet requested point. Bias, RMS and maximum
+absolute difference are zero. The final current OpenMP executable SHA-256 is
+`d0dfb643f72eddae2cc381eb8ea06da799996987ab4c00ea1841e9378e83b6a6`.
+
+The legacy column compares BSS 41.31A.1 with current 41.51 using
+`GEN3 KOMEN DRAG FIT` and the explicit old triad defaults. Its small,
+condition-dependent residual is the documented version/implementation
+difference, not a modernization difference. The largest requested-point RMS
+in this matrix is 0.005644 m and the largest absolute difference is 0.019380 m.
+
+The table is generated and gated by
+[`analyze_validation.py`](analyze_validation.py). That program fails on a
+missing run, failed metadata, wet/dry mismatch, mixed current executable hashes
+or any nonzero default-versus-premodern difference.
+
+## Serial and MPI gates
+
+Both current physics decks were also run with a true serial executable
+(`309c777402754a…`). They finished normally in 834.34 s (default) and
+766.65 s (legacy) and are exactly equal to the current
+outputs over all 71,685 wet reference-field cells and all 132 wet requested
+points.
+
+Both decks then ran normally with two MPI ranks using executable
+`0270864cfef1b3…`: 999.24 s for default and 776.04 s for legacy. MPI is
+bit-exact to serial on all 132 wet requested points for both physics routes.
+The MPI `.mat` assembly marks 174 partition cells dry that are wet in the
+serial field (71,511 versus 71,685 wet cells), identically for both decks.
+Consequently the formal physics comparison follows the plan's requested-point
+mask and does not claim whole-field mask identity across decomposition modes.
+
+## Build, test, diagnostic and performance gates
+
+- GNU Fortran 13 and 15 Release builds pass all nine registered serial tests.
+  Intel and Flang are not installed in this environment. NVFortran 26.5 is
+  present but is explicitly outside the compiler set accepted by CMake.
+- Serial, OpenMP, netCDF, runtime checks, LTO, TIMG, MATL4, METIS, FFRO and
+  debug-invariant configurations pass 9/9 tests. MPI, JAC+MPI and MPI+netCDF
+  pass 10/10, including the genuine two-rank test.
+- The structured and unstructured OpenMP references pass at 1, 2 and 4
+  threads. Nonlinear interaction tests exercise active triad and quadruplet
+  paths.
+- The strict diagnostic ratchet remains unchanged at 1,534 warnings, including
+  exactly two unavoidable external METIS interfaces; no warning category
+  budget was raised.
+- The complete Python matrix/comparison suite passes 785 tests.

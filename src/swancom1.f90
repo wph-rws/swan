@@ -7536,7 +7536,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &FACHFR  ,ISSTOP  ,DAL1    ,DAL2    ,DAL3    ,&
                         &SFNL    ,DSNL    ,DEP2    ,AC2     ,IMATDA  ,&
                         &IMATRA  ,PLNL4S  ,PLNL4D                    ,&
-                        &IDDLOW  ,IDDTOP  ,REDC0   ,REDC1, SNL4 )
+                        &IDDLOW  ,IDDTOP  ,REDC0   ,REDC1, SNL4%frequency_power_11 )
 
                      ELSE IF ( IQUAD .EQ. 2) THEN
 
@@ -7548,7 +7548,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &SA2     ,SPCSIG  ,SNLC1   ,DAL1    ,DAL2    ,&
                         &DAL3    ,SFNL    ,DEP2    ,AC2     ,KMESPC  ,&
                         &REDC0   ,REDC1   ,IMATDA  ,IMATRA  ,&
-                        &FACHFR  ,PLNL4S  ,         IDCMIN  ,IDCMAX, SNL4 )
+                        &FACHFR  ,PLNL4S  ,         IDCMIN  ,IDCMAX, SNL4%frequency_power_11 )
 
                      ELSE IF ( IQUAD .EQ. 3) THEN
 
@@ -7566,7 +7566,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            CALL SWSNL3 (                  WWINTL  ,WWAWG   ,&
                            &UE      ,SA1     ,SA2     ,SPCSIG  ,SNLC1   ,&
                            &DAL1    ,DAL2    ,DAL3    ,SFNL    ,DEP2    ,&
-                           &AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4     )
+                           &AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4%frequency_power_11 )
 
                         ELSE IF ( ITER .GT. 1 .AND. ( SWPDIR .EQ. 1 .OR.&
                         &( SWPDIR .EQ. 2 .AND. IX .EQ. 1) .OR.&
@@ -7576,7 +7576,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            CALL SWSNL3 (                  WWINTL  ,WWAWG   ,&
                            &UE      ,SA1     ,SA2     ,SPCSIG  ,SNLC1   ,&
                            &DAL1    ,DAL2    ,DAL3    ,SFNL    ,DEP2    ,&
-                           &AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4     )
+                           &AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4%frequency_power_11 )
 
                         ENDIF
 
@@ -7610,7 +7610,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                               &DAL14   ,DAL24   ,DAL34   ,DEP2    ,&
                               &AC2     ,KMESPC  ,MEMNL4  ,FACHFR  ,&
                               &IDIA    ,ITER    ,UE      ,SA1     ,&
-                              &SA2     ,SFNL    ,SNL4)
+                              &SA2     ,SFNL    ,SNL4%frequency_power_11, SNL4%coefficient_1,&
+                              &SNL4%coefficient_2)
                            END DO
                         ENDIF
 
@@ -7636,7 +7637,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                            CALL SWSNL8 (WWINTL  ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
                            &SNLC1   ,DAL1    ,DAL2    ,DAL3    ,SFNL    ,&
-                           &DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4 )
+                           &DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4%frequency_power_11 )
 
                         ELSE IF ( ITER .GT. 1 .AND. ( SWPDIR .EQ. 1 .OR.&
                         &( SWPDIR .EQ. 2 .AND. IX .EQ. 1) .OR.&
@@ -7645,7 +7646,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                            CALL SWSNL8 (WWINTL  ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
                            &SNLC1   ,DAL1    ,DAL2    ,DAL3    ,SFNL    ,&
-                           &DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4 )
+                           &DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4%frequency_power_11 )
 
                         ENDIF
 

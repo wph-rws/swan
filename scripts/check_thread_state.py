@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Verify that doc/thread-state-manifest.md still matches the source.
 
-The manifest drives the context migration: a THREADPRIVATE symbol that is added
-or removed without updating it silently invalidates the ownership design. This
-script parses every OpenMP THREADPRIVATE directive from the Fortran sources --
-including the ones behind a build switch such as `!TIMG` -- and compares the
-symbol set against the manifest.
+The manifest records the remaining thread-private state after the completed
+workspace migration. A THREADPRIVATE symbol that is added or removed without
+updating it silently invalidates the ownership design. This script parses every
+OpenMP THREADPRIVATE directive from the Fortran sources -- including the ones
+behind a build switch such as `!TIMG` -- and compares the exact symbol set
+against the manifest.
 
 Exit status 0 means the manifest is current.
 """
@@ -73,7 +74,7 @@ def manifest_symbols(manifest: Path = MANIFEST) -> set[str]:
     """Collect every symbol named in a backticked cell of the directive table."""
     text = manifest.read_text()
     table = re.search(
-        r"^## De acht directives\s*$(.*?)^## ", text, re.M | re.S
+        r"^## De zeven resterende directives\s*$(.*?)^## ", text, re.M | re.S
     )
     if table is None:
         raise ValueError(f"{manifest}: directive table not found")
@@ -96,15 +97,7 @@ def check(source_dir: Path = SOURCE_DIR, manifest: Path = MANIFEST) -> list[str]
     documented = manifest_symbols(manifest)
     problems = []
 
-    # The M_WCAP row summarises its eleven symbols instead of naming them, so it
-    # is validated by count against its own dedicated table.
-    wcap = {name for name, (file, _, _) in found.items() if file == "swmod2.f90"}
-    text = manifest.read_text()
-    for symbol in sorted(wcap):
-        if f"`{symbol}`" not in text:
-            problems.append(f"M_WCAP symbol {symbol} is missing from the manifest")
-
-    for symbol in sorted(set(found) - documented - wcap):
+    for symbol in sorted(set(found) - documented):
         file, line, switch = found[symbol]
         guard = f" (switch {switch})" if switch else ""
         problems.append(

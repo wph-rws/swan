@@ -897,7 +897,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 &FACHFR  ,ISSTOP  ,DAL1    ,DAL2    ,DAL3    ,&
 &SFNL    ,DSNL    ,DEP2    ,AC2     ,IMATDA  ,&
 &IMATRA  ,PLNL4S  ,PLNL4D  ,&
-&IDDLOW  ,IDDTOP  ,REDC0   ,REDC1, SNL4 )
+&IDDLOW  ,IDDTOP  ,REDC0   ,REDC1, AF11 )
    USE swan_service_interfaces, ONLY: STRACE
 
 !********************************************************************
@@ -905,7 +905,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   TYPE(snl4_tables_t), INTENT(IN) :: SNL4
+   REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1120,7 +1120,6 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 
    LOGICAL   LTSTFL
 
-   ASSOCIATE(AF11 => SNL4%frequency_power_11)
    IF (LTRACE) CALL STRACE (IENT,'SWSNL1')
 
 !     evaluate the test-output condition once; the per-bin loop below
@@ -1378,7 +1377,6 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
       WRITE(PRINTF,*)
    END IF
 
-   END ASSOCIATE
    RETURN
 !     End of the subroutine SWSNL1
 end subroutine SWSNL1
@@ -1390,7 +1388,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 &SA2     ,SPCSIG  ,SNLC1   ,DAL1    ,DAL2    ,&
 &DAL3    ,SFNL    ,DEP2    ,AC2     ,KMESPC  ,&
 &REDC0   ,REDC1   ,IMATDA  ,IMATRA  ,&
-&FACHFR  ,PLNL4S  ,         IDCMIN  ,IDCMAX, SNL4 )
+&FACHFR  ,PLNL4S  ,         IDCMIN  ,IDCMAX, AF11 )
    USE swan_service_interfaces, ONLY: STRACE
 
 !*******************************************************************
@@ -1398,7 +1396,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   TYPE(snl4_tables_t), INTENT(IN) :: SNL4
+   REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1568,7 +1566,6 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 
    LOGICAL   LTSTFL
 
-   ASSOCIATE(AF11 => SNL4%frequency_power_11)
    IF (LTRACE) CALL STRACE (IENT,'SWSNL2')
 
 !     evaluate the test-output condition once; the per-bin loop below
@@ -1835,7 +1832,6 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
       WRITE(PRINTF,*)
    END IF
 
-   END ASSOCIATE
    RETURN
 !     End of SWSNL2
 end subroutine SWSNL2
@@ -1846,7 +1842,7 @@ end subroutine SWSNL2
 SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
 &UE      ,SA1     ,SA2     ,SPCSIG  ,SNLC1   ,&
 &DAL1    ,DAL2    ,DAL3    ,SFNL    ,DEP2    ,&
-&AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4     )
+&AC2     ,KMESPC  ,MEMNL4  ,FACHFR, AF11     )
    USE swan_service_interfaces, ONLY: STRACE
 
 !*******************************************************************
@@ -1854,7 +1850,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   TYPE(snl4_tables_t), INTENT(IN) :: SNL4
+   REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -2042,7 +2038,6 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
 
    LOGICAL   LTSTFL
 
-   ASSOCIATE(AF11 => SNL4%frequency_power_11)
    IF (LTRACE) CALL STRACE (IENT,'SWSNL3')
 
 !     evaluate the test-output condition once; the per-bin loop below
@@ -2222,7 +2217,6 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
       END IF
    END IF
 
-   END ASSOCIATE
    RETURN
 
 end subroutine SWSNL3
@@ -2234,7 +2228,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
 &DAL1    ,DAL2    ,DAL3    ,DEP2    ,&
 &AC2     ,KMESPC  ,MEMNL4  ,FACHFR  ,&
 &IDIA    ,ITER    ,UE      ,SA1     ,&
-&SA2     ,SFNL    ,SNL4)
+&SA2     ,SFNL    ,AF11, CNL4_1, CNL4_2)
    USE swan_service_interfaces, ONLY: STRACE
 
 !*******************************************************************
@@ -2242,7 +2236,9 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
    USE SWCOMM3
    USE SWCOMM4
    USE OCPCOMM4
-   TYPE(snl4_tables_t), INTENT(IN) :: SNL4
+   REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
+   REAL, INTENT(IN) :: CNL4_1(MSC4MI:MSC4MA)
+   REAL, INTENT(IN) :: CNL4_2(MSC4MI:MSC4MA)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -2432,9 +2428,6 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
 
    LOGICAL   LTSTFL
 
-   ASSOCIATE(AF11 => SNL4%frequency_power_11,&
-   &CNL4_1 => SNL4%coefficient_1,&
-   &CNL4_2 => SNL4%coefficient_2)
    IF (LTRACE) CALL STRACE (IENT,'SWSNL4')
 
 !     evaluate the test-output condition once; the per-bin loop below
@@ -2621,7 +2614,6 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
       END IF
    END IF
 
-   END ASSOCIATE
    RETURN
 
 end subroutine SWSNL4
@@ -2629,7 +2621,7 @@ end subroutine SWSNL4
 !*********************************************************************
 SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
 &SNLC1   ,DAL1    ,DAL2    ,DAL3    ,SFNL    ,&
-&DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4 )
+&DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, AF11 )
    USE swan_service_interfaces, ONLY: STRACE
 !*********************************************************************
 
@@ -2638,7 +2630,7 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
-   TYPE(snl4_tables_t), INTENT(IN) :: SNL4
+   REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -2800,7 +2792,6 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
    &SA1A    ,SA1B    ,SA2A    ,SA2B    ,&
    &JACOBI  ,SIGPI
 
-   ASSOCIATE(AF11 => SNL4%frequency_power_11)
    IF (LTRACE) CALL STRACE (IENT,'SWSNL8')
 
    ISLOW  = WWINT(9)
@@ -2909,7 +2900,6 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
       ENDDO
    END IF
 
-   END ASSOCIATE
    RETURN
 
 end subroutine SWSNL8

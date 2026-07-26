@@ -53,9 +53,9 @@ contains
 
 subroutine begin_wcap_point(self)
 !
-!     Preserve the legacy dry-point contract exactly.  Four quantities had an
-!     unconditional entry value; the other seven carried their thread's prior
-!     value when ETOT <= 0 and therefore must not be initialized here.
+!     Preserve the legacy zero-energy contract exactly.  Four quantities had
+!     an unconditional entry value; the other seven carried their thread's
+!     prior value when ETOT <= 0 and therefore must not be initialized here.
 !
    class(wcap_workspace_t), intent(inout) :: self
 

@@ -1,10 +1,8 @@
 # Thread-state-manifest
 
-Fase 5 van [moderniseringsplan.md](moderniseringsplan.md). Dit is een
-inventaris, geen codewijziging: het legt vast welke modulevariabelen per thread
-bestaan, hoe ze aan een waarde komen en wie ze na de migratie zou moeten
-bezitten. Zonder deze inventaris kan `M_WCAP` (fase 9) niet veilig worden
-gemigreerd.
+Hoort bij [moderniseringsplan.md](moderniseringsplan.md). Het document begon als
+inventaris voor de migratie en legt nu ook vast welk thread-state is
+overgebleven en waar de gemigreerde whitecappingtoestand wordt beheerd.
 
 `scripts/check_thread_state.py` vergelijkt de tabellen hieronder met de bron en
 faalt als er een `THREADPRIVATE`-symbool bijkomt of verdwijnt.
@@ -21,7 +19,7 @@ importeert — een naamcollisie, geen gedeelde toestand.
 Levensduur is de kortste eenheid waarover de waarde geldig moet blijven:
 `punt` (één roosterpunt of vertex), `sweep`, `iteratie`, `run`, `proces`.
 
-## De acht directives
+## De zeven resterende directives
 
 | # | Locatie | Module | Symbolen | Buildvariant |
 |---|---|---|---|---|
@@ -30,13 +28,16 @@ Levensduur is de kortste eenheid waarover de waarde geldig moet blijven:
 | 3 | [swmod1.f90:2542](../src/swmod1.f90#L2542) | `SWCOMM3` | `ICMAX, CSETUP` | altijd |
 | 4 | [swmod1.f90:2666](../src/swmod1.f90#L2666) | `SWCOMM4` | `IPTST, TESTFL` | altijd |
 | 5 | [swmod1.f90:2694](../src/swmod1.f90#L2694) | `SWCOMM4` | `PROPSL` | altijd |
-| 6 | [swmod2.f90:102](../src/swmod2.f90#L102) | `M_WCAP` | 11 integraalparameters | altijd |
-| 7 | [SwanCompdata.f90:69](../src/SwanCompdata.f90#L69) | `SwanCompdata` | `vs` | altijd |
-| 8 | [swan_time.f90:31](../src/swan_time.f90#L31) | `swan_time` | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | **alleen `!TIMG`** |
+| 6 | [SwanCompdata.f90:69](../src/SwanCompdata.f90#L69) | `SwanCompdata` | `vs` | altijd |
+| 7 | [swan_time.f90:31](../src/swan_time.f90#L31) | `swan_time` | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | **alleen `!TIMG`** |
 
-Directive 8 staat achter de `!TIMG`-schakelaar en is in een standaardbuild
+Directive 7 staat achter de `!TIMG`-schakelaar en is in een standaardbuild
 inactief. Een `THREADPRIVATE`-inventaris die alleen op actieve regels kijkt
 mist hem; de driftcontrole leest daarom ook de geschakelde varianten.
+
+De voormalige zesde groep, de elf scalars uit `M_WCAP`, staat niet meer in
+deze tabel: de migratie heeft de module en haar `THREADPRIVATE`-directive verwijderd.
+De toestand zit nu in een expliciete `wcap_workspace_t` per solverthread.
 
 ## COPYIN: welke threads geseed worden
 
@@ -55,7 +56,7 @@ de masterwaarde hebben.
 | `PROPSL` | ✅ | — |
 | `IXCGRD, IYCGRD, KCGRD` | — | — |
 | `vs` | — | — |
-| 11 `M_WCAP`-parameters | — | — |
+| `wcap_workspace_t` | expliciet per thread | expliciet per thread |
 
 `CSETUP` en `PROPSL` ontbreken in de ongestructureerde regio omdat die solver
 het gestructureerde propagatieschema en de setup-optie niet gebruikt.
@@ -97,41 +98,91 @@ soort dubbele opslag dat randvoorwaarde 2 verbiedt.
 betekent dat het symbool twee betekenissen draagt; bij migratie moet de
 lusvariabele lokaal worden en niet het contextveld.
 
-### `M_WCAP` — integraalparameters per roosterpunt
+### Voormalig `M_WCAP` — integraalparameters per roosterpunt
 
-Alle elf worden uitsluitend in `SINTGRL` geschreven
-([swancom1.f90:5645-5764](../src/swancom1.f90#L5645-L5764)); alleen vier
-bestanden importeren de module. Geen enkele staat in COPYIN.
+Historisch werden alle elf uitsluitend in `SINTGRL` geschreven
+([swancom1.f90:5645-5764](../src/swancom1.f90#L5645-L5764)); slechts vier
+bestanden importeerden de module en geen enkele scalar stond in COPYIN.
 
 | Symbool | Default bij entry | Schrijfconditie | Cat. | Invariant |
 |---|---|---|---|---|
-| `KM_WAM` | `10.` [r.5651](../src/swancom1.f90#L5651) | verfijnd onder `EDRKTOT > 0.` | 4 | bewezen |
-| `KM01` | `10.` [r.5652](../src/swancom1.f90#L5652) | verfijnd onder `EKTOT > 0.` | 4 | bewezen |
-| `SIGM01` | `10.` [r.5654](../src/swancom1.f90#L5654) | verfijnd onder `ETOT1 > 0.` | 4 | bewezen |
-| `SIGM_10` | `10.` [r.5655](../src/swancom1.f90#L5655) | verfijnd onder `ACTOT > 0.` | 4 | bewezen |
-| `ACTOT` | **geen** | `IF (ETOT > 0.)` [r.5696](../src/swancom1.f90#L5696) | **5** | **ontbreekt** |
-| `ETOT1` | **geen** | idem | **5** | **ontbreekt** |
-| `ETOT2` | **geen** | idem | **5** | **ontbreekt** |
-| `ETOT4` | **geen** | idem | **5** | **ontbreekt** |
-| `EDRKTOT` | **geen** | idem | **5** | **ontbreekt** |
-| `EKTOT` | **geen** | idem | **5** | **ontbreekt** |
-| `SIGM_WAM` | **geen** | `IF (EDRKTOT > 0.)` binnen `IF (ETOT > 0.)` | **5** | **ontbreekt** |
+| `KM_WAM` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L62) | verfijnd onder `EDRKTOT > 0.` | 4 | bewezen |
+| `KM01` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L63) | verfijnd onder `EKTOT > 0.` | 4 | bewezen |
+| `SIGM01` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L64) | verfijnd onder `ETOT1 > 0.` | 4 | bewezen |
+| `SIGM_10` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L65) | verfijnd onder `ACTOT > 0.` | 4 | bewezen |
+| `ACTOT` | **geen** | [`IF (ETOT > 0.)`](../src/swancom1.f90#L5739) | **5** | getest: waarde blijft staan |
+| `ETOT1` | **geen** | idem | **5** | getest: waarde blijft staan |
+| `ETOT2` | **geen** | idem | **5** | getest: waarde blijft staan |
+| `ETOT4` | **geen** | idem | **5** | getest: waarde blijft staan |
+| `EDRKTOT` | **geen** | idem | **5** | getest: waarde blijft staan |
+| `EKTOT` | **geen** | idem | **5** | getest: waarde blijft staan |
+| `SIGM_WAM` | **geen** | `IF (EDRKTOT > 0.)` binnen `IF (ETOT > 0.)` | **5** | getest: waarde blijft staan |
 
-Voorgestelde eigenaar voor alle elf: `wcap_workspace_t`, opgenomen in
-`source_workspace_t`, levensduur punt.
+Eigenaar voor alle elf is nu
+[`wcap_workspace_t`](../src/swan_source_workspaces.f90), opgenomen in
+`source_workspace_t` en per thread opgeslagen in de gestructureerde of
+ongestructureerde workspace. `begin_point` zet uitsluitend de vier historische
+entry-defaults op 10; de zeven categorie-5-waarden worden bewust niet geraakt.
 
-**De blokkerende bevinding.** Bij `ETOT <= 0.` schrijft `SINTGRL` zeven van de
-elf niet, terwijl [r.5888](../src/swancom1.f90#L5888) `AC2TOT = ACTOT`
+**De categorie-5-bevinding.** Bij `ETOT <= 0.` schrijft `SINTGRL` zeven van de
+elf niet, terwijl [r.5932](../src/swancom1.f90#L5932) `AC2TOT = ACTOT`
 onvoorwaardelijk uitvoert. Die thread draagt dan de waarde over van het vorige
-punt dat hij behandelde. Voor `ACTOT` is de weg naar buiten direct aangetoond;
-de overige zes worden door de whitecapping-routines in `swancom2` gelezen zonder
-dat bewezen is dat die lezingen altijd achter `ETOT > 0.` liggen.
+punt dat hij behandelde.
 
-Dit is géén vrijbrief om ze te initialiseren. Nul zetten kan een latente fout
-repareren én bestaand gedrag veranderen — en dat is precies wat randvoorwaarde 1
-verbiedt. Vóór fase 9 moet er per symbool een invarianttest komen die vastlegt
-wat de huidige code doet; een eventuele correctie is daarna een aparte,
-expliciet aangekondigde wijziging.
+**Effect op resultaten.** Voor geldige, niet-negatieve spectra verandert
+initialisatie van deze zeven waarden de huidige numerieke solveruitkomst niet:
+
+- [`SWCAP`](../src/swancom2.f90#L2478) en
+  [`SWCAP8`](../src/swancom2.f90#L2844) keren bij `ETOT <= 0.` terug voordat
+  een workspacewaarde een bronterm kan beïnvloeden;
+- `SSURF` leest `SIGM_WAM` voor `ISURF = 6`, maar gebruikt de gekozen
+  frequentie pas achter de [`BB > 0`](../src/swancom2.f90#L2111)-voorwaarde;
+  bij `ETOT = 0.` blijft de surf-breakingbijdrage nul;
+- `AC2TOT` heeft in de huidige gestructureerde en ongestructureerde solver geen
+  lezer na de aanroep;
+- zodra `ETOT > 0.`, berekent `SINTGRL` de integralen opnieuw. Voor een geldig
+  positief spectrum is ook `EDRKTOT > 0.` en wordt `SIGM_WAM` opnieuw bepaald.
+
+Een tijdelijke directe fixture heeft oude en nulgezette waarden door
+`SWCAP`, `SWCAP8` en `SSURF` gestuurd en bevestigde bitgelijke
+brontermuitgangen. Die fixture is na de analyse verwijderd: de codepaden
+hierboven en de compacte toestandstest zijn voldoende blijvend bewijs.
+
+Initialiseren kan in drie uitzonderingssituaties wel merkbaar zijn:
+
+1. De eerste nul-energieaanroep van een thread heeft zonder initialisatie nog
+   geen vorige waarde. `SSURF` kopieert `SIGM_WAM` vóór de `BB`-guard; een
+   strenge runtime met signalling NaN- of floating-pointtraps kan daardoor
+   stoppen. Dit verandert robuustheid, niet de normale fysische uitkomst.
+2. Aangepaste externe code kan de publieke `SINTGRL`-uitparameter `AC2TOT`
+   gebruiken, of toekomstige SWAN-code kan een workspacewaarde vóór een guard
+   gaan gebruiken. Dan kan de oude waarde van een ander punt wel doorwerken.
+3. Een ongeldig spectrum met negatieve waarden of NaN's breekt de
+   positiviteitsrelatie tussen `ETOT` en de overige momenten. Daarvoor geldt de
+   bovenstaande resultaatsneutraliteit niet.
+
+De verwachte fix is dus resultaatneutraal voor de huidige normale solver, maar
+kan een runtimefout voorkomen en beschermt externe of toekomstige gebruikers.
+Het blijft daarom een afzonderlijke correctheidswijziging.
+
+**Bereikbaarheid in de so-rp-case.** Een tijdelijke atomaire teller rond de
+`ETOT == 0.`-tak is gedraaid op de representatieve operationele conditie
+(20 m/s uit 310°, NAP +3,00 m, open kering) met acht OpenMP-threads. De invoer,
+grid en fysica waren ongewijzigd; alleen het iteratielimiet en de omvang van de
+uitvoer zijn voor de korte proef beperkt. Na één iteratie waren er 188
+`SINTGRL`-aanroepen met exact nul energie. Een afzonderlijke proef met twee
+iteraties telde er 192 in totaal, dus vier extra in de tweede iteratie. Dit zijn
+aanroepen over de vier sweeps, niet noodzakelijk evenveel unieke roosterpunten.
+Het pad is in deze case dus werkelijk bereikbaar en niet uitsluitend een
+kunstmatige unit-testsituatie.
+
+**Beperkte testvoetafdruk.** Eén compacte fixture in
+[`test_contexts.f90`](../tests/test_contexts.f90) controleert de zeven
+carry-overvelden en de vier historische defaults bitgewijs. Er is bewust geen
+aparte executable of blijvende so-rp-regressierun voor alleen dit fenomeen. De
+migratie initialiseert de waarden dus niet en bevat geen stilzwijgende
+correctheidswijziging; een eventuele fix krijgt later zijn eigen, kleine
+wijziging van deze bestaande fixture.
 
 ### `SwanCompdata` — ongestructureerde stencil
 
@@ -152,13 +203,17 @@ Timing is instrumentatie, geen modeltoestand. Deze groep blijft buiten de
 context-migratie zolang `!TIMG` een schakelaar is; hij staat hier omdat een
 inventaris die hem weglaat onvolledig is.
 
-## Wat hieruit volgt voor fase 9
+## Uitkomst van de workspace-migratie
 
-1. Zeven `M_WCAP`-symbolen hebben een invarianttest nodig vóór migratie.
-2. De stencil bestaat dubbel (`vs` en `KCGRD`); de migratie moet één eigenaar
-   kiezen, niet beide velden overnemen.
-3. `common_thread_seed_t` bevat exact de vijf COPYIN-symbolen die beide solvers
-   delen; `CSETUP` en `PROPSL` horen in de gestructureerde workspace.
+1. Alle zeven categorie-5-invarianttests zijn aanwezig en het oude gedrag is
+   behouden.
+2. De stencil bestaat nog dubbel (`vs` en `KCGRD`). Deze groep viel buiten de
+   afgebakende `M_WCAP`-migratie; die heeft er geen derde opslaglaag aan
+   toegevoegd.
+3. De vijf COPYIN-symbolen die beide solvers delen blijven in hun bestaande
+   modules. Deze stap heeft uitsluitend de brontermworkspace
+   ingevoerd en de overige COPYIN-toestand niet dubbel opgeslagen.
 4. De OpenMP-gate moet `TESTFL`/`IPTST` meenemen: die bepalen de
    `TEST`-uitvoer, dus een migratiefout is daar zichtbaar in de PRINT-diff en
-   niet in de Hsig-statistiek.
+   niet in de Hsig-statistiek. De gestructureerde en ongestructureerde
+   referentietests zijn daarom met 1, 2 en 4 threads gedraaid.
