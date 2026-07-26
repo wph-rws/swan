@@ -16,6 +16,7 @@ swaninit
 # Python
 __pycache__/
 *.pyc
+.pytest_cache/
 
 # Editors
 *.swp
@@ -25,3 +26,17 @@ __pycache__/
 # behalve de verificatieplots die de GEN3-analyse documenteren.
 /so-rp_swan/*
 !/so-rp_swan/verificatie_plots/
+
+# De verificatietooling en de tekstuele invoer die zij nodig heeft horen wél in
+# git: zonder die bestanden is de conditiematrix niet reproduceerbaar. De zware
+# data (grids, executables, runuitvoer) blijft erbuiten.
+!/so-rp_swan/matrix/
+!/so-rp_swan/comparison/
+!/so-rp_swan/par/
+/so-rp_swan/matrix/runs-validation*/
+/so-rp_swan/comparison/bin/
+/so-rp_swan/comparison/source/
+
+# De provenance van de 41.31-referentiebuild is de audittrail onder de
+# fysicavergelijking. `build-*/` hierboven vangt die map per ongeluk.
+!/so-rp_swan/comparison/build-info/

@@ -1,0 +1,27 @@
+BG2: Verwerkingsperiode 19800101 tm 20211231
+
+HS     Klasse windrichting 346- 15 y=a*wsn+b*wst+c  a= 1.5057 b= 0.0739 c= -2.41 N=38892
+HS     Klasse windrichting  16- 45 y=a*wsn+b*wst+c  a= 1.1250 b= 0.0516 c=  1.12 N=47060
+HS     Klasse windrichting  46- 75 y=a*wsn+b*wst+c  a= 0.9634 b= 0.0503 c=  8.21 N=36463
+HS     Klasse windrichting  76-105 y=a*wsn+b*wst+c  a= 0.5894 b= 0.0272 c= 18.55 N=39028
+HS     Klasse windrichting 106-135 y=a*wsn+b*wst+c  a= 0.2730 b= 0.0332 c= 28.22 N=30694
+HS     Klasse windrichting 136-165 y=a*wsn+b*wst+c  a= 0.3306 b= 0.0588 c= 26.60 N=28608
+HS     Klasse windrichting 166-195 y=a*wsn+b*wst+c  a= 0.7599 b= 0.0999 c=  9.92 N=52055
+HS     Klasse windrichting 196-225 y=a*wsn+b*wst+c  a= 1.0004 b= 0.1096 c=  3.34 N=69126
+HS     Klasse windrichting 226-255 y=a*wsn+b*wst+c  a= 1.1790 b= 0.0985 c= -1.98 N=88809
+HS     Klasse windrichting 256-285 y=a*wsn+b*wst+c  a= 1.5150 b= 0.0842 c= -6.12 N=51033
+HS     Klasse windrichting 286-315 y=a*wsn+b*wst+c  a= 1.7260 b= 0.0855 c= -6.22 N=39203
+HS     Klasse windrichting 316-345 y=a*wsn+b*wst+c  a= 1.7631 b= 0.0781 c= -7.21 N=34251
+
+TM-10  Klasse windrichting 346- 15 y=a*wsn+b*wst+c  a= 0.0893 b= 0.0223 c= 44.23 N=22714
+TM-10  Klasse windrichting  16- 45 y=a*wsn+b*wst+c  a= 0.0223 b= 0.0233 c= 46.38 N=28675
+TM-10  Klasse windrichting  46- 75 y=a*wsn+b*wst+c  a= 0.0168 b= 0.0236 c= 47.77 N=21826
+TM-10  Klasse windrichting  76-105 y=a*wsn+b*wst+c  a=-0.0620 b= 0.0175 c= 50.35 N=23324
+TM-10  Klasse windrichting 106-135 y=a*wsn+b*wst+c  a=-0.1877 b= 0.0044 c= 54.94 N=17468
+TM-10  Klasse windrichting 136-165 y=a*wsn+b*wst+c  a=-0.1800 b=-0.0151 c= 53.79 N=17505
+TM-10  Klasse windrichting 166-195 y=a*wsn+b*wst+c  a=-0.0430 b=-0.0245 c= 45.76 N=32528
+TM-10  Klasse windrichting 196-225 y=a*wsn+b*wst+c  a= 0.0343 b=-0.0254 c= 41.57 N=41525
+TM-10  Klasse windrichting 226-255 y=a*wsn+b*wst+c  a= 0.0672 b=-0.0218 c= 39.56 N=54560
+TM-10  Klasse windrichting 256-285 y=a*wsn+b*wst+c  a= 0.1035 b=-0.0108 c= 40.48 N=30860
+TM-10  Klasse windrichting 286-315 y=a*wsn+b*wst+c  a= 0.1208 b= 0.0047 c= 41.83 N=24666
+TM-10  Klasse windrichting 316-345 y=a*wsn+b*wst+c  a= 0.1230 b= 0.0135 c= 42.80 N=21093
