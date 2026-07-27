@@ -28,7 +28,8 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
 !*****************************************************************
 
    USE swan_input_parser, ONLY: default_command_reader
-   USE OCPCOMM4
+   USE swan_io_units
+   USE swan_time
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)

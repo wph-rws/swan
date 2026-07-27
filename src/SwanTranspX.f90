@@ -51,10 +51,10 @@ subroutine SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm2
+    use swan_diagnostics_level
+    use swan_run_mode
     use swcomm3
-    use swcomm4
+    use swan_spherical_geometry
     use SwanGriddata
     use SwanCompdata
 

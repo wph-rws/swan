@@ -52,7 +52,7 @@ subroutine SwanCreateEdges
 !
 !   Modules used
 
-    use ocpcomm4
+    USE swan_diagnostics_level
     use SwanGriddata
 
     implicit none(type, external)

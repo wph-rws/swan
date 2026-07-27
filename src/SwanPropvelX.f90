@@ -51,7 +51,7 @@ subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin, diffr )
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
     use swcomm3
     use SwanGriddata
     use SwanCompdata

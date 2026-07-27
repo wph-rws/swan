@@ -23,13 +23,13 @@ Levensduur is de kortste eenheid waarover de waarde geldig moet blijven:
 
 | # | Locatie | Module | Symbolen | Buildvariant |
 |---|---|---|---|---|
-| 1 | [swmod1.f90:1905](../src/swmod1.f90#L1905) | `SWCOMM3` | `IXCGRD, IYCGRD, KCGRD, COSLAT` | altijd |
-| 2 | [swmod1.f90:1906](../src/swmod1.f90#L1906) | `SWCOMM3` | `RDFSIN` | altijd |
-| 3 | [swmod1.f90:2542](../src/swmod1.f90#L2542) | `SWCOMM3` | `ICMAX, CSETUP` | altijd |
-| 4 | [swmod1.f90:2666](../src/swmod1.f90#L2666) | `SWCOMM4` | `IPTST, TESTFL` | altijd |
-| 5 | [swmod1.f90:2694](../src/swmod1.f90#L2694) | `SWCOMM4` | `PROPSL` | altijd |
+| 1 | [swmod1.f90:405](../src/swmod1.f90#L405) | `SWCOMM3` | `IXCGRD, IYCGRD, KCGRD, COSLAT` | altijd |
+| 2 | [swmod1.f90:406](../src/swmod1.f90#L406) | `SWCOMM3` | `RDFSIN` | altijd |
+| 3 | [swmod1.f90:1041](../src/swmod1.f90#L1041) | `SWCOMM3` | `ICMAX, CSETUP` | altijd |
+| 4 | [swan_test_output.f90:33](../src/swan_test_output.f90#L33) | `swan_test_output` | `IPTST, TESTFL` | altijd |
+| 5 | [swan_propagation_scheme.f90:27](../src/swan_propagation_scheme.f90#L27) | `swan_propagation_scheme` | `PROPSL` | altijd |
 | 6 | [SwanCompdata.f90:69](../src/SwanCompdata.f90#L69) | `SwanCompdata` | `vs` | altijd |
-| 7 | [swan_time.f90:31](../src/swan_time.f90#L31) | `swan_time` | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | **alleen `!TIMG`** |
+| 7 | [swan_time.f90:40](../src/swan_time.f90#L40) | `swan_time` | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | **alleen `!TIMG`** |
 
 Directive 7 staat achter de `!TIMG`-schakelaar en is in een standaardbuild
 inactief. Een `THREADPRIVATE`-inventaris die alleen op actieve regels kijkt
@@ -85,15 +85,30 @@ solver- of switch-specifiek.
 Na de migratie mag er maar één stencil-eigenaar zijn; de spiegel is precies het
 soort dubbele opslag dat randvoorwaarde 2 verbiedt.
 
-### `SWCOMM4` — teststatus en lokale propagatie
+### `swan_test_output` en `swan_propagation_scheme` — teststatus en lokale propagatie
+
+Deze drie stonden tot voor kort in `SWCOMM4`. Die module is opgeheven; de
+teststatus en het propagatieschema zijn nu twee aparte modules, wat de
+voorgestelde eigenaars hieronder niet verandert.
 
 | Symbool | Solver | COPYIN | Eerste definitie | Levensduur | Cat. | Voorgestelde eigenaar |
 |---|---|---|---|---|---|---|
-| `IPTST` | beide | ✅ | [swanmain.f90:1567](../src/swanmain.f90#L1567) e.o. | punt | 3 | `common_thread_seed_t` |
-| `TESTFL` | beide | ✅ | [swanmain.f90:1567](../src/swanmain.f90#L1567) | punt | 3 | `common_thread_seed_t` |
-| `PROPSL` | structured | ✅ | [swanmain.f90:1130](../src/swanmain.f90#L1130) | sweep | 3/6 | `structured_thread_workspace_t` |
+| `IPTST` | beide | ✅ | [swancom1.f90:3336](../src/swancom1.f90#L3336), [SwanCompUnstruc.f90:910](../src/SwanCompUnstruc.f90#L910) | punt | 3 | `common_thread_seed_t` |
+| `TESTFL` | beide | ✅ | [swanmain.f90:1616](../src/swanmain.f90#L1616) | punt | 3 | `common_thread_seed_t` |
+| `PROPSL` | structured | ✅ | [swanmain.f90:1179](../src/swanmain.f90#L1179) | sweep | 3/6 | `structured_thread_workspace_t` |
 
-`IPTST` wordt in [swanmain.f90:6094](../src/swanmain.f90#L6094) e.v. ook als
+De COPYIN van `IPTST` en `TESTFL` is vermoedelijk overbodig. Beide solvers
+zetten het paar op `0`/`.FALSE.` bovenin het per-punt-blok
+([swancom1.f90:3336](../src/swancom1.f90#L3336),
+[SwanCompUnstruc.f90:910](../src/SwanCompUnstruc.f90#L910)) voordat ze het
+lezen, en binnen de parallelle regio zelf
+([swancom1.f90:1266-2497](../src/swancom1.f90#L1266-L2497)) komt geen van beide
+voor: alle gebruik zit in geroepen routines. Dat maakt ze scratch in plaats van
+seed. Bewezen is dat niet — er is niet nagegaan of een routine die eerder in de
+regio wordt geroepen `TESTFL` al leest. Ga dat na vóór het schrappen van de
+COPYIN; zolang dat niet gebeurd is, is de COPYIN overbodig maar niet fout.
+
+`IPTST` wordt in [swanmain.f90:6107](../src/swanmain.f90#L6107) e.v. ook als
 `DO`-lusvariabele hergebruikt, buiten de parallelle regio. Dat is legaal maar
 betekent dat het symbool twee betekenissen draagt; bij migratie moet de
 lusvariabele lokaal worden en niet het contextveld.

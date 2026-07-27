@@ -8,7 +8,8 @@ program test_contexts
    use swan_io_context, only: io_context_t, diagnostics_context_t, &
       capture_io_context, apply_io_context, &
       capture_diagnostics_context, apply_diagnostics_context
-   use ocpcomm4, only: PRINTF, LEVERR, MAXERR, INPUTF, ITEST, ITRACE, HIOPEN
+   use swan_io_units, only: PRINTF, INPUTF, HIOPEN
+   use swan_diagnostics_level, only: LEVERR, MAXERR, ITEST, ITRACE
    implicit none
 
    call test_time_contexts

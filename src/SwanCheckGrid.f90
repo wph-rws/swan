@@ -54,7 +54,8 @@ subroutine SwanCheckGrid
 !
 !   Modules used
 
-    use ocpcomm4
+    USE swan_diagnostics_level
+    USE swan_io_units
     use swcomm3
     use SwanGriddata
     use SwanGridobjects

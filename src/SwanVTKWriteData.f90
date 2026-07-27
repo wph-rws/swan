@@ -53,8 +53,7 @@ subroutine SwanVTKWriteData ( uvtk, pstype, nvar, ivtyp, voqr, data, lenp, mxk, 
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm1
+    use swan_diagnostics_level
     use m_parall
     use outp_data
     use SwanGriddata

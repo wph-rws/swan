@@ -70,8 +70,8 @@ def scan_sources(source_dir: Path = SOURCE_DIR) -> dict[str, tuple[str, int, str
     return found
 
 
-def manifest_symbols(manifest: Path = MANIFEST) -> set[str]:
-    """Collect every symbol named in a backticked cell of the directive table."""
+def manifest_rows(manifest: Path = MANIFEST) -> list[tuple[str, int, set[str]]]:
+    """Return (file, line, symbols) for every row of the directive table."""
     text = manifest.read_text()
     table = re.search(
         r"^## De zeven resterende directives\s*$(.*?)^## ", text, re.M | re.S
@@ -79,16 +79,26 @@ def manifest_symbols(manifest: Path = MANIFEST) -> set[str]:
     if table is None:
         raise ValueError(f"{manifest}: directive table not found")
 
-    symbols: set[str] = set()
+    rows: list[tuple[str, int, set[str]]] = []
     for row in table.group(1).splitlines():
         cells = [cell.strip() for cell in row.split("|")]
         if len(cells) < 6 or not cells[1].isdigit():
             continue
+        symbols: set[str] = set()
         for quoted in re.findall(r"`([^`]+)`", cells[4]):
             symbols |= {s.upper() for s in _SYMBOL.findall(quoted)}
-    if not symbols:
+        location = re.search(r"\[([\w.]+):(\d+)\]", cells[2])
+        if location is None:
+            raise ValueError(f"{manifest}: row {cells[1]} has no file:line link")
+        rows.append((location.group(1), int(location.group(2)), symbols))
+    if not rows:
         raise ValueError(f"{manifest}: directive table lists no symbols")
-    return symbols
+    return rows
+
+
+def manifest_symbols(manifest: Path = MANIFEST) -> set[str]:
+    """Collect every symbol named in a backticked cell of the directive table."""
+    return set().union(*(symbols for _, _, symbols in manifest_rows(manifest)))
 
 
 def check(source_dir: Path = SOURCE_DIR, manifest: Path = MANIFEST) -> list[str]:
@@ -105,14 +115,65 @@ def check(source_dir: Path = SOURCE_DIR, manifest: Path = MANIFEST) -> list[str]
         )
     for symbol in sorted(documented - set(found)):
         problems.append(f"manifest documents {symbol}, which is no longer threadprivate")
+
+    # The symbol sets can agree while every link in the table points at the
+    # wrong line, which is what happens when declarations move between modules.
+    # A reader who follows a stale link lands on unrelated code, so check that
+    # each row still points at the directive it claims.
+    for file, line, symbols in manifest_rows(manifest):
+        actual = {s for s, (f, ln, _) in found.items() if f == file and ln == line}
+        if actual != symbols:
+            problems.append(
+                f"manifest points at {file}:{line} for "
+                f"{', '.join(sorted(symbols))}, but that line declares "
+                + (", ".join(sorted(actual)) if actual else "no threadprivate symbol")
+            )
     return problems
+
+
+def update_links(source_dir: Path = SOURCE_DIR, manifest: Path = MANIFEST) -> int:
+    """Repoint each table row at the line its symbols are actually declared on.
+
+    The symbol sets decide where a row belongs, so this only ever moves a link
+    that already describes an existing directive. A row whose symbols no longer
+    form one directive is left alone and still fails the check.
+    """
+    found = scan_sources(source_dir)
+    text = manifest.read_text()
+    fixed = 0
+    for file, line, symbols in manifest_rows(manifest):
+        places = {(f, ln) for s, (f, ln, _) in found.items() if s in symbols}
+        if len(places) != 1:
+            continue
+        new_file, new_line = places.pop()
+        actual = {s for s, (f, ln, _) in found.items()
+                  if (f, ln) == (new_file, new_line)}
+        if actual != symbols or (new_file, new_line) == (file, line):
+            continue
+        text = text.replace(
+            f"[{file}:{line}](../src/{file}#L{line})",
+            f"[{new_file}:{new_line}](../src/{new_file}#L{new_line})",
+        )
+        fixed += 1
+    if fixed:
+        manifest.write_text(text)
+    return fixed
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-dir", type=Path, default=SOURCE_DIR)
     parser.add_argument("--manifest", type=Path, default=MANIFEST)
+    parser.add_argument(
+        "--update-links",
+        action="store_true",
+        help="repoint rows whose symbols moved to another line, then check",
+    )
     args = parser.parse_args()
+
+    if args.update_links:
+        moved = update_links(args.source_dir, args.manifest)
+        print(f"{moved} verwijzing(en) bijgewerkt")
 
     problems = check(args.source_dir, args.manifest)
     if problems:

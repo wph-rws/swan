@@ -50,7 +50,7 @@ subroutine SwanInitCompGrid ( logcom )
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
     use swcomm3
     use m_genarr
     use m_parall

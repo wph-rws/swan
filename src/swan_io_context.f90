@@ -81,7 +81,7 @@ END SUBROUTINE reset_diagnostics_context
 
 !     Copy the live OCPCOMM4 stream units into a context.
 SUBROUTINE capture_io_context (context)
-   USE OCPCOMM4, ONLY: INPUTF, PRINTF, PRTEST, SCREEN,&
+   USE swan_io_units, ONLY: INPUTF, PRINTF, PRTEST, SCREEN,&
    &IUNMIN, IUNMAX, FUNLO, FUNHI, HIOPEN
    TYPE(io_context_t), INTENT(OUT) :: context
 
@@ -98,7 +98,7 @@ END SUBROUTINE capture_io_context
 
 !     Publish a context's stream units to the OCPCOMM4 globals.
 SUBROUTINE apply_io_context (context)
-   USE OCPCOMM4, ONLY: INPUTF, PRINTF, PRTEST, SCREEN,&
+   USE swan_io_units, ONLY: INPUTF, PRINTF, PRTEST, SCREEN,&
    &IUNMIN, IUNMAX, FUNLO, FUNHI, HIOPEN
    TYPE(io_context_t), INTENT(IN) :: context
 
@@ -115,7 +115,7 @@ END SUBROUTINE apply_io_context
 
 !     Copy the live OCPCOMM4 error/trace status into a context.
 SUBROUTINE capture_diagnostics_context (context)
-   USE OCPCOMM4, ONLY: LEVERR, MAXERR, ITRACE, ITEST, LTRACE
+   USE swan_diagnostics_level, ONLY: LEVERR, MAXERR, ITRACE, ITEST, LTRACE
    TYPE(diagnostics_context_t), INTENT(OUT) :: context
 
    context%LEVERR = LEVERR
@@ -127,7 +127,7 @@ END SUBROUTINE capture_diagnostics_context
 
 !     Publish a context's error/trace status to the OCPCOMM4 globals.
 SUBROUTINE apply_diagnostics_context (context)
-   USE OCPCOMM4, ONLY: LEVERR, MAXERR, ITRACE, ITEST, LTRACE
+   USE swan_diagnostics_level, ONLY: LEVERR, MAXERR, ITRACE, ITEST, LTRACE
    TYPE(diagnostics_context_t), INTENT(IN) :: context
 
    LEVERR = context%LEVERR

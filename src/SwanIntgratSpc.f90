@@ -55,8 +55,7 @@ real function SwanIntgratSpc ( p, fmin, fmax, spcsig, theta, wpar, ecs, uloc, vl
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm1
+    USE swan_diagnostics_level
     use swcomm3
 
     implicit none(type, external)

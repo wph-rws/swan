@@ -49,7 +49,7 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
 !                                                                *
 !*****************************************************************
 
-   USE OCPCOMM4
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
@@ -275,7 +275,8 @@ SUBROUTINE LSPLIT(RELINE, DATITM, NUMITM)
 !*******************************************************************
 
    USE swan_input_parser, ONLY: default_command_reader
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 

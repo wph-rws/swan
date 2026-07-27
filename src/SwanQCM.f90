@@ -144,10 +144,12 @@ subroutine SWQCINIT ( BGRIDP, COMPDA )
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm2
+    use swan_diagnostics_level
+    use swan_io_units
+    use swan_computational_grid_kind
+    use swan_boundary_counters
     use swcomm3
-    use swcomm4
+    use swan_test_output
     use m_genarr
     use m_parall
     use SwanGriddata
@@ -724,8 +726,9 @@ subroutine SWQCDFT ( sigft, cgft, dep2, kwave, cgo, cft, rft, sft, wft, wsave )
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm2
+    use swan_diagnostics_level
+    use swan_computational_grid_kind
+    use swan_input_grids
     use swcomm3
     use m_genarr
     use SwanGriddata
@@ -973,8 +976,9 @@ subroutine SWQCUFT ( uxft, uyft, dep2, ux2, uy2, cft, rft, sft, wft, wsave )
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm2
+    use swan_diagnostics_level
+    use swan_computational_grid_kind
+    use swan_input_grids
     use swcomm3
     use m_genarr
     use SwanGriddata
@@ -1215,11 +1219,11 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
    use swan_dissipation, only: SSURF
-    use swcomm2
+    use swan_computational_grid_kind
     use swcomm3
-    use swcomm4
+    use swan_test_output
 
     implicit none(type, external)
 
@@ -1457,9 +1461,9 @@ subroutine SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig )
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
     use swcomm3
-    use swcomm4
+    use swan_propagation_scheme
 
     implicit none(type, external)
 
@@ -1696,7 +1700,7 @@ subroutine SwanGradWig ( W, dwdx, dwdy, ac2, dep2, spcdir, spcsig )
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
     use swcomm3
     use SwanGriddata
     use SwanGridobjects
@@ -2093,7 +2097,7 @@ subroutine SWQCSCAT ( memqcm, W, dwdx, dwdy, sigft, cgft, uxft, uyft, dep2, kwav
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
     use swcomm3
 
     implicit none(type, external)
@@ -2410,7 +2414,8 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
+    use swan_io_units
     use swcomm3
 
     implicit none(type, external)
@@ -2702,7 +2707,7 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
     ! note: this subroutine makes use of geographical grid (regular, curvilinear or unstructured) and associated data
 
-    use swcomm2
+    use swan_computational_grid_kind
    use swan_services, only: CVMESH
     use m_genarr
     use m_parall
@@ -3109,7 +3114,7 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
     subroutine varchk
 
-    use swcomm2
+    use swan_computational_grid_kind
     use m_parall
     use SwanCompdata
 
@@ -3231,9 +3236,10 @@ subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbr
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
+    use swan_io_units
     use swcomm3
-    use swcomm4
+    use swan_test_output
 
     implicit none(type, external)
 
@@ -3385,7 +3391,7 @@ subroutine tukeywin ( a, n )
 !
 !   Modules used
 
-    use ocpcomm4, only: ltrace
+    use swan_diagnostics_level, only: ltrace
     use swcomm3 , only: pi
 
     implicit none(type, external)

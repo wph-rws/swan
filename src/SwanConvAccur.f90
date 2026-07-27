@@ -50,9 +50,10 @@ subroutine SwanConvAccur ( accur, hscurr, tmcurr, delhs, deltm, xytst, spcsig, a
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
+    use swan_io_units
     use swcomm3
-    use swcomm4
+    use swan_test_output
     use m_parall
     use SwanGriddata
     use SwanGridobjects

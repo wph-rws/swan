@@ -60,8 +60,9 @@ subroutine SwanInterpolateAc ( acintp, x, y, ac2, excpt )
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm2
+    use swan_diagnostics_level
+    use swan_io_units
+    use swan_coordinate_offset
     use swcomm3
     use m_obsta
     use SwanGriddata

@@ -52,7 +52,7 @@ logical function SwanCrossObstacle ( xv, yv, xobs, yobs )
 !
 !   Modules used
 
-    use ocpcomm4
+    USE swan_diagnostics_level
 
     implicit none(type, external)
 

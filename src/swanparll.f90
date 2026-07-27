@@ -33,6 +33,7 @@
 module swan_parallel
    use swan_io_limits, only: LENFNM
    use swan_output_variables, only: NMOVAR, OVEXCV, OVHEXP, OVLNAM, OVSNAM, OVSVTY, OVUNIT
+   use swan_time, only: CHTIME
    implicit none(type, external)
    private
 !  The exchange routines are defined behind switch lines further down, so the
@@ -53,7 +54,7 @@ SUBROUTINE SWINITMPI
 !****************************************************************
 !
 !MPI   USE MPI
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -231,7 +232,7 @@ SUBROUTINE SWEXITMPI
 !****************************************************************
 !
 !MPI   USE MPI
-   USE OCPCOMM4
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -351,7 +352,7 @@ SUBROUTINE SWSYNC
 !****************************************************************
 !
 !MPI   USE MPI
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -478,7 +479,7 @@ end subroutine SWSYNC
 !WFR!
 !WFR!****************************************************************
 !WFR!
-!WFR   USE OCPCOMM4
+!WFR   USE swan_diagnostics_level
 !WFR!
 !WFR   IMPLICIT NONE
 !WFR!
@@ -679,7 +680,7 @@ end subroutine SWSYNC
 !JAC!
 !JAC!****************************************************************
 !JAC!
-!JAC   USE OCPCOMM4
+!JAC   USE swan_diagnostics_level
 !JAC!
 !JAC   IMPLICIT NONE
 !JAC!
@@ -915,7 +916,7 @@ end subroutine SWSYNC
 !JAC!
 !JAC!****************************************************************
 !JAC!
-!JAC   USE OCPCOMM4
+!JAC   USE swan_diagnostics_level
 !JAC!
 !JAC   IMPLICIT NONE
 !JAC!
@@ -1178,7 +1179,7 @@ SUBROUTINE SWPARTIT ( IPOWN, MXC, MYC )
 
 !****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -1347,7 +1348,7 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
 
 !****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -1689,7 +1690,7 @@ SUBROUTINE SWDECOMP
 
 !****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE SWCOMM3
    USE M_PARALL
 
@@ -1853,7 +1854,7 @@ end subroutine SWDECOMP
 !JAC!
 !JAC!****************************************************************
 !JAC!
-!JAC   USE OCPCOMM4
+!JAC   USE swan_diagnostics_level
 !JAC   USE SWCOMM3
 !JAC   USE M_PARALL
 !JAC!
@@ -2082,7 +2083,7 @@ end subroutine SWDECOMP
 !WFR!
 !WFR!****************************************************************
 !WFR!
-!WFR   USE OCPCOMM4
+!WFR   USE swan_diagnostics_level
 !WFR   USE SWCOMM3
 !WFR   USE M_PARALL
 !WFR!
@@ -2269,7 +2270,7 @@ end subroutine SWDECOMP
 !WFR!
 !WFR!****************************************************************
 !WFR!
-!WFR   USE OCPCOMM4
+!WFR   USE swan_diagnostics_level
 !WFR   USE SWCOMM3
 !WFR   USE M_PARALL
 !WFR!
@@ -2432,7 +2433,7 @@ end subroutine SWDECOMP
 !WFR!
 !WFR!****************************************************************
 !WFR!
-!WFR   USE OCPCOMM4
+!WFR   USE swan_diagnostics_level
 !WFR   USE SWCOMM3
 !WFR   USE M_PARALL
 !WFR!
@@ -2595,7 +2596,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
 
 !****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE SWCOMM3
    USE M_GENARR
    USE M_PARALL
@@ -2876,9 +2877,11 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
 !****************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_time
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
    USE SWCOMM3
    USE OUTP_DATA
    USE M_PARALL
@@ -3308,11 +3311,10 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
 
 !****************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2, ONLY: OPTG
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind, ONLY: OPTG
    USE SWCOMM3
-   USE SWCOMM4
    USE OUTP_DATA
    USE M_PARALL
 
@@ -3655,11 +3657,11 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 
 !****************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2, ONLY: OPTG, XOFFS, YOFFS
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind, ONLY: OPTG
+   USE swan_coordinate_offset, ONLY: XOFFS, YOFFS
    USE SWCOMM3
-   USE SWCOMM4
    USE OUTP_DATA
    USE M_PARALL
 !NCF   USE swn_outnc, ONLY: swn_outnc_colspc
@@ -4046,11 +4048,11 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
 
 !****************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2, ONLY: OPTG
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind, ONLY: OPTG
    USE SWCOMM3, ONLY: NSTATM
-   USE SWCOMM4, ONLY: KSPHER
+   USE swan_spherical_geometry, ONLY: KSPHER
    USE OUTP_DATA
    USE M_PARALL
 !NCF   USE SwanGridData, ONLY: XCUGRDGL, YCUGRDGL
@@ -4556,7 +4558,8 @@ end subroutine SWCOLBLK
 !JAC!
 !JAC!****************************************************************
 !JAC!
-!JAC   USE OCPCOMM4
+!JAC   USE swan_diagnostics_level
+!JAC   USE swan_io_units
 !JAC   USE SWCOMM3
 !JAC   USE M_PARALL
 !JAC!

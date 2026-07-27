@@ -173,6 +173,7 @@ MODULE SWPARTMD
 !
 !     ---
 
+   use swan_output_settings, only: OUTPAR
    IMPLICIT NONE(TYPE, EXTERNAL)
 
 !  5. Argument variables
@@ -230,7 +231,7 @@ CONTAINS
 
       USE W3ODATMD, ONLY: WSCUT, FLCOMB
       USE SWCOMM3 , ONLY: MSC, MDC
-      USE OCPCOMM4, ONLY: PRINTF
+      USE swan_io_units, ONLY: PRINTF
 
 
 !   --|-----------------------------------------------------------|--
@@ -619,7 +620,7 @@ CONTAINS
 !************************************************************************
 
       USE SWCOMM3, ONLY: MSC, MDC
-      USE OCPCOMM4, ONLY: PRINTF
+      USE swan_io_units, ONLY: PRINTF
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1193,8 +1194,7 @@ CONTAINS
 !************************************************************************
 
       USE SWCOMM3, ONLY: MSC, MDC, DDIR, PI2, DEGRAD, FRINTF
-      USE SWCOMM1, ONLY: OUTPAR
-      USE OCPCOMM4, ONLY: PRINTF
+      USE swan_io_units, ONLY: PRINTF
 
 
 !   --|-----------------------------------------------------------|--

@@ -1,10 +1,22 @@
 set( swan_src
 ${SWAN_GENERATED_SRC}/swan_kinds.f90
 ${SWAN_GENERATED_SRC}/swan_io_limits.f90
+${SWAN_GENERATED_SRC}/swan_io_units.f90
+${SWAN_GENERATED_SRC}/swan_diagnostics_level.f90
 ${SWAN_GENERATED_SRC}/swan_project_metadata.f90
 ${SWAN_GENERATED_SRC}/swan_path_separators.f90
 ${SWAN_GENERATED_SRC}/swan_output_variables.f90
 ${SWAN_GENERATED_SRC}/swan_output_quadrature.f90
+${SWAN_GENERATED_SRC}/swan_output_settings.f90
+${SWAN_GENERATED_SRC}/swan_test_output.f90
+${SWAN_GENERATED_SRC}/swan_propagation_scheme.f90
+${SWAN_GENERATED_SRC}/swan_spherical_geometry.f90
+${SWAN_GENERATED_SRC}/swan_coordinate_offset.f90
+${SWAN_GENERATED_SRC}/swan_computational_grid_kind.f90
+${SWAN_GENERATED_SRC}/swan_boundary_counters.f90
+${SWAN_GENERATED_SRC}/swan_run_mode.f90
+${SWAN_GENERATED_SRC}/swan_input_grids.f90
+${SWAN_GENERATED_SRC}/swan_input_field_files.f90
 ${SWAN_GENERATED_SRC}/swan_parallel_state.f90
 ${SWAN_GENERATED_SRC}/swan_text_utilities.f90
 ${SWAN_GENERATED_SRC}/swan_service_interfaces.f90

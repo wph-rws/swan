@@ -114,7 +114,7 @@ end subroutine reader_msgerr
 
 !  Unit the reader echoes its input and messages to.
 integer function reader_print_unit (STATE) result(UNIT)
-   use OCPCOMM4, only: PRINTF
+   USE swan_io_units, ONLY: PRINTF
    type(command_reader_t), intent(in) :: STATE
 
    UNIT = PRINTF
@@ -168,7 +168,6 @@ SUBROUTINE RDINIT_CTX (STATE)
    USE swan_service_interfaces, ONLY: STRACE, EQREAL, MSGERR
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -251,7 +250,8 @@ SUBROUTINE NWLINE_CTX (STATE)
    USE swan_service_interfaces, ONLY: STRACE
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
@@ -354,7 +354,7 @@ SUBROUTINE INKEYW_CTX (STATE, KONT, CSTA)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -502,7 +502,6 @@ SUBROUTINE INREAL_CTX (STATE, NAAM, R, KONT, RSTA)
    USE swan_service_interfaces, ONLY: STRACE
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -622,7 +621,7 @@ SUBROUTINE INDBLE_CTX (STATE, NAAM, R, KONT, RSTA)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -814,7 +813,7 @@ SUBROUTINE ININTG_CTX (STATE, NAAM, IV, KONT, ISTA)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -995,7 +994,7 @@ SUBROUTINE INCSTR_CTX (STATE, NAAM, C, KONT, CSTA)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1194,7 +1193,7 @@ SUBROUTINE INCTIM_CTX (STATE, IOPTIM, NAAM, RV, KONT, RSTA)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQDBLE
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1382,7 +1381,6 @@ SUBROUTINE ININTV_CTX (STATE, NAME, RVAR, KONT, RSTA)
    USE swan_service_interfaces, ONLY: STRACE
 !                                                                  *
 !*******************************************************************
-   USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1521,7 +1519,6 @@ SUBROUTINE INITVD_CTX (STATE, NAME, RVAR, KONT, RSTA)
    USE swan_service_interfaces, ONLY: STRACE
 !                                                                  *
 !*******************************************************************
-   USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1659,7 +1656,8 @@ SUBROUTINE LEESEL_CTX (STATE)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2032,7 +2030,8 @@ SUBROUTINE GETKAR_CTX (STATE)
    USE swan_service_interfaces, ONLY: STRACE
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2139,7 +2138,6 @@ SUBROUTINE PUTKAR_CTX (STATE, LTEXT, KARR, JKAR)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2237,7 +2235,6 @@ LOGICAL FUNCTION EQCSTR (STR1, STR2)
    USE swan_service_interfaces, ONLY: STRACE
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2343,7 +2340,6 @@ LOGICAL FUNCTION KEYWIS_CTX (STATE, STRING)
    USE swan_service_interfaces, ONLY: STRACE
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2452,7 +2448,6 @@ SUBROUTINE WRNKEY_CTX (STATE)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2536,7 +2531,7 @@ SUBROUTINE IGNORE_CTX (STATE, STRING)
    USE swan_service_interfaces, ONLY: STRACE
 !                                                               *
 !****************************************************************
-   USE OCPCOMM4
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 

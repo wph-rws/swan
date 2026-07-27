@@ -7,7 +7,7 @@ program test_leaf_modules
    use swan_number_formatting, only: INTSTR, NUMSTR
    use swan_text_utilities, only: UPCASE
    use swcomm3, only: BNAUT, DNORTH, PI
-   use ocpcomm4, only: INAN, RNAN
+   use swan_number_formatting, only: INAN, RNAN
    implicit none
 
    call test_nautical_conversion

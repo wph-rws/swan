@@ -27,6 +27,7 @@ module swan_input_processing
    use swan_output_quadrature, only: ALPQ
    use swan_project_metadata, only: PROJID, PROJNR, VERTXT
    use swan_path_separators, only: DIRCH2
+   use swan_output_settings, only: IUBOTR, OUTPAR
    implicit none(type, external)
    private
    public :: SPROUT, SVARTP, SWBOUN, RETSTP
@@ -39,7 +40,6 @@ SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
    USE SWCOMM3
 
 
@@ -200,10 +200,14 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !************************************************************************
 
    USE swan_input_parser, ONLY: default_command_reader
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_run_mode
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE OUTP_DATA
    USE M_PARALL
    USE SwanGriddata
@@ -1068,11 +1072,9 @@ SUBROUTINE SWREOQ ( FOUND )
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_io_units
+   USE swan_time
    USE SWCOMM3
-   USE SWCOMM4
    USE OUTP_DATA
    USE M_PARALL
 !NCF   USE swn_outnc
@@ -2146,8 +2148,10 @@ INTEGER FUNCTION SIRAY (DP, XP1, YP1, XP2, YP2, XX, YY, BOTDEP,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_input_grids
    USE SWCOMM3
 
 
@@ -2318,8 +2322,8 @@ SUBROUTINE SWNMPS (PSNAME, PSTYPE, MIP, IERR)
 !************************************************************************
 
    USE swan_input_parser, ONLY: default_command_reader
-   USE OCPCOMM4
-   USE SWCOMM1
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE OUTP_DATA
 
 
@@ -2436,7 +2440,6 @@ SUBROUTINE SVARTP (IVTYPE)
 
 !************************************************************************
 
-   USE SWCOMM1
 
 
 !   --|-----------------------------------------------------------|--
@@ -2562,9 +2565,11 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_boundary_counters
    USE SWCOMM3
    USE M_BNDSPEC
    USE M_PARALL
@@ -3956,10 +3961,12 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 !*********************************************************************
 
    USE swan_input_parser, ONLY: default_command_reader
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_boundary_counters
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_spherical_geometry
    USE M_BNDSPEC
    USE M_PARALL
 
@@ -4442,10 +4449,14 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
 !                                                                    *
 !*********************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_boundary_counters
+   USE swan_input_field_files
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE M_BNDSPEC
    USE M_PARALL
 
@@ -5018,10 +5029,12 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
 !                                                                    *
 !*********************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_boundary_counters
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_spherical_geometry
    USE M_BNDSPEC
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -5523,10 +5536,14 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
 
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_boundary_counters
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE M_BNDSPEC
    USE M_PARALL
    USE SwanGriddata
@@ -6067,11 +6084,14 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
 !                                                                    *
 !*********************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_time
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE OUTP_DATA
    USE M_PARALL
    USE SwanGriddata

@@ -13,6 +13,7 @@ module swan_comp_unstruc
    use swan_propvel_x, only: SwanPropvelX
    use swan_sweep_sel, only: SwanSweepSel
    use swan_transp_ac, only: SwanTranspAc
+   use swan_time, only: CHTIME
    implicit none(type, external)
    private
    public :: SwanCompUnstruc
@@ -111,15 +112,18 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
+    use swan_io_units
     use swan_wind_source, only: WINDP1, WINDP3
     use swan_dissipation, only: PLTSRC
     use swan_nonlinear_interactions, only: FAC3WW, FAC4WW, SWBIPM, SWPRE4W
     use swan_propagation, only: SPREDT, ADDDIS
-    use swcomm1
-    use swcomm2
+    use swan_coordinate_offset
+    use swan_run_mode
     use swcomm3
-    use swcomm4
+    use swan_test_output
+    use swan_propagation_scheme
+    use swan_spherical_geometry
     use SwanGriddata
     use SwanGridobjects
     use SwanCompdata

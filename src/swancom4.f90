@@ -75,8 +75,8 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
 !******************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
    TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
 
 !   --|-----------------------------------------------------------|--
@@ -502,8 +502,9 @@ SUBROUTINE RANGE4 (WWINT ,IDDLOW,IDDTOP)
 !******************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
 
 !   --|-----------------------------------------------------------|--
@@ -679,8 +680,7 @@ SUBROUTINE SWPRE4W (XIS   ,SNLC1 ,&
 !********************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
 
 !  2. Purpose
@@ -903,8 +903,9 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 !********************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
 
 !   --|-----------------------------------------------------------|--
@@ -1394,8 +1395,9 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 !*******************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
 
 !   --|-----------------------------------------------------------|--
@@ -1848,8 +1850,9 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
 !*******************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
 
 !   --|-----------------------------------------------------------|--
@@ -2234,8 +2237,9 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
 !*******************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
    REAL, INTENT(IN) :: CNL4_1(MSC4MI:MSC4MA)
    REAL, INTENT(IN) :: CNL4_2(MSC4MI:MSC4MA)
@@ -2626,8 +2630,9 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
 !*********************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
@@ -2913,8 +2918,9 @@ SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
 !*******************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
 
 !   --|-----------------------------------------------------------|--
@@ -3241,7 +3247,7 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG, TRIADS )
 
 !****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE SWCOMM3
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -3789,9 +3795,10 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 
 !****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    TYPE(triad_state_t), INTENT(IN) :: TRIADS
@@ -4212,9 +4219,9 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 
 !****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -4492,9 +4499,9 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
 
 !******************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -5013,9 +5020,9 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 
 !****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -5391,7 +5398,7 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV )
 
 !****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE SWCOMM3
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -5533,7 +5540,7 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
 
 !****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE SWCOMM3
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -5782,8 +5789,9 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC, BPHTMP )
 
 !****************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind
    USE SWCOMM3
    USE M_GENARR
    USE M_PARALL

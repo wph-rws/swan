@@ -51,6 +51,7 @@ use swan_spectral_powers, only: spectral_powers_t
 !
 !   Modules used
 
+   use swan_output_variables, only: UT
     implicit none(type, external)
 
 !   Module variables
@@ -133,8 +134,9 @@ subroutine SwanIEMinitig(spectral_powers)
 !
 !   Modules used
 
-    use OCPCOMM4
-    use SWCOMM2 , only: NBGRPT
+    USE swan_diagnostics_level
+    USE swan_io_units
+    use swan_boundary_counters, only: NBGRPT
     use SWCOMM3 , only: DDIR, FRINTF, FRINTH, MCGRD, MXC, MYC, MSC, MDC, PI2
     use M_GENARR, only: SPCSIG, AC2, KGRPNT
     use M_PARALL, only: NBGGL
@@ -356,7 +358,8 @@ subroutine SwanIEMmeanwav ( AC2, HSIBC, SPCSIG, KGRPNT, HS )
 !
 !   Modules used
 
-    use OCPCOMM4
+    USE swan_diagnostics_level
+    USE swan_io_units
     use SWCOMM3, only: DDIR, FRINTF, MXC, MYC, MCGRD, MSC, MDC, GRAV, PI2, PWIND
 
     implicit none(type, external)
@@ -532,7 +535,7 @@ subroutine SwanIEMncalc
 !
 !   Modules used
 
-    use OCPCOMM4
+    USE swan_diagnostics_level
     use SWCOMM3, only: MDC, PI2
 
     implicit none(type, external)
@@ -722,7 +725,7 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
 !
 !   Modules used
 
-    use OCPCOMM4
+    USE swan_diagnostics_level
     use SWCOMM3, only: DEPMIN, DX, GRAV, PI, DDIR, FRINTF, MXC, MYC, MCGRD, MDC, MSC, PWIND, PSURF
 
     implicit none(type, external)

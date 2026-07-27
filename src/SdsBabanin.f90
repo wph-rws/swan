@@ -2,13 +2,14 @@
 !   based on work of Babanin, Young, Tsagareli, Ardhuin and others
 MODULE SDSBABANIN
    USE swan_service_interfaces, ONLY: STRACE
+   use swan_output_variables, only: UST
+   use swan_time, only: CHTIME
   IMPLICIT NONE(TYPE, EXTERNAL)
 
 CONTAINS
 
   SUBROUTINE CALC_SDS(NFREQ,EDENS,F,KDS,ANAR_IN,TESTFL,KWAVE,CG)
 
-    USE SWCOMM1, ONLY: CHTIME
     USE SWCOMM3, ONLY: A1SDS,A2SDS,P1SDS,P2SDS,UPWARDS,GRAV,PI
 
     ! REAL   A1SDS  : coefficient on T1
@@ -292,10 +293,10 @@ CONTAINS
                          ,ZELEN )
   !****************************************************************************
 
-    USE SWCOMM1, ONLY: CHTIME
     USE SWCOMM3
-    USE SWCOMM4  ! includes TESTFL
-    USE OCPCOMM4
+    USE swan_test_output
+    USE swan_diagnostics_level
+    USE swan_io_units
 !ESMF    USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
 
     IMPLICIT NONE(TYPE, EXTERNAL)
@@ -741,7 +742,6 @@ CONTAINS
                           CINV_S,GRAV,WIND10,TESTFL,SPCDIR,VECTOR_TAU,TRUE_U10,CTHETA_WIND, &
                           STHETA_WIND, ZE)
 
-    USE SWCOMM1, ONLY: CHTIME
 
     IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1351,8 +1351,9 @@ CONTAINS
 !****************************************************************
 
       USE SWCOMM3
-      USE SWCOMM4
-      USE OCPCOMM4
+      USE swan_test_output
+      USE swan_diagnostics_level
+      USE swan_io_units
 
       IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1590,8 +1591,9 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
 !   Modules used
 
     use swcomm3
-    use swcomm4
-    use ocpcomm4
+    USE swan_test_output
+    USE swan_diagnostics_level
+    USE swan_io_units
 
     implicit none(type, external)
 
@@ -2385,8 +2387,6 @@ end subroutine filsin
 !     ----------------------------------------------------------------
 !/
       USE SWCOMM3
-      USE SWCOMM4
-      USE OCPCOMM4
 
       IMPLICIT NONE(TYPE, EXTERNAL)
 !/

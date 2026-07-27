@@ -55,9 +55,8 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
 !
 !   Modules used
 
-    use ocpcomm4
-    use SWCOMM1
-    use SWCOMM2
+    USE swan_diagnostics_level
+    USE swan_io_units
     use SWCOMM3
     use OUTP_DATA
 

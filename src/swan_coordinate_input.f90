@@ -12,7 +12,8 @@ SUBROUTINE READXY (NAMX, NAMY, XX, YY, KONT, XSTA, YSTA)
 !************************************************************************
 
    USE swan_input_parser, ONLY: default_command_reader
-   USE SWCOMM2
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
 
 
 !   --|-----------------------------------------------------------|--
@@ -144,7 +145,8 @@ SUBROUTINE REFIXY (NDS, XX, YY, IERR)
 !                                                                      *
 !************************************************************************
 
-   USE SWCOMM2
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
 
 
 !   --|-----------------------------------------------------------|--

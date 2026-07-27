@@ -33,6 +33,7 @@
 
 module swan_propagation
    use swan_diffraction_state, only: diffraction_state_t
+   use swan_output_settings, only: ERRPTS
    implicit none(type, external)
    private
    public :: SWGEOM, SWPSEL, SPROXY, SPROSD, DSPHER, STRSXY, SORDUP, SANDL
@@ -44,10 +45,12 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
 
 !****************************************************************
 
-   USE SWCOMM2
+   USE swan_coordinate_offset
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_spherical_geometry
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -243,11 +246,10 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 
 !******************************************************************
 
-   USE SWCOMM1
-   USE SWCOMM2
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -841,8 +843,9 @@ SUBROUTINE SPROXY (CAX        ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1117,11 +1120,13 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 
 !****************************************************************
 
-   USE SWCOMM2
+   USE swan_coordinate_offset
+   USE swan_run_mode
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE M_PARALL
    USE SwanIEM, ONLY: ntf, dfiem, sflog
 
@@ -1737,10 +1742,10 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
 
 !****************************************************************
 
-   USE SWCOMM2
+   USE swan_coordinate_offset
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_spherical_geometry
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1911,10 +1916,12 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 
 !****************************************************************
 
-   USE SWCOMM2
+   USE swan_run_mode
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_spherical_geometry
+   USE swan_diagnostics_level
+   USE swan_io_units
 
 
 !   --|-----------------------------------------------------------|--
@@ -2212,8 +2219,10 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_spherical_geometry
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2537,10 +2546,13 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 
 !****************************************************************
 
-   USE SWCOMM2
+   USE swan_run_mode
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_propagation_scheme
+   USE swan_spherical_geometry
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE swan_time, ONLY: default_time_context
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -3037,8 +3049,9 @@ SUBROUTINE STRSSI(SPCSIG  ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
 
 !   --|-----------------------------------------------------------|--
@@ -3350,8 +3363,9 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -3739,8 +3753,9 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
 
 !   --|-----------------------------------------------------------|--
@@ -4018,8 +4033,9 @@ SUBROUTINE STRSDFV (DD      ,IDCMIN  ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -4264,10 +4280,13 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 
 !****************************************************************
 
-   USE SWCOMM2
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_spherical_geometry
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -4583,10 +4602,11 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
 
 !****************************************************************
 
-   USE SWCOMM2
+   USE swan_input_grids
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE m_propcache, ONLY: prop_cache_valid, prop_kwave,&
    &prop_cgo, prop_dmw
 
@@ -4810,10 +4830,8 @@ SUBROUTINE SWAPRE ( DEP, MUDL, SPCSIG )
 !     Precompute dispersion quantities for a stationary computation.
 !     The resulting module arrays are read-only inside the OpenMP sweeps
 
-   USE SWCOMM2
+   USE swan_input_grids
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
    USE m_propcache, ONLY: prop_cache_valid, prop_kwave,&
    &prop_cgo, prop_dmw, prop_cache_reset
 
@@ -5197,8 +5215,9 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -5501,10 +5520,13 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , DIFFR ,&
 
 !****************************************************************
 
-   USE SWCOMM2
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_spherical_geometry
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)

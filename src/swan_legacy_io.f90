@@ -13,7 +13,8 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM,&
 !                                                                *
 !*****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
@@ -383,7 +384,8 @@ SUBROUTINE COPYCH (STRING, MOVE, IARRAY, LENARR, IERR)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 

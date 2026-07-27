@@ -11,7 +11,7 @@ SUBROUTINE WRSPEC (NREF, ACLOC)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE SWCOMM3
    USE OUTP_DATA
 
@@ -155,11 +155,12 @@ end subroutine WRSPEC
 !                                                                      *
 !************************************************************************
 
-         USE OCPCOMM4
-         USE SWCOMM1
-         USE SWCOMM2
+         USE swan_diagnostics_level
+         USE swan_io_units
+         USE swan_computational_grid_kind
          USE SWCOMM3
-         USE SWCOMM4
+         USE swan_test_output
+         USE swan_spherical_geometry
 
 
 !   --|-----------------------------------------------------------|--

@@ -65,7 +65,8 @@ subroutine SwanBpntlist
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
+    use swan_io_units
     use SwanGriddata
     use SwanGridobjects
     use SwanCompdata

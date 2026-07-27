@@ -158,7 +158,7 @@ subroutine SwanDecomposition ( logcom )
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
     use m_parall
     use SwanGriddata
 
@@ -261,7 +261,8 @@ subroutine SwanMeshPartition
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
+    use swan_io_units
     use m_parall
     use SwanGriddata
 
@@ -594,7 +595,8 @@ subroutine SwanCommAdmin
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
+    use swan_io_units
     use m_parall
     use SwanGriddata
 
@@ -1051,7 +1053,7 @@ subroutine SwanUvExchgI ( ifld )
 !   Modules used
 !
 !MPI    use mpi
-    use ocpcomm4
+    use swan_diagnostics_level
     use m_parall
     use SwanGriddata
 
@@ -1202,7 +1204,7 @@ subroutine SwanUvExchgR ( fld )
 !   Modules used
 !
 !MPI    use mpi
-    use ocpcomm4
+    use swan_diagnostics_level
     use m_parall
     use SwanGriddata
 
@@ -1349,7 +1351,7 @@ subroutine SwanCollBpntlist
 !   Modules used
 !
 !MPI    use mpi
-    use ocpcomm4
+    use swan_diagnostics_level
     use m_parall
     use SwanGriddata
     use SwanCompdata
@@ -1683,7 +1685,7 @@ subroutine hpsort ( n, ia )
 !
 !   Modules used
 
-    use ocpcomm4, only: ltrace
+    use swan_diagnostics_level, only: ltrace
 
     implicit none(type, external)
 

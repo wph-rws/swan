@@ -4,6 +4,15 @@ MODULE swan_time
    PRIVATE
    PUBLIC :: time_context_t, default_time_context
    PUBLIC :: DTTIME, DTINTI, DTRETI, DTTIWR, DTSTTI, DTTIST
+   PUBLIC :: CHTIME, ITMOPT
+
+!     CHTIME : current simulation time rendered as text for headings
+   CHARACTER(LEN=20) :: CHTIME
+
+!     ITMOPT : how a date-time is coded in input and output. Every caller
+!     passes it straight on to DTTIWR, INCTIM or DTTIST, so it belongs with
+!     them rather than with the unit numbers it sat next to in OCPCOMM4.
+   INTEGER :: ITMOPT
 
    TYPE :: time_context_t
       REAL(swan_double) :: TINIC = 0.0_swan_double
@@ -57,7 +66,7 @@ REAL FUNCTION DTTIME (INTTIM, CONTEXT)
 !                                                                  *
 !*******************************************************************
 
-   USE OCPCOMM4
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 

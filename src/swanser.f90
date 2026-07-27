@@ -66,8 +66,7 @@ LOGICAL FUNCTION  INFRAM (XQQ, YQQ)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
+   USE swan_diagnostics_level
 
 
 !   --|-----------------------------------------------------------|--
@@ -164,7 +163,8 @@ SUBROUTINE DISTR (CDIR, DIR, COEF, SPCDIR)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE SWCOMM3
 
 
@@ -316,10 +316,11 @@ SUBROUTINE AC2TST (XYTST, AC2,KGRPNT)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
    USE M_PARALL
 
 
@@ -385,10 +386,12 @@ SUBROUTINE CVCHEK (KGRPNT, XCGRID, YCGRID)
 
 !****************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
 
 
 !   --|-----------------------------------------------------------|--
@@ -612,10 +615,11 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
 
 
 !   --|-----------------------------------------------------------|--
@@ -940,8 +944,9 @@ LOGICAL FUNCTION INMESH (XP, YP, XCGRID ,YCGRID, KGRBND)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
    USE SWCOMM3
    USE M_PARALL
 
@@ -1129,9 +1134,10 @@ SUBROUTINE NEWTON (XP, YP, XCGRID, YCGRID,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
 
 
 !   --|-----------------------------------------------------------|--
@@ -1339,8 +1345,9 @@ SUBROUTINE NEWT1D (XP, YP, XCGRID, YCGRID, KGRPNT,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
    USE SWCOMM3
 
 
@@ -1490,7 +1497,7 @@ SUBROUTINE EVALF (XC ,YC ,XVC ,YVC ,XCGRID ,YCGRID)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE SWCOMM3
 
 
@@ -1610,7 +1617,8 @@ SUBROUTINE SWOBST (XCGRID, YCGRID, KGRPNT, CROSS)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE SWCOMM3
    USE M_OBSTA
 
@@ -1829,10 +1837,13 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_input_grids
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
    USE M_OBSTA
    USE M_PARALL
    USE SwanGriddata
@@ -2499,9 +2510,10 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
 
 !************************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2857,7 +2869,8 @@ SUBROUTINE HSOBND (AC2   ,SPCSIG,HSIBC ,KGRPNT)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE SWCOMM3
    USE M_PARALL
 
@@ -3056,7 +3069,7 @@ SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX)
 !****************************************************************
 
    USE SWCOMM3
-   USE OCPCOMM4
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -3169,7 +3182,7 @@ SUBROUTINE MKPATH ( PATH, IERR )
 
 !****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -3281,7 +3294,8 @@ end module swan_services
 !TIMG!****************************************************************
 !TIMG!
 !TIMG   USE swan_time, ONLY: LASTTM, LISTTM, MXTIMR, NSECTM, TIMERS
-!TIMG   USE OCPCOMM4
+!TIMG   USE swan_diagnostics_level
+!TIMG   USE swan_io_units
 !TIMG!
 !TIMG   IMPLICIT NONE
 !TIMG!
@@ -3447,7 +3461,7 @@ end module swan_services
 !TIMG!****************************************************************
 !TIMG!
 !TIMG   USE swan_time, ONLY: DCUMTM, LASTTM, LISTTM, NCUMTM, NSECTM, TIMERS
-!TIMG   USE OCPCOMM4
+!TIMG   USE swan_io_units
 !TIMG!
 !TIMG   IMPLICIT NONE
 !TIMG!
@@ -3605,7 +3619,8 @@ end module swan_services
 !TIMG!****************************************************************
 !TIMG!
 !TIMG   USE swan_time, ONLY: DCUMTM, NCUMTM, NSECTM
-!TIMG   USE OCPCOMM4
+!TIMG   USE swan_diagnostics_level
+!TIMG   USE swan_io_units
 !TIMG   USE M_PARALL
 !TIMG
 !TIMG   IMPLICIT NONE
@@ -4105,7 +4120,7 @@ end subroutine TXPBLA
 !MatL4!
 !MatL4!****************************************************************
 !MatL4!
-!MatL4   USE OCPCOMM4
+!MatL4   USE swan_diagnostics_level
 !MatL4!
 !MatL4   IMPLICIT NONE
 !MatL4!
@@ -4245,7 +4260,7 @@ end subroutine TXPBLA
 !MatL4!
 !MatL4!****************************************************************
 !MatL4!
-!MatL4   USE OCPCOMM4
+!MatL4   USE swan_diagnostics_level
 !MatL4!
 !MatL4   IMPLICIT NONE
 !MatL4!

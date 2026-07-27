@@ -52,7 +52,7 @@ subroutine SwanGridFace ( nfaces, ncells, nverts, xcugrd, ycugrd, kvertf )
 !
 !   Modules used
 
-    use ocpcomm4
+    USE swan_diagnostics_level
     use SwanGridobjects
 
     implicit none(type, external)

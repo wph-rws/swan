@@ -25,6 +25,8 @@ module swan_output_writers
    use swan_output_quadrature, only: ALCQ, COSCQ, SINCQ
    use swan_project_metadata, only: PROJID, PROJNR, VERTXT
    use swan_path_separators, only: DIRCH2
+   use swan_time, only: CHTIME
+   use swan_output_settings, only: INRHOG
    implicit none(type, external)
    private
 !  SWTABP and SWRMAT are defined behind switch lines (!NCF/!NNCF, !MatL4/!MatL5)
@@ -42,10 +44,10 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE SWCOMM3, ONLY: NSTATM
-   USE SWCOMM4, ONLY: KSPHER
+   USE swan_spherical_geometry, ONLY: KSPHER
    USE OUTP_DATA
 !NCF   USE swn_outnc
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
@@ -380,8 +382,8 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !                                                                      *
 !************************************************************************
 
-      USE OCPCOMM4
-      USE SWCOMM1
+      USE swan_diagnostics_level
+      USE swan_io_units
       USE SWCOMM3
       USE OUTP_DATA
       USE swan_time, ONLY: default_time_context
@@ -599,8 +601,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 
 !****************************************************************
 
-      USE OCPCOMM4
-      USE SWCOMM1
+      USE swan_diagnostics_level
       USE OUTP_DATA
       USE M_PARALL
 
@@ -748,8 +749,9 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 
 !****************************************************************
 
-      USE OCPCOMM4
-      USE SWCOMM2, ONLY: OPTG
+      USE swan_diagnostics_level
+      USE swan_number_formatting
+      USE swan_computational_grid_kind, ONLY: OPTG
       USE M_PARALL
       USE OUTP_DATA
 
@@ -997,10 +999,9 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 
 !****************************************************************
 
-      USE SWCOMM1
       USE SWCOMM3, ONLY: BNAUT, NSTATM, PI
-      USE SWCOMM4, ONLY: KSPHER
-      USE OCPCOMM4
+      USE swan_spherical_geometry, ONLY: KSPHER
+      USE swan_diagnostics_level
 
       IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1189,11 +1190,11 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !                                                                      *
 !************************************************************************
 
-         USE OCPCOMM4
-         USE SWCOMM1
-         USE SWCOMM2
+         USE swan_diagnostics_level
+         USE swan_io_units
+         USE swan_time
          USE SWCOMM3
-         USE SWCOMM4
+         USE swan_spherical_geometry
          USE OUTP_DATA
          USE swan_time, ONLY: default_time_context
          USE M_PARALL
@@ -1725,11 +1726,12 @@ RETURN
 !                                                                      *
 !************************************************************************
 
-         USE OCPCOMM4
-         USE SWCOMM1
-         USE SWCOMM2
+         USE swan_diagnostics_level
+         USE swan_time
+         USE swan_coordinate_offset
+         USE swan_computational_grid_kind
          USE SWCOMM3
-         USE SWCOMM4
+         USE swan_spherical_geometry
          USE OUTP_DATA
          USE M_PARALL
 !NCF         USE swn_outnc, only: swn_outnc_spec
@@ -2078,7 +2080,7 @@ RETURN
 !MatL4!
 !MatL4!****************************************************************
 !MatL4!
-!MatL4         USE OCPCOMM4
+!MatL4         USE swan_diagnostics_level
 !MatL4!
 !MatL4         IMPLICIT NONE
 !MatL4!
@@ -2373,7 +2375,7 @@ RETURN
 !MatL5!
 !MatL5!****************************************************************
 !MatL5!
-!MatL5         USE OCPCOMM4
+!MatL5         USE swan_diagnostics_level
 !MatL5!
 !MatL5         IMPLICIT NONE
 !MatL5!

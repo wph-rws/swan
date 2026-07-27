@@ -17,8 +17,10 @@ SUBROUTINE FLFILE (IGR1, IGR2,&
 !**********************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_input_grids
+   USE swan_input_field_files
    USE SWCOMM3
    USE M_PARALL
    USE SwanGriddata

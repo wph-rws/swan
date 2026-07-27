@@ -81,7 +81,7 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
 !
 !   Modules used
 
-    use ocpcomm4
+    USE swan_diagnostics_level
     use swcomm3
     use SwanGriddata
 

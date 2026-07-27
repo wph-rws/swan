@@ -11,8 +11,9 @@ REAL FUNCTION SVALQI (XP, YP, IGRID, ARRINP, ZERO ,IXC ,IYC)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_input_grids
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)

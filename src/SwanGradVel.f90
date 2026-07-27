@@ -54,10 +54,10 @@ subroutine SwanGradVel ( dep2, ux2, uy2, duxdx, duxdy, duydx, duydy, ivert )
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm2
+    use swan_diagnostics_level
+    use swan_coordinate_offset
     use swcomm3
-    use swcomm4
+    use swan_spherical_geometry
     use SwanGriddata
     use SwanGridobjects
 

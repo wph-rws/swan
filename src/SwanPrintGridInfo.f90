@@ -48,7 +48,8 @@ subroutine SwanPrintGridInfo
 !
 !   Modules used
 
-    use ocpcomm4
+    USE swan_diagnostics_level
+    USE swan_io_units
     use SwanGriddata
     use SwanGridobjects
 

@@ -33,6 +33,9 @@ module swan_command_reading
    use swan_output_variables, only: NMOVAR, OVEXCV, OVHEXP, OVLEXP, OVLLIM, OVLNAM, OVSNAM, OVSVTY, OVULIM, OVUNIT
    use swan_output_quadrature, only: XQLEN, YQLEN
    use swan_project_metadata, only: PROJID, PROJNR, PROJT1, PROJT2, PROJT3, VERTXT
+   use swan_output_variables, only: UP
+   use swan_time, only: CHTIME
+   use swan_output_settings, only: ERRPTS, INRHOG, OUTPAR
    implicit none(type, external)
    private
    public :: SWREAD
@@ -54,11 +57,16 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 
    USE swan_time, ONLY: default_time_context
    USE swan_input_parser, ONLY: default_command_reader
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_time
+   USE swan_computational_grid_kind
+   USE swan_run_mode
+   USE swan_input_grids
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
+   USE swan_propagation_scheme
+   USE swan_spherical_geometry
    USE OUTP_DATA
    USE M_GENARR
    USE M_OBSTA
@@ -73,6 +81,11 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
     INTEGER :: MMCGR
     REAL :: WBICETH
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
+!     [maxmes] in the SET command has had no effect since the message
+!     counter it once bounded was removed. The value is still parsed so
+!     that existing decks keep working and the arguments after it keep
+!     their position.
+   INTEGER :: MAXMES_IGNORED = 200
 
 
 !   --|-----------------------------------------------------------|--
@@ -2192,7 +2205,7 @@ CALL NWLINE
       CALL INREAL ('LEVEL',  WLEV,   'UNC', 0.)
       CALL INREAL ('NOR',    DNORTH, 'UNC', 0.)
       CALL INREAL ('DEPMIN', DEPMIN, 'UNC', 0.)
-      CALL ININTG ('MAXMES', MAXMES, 'UNC', 0)
+      CALL ININTG ('MAXMES', MAXMES_IGNORED, 'UNC', 0)
       CALL ININTG ('MAXERR', MAXERR, 'UNC', 0)
       CALL INREAL ('GRAV',   GRAV,   'UNC', 0.)
       CALL INREAL ('RHO',    RHO,    'UNC', 0.)
@@ -3751,11 +3764,15 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
 !************************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_time
+   USE swan_computational_grid_kind
+   USE swan_input_grids
+   USE swan_input_field_files
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE OUTP_DATA
    USE SwanGriddata
 
@@ -4168,11 +4185,11 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
 !************************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_input_grids
+   USE swan_input_field_files
    USE SWCOMM3
-   USE SWCOMM4
    USE M_GENARR
    USE SwanGriddata
 
@@ -4605,11 +4622,10 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR, SPECTRAL_POWERS)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind
    USE SWCOMM3
-   USE SWCOMM4
 
 
 !   --|-----------------------------------------------------------|--
@@ -4761,11 +4777,8 @@ SUBROUTINE CGINIT (LOGCOM)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_number_formatting
    USE SWCOMM3
-   USE SWCOMM4
    USE M_GENARR
    USE M_PARALL
    USE SwanGriddata
@@ -5036,11 +5049,13 @@ SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_input_grids
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
 
 
 !   --|-----------------------------------------------------------|--
@@ -5251,7 +5266,7 @@ SUBROUTINE CGBOUN (KGRPNT, KGRBND)
 !************************************************************************
 
    USE SWCOMM3
-   USE OCPCOMM4
+   USE swan_io_units
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -5615,7 +5630,6 @@ SUBROUTINE SEPARAREA(IX, IY, KGRPNT,IDIR)
 !*******************************************************************
 
    USE SWCOMM3
-   USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -5779,11 +5793,11 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
 !*******************************************************************
 
    USE swan_input_parser, ONLY: default_command_reader
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind
+   USE swan_run_mode
    USE SWCOMM3
-   USE SWCOMM4
    USE swan_time, ONLY: default_time_context
    USE M_PARALL
    USE SwanGriddata
@@ -6366,11 +6380,12 @@ SUBROUTINE BACKUP (AC2, SPCSIG, SPCDIR, KGRPNT,&
 !                                                                  *
 !*******************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_time
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_input_grids
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_spherical_geometry
    USE M_PARALL
    USE SwanGriddata
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine

@@ -55,17 +55,20 @@ module swn_outnc
     use NETCDF
     use nctablemd, only: nctable, nctable_record, get_nctable_record
     use OUTP_DATA, only: ORQDAT, MAX_OUTP_REQ, LCOMPGRD, OUTP_FILES, NREOQ
-    use OCPCOMM4
-    use SWCOMM1,   only: CHTIME
+    use swan_diagnostics_level
+    use swan_io_units
     use swan_output_variables, only: OVEXCV
-    use SWCOMM2,   only: XOFFS, YOFFS, OPTG, EXCFLD
+    use swan_coordinate_offset, only: XOFFS, YOFFS
+    use swan_computational_grid_kind, only: OPTG
+    use swan_input_grids, only: EXCFLD
     use SWCOMM3,   only: NSTATC, NSTATM, ALPC, MDC, MSC, MCGRD, MXC, MYC, DNORTH, &
                          PI2, ICUR, BNAUT
-    use SWCOMM4
     use swan_time, only: default_time_context
+    use swan_spherical_geometry, only: KSPHER
 
    use swan_output_variables, only: OVEXCV, OVLNAM
    use swan_project_metadata, only: PROJID, PROJNR, VERTXT
+   use swan_time, only: CHTIME
     implicit none(type, external)
 
 !   Module parameters
@@ -244,7 +247,7 @@ contains
     end subroutine swn_outnc_spec
 
     subroutine swn_outnc_colspc ( RTYPE, OQI, OQR, MIP, KGRPGL )
-      use SWCOMM2, only: optg
+      use swan_computational_grid_kind, only: optg
       use SwanGriddata, only: xcugrdgl, ycugrdgl, nverts
 
 
@@ -479,7 +482,7 @@ contains
                               SPCSIG, SPCDIR, DEP2, KGRPNT, CROSS, IONOD, &
                               lspcaux)
       use swan_spectrum_output, only: SWCMSP
-      USE swan_time, ONLY: default_time_context
+      use swan_time, only: default_time_context
 
 
 !   --|-----------------------------------------------------------|--

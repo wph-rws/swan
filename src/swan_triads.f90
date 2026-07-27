@@ -10,7 +10,7 @@ SUBROUTINE TCOEF ( W1, W2, W12, K1, K2, K12, DEP, R, S )
 
 !********************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
    USE SWCOMM3
 
    IMPLICIT NONE(TYPE, EXTERNAL)

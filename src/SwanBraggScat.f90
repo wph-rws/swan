@@ -113,8 +113,8 @@ subroutine SWBRBOT
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm2
+    use swan_diagnostics_level
+    use swan_input_grids
     use swcomm3, only: pbrag, PI, MXC, MYC, MCGRD
     use m_genarr, only: DEPTH, XCGRID, YCGRID, KGRPNT
     use SwanGriddata, only: nverts, xcugrd, ycugrd
@@ -609,8 +609,8 @@ subroutine SWFBXY ( dep2, mudl2, spcsig, spcdir )
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm2
+    use swan_diagnostics_level
+    use swan_input_grids
     use swcomm3
 
     implicit none(type, external)
@@ -819,7 +819,7 @@ subroutine SWFB ( fbd, dep2, kwave, ecos, esin )
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
     use swcomm3
 
     implicit none(type, external)
@@ -991,9 +991,10 @@ subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, iss
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
+    use swan_io_units
     use swcomm3
-    use swcomm4
+    use swan_test_output
 
     implicit none(type, external)
 
@@ -1142,9 +1143,10 @@ subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
+    use swan_io_units
     use swcomm3
-    use swcomm4
+    use swan_test_output
 
     implicit none(type, external)
 
@@ -1294,7 +1296,7 @@ subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin )
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
     use swcomm3
 
     implicit none(type, external)
@@ -1424,9 +1426,10 @@ subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 )
 !
 !   Modules used
 
-    use ocpcomm4
+    use swan_diagnostics_level
+    use swan_io_units
     use swcomm3
-    use swcomm4
+    use swan_test_output
 
     implicit none(type, external)
 

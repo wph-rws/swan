@@ -83,10 +83,10 @@ subroutine SwanDiffPar ( ac2, dep2, spcsig, diffr )
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm2
+    USE swan_diagnostics_level
+    USE swan_coordinate_offset
     use swcomm3
-    use swcomm4
+    USE swan_spherical_geometry
     use SwanGriddata
     use SwanGridobjects
 

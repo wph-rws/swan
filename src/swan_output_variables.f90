@@ -20,6 +20,7 @@ module swan_output_variables
    public :: NMOVAR
    public :: OVKEYW, OVSNAM, OVLNAM, OVUNIT, OVSVTY
    public :: OVLLIM, OVULIM, OVLEXP, OVHEXP, OVEXCV
+   public :: UF, UP, UST, UT
 
 !     NMOVAR : number of output variables the table describes
    integer, parameter :: NMOVAR = 171
@@ -42,4 +43,8 @@ module swan_output_variables
    real :: OVLLIM(NMOVAR), OVULIM(NMOVAR)
    real :: OVLEXP(NMOVAR), OVHEXP(NMOVAR)
    real :: OVEXCV(NMOVAR)
+
+!     Unit names used to fill OVUNIT: force per length, power per length,
+!     velocity squared and time.
+   character(len=6) :: UF, UP, UST, UT
 end module swan_output_variables

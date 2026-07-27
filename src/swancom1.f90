@@ -65,6 +65,8 @@ module swan_computation
    use swan_snl4_tables, only: snl4_tables_t
    use swan_spectral_powers, only: spectral_powers_t
    use swan_source_workspaces, only: thread_workspaces_t, wcap_workspace_t
+   use swan_time, only: CHTIME
+   use swan_output_settings, only: ERRPTS
    implicit none(type, external)
 !  Matrix indices and workspace dimensions, previously in SWCOMM3. They are
 !  used across several procedures of this module and nowhere else.
@@ -118,11 +120,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !******************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_number_formatting
+   USE swan_run_mode
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
+   USE swan_propagation_scheme
+   USE swan_spherical_geometry
    USE SwanQCM
    USE M_PARALL
    USE m_constants, ONLY: init_constants
@@ -2599,11 +2604,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !************************************************************************
 
-                  USE OCPCOMM4
-                  USE SWCOMM1
-                  USE SWCOMM2
+                  USE swan_diagnostics_level
+                  USE swan_io_units
+                  USE swan_run_mode
                   USE SWCOMM3
-                  USE SWCOMM4
+                  USE swan_test_output
+                  USE swan_propagation_scheme
+                  USE swan_spherical_geometry
                   USE SwanQCM
                   USE M_PARALL
 
@@ -3924,10 +3931,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE OCPCOMM4
-                  USE SWCOMM2
+                  USE swan_diagnostics_level
+                  USE swan_io_units
+                  USE swan_computational_grid_kind
+                  USE swan_run_mode
                   USE SWCOMM3
-                  USE SWCOMM4
+                  USE swan_propagation_scheme
                   USE SwanIEM, only: ntf, dfiem, sflog
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
@@ -4381,11 +4390,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE OCPCOMM4
-                  USE SWCOMM1
-                  USE SWCOMM2
+                  USE swan_diagnostics_level
+                  USE swan_io_units
                   USE SWCOMM3
-                  USE SWCOMM4
+                  USE swan_test_output
                   USE M_PARALL
                   USE M_CONVERGENCE_SHARED, ONLY: &
                      HSMN2 => SACCUR_HSMN2, SMN2 => SACCUR_SMN2, &
@@ -4833,11 +4841,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE OCPCOMM4
-                  USE SWCOMM1
-                  USE SWCOMM2
+                  USE swan_diagnostics_level
                   USE SWCOMM3
-                  USE SWCOMM4
                   USE M_PARALL
 
 !   --|-----------------------------------------------------------|--
@@ -5057,8 +5062,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   USE swan_time, ONLY: default_time_context
                   USE SWCOMM3
-                  USE SWCOMM4
-                  USE OCPCOMM4
+                  USE swan_test_output
+                  USE swan_propagation_scheme
+                  USE swan_diagnostics_level
+                  USE swan_io_units
 
 
 !   --|-----------------------------------------------------------|--
@@ -5441,10 +5448,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE OCPCOMM4
-                  USE SWCOMM1
+                  USE swan_diagnostics_level
+                  USE swan_io_units
                   USE SWCOMM3
-                  USE SWCOMM4
+                  USE swan_test_output
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
                   TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
@@ -5968,10 +5975,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE SWCOMM2
+                  USE swan_run_mode
                   USE SWCOMM3
-                  USE SWCOMM4
-                  USE OCPCOMM4
+                  USE swan_test_output
+                  USE swan_diagnostics_level
+                  USE swan_io_units
                   USE M_PARALL
 
 
@@ -6184,8 +6192,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !****************************************************************
 
                   USE SWCOMM3
-                  USE SWCOMM4
-                  USE OCPCOMM4
+                  USE swan_test_output
+                  USE swan_diagnostics_level
+                  USE swan_io_units
                   USE M_PARALL
 
 
@@ -6427,8 +6436,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !****************************************************************
 
                   USE SWCOMM3
-                  USE SWCOMM4
-                  USE OCPCOMM4
+                  USE swan_test_output
+                  USE swan_diagnostics_level
+                  USE swan_io_units
 
 
 !   --|-----------------------------------------------------------|--
@@ -6783,11 +6793,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE OCPCOMM4
-                  USE SWCOMM1
-                  USE SWCOMM2
+                  USE swan_diagnostics_level
+                  USE swan_io_units
+                  USE swan_computational_grid_kind
+                  USE swan_input_grids
                   USE SWCOMM3
-                  USE SWCOMM4
+                  USE swan_test_output
                   USE SdsBabanin
                   USE SwanBraggScat
 
@@ -8097,8 +8108,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !****************************************************************
 
                   USE SWCOMM3
-                  USE SWCOMM4
-                  USE OCPCOMM4
+                  USE swan_test_output
+                  USE swan_diagnostics_level
+                  USE swan_io_units
                   USE M_PARALL
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
@@ -8280,10 +8292,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE SWCOMM1
                   USE SWCOMM3
-                  USE SWCOMM4
-                  USE OCPCOMM4
+                  USE swan_test_output
+                  USE swan_diagnostics_level
+                  USE swan_io_units
                   USE M_PARALL
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
@@ -8380,8 +8392,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !     ALFA        relaxation parameter used in the SIP solver
 !     SMALL :     a small number
+!     UNDFLW :    smallest number the accuracy test may rely on
 
                   REAL, PARAMETER :: ALFA=0.0, SMALL=1.E-15
+                  REAL, PARAMETER :: UNDFLW=1.E-15
 
 !  6. Local variables
 !
@@ -8881,10 +8895,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE SWCOMM1
                   USE SWCOMM3
-                  USE SWCOMM4
-                  USE OCPCOMM4
+                  USE swan_test_output
+                  USE swan_diagnostics_level
+                  USE swan_io_units
                   USE M_PARALL
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
@@ -9384,7 +9398,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE OCPCOMM4
+                  USE swan_diagnostics_level
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -9496,9 +9510,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE OCPCOMM4
+                  USE swan_diagnostics_level
+                  USE swan_io_units
                   USE SWCOMM3
-                  USE SWCOMM4
+                  USE swan_test_output
                   USE M_GENARR
                   USE M_PARALL
                   USE M_CONVERGENCE_SHARED, ONLY: &
@@ -9869,7 +9884,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                                                                   *
 !********************************************************************
 
-                  USE OCPCOMM4
                   USE SWCOMM3
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
@@ -10423,7 +10437,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE OCPCOMM4
+                  USE swan_diagnostics_level
+                  USE swan_io_units
                   USE SWCOMM3
 
                   IMPLICIT NONE(TYPE, EXTERNAL)

@@ -54,8 +54,8 @@ subroutine SwanInterpolatePoint ( foutp, x, y, finp, excval )
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm2
+    use swan_diagnostics_level
+    use swan_coordinate_offset
     use swcomm3
     use SwanGriddata
     use SwanGridobjects

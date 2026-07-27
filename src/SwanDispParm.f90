@@ -52,8 +52,8 @@ subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig )
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm2
+    use swan_diagnostics_level
+    use swan_input_grids
     use swcomm3
     use SwanGriddata
     use SwanCompdata

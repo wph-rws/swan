@@ -10,7 +10,7 @@ SUBROUTINE SWCOPR ( ARR1, ARR2, LENGTH )
 
 !****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -123,7 +123,7 @@ SUBROUTINE SWCOPI ( IARR1, IARR2, LENGTH )
 
 !****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 

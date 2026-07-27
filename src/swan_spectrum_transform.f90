@@ -12,7 +12,8 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE SWCOMM3
 
 
@@ -467,7 +468,8 @@ SUBROUTINE SINTRP (W1, W2, FL1, FL2, FL, SPCDIR, SPCSIG)
 !                                                                  *
 !*******************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE SWCOMM3
 
 

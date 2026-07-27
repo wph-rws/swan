@@ -23,6 +23,7 @@ module swan_output_orchestration
    use swan_io_limits, only: LENFNM
    use swan_output_variables, only: NMOVAR, OVEXCV, OVSNAM, OVSVTY
    use swan_output_quadrature, only: ALCQ, ALPQ, COSCQ, COSPQ, SINCQ, SINPQ, XPQ, XQLEN, YPQ, YQLEN
+   use swan_output_settings, only: INRHOG, OUTPAR, SNAME
    implicit none(type, external)
 !  Used across several procedures of this module and nowhere else; moved out
 !  of the central shared state.
@@ -45,11 +46,11 @@ SUBROUTINE SWOUTP (AC2             ,&
 !************************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
    USE OUTP_DATA
    USE M_PARALL
    USE SwanGriddata
@@ -551,10 +552,10 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
 !************************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM4
-   USE SWCOMM1
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
 !NCF   USE OUTP_DATA
    USE M_PARALL
    USE OUTP_DATA, ONLY: NTVTK
@@ -910,10 +911,10 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
    USE OUTP_DATA
    REAL :: DXK
    REAL :: DYK
@@ -1172,11 +1173,11 @@ SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   ,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_spherical_geometry
    USE M_PARALL
 
 
@@ -1490,11 +1491,14 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA ,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_input_grids
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE swan_time, ONLY: default_time_context
    USE M_PARALL
    USE OUTP_DATA
@@ -2979,11 +2983,13 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE OUTP_DATA
    USE SWPARTMD
    USE W3ODATMD, ONLY: WSCUT
@@ -4739,11 +4745,12 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)

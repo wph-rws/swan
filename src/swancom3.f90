@@ -43,8 +43,9 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -557,11 +558,11 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
 
 !****************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_input_grids
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
    USE SDSBABANIN
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -1107,11 +1108,10 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
 
 !****************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
 
 
 !   --|-----------------------------------------------------------|--
@@ -1339,8 +1339,9 @@ SUBROUTINE WINDP3 (ISSTOP  ,ALIMW   ,AC2     ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
 
 !   --|-----------------------------------------------------------|--
@@ -1513,8 +1514,9 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1824,8 +1826,9 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 !ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -2072,10 +2075,11 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
 
 !******************************************************************
 
-   USE SWCOMM2
+   USE swan_run_mode
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 !ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -2624,8 +2628,9 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 !ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
 
    IMPLICIT NONE(TYPE, EXTERNAL)

@@ -13,7 +13,8 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT, IO)
 !                                                                *
 !*****************************************************************
 
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 

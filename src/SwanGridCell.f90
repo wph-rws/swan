@@ -53,8 +53,8 @@ subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm2
+    use swan_diagnostics_level
+    use swan_computational_grid_kind
     use swcomm3
     use SwanGridobjects
 

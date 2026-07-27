@@ -54,8 +54,7 @@ subroutine SwanVTKWriteHeader ( uvtk, pstype, nvar, ivtyp, mxkf, mxkl, mykf, myk
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm1
+    use swan_diagnostics_level
     use outp_data
     use SwanGriddata
 

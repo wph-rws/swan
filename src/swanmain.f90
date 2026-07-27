@@ -41,6 +41,9 @@ module swan_driver
    use swan_output_variables, only: NMOVAR, OVEXCV, OVHEXP, OVKEYW, OVLEXP, OVLLIM, OVLNAM, OVSNAM, OVSVTY, OVULIM, OVUNIT
    use swan_output_quadrature, only: ALPQ, COSPQ, SINPQ, XPQ, XQLEN, YPQ, YQLEN
    use swan_project_metadata, only: PROJID, PROJNR, PROJT1, PROJT2, PROJT3, VERTXT
+   use swan_output_variables, only: UF, UP, UST, UT
+   use swan_time, only: CHTIME
+   use swan_output_settings, only: ERRPTS, INRHOG, IUBOTR, OUTPAR, SNAME
    implicit none(type, external)
 !  Used across several procedures of this module and nowhere else; moved out
 !  of the central shared state.
@@ -73,11 +76,16 @@ SUBROUTINE SWMAIN
 !************************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_time
+   USE swan_number_formatting
+   USE swan_computational_grid_kind
+   USE swan_boundary_counters
+   USE swan_run_mode
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
+   USE swan_propagation_scheme
    USE OUTP_DATA
    USE M_GENARR
    USE M_BNDSPEC
@@ -722,11 +730,18 @@ SUBROUTINE SWINIT (INERR, SNL4)
 !************************************************************************
 
    USE swan_input_parser, ONLY: default_command_reader
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_boundary_counters
+   USE swan_run_mode
+   USE swan_input_grids
+   USE swan_input_field_files
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
+   USE swan_propagation_scheme
+   USE swan_spherical_geometry
    USE swan_time, ONLY: default_time_context
    USE OUTP_DATA, ONLY: NREOQ, LOPS, LORQ, UPVDF
    USE M_GENARR, ONLY: XYTST, DEPTH, FRIC, UXB, UYB, WXI, WYI, WLEVL,&
@@ -752,7 +767,6 @@ SUBROUTINE SWINIT (INERR, SNL4)
    INTEGER :: IDIF
    INTEGER :: IINC
    INTEGER :: NCOR
-   INTEGER :: NEGMES
 
    TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
 
@@ -970,7 +984,6 @@ SUBROUTINE SWINIT (INERR, SNL4)
    USCAP  = 99999.
    PI     = 4.*ATAN(1.)
    PI2    = 2.*PI
-   UNDFLW = 1.E-15
    DNORTH = 90.
    DEGRAD = PI/180.
    RHO    = 1025.
@@ -1621,8 +1634,6 @@ SUBROUTINE SWINIT (INERR, SNL4)
    IF (.NOT.ALLOCATED(XYTST)) ALLOCATE(XYTST(0))
    LXDMP  = -1
    LYDMP  = 0
-   NEGMES = 0
-   MAXMES = 200
    IFPAR = 0
    IFS1D = 0
    IFS2D = 0
@@ -3550,11 +3561,17 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_number_formatting
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_boundary_counters
+   USE swan_run_mode
+   USE swan_input_grids
+   USE swan_input_field_files
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_propagation_scheme
    USE M_OBSTA
    USE M_BNDSPEC
    USE M_PARALL
@@ -4234,9 +4251,11 @@ SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_computational_grid_kind
+   USE swan_input_grids
    USE SWCOMM3
    USE OUTP_DATA
    USE SwanGriddata
@@ -4613,11 +4632,11 @@ SUBROUTINE SWRBC ( COMPDA )
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_input_grids
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
    USE M_GENARR
    USE M_PARALL
    USE SwanGriddata
@@ -5276,7 +5295,7 @@ SUBROUTINE WRTEST (NAME, NA, IARR, RARR)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
+   USE swan_io_units
 
 
 !   --|-----------------------------------------------------------|--
@@ -5367,11 +5386,13 @@ SUBROUTINE ERRCHK
 
 !****************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind
+   USE swan_input_grids
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_propagation_scheme
+   USE swan_spherical_geometry
    USE M_GENARR
 
 
@@ -5857,11 +5878,15 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   ,&
 !*********************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_computational_grid_kind
+   USE swan_boundary_counters
+   USE swan_input_grids
+   USE swan_input_field_files
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
+   USE swan_propagation_scheme
    USE M_BNDSPEC
    USE M_PARALL
    USE SwanGriddata
@@ -6615,9 +6640,10 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC,&
 !****************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM4
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_boundary_counters
+   USE swan_input_field_files
    USE SWCOMM3
    USE M_PARALL, ONLY: IAMMASTER
 
@@ -7298,7 +7324,8 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER,&
 !****************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM4
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE SWCOMM3
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -7742,10 +7769,13 @@ SUBROUTINE SWINCO (AC2    ,COMPDA ,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM4
-   USE SWCOMM2
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE swan_coordinate_offset
+   USE swan_input_grids
    USE SWCOMM3
-   USE SWCOMM4
+   USE swan_test_output
+   USE swan_spherical_geometry
    USE M_PARALL
    USE SwanGriddata
 

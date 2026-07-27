@@ -52,7 +52,7 @@ subroutine SwanGridVert ( nverts, xcugrd, ycugrd, vmark )
 !
 !   Modules used
 
-    use ocpcomm4
+    USE swan_diagnostics_level
     use SwanGridobjects
 
     implicit none(type, external)

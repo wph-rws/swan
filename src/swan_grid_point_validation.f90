@@ -26,7 +26,6 @@ LOGICAL FUNCTION VALIDBP (IX, IY, KGRPNT,WNP)
 !************************************************************************
 
    USE SWCOMM3
-   USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 

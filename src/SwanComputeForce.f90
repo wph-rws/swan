@@ -57,10 +57,10 @@ subroutine SwanComputeForce ( fx, fy, ac2, dep2, hs, spcsig, spcdir )
 !
 !   Modules used
 
-    use ocpcomm4
-    use swcomm2
+    USE swan_diagnostics_level
+    USE swan_coordinate_offset
     use swcomm3
-    use swcomm4
+    USE swan_spherical_geometry
     use SwanGriddata
     use SwanGridobjects
 

@@ -43,8 +43,9 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -566,10 +567,11 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 
 !****************************************************************
 
-   USE SWCOMM2
+   USE swan_input_grids
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
    USE M_GENARR
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -1051,8 +1053,9 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1197,8 +1200,8 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1364,8 +1367,8 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1592,8 +1595,9 @@ SUBROUTINE FRABRE ( HM, ETOT, QBLOC, KTETA )
 
 !****************************************************************
 
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1788,8 +1792,9 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    REAL, INTENT(IN) :: SIGM_WAM
@@ -2220,8 +2225,9 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
@@ -2712,8 +2718,8 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
    USE SdsBabanin
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -2944,8 +2950,9 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 !****************************************************************
 
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
+   USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    REAL, INTENT(IN) :: KM_WAM
@@ -3384,11 +3391,10 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        ,&
 
 !****************************************************************
 
-   USE SWCOMM1
-   USE SWCOMM2
+   USE swan_computational_grid_kind
    USE SWCOMM3
-   USE SWCOMM4
-   USE OCPCOMM4
+   USE swan_test_output
+   USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 

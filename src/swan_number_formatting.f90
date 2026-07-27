@@ -2,6 +2,17 @@ MODULE swan_number_formatting
    IMPLICIT NONE(TYPE, EXTERNAL)
    PRIVATE
    PUBLIC :: INTSTR, NUMSTR
+   PUBLIC :: INAN, RNAN
+
+!     The sentinels a caller passes to NUMSTR to say "this one is not the value
+!     I mean". They were in OCPCOMM4, so a caller had to import the unit
+!     numbers and the error severity to name an argument of the function it was
+!     already calling.
+!
+!     INAN : integer standing for "not a number"
+!     RNAN : real standing for "not a number"
+   INTEGER, PARAMETER :: INAN = -1073750760
+   REAL, PARAMETER    :: RNAN = -1.07374515E+09
 
 CONTAINS
 
@@ -94,8 +105,6 @@ end function INTSTR
 CHARACTER(LEN=20) FUNCTION NUMSTR ( IVAL, RVAL, FORM )
 
 !****************************************************************
-
-   USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
