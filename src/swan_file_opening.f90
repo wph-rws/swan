@@ -1,5 +1,6 @@
 module swan_file_opening
    use swan_io_limits, only: LENFNM
+   use swan_path_separators, only: DIRCH1, DIRCH2
    implicit none(type, external)
    private
    public :: FOR
@@ -12,7 +13,6 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT, IO)
 !                                                                *
 !*****************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)

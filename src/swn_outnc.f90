@@ -55,15 +55,17 @@ module swn_outnc
     use NETCDF
     use nctablemd, only: nctable, nctable_record, get_nctable_record
     use OUTP_DATA, only: ORQDAT, MAX_OUTP_REQ, LCOMPGRD, OUTP_FILES, NREOQ
-    use OCPCOMM2,  only: PROJNR, PROJID, VERTXT
     use OCPCOMM4
-    use SWCOMM1,   only: CHTIME, OVEXCV
+    use SWCOMM1,   only: CHTIME
+    use swan_output_variables, only: OVEXCV
     use SWCOMM2,   only: XOFFS, YOFFS, OPTG, EXCFLD
     use SWCOMM3,   only: NSTATC, NSTATM, ALPC, MDC, MSC, MCGRD, MXC, MYC, DNORTH, &
                          PI2, ICUR, BNAUT
     use SWCOMM4
     use swan_time, only: default_time_context
 
+   use swan_output_variables, only: OVEXCV, OVLNAM
+   use swan_project_metadata, only: PROJID, PROJNR, VERTXT
     implicit none(type, external)
 
 !   Module parameters
@@ -476,7 +478,6 @@ contains
     subroutine swn_outnc_spcaux(RTYPE, OQI, MIP, VOQR, VOQ, AC2, &
                               SPCSIG, SPCDIR, DEP2, KGRPNT, CROSS, IONOD, &
                               lspcaux)
-      USE OCPCOMM2
       use swan_spectrum_output, only: SWCMSP
       USE swan_time, ONLY: default_time_context
 
@@ -846,7 +847,6 @@ contains
     end subroutine swn_outnc_deallocate_spcaux
 
     subroutine swn_outnc_appendspc(oqi, spcaux, xpctime2)
-      USE OCPCOMM2
 
 
 !   --|-----------------------------------------------------------|--

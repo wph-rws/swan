@@ -1,4 +1,5 @@
 MODULE swan_spectrum_output
+   use swan_output_variables, only: OVEXCV
    IMPLICIT NONE(TYPE, EXTERNAL)
    PRIVATE
    PUBLIC :: WRSPEC, SWCMSP

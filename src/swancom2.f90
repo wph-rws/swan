@@ -26,6 +26,7 @@
 
 module swan_dissipation
    use swan_source_workspaces, only: wcap_workspace_t
+   use swan_output_variables, only: OVEXCV
    implicit none(type, external)
    private
    public :: SBOT, SVEG, STURBV, SMUD, SICE, FRABRE, SSURF, SWCAP, SWCAP8

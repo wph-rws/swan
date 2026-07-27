@@ -30,6 +30,9 @@ module swan_command_reading
 !  aangeroepen, dus hun interface hoort op moduleniveau zichtbaar te zijn.
    use swan_service_interfaces, only: SWTSTA, SWTSTO
    use swan_io_limits, only: LENFNM
+   use swan_output_variables, only: NMOVAR, OVEXCV, OVHEXP, OVLEXP, OVLLIM, OVLNAM, OVSNAM, OVSVTY, OVULIM, OVUNIT
+   use swan_output_quadrature, only: XQLEN, YQLEN
+   use swan_project_metadata, only: PROJID, PROJNR, PROJT1, PROJT2, PROJT3, VERTXT
    implicit none(type, external)
    private
    public :: SWREAD
@@ -51,7 +54,6 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 
    USE swan_time, ONLY: default_time_context
    USE swan_input_parser, ONLY: default_command_reader
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -4166,7 +4168,6 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
 !************************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -4604,7 +4605,6 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR, SPECTRAL_POWERS)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -5036,7 +5036,6 @@ SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -5780,7 +5779,6 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
 !*******************************************************************
 
    USE swan_input_parser, ONLY: default_command_reader
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -6368,7 +6366,6 @@ SUBROUTINE BACKUP (AC2, SPCSIG, SPCDIR, KGRPNT,&
 !                                                                  *
 !*******************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2

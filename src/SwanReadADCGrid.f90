@@ -61,7 +61,6 @@ subroutine SwanReadADCGrid
 !
 !   Modules used
 
-    use ocpcomm2
     use ocpcomm4
     use m_genarr
     use SwanGriddata

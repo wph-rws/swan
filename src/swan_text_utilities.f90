@@ -14,7 +14,6 @@ SUBROUTINE UPCASE (CHARST)
    USE swan_service_interfaces, ONLY: STRACE
 !                                                               *
 !****************************************************************
-   USE OCPCOMM2
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)

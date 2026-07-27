@@ -21,6 +21,8 @@ module swan_output_orchestration
    use swan_compute_force, only: SwanComputeForce
    use swan_find_point, only: SwanFindPoint
    use swan_io_limits, only: LENFNM
+   use swan_output_variables, only: NMOVAR, OVEXCV, OVSNAM, OVSVTY
+   use swan_output_quadrature, only: ALCQ, ALPQ, COSCQ, COSPQ, SINCQ, SINPQ, XPQ, XQLEN, YPQ, YQLEN
    implicit none(type, external)
 !  Used across several procedures of this module and nowhere else; moved out
 !  of the central shared state.
@@ -549,7 +551,6 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
 !************************************************************************
 
    USE swan_time, ONLY: default_time_context
-!NCF   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM3

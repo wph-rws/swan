@@ -1,5 +1,8 @@
 module swan_vtkp_data_sets
    use swan_io_limits, only: LENFNM
+   use swan_output_variables, only: OVSNAM, OVSVTY
+   use swan_project_metadata, only: PROJID, PROJNR, VERTXT
+   use swan_path_separators, only: DIRCH2
    implicit none(type, external)
    private
    public :: SwanVTKPDataSets
@@ -53,7 +56,6 @@ subroutine SwanVTKPDataSets ( upvt, pstype, nvar, ivtyp, mxk, myk, vtkfile, upvd
 !
 !   Modules used
 
-    use ocpcomm2
     use ocpcomm4
     use swcomm1
     use swcomm3

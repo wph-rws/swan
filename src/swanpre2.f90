@@ -23,6 +23,10 @@ module swan_input_processing
    use swan_find_point, only: SwanFindPoint
    use swan_pointin_mesh, only: SwanPointinMesh
    use swan_io_limits, only: LENFNM
+   use swan_output_variables, only: NMOVAR, OVEXCV, OVKEYW, OVLNAM, OVSNAM, OVSVTY, OVUNIT
+   use swan_output_quadrature, only: ALPQ
+   use swan_project_metadata, only: PROJID, PROJNR, VERTXT
+   use swan_path_separators, only: DIRCH2
    implicit none(type, external)
    private
    public :: SPROUT, SVARTP, SWBOUN, RETSTP
@@ -1064,7 +1068,6 @@ SUBROUTINE SWREOQ ( FOUND )
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -2559,7 +2562,6 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 
 !************************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -3954,7 +3956,6 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 !*********************************************************************
 
    USE swan_input_parser, ONLY: default_command_reader
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM2
    USE SWCOMM3
@@ -4441,7 +4442,6 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
 !                                                                    *
 !*********************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM2
    USE SWCOMM3
@@ -5018,7 +5018,6 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
 !                                                                    *
 !*********************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM2
    USE SWCOMM3

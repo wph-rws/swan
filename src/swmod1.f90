@@ -2,7 +2,8 @@
 !
 !     Contents of this file
 !
-!     OCPCOMM2           contains common variables for Ocean Pack
+!     OCPCOMM2 is gone: project identification and the path separators moved to
+!     swan_project_metadata and swan_path_separators.
 !     OCPCOMM3 is gone: its five variables were local to one output routine
 !     and to the version string, so they became locals instead of shared state.
 !     OCPCOMM4           contains common variables for Ocean Pack
@@ -11,121 +12,6 @@
 !     SWCOMM3            contains common variables for SWAN
 !     SWCOMM4            contains common variables for SWAN
 
-MODULE OCPCOMM2
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.41, Oct. 04: taken from the include file OCPCOMM2.INC
-!
-!  2. Purpose
-!
-!     Common variables used by the Ocean Pack Service Routines and in SWAN
-!
-!  3. Method
-!
-!     MODULE construct
-!
-!  4. Modules used
-!
-!     ---
-
-   IMPLICIT NONE(TYPE, EXTERNAL)
-
-!  5. Argument variables
-!
-!     ---
-!
-!  6. Parameter variables
-!
-!     LENFNM [ 140]  length of file names (including path)
-
-
-!  7. Local variables
-!
-!     *** names and other character strings ***
-!
-! DIRCH1 [\     ] directory separation character as appears in input file
-! DIRCH2 [\     ] directory separation character replacing DIRCH1
-! FILEA  [      ] not used
-! FILEB  [      ] not used
-! FILENM [      ] file name of the file currently used for I/O
-! INST   ['Delft University of Technology'] name of the institute
-!                 Can be changed in the file SWANINIT
-! PROJID ['SWAN'] acronym of the project for which the computation is taking place
-!                 ='NAME'; set by command PROJ 'NAME' ...
-! PROJNR [CALCUL] =BLANK; run number for the computation
-!                 ='NR'; set by command PROJ ... 'NR' ...
-! PROJT1 [CALCUL] =BLANK; 1st line of the project title
-!                 ='title1'; set by command PROJ ... 'title1' ...
-! PROJT2 [CALCUL] =BLANK; 2nd line of the project title
-!                 ='title2'; set by command PROJ ... 'title2' ...
-! PROJT3 [CALCUL] =BLANK; 3rd line of the project title
-!                 ='title3'; set by command PROJ ... 'title3'
-! PTITLE [      ] not used
-! VERTXT [calcul] program version, character representation
-
-   CHARACTER (LEN=1)      :: DIRCH1, DIRCH2
-   CHARACTER (LEN=40)     :: INST
-   CHARACTER (LEN=16)     :: PROJID
-   CHARACTER (LEN=4)      :: PROJNR
-   CHARACTER (LEN=72)     :: PROJT1, PROJT2, PROJT3
-   CHARACTER (LEN=20)     :: VERTXT
-
-!  8. Subroutines and functions used
-!
-!     ---
-!
-!  9. Subroutines and functions calling
-!
-!     ---
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!     ---
-!
-! 13. Source text
-
-end module OCPCOMM2
 
 
 MODULE OCPCOMM4
@@ -352,7 +238,7 @@ MODULE SWCOMM1
 !     NMOVAR [ 171]  maximum number of output variables
 !     MOUTPA [  51]  number of output parameters
 
-   INTEGER, PARAMETER :: NMOVAR=171, MOUTPA=51
+   INTEGER, PARAMETER :: MOUTPA=51
 
 !  7. Local variables
 !
@@ -679,10 +565,6 @@ MODULE SWCOMM1
 ! UV    [   'm/s'] unit of velocity
 
    CHARACTER(LEN=20) CHTIME
-   CHARACTER(LEN=8)  OVKEYW(NMOVAR)
-   CHARACTER(LEN=40) OVLNAM(NMOVAR)
-   CHARACTER(LEN=6)  OVSNAM(NMOVAR)
-   CHARACTER(LEN=16) OVUNIT(NMOVAR)
    CHARACTER(LEN=8)  SNAME
    CHARACTER(LEN=6)  UF
    CHARACTER(LEN=6)  UP, UST, UT
@@ -1164,14 +1046,7 @@ MODULE SWCOMM1
 
    INTEGER ERRPTS
    INTEGER INRHOG,         IUBOTR
-   INTEGER OVSVTY(NMOVAR)
-   REAL    ALCQ, ALPQ, COSCQ
-   REAL    COSPQ
-   REAL    OVEXCV(NMOVAR),              OVLEXP(NMOVAR)
-   REAL    OVLLIM(NMOVAR),              OVHEXP(NMOVAR)
-   REAL    OVULIM(NMOVAR),              SINCQ,         SINPQ
-   REAL    XPQ, XQLEN, YPQ
-   REAL    YQLEN, OUTPAR(MOUTPA)
+   REAL    OUTPAR(MOUTPA)
 
 !  8. Subroutines and functions used
 !

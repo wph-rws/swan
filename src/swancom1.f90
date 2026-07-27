@@ -118,7 +118,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !******************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -2600,7 +2599,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !************************************************************************
 
-                  USE OCPCOMM2
                   USE OCPCOMM4
                   USE SWCOMM1
                   USE SWCOMM2
@@ -4383,7 +4381,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE OCPCOMM2
                   USE OCPCOMM4
                   USE SWCOMM1
                   USE SWCOMM2
@@ -4836,7 +4833,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE OCPCOMM2
                   USE OCPCOMM4
                   USE SWCOMM1
                   USE SWCOMM2
@@ -6787,7 +6783,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE OCPCOMM2
                   USE OCPCOMM4
                   USE SWCOMM1
                   USE SWCOMM2

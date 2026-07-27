@@ -557,7 +557,6 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
 
 !****************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -1108,7 +1107,6 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
 
 !****************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2

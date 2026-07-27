@@ -64,7 +64,6 @@ MODULE OUTP_DATA
 !
 !  4. Modules used
 
-   USE OCPCOMM2
 
    use swan_io_limits, only: LENFNM
    IMPLICIT NONE(TYPE, EXTERNAL)

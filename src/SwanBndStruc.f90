@@ -1,4 +1,5 @@
 module swan_bnd_struc
+   use swan_output_variables, only: OVEXCV
    implicit none(type, external)
    private
    public :: SwanBndStruc

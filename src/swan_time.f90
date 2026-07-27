@@ -57,7 +57,6 @@ REAL FUNCTION DTTIME (INTTIM, CONTEXT)
 !                                                                  *
 !*******************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)

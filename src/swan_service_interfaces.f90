@@ -14,6 +14,7 @@ module swan_service_interfaces
 !
    use swan_parallel_state, only: MASTER, INODE, IAMMASTER, PARLL
    use swan_io_limits, only: LENFNM
+   use swan_project_metadata, only: INST, PROJID, PROJNR, PROJT1, PROJT2, PROJT3, VERTXT
    implicit none(type, external)
    private
 
@@ -67,7 +68,6 @@ SUBROUTINE STRACE (IENT, SUBNAM, DIAG, IO)
 !                                                                *
 !*****************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
    USE swan_parallel_state, ONLY: MASTER, INODE, IAMMASTER, PARLL
    USE swan_io_context, ONLY: diagnostics_context_t, io_context_t
@@ -196,7 +196,6 @@ SUBROUTINE MSGERR (LEV,STRING,DIAG,IO)
 !                                                                *
 !*****************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
    USE swan_parallel_state, ONLY: MASTER, INODE, IAMMASTER, PARLL
    USE swan_io_context, ONLY: diagnostics_context_t, io_context_t
@@ -467,7 +466,6 @@ SUBROUTINE TABHED (PROGNM, LPR)
 !                                                                *
 !*****************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -560,7 +558,6 @@ LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -765,7 +762,6 @@ SUBROUTINE BUGFIX (FIXABC)
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM2
 
 
 !   --|-----------------------------------------------------------|--

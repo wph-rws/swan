@@ -21,6 +21,10 @@ module swan_output_writers
    use swan_vtk_write_header, only: SwanVTKWriteHeader
    use swan_vtkp_data_sets, only: SwanVTKPDataSets
    use swan_io_limits, only: LENFNM
+   use swan_output_variables, only: OVEXCV, OVHEXP, OVLNAM, OVSNAM, OVSVTY, OVUNIT
+   use swan_output_quadrature, only: ALCQ, COSCQ, SINCQ
+   use swan_project_metadata, only: PROJID, PROJNR, VERTXT
+   use swan_path_separators, only: DIRCH2
    implicit none(type, external)
    private
 !  SWTABP and SWRMAT are defined behind switch lines (!NCF/!NNCF, !MatL4/!MatL5)
@@ -38,7 +42,6 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM3, ONLY: NSTATM
@@ -377,7 +380,6 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !                                                                      *
 !************************************************************************
 
-      USE OCPCOMM2
       USE OCPCOMM4
       USE SWCOMM1
       USE SWCOMM3
@@ -1187,7 +1189,6 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !                                                                      *
 !************************************************************************
 
-         USE OCPCOMM2
          USE OCPCOMM4
          USE SWCOMM1
          USE SWCOMM2
@@ -1724,7 +1725,6 @@ RETURN
 !                                                                      *
 !************************************************************************
 
-         USE OCPCOMM2
          USE OCPCOMM4
          USE SWCOMM1
          USE SWCOMM2
@@ -2373,7 +2373,6 @@ RETURN
 !MatL5!
 !MatL5!****************************************************************
 !MatL5!
-!MatL5         USE OCPCOMM2
 !MatL5         USE OCPCOMM4
 !MatL5!
 !MatL5         IMPLICIT NONE

@@ -8,6 +8,8 @@
 module swan_ocean_pack_init
    use swan_time, only: DTSTTI, DTTIST
    use swan_io_limits, only: LENFNM
+   use swan_project_metadata, only: INST
+   use swan_path_separators, only: DIRCH1, DIRCH2
    implicit none(type, external)
    private
 !  OCPINI is the only entry point the driver needs; OCDTIM (processor-time
@@ -26,7 +28,6 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
 !*****************************************************************
 
    USE swan_input_parser, ONLY: default_command_reader
-   USE OCPCOMM2
    USE OCPCOMM4
    USE M_PARALL
 

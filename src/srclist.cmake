@@ -1,6 +1,10 @@
 set( swan_src
 ${SWAN_GENERATED_SRC}/swan_kinds.f90
 ${SWAN_GENERATED_SRC}/swan_io_limits.f90
+${SWAN_GENERATED_SRC}/swan_project_metadata.f90
+${SWAN_GENERATED_SRC}/swan_path_separators.f90
+${SWAN_GENERATED_SRC}/swan_output_variables.f90
+${SWAN_GENERATED_SRC}/swan_output_quadrature.f90
 ${SWAN_GENERATED_SRC}/swan_parallel_state.f90
 ${SWAN_GENERATED_SRC}/swan_text_utilities.f90
 ${SWAN_GENERATED_SRC}/swan_service_interfaces.f90

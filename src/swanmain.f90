@@ -38,6 +38,9 @@ module swan_driver
    use swan_prep_comp, only: SwanPrepComp
    use swan_vertlist, only: SwanVertlist
    use swan_io_limits, only: LENFNM
+   use swan_output_variables, only: NMOVAR, OVEXCV, OVHEXP, OVKEYW, OVLEXP, OVLLIM, OVLNAM, OVSNAM, OVSVTY, OVULIM, OVUNIT
+   use swan_output_quadrature, only: ALPQ, COSPQ, SINPQ, XPQ, XQLEN, YPQ, YQLEN
+   use swan_project_metadata, only: PROJID, PROJNR, PROJT1, PROJT2, PROJT3, VERTXT
    implicit none(type, external)
 !  Used across several procedures of this module and nowhere else; moved out
 !  of the central shared state.
@@ -70,7 +73,6 @@ SUBROUTINE SWMAIN
 !************************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -720,7 +722,6 @@ SUBROUTINE SWINIT (INERR, SNL4)
 !************************************************************************
 
    USE swan_input_parser, ONLY: default_command_reader
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -6614,7 +6615,6 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC,&
 !****************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -7298,7 +7298,6 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER,&
 !****************************************************************
 
    USE swan_time, ONLY: default_time_context
-   USE OCPCOMM2
    USE OCPCOMM4
    USE SWCOMM3
 

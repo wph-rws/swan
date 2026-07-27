@@ -1,4 +1,5 @@
 module swan_vtk_write_data
+   use swan_output_variables, only: NMOVAR, OVSVTY
    implicit none(type, external)
    private
    public :: SwanVTKWriteData

@@ -1,4 +1,5 @@
 module swan_spectral_integration
+   use swan_output_quadrature, only: ALCQ
    implicit none(type, external)
    private
    public :: SwanIntgratSpc

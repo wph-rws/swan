@@ -1,4 +1,6 @@
 module swan_vtk_write_header
+   use swan_output_variables, only: OVSNAM, OVSVTY
+   use swan_project_metadata, only: PROJID, PROJNR, VERTXT
    implicit none(type, external)
    private
    public :: SwanVTKWriteHeader
@@ -52,7 +54,6 @@ subroutine SwanVTKWriteHeader ( uvtk, pstype, nvar, ivtyp, mxkf, mxkl, mykf, myk
 !
 !   Modules used
 
-    use ocpcomm2
     use ocpcomm4
     use swcomm1
     use outp_data

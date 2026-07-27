@@ -32,6 +32,7 @@
 
 module swan_parallel
    use swan_io_limits, only: LENFNM
+   use swan_output_variables, only: NMOVAR, OVEXCV, OVHEXP, OVLNAM, OVSNAM, OVSVTY, OVUNIT
    implicit none(type, external)
    private
 !  The exchange routines are defined behind switch lines further down, so the

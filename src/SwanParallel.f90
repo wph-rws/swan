@@ -261,7 +261,6 @@ subroutine SwanMeshPartition
 !
 !   Modules used
 
-    use ocpcomm2
     use ocpcomm4
     use m_parall
     use SwanGriddata

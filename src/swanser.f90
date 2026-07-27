@@ -55,6 +55,7 @@
 !                                                                      *
 module swan_services
    use swan_cross_obstacle, only: SwanCrossObstacle
+   use swan_output_quadrature, only: XQLEN, YQLEN
    implicit none(type, external)
    private
    public :: AC2TST, CVCHEK, CVMESH, EVALF, SWOBST, SWTRCF, HSOBND, SWACC, MKPATH
