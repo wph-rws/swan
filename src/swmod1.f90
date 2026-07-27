@@ -3,7 +3,8 @@
 !     Contents of this file
 !
 !     OCPCOMM2           contains common variables for Ocean Pack
-!     OCPCOMM3           contains common variables for Ocean Pack
+!     OCPCOMM3 is gone: its five variables were local to one output routine
+!     and to the version string, so they became locals instead of shared state.
 !     OCPCOMM4           contains common variables for Ocean Pack
 !     SWCOMM1            contains common variables for SWAN
 !     SWCOMM2            contains common variables for SWAN
@@ -97,12 +98,11 @@ MODULE OCPCOMM2
 ! VERTXT [calcul] program version, character representation
 
    CHARACTER (LEN=1)      :: DIRCH1, DIRCH2
-   CHARACTER (LEN=LENFNM) :: FILEA , FILEB , FILENM
+   CHARACTER (LEN=LENFNM) :: FILENM
    CHARACTER (LEN=40)     :: INST
    CHARACTER (LEN=16)     :: PROJID
    CHARACTER (LEN=4)      :: PROJNR
    CHARACTER (LEN=72)     :: PROJT1, PROJT2, PROJT3
-   CHARACTER (LEN=36)     :: PTITLE
    CHARACTER (LEN=20)     :: VERTXT
 
 !  8. Subroutines and functions used
@@ -129,106 +129,6 @@ MODULE OCPCOMM2
 
 end module OCPCOMM2
 
-MODULE OCPCOMM3
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.41, Oct. 04: taken from the include file OCPCOMM3.INC
-!
-!  2. Purpose
-!
-!     Common variables used by the Ocean Pack Service Routines and in SWAN
-!
-!  3. Method
-!
-!     MODULE construct
-!
-!  4. Modules used
-!
-!     ---
-
-   IMPLICIT NONE(TYPE, EXTERNAL)
-
-!  5. Argument variables
-!
-!     ---
-!
-!  6. Parameter variables
-!
-!     ---
-!
-!  7. Local variables
-!
-!     *** data for output, mainly plotting ***
-!
-! DXQ    [      ] mesh size of the output frame in X-direction
-!                 =0.01; if MXQ=1
-!                 =XQLEN/(MXQ-1); if MXQ>1
-! DYQ    [      ] mesh size of the output frame in Y-direction
-!                 =0.01; if MYQ=1
-!                 =YQLEN/(MYQ-1); if MYQ>1
-! MXQ    [CALCUL] number of grid points of the output frame in X-direction
-! MYQ    [CALCUL] number of grid points of the output frame in Y-direction
-! VERNUM [ 40.41] version number of SWAN
-
-   INTEGER MXQ, MYQ
-   REAL    DXQ, DYQ, VERNUM
-
-!  8. Subroutines and functions used
-!
-!     ---
-!
-!  9. Subroutines and functions calling
-!
-!     ---
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!     ---
-!
-! 13. Source text
-
-end module OCPCOMM3
 
 MODULE OCPCOMM4
 
@@ -321,7 +221,7 @@ MODULE OCPCOMM4
 ! SCREEN [    6] unit number for the screen
 !                (is for batch-oriented systems equal to PRINTF)
 
-   INTEGER EXPORT, FUNHI , FUNLO , HIOPEN
+   INTEGER FUNHI, FUNLO, HIOPEN
    INTEGER IMPORT, INPUTF, ITMOPT, IUNMAX
    INTEGER IUNMIN, PRINTF, PRTEST, SCREEN
 
@@ -787,7 +687,7 @@ MODULE SWCOMM1
    CHARACTER(LEN=6)  OVSNAM(NMOVAR)
    CHARACTER(LEN=16) OVUNIT(NMOVAR)
    CHARACTER(LEN=8)  SNAME
-   CHARACTER(LEN=6)  UAP,           UD,          UDI,         UDL
+   CHARACTER(LEN=6)  UAP, UDI, UDL
    CHARACTER(LEN=6)  UET,           UF,          UH,          UL
    CHARACTER(LEN=6)  UP,            UST,         UT,          UV
 
@@ -1268,8 +1168,8 @@ MODULE SWCOMM1
 
    INTEGER ERRPTS
    INTEGER INRHOG,         IUBOTR
-   INTEGER OVSVTY(NMOVAR), SPCPOW
-   REAL    AKPOWR,         ALCQ,        ALPQ,          COSCQ
+   INTEGER OVSVTY(NMOVAR)
+   REAL    ALCQ, ALPQ, COSCQ
    REAL    COSPQ,          DXK,         DYK
    REAL    OVEXCV(NMOVAR),              OVLEXP(NMOVAR)
    REAL    OVLLIM(NMOVAR),              OVHEXP(NMOVAR)
@@ -1894,7 +1794,7 @@ MODULE SWCOMM3
    REAL                COSLAT(MICMAX)
    REAL                RDFSIN(100)
    REAL                ALCP,        ALPC,        COSPC,       DDIR
-   REAL                DX,          DXRP,        DY,          DYRP
+   REAL                DX, DY
    REAL                FRINTF,      FRINTH,      SHIG,        SINPC
    REAL                SLOW,        SPDIR1,      SPDIR2,      XCLEN
    REAL                XCP,         XPC,         YCLEN,       YCP
@@ -2488,9 +2388,9 @@ MODULE SWCOMM3
 
    INTEGER             DSHAPE,      FSHAPE
    INTEGER             ICMAX
-   INTEGER             IBOT,        ICOR,        ICUR
-   INTEGER             IDBR,        IDIF,        IGEN,        IINC
-   INTEGER             IPRE,        IQUAD,       IREFR,       ISURF
+   INTEGER             IBOT, ICUR
+   INTEGER             IDIF, IGEN, IINC
+   INTEGER             IQUAD, IREFR, ISURF
    INTEGER             ITERMX,      ITFRE,       ITRIAD,      IBIPH
    INTEGER             IWCAP,       IWIND,       LSETUP,      IDRAG
    INTEGER             MXITST,      MXITNS,                   NCOR

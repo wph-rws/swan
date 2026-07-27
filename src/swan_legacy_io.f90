@@ -13,7 +13,6 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM,&
 !*****************************************************************
 
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)

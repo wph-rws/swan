@@ -67,7 +67,6 @@ SUBROUTINE STRACE (IENT, SUBNAM, DIAG, IO)
 !*****************************************************************
 
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
    USE swan_parallel_state, ONLY: MASTER, INODE, IAMMASTER, PARLL
    USE swan_io_context, ONLY: diagnostics_context_t, io_context_t
@@ -197,7 +196,6 @@ SUBROUTINE MSGERR (LEV,STRING,DIAG,IO)
 !*****************************************************************
 
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
    USE swan_parallel_state, ONLY: MASTER, INODE, IAMMASTER, PARLL
    USE swan_io_context, ONLY: diagnostics_context_t, io_context_t
@@ -469,7 +467,6 @@ SUBROUTINE TABHED (PROGNM, LPR)
 !*****************************************************************
 
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -563,7 +560,6 @@ LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
 !************************************************************************
 
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)

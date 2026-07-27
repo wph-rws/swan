@@ -711,7 +711,6 @@ SUBROUTINE SWINIT (INERR, SNL4)
 
    USE swan_input_parser, ONLY: default_command_reader
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -865,6 +864,9 @@ SUBROUTINE SWINIT (INERR, SNL4)
 !
 !     INERR : Number of the initialisation error
 
+!   The version number is only needed to render VERTXT, so it is a named
+!   constant here instead of a mutable module variable.
+    REAL, PARAMETER :: SWAN_VERSION_NUMBER = 41.51
    INTEGER :: INERR, IGRID, IVT, IVTYPE, MXOUTAR
 
 !  6. Local variables
@@ -900,8 +902,7 @@ SUBROUTINE SWINIT (INERR, SNL4)
 ! 13. Source text
 
    VERTXT = default_command_reader%BLANK
-   VERNUM = 41.51
-   WRITE (VERTXT, '(F5.2)') VERNUM
+   WRITE (VERTXT, '(F5.2)') SWAN_VERSION_NUMBER
    CALL BUGFIX ('A')
    CALL BUGFIX ('B')
 

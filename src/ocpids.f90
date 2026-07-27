@@ -26,7 +26,6 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
 
    USE swan_input_parser, ONLY: default_command_reader
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
    USE M_PARALL
 

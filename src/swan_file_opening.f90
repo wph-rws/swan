@@ -12,7 +12,6 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT, IO)
 !*****************************************************************
 
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)

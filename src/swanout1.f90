@@ -902,7 +902,6 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM3
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM3
@@ -1163,7 +1162,6 @@ SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   ,&
 !                                                                      *
 !************************************************************************
 
-   USE OCPCOMM3
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
@@ -1238,7 +1236,11 @@ SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   ,&
 !
 !  4. Argument variables
 
-   INTEGER MIP
+    INTEGER MIP
+!   The output-quadrature grid is built and consumed inside this routine
+!   only, so it is local state rather than a shared module variable.
+    INTEGER MXQ, MYQ
+    REAL    DXQ, DYQ
    INTEGER OPI(2)
 
 !     XCGRID: input  Coordinates of computational grid in x-direction

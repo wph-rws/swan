@@ -49,7 +49,6 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
 !*****************************************************************
 
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -276,7 +275,6 @@ SUBROUTINE LSPLIT(RELINE, DATITM, NUMITM)
 
    USE swan_input_parser, ONLY: default_command_reader
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)

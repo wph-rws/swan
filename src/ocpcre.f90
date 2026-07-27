@@ -168,7 +168,6 @@ SUBROUTINE RDINIT_CTX (STATE)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -253,7 +252,6 @@ SUBROUTINE NWLINE_CTX (STATE)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -357,7 +355,6 @@ SUBROUTINE INKEYW_CTX (STATE, KONT, CSTA)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -507,7 +504,6 @@ SUBROUTINE INREAL_CTX (STATE, NAAM, R, KONT, RSTA)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -629,7 +625,6 @@ SUBROUTINE INDBLE_CTX (STATE, NAAM, R, KONT, RSTA)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -823,7 +818,6 @@ SUBROUTINE ININTG_CTX (STATE, NAAM, IV, KONT, ISTA)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -1006,7 +1000,6 @@ SUBROUTINE INCSTR_CTX (STATE, NAAM, C, KONT, CSTA)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -1207,7 +1200,6 @@ SUBROUTINE INCTIM_CTX (STATE, IOPTIM, NAAM, RV, KONT, RSTA)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -1397,7 +1389,6 @@ SUBROUTINE ININTV_CTX (STATE, NAME, RVAR, KONT, RSTA)
 !                                                                  *
 !*******************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -1538,7 +1529,6 @@ SUBROUTINE INITVD_CTX (STATE, NAME, RVAR, KONT, RSTA)
 !                                                                  *
 !*******************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -1678,7 +1668,6 @@ SUBROUTINE LEESEL_CTX (STATE)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -2053,7 +2042,6 @@ SUBROUTINE GETKAR_CTX (STATE)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -2162,7 +2150,6 @@ SUBROUTINE PUTKAR_CTX (STATE, LTEXT, KARR, JKAR)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -2262,7 +2249,6 @@ LOGICAL FUNCTION EQCSTR (STR1, STR2)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -2370,7 +2356,6 @@ LOGICAL FUNCTION KEYWIS_CTX (STATE, STRING)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -2481,7 +2466,6 @@ SUBROUTINE WRNKEY_CTX (STATE)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -2567,7 +2551,6 @@ SUBROUTINE IGNORE_CTX (STATE, STRING)
 !                                                               *
 !****************************************************************
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)

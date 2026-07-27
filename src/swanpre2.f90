@@ -195,7 +195,6 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !************************************************************************
 
    USE swan_input_parser, ONLY: default_command_reader
-   USE OCPCOMM3
    USE OCPCOMM4
    USE SWCOMM2
    USE SWCOMM3
@@ -1064,7 +1063,6 @@ SUBROUTINE SWREOQ ( FOUND )
 !************************************************************************
 
    USE OCPCOMM2
-   USE OCPCOMM3
    USE OCPCOMM4
    USE SWCOMM1
    USE SWCOMM2
