@@ -1,4 +1,5 @@
 module swan_read_adc_grid
+   use swan_io_limits, only: LENFNM
    implicit none(type, external)
    private
    public :: SwanReadADCGrid

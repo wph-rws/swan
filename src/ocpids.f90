@@ -7,6 +7,7 @@
 
 module swan_ocean_pack_init
    use swan_time, only: DTSTTI, DTTIST
+   use swan_io_limits, only: LENFNM
    implicit none(type, external)
    private
 !  OCPINI is the only entry point the driver needs; OCDTIM (processor-time

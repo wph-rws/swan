@@ -1,4 +1,5 @@
 module swan_vtkp_data_sets
+   use swan_io_limits, only: LENFNM
    implicit none(type, external)
    private
    public :: SwanVTKPDataSets

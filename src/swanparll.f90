@@ -31,6 +31,7 @@
 !****************************************************************
 
 module swan_parallel
+   use swan_io_limits, only: LENFNM
    implicit none(type, external)
    private
 !  The exchange routines are defined behind switch lines further down, so the
@@ -2883,6 +2884,7 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
    USE SwanGriddata, ONLY: nvertsg
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--
@@ -3314,6 +3316,7 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--
@@ -3662,6 +3665,7 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
    USE SwanGriddata, ONLY: xcugrdgl, ycugrdgl
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--
@@ -4052,6 +4056,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
 !NCF   USE swn_outnc
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--

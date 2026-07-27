@@ -53,6 +53,7 @@ module SwanParallel
 !
 !   none
 
+   use swan_io_limits, only: LENFNM
     implicit none(type, external)
 
 !   Module variables
@@ -266,6 +267,7 @@ subroutine SwanMeshPartition
     use SwanGriddata
 
     implicit none(type, external)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 !   Parameter variables
 

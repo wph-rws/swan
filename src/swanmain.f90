@@ -37,7 +37,16 @@ module swan_driver
    use swan_comp_unstruc, only: SwanCompUnstruc
    use swan_prep_comp, only: SwanPrepComp
    use swan_vertlist, only: SwanVertlist
+   use swan_io_limits, only: LENFNM
    implicit none(type, external)
+!  Used across several procedures of this module and nowhere else; moved out
+!  of the central shared state.
+   INTEGER :: JDP3
+   INTEGER :: JVX3
+   INTEGER :: JVY3
+   INTEGER :: JWLV1
+   INTEGER :: JWLV3
+   REAL :: SY0
    private
 !  SWMAIN is the only entry point the main program needs; the eighteen
 !  remaining routines (initialisation, preparation, boundary and restart
@@ -78,6 +87,7 @@ SUBROUTINE SWMAIN
 !METIS   USE SwanParallel
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 !  De diffractietoestand hoort bij de run; de driver is de eigenaar en geeft
 !  hem expliciet door aan voorbereiding, berekening, uitvoer en opruiming.
@@ -726,6 +736,22 @@ SUBROUTINE SWINIT (INERR, SNL4)
    USE SwanGriddata
    USE SwanIEM, only: sflog
    USE SwanQCM
+   CHARACTER(LEN=36) :: FBCL
+   CHARACTER(LEN=36) :: FBCR
+   CHARACTER(LEN=36) :: FNEST
+   CHARACTER(LEN=6) :: UAP
+   CHARACTER(LEN=6) :: UDI
+   CHARACTER(LEN=6) :: UDL
+   CHARACTER(LEN=6) :: UET
+   CHARACTER(LEN=6) :: UH
+   CHARACTER(LEN=6) :: UL
+   CHARACTER(LEN=6) :: UV
+   INTEGER :: JSTP
+   INTEGER :: ICOMP
+   INTEGER :: IDIF
+   INTEGER :: IINC
+   INTEGER :: NCOR
+   INTEGER :: NEGMES
 
    TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
 
@@ -3534,6 +3560,7 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
    USE SwanGriddata
    USE SwanCompdata
    USE SwanIEM
+   REAL :: ALCP
 
 
 !   --|-----------------------------------------------------------|--
@@ -6595,6 +6622,7 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC,&
    USE M_PARALL, ONLY: IAMMASTER
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--
@@ -7275,6 +7303,7 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER,&
    USE SWCOMM3
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--

@@ -29,6 +29,7 @@ module swan_command_reading
 !  De !TIMG-timers worden uit meerdere procedures van deze module
 !  aangeroepen, dus hun interface hoort op moduleniveau zichtbaar te zijn.
    use swan_service_interfaces, only: SWTSTA, SWTSTO
+   use swan_io_limits, only: LENFNM
    implicit none(type, external)
    private
    public :: SWREAD
@@ -67,6 +68,9 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 !METIS   USE SwanParallel
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+    INTEGER :: MMCGR
+    REAL :: WBICETH
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--
@@ -5785,6 +5789,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
    USE swan_time, ONLY: default_time_context
    USE M_PARALL
    USE SwanGriddata
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--
@@ -6371,6 +6376,7 @@ SUBROUTINE BACKUP (AC2, SPCSIG, SPCDIR, KGRPNT,&
    USE SWCOMM4
    USE M_PARALL
    USE SwanGriddata
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--

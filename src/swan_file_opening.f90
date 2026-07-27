@@ -1,4 +1,5 @@
 module swan_file_opening
+   use swan_io_limits, only: LENFNM
    implicit none(type, external)
    private
    public :: FOR

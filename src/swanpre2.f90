@@ -22,6 +22,7 @@ module swan_input_processing
    use swan_bpntlist, only: SwanBpntlist
    use swan_find_point, only: SwanFindPoint
    use swan_pointin_mesh, only: SwanPointinMesh
+   use swan_io_limits, only: LENFNM
    implicit none(type, external)
    private
    public :: SPROUT, SVARTP, SWBOUN, RETSTP
@@ -202,6 +203,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
    USE OUTP_DATA
    USE M_PARALL
    USE SwanGriddata
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--
@@ -1071,6 +1073,7 @@ SUBROUTINE SWREOQ ( FOUND )
    USE OUTP_DATA
    USE M_PARALL
 !NCF   USE swn_outnc
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -2569,6 +2572,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 !METIS   USE SwanParallel
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--
@@ -4135,7 +4139,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 !     open data file
    NDSD = 0
    IOSTAT = 0
-   CALL FOR (NDSD, FILENM, 'OF', IOSTAT)
+   CALL FOR (NDSD, FBCNAM, 'OF', IOSTAT)
    IF (STPNOW()) RETURN
 
 !     --- initialize array BFILED of BSPFIL
@@ -4669,9 +4673,9 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
    IOPTT = 6
    NDSL = 0
 !     open file with list of names
-   CALL FOR (NDSL, FILENM,'OF',IOSTAT)
+   CALL FOR (NDSL, FBCNAM,'OF',IOSTAT)
    IF (STPNOW()) RETURN
-   READ (NDSL,'(A36)') FILENM
+   READ (NDSL,'(A36)') FBCNAM
    CALL INKEYW ('REQ', ' ')
    IF (KEYWIS('FRE')) THEN
       BTYPE = 'WAMF'
@@ -4688,10 +4692,10 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
    NDSD=0
    IOSTAT = 0
    IF (BTYPE.EQ.'WAMF') THEN
-      CALL FOR(NDSD,FILENM,'OF',IOSTAT)
+      CALL FOR(NDSD,FBCNAM,'OF',IOSTAT)
       IF (STPNOW()) RETURN
    ELSE
-      CALL FOR(NDSD,FILENM,'OU',IOSTAT)
+      CALL FOR(NDSD,FBCNAM,'OU',IOSTAT)
       IF (STPNOW()) RETURN
    ENDIF
 
@@ -5277,9 +5281,9 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
    NDSD = 0
    IOSTAT = 0
    IF (BTYPE.EQ.'WW3F') THEN
-      CALL FOR (NDSD, FILENM , 'OF', IOSTAT)
+      CALL FOR (NDSD, FBCNAM , 'OF', IOSTAT)
    ELSE
-      CALL FOR (NDSD, FILENM , 'OU', IOSTAT)
+      CALL FOR (NDSD, FBCNAM , 'OU', IOSTAT)
    ENDIF
    IF (STPNOW()) RETURN
 
@@ -5319,7 +5323,7 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
       WRITE(PRTEST,*) ' HEDLINT ',' NFRE ',' NANG ',' NBOUNC ',&
       &' GNAME'
       WRITE (PRTEST,*) HEDLINT, NFRE, NANG, NBOUNC, GNAME
-      WRITE (PRTEST,*) 'Frequencies read from boundary file ', FILENM
+      WRITE (PRTEST,*) 'Frequencies read from boundary file ', FBCNAM
       WRITE (PRTEST,*) (FRQ_ARRAY(IFRE),IFRE = 1,NFRE)
    ENDIF
 
@@ -5357,7 +5361,7 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
 
    IF(ITEST.GE.60) THEN
       WRITE (PRTEST,*) 'Directions read from boundary file ',&
-      &FILENM
+      &FBCNAM
       WRITE (PRTEST,"(7E11.3)") (DIR_ARRAY(IANG),IANG = 1,NANG)
    ENDIF
 
@@ -6072,6 +6076,7 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
    USE OUTP_DATA
    USE M_PARALL
    USE SwanGriddata
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--

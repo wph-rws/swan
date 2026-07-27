@@ -2,6 +2,7 @@ module swan_input_parser
    use swan_kinds, only: swan_double
    use swan_io_context, only: io_context_t, diagnostics_context_t
    use swan_text_utilities, only: upcase
+   use swan_io_limits, only: LENFNM
    implicit none(type, external)
    private
 
@@ -255,6 +256,7 @@ SUBROUTINE NWLINE_CTX (STATE)
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 

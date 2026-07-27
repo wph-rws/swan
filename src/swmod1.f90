@@ -71,7 +71,6 @@ MODULE OCPCOMM2
 !
 !     LENFNM [ 140]  length of file names (including path)
 
-   INTEGER, PARAMETER :: LENFNM=140
 
 !  7. Local variables
 !
@@ -98,7 +97,6 @@ MODULE OCPCOMM2
 ! VERTXT [calcul] program version, character representation
 
    CHARACTER (LEN=1)      :: DIRCH1, DIRCH2
-   CHARACTER (LEN=LENFNM) :: FILENM
    CHARACTER (LEN=40)     :: INST
    CHARACTER (LEN=16)     :: PROJID
    CHARACTER (LEN=4)      :: PROJNR
@@ -681,15 +679,13 @@ MODULE SWCOMM1
 ! UV    [   'm/s'] unit of velocity
 
    CHARACTER(LEN=20) CHTIME
-   CHARACTER(LEN=36) FBCL,          FBCR,        FNEST
    CHARACTER(LEN=8)  OVKEYW(NMOVAR)
    CHARACTER(LEN=40) OVLNAM(NMOVAR)
    CHARACTER(LEN=6)  OVSNAM(NMOVAR)
    CHARACTER(LEN=16) OVUNIT(NMOVAR)
    CHARACTER(LEN=8)  SNAME
-   CHARACTER(LEN=6)  UAP, UDI, UDL
-   CHARACTER(LEN=6)  UET,           UF,          UH,          UL
-   CHARACTER(LEN=6)  UP,            UST,         UT,          UV
+   CHARACTER(LEN=6)  UF
+   CHARACTER(LEN=6)  UP, UST, UT
 
 !     *** information for output ***
 !
@@ -1170,12 +1166,12 @@ MODULE SWCOMM1
    INTEGER INRHOG,         IUBOTR
    INTEGER OVSVTY(NMOVAR)
    REAL    ALCQ, ALPQ, COSCQ
-   REAL    COSPQ,          DXK,         DYK
+   REAL    COSPQ
    REAL    OVEXCV(NMOVAR),              OVLEXP(NMOVAR)
    REAL    OVLLIM(NMOVAR),              OVHEXP(NMOVAR)
    REAL    OVULIM(NMOVAR),              SINCQ,         SINPQ
-   REAL    XPQ,            XQLEN,       XQP,           YPQ
-   REAL    YQLEN,          YQP,         OUTPAR(MOUTPA)
+   REAL    XPQ, XQLEN, YPQ
+   REAL    YQLEN, OUTPAR(MOUTPA)
 
 !  8. Subroutines and functions used
 !
@@ -1685,14 +1681,11 @@ MODULE SWCOMM3
 ! MSWMATR [ 16] within array SWMATR
 ! MTSVAR  [ 15] within array TESTDA
 
-   INTEGER             JABIN,       JABLK,       JAOLD
    INTEGER             JASTD2,      JASTD3,      JGAMMA
-   INTEGER             JCDRAG,      JDHS,        JDIS0
-   INTEGER             JDIS1,       JDISS,       JDPSAV,      JDP1
+   INTEGER             JCDRAG, JDHS
+   INTEGER             JDISS, JDPSAV, JDP1
    INTEGER             JDP2
-   INTEGER             JDP3,        JDTM,        JFRC2,       JFRC3
-   INTEGER             JGEN0,       JGEN1,       JRED0,       JRED1
-   INTEGER             JTRA0,       JTRA1
+   INTEGER             JDTM, JFRC2, JFRC3
    INTEGER             JDSXB
    INTEGER             JDSXL
    INTEGER             JDSXS
@@ -1703,22 +1696,20 @@ MODULE SWCOMM3
    INTEGER             JRSXQ,       JRSXT,       JREDS,       JRADS
    INTEGER             JTSXG,       JTSXT,       JTSXS,       JTRAN
    INTEGER             JHS,         JHSIBC,      JLEAK
-   INTEGER             JLEK1,       JMAT5,       JMAT6,       JMATD
-   INTEGER             JMATL,       JMATR,       JMATU
    INTEGER             JP4D,        JP4S,        JPBTFR,      JPTRI
    INTEGER             JPWBRK,      JPWCAP,      JPWNDD,      JPWNDS
    INTEGER             JPMUD,       JMUDL1,      JMUDL2,      JMUDL3
    INTEGER             JPVEGT,      JNPLA2,      JNPLA3
    INTEGER             JPTURB,      JTURB2,      JTURB3
-   INTEGER             JQB,         JSETUP,      JSTP,        JTAUW
+   INTEGER             JQB, JSETUP, JTAUW
    INTEGER             JUBOT,       JUSTAR,      JVX1,        JVX2
-   INTEGER             JVX3,        JVY1,        JVY2,        JVY3
-   INTEGER             JWLV1,       JWLV2,       JWLV3
+   INTEGER             JVY1, JVY2
+   INTEGER             JWLV2
    INTEGER             JWX2,        JWX3
    INTEGER             JWY2,        JWY3,        JZEL  ,      JPBOT
    INTEGER             MCMVAR,                   MTSVAR,      JURSEL
    INTEGER             JBIPH
-   INTEGER             JBOTLV,      MSWMATR,     MLSWMAT
+   INTEGER             JBOTLV
    INTEGER             JPSWEL
    INTEGER             JAICE2,      JAICE3,      JHICE2,      JHICE3
    INTEGER             JPICE,       JDSXI
@@ -1785,15 +1776,15 @@ MODULE SWCOMM3
 ! YPC    [    0.]  y coordinate of origin of computational grid
 
    INTEGER             IXCGRD(MICMAX), IYCGRD(MICMAX), KCGRD(MICMAX)
-   INTEGER             ICOMP,       MCGRD
-   INTEGER             MDC,         MDC4MA,      MDC4MI,      MMCGR
+   INTEGER             MCGRD
+   INTEGER             MDC, MDC4MA, MDC4MI
    INTEGER             MSC,         MSC4MA,      MSC4MI,      MTC
    INTEGER             MXC,         MYC,         NX,          NY
    INTEGER             NGRBND
    INTEGER             ILMAX
    REAL                COSLAT(MICMAX)
    REAL                RDFSIN(100)
-   REAL                ALCP,        ALPC,        COSPC,       DDIR
+   REAL                ALPC, COSPC, DDIR
    REAL                DX, DY
    REAL                FRINTF,      FRINTH,      SHIG,        SINPC
    REAL                SLOW,        SPDIR1,      SPDIR2,      XCLEN
@@ -2389,11 +2380,11 @@ MODULE SWCOMM3
    INTEGER             DSHAPE,      FSHAPE
    INTEGER             ICMAX
    INTEGER             IBOT, ICUR
-   INTEGER             IDIF, IGEN, IINC
+   INTEGER             IGEN
    INTEGER             IQUAD, IREFR, ISURF
    INTEGER             ITERMX,      ITFRE,       ITRIAD,      IBIPH
    INTEGER             IWCAP,       IWIND,       LSETUP,      IDRAG
-   INTEGER             MXITST,      MXITNS,                   NCOR
+   INTEGER             MXITST, MXITNS
    INTEGER             NSTATC,      NSTATM,      NUMOBS,      NCOMPT
    INTEGER             IDIFFR
    INTEGER             IWCCUR
@@ -2411,7 +2402,7 @@ MODULE SWCOMM3
    REAL                PSURF(MSURF),             PTRIAD(MTRIAD)
    REAL                PWCAP(MWCAP),             PWIND(MWIND)
    REAL                SIGMAG
-   REAL                SPPARM(MSPPAR),SY0,       U10
+   REAL                SPPARM(MSPPAR), U10
    REAL                WDIC,          WDIP,      HSRERR
    REAL                PQUAD(MQUAD)
    REAL(KIND=KIND(0.0D0))              RCOMPT(300,5)
@@ -2423,7 +2414,6 @@ MODULE SWCOMM3
    REAL                PICE(MICE)
    REAL                PSCAT(MSCAT)
 !CTGA 111003:  Full ice implementation.  Parameter read in swanpre1.ftn
-   REAL                WBICETH
    LOGICAL             ACUPDA
    LOGICAL             BNDCHK,      BNAUT,       ONED,        BRESCL
    LOGICAL             OFFSRC
@@ -2559,7 +2549,7 @@ MODULE SWCOMM4
    INTEGER ICOTES,      INTES,       IOUTES
    INTEGER IPTST
    INTEGER IFPAR,       IFS1D,       IFS2D
-   INTEGER LXDMP,       LYDMP,       MAXMES,      NEGMES
+   INTEGER LXDMP, LYDMP, MAXMES
    INTEGER NPTST,       NPTSTA
    REAL    UNDFLW
    LOGICAL TESTFL

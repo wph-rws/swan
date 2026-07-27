@@ -66,6 +66,28 @@ module swan_computation
    use swan_spectral_powers, only: spectral_powers_t
    use swan_source_workspaces, only: thread_workspaces_t, wcap_workspace_t
    implicit none(type, external)
+!  Matrix indices and workspace dimensions, previously in SWCOMM3. They are
+!  used across several procedures of this module and nowhere else.
+   INTEGER :: JABIN
+   INTEGER :: JABLK
+   INTEGER :: JAOLD
+   INTEGER :: JDIS0
+   INTEGER :: JDIS1
+   INTEGER :: JGEN0
+   INTEGER :: JGEN1
+   INTEGER :: JLEK1
+   INTEGER :: JMAT5
+   INTEGER :: JMAT6
+   INTEGER :: JMATD
+   INTEGER :: JMATL
+   INTEGER :: JMATR
+   INTEGER :: JMATU
+   INTEGER :: JRED0
+   INTEGER :: JRED1
+   INTEGER :: JTRA0
+   INTEGER :: JTRA1
+   INTEGER :: MLSWMAT
+   INTEGER :: MSWMATR
    private
 !  Entry points used by the driver (SWCOMP) and by the unstructured solver,
 !  which reuses the structured sweep building blocks.

@@ -20,7 +20,12 @@ module swan_output_orchestration
    use swan_diffraction_state, only: diffraction_state_t
    use swan_compute_force, only: SwanComputeForce
    use swan_find_point, only: SwanFindPoint
+   use swan_io_limits, only: LENFNM
    implicit none(type, external)
+!  Used across several procedures of this module and nowhere else; moved out
+!  of the central shared state.
+   REAL :: XQP
+   REAL :: YQP
    private
    public :: SWOUTP, SWOEXC
 contains
@@ -552,6 +557,8 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
 !NCF   USE OUTP_DATA
    USE M_PARALL
    USE OUTP_DATA, ONLY: NTVTK
+!NCF   use swan_io_limits, only: LENFNM
+!NCF    CHARACTER(LEN=LENFNM) :: FILENM   ! only the netCDF variant uses it here
 
 
 
@@ -907,6 +914,8 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK,&
    USE SWCOMM3
    USE SWCOMM4
    USE OUTP_DATA
+   REAL :: DXK
+   REAL :: DYK
 
 
 !   --|-----------------------------------------------------------|--
@@ -1490,9 +1499,11 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA ,&
    USE OUTP_DATA
    USE SwanGriddata
    USE SwanGridobjects
+   use swan_io_limits, only: LENFNM
 !METIS   USE SwanParallel
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
    TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
 

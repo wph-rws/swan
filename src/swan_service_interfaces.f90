@@ -13,6 +13,7 @@ module swan_service_interfaces
 !     parser, which uses this module.
 !
    use swan_parallel_state, only: MASTER, INODE, IAMMASTER, PARLL
+   use swan_io_limits, only: LENFNM
    implicit none(type, external)
    private
 

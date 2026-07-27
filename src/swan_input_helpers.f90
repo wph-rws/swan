@@ -35,6 +35,7 @@ module swan_input_helpers
 !     They live here rather than in swan_service_interfaces because they use
 !     swan_input_parser, which in turn uses that module.
 !
+   use swan_io_limits, only: LENFNM
    implicit none(type, external)
    private
    public :: REPARM, LSPLIT
@@ -52,6 +53,7 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--

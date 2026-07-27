@@ -1,4 +1,5 @@
 MODULE swan_legacy_io
+   use swan_io_limits, only: LENFNM
    IMPLICIT NONE(TYPE, EXTERNAL)
    PRIVATE
    PUBLIC :: INAR2D, COPYCH
@@ -16,6 +17,7 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM,&
    USE OCPCOMM4
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--

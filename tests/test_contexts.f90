@@ -130,7 +130,7 @@ contains
 
    subroutine test_file_opening_context
       use swan_file_opening, only: FOR
-      use ocpcomm2, only: LENFNM
+      use swan_io_limits, only: LENFNM
       type(io_context_t) :: io
       integer :: unit1, iostat1, saved_hiopen
       !  FOR declares its filename dummy with a fixed length, so the actual

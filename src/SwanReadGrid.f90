@@ -2,6 +2,7 @@ module swan_read_grid
    use swan_read_adc_grid, only: SwanReadADCGrid
    use swan_read_easymesh_grid, only: SwanReadEasymeshGrid
    use swan_read_triangle_grid, only: SwanReadTriangleGrid
+   use swan_io_limits, only: LENFNM
    implicit none(type, external)
    private
    public :: SwanReadGrid

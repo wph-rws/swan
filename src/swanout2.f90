@@ -20,6 +20,7 @@ module swan_output_writers
    use swan_vtk_write_data, only: SwanVTKWriteData
    use swan_vtk_write_header, only: SwanVTKWriteHeader
    use swan_vtkp_data_sets, only: SwanVTKPDataSets
+   use swan_io_limits, only: LENFNM
    implicit none(type, external)
    private
 !  SWTABP and SWRMAT are defined behind switch lines (!NCF/!NNCF, !MatL4/!MatL5)
@@ -44,6 +45,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
    USE SWCOMM4, ONLY: KSPHER
    USE OUTP_DATA
 !NCF   USE swn_outnc
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 !
 !
 !
@@ -601,6 +603,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
       USE M_PARALL
 
       IMPLICIT NONE(TYPE, EXTERNAL)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--
@@ -749,6 +752,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
       USE OUTP_DATA
 
       IMPLICIT NONE(TYPE, EXTERNAL)
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--
@@ -1287,6 +1291,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !             ='TABT';
 !NCF!             ='TABC'; NETCDF output
 
+         CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
          CHARACTER(LEN=4) :: RTYPE
          CHARACTER(LEN=8) :: PSNAME
 
@@ -1729,6 +1734,7 @@ RETURN
          USE M_PARALL
 !NCF         USE swn_outnc, only: swn_outnc_spec
          use SwanGriddata, only: ivertg
+   CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
 
 !   --|-----------------------------------------------------------|--
