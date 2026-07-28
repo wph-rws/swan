@@ -50,6 +50,11 @@ ${SWAN_GENERATED_SRC}/swan_snl4_tables.f90
 ${SWAN_GENERATED_SRC}/swan_spectral_powers.f90
 ${SWAN_GENERATED_SRC}/swan_source_workspaces.f90
 ${SWAN_GENERATED_SRC}/swmod2.f90
+${SWAN_GENERATED_SRC}/swan_output_formats.f90
+${SWAN_GENERATED_SRC}/swan_vtk_output.f90
+${SWAN_GENERATED_SRC}/swan_input_fields.f90
+${SWAN_GENERATED_SRC}/swan_vegetation_layers.f90
+${SWAN_GENERATED_SRC}/swan_global_grid.f90
 ${SWAN_GENERATED_SRC}/SwanSpectPart.f90
 ${SWAN_GENERATED_SRC}/m_constants.f90
 ${SWAN_GENERATED_SRC}/m_fileio.f90

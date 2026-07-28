@@ -957,11 +957,9 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
 
                       ! stores vertices of computational stencil
 
-                      vs(1) = ivert
-                      vs(2) = vu(1)
-                      vs(3) = vu(2)
-
-                      KCGRD = vs    ! to be used in some original SWAN routines
+                      KCGRD(1) = ivert
+                      KCGRD(2) = vu(1)
+                      KCGRD(3) = vu(2)
 
                       swpnr = 0                                              ! this trick assures to calculate Ursell number and
                       if ( all(mask=vert(ivert)%updated(:)==0) ) swpnr = 1   ! quadruplets only once in each vertex during an iteration
@@ -997,7 +995,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
 
                       if ( KSPHER > 0 ) then
                          do k = 1, ICMAX
-                            COSLAT(k) = cos(DEGRAD*(vert(vs(k))%attr(VERTY) + YOFFS))
+                            COSLAT(k) = cos(DEGRAD*(vert(KCGRD(k))%attr(VERTY) + YOFFS))
                          enddo
                          do j = 1, 2
                             rdx(j) = rdx(j) / (COSLAT(1) * LENDEG)

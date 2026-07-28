@@ -81,51 +81,13 @@ MODULE OUTP_DATA
 
    INTEGER, PARAMETER :: MAX_OUTP_REQ = 250 ! max. number of output r
 
-   CHARACTER (LEN=1)  :: OUT_COMMENT = '%' ! comment sign for heading
-
    LOGICAL            :: LCOMPGRD
-
-   ! formats for output:
-   CHARACTER (LEN=40) :: FLT_BLOCK = '(6E12.4)'       ! floating poin
-   CHARACTER (LEN=40) :: FLT_TABLE = '(E11.4)'        ! floating poin
-   CHARACTER (LEN=40) :: FIX_SPEC  = '(200(1X,I4))'   ! spectral outp
-
-!     format for block output per process in case of collecting data
-   CHARACTER (LEN=40) :: FLT_BLKP = '(6E17.9)'
-
-   INTEGER :: FLD_TABLE = 12       ! field length for fixed-point tab
-   INTEGER :: DEC_BLOCK =  4       ! number of decimals for fixed-poi
-   INTEGER :: DEC_SPEC  =  4       ! number of decimals for spectral
 
 !     longer filenames for output requests
    CHARACTER (LEN=LENFNM) :: OUTP_FILES(1:MAX_OUTP_REQ)
    ! filenames for output; index is output request sequence number
 
    INTEGER, SAVE :: NREOQ = 0         ! actual number of requests sav
-
-!     unit number PVD files
-   INTEGER :: UPVDF(1:MAX_OUTP_REQ)
-
-!     timestep counter for time-varying VTK files
-   INTEGER, SAVE :: NTVTK(1:MAX_OUTP_REQ) = -1
-
-!     output directory containing a series of time-varying VTK files
-   CHARACTER (LEN=LENFNM) :: VTKDIR(1:MAX_OUTP_REQ)
-
-!     textline containing VTK line in XML format
-   CHARACTER(LEN=1024) :: VTKLINE
-
-!     XML header lines
-   CHARACTER(LEN=25) :: XMLLIN1 = '<?xml version="1.0"?>'
-   CHARACTER(LEN= 5) :: XMLLIN2 = '<!--'
-   CHARACTER(LEN= 5) :: XMLLIN3 = '-->'
-
-!     default lines of PVD file
-   CHARACTER(LEN=80) :: PVDLIN1 = '<VTKFile type="Collection" '//&
-   &'version="0.1" byte_order="LittleEndian">'
-   CHARACTER(LEN=15) :: PVDLIN2 = '  <Collection>'
-   CHARACTER(LEN=15) :: PVDLIN3 = '  </Collection>'
-   CHARACTER(LEN=10) :: PVDLIN4 = '</VTKFile>'
 
    TYPE OPSDAT
       CHARACTER (LEN=1)     :: PSTYPE                     ! type (F,
@@ -693,16 +655,6 @@ MODULE M_GENARR
    REAL   , SAVE, ALLOCATABLE :: AC2(:,:,:)
    REAL   , SAVE, ALLOCATABLE :: XCGRID(:,:), YCGRID(:,:)
    REAL   , SAVE, ALLOCATABLE :: SPCSIG(:)  , SPCDIR(:,:)
-   REAL   , SAVE, ALLOCATABLE :: DEPTH(:) , FRIC(:)
-   REAL   , SAVE, ALLOCATABLE :: UXB(:)   , UYB(:)
-   REAL   , SAVE, ALLOCATABLE :: WXI(:)   , WYI(:)
-   REAL   , SAVE, ALLOCATABLE :: WLEVL(:) , ASTDF(:)
-   REAL   , SAVE, ALLOCATABLE :: MUDLF(:)
-   REAL   , SAVE, ALLOCATABLE :: NPLAF(:) , TURBF(:)
-   REAL   , SAVE, ALLOCATABLE :: AICEF(:) , HICEF(:)
-   REAL   , SAVE, ALLOCATABLE :: LAYH(:), VEGDIL(:), VEGDRL(:),&
-   &VEGNSL(:)
-   REAL   , SAVE, ALLOCATABLE :: HSSF(:)  , TSSF(:), DSSF(:)
 !ESMF!
 !ESMF!     added to save Sin exponential growth term for coupling
 !ESMF   LOGICAL, SAVE :: SAVE_SINBAC
@@ -979,9 +931,7 @@ MODULE M_PARALL
 !     YGRDGL  : y-coordinate of computational grid in global domain
 !
 !JAC   INTEGER IBCOL
-   INTEGER MCGRDGL, MXCGL, MYCGL
    INTEGER MXF, MXL, MYF, MYL
-   INTEGER NGRBGL, NBGGL
    REAL    XCLMAX, XCLMIN, YCLMAX, YCLMIN
 
    INTEGER :: LENSPO = 1000
@@ -990,8 +940,6 @@ MODULE M_PARALL
 
    INTEGER, SAVE, ALLOCATABLE :: IBLKAD(:)
    INTEGER, SAVE, ALLOCATABLE :: IWEIG(:)
-   INTEGER, SAVE, ALLOCATABLE :: KGRPGL(:,:), KGRBGL(:)
-   REAL   , SAVE, ALLOCATABLE :: XGRDGL(:,:), YGRDGL(:,:)
 
 !  8. Subroutines and functions used
 !

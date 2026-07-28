@@ -52,4 +52,10 @@ module swan_test_output
 !              TESTDA layout from inside SWCOMM3, next to the COMPDA layout it
 !              has nothing to do with.
    integer :: MTSVAR
+
+!     XYTST, the test-point indices, is deliberately not here. It lives in
+!     M_GENARR with the other arrays the run owns, and the routines that use it
+!     take it as a dummy argument -- which is the pattern this migration is
+!     working towards. Exporting it here as well would make the name ambiguous
+!     in every routine that has both that argument and NPTST.
 end module swan_test_output

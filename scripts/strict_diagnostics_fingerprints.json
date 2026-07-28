@@ -1,0 +1,3275 @@
+{
+ "compiler": "GNU Fortran (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+ "fingerprints": [
+  [
+   "character-truncation",
+   "swan_input_helpers.f90",
+   "CHARACTER expression will be truncated in assignment (36/140) at (1)",
+   1
+  ],
+  [
+   "character-truncation",
+   "swanmain.f90",
+   "CHARACTER expression will be truncated in assignment (40/41) at (1)",
+   1
+  ],
+  [
+   "character-truncation",
+   "swanmain.f90",
+   "CHARACTER expression will be truncated in assignment (40/49) at (1)",
+   1
+  ],
+  [
+   "character-truncation",
+   "swanmain.f90",
+   "CHARACTER expression will be truncated in assignment (8/9) at (1)",
+   9
+  ],
+  [
+   "character-truncation",
+   "swanout2.f90",
+   "CHARACTER expression will be truncated in assignment (15/40) at (1)",
+   1
+  ],
+  [
+   "character-truncation",
+   "swanparll.f90",
+   "CHARACTER expression will be truncated in assignment (18/40) at (1)",
+   1
+  ],
+  [
+   "character-truncation",
+   "swanpre2.f90",
+   "CHARACTER expression will be truncated in assignment (8/16) at (1)",
+   11
+  ],
+  [
+   "compare-reals",
+   "SdsBabanin.f90",
+   "Equality comparison for REAL(4) at (1)",
+   2
+  ],
+  [
+   "compare-reals",
+   "SdsBabanin.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   2
+  ],
+  [
+   "compare-reals",
+   "SwanBraggScat.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   2
+  ],
+  [
+   "compare-reals",
+   "SwanBraggScat.f90",
+   "Inequality comparison for REAL(8) at (1)",
+   1
+  ],
+  [
+   "compare-reals",
+   "SwanCompUnstruc.f90",
+   "Equality comparison for REAL(4) at (1)",
+   3
+  ],
+  [
+   "compare-reals",
+   "SwanComputeForce.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   1
+  ],
+  [
+   "compare-reals",
+   "SwanConvStopc.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   2
+  ],
+  [
+   "compare-reals",
+   "SwanGridFace.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   3
+  ],
+  [
+   "compare-reals",
+   "SwanIEM.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   3
+  ],
+  [
+   "compare-reals",
+   "SwanPropvelX.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   1
+  ],
+  [
+   "compare-reals",
+   "SwanQCM.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   23
+  ],
+  [
+   "compare-reals",
+   "SwanSpatialIndex.f90",
+   "Equality comparison for REAL(4) at (1)",
+   1
+  ],
+  [
+   "compare-reals",
+   "SwanVertlist.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   2
+  ],
+  [
+   "compare-reals",
+   "mod_xnl4v5.f90",
+   "Equality comparison for REAL(4) at (1)",
+   1
+  ],
+  [
+   "compare-reals",
+   "serv_xnl4v5.f90",
+   "Equality comparison for REAL(4) at (1)",
+   4
+  ],
+  [
+   "compare-reals",
+   "serv_xnl4v5.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   3
+  ],
+  [
+   "compare-reals",
+   "swan_geometry.f90",
+   "Equality comparison for REAL(4) at (1)",
+   1
+  ],
+  [
+   "compare-reals",
+   "swan_number_formatting.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   1
+  ],
+  [
+   "compare-reals",
+   "swan_service_interfaces.f90",
+   "Equality comparison for REAL(4) at (1)",
+   1
+  ],
+  [
+   "compare-reals",
+   "swan_service_interfaces.f90",
+   "Inequality comparison for REAL(8) at (1)",
+   1
+  ],
+  [
+   "compare-reals",
+   "swan_spectrum_transform.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   1
+  ],
+  [
+   "compare-reals",
+   "swan_triads.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   2
+  ],
+  [
+   "compare-reals",
+   "swancom1.f90",
+   "Equality comparison for REAL(4) at (1)",
+   19
+  ],
+  [
+   "compare-reals",
+   "swancom1.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   31
+  ],
+  [
+   "compare-reals",
+   "swancom2.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   2
+  ],
+  [
+   "compare-reals",
+   "swancom3.f90",
+   "Equality comparison for REAL(4) at (1)",
+   1
+  ],
+  [
+   "compare-reals",
+   "swancom3.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   2
+  ],
+  [
+   "compare-reals",
+   "swancom4.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   16
+  ],
+  [
+   "compare-reals",
+   "swancom5.f90",
+   "Equality comparison for REAL(4) at (1)",
+   4
+  ],
+  [
+   "compare-reals",
+   "swancom5.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   1
+  ],
+  [
+   "compare-reals",
+   "swanmain.f90",
+   "Equality comparison for REAL(4) at (1)",
+   3
+  ],
+  [
+   "compare-reals",
+   "swanmain.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   16
+  ],
+  [
+   "compare-reals",
+   "swanmain.f90",
+   "Inequality comparison for REAL(8) at (1)",
+   1
+  ],
+  [
+   "compare-reals",
+   "swanout1.f90",
+   "Equality comparison for REAL(4) at (1)",
+   20
+  ],
+  [
+   "compare-reals",
+   "swanout1.f90",
+   "Equality comparison for REAL(8) at (1)",
+   1
+  ],
+  [
+   "compare-reals",
+   "swanout1.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   14
+  ],
+  [
+   "compare-reals",
+   "swanout2.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   5
+  ],
+  [
+   "compare-reals",
+   "swanpre1.f90",
+   "Equality comparison for REAL(4) at (1)",
+   5
+  ],
+  [
+   "compare-reals",
+   "swanpre1.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   17
+  ],
+  [
+   "compare-reals",
+   "swanser.f90",
+   "Equality comparison for REAL(4) at (1)",
+   2
+  ],
+  [
+   "compare-reals",
+   "swanser.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   5
+  ],
+  [
+   "conversion",
+   "SwanBraggScat.f90",
+   "Conversion from REAL(8) to default-kind COMPLEX(4) at (1) might lose precision, consider using the KIND argument",
+   2
+  ],
+  [
+   "conversion",
+   "SwanBraggScat.f90",
+   "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   8
+  ],
+  [
+   "conversion",
+   "SwanCompUnstruc.f90",
+   "Possible change of value in conversion from REAL(4) to INTEGER(4) at (1)",
+   3
+  ],
+  [
+   "conversion",
+   "SwanPropvelS.f90",
+   "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   1
+  ],
+  [
+   "conversion",
+   "SwanQCM.f90",
+   "Conversion from REAL(8) to default-kind COMPLEX(4) at (1) might lose precision, consider using the KIND argument",
+   4
+  ],
+  [
+   "conversion",
+   "SwanQCM.f90",
+   "Possible change of value in conversion from COMPLEX(8) to COMPLEX(4) at (1)",
+   2
+  ],
+  [
+   "conversion",
+   "SwanQCM.f90",
+   "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   3
+  ],
+  [
+   "conversion",
+   "SwanTranspX.f90",
+   "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   4
+  ],
+  [
+   "conversion",
+   "mod_xnl4v5.f90",
+   "Possible change of value in conversion from REAL(4) to INTEGER(4) at (1)",
+   8
+  ],
+  [
+   "conversion",
+   "mod_xnl4v5.f90",
+   "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   12
+  ],
+  [
+   "conversion",
+   "swan_spectrum_transform.f90",
+   "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   1
+  ],
+  [
+   "conversion",
+   "swan_structured_output_interpolation.f90",
+   "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   1
+  ],
+  [
+   "conversion",
+   "swancom1.f90",
+   "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   1
+  ],
+  [
+   "conversion",
+   "swancom5.f90",
+   "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   10
+  ],
+  [
+   "conversion",
+   "swanparll.f90",
+   "Possible change of value in conversion from INTEGER(8) to INTEGER(4) at (1)",
+   1
+  ],
+  [
+   "conversion",
+   "swanpre2.f90",
+   "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   11
+  ],
+  [
+   "conversion-extra",
+   "SdsBabanin.f90",
+   "Non-significant digits in ‘REAL(4)’ number at (1), maybe incorrect KIND",
+   1
+  ],
+  [
+   "conversion-extra",
+   "SwanBraggScat.f90",
+   "Conversion from COMPLEX(4) to COMPLEX(8) at (1)",
+   2
+  ],
+  [
+   "conversion-extra",
+   "SwanBraggScat.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   12
+  ],
+  [
+   "conversion-extra",
+   "SwanBraggScat.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   22
+  ],
+  [
+   "conversion-extra",
+   "SwanBraggScat.f90",
+   "Conversion from ‘REAL(4)’ to ‘REAL(8)’ at (1)",
+   12
+  ],
+  [
+   "conversion-extra",
+   "SwanCompUnstruc.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   3
+  ],
+  [
+   "conversion-extra",
+   "SwanComputeForce.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   4
+  ],
+  [
+   "conversion-extra",
+   "SwanConvAccur.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   1
+  ],
+  [
+   "conversion-extra",
+   "SwanConvStopc.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   1
+  ],
+  [
+   "conversion-extra",
+   "SwanDiffPar.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   8
+  ],
+  [
+   "conversion-extra",
+   "SwanGSECorr.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   4
+  ],
+  [
+   "conversion-extra",
+   "SwanGradDepthorK.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   8
+  ],
+  [
+   "conversion-extra",
+   "SwanGradVel.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   4
+  ],
+  [
+   "conversion-extra",
+   "SwanIEM.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   3
+  ],
+  [
+   "conversion-extra",
+   "SwanPropvelS.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   1
+  ],
+  [
+   "conversion-extra",
+   "SwanQCM.f90",
+   "Conversion from COMPLEX(4) to COMPLEX(8) at (1)",
+   5
+  ],
+  [
+   "conversion-extra",
+   "SwanQCM.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   9
+  ],
+  [
+   "conversion-extra",
+   "SwanQCM.f90",
+   "Conversion from REAL(4) to COMPLEX(8) at (1)",
+   5
+  ],
+  [
+   "conversion-extra",
+   "SwanQCM.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   10
+  ],
+  [
+   "conversion-extra",
+   "SwanQCM.f90",
+   "Conversion from ‘REAL(4)’ to ‘REAL(8)’ at (1)",
+   8
+  ],
+  [
+   "conversion-extra",
+   "SwanReadEasymeshGrid.f90",
+   "Conversion from INTEGER(4) to INTEGER(8) at (1)",
+   2
+  ],
+  [
+   "conversion-extra",
+   "SwanReadGrid.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   2
+  ],
+  [
+   "conversion-extra",
+   "SwanReadTriangleGrid.f90",
+   "Conversion from INTEGER(4) to INTEGER(8) at (1)",
+   6
+  ],
+  [
+   "conversion-extra",
+   "SwanTranspX.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   6
+  ],
+  [
+   "conversion-extra",
+   "fftw_compat.f90",
+   "Conversion from REAL(8) to COMPLEX(8) at (1)",
+   2
+  ],
+  [
+   "conversion-extra",
+   "mod_xnl4v5.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   44
+  ],
+  [
+   "conversion-extra",
+   "mod_xnl4v5.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   22
+  ],
+  [
+   "conversion-extra",
+   "mod_xnl4v5.f90",
+   "Conversion from ‘REAL(4)’ to ‘INTEGER(4)’ at (1)",
+   1
+  ],
+  [
+   "conversion-extra",
+   "mod_xnl4v5.f90",
+   "Conversion from ‘REAL(4)’ to ‘REAL(8)’ at (1)",
+   3
+  ],
+  [
+   "conversion-extra",
+   "mod_xnl4v5.f90",
+   "Non-significant digits in ‘REAL(4)’ number at (1), maybe incorrect KIND",
+   1
+  ],
+  [
+   "conversion-extra",
+   "ocpcre.f90",
+   "Conversion from INTEGER(4) to INTEGER(8) at (1)",
+   22
+  ],
+  [
+   "conversion-extra",
+   "ocpcre.f90",
+   "Conversion from INTEGER(4) to REAL(8) at (1)",
+   1
+  ],
+  [
+   "conversion-extra",
+   "ocpcre.f90",
+   "Conversion from ‘REAL(4)’ to ‘REAL(8)’ at (1)",
+   7
+  ],
+  [
+   "conversion-extra",
+   "serv_xnl4v5.f90",
+   "Conversion from INTEGER(4) to REAL(8) at (1)",
+   6
+  ],
+  [
+   "conversion-extra",
+   "serv_xnl4v5.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   2
+  ],
+  [
+   "conversion-extra",
+   "swan_field_file_update.f90",
+   "Conversion from ‘REAL(4)’ to ‘REAL(8)’ at (1)",
+   2
+  ],
+  [
+   "conversion-extra",
+   "swan_input_point_validation.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   2
+  ],
+  [
+   "conversion-extra",
+   "swan_number_formatting.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   1
+  ],
+  [
+   "conversion-extra",
+   "swan_number_formatting.f90",
+   "Non-significant digits in ‘REAL(4)’ number at (1), maybe incorrect KIND",
+   1
+  ],
+  [
+   "conversion-extra",
+   "swan_spectrum_transform.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   1
+  ],
+  [
+   "conversion-extra",
+   "swan_structured_output_interpolation.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   5
+  ],
+  [
+   "conversion-extra",
+   "swan_structured_output_interpolation.f90",
+   "Conversion from ‘REAL(4)’ to ‘REAL(8)’ at (1)",
+   8
+  ],
+  [
+   "conversion-extra",
+   "swan_time.f90",
+   "Conversion from INTEGER(4) to REAL(8) at (1)",
+   1
+  ],
+  [
+   "conversion-extra",
+   "swan_time.f90",
+   "Conversion from ‘REAL(4)’ to ‘INTEGER(4)’ at (1)",
+   1
+  ],
+  [
+   "conversion-extra",
+   "swan_time.f90",
+   "Conversion from ‘REAL(4)’ to ‘REAL(8)’ at (1)",
+   11
+  ],
+  [
+   "conversion-extra",
+   "swancom1.f90",
+   "Conversion from INTEGER(4) to INTEGER(8) at (1)",
+   8
+  ],
+  [
+   "conversion-extra",
+   "swancom1.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   1
+  ],
+  [
+   "conversion-extra",
+   "swancom1.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   1
+  ],
+  [
+   "conversion-extra",
+   "swancom1.f90",
+   "Conversion from ‘REAL(4)’ to ‘REAL(8)’ at (1)",
+   1
+  ],
+  [
+   "conversion-extra",
+   "swancom2.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   3
+  ],
+  [
+   "conversion-extra",
+   "swancom4.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   3
+  ],
+  [
+   "conversion-extra",
+   "swancom5.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   15
+  ],
+  [
+   "conversion-extra",
+   "swanmain.f90",
+   "Conversion from INTEGER(4) to INTEGER(8) at (1)",
+   3
+  ],
+  [
+   "conversion-extra",
+   "swanmain.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   11
+  ],
+  [
+   "conversion-extra",
+   "swanmain.f90",
+   "Conversion from ‘REAL(4)’ to ‘REAL(8)’ at (1)",
+   3
+  ],
+  [
+   "conversion-extra",
+   "swanout1.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   9
+  ],
+  [
+   "conversion-extra",
+   "swanout1.f90",
+   "Conversion from ‘REAL(4)’ to ‘REAL(8)’ at (1)",
+   7
+  ],
+  [
+   "conversion-extra",
+   "swanout2.f90",
+   "Conversion from INTEGER(4) to INTEGER(8) at (1)",
+   7
+  ],
+  [
+   "conversion-extra",
+   "swanparll.f90",
+   "Conversion from INTEGER(4) to INTEGER(8) at (1)",
+   13
+  ],
+  [
+   "conversion-extra",
+   "swanparll.f90",
+   "Conversion from ‘REAL(4)’ to ‘REAL(8)’ at (1)",
+   5
+  ],
+  [
+   "conversion-extra",
+   "swanpre1.f90",
+   "Conversion from INTEGER(4) to INTEGER(8) at (1)",
+   1
+  ],
+  [
+   "conversion-extra",
+   "swanpre1.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   14
+  ],
+  [
+   "conversion-extra",
+   "swanpre1.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   6
+  ],
+  [
+   "conversion-extra",
+   "swanpre1.f90",
+   "Conversion from ‘REAL(4)’ to ‘REAL(8)’ at (1)",
+   27
+  ],
+  [
+   "conversion-extra",
+   "swanpre2.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   13
+  ],
+  [
+   "conversion-extra",
+   "swanpre2.f90",
+   "Conversion from REAL(4) to REAL(8) at (1)",
+   30
+  ],
+  [
+   "conversion-extra",
+   "swanpre2.f90",
+   "Conversion from ‘REAL(4)’ to ‘REAL(8)’ at (1)",
+   23
+  ],
+  [
+   "conversion-extra",
+   "swanser.f90",
+   "Conversion from INTEGER(4) to REAL(4) at (1)",
+   5
+  ],
+  [
+   "conversion-extra",
+   "test_fftw_compat.f90",
+   "Conversion from ‘REAL(8)’ to ‘COMPLEX(8)’ at (1)",
+   1
+  ],
+  [
+   "do-subscript",
+   "SwanSweepSel.f90",
+   "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   1
+  ],
+  [
+   "do-subscript",
+   "swan_spectrum_transform.f90",
+   "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   3
+  ],
+  [
+   "do-subscript",
+   "swancom1.f90",
+   "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   2
+  ],
+  [
+   "do-subscript",
+   "swancom5.f90",
+   "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   12
+  ],
+  [
+   "do-subscript",
+   "swanout1.f90",
+   "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   5
+  ],
+  [
+   "do-subscript",
+   "swanpre2.f90",
+   "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   8
+  ],
+  [
+   "do-subscript",
+   "swanser.f90",
+   "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   6
+  ],
+  [
+   "function-elimination",
+   "SwanBndStruc.f90",
+   "Impure function ‘eqreal’ at (1) might not be evaluated",
+   1
+  ],
+  [
+   "function-elimination",
+   "SwanInterpolateAc.f90",
+   "Impure function ‘eqreal’ at (1) might not be evaluated",
+   1
+  ],
+  [
+   "function-elimination",
+   "SwanInterpolateOutput.f90",
+   "Impure function ‘eqreal’ at (1) might not be evaluated",
+   1
+  ],
+  [
+   "function-elimination",
+   "SwanInterpolatePoint.f90",
+   "Impure function ‘eqreal’ at (1) might not be evaluated",
+   3
+  ],
+  [
+   "function-elimination",
+   "swan_grid_point_validation.f90",
+   "Impure function ‘pvalid’ at (1) might not be evaluated",
+   69
+  ],
+  [
+   "function-elimination",
+   "swan_input_interpolation.f90",
+   "Impure function ‘eqreal’ at (1) might not be evaluated",
+   1
+  ],
+  [
+   "function-elimination",
+   "swancom1.f90",
+   "Impure function ‘eqreal’ at (1) might not be evaluated",
+   2
+  ],
+  [
+   "function-elimination",
+   "swanout1.f90",
+   "Impure function ‘eqreal’ at (1) might not be evaluated",
+   2
+  ],
+  [
+   "function-elimination",
+   "swanout2.f90",
+   "Impure function ‘eqreal’ at (1) might not be evaluated",
+   1
+  ],
+  [
+   "function-elimination",
+   "swanparll.f90",
+   "Impure function ‘eqreal’ at (1) might not be evaluated",
+   10
+  ],
+  [
+   "function-elimination",
+   "swanpre1.f90",
+   "Impure function ‘eqcstr’ at (1) might not be evaluated",
+   3
+  ],
+  [
+   "function-elimination",
+   "swanpre1.f90",
+   "Impure function ‘eqreal’ at (1) might not be evaluated",
+   2
+  ],
+  [
+   "function-elimination",
+   "swanpre1.f90",
+   "Impure function ‘keywis_default’ at (1) might not be evaluated",
+   30
+  ],
+  [
+   "function-elimination",
+   "swanpre1.f90",
+   "Impure function ‘pvalid’ at (1) might not be evaluated",
+   9
+  ],
+  [
+   "function-elimination",
+   "swanpre1.f90",
+   "Impure function ‘validbp’ at (1) might not be evaluated",
+   9
+  ],
+  [
+   "function-elimination",
+   "swanpre2.f90",
+   "Impure function ‘eqcstr’ at (1) might not be evaluated",
+   3
+  ],
+  [
+   "function-elimination",
+   "swanpre2.f90",
+   "Impure function ‘eqreal’ at (1) might not be evaluated",
+   3
+  ],
+  [
+   "function-elimination",
+   "swanpre2.f90",
+   "Impure function ‘keywis_default’ at (1) might not be evaluated",
+   11
+  ],
+  [
+   "function-elimination",
+   "swanser.f90",
+   "Impure function ‘eqreal’ at (1) might not be evaluated",
+   1
+  ],
+  [
+   "function-elimination",
+   "swanser.f90",
+   "Impure function ‘inmesh’ at (1) might not be evaluated",
+   1
+  ],
+  [
+   "implicit-interface",
+   "SwanParallel.f90",
+   "Procedure ‘metis_partgraphkway’ called with an implicit interface at (1)",
+   1
+  ],
+  [
+   "implicit-interface",
+   "SwanParallel.f90",
+   "Procedure ‘metis_setdefaultoptions’ called with an implicit interface at (1)",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SdsBabanin.f90",
+   "‘ze’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanBraggScat.f90",
+   "‘r.dim[0].ubound’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanBraggScat.f90",
+   "‘r.dim[1].stride’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanBraggScat.f90",
+   "‘r.dim[1].ubound’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanBraggScat.f90",
+   "‘r.offset’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanCompUnstruc.f90",
+   "‘acnrmo’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanCompUnstruc.f90",
+   "‘th1’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanCompUnstruc.f90",
+   "‘th2’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanCompUnstruc.f90",
+   "‘vu[0]’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanCompUnstruc.f90",
+   "‘vu[1]’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanGridCell.f90",
+   "‘vn’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanGridCell.f90",
+   "‘vp’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanIEM.f90",
+   "‘ci1’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanIEM.f90",
+   "‘ci2’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanIEM.f90",
+   "‘kbly’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanInterpolateAc.f90",
+   "‘th1’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanInterpolateAc.f90",
+   "‘th2’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanInterpolateOutput.f90",
+   "‘th1’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanInterpolateOutput.f90",
+   "‘th2’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanInterpolatePoint.f90",
+   "‘th1’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanInterpolatePoint.f90",
+   "‘th2’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanParallel.f90",
+   "‘MEM <integer(kind=4)> [(integer(kind=4)[0:] *)_891 + -4B]’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanParallel.f90",
+   "‘MEM <integer(kind=4)> [(integer(kind=4)[0:] *)_891 + 4B]’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanParallel.f90",
+   "‘MEM <integer(kind=4)> [(integer(kind=4)[0:] *)_891]’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanParallel.f90",
+   "‘MEM[(integer(kind=4)[0:D.5688] *)_844][_713]’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanParallel.f90",
+   "‘nbpgl’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanParallel.f90",
+   "‘nfacev.dim[0].ubound’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanParallel.f90",
+   "‘tmpcl’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanParallel.f90",
+   "‘tmprl’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanParallel.f90",
+   "‘tmpsl’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanParallel.f90",
+   "‘tmpvl’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanQCM.f90",
+   "‘kxmax’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanQCM.f90",
+   "‘kymax’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "SwanVertlist.f90",
+   "‘vu[0]’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "mod_xnl4v5.f90",
+   "‘__result_x_cosk’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "mod_xnl4v5.f90",
+   "‘__result_x_cple’ may be used uninitialized",
+   2
+  ],
+  [
+   "maybe-uninitialized",
+   "mod_xnl4v5.f90",
+   "‘dke’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "mod_xnl4v5.f90",
+   "‘dsp’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "mod_xnl4v5.f90",
+   "‘isig_tail’ may be used uninitialized",
+   2
+  ],
+  [
+   "maybe-uninitialized",
+   "swan_input_point_validation.f90",
+   "‘__result_sincmp’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swan_spectrum_output.f90",
+   "‘udir’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swan_spectrum_transform.f90",
+   "‘as2’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swan_spectrum_transform.f90",
+   "‘as3’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swan_spectrum_transform.f90",
+   "‘aux1’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swan_spectrum_transform.f90",
+   "‘aux3’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swan_spectrum_transform.f90",
+   "‘isp’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swan_time.f90",
+   "‘lts’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom1.f90",
+   "‘ii’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom1.f90",
+   "‘resmi’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘c0’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘c1’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘c2’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘c3’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘c4’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘c5’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘c6’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘c_bj’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘chf’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘cosdir’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘e1’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘e2’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘hrms’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘npf’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘nph’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom2.f90",
+   "‘sindir’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom3.f90",
+   "‘atotd’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom3.f90",
+   "‘cdrag’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom3.f90",
+   "‘dspr’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom4.f90",
+   "‘ft’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom4.f90",
+   "‘ma4d’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom4.f90",
+   "‘ma4s’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom4.f90",
+   "‘mi4d’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom4.f90",
+   "‘mi4s’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom4.f90",
+   "‘sinbph’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom5.f90",
+   "‘cad_tmp’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom5.f90",
+   "‘dx2’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom5.f90",
+   "‘dy2’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom5.f90",
+   "‘uxloc4’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom5.f90",
+   "‘uxloc5’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom5.f90",
+   "‘uyloc4’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swancom5.f90",
+   "‘uyloc5’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanout1.f90",
+   "‘ebloc.dim[1].stride’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanout1.f90",
+   "‘ebloc.offset’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanout1.f90",
+   "‘etot’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanout1.f90",
+   "‘floc.dim[0].ubound’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanout1.f90",
+   "‘floc.dim[1].stride’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanout1.f90",
+   "‘floc.dim[1].ubound’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanout1.f90",
+   "‘floc.offset’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanout1.f90",
+   "‘flux.dim[2].stride’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanout1.f90",
+   "‘flux.offset’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanout1.f90",
+   "‘sig2p’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanout2.f90",
+   "‘fmax’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanout2.f90",
+   "‘ilpos2’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanparll.f90",
+   "‘fmax’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre1.f90",
+   "‘iarr.dim[0].ubound’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre1.f90",
+   "‘igr1’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre1.f90",
+   "‘jxmax’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre1.f90",
+   "‘jymax’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre1.f90",
+   "‘singlehot’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘bparf’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘dirrd1’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘dirref’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘dirsid’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘dirsi’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘dorder’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘dxn’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘dyn’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘ibspc2’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘istatf’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘ix1’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘ix2’ may be used uninitialized",
+   2
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘iy1’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘iy2’ may be used uninitialized",
+   2
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘jdminmax’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘locgri’ may be used uninitialized",
+   2
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘nbounc’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘nbspss’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘nhedf’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘nhedt’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘tmp’ may be used uninitialized",
+   3
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘xp’ may be used uninitialized",
+   4
+  ],
+  [
+   "maybe-uninitialized",
+   "swanpre2.f90",
+   "‘yp’ may be used uninitialized",
+   4
+  ],
+  [
+   "maybe-uninitialized",
+   "swanser.f90",
+   "‘__result_inmesh’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanser.f90",
+   "‘beta’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanser.f90",
+   "‘ixmin’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanser.f90",
+   "‘iymin’ may be used uninitialized",
+   1
+  ],
+  [
+   "maybe-uninitialized",
+   "swanser.f90",
+   "‘xp1’ may be used uninitialized",
+   2
+  ],
+  [
+   "maybe-uninitialized",
+   "swanser.f90",
+   "‘yp1’ may be used uninitialized",
+   2
+  ],
+  [
+   "uninitialized",
+   "ocpcre.f90",
+   "‘ri’ is used uninitialized",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "SdsBabanin.f90",
+   "Dummy argument ‘cd’ at (1) was declared INTENT(OUT) but was not set",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "SdsBabanin.f90",
+   "Unused dummy argument ‘anar_in’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "SdsBabanin.f90",
+   "Unused dummy argument ‘cgo’ at (1)",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "SdsBabanin.f90",
+   "Unused dummy argument ‘diagnostics’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "SdsBabanin.f90",
+   "Unused dummy argument ‘sigma’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "SdsBabanin.f90",
+   "Unused dummy argument ‘testfl’ at (1)",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "SwanQCM.f90",
+   "Unused dummy argument ‘ecos’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "SwanQCM.f90",
+   "Unused dummy argument ‘esin’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "SwanSpectPart.f90",
+   "Unused dummy argument ‘depth’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "SwanSweepSel.f90",
+   "Unused dummy argument ‘spcsig’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "fftw_compat.f90",
+   "Unused dummy argument ‘work’ at (1)",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "fftw_compat.f90",
+   "Unused dummy argument ‘wsave’ at (1)",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "mod_xnl4v5.f90",
+   "Unused dummy argument ‘angle’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "mod_xnl4v5.f90",
+   "Unused dummy argument ‘kx_beg’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "mod_xnl4v5.f90",
+   "Unused dummy argument ‘kx_end’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "mod_xnl4v5.f90",
+   "Unused dummy argument ‘ky_beg’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "mod_xnl4v5.f90",
+   "Unused dummy argument ‘ky_end’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘cgo’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘ddx’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘ddy’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘dt’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘hs’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘iddlow’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘iddtop’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘idtot’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘istot’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘iter’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘ix’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘iy’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘kgrpnt’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘ksx’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘ksy’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘mudl2’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘smespc’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘swpdir’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘xcgrid’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom1.f90",
+   "Unused dummy argument ‘ycgrid’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom2.f90",
+   "Unused dummy argument ‘dep2’ at (1)",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom2.f90",
+   "Unused dummy argument ‘dissc0’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom2.f90",
+   "Unused dummy argument ‘fdir’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom2.f90",
+   "Unused dummy argument ‘iddlow’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom2.f90",
+   "Unused dummy argument ‘iddtop’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom2.f90",
+   "Unused dummy argument ‘imatra’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom2.f90",
+   "Unused dummy argument ‘kmespc’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom2.f90",
+   "Unused dummy argument ‘spcdir’ at (1)",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom2.f90",
+   "Unused dummy argument ‘ufric’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom3.f90",
+   "Unused dummy argument ‘sigpkd’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom3.f90",
+   "Unused dummy argument ‘wind10’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom4.f90",
+   "Unused dummy argument ‘iter’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swancom5.f90",
+   "Unused dummy argument ‘anybin’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swanmain.f90",
+   "Unused dummy argument ‘xytst’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swanout1.f90",
+   "Unused dummy argument ‘cross’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swanout1.f90",
+   "Unused dummy argument ‘rtype’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swanout1.f90",
+   "Unused dummy argument ‘xcgrid’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swanout1.f90",
+   "Unused dummy argument ‘ycgrid’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swanout2.f90",
+   "Unused dummy argument ‘oqr’ at (1)",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "swanparll.f90",
+   "Unused dummy argument ‘npart’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swanparll.f90",
+   "Unused dummy argument ‘oqr’ at (1)",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "swanpre2.f90",
+   "Unused dummy argument ‘bctype’ at (1)",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "swanser.f90",
+   "Unused dummy argument ‘x2’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swanser.f90",
+   "Unused dummy argument ‘y2’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swmod2.f90",
+   "Dummy argument ‘output’ at (1) was declared INTENT(OUT) but was not set",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swmod2.f90",
+   "Unused dummy argument ‘idest’ at (1)",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "swmod2.f90",
+   "Unused dummy argument ‘ierr’ at (1)",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "swmod2.f90",
+   "Unused dummy argument ‘iilen’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swmod2.f90",
+   "Unused dummy argument ‘ilen’ at (1)",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "swmod2.f90",
+   "Unused dummy argument ‘input’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swmod2.f90",
+   "Unused dummy argument ‘isource’ at (1)",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "swmod2.f90",
+   "Unused dummy argument ‘itag’ at (1)",
+   4
+  ],
+  [
+   "unused-dummy-argument",
+   "swmod2.f90",
+   "Unused dummy argument ‘ityprd’ at (1)",
+   4
+  ],
+  [
+   "unused-dummy-argument",
+   "swmod2.f90",
+   "Unused dummy argument ‘routine_name’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
+   "swmod2.f90",
+   "Unused dummy argument ‘values’ at (1)",
+   2
+  ],
+  [
+   "unused-dummy-argument",
+   "swmod2.f90",
+   "Unused dummy argument ‘value’ at (1)",
+   4
+  ],
+  [
+   "unused-function",
+   "swancom1.f90",
+   "‘swsor’ defined but not used",
+   1
+  ],
+  [
+   "unused-function",
+   "swancom5.f90",
+   "‘strsdfv’ defined but not used",
+   1
+  ],
+  [
+   "unused-function",
+   "swanmain.f90",
+   "‘wrtest’ defined but not used",
+   1
+  ],
+  [
+   "unused-function",
+   "swanser.f90",
+   "‘distr’ defined but not used",
+   1
+  ],
+  [
+   "unused-parameter",
+   "SdsBabanin.f90",
+   "Unused parameter ‘nu_water’ declared at (1)",
+   2
+  ],
+  [
+   "unused-parameter",
+   "SwanGradDepthorK.f90",
+   "Unused parameter ‘drat’ declared at (1)",
+   1
+  ],
+  [
+   "unused-parameter",
+   "SwanGradVel.f90",
+   "Unused parameter ‘drat’ declared at (1)",
+   1
+  ],
+  [
+   "unused-parameter",
+   "SwanParallel.f90",
+   "Unused parameter ‘itag’ declared at (1)",
+   2
+  ],
+  [
+   "unused-parameter",
+   "swan_service_interfaces.f90",
+   "Unused parameter ‘master’ which has been explicitly imported at (1)",
+   2
+  ],
+  [
+   "unused-parameter",
+   "swanout2.f90",
+   "Unused parameter ‘muint32’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused module variable ‘grav’ which has been explicitly imported at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘a2’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘afp’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘alpha’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘cinv’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘cp’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘dir’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘edens2d’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘fd’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘fp’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘freq’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘i1’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘i3fp’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘iddum’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘ii’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘imax’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘itt’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘i’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘kds_phillips’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘r1’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘rdch’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘rmsdir’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘sds_int’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘sds’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘sin1d’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘six’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘sqrth’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘st1_int’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘st1’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘st2_int’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘st2’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘stress’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘swnd’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘tau_tmp’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘theta’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘unz’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SdsBabanin.f90",
+   "Unused variable ‘wnp’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanBndStruc.f90",
+   "Unused variable ‘msgstr’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanBndStruc.f90",
+   "Unused variable ‘rops’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanBpntlist.f90",
+   "Unused variable ‘curr’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanBpntlist.f90",
+   "Unused variable ‘found’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanBpntlist.f90",
+   "Unused variable ‘frst’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanBpntlist.f90",
+   "Unused variable ‘tmp’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanBpntlist.f90",
+   "Unused variable ‘xp’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanBpntlist.f90",
+   "Unused variable ‘yp’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanBraggScat.f90",
+   "Unused variable ‘arr’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanGradDepthorK.f90",
+   "Unused variable ‘arr’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanGradVel.f90",
+   "Unused variable ‘arr’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanGridFace.f90",
+   "Unused variable ‘icell2’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanGridFace.f90",
+   "Unused variable ‘ivert’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanIEM.f90",
+   "Unused variable ‘id’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanParallel.f90",
+   "Unused variable ‘ierr’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "SwanParallel.f90",
+   "Unused variable ‘msgstr’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "SwanPropvelS.f90",
+   "Unused variable ‘icell’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanQCM.f90",
+   "Unused variable ‘arr’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanQCM.f90",
+   "Unused variable ‘ikx’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanQCM.f90",
+   "Unused variable ‘iky’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanReadTriangleGrid.f90",
+   "Unused variable ‘idum’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanSpectPart.f90",
+   "Unused module variable ‘printf’ which has been explicitly imported at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "SwanSpectPart.f90",
+   "Unused variable ‘cgp’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanSpectPart.f90",
+   "Unused variable ‘fte’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanSpectPart.f90",
+   "Unused variable ‘hsmax’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanSpectPart.f90",
+   "Unused variable ‘imd’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanSpectPart.f90",
+   "Unused variable ‘wnp’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "SwanSpectPart.f90",
+   "Unused variable ‘wsmax’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused module variable ‘dera’ which has been explicitly imported at (1)",
+   11
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused module variable ‘pih’ which has been explicitly imported at (1)",
+   9
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused module variable ‘rade’ which has been explicitly imported at (1)",
+   8
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused module variable ‘sqrtg’ which has been explicitly imported at (1)",
+   9
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused module variable ‘trshdep’ which has been explicitly imported at (1)",
+   12
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘depmin’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘diagk1_0’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘diagk3_0’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘dk13’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘dk14’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘dkpol’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘dq1’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘dq3’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘i_qlast’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘iang’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘iaq’ declared at (1)",
+   3
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘ia’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘idir’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘ierr’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘ikq’ declared at (1)",
+   3
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘ik’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘isig’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘itest’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘iuerr’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘ja4r’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘jj’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘jloc’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘lbqf’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘lutest’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘nfil_dens’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘nfil_dir’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘nfil_krat’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘nloc’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘ntot_conf’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘ntot_filt’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘period’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘qq’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘smax’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘t13_0’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘t13_1’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘t13_3’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘w2’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘w4’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "mod_xnl4v5.f90",
+   "Unused variable ‘xtest’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swan_service_interfaces.f90",
+   "Unused module variable ‘iammaster’ which has been explicitly imported at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swan_service_interfaces.f90",
+   "Unused module variable ‘inode’ which has been explicitly imported at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swan_service_interfaces.f90",
+   "Unused module variable ‘parll’ which has been explicitly imported at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swan_spectrum_transform.f90",
+   "Unused variable ‘cg’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swan_spectrum_transform.f90",
+   "Unused variable ‘nd’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused module variable ‘default_time_context’ which has been explicitly imported at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘arr’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘dq2’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘dq’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘dt2’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘idc’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘ierr’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘iii’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘ij’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘ik’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘isc’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘j’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘kloc’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘lmax’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘n2’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
+   "Unused variable ‘siglow’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom2.f90",
+   "Unused variable ‘ef’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom2.f90",
+   "Unused variable ‘id1’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom2.f90",
+   "Unused variable ‘id2’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom2.f90",
+   "Unused variable ‘iddir’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom2.f90",
+   "Unused variable ‘idmax’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom2.f90",
+   "Unused variable ‘idmin’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom4.f90",
+   "Unused variable ‘arr’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "swancom4.f90",
+   "Unused variable ‘cg’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom4.f90",
+   "Unused variable ‘nd’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom4.f90",
+   "Unused variable ‘n’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom5.f90",
+   "Unused module variable ‘default_time_context’ which has been explicitly imported at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom5.f90",
+   "Unused variable ‘id’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanmain.f90",
+   "Unused module variable ‘default_time_context’ which has been explicitly imported at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "swanmain.f90",
+   "Unused variable ‘igrid’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanmain.f90",
+   "Unused variable ‘ii’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanmain.f90",
+   "Unused variable ‘ivtype’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanmain.f90",
+   "Unused variable ‘ivt’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanmain.f90",
+   "Unused variable ‘mxoutar’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanout1.f90",
+   "Unused module variable ‘default_time_context’ which has been explicitly imported at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanout1.f90",
+   "Unused variable ‘ierr’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanout1.f90",
+   "Unused variable ‘pname’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanout1.f90",
+   "Unused variable ‘ptype’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanout1.f90",
+   "Unused variable ‘xclose’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanout2.f90",
+   "Unused module variable ‘default_time_context’ which has been explicitly imported at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanout2.f90",
+   "Unused variable ‘dfac_int’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanout2.f90",
+   "Unused variable ‘istr’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanout2.f90",
+   "Unused variable ‘stpt’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanparll.f90",
+   "Unused variable ‘chars’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "swanparll.f90",
+   "Unused variable ‘ierr’ declared at (1)",
+   3
+  ],
+  [
+   "unused-variable",
+   "swanparll.f90",
+   "Unused variable ‘if1’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "swanparll.f90",
+   "Unused variable ‘if2’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "swanparll.f90",
+   "Unused variable ‘il1’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "swanparll.f90",
+   "Unused variable ‘il2’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "swanparll.f90",
+   "Unused variable ‘msgstr’ declared at (1)",
+   2
+  ],
+  [
+   "unused-variable",
+   "swanparll.f90",
+   "Unused variable ‘paralmpi’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanpre1.f90",
+   "Unused module variable ‘default_time_context’ which has been explicitly imported at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanpre1.f90",
+   "Unused variable ‘pname’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanpre1.f90",
+   "Unused variable ‘ptype’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanpre1.f90",
+   "Unused variable ‘timarr’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swanpre2.f90",
+   "Unused variable ‘iko2’ declared at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swmod2.f90",
+   "Unused variable ‘ierr’ declared at (1)",
+   17
+  ]
+ ]
+}

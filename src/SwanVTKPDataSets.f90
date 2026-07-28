@@ -58,8 +58,9 @@ subroutine SwanVTKPDataSets ( upvt, pstype, nvar, ivtyp, mxk, myk, vtkfile, upvd
 
     use swan_diagnostics_level
     use swan_numerics
-    use m_parall
+    use swan_parallel_state, only: NPROC
     use outp_data
+    use swan_vtk_output
 
     implicit none(type, external)
 

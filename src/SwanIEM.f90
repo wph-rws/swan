@@ -142,7 +142,7 @@ subroutine SwanIEMinitig(spectral_powers)
     use swan_math_constants, only: PI2
     use swan_math_constants
     use M_GENARR, only: SPCSIG, AC2, KGRPNT
-    use M_PARALL, only: NBGGL
+    use swan_global_grid, only: NBGGL
 
     implicit none(type, external)
     type(spectral_powers_t), intent(inout) :: spectral_powers

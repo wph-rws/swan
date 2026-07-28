@@ -75,9 +75,13 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
    USE swan_propagation_scheme
    USE swan_spherical_geometry
    USE OUTP_DATA
+   USE swan_output_formats
    USE M_GENARR
+   USE swan_vegetation_layers
+   USE swan_input_fields
    USE M_OBSTA
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
    USE SwanIEM, only: nmax, dfiem, e_trsh, sflog
    USE SwanBraggScat, only: mkbx, mkby, dkbx, dkby, botspc
@@ -4203,6 +4207,7 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
    USE swan_computational_grid
    USE swan_compda_layout
    USE M_GENARR
+   USE swan_input_fields
    USE SwanGriddata
 
 
@@ -4795,7 +4800,9 @@ SUBROUTINE CGINIT (LOGCOM)
    USE swan_computational_grid
    USE swan_spectral_grid
    USE M_GENARR
+   USE swan_input_fields
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
 
 
@@ -5283,6 +5290,7 @@ SUBROUTINE CGBOUN (KGRPNT, KGRBND)
    USE swan_computational_grid
    USE swan_io_units
    USE M_PARALL
+   USE swan_global_grid
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -5818,6 +5826,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
    USE swan_math_constants
    USE swan_time, ONLY: default_time_context
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 

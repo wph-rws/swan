@@ -133,7 +133,7 @@ subroutine SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, 
     vert => gridobject%vert_grid
     cell => gridobject%cell_grid
 
-    ivert = vs(1)
+    ivert = KCGRD(1)
 
     if ( vert(ivert)%atti(VMARKER) == 1 ) return    ! no GSE correction in boundary vertex
 

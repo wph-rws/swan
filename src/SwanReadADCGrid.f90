@@ -63,6 +63,7 @@ subroutine SwanReadADCGrid
 
     USE swan_diagnostics_level
     use m_genarr
+    use swan_input_fields
     use SwanGriddata
 
     implicit none(type, external)

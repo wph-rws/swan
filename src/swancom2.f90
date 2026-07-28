@@ -584,6 +584,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
    USE swan_diagnostics_level
    USE swan_io_units
    USE M_GENARR
+   USE swan_vegetation_layers
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 

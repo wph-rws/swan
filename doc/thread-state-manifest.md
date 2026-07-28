@@ -19,7 +19,7 @@ importeert — een naamcollisie, geen gedeelde toestand.
 Levensduur is de kortste eenheid waarover de waarde geldig moet blijven:
 `punt` (één roosterpunt of vertex), `sweep`, `iteratie`, `run`, `proces`.
 
-## De zeven resterende directives
+## De zes resterende directives
 
 | # | Locatie | Module | Symbolen | Buildvariant |
 |---|---|---|---|---|
@@ -28,10 +28,9 @@ Levensduur is de kortste eenheid waarover de waarde geldig moet blijven:
 | 3 | [swan_stencil.f90:48](../src/swan_stencil.f90#L48) | `swan_stencil` | `ICMAX, CSETUP` | altijd |
 | 4 | [swan_test_output.f90:34](../src/swan_test_output.f90#L34) | `swan_test_output` | `IPTST, TESTFL` | altijd |
 | 5 | [swan_propagation_scheme.f90:27](../src/swan_propagation_scheme.f90#L27) | `swan_propagation_scheme` | `PROPSL` | altijd |
-| 6 | [SwanCompdata.f90:69](../src/SwanCompdata.f90#L69) | `SwanCompdata` | `vs` | altijd |
-| 7 | [swan_time.f90:40](../src/swan_time.f90#L40) | `swan_time` | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | **alleen `!TIMG`** |
+| 6 | [swan_time.f90:40](../src/swan_time.f90#L40) | `swan_time` | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | **alleen `!TIMG`** |
 
-Directive 7 staat achter de `!TIMG`-schakelaar en is in een standaardbuild
+Directive 6 staat achter de `!TIMG`-schakelaar en is in een standaardbuild
 inactief. Een `THREADPRIVATE`-inventaris die alleen op actieve regels kijkt
 mist hem; de driftcontrole leest daarom ook de geschakelde varianten.
 
@@ -55,7 +54,6 @@ de masterwaarde hebben.
 | `CSETUP` | ✅ | — |
 | `PROPSL` | ✅ | — |
 | `IXCGRD, IYCGRD, KCGRD` | — | — |
-| `vs` | — | — |
 | `wcap_workspace_t` | expliciet per thread | expliciet per thread |
 
 `CSETUP` en `PROPSL` ontbreken in de ongestructureerde regio omdat die solver
@@ -86,10 +84,12 @@ threadtoestand zelf te moeten maken.
 | `ICMAX` | beide | ✅ | [swanmain.f90:1033](../src/swanmain.f90#L1033) | run | 3 | `common_thread_seed_t` |
 | `CSETUP` | structured | ✅ | [swanmain.f90:1143](../src/swanmain.f90#L1143) | run | 3/6 | `structured_thread_workspace_t` |
 
-`KCGRD` is in het ongestructureerde pad een spiegel van `vs`
-(`KCGRD = vs`, met het commentaar "to be used in some original SWAN routines").
-Na de migratie mag er maar één stencil-eigenaar zijn; de spiegel is precies het
-soort dubbele opslag dat randvoorwaarde 2 verbiedt.
+`KCGRD` was in het ongestructureerde pad gespiegeld in `vs`, een tweede
+threadprivate array in `SwanCompdata` met dezelfde inhoud (`KCGRD = vs`, met het
+commentaar "to be used in some original SWAN routines"). Die spiegel is weg: de
+ongestructureerde solver vult `KCGRD` nu rechtstreeks en de acht bestanden die
+`vs` lazen lezen `KCGRD`. Daarmee is er nog één stencil-eigenaar, zoals
+randvoorwaarde 2 eist.
 
 ### `swan_test_output` en `swan_propagation_scheme` — teststatus en lokale propagatie
 

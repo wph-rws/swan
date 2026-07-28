@@ -50,7 +50,10 @@ module SwanCompdata
 !
 !   Modules used
 
-    USE swan_stencil
+    ! MICMAX is all this module needs: it is the extent of the stencil array
+    ! vs below. Importing swan_stencil wholesale re-exported the whole of it,
+    ! because a module without PRIVATE passes on everything it imports.
+    use swan_stencil, only: MICMAX
 
     implicit none(type, external)
 
@@ -62,11 +65,6 @@ module SwanCompdata
     integer                                    :: nbpol  ! total number of boundary polygons
     integer, dimension(10000)                  :: nbpt   ! number of boundary vertices for each boundary polygon
 !FXFRO    integer                                    :: nfront ! number of wavefronts
-
-    integer, dimension(MICMAX)                 :: vs     ! computational stencil, i.e. set of vertices
-                                                         ! needed for the computation of a new value
-                                                         ! in the present vertex
-!$omp threadprivate(vs)
 
     integer, dimension(:,:), save, allocatable :: blist  ! list of boundary vertices in ascending order for each boundary polygon
     integer, dimension(:,:), save, allocatable :: bmark  ! list of corresponding boundary markers for each boundary polygon

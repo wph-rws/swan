@@ -15,6 +15,7 @@ SUBROUTINE WRSPEC (NREF, ACLOC)
    USE swan_spectral_grid
    USE swan_math_constants
    USE OUTP_DATA
+   USE swan_output_formats
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 

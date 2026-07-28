@@ -73,8 +73,11 @@ def scan_sources(source_dir: Path = SOURCE_DIR) -> dict[str, tuple[str, int, str
 def manifest_rows(manifest: Path = MANIFEST) -> list[tuple[str, int, set[str]]]:
     """Return (file, line, symbols) for every row of the directive table."""
     text = manifest.read_text()
+    # The heading counts the directives in words, so it changes whenever one is
+    # added or removed -- exactly when this check matters most. Match the shape
+    # of the heading, not the number in it.
     table = re.search(
-        r"^## De zeven resterende directives\s*$(.*?)^## ", text, re.M | re.S
+        r"^## De \w+ resterende directives\s*$(.*?)^## ", text, re.M | re.S
     )
     if table is None:
         raise ValueError(f"{manifest}: directive table not found")

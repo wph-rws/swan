@@ -137,6 +137,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    USE swan_spherical_geometry
    USE SwanQCM
    USE M_PARALL
+   USE swan_global_grid
    USE m_constants, ONLY: init_constants
    USE m_xnldata
    USE m_fileio

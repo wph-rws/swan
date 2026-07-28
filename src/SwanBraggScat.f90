@@ -119,7 +119,8 @@ subroutine SWBRBOT
     use swan_computational_grid, only: MXC, MYC, MCGRD
     use swan_math_constants, only: PI
     use swan_math_constants
-    use m_genarr, only: DEPTH, XCGRID, YCGRID, KGRPNT
+    use M_GENARR, only: XCGRID, YCGRID, KGRPNT
+    use swan_input_fields, only: DEPTH
     use SwanGriddata, only: nverts, xcugrd, ycugrd
 
     implicit none(type, external)

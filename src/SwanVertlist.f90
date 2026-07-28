@@ -73,6 +73,7 @@ subroutine SwanVertlist ( compda )
     use swan_numerics, only: NSTATM
     use swan_math_constants
     use m_genarr
+    use swan_input_fields
     use m_parall
     use SwanGriddata
     use SwanGridobjects

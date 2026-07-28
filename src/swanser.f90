@@ -2268,8 +2268,8 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
             X1 = XCGRID(IXCGRD(1),IYCGRD(1))+XOFFS
             Y1 = YCGRID(IXCGRD(1),IYCGRD(1))+YOFFS
          ELSE
-            X1 = xcugrd(vs(1))+XOFFS
-            Y1 = ycugrd(vs(1))+YOFFS
+            X1 = xcugrd(KCGRD(1))+XOFFS
+            Y1 = ycugrd(KCGRD(1))+YOFFS
          ENDIF
          WRITE (PRINTF, "(' Transmission: ', 2X, 2F12.4, I5, ' dam level=',F6.2, ' board=', F6.2, ' Hs=', F6.2, ' Tp=', F6.2, ' Xi0p=', F6.3, ' Kt=', F6.3)") X1, Y1,&
          &ILINK, HGT, WATHIG, HSIN, SQRT(L0P/1.5613), XI0P, OBHKT
@@ -2355,10 +2355,10 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
             ENDDO
          ELSE
 !             determine begin and end points of link (unstructured)
-            X1 = xcugrd(vs(1))
-            Y1 = ycugrd(vs(1))
-            X2 = xcugrd(vs(ILINK+1))
-            Y2 = ycugrd(vs(ILINK+1))
+            X1 = xcugrd(KCGRD(1))
+            Y1 = ycugrd(KCGRD(1))
+            X2 = xcugrd(KCGRD(ILINK+1))
+            Y2 = ycugrd(KCGRD(ILINK+1))
             XV(1) = X1
             YV(1) = Y1
             XV(2) = X2

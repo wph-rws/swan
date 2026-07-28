@@ -90,7 +90,7 @@ subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin, diffr )
 
     do ic = 1, ICMAX
 
-       ivert  = vs(ic)      ! points in computational stencil
+       ivert  = KCGRD(ic)      ! points in computational stencil
 
        do is = 1, MSC
           do id = 1, MDC

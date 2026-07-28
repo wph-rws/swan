@@ -54,8 +54,9 @@ subroutine SwanVTKWriteData ( uvtk, pstype, nvar, ivtyp, voqr, data, lenp, mxk, 
 !   Modules used
 
     use swan_diagnostics_level
-    use m_parall
+    use swan_parallel_state, only: INODE
     use outp_data
+    use swan_vtk_output
     use SwanGriddata
     use SwanGridobjects
 

@@ -54,7 +54,7 @@ subroutine SwanInitCompGrid ( logcom )
     use swan_computational_grid
     use swan_spectral_grid
     use m_genarr
-    use m_parall
+    use swan_global_grid
     use SwanGriddata
 
     implicit none(type, external)

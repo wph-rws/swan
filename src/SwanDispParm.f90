@@ -94,7 +94,7 @@ subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig )
 
     do ic = 1, ICMAX
 
-       ivert  = vs(ic)      ! points in computational stencil
+       ivert  = KCGRD(ic)      ! points in computational stencil
        deploc = dep2(ivert)
 
        if (VARMUD) then

@@ -1181,6 +1181,7 @@ SUBROUTINE SWPARTIT ( IPOWN, MXC, MYC )
 
    USE swan_diagnostics_level
    USE M_PARALL
+   USE swan_global_grid
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1350,6 +1351,7 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
 
    USE swan_diagnostics_level
    USE M_PARALL
+   USE swan_global_grid
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1693,6 +1695,7 @@ SUBROUTINE SWDECOMP
    USE swan_diagnostics_level
    USE swan_computational_grid
    USE M_PARALL
+   USE swan_global_grid
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1857,6 +1860,7 @@ end subroutine SWDECOMP
 !JAC   USE swan_diagnostics_level
 !JAC   USE swan_computational_grid
 !JAC   USE M_PARALL
+!JAC   USE swan_global_grid
 !JAC!
 !JAC   IMPLICIT NONE
 !JAC!
@@ -2602,6 +2606,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
    USE swan_computational_grid
    USE M_GENARR
    USE M_PARALL
+   USE swan_global_grid
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2888,6 +2893,7 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
    USE swan_computational_grid
    USE OUTP_DATA
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata, ONLY: nvertsg
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -3320,6 +3326,7 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
    USE swan_numerics
    USE OUTP_DATA
    USE M_PARALL
+   USE swan_global_grid
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
@@ -3604,6 +3611,7 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
 
 CONTAINS
    SUBROUTINE WREXCV
+      USE swan_output_formats, ONLY: FLT_TABLE, FLD_TABLE
       IL = 1
       OUTLIN = '    '
       IF (RTYPE.EQ.'TABI') THEN
@@ -3668,6 +3676,7 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
    USE swan_spectral_grid
    USE OUTP_DATA
    USE M_PARALL
+   USE swan_global_grid
 !NCF   USE swn_outnc, ONLY: swn_outnc_colspc
    USE SwanGriddata, ONLY: xcugrdgl, ycugrdgl
 
@@ -4060,6 +4069,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
    USE swan_spherical_geometry, ONLY: KSPHER
    USE OUTP_DATA
    USE M_PARALL
+   USE swan_global_grid
 !NCF   USE SwanGridData, ONLY: XCUGRDGL, YCUGRDGL
 !NCF   USE swn_outnc
 
@@ -4567,6 +4577,7 @@ end subroutine SWCOLBLK
 !JAC   USE swan_io_units
 !JAC   USE swan_computational_grid
 !JAC   USE M_PARALL
+!JAC   USE swan_global_grid
 !JAC!
 !JAC   IMPLICIT NONE
 !JAC!

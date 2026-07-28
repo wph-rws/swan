@@ -51,7 +51,8 @@ module swn_outnc
 !   AGIONCMD        : Set of utilities for writing (metocean) data to netcdf
 !   NCTABLEMD       : description table for metocean parameters
     use agioncmd
-    use M_PARALL
+    use swan_parallel_state, only: IAMMASTER, INODE, NPROC, PARLL
+    use swan_global_grid
     use NETCDF
     use nctablemd, only: nctable, nctable_record, get_nctable_record
     use OUTP_DATA, only: ORQDAT, MAX_OUTP_REQ, LCOMPGRD, OUTP_FILES, NREOQ

@@ -210,6 +210,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
    USE swan_spherical_geometry
    USE OUTP_DATA
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 
@@ -1078,6 +1079,7 @@ SUBROUTINE SWREOQ ( FOUND )
    USE swan_computational_grid
    USE swan_compda_layout
    USE OUTP_DATA
+   USE swan_vtk_output
    USE M_PARALL
 !NCF   USE swn_outnc
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
@@ -2580,6 +2582,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
    USE swan_math_constants
    USE M_BNDSPEC
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
    USE SwanGridobjects
    USE SwanCompdata
@@ -6112,6 +6115,7 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
    USE swan_spherical_geometry
    USE OUTP_DATA
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 

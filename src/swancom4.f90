@@ -5859,6 +5859,7 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC, BPHTMP )
    USE swan_math_constants
    USE M_GENARR
    USE M_PARALL
+   USE swan_global_grid
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 

@@ -563,7 +563,7 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
    USE swan_test_output
 !NCF   USE OUTP_DATA
    USE M_PARALL
-   USE OUTP_DATA, ONLY: NTVTK
+   USE swan_vtk_output, ONLY: NTVTK
 !NCF   use swan_io_limits, only: LENFNM
 !NCF    CHARACTER(LEN=LENFNM) :: FILENM   ! only the netCDF variant uses it here
 
@@ -1184,6 +1184,7 @@ SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   ,&
    USE swan_computational_grid
    USE swan_spherical_geometry
    USE M_PARALL
+   USE swan_global_grid
 
 
 

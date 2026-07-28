@@ -56,6 +56,7 @@ subroutine SwanVTKWriteHeader ( uvtk, pstype, nvar, ivtyp, mxkf, mxkl, mykf, myk
 
     use swan_diagnostics_level
     use outp_data
+    use swan_vtk_output
     use SwanGriddata
 
     implicit none(type, external)

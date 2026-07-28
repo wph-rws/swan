@@ -112,9 +112,9 @@ subroutine SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
 
     if (ltrace) call strace (ient,'SwanTranspX')
 
-    iv1 = vs(1)
-    iv2 = vs(2)
-    iv3 = vs(3)
+    iv1 = KCGRD(1)
+    iv2 = KCGRD(2)
+    iv3 = KCGRD(3)
 
     if ( KSPHER == 0 ) then
 

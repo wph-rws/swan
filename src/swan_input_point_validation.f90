@@ -265,7 +265,7 @@ LOGICAL FUNCTION SINCMP (XP, YP ,XCGRID ,YCGRID ,KGRPNT, KGRBND)
 
    USE swan_computational_grid_kind
    USE swan_computational_grid
-   USE M_PARALL
+   USE swan_parallel_state, ONLY: PARLL
 
 
 !   --|-----------------------------------------------------------|--

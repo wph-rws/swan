@@ -98,7 +98,7 @@ subroutine z_fileio(filename,qual,iufind,iunit,iostat)                        !
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-use M_PARALL
+use swan_parallel_state, only: INODE, PARLL
 implicit none(type, external)
 
 !  0. Update history

@@ -386,6 +386,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
       USE swan_io_units
       USE swan_numerics
       USE OUTP_DATA
+      USE swan_output_formats
       USE swan_time, ONLY: default_time_context
 
 
@@ -654,7 +655,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !
 !  3. Method
 !
-!     Write data without header using the format FLT_BLKP
+!     Write data without header
 !
 !  4. Argument variables
 !
@@ -754,6 +755,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
       USE swan_computational_grid_kind, ONLY: OPTG
       USE M_PARALL
       USE OUTP_DATA
+      USE swan_vtk_output
 
       IMPLICIT NONE(TYPE, EXTERNAL)
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
@@ -1199,6 +1201,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
          USE swan_numerics
          USE swan_spherical_geometry
          USE OUTP_DATA
+         USE swan_output_formats
          USE swan_time, ONLY: default_time_context
          USE M_PARALL
 !NCF         USE swn_outnc, only: swn_outnc_openblockfile,&

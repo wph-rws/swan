@@ -91,9 +91,12 @@ SUBROUTINE SWMAIN
    USE swan_test_output
    USE swan_propagation_scheme
    USE OUTP_DATA
+   USE swan_vtk_output
    USE M_GENARR
+   USE swan_input_fields
    USE M_BNDSPEC
    USE M_PARALL
+   USE swan_global_grid
    USE SwanIEM
    USE SwanBraggScat
    USE SwanQCM
@@ -754,12 +757,14 @@ SUBROUTINE SWINIT (INERR, SNL4)
    USE swan_propagation_scheme
    USE swan_spherical_geometry
    USE swan_time, ONLY: default_time_context
-   USE OUTP_DATA, ONLY: NREOQ, LOPS, LORQ, UPVDF
-   USE M_GENARR, ONLY: XYTST, DEPTH, FRIC, UXB, UYB, WXI, WYI, WLEVL,&
-   &ASTDF, MUDLF, NPLAF, TURBF, AICEF, HICEF, LAYH, VEGDIL, VEGDRL,&
-   &VEGNSL, HSSF, TSSF, DSSF
+   USE OUTP_DATA, ONLY: NREOQ, LOPS, LORQ
+   USE swan_vtk_output, ONLY: UPVDF
+   USE M_GENARR, ONLY: XYTST
+   USE swan_input_fields, ONLY: DEPTH, FRIC, UXB, UYB, WXI, WYI, WLEVL, ASTDF, MUDLF, NPLAF, TURBF, AICEF, HICEF, HSSF, TSSF, DSSF
+   USE swan_vegetation_layers, ONLY: LAYH, VEGDIL, VEGDRL, VEGNSL
    USE M_BNDSPEC
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
    USE SwanIEM, only: sflog
    USE SwanQCM
@@ -3590,6 +3595,7 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
    USE M_OBSTA
    USE M_BNDSPEC
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
    USE SwanCompdata
    USE SwanIEM
@@ -4657,6 +4663,7 @@ SUBROUTINE SWRBC ( COMPDA )
    USE swan_compda_layout
    USE swan_test_output
    USE M_GENARR
+   USE swan_input_fields
    USE M_PARALL
    USE SwanGriddata
    USE SwanBraggScat, only: dpmean
@@ -7817,6 +7824,7 @@ SUBROUTINE SWINCO (AC2    ,COMPDA ,&
    USE swan_test_output
    USE swan_spherical_geometry
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
 
 
@@ -8106,7 +8114,11 @@ SUBROUTINE SWCLME ( DIFFR, TRIADS, SNL4, SPECTRAL_POWERS, THREAD_WORKSPACES )
    USE OUTP_DATA
    USE M_BNDSPEC
    USE M_GENARR
+   USE swan_test_output
+   USE swan_vegetation_layers
+   USE swan_input_fields
    USE M_PARALL
+   USE swan_global_grid
    USE SwanGriddata
    USE SwanCompdata
    USE SwanIEM

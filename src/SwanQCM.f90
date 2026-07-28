@@ -158,6 +158,7 @@ subroutine SWQCINIT ( BGRIDP, COMPDA )
     use swan_test_output
     use m_genarr
     use m_parall
+    use swan_global_grid
     use SwanGriddata
 
     implicit none(type, external)
@@ -740,6 +741,7 @@ subroutine SWQCDFT ( sigft, cgft, dep2, kwave, cgo, cft, rft, sft, wft, wsave )
     use swan_computational_grid
     use swan_spectral_grid
     use m_genarr
+    use swan_input_fields
     use SwanGriddata
     use SwanCompdata
 
@@ -808,8 +810,8 @@ subroutine SWQCDFT ( sigft, cgft, dep2, kwave, cgo, cft, rft, sft, wft, wsave )
     else
        ix = 0
        iy = 0
-       xp = xcugrd(vs(1))
-       yp = ycugrd(vs(1))
+       xp = xcugrd(KCGRD(1))
+       yp = ycugrd(KCGRD(1))
     endif
 
     ierr = 0
@@ -993,6 +995,7 @@ subroutine SWQCUFT ( uxft, uyft, dep2, ux2, uy2, cft, rft, sft, wft, wsave )
     use swan_physical_settings
     use swan_computational_grid
     use m_genarr
+    use swan_input_fields
     use SwanGriddata
     use SwanCompdata
 
@@ -1057,8 +1060,8 @@ subroutine SWQCUFT ( uxft, uyft, dep2, ux2, uy2, cft, rft, sft, wft, wsave )
     else
        ix = 0
        iy = 0
-       xp = xcugrd(vs(1))
-       yp = ycugrd(vs(1))
+       xp = xcugrd(KCGRD(1))
+       yp = ycugrd(KCGRD(1))
     endif
 
     ierr = 0
@@ -1724,6 +1727,7 @@ subroutine SwanGradWig ( W, dwdx, dwdy, ac2, dep2, spcdir, spcsig )
     use SwanGriddata
     use SwanGridobjects
     use SwanCompdata
+    use swan_stencil, only: KCGRD
 
     implicit none(type, external)
 
@@ -1803,7 +1807,7 @@ subroutine SwanGradWig ( W, dwdx, dwdy, ac2, dep2, spcdir, spcsig )
     vert => gridobject%vert_grid
     cell => gridobject%cell_grid
 
-    ivert = vs(1)
+    ivert = KCGRD(1)
 
     if ( vert(ivert)%atti(VMARKER) == 1 ) return    ! boundary vertex
 
@@ -2736,6 +2740,7 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
    use swan_services, only: CVMESH
     use m_genarr
     use m_parall
+    use swan_global_grid
     use SwanGriddata
     use SwanCompdata
 
@@ -2920,8 +2925,8 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
        ! unstructured mesh
 
-       xp = xcugrd(vs(1))
-       yp = ycugrd(vs(1))
+       xp = xcugrd(KCGRD(1))
+       yp = ycugrd(KCGRD(1))
 
        do ixd = 1, mxd
 
@@ -3102,8 +3107,8 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
        ! unstructured mesh
 
-       xp = xcugrd(vs(1))
-       yp = ycugrd(vs(1))
+       xp = xcugrd(KCGRD(1))
+       yp = ycugrd(KCGRD(1))
 
        do ixd = 1, mxd
 
@@ -3181,7 +3186,7 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
           if ( optg /= 5 ) then
              write(PRTEST,'(a,i2,a,i5,a,i5,a)') ' ++ number of iterations to correct variance of bulk dissipation is ',j,' in grid point (',IXCGRD(1)+MXF-1,',',IYCGRD(1)+MYF-1,')'
           else
-             write(PRTEST,'(a,i2,a,i7)') ' ++ number of iterations to correct variance of bulk dissipation is ',j,' in vertex k = ',vs(1)
+             write(PRTEST,'(a,i2,a,i7)') ' ++ number of iterations to correct variance of bulk dissipation is ',j,' in vertex k = ',KCGRD(1)
           endif
 
        elseif ( disbk < 0. .and. varW > 0. ) then
@@ -3194,7 +3199,7 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
                 if ( optg /= 5 ) then
                    write (PRTEST, '(a,f5.1,a,i5,a,i5,a)') 'integral of QC dissipation is not consistent - deviation=',rdev,' % in grid point (',IXCGRD(1)+MXF-1,',',IYCGRD(1)+MYF-1,')'
                 else
-                   write (PRTEST, '(a,f5.1,a,i7)') 'integral of QC dissipation is not consistent - deviation=',rdev,' % in vertex k = ',vs(1)
+                   write (PRTEST, '(a,f5.1,a,i7)') 'integral of QC dissipation is not consistent - deviation=',rdev,' % in vertex k = ',KCGRD(1)
                 endif
              endif
           endif

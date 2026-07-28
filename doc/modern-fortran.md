@@ -158,7 +158,7 @@ as follows:
 
 | Diagnostic inventory | Before | Interface layer | Current | Reduction |
 |---|---:|---:|---:|---:|
-| All warnings | 4,443 | 1,508 | 1,534 | 65% |
+| All warnings | 4,443 | 1,508 | 1,526 | 66% |
 | Implicit-interface warnings | 3,229 | 288 | 2 | 99.9% |
 
 The "interface layer" column is the state after explicit interfaces were added
@@ -170,7 +170,7 @@ total warning count rose slightly, which is expected rather than a regression:
 once the compiler knows the dummy argument types, so making several thousand
 calls checkable exposes conversions that were previously invisible. The
 categories behind the current total are dominated by `-Wconversion-extra`
-(493), `-Wunused-variable` (259) and `-Wcompare-reals` (226).
+(493), `-Wunused-variable` (254) and `-Wcompare-reals` (226).
 
 Two implicit-interface call sites remain, both `METIS_*` calls into the external
 C library, which can never be Fortran interfaces. That is the floor.
@@ -179,8 +179,8 @@ incremental one only reports the files it recompiled.
 
 ### What the remaining warnings are, and where not to start
 
-The 1,534 that remain are dominated by `-Wconversion-extra` (493),
-`-Wunused-variable` (259), `-Wcompare-reals` (226), `-Wfunction-elimination`
+The 1,526 that remain are dominated by `-Wconversion-extra` (493),
+`-Wunused-variable` (254), `-Wcompare-reals` (226), `-Wfunction-elimination`
 (163) and `-Wmaybe-uninitialized` (143).
 
 A sample of five `-Wmaybe-uninitialized` clusters was checked against the code
@@ -242,6 +242,14 @@ gate.
   its recorded budget. A category the budget has never seen has an implicit
   budget of zero, so an entirely new kind of warning fails too. Shrinking a
   category is a deliberate act ending in `--update-budget`.
+- **Nor can it be swapped.** Counts alone cannot see one warning fixed and one
+  introduced in the same category, so a second baseline records every warning
+  as a fingerprint of (category, file, message), without line number or source
+  text. Moving or reformatting code is therefore invisible to it; only a new
+  warning is not. Removals are reported, additions fail, and re-measuring is a
+  deliberate act ending in `--update-fingerprints`. The baseline names the
+  compiler it was measured with and is skipped rather than failed against a
+  different one, because an upgrade rewrites the whole inventory.
 
 ### Why the numeric comparison is not bit-exact
 
