@@ -779,7 +779,7 @@ subroutine SWFBXY ( dep2, mudl2, spcsig, spcdir )
 
 end subroutine SWFBXY
 
-subroutine SWFB ( fbd, dep2, kwave, ecos, esin )
+subroutine SWFB ( fbd, dep2, kwave, ecos, esin ,IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -836,6 +836,7 @@ subroutine SWFB ( fbd, dep2, kwave, ecos, esin )
 
 !   Argument variables
 
+   INTEGER, INTENT(IN) :: IGP
     real, dimension(MCGRD), intent(in)        :: dep2     ! water depth at current time level
     real, dimension(MDC), intent(in)          :: ecos     ! help array containing cosine of spectral directions
     real, dimension(MDC), intent(in)          :: esin     ! help array containing sine of spectral directions
@@ -878,10 +879,10 @@ subroutine SWFB ( fbd, dep2, kwave, ecos, esin )
 
     fbd = 0.
 
-    fmax = maxval(abs(fb(:,:,KCGRD(1))))
+    fmax = maxval(abs(fb(:,:,IGP)))
     if ( .not. fmax > 1.e-6 ) return
 
-    d = dep2(KCGRD(1))
+    d = dep2(IGP)
 
     kcuti = 1. / pbrag(2)
 
@@ -939,7 +940,7 @@ subroutine SWFB ( fbd, dep2, kwave, ecos, esin )
                    sxk1 = 1.- sxk2
                    syk1 = 1.- syk2
 
-                   fbd(ida,id,is) = sxk1*syk1*fb(ik,jk,KCGRD(1)) + sxk1*syk2*fb(ik,jk+1,KCGRD(1)) + sxk2*syk1*fb(ik+1,jk,KCGRD(1)) + sxk2*syk2*fb(ik+1,jk+1,KCGRD(1))
+                   fbd(ida,id,is) = sxk1*syk1*fb(ik,jk,IGP) + sxk1*syk2*fb(ik,jk+1,IGP) + sxk2*syk1*fb(ik+1,jk,IGP) + sxk2*syk2*fb(ik+1,jk+1,IGP)
 
                 endif
 
@@ -953,7 +954,7 @@ subroutine SWFB ( fbd, dep2, kwave, ecos, esin )
 
 end subroutine SWFB
 
-subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, isstop, ecos, esin, plbrag, redc0 )
+subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, isstop, ecos, esin, plbrag, redc0 ,IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1014,6 +1015,7 @@ subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, iss
 
 !   Argument variables
 
+   INTEGER, INTENT(IN) :: IGP
     integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
 
     integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
@@ -1057,7 +1059,7 @@ subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, iss
 
     if (ltrace) call strace (ient,'SWBRAGG1')
 
-    d = dep2(KCGRD(1))
+    d = dep2(IGP)
 
     do is = 1, isstop
 
@@ -1080,9 +1082,9 @@ subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, iss
 
                 cosdif = ecos(id)*ecos(ida) + esin(id)*esin(ida)
 
-                edif = ac2(ida,is,KCGRD(1)) - ac2(id,is,KCGRD(1))
+                edif = ac2(ida,is,IGP) - ac2(id,is,IGP)
 
-                fbdif = fbdxy(ida,id,is,KCGRD(1))
+                fbdif = fbdxy(ida,id,is,IGP)
 
                 sbragg = sbragg + cosdif**2. * fbdif * edif
 
@@ -1099,7 +1101,7 @@ subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, iss
 
              ! test output
 
-             if ( ITEST > 120 .and. TESTFL ) write (PRTEST, "(' BRAGG: INDX ID IS DEP CHI BRAGG:', 3i6, 3(1x,e12.4))") KCGRD(1), id, is, d, cf, sbragg
+             if ( ITEST > 120 .and. TESTFL ) write (PRTEST, "(' BRAGG: INDX ID IS DEP CHI BRAGG:', 3i6, 3(1x,e12.4))") IGP, id, is, d, cf, sbragg
 
           enddo
 
@@ -1109,7 +1111,7 @@ subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, iss
 
 end subroutine SWBRAGG1
 
-subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax, isstop, ecos, esin, plbrag, redc0 )
+subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax, isstop, ecos, esin, plbrag, redc0 ,IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1170,6 +1172,7 @@ subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax
 
 !   Argument variables
 
+   INTEGER, INTENT(IN) :: IGP
     integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
 
     integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
@@ -1214,7 +1217,7 @@ subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax
 
     if (ltrace) call strace (ient,'SWBRAGG2')
 
-    d = dep2(KCGRD(1))
+    d = dep2(IGP)
 
     do is = 1, isstop
 
@@ -1237,7 +1240,7 @@ subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax
 
                 cosdif = ecos(id)*ecos(ida) + esin(id)*esin(ida)
 
-                edif = ac2(ida,is,KCGRD(1)) - ac2(id,is,KCGRD(1))
+                edif = ac2(ida,is,IGP) - ac2(id,is,IGP)
 
                 fbdif = fbd(ida,id,is)
 
@@ -1256,7 +1259,7 @@ subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax
 
              ! test output
 
-             if ( ITEST > 120 .and. TESTFL ) write (PRTEST, "(' BRAGG: INDX ID IS DEP CHI BRAGG:', 3i6, 3(1x,e12.4))") KCGRD(1), id, is, d, cf, sbragg
+             if ( ITEST > 120 .and. TESTFL ) write (PRTEST, "(' BRAGG: INDX ID IS DEP CHI BRAGG:', 3i6, 3(1x,e12.4))") IGP, id, is, d, cf, sbragg
 
           enddo
 
@@ -1266,7 +1269,7 @@ subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax
 
 end subroutine SWBRAGG2
 
-subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin )
+subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin ,IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1324,6 +1327,7 @@ subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin )
 
 !   Argument variables
 
+   INTEGER, INTENT(IN) :: IGP
     real, dimension(MDC,MSC,MCGRD), intent(in)  :: ac2    ! action density at current time level
     real, dimension(MSC,MICMAX), intent(in)     :: cgo    ! group velocity
     real, dimension(MCGRD), intent(in)          :: dep2   ! water depth at current time level
@@ -1360,7 +1364,7 @@ subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin )
 
     if (ltrace) call strace (ient,'SWBRAGG3')
 
-    d = dep2(KCGRD(1))
+    d = dep2(IGP)
 
     do is = 1, MSC
 
@@ -1382,7 +1386,7 @@ subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin )
 
                 cosdif = ecos(id)*ecos(ida) + esin(id)*esin(ida)
 
-                edif = ac2(ida,is,KCGRD(1)) - ac2(id,is,KCGRD(1))
+                edif = ac2(ida,is,IGP) - ac2(id,is,IGP)
 
                 fbdif = fbd(ida,id,is)
 
@@ -1390,13 +1394,13 @@ subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin )
 
              enddo
 
-             membrg(id,is,KCGRD(1)) = cf * DDIR * sbragg
+             membrg(id,is,IGP) = cf * DDIR * sbragg
 
           enddo
 
        else
 
-          membrg(:,is,KCGRD(1)) = 0.
+          membrg(:,is,IGP) = 0.
 
        endif
 
@@ -1404,7 +1408,7 @@ subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin )
 
 end subroutine SWBRAGG3
 
-subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 )
+subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 ,IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1459,6 +1463,7 @@ subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 )
 
 !   Argument variables
 
+   INTEGER, INTENT(IN) :: IGP
     integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
 
     integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
@@ -1492,9 +1497,9 @@ subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 )
           ! store the results in the array IMATRA
           ! if TESTFL store results in array for isoline plot
 
-          imatra(id,is) = imatra(id,is) + membrg(id,is,KCGRD(1))
-          if ( TESTFL ) plbrag(id,is,IPTST) = membrg(id,is,KCGRD(1))
-          redc0(id,is,3) = redc0(id,is,3) + membrg(id,is,KCGRD(1))
+          imatra(id,is) = imatra(id,is) + membrg(id,is,IGP)
+          if ( TESTFL ) plbrag(id,is,IPTST) = membrg(id,is,IGP)
+          redc0(id,is,3) = redc0(id,is,3) + membrg(id,is,IGP)
 
        enddo
 
@@ -1506,7 +1511,7 @@ subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 )
           do is = 1, isstop
              do iddum = idcmin(is), idcmax(is)
                 id = mod ( iddum - 1 + MDC , MDC ) + 1
-                write (PRTEST,"(' FILBRG: IS ID MEMBRG() :',2i6,e12.4)") is, id, membrg(id,is,KCGRD(1))
+                write (PRTEST,"(' FILBRG: IS ID MEMBRG() :',2i6,e12.4)") is, id, membrg(id,is,IGP)
              enddo
           enddo
        endif

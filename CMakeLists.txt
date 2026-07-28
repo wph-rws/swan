@@ -192,6 +192,16 @@ if( BUILD_TESTING )
   target_link_libraries( test_leaf_modules PRIVATE swan${VERSION} )
   add_test( NAME leaf_modules COMMAND test_leaf_modules )
 
+  # Runs SWMAIN twice in one process. It needs a directory of its own because
+  # both runs write INPUT, PRINT and the result table in the working directory.
+  add_executable( test_two_cases tests/test_two_cases.f90 )
+  target_link_libraries( test_two_cases PRIVATE swan${VERSION} )
+  add_test( NAME two_cases COMMAND ${CMAKE_COMMAND} -E env
+            ${CMAKE_CURRENT_BINARY_DIR}/bin/test_two_cases )
+  set_tests_properties( two_cases PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/two_cases )
+  file( MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/two_cases )
+
   add_executable( test_physics_kernels tests/test_physics_kernels.f90 )
   target_link_libraries( test_physics_kernels PRIVATE swan${VERSION} )
   add_test( NAME physics_kernels COMMAND test_physics_kernels )

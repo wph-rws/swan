@@ -293,7 +293,7 @@ CONTAINS
   !****************************************************************************
   SUBROUTINE SWIND_DBYB ( SPCSIG,THETAW,KWAVE,MEMSINA,MEMSINB, &
                           AC2,UFRIC,WIND10,SPCDIR,ANYWND,CG    &
-                         ,ZELEN )
+                         ,ZELEN,IGP )
   !****************************************************************************
 
     USE swan_stencil
@@ -309,6 +309,7 @@ CONTAINS
 !ESMF    USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
 
     IMPLICIT NONE(TYPE, EXTERNAL)
+    INTEGER, INTENT(IN) :: IGP
 
 
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
@@ -527,8 +528,8 @@ CONTAINS
     DO  IS = 1, MSC
        SIGDENS(IS) = 0.
        DO  ID = 1, MDC
-          SIGDENS(IS) = SIGDENS(IS) + SPCSIG(IS) * AC2(ID,IS,KCGRD(1))
-          KTHETA(IS,ID)=AC2(ID,IS,KCGRD(1))
+          SIGDENS(IS) = SIGDENS(IS) + SPCSIG(IS) * AC2(ID,IS,IGP)
+          KTHETA(IS,ID)=AC2(ID,IS,IGP)
        END DO
        SIGDENS(IS)=SIGDENS(IS)*DDIR  ! units m^2/(radHz)
     END DO
@@ -617,7 +618,7 @@ CONTAINS
 !
 ! Calculate actual wind input term Sin=Beta*Edens
 
-             S_IN(ID,IS)=SWINEB*AC2(ID,IS,KCGRD(1))*SPCSIG(IS)
+             S_IN(ID,IS)=SWINEB*AC2(ID,IS,IGP)*SPCSIG(IS)
 
 ! Note that IMATRA calculation will be done after reduction operation
 
@@ -633,8 +634,8 @@ CONTAINS
         DO ID = 1, MDC
            CTH = SPCDIR(ID,2) ! cos(theta)
            STH = SPCDIR(ID,3) ! sin(theta)
-           TAUX_linear=TAUX_linear+CTH*MEMSINA(ID,IS,KCGRD(1))*CINV2* SPCSIG(IS)**2*FRINTF*DDIR
-           TAUY_linear=TAUY_linear+STH*MEMSINA(ID,IS,KCGRD(1))*CINV2* SPCSIG(IS)**2*FRINTF*DDIR
+           TAUX_linear=TAUX_linear+CTH*MEMSINA(ID,IS,IGP)*CINV2* SPCSIG(IS)**2*FRINTF*DDIR
+           TAUY_linear=TAUY_linear+STH*MEMSINA(ID,IS,IGP)*CINV2* SPCSIG(IS)**2*FRINTF*DDIR
         END DO
     END DO
     TAUX_linear=TAUX_linear*PWIND(17)*GRAV
@@ -644,7 +645,7 @@ CONTAINS
     CALL CALC_LFACTOR(TAUX_linear,TAUY_linear,RDFSIN,S_IN,UFRIC,PWIND,DDIR,SPCSIG,FRINTF,CINV,GRAV, &
                       WIND10,TESTFL,SPCDIR,VECTOR_TAU,TRUE_U10,CTW,STW,ZE)
 
-    ZELEN(KCGRD(1)) = ZE
+    ZELEN(IGP) = ZE
 
 !-------------------------------------------------------------------------------
 !   Begin negative wind input
@@ -684,7 +685,7 @@ CONTAINS
             GDONEL = 2.8-TEMP6
             GAMMAD = GDONEL*SQRTBN(IS)*WPSI
             SWINEB = GAMMAD * SIGMA * PWIND(9)
-            S_IN(ID,IS)= S_IN(ID,IS) - SWINEB*AC2(ID,IS,KCGRD(1))*SPCSIG(IS)*RDCOEF
+            S_IN(ID,IS)= S_IN(ID,IS) - SWINEB*AC2(ID,IS,IGP)*SPCSIG(IS)*RDCOEF
          ENDDO
       ENDDO
 
@@ -695,7 +696,7 @@ CONTAINS
 !-------------------------------------------------------------------------------
 !
 ! We want to add B*N to RHS. This is SWINEB*AC2, see SWIND3.
-! Above, we had S_IN(ID,IS)=SWINEB*AC2(ID,IS,KCGRD(1))*SPCSIG(IS)
+! Above, we had S_IN(ID,IS)=SWINEB*AC2(ID,IS,IGP)*SPCSIG(IS)
 ! Thus, we just need to divide out SPCSIG(IS).
 ! Store this wind input in MEMSINB array for every grid point,
 ! which can be filled in IMATRA in next four sweeps
@@ -707,9 +708,9 @@ CONTAINS
     DO IS = 1, MSC
        DO ID = 1, MDC
           S_IN(ID,IS)= S_IN(ID,IS) * RDFSIN(IS)
-          MEMSINB(ID,IS,KCGRD(1)) = S_IN(ID,IS) / SPCSIG(IS)
-!ESMF          IF (SAVE_SINBAC) SINBAC(ID,IS,KCGRD(1)) = &
-!ESMF             SINBAC(ID,IS,KCGRD(1)) + S_IN(ID,IS)/SPCSIG(IS)
+          MEMSINB(ID,IS,IGP) = S_IN(ID,IS) / SPCSIG(IS)
+!ESMF          IF (SAVE_SINBAC) SINBAC(ID,IS,IGP) = &
+!ESMF             SINBAC(ID,IS,IGP) + S_IN(ID,IS)/SPCSIG(IS)
        ENDDO
     ENDDO
 
@@ -725,7 +726,7 @@ CONTAINS
 !NRL               STH = SPCDIR(ID,3) ! sin(theta)
 !NRL               TAUX_tmp=TAUX_tmp+CTH*CINV2*S_IN(ID,IS)*DDIR*FRINTF*SPCSIG(IS)
 !NRL               TAUY_tmp=TAUY_tmp+STH*CINV2*S_IN(ID,IS)*DDIR*FRINTF*SPCSIG(IS)
-!NRL               ENCHECK=ENCHECK+AC2(ID,IS,KCGRD(1))*DDIR*FRINTF*SPCSIG(IS)**2
+!NRL               ENCHECK=ENCHECK+AC2(ID,IS,IGP)*DDIR*FRINTF*SPCSIG(IS)**2
 !NRL            END DO
 !NRL         END DO
 !NRL         TAUX_tmp=TAUX_tmp*PWIND(17)*GRAV
@@ -735,10 +736,10 @@ CONTAINS
 
     !     *** test output ***
     IF (ITEST.GE. 80.AND.TESTFL) THEN
-       WRITE(PRTEST,"(' SWIND_DBYB: POINT THETAW :',I5,E12.4)") KCGRD(1), THETAW*180./PI
+       WRITE(PRTEST,"(' SWIND_DBYB: POINT THETAW :',I5,E12.4)") IGP, THETAW*180./PI
        WRITE(PRTEST,"(' SWIND_DBYB: TEMP2 UFRC :',3E12.4, /, ' IS ID1 ID2 Wind source term')") TEMP2, UFRIC
        DO IS = 1, MSC
-          WRITE(PRTEST,"(3I4, 600e12.4)") IS, 1, MDC,(MEMSINB(ID,IS,KCGRD(1)), &
+          WRITE(PRTEST,"(3I4, 600e12.4)") IS, 1, MDC,(MEMSINB(ID,IS,IGP), &
              ID=1,MDC)
        ENDDO
        WRITE(PRTEST,*)
@@ -1355,7 +1356,7 @@ CONTAINS
 !****************************************************************
 
   SUBROUTINE SWIND0_NRL (SPCSIG,THETAW,ANYWND,         &
-                         UFRIC,FPM,MEMSINA,SPCDIR,KWAVE)
+                         UFRIC,FPM,MEMSINA,SPCDIR,KWAVE,IGP)
 
 !****************************************************************
 
@@ -1416,6 +1417,7 @@ CONTAINS
 !     Without either method, overall contribution to stress can be 1400% of
 !       the stress calculated from Ufric! (factor 14)
 
+     INTEGER, INTENT(IN) :: IGP
       REAL    SPCDIR(MDC,6)
       REAL    SPCSIG(MSC)
       INTEGER ID      ,IS
@@ -1505,7 +1507,7 @@ CONTAINS
       DO IS = 1, MSC
          IF ( SPCSIG(IS) .GE. (0.7 * FPM) ) THEN
             DO ID = 1, MDC
-               MEMSINA(ID,IS,KCGRD(1)) = SWINEA(ID,IS)
+               MEMSINA(ID,IS,IGP) = SWINEA(ID,IS)
 !              *** test output ***
                IF (ITEST .GE. 80 .AND. TESTFL )  &
                WRITE (PRTEST, "(' ID IS FILTER WIND SOURCE ',2I4, 1X, 2(1X,E11.4))") ID, IS, FILTER, SWINEA(ID,IS)
@@ -1540,7 +1542,7 @@ CONTAINS
 !     *** test output ***
 
       IF (ITEST.GE. 60.AND.TESTFL) THEN
-        WRITE(PRINTF,"(' SWIND0: POINT THETAW :',I5,E12.4)") KCGRD(1), THETAW*180./PI
+        WRITE(PRINTF,"(' SWIND0: POINT THETAW :',I5,E12.4)") IGP, THETAW*180./PI
         WRITE(PRINTF,"(' SWIND0: TEMP1 FPM UFRC :',3E12.4)") TEMP1, FPM, UFRIC
         WRITE(PRINTF,*)
         IF (ITEST.GE. 120.AND.TESTFL) THEN
@@ -1556,7 +1558,7 @@ CONTAINS
 !     end of subroutine SWIND0_NRL
       END SUBROUTINE SWIND0_NRL
 
-subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc0, aiceloc )
+subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc0, aiceloc ,IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1617,6 +1619,7 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
 
 !   Argument variables
 
+   INTEGER, INTENT(IN) :: IGP
     integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
 
     integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
@@ -1667,7 +1670,7 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
        do iddum = idcmin(is), idcmax(is)
           id = mod ( iddum - 1 + MDC , MDC ) + 1
           if ( anywnd(id).or.ZIEGER ) then
-             memsins = memsin(id,is,KCGRD(1))
+             memsins = memsin(id,is,IGP)
              if ( aiceloc > 0. ) then
                 memsins = memsins * factor_on_Sin
              endif
@@ -1685,7 +1688,7 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
           do is = 1, isstop
              do iddum = idcmin(is), idcmax(is)
                 id = mod ( iddum - 1 + MDC , MDC ) + 1
-                memsins = memsin(id,is,KCGRD(1))
+                memsins = memsin(id,is,IGP)
                 if ( aiceloc > 0. ) then
                    factor_on_Sin = (1.-aiceloc*(1.-icewind))
                    memsins = memsins * factor_on_Sin
@@ -2040,7 +2043,7 @@ end subroutine filsin
     RETURN
   END SUBROUTINE SSWELL_ARDHUIN
 
-  SUBROUTINE SSWELL_ZIEGER (SPCSIG, KWAVE, AC2, CG, ISSTOP ,IDCMIN  ,IDCMAX, MDC, DISSC1, IMATDA, TESTFL, IPTST, PLSWEL)
+  SUBROUTINE SSWELL_ZIEGER (SPCSIG, KWAVE, AC2, CG, ISSTOP ,IDCMIN  ,IDCMAX, MDC, DISSC1, IMATDA, TESTFL, IPTST, PLSWEL,IGP)
 
 !---------------------------------------------------------------------------------------------
 !  SUBROUTINE SSWELL_ZIEGER calculates swell dissipation using equations (21) - (23) in
@@ -2096,13 +2099,13 @@ end subroutine filsin
 !        SOURCE
 !-------------------------------------------------------------------------------------
 
-    USE swan_stencil, ONLY: KCGRD
     USE swan_physics_selection, ONLY: B1Z
     USE swan_spectral_grid, ONLY: DDIR, MSC
 
     IMPLICIT NONE(TYPE, EXTERNAL)
 
     ! Subroutine arguments:
+     INTEGER, INTENT(IN) :: IGP
     LOGICAL, INTENT(IN)   :: TESTFL
     INTEGER, INTENT(IN)   :: ISSTOP,MDC,IPTST
     INTEGER, INTENT(IN)   :: IDCMIN(:) ! IDCMIN(MSC)
@@ -2127,8 +2130,8 @@ end subroutine filsin
     DO  IS = 1, MSC
        SIGDENS(IS) = 0.
        DO  ID = 1, MDC
-          SIGDENS(IS) = SIGDENS(IS) + SPCSIG(IS) * AC2(ID,IS,KCGRD(1))
-          KTHETA(IS,ID)=AC2(ID,IS,KCGRD(1))
+          SIGDENS(IS) = SIGDENS(IS) + SPCSIG(IS) * AC2(ID,IS,IGP)
+          KTHETA(IS,ID)=AC2(ID,IS,IGP)
        END DO
        SIGDENS(IS)=SIGDENS(IS)*DDIR  ! units m^2/(radHz)
     END DO

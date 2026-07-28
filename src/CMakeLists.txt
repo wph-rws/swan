@@ -121,7 +121,7 @@ endif()
 
 # build executable
 if( NOT TARGET ${EXE} )
-  set( swanmain ${SWAN_GENERATED_SRC}/swanmain.f90 )
+  set( swanmain ${SWAN_GENERATED_SRC}/swan_program.f90 )
   add_executable( ${EXE} ${swanmain} )
   target_link_libraries( ${EXE} PRIVATE swan${VERSION} )
 endif()

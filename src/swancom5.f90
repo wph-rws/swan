@@ -4322,7 +4322,7 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 &CAY        ,IDCMIN     ,IDCMAX    ,&
 &ISSTOP     ,ANYBIN     ,&
 &XCGRID     ,YCGRID     ,&
-&RDX        ,RDY        ,OBREDF    )
+&RDX        ,RDY        ,OBREDF    ,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -4340,6 +4340,7 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   INTEGER, INTENT(IN) :: IGP
 
 
 !   --|-----------------------------------------------------------|--
@@ -4591,7 +4592,7 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
             CNUM = IDX * CAX(ID,IS,2) * TCF1 * AC2(ID,IS,KCGRD(2)) +&
             &IDY * CAY(ID,IS,3) * TCF2 * AC2(ID,IS,KCGRD(3))
 
-            IF (ACUPDA) AC2(ID,IS,KCGRD(1)) = CNUM / CDEN
+            IF (ACUPDA) AC2(ID,IS,IGP) = CNUM / CDEN
 
          ENDDO
       ENDDO
@@ -4621,7 +4622,7 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
                FAC_B = TCF2 * WEIG2 * AC2(ID,IS,KCGRD(3))
 
                IF (ACUPDA)&
-               &AC2(ID,IS,KCGRD(1)) = MAX ( 0. , (FAC_A + FAC_B))
+               &AC2(ID,IS,IGP) = MAX ( 0. , (FAC_A + FAC_B))
 
             END IF
          END DO
@@ -4629,11 +4630,11 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
    END IF
 
    IF ( ITEST .GE. 140 .AND. TESTFL ) THEN
-      WRITE(PRINTF,"(' PREDT : POINT INDX SWPDIR :',2I5)") KCGRD(1), SWPDIR
+      WRITE(PRINTF,"(' PREDT : POINT INDX SWPDIR :',2I5)") IGP, SWPDIR
       DO IS = 1, ISSTOP
          DO IDDUM = IDCMIN(IS)-1, IDCMAX(IS)+1
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-            WRITE (PRINTF,"(' : IS ID AC2 AC2(2) AC2(3) ANYBIN :', 2I5,3(E12.4),L4)") IS, ID, AC2(ID,IS,KCGRD(1)),&
+            WRITE (PRINTF,"(' : IS ID AC2 AC2(2) AC2(3) ANYBIN :', 2I5,3(E12.4),L4)") IS, ID, AC2(ID,IS,IGP),&
             &AC2(ID,IS,KCGRD(2)),&
             &AC2(ID,IS,KCGRD(3)),&
             &ANYBIN(ID,IS)
@@ -4963,7 +4964,7 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     ,&
 &RSXBRA     ,RSXSQC     ,REDSXY     ,&
 &TSXGEO     ,TSXSPT     ,&
 &TSXSPS     ,TRANXY     ,&
-&LEAKC1     ,RADSXY     ,SPCSIG     )
+&LEAKC1     ,RADSXY     ,SPCSIG     ,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !*******************************************************************
@@ -5034,6 +5035,7 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     ,&
 !
 !     SPCSIG: Relative frequencies in computational domain in sigma-space
 
+   INTEGER, INTENT(IN) :: IGP
    REAL    SPCSIG(MSC)
 
 !     IX          Counter of gridpoints in x-direction
@@ -5147,35 +5149,35 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     ,&
          IDP = MOD ( IDC     + MDC , MDC ) + 1
 
          S1   = SPCSIG(ISC)
-         ACT1 = AC2(IDC,ISC,KCGRD(1))
+         ACT1 = AC2(IDC,ISC,IGP)
          IF (ISC.EQ.1) THEN
             S2   = 0.
             ACT2 = 0.
          ELSE
             S2   = SPCSIG(ISC-1)
-            ACT2 = AC2(IDC,ISC-1,KCGRD(1))
+            ACT2 = AC2(IDC,ISC-1,IGP)
          ENDIF
          IF (ISC.EQ.MSC) THEN
             S3   = 0.
             ACT3 = 0.
          ELSE
             S3   = SPCSIG(ISC+1)
-            ACT3 = AC2(IDC,ISC+1,KCGRD(1))
+            ACT3 = AC2(IDC,ISC+1,IGP)
          ENDIF
          IF (.NOT.FULCIR .AND. IDC.EQ.1) THEN
             ACT4 = 0.
          ELSE
-            ACT4 = AC2(IDM,ISC,KCGRD(1))
+            ACT4 = AC2(IDM,ISC,IGP)
          ENDIF
          IF (.NOT.FULCIR .AND. IDC.EQ.MDC) THEN
             ACT5 = 0.
          ELSE
-            ACT5 = AC2(IDP,ISC,KCGRD(1))
+            ACT5 = AC2(IDP,ISC,IGP)
          ENDIF
 
          IF (ANYBIN(IDC,ISC)) THEN
-            LEAKXY(KCGRD(1)) = LEAKXY(KCGRD(1)) + SDSDD*&
-            &LEAKC1(IDC,ISC) * AC2(IDC,ISC,KCGRD(1))
+            LEAKXY(IGP) = LEAKXY(IGP) + SDSDD*&
+            &LEAKC1(IDC,ISC) * AC2(IDC,ISC,IGP)
 
 !           --- compute for each dissipation term
 
@@ -5226,37 +5228,37 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     ,&
       end do
    end do
 
-   DSXWCP(KCGRD(1)) = DSXWCP(KCGRD(1)) + ADISSIP(1)     ! whitecappin
-   DSXSRF(KCGRD(1)) = DSXSRF(KCGRD(1)) + ADISSIP(2)     ! surf break
-   DSXBOT(KCGRD(1)) = DSXBOT(KCGRD(1)) + ADISSIP(3)     ! bottom fric
-   DSXSWL(KCGRD(1)) = DSXSWL(KCGRD(1)) + ADISSIP(4)     ! swell dissi
-   DSXVEG(KCGRD(1)) = DSXVEG(KCGRD(1)) + ADISSIP(5)     ! vegetation
-   DSXTUR(KCGRD(1)) = DSXTUR(KCGRD(1)) + ADISSIP(6)     ! turbulence
-   DSXMUD(KCGRD(1)) = DSXMUD(KCGRD(1)) + ADISSIP(7)     ! mud dissip
-   DSXICE(KCGRD(1)) = DSXICE(KCGRD(1)) + ADISSIP(8)     ! ice dissip
+   DSXWCP(IGP) = DSXWCP(IGP) + ADISSIP(1)     ! whitecappin
+   DSXSRF(IGP) = DSXSRF(IGP) + ADISSIP(2)     ! surf break
+   DSXBOT(IGP) = DSXBOT(IGP) + ADISSIP(3)     ! bottom fric
+   DSXSWL(IGP) = DSXSWL(IGP) + ADISSIP(4)     ! swell dissi
+   DSXVEG(IGP) = DSXVEG(IGP) + ADISSIP(5)     ! vegetation
+   DSXTUR(IGP) = DSXTUR(IGP) + ADISSIP(6)     ! turbulence
+   DSXMUD(IGP) = DSXMUD(IGP) + ADISSIP(7)     ! mud dissip
+   DSXICE(IGP) = DSXICE(IGP) + ADISSIP(8)     ! ice dissip
 
-   DISSXY(KCGRD(1)) = DISSXY(KCGRD(1)) + SUM(ADISSIP)   ! total dissi
+   DISSXY(IGP) = DISSXY(IGP) + SUM(ADISSIP)   ! total dissi
 
-   GSXWND(KCGRD(1)) = GSXWND(KCGRD(1)) + AGENERT(1)     ! wind input
-   GENRXY(KCGRD(1)) = GENRXY(KCGRD(1)) + SUM(AGENERT)   ! total gener
+   GSXWND(IGP) = GSXWND(IGP) + AGENERT(1)     ! wind input
+   GENRXY(IGP) = GENRXY(IGP) + SUM(AGENERT)   ! total gener
 
-   RSXQUA(KCGRD(1)) = RSXQUA(KCGRD(1)) + AREDIST(1)     ! quadruplets
-   RSXTRI(KCGRD(1)) = RSXTRI(KCGRD(1)) + AREDIST(2)     ! triads
-   RSXBRA(KCGRD(1)) = RSXBRA(KCGRD(1)) + AREDIST(3)     ! Bragg scatt
-   RSXSQC(KCGRD(1)) = RSXSQC(KCGRD(1)) + AREDIST(4)     ! QC scatteri
-   REDSXY(KCGRD(1)) = REDSXY(KCGRD(1)) + SUM(AREDIST)   ! total redis
+   RSXQUA(IGP) = RSXQUA(IGP) + AREDIST(1)     ! quadruplets
+   RSXTRI(IGP) = RSXTRI(IGP) + AREDIST(2)     ! triads
+   RSXBRA(IGP) = RSXBRA(IGP) + AREDIST(3)     ! Bragg scatt
+   RSXSQC(IGP) = RSXSQC(IGP) + AREDIST(4)     ! QC scatteri
+   REDSXY(IGP) = REDSXY(IGP) + SUM(AREDIST)   ! total redis
 
-   TSXGEO(KCGRD(1)) = TSXGEO(KCGRD(1)) + ATRANSP(1)     ! xy-propagat
-   TSXSPT(KCGRD(1)) = TSXSPT(KCGRD(1)) + ATRANSP(2)     ! theta-propa
-   TSXSPS(KCGRD(1)) = TSXSPS(KCGRD(1)) + ATRANSP(3)     ! sigma-propa
-   TRANXY(KCGRD(1)) = TRANXY(KCGRD(1)) + SUM(ATRANSP)   ! total propa
+   TSXGEO(IGP) = TSXGEO(IGP) + ATRANSP(1)     ! xy-propagat
+   TSXSPT(IGP) = TSXSPT(IGP) + ATRANSP(2)     ! theta-propa
+   TSXSPS(IGP) = TSXSPS(IGP) + ATRANSP(3)     ! sigma-propa
+   TRANXY(IGP) = TRANXY(IGP) + SUM(ATRANSP)   ! total propa
 
 !       energy transfer between waves and currents due to radiation stress, see page 439 of
 !       the ICCE paper of Holthuijsen, L.H., Zijlema, M. and Van der Ham, P.J. (2009)
 !       Wave physics in a tidal inlet, in: J.M. Smith (Ed.), Proc. 31st
 !       ASCE, World Scientific Publishing, Singapore, pp. 437-448
 
-   RADSXY(KCGRD(1)) = RADSXY(KCGRD(1)) + ARADSTR
+   RADSXY(IGP) = RADSXY(IGP) + ARADSTR
 
    IMATLA = 0.
    IMATUA = 0.

@@ -1182,7 +1182,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
                       etot  , hm    , qb    , smebrk, kteta , kmespc, cft   , &
                       rft   , sft   , wft   , wsave , cfd   , wfd   , wsavd , &
                       sigm_wam                                               &
-                                                                            )
+                                                                            ,IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1247,6 +1247,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
 !   Argument variables
 
+   INTEGER, INTENT(IN) :: IGP
     integer                                  , intent(in   ) :: isstop ! maximum frequency that is propagated within a sweep
     integer                                  , intent(in   ) :: iter   ! iteration counter
     integer                                  , intent(in   ) :: ix     ! counter of grid points in x-direction
@@ -1358,7 +1359,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
        call SSURF ( etot  , hm    , qb    , smebrk, kteta , kmespc, spcsig, ac2   ,  &
                     imatra, imatda, idcmin, idcmax, plwbrk,                          &
-                    isstop, dissc0, dissc1, disbk , iter  , sigm_wam )
+                    isstop, dissc0, dissc1, disbk , iter  , sigm_wam , IGP)
 
        ! calculate the QC surf breaking for all sweeps together from the
        ! second iteration onwards
@@ -1370,14 +1371,14 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
           ! store bulk dissipation at current iteration
 
-          disbk1(KCGRD(1)) = disbk
+          disbk1(IGP) = disbk
 
           ! after first iteration spatial distribution of bulk dissipation is available
           ! for computing discrete Fourier transforms
 
           if ( iter > 1 ) then
 
-             call SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, spcsig )
+             call SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, spcsig , IGP)
 
           endif
 
@@ -1413,12 +1414,12 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
              call SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig )
           else
              ! unstructured mesh
-             call SwanGradWig ( W, dwdx, dwdy, ac2, dep2, spcdir, spcsig )
+             call SwanGradWig ( W, dwdx, dwdy, ac2, dep2, spcdir, spcsig , IGP)
           endif
 
           ! ... and finally, compute the scatterer
 
-          call SWQCSCAT ( memqcm, W(1,1,1), dwdx, dwdy, sigft, cgft, uxft, uyft, dep2, kwave, cgo, spcdir, spcsig )
+          call SWQCSCAT ( memqcm, W(1,1,1), dwdx, dwdy, sigft, cgft, uxft, uyft, dep2, kwave, cgo, spcdir, spcsig , IGP)
 
        endif
 
@@ -1427,7 +1428,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
     ! get source term values for the bin that fall within a sweep and store in right hand vector
 
-    call FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbrk, redc0, dissc0 )
+    call FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbrk, redc0, dissc0 , IGP)
 
 end subroutine QCSOURCE
 
@@ -1673,7 +1674,7 @@ subroutine SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig )
 
 end subroutine SWQCWIG
 
-subroutine SwanGradWig ( W, dwdx, dwdy, ac2, dep2, spcdir, spcsig )
+subroutine SwanGradWig ( W, dwdx, dwdy, ac2, dep2, spcdir, spcsig ,IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1727,12 +1728,12 @@ subroutine SwanGradWig ( W, dwdx, dwdy, ac2, dep2, spcdir, spcsig )
     use SwanGriddata
     use SwanGridobjects
     use SwanCompdata
-    use swan_stencil, only: KCGRD
 
     implicit none(type, external)
 
 !   Argument variables
 
+   INTEGER, INTENT(IN) :: IGP
     real, dimension(MDC,MSC,nverts), intent(in) :: ac2    ! action density at current time level
     real, dimension(nverts), intent(in)         :: dep2   ! water depth at current time level
     real, dimension(mkyc,mkxc), intent(out)     :: dwdx   ! x-derivative of Wigner distribution
@@ -1807,7 +1808,7 @@ subroutine SwanGradWig ( W, dwdx, dwdy, ac2, dep2, spcdir, spcsig )
     vert => gridobject%vert_grid
     cell => gridobject%cell_grid
 
-    ivert = KCGRD(1)
+    ivert = IGP
 
     if ( vert(ivert)%atti(VMARKER) == 1 ) return    ! boundary vertex
 
@@ -2073,7 +2074,7 @@ subroutine SwanGradWig ( W, dwdx, dwdy, ac2, dep2, spcdir, spcsig )
 
 end subroutine SwanGradWig
 
-subroutine SWQCSCAT ( memqcm, W, dwdx, dwdy, sigft, cgft, uxft, uyft, dep2, kwave, cgo, spcdir, spcsig )
+subroutine SWQCSCAT ( memqcm, W, dwdx, dwdy, sigft, cgft, uxft, uyft, dep2, kwave, cgo, spcdir, spcsig ,IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -2130,6 +2131,7 @@ subroutine SWQCSCAT ( memqcm, W, dwdx, dwdy, sigft, cgft, uxft, uyft, dep2, kwav
 
 !   Argument variables
 
+   INTEGER, INTENT(IN) :: IGP
     real   , dimension(ncoz,ncoz,MSC), intent(in)  :: cgft   ! Fourier-transformed modulation of group velocity
     real   , dimension(MSC,MICMAX)   , intent(in)  :: cgo    ! group velocity
     real   , dimension(MCGRD)        , intent(in)  :: dep2   ! water depth at current time level
@@ -2196,9 +2198,9 @@ subroutine SWQCSCAT ( memqcm, W, dwdx, dwdy, sigft, cgft, uxft, uyft, dep2, kwav
 
     if (ltrace) call strace (ient,'SWQCSCAT')
 
-    memqcm(:,:,KCGRD(1)) = 0.
+    memqcm(:,:,IGP) = 0.
 
-    dp = dep2(KCGRD(1))
+    dp = dep2(IGP)
     if ( .not. dp > DEPMIN ) return
 
     ish = ncoz/2
@@ -2386,14 +2388,14 @@ subroutine SWQCSCAT ( memqcm, W, dwdx, dwdy, sigft, cgft, uxft, uyft, dep2, kwav
 
           ! multiply with the inverse of Jacobian
 
-          memqcm(id,is,KCGRD(1)) = ctb * kwave(is,1) / cgo(is,1)
+          memqcm(id,is,IGP) = ctb * kwave(is,1) / cgo(is,1)
 
        enddo
     enddo
 
 end subroutine SWQCSCAT
 
-subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, spcsig )
+subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, spcsig ,IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -2451,6 +2453,7 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
 !   Argument variables
 
+   INTEGER, INTENT(IN) :: IGP
     real, dimension(MDC,MSC,MCGRD), intent(in)         :: ac2    ! action density at current time level
     complex(kind=8), dimension(myd,mxd), intent(inout) :: cfd    ! Fourier coefficients (FFT)
     real, dimension(MSC,MICMAX), intent(in)            :: cgo    ! group velocity
@@ -2522,9 +2525,9 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
     if (ltrace) call strace (ient,'SWQCSURF')
 
-    memqcb(:,:,KCGRD(1)) = 0.
+    memqcb(:,:,IGP) = 0.
 
-    dp = dep2(KCGRD(1))
+    dp = dep2(IGP)
     if ( .not. dp > DEPMIN ) return
 
     ierr = 0
@@ -2589,7 +2592,7 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
           else
              wi1 = 1.- wi2
              wj1 = 1.- wj2
-             ctb = wi1*wj1*ac2(jk,ik,KCGRD(1)) + wi1*wj2*ac2(jk+1,ik,KCGRD(1)) + wi2*wj1*ac2(jk,ik+1,KCGRD(1)) + wi2*wj2*ac2(jk+1,ik+1,KCGRD(1))
+             ctb = wi1*wj1*ac2(jk,ik,IGP) + wi1*wj2*ac2(jk+1,ik,IGP) + wi2*wj1*ac2(jk,ik+1,IGP) + wi2*wj2*ac2(jk+1,ik+1,IGP)
           endif
 
           ! multiply with the Jacobian
@@ -2717,7 +2720,7 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
           ! multiply with the inverse of Jacobian
 
-          memqcb(id,is,KCGRD(1)) = ctb * kwave(is,1) / cgo(is,1)
+          memqcb(id,is,IGP) = ctb * kwave(is,1) / cgo(is,1)
 
        enddo
     enddo
@@ -3221,7 +3224,7 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
 end subroutine SWQCSURF
 
-subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbrk, redc0, dissc0 )
+subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbrk, redc0, dissc0 ,IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -3278,6 +3281,7 @@ subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbr
 
 !   Argument variables
 
+   INTEGER, INTENT(IN) :: IGP
     integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
 
     integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
@@ -3318,9 +3322,9 @@ subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbr
              ! store the results in the array IMATRA
              ! if TESTFL store results in array for isoline plot
 
-             imatra(id,is) = imatra(id,is) + memqcm(id,is,KCGRD(1))
-             if ( TESTFL ) plqcs(id,is,IPTST) = memqcm(id,is,KCGRD(1))
-             redc0(id,is,4) = redc0(id,is,4) + memqcm(id,is,KCGRD(1))
+             imatra(id,is) = imatra(id,is) + memqcm(id,is,IGP)
+             if ( TESTFL ) plqcs(id,is,IPTST) = memqcm(id,is,IGP)
+             redc0(id,is,4) = redc0(id,is,4) + memqcm(id,is,IGP)
 
           enddo
 
@@ -3332,7 +3336,7 @@ subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbr
              do is = 1, isstop
                 do iddum = idcmin(is), idcmax(is)
                    id = mod ( iddum - 1 + MDC , MDC ) + 1
-                   write (PRTEST,"(' FILQCM: IS ID MEMQCM() :',2i6,e12.4)") is, id, memqcm(id,is,KCGRD(1))
+                   write (PRTEST,"(' FILQCM: IS ID MEMQCM() :',2i6,e12.4)") is, id, memqcm(id,is,IGP)
                 enddo
              enddo
           endif
@@ -3352,9 +3356,9 @@ subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbr
              ! store the results in the array IMATRA
              ! if TESTFL store results in array for isoline plot
 
-             imatra(id,is) = imatra(id,is) + memqcb(id,is,KCGRD(1))
-             if ( TESTFL ) plwbrk(id,is,IPTST) = memqcb(id,is,KCGRD(1))
-             dissc0(id,is,2) = dissc0(id,is,2) + memqcb(id,is,KCGRD(1))
+             imatra(id,is) = imatra(id,is) + memqcb(id,is,IGP)
+             if ( TESTFL ) plwbrk(id,is,IPTST) = memqcb(id,is,IGP)
+             dissc0(id,is,2) = dissc0(id,is,2) + memqcb(id,is,IGP)
 
           enddo
 
@@ -3366,7 +3370,7 @@ subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbr
              do is = 1, isstop
                 do iddum = idcmin(is), idcmax(is)
                    id = mod ( iddum - 1 + MDC , MDC ) + 1
-                   write (PRTEST,"(' FILQCM: IS ID MEMQCB() :',2i6,e12.4)") is, id, memqcb(id,is,KCGRD(1))
+                   write (PRTEST,"(' FILQCM: IS ID MEMQCB() :',2i6,e12.4)") is, id, memqcb(id,is,IGP)
                 enddo
              enddo
           endif

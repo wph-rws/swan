@@ -906,7 +906,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 &FACHFR  ,ISSTOP  ,DAL1    ,DAL2    ,DAL3    ,&
 &SFNL    ,DSNL    ,DEP2    ,AC2     ,IMATDA  ,&
 &IMATRA  ,PLNL4S  ,PLNL4D  ,&
-&IDDLOW  ,IDDTOP  ,REDC0   ,REDC1, AF11 )
+&IDDLOW  ,IDDTOP  ,REDC0   ,REDC1, AF11 ,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !********************************************************************
@@ -919,6 +919,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
+   INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
 
 !   --|-----------------------------------------------------------|--
@@ -1180,7 +1181,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
    SNLCS1 = PQUAD(3)
    SNLCS2 = PQUAD(4)
    SNLCS3 = PQUAD(5)
-   X      = MAX ( 0.75 * DEP2(KCGRD(1)) * KMESPC , 0.5 )
+   X      = MAX ( 0.75 * DEP2(IGP) * KMESPC , 0.5 )
    X2     = MAX ( -1.E15, SNLCS3*X)
    CONS   = SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
    JACOBI = 2. * PI
@@ -1231,7 +1232,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
    DO IDDUM = IDLOW - IIID, IDHGH + IIID
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
       DO IS = 1, MSC
-         UE(IS,IDDUM) = AC2(ID,IS,KCGRD(1)) * SPCSIG(IS) * JACOBI
+         UE(IS,IDDUM) = AC2(ID,IS,IGP) * SPCSIG(IS) * JACOBI
       ENDDO
    ENDDO
 
@@ -1386,7 +1387,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
       WRITE (PRINTF,"(' AWG5 AWG6 AWG7 AWG8 :',4E12.4)") AWG5, AWG6, AWG7, AWG8
       WRITE (PRINTF,"(' S4MI S4MA D4MI D4MA :',4I6)") MSC4MI, MSC4MA, MDC4MI, MDC4MA
       WRITE(PRINTF,"(' SNLC1 X X2 CONS :',4E12.4)") SNLC1,X,X2,CONS
-      WRITE(PRINTF,"(' DEPTH KMESPC FACHFR PI:',4E12.4)") DEP2(KCGRD(1)),KMESPC, FACHFR, PI
+      WRITE(PRINTF,"(' DEPTH KMESPC FACHFR PI:',4E12.4)") DEP2(IGP),KMESPC, FACHFR, PI
       WRITE(PRINTF,"(' JACOBI :',E12.4)") JACOBI
       WRITE(PRINTF,*)
    END IF
@@ -1402,7 +1403,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 &SA2     ,SPCSIG  ,SNLC1   ,DAL1    ,DAL2    ,&
 &DAL3    ,SFNL    ,DEP2    ,AC2     ,KMESPC  ,&
 &REDC0   ,REDC1   ,IMATDA  ,IMATRA  ,&
-&FACHFR  ,PLNL4S  ,         IDCMIN  ,IDCMAX, AF11 )
+&FACHFR  ,PLNL4S  ,         IDCMIN  ,IDCMAX, AF11 ,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !*******************************************************************
@@ -1415,6 +1416,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
+   INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
 
 !   --|-----------------------------------------------------------|--
@@ -1623,7 +1625,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
    SNLCS1 = PQUAD(3)
    SNLCS2 = PQUAD(4)
    SNLCS3 = PQUAD(5)
-   X      = MAX ( 0.75 * DEP2(KCGRD(1)) * KMESPC , 0.5 )
+   X      = MAX ( 0.75 * DEP2(IGP) * KMESPC , 0.5 )
    X2     = MAX ( -1.E15, SNLCS3*X)
    CONS   = SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
    JACOBI = 2. * PI
@@ -1691,7 +1693,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
    DO IDDUM = IDLOW - IIID , IDHGH + IIID
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
       DO IS = 1, MSC
-         UE(IS,IDDUM) = AC2(ID,IS,KCGRD(1)) * SPCSIG(IS) * JACOBI
+         UE(IS,IDDUM) = AC2(ID,IS,IGP) * SPCSIG(IS) * JACOBI
       ENDDO
    ENDDO
 
@@ -1827,9 +1829,9 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
             REDC0(ID,I,1)= REDC0(ID,I,1)+ SFNL(I,ID) / SIGPI
          ELSE
             IMATDA(ID,I) = IMATDA(ID,I) - SFNL(I,ID) /&
-            &MAX(1.E-18,AC2(ID,I,KCGRD(1))*SIGPI)
+            &MAX(1.E-18,AC2(ID,I,IGP)*SIGPI)
             REDC1(ID,I,1)= REDC1(ID,I,1)+ SFNL(I,ID) /&
-            &MAX(1.E-18,AC2(ID,I,KCGRD(1))*SIGPI)
+            &MAX(1.E-18,AC2(ID,I,IGP)*SIGPI)
          END IF
       ENDDO
    ENDDO
@@ -1846,7 +1848,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
       WRITE (PRINTF,"(' AWG5 AWG6 AWG7 AWG8 :',4E12.4)") AWG5, AWG6, AWG7, AWG8
       WRITE (PRINTF,"(' S4MI S4MA D4MI D4MA :',4I6)") MSC4MI, MSC4MA, MDC4MI, MDC4MA
       WRITE(PRINTF,"(' SNLC1 X X2 CONS :',4E12.4)") SNLC1,X,X2,CONS
-      WRITE(PRINTF,"(' DEPTH KMESPC FACHFR PI:',4E12.4)") DEP2(KCGRD(1)),KMESPC, FACHFR,PI
+      WRITE(PRINTF,"(' DEPTH KMESPC FACHFR PI:',4E12.4)") DEP2(IGP),KMESPC, FACHFR,PI
       WRITE(PRINTF,"(' JACOBI ISLOW :',E12.4,I4)") JACOBI,ISLOW
       WRITE(PRINTF,*)
    END IF
@@ -1861,7 +1863,7 @@ end subroutine SWSNL2
 SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
 &UE      ,SA1     ,SA2     ,SPCSIG  ,SNLC1   ,&
 &DAL1    ,DAL2    ,DAL3    ,SFNL    ,DEP2    ,&
-&AC2     ,KMESPC  ,MEMNL4  ,FACHFR, AF11     )
+&AC2     ,KMESPC  ,MEMNL4  ,FACHFR, AF11     ,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !*******************************************************************
@@ -1874,6 +1876,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
+   INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
 
 !   --|-----------------------------------------------------------|--
@@ -2100,7 +2103,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
    SNLCS1 = PQUAD(3)
    SNLCS2 = PQUAD(4)
    SNLCS3 = PQUAD(5)
-   X      = MAX ( 0.75 * DEP2(KCGRD(1)) * KMESPC , 0.5 )
+   X      = MAX ( 0.75 * DEP2(IGP) * KMESPC , 0.5 )
    X2     = MAX ( -1.E15, SNLCS3*X)
    CONS   = SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
    JACOBI = 2. * PI
@@ -2122,7 +2125,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
    DO IDDUM = IDLOW, IDHGH
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
       DO IS=1, MSC
-         UE (IS,IDDUM) = AC2(ID,IS,KCGRD(1)) * SPCSIG(IS) * JACOBI
+         UE (IS,IDDUM) = AC2(ID,IS,IGP) * SPCSIG(IS) * JACOBI
       ENDDO
    ENDDO
 
@@ -2209,7 +2212,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
 !         *** store value in auxiliary array and use values in ***
 !         *** next four sweeps (see subroutine FILNL3)         ***
 
-         MEMNL4(J,I,KCGRD(1)) = SFNL(I,J) / SIGPI
+         MEMNL4(J,I,IGP) = SFNL(I,J) / SIGPI
       ENDDO
    ENDDO
 
@@ -2226,7 +2229,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
       WRITE (PRINTF,"(' AWG5 AWG6 AWG7 AWG8 :',4E12.4)") AWG5, AWG6, AWG7, AWG8
       WRITE (PRINTF,"(' S4MI S4MA D4MI D4MA :',4I6)") MSC4MI, MSC4MA, MDC4MI, MDC4MA
       WRITE(PRINTF,"(' SNLC1 X X2 CONS :',4E12.4)") SNLC1,X,X2,CONS
-      WRITE(PRINTF,"(' DEPTH KMESPC FACHFR PI:',4E12.4)") DEP2(KCGRD(1)),KMESPC,FACHFR,PI
+      WRITE(PRINTF,"(' DEPTH KMESPC FACHFR PI:',4E12.4)") DEP2(IGP),KMESPC,FACHFR,PI
       WRITE(PRINTF,*)
 
 !       *** value source term in every bin ***
@@ -2234,7 +2237,7 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
       IF(ITEST.GE. 150 ) THEN
          DO I=1, MSC
             DO J=1, MDC
-               WRITE(PRINTF,"(' I J MEMNL() SFNL() SPCSIG:',2I4,3E12.4)") I,J,MEMNL4(J,I,KCGRD(1)),SFNL(I,J),&
+               WRITE(PRINTF,"(' I J MEMNL() SFNL() SPCSIG:',2I4,3E12.4)") I,J,MEMNL4(J,I,IGP),SFNL(I,J),&
                &SPCSIG(I)
             ENDDO
          ENDDO
@@ -2252,7 +2255,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
 &DAL1    ,DAL2    ,DAL3    ,DEP2    ,&
 &AC2     ,KMESPC  ,MEMNL4  ,FACHFR  ,&
 &IDIA    ,ITER    ,UE      ,SA1     ,&
-&SA2     ,SFNL    ,AF11, CNL4_1, CNL4_2)
+&SA2     ,SFNL    ,AF11, CNL4_1, CNL4_2,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !*******************************************************************
@@ -2265,6 +2268,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
+   INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
    REAL, INTENT(IN) :: CNL4_1(MSC4MI:MSC4MA)
    REAL, INTENT(IN) :: CNL4_2(MSC4MI:MSC4MA)
@@ -2506,7 +2510,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
    SNLCS1 = PQUAD(3)
    SNLCS2 = PQUAD(4)
    SNLCS3 = PQUAD(5)
-   X      = MAX ( 0.75 * DEP2(KCGRD(1)) * KMESPC , 0.5 )
+   X      = MAX ( 0.75 * DEP2(IGP) * KMESPC , 0.5 )
    X2     = MAX ( -1.E15, SNLCS3*X)
    CONS   = SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
    JACOBI = 2. * PI
@@ -2516,7 +2520,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
    DO IDDUM = IDLOW, IDHGH
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
       DO IS=1, MSC
-         UE (IS,IDDUM) = AC2(ID,IS,KCGRD(1)) * SPCSIG(IS) * JACOBI
+         UE (IS,IDDUM) = AC2(ID,IS,IGP) * SPCSIG(IS) * JACOBI
       ENDDO
    ENDDO
 
@@ -2607,9 +2611,9 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
 !         *** next four sweeps (see subroutine FILNL3)         ***
 
          IF (IDIA.EQ.1) THEN
-            MEMNL4(J,I,KCGRD(1)) = FAC * SFNL(I,J) / SIGPI
+            MEMNL4(J,I,IGP) = FAC * SFNL(I,J) / SIGPI
          ELSE
-            MEMNL4(J,I,KCGRD(1)) = MEMNL4(J,I,KCGRD(1)) +&
+            MEMNL4(J,I,IGP) = MEMNL4(J,I,IGP) +&
             &FAC * SFNL(I,J) / SIGPI
          END IF
       ENDDO
@@ -2628,7 +2632,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
       WRITE (PRINTF,"(' AWG5 AWG6 AWG7 AWG8 :',4E12.4)") AWG5, AWG6, AWG7, AWG8
       WRITE (PRINTF,"(' S4MI S4MA D4MI D4MA :',4I6)") MSC4MI, MSC4MA, MDC4MI, MDC4MA
       WRITE(PRINTF,"(' SNLC1 X X2 CONS :',4E12.4)") SNLC1,X,X2,CONS
-      WRITE(PRINTF,"(' DEPTH KMESPC FACHFR PI:',4E12.4)") DEP2(KCGRD(1)),KMESPC,FACHFR,PI
+      WRITE(PRINTF,"(' DEPTH KMESPC FACHFR PI:',4E12.4)") DEP2(IGP),KMESPC,FACHFR,PI
       WRITE(PRINTF,*)
 
 !       *** value source term in every bin ***
@@ -2636,7 +2640,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
       IF(ITEST.GE. 150 ) THEN
          DO I=1, MSC
             DO J=1, MDC
-               WRITE(PRINTF,"(' I J MEMNL() SFNL() SPCSIG:',2I4,3E12.4)") I,J,MEMNL4(J,I,KCGRD(1)),SFNL(I,J),&
+               WRITE(PRINTF,"(' I J MEMNL() SFNL() SPCSIG:',2I4,3E12.4)") I,J,MEMNL4(J,I,IGP),SFNL(I,J),&
                &SPCSIG(I)
             ENDDO
          ENDDO
@@ -2650,7 +2654,7 @@ end subroutine SWSNL4
 !*********************************************************************
 SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
 &SNLC1   ,DAL1    ,DAL2    ,DAL3    ,SFNL    ,&
-&DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, AF11 )
+&DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, AF11 ,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 !*********************************************************************
 
@@ -2664,6 +2668,7 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
 
 !   --|-----------------------------------------------------------|--
@@ -2847,7 +2852,7 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
    SNLCS1 = PQUAD(3)
    SNLCS2 = PQUAD(4)
    SNLCS3 = PQUAD(5)
-   X      = MAX ( 0.75 * DEP2(KCGRD(1)) * KMESPC , 0.5 )
+   X      = MAX ( 0.75 * DEP2(IGP) * KMESPC , 0.5 )
    X2     = MAX ( -1.E15, SNLCS3*X)
    CONS   = SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
    JACOBI = 2. * PI
@@ -2857,7 +2862,7 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
    DO IDDUM = IDLOW, IDHGH
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
       DO IS=1, MSC
-         UE (IS,IDDUM) = AC2(ID,IS,KCGRD(1)) * SPCSIG(IS) * JACOBI
+         UE (IS,IDDUM) = AC2(ID,IS,IGP) * SPCSIG(IS) * JACOBI
       ENDDO
    ENDDO
 
@@ -2919,7 +2924,7 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
 !         *** store value in auxiliary array and use values in ***
 !         *** next four sweeps (see subroutine FILNL3)         ***
 
-         MEMNL4(J,I,KCGRD(1)) = SFNL(I,J) / SIGPI
+         MEMNL4(J,I,IGP) = SFNL(I,J) / SIGPI
       ENDDO
    ENDDO
 
@@ -2928,7 +2933,7 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
    IF ( ITEST.GE.150 .AND. TESTFL ) THEN
       DO I=1, MSC
          DO J=1, MDC
-            WRITE(PRINTF,"(' I J MEMNL() SFNL() SPCSIG:',2I4,3E12.4)") I,J,MEMNL4(J,I,KCGRD(1)),SFNL(I,J),&
+            WRITE(PRINTF,"(' I J MEMNL() SFNL() SPCSIG:',2I4,3E12.4)") I,J,MEMNL4(J,I,IGP),SFNL(I,J),&
             &SPCSIG(I)
          ENDDO
       ENDDO
@@ -2941,7 +2946,7 @@ end subroutine SWSNL8
 !*******************************************************************
 
 SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
-&MEMNL4  ,PLNL4S  ,ISSTOP  ,REDC0   ,REDC1   )
+&MEMNL4  ,PLNL4S  ,ISSTOP  ,REDC0   ,REDC1   ,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !*******************************************************************
@@ -3028,6 +3033,7 @@ SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
 !
 !*******************************************************************
 
+   INTEGER, INTENT(IN) :: IGP
    INTEGER, SAVE :: IENT = 0
    INTEGER   IS, ID, IDDUM, ISSTOP
 
@@ -3047,15 +3053,15 @@ SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
    do IS=1, ISSTOP
       do IDDUM = IDCMIN(IS), IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-         IF(TESTFL) PLNL4S(ID,IS,IPTST) = MEMNL4(ID,IS,KCGRD(1))
-         IF (MEMNL4(ID,IS,KCGRD(1)).GT.0.) THEN
-            IMATRA(ID,IS) = IMATRA(ID,IS) + MEMNL4(ID,IS,KCGRD(1))
-            REDC0(ID,IS,1)= REDC0(ID,IS,1)+ MEMNL4(ID,IS,KCGRD(1))
+         IF(TESTFL) PLNL4S(ID,IS,IPTST) = MEMNL4(ID,IS,IGP)
+         IF (MEMNL4(ID,IS,IGP).GT.0.) THEN
+            IMATRA(ID,IS) = IMATRA(ID,IS) + MEMNL4(ID,IS,IGP)
+            REDC0(ID,IS,1)= REDC0(ID,IS,1)+ MEMNL4(ID,IS,IGP)
          ELSE
-            IMATDA(ID,IS) = IMATDA(ID,IS) - MEMNL4(ID,IS,KCGRD(1)) /&
-            &MAX(1.E-18,AC2(ID,IS,KCGRD(1)))
-            REDC1(ID,IS,1)= REDC1(ID,IS,1)+ MEMNL4(ID,IS,KCGRD(1)) /&
-            &MAX(1.E-18,AC2(ID,IS,KCGRD(1)))
+            IMATDA(ID,IS) = IMATDA(ID,IS) - MEMNL4(ID,IS,IGP) /&
+            &MAX(1.E-18,AC2(ID,IS,IGP))
+            REDC1(ID,IS,1)= REDC1(ID,IS,1)+ MEMNL4(ID,IS,IGP) /&
+            &MAX(1.E-18,AC2(ID,IS,IGP))
          END IF
       end do
    end do
@@ -3066,7 +3072,7 @@ SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
          DO IS=1, ISSTOP
             DO IDDUM = IDCMIN(IS), IDCMAX(IS)
                ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-               WRITE(PRINTF,"(' FILNL3: IS ID MEMNL() :',2I6,E12.4)") IS,ID,MEMNL4(ID,IS,KCGRD(1))
+               WRITE(PRINTF,"(' FILNL3: IS ID MEMNL() :',2I6,E12.4)") IS,ID,MEMNL4(ID,IS,IGP)
             ENDDO
          ENDDO
       ENDIF
@@ -3078,7 +3084,7 @@ end subroutine FILNL3
 
 !----------------------------------------------------------------------
 SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH,&
-&IQTYPE,SNL,KCGRD,ICMAX,IERROR )
+&IQTYPE,SNL,KCGRD,ICMAX,IERROR,IGP )
 !----------------------------------------------------------------------
 !
 !   +-------+    ALKYON Hydraulic Consultancy & Research
@@ -3160,6 +3166,7 @@ SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH,&
    REAL   , INTENT(IN) :: DEPTH(NGRID)            ! depth array
    INTEGER, INTENT(IN) :: ICMAX                   ! number of points
    INTEGER, INTENT(IN) :: KCGRD(ICMAX)            ! grid addresses fo
+   INTEGER, INTENT(IN) :: IGP                     ! current grid address
    REAL   , INTENT(OUT):: SNL(NDIR,NSIG,NGRID)    ! nonlinear quadrup
 !                                                    ! a certain exact method (sigma,dir)
    INTEGER, INTENT(OUT):: IERROR                  ! Error indicator.
@@ -3212,7 +3219,7 @@ SUBROUTINE SWINTFXNL ( ASWAN,SIGMA,DIR,NDIR,NSIG,NGRID,DEPTH,&
 
    IERROR  = 0
 
-   IGRID   = KCGRD(1) ! set index of current grid index
+   IGRID   = IGP ! set index of current grid index
    DIRR(:) = DIR(:,1) ! copy radian directions to single array
 
    SNL(:,:,IGRID)  = 0.
@@ -3826,7 +3833,7 @@ end subroutine FAC3WW
 SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 &IMATRA, IMATDA, REDC0 , REDC1 ,&
 &IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
-&SMEBRK, PLTRI , URSELL, BIPHAS, QTL2, TRIADS )
+&SMEBRK, PLTRI , URSELL, BIPHAS, QTL2, TRIADS ,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -3842,6 +3849,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
    USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   INTEGER, INTENT(IN) :: IGP
    TYPE(triad_state_t), INTENT(IN) :: TRIADS
 
 
@@ -4064,8 +4072,8 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
    &WISP1 => TRIADS%upper_weight_next)
    IF (LTRACE) CALL STRACE (IENT,'SWLTA')
 
-   DEP  = DEP2  (KCGRD(1))
-   BIPH = BIPHAS(KCGRD(1))
+   DEP  = DEP2  (IGP)
+   BIPH = BIPHAS(IGP)
 
    CG  = 1.
 
@@ -4087,7 +4095,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 
 !     --- compute 3 wave-wave interactions
 
-   IF ( .NOT.URSELL(KCGRD(1)).LT.PTRIAD(5) ) THEN
+   IF ( .NOT.URSELL(IGP).LT.PTRIAD(5) ) THEN
 
 !        --- determine sine of biphase
 
@@ -4105,7 +4113,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 
 !        --- calculate integral of E(f,t) over all directions, if desired
       IF ( IDW.EQ.-1 ) THEN
-         ED(:) = SUM(AC2(:,:,KCGRD(1)),DIM=1) * 2.*PI*SPCSIG(:) *DDIR
+         ED(:) = SUM(AC2(:,:,IGP),DIM=1) * 2.*PI*SPCSIG(:) *DDIR
       ENDIF
 
       DO II = IDDLOW, IDDTOP
@@ -4113,7 +4121,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 
 !           --- initialize array with E(f) for the direction theta considered
 
-         E(:) = AC2(ID,:,KCGRD(1)) * 2. * PI * SPCSIG(:)
+         E(:) = AC2(ID,:,IGP) * 2. * PI * SPCSIG(:)
 
 !           --- integrate E(f,t) over range dir-p <= theta <= dir+p
 
@@ -4127,7 +4135,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
             ED(:) = 0.
             DO IDDUM = ID1, ID2
                IDD = MOD( IDDUM - 1 + MDC , MDC ) + 1
-               ED(:) = ED(:) + AC2(IDD,:,KCGRD(1))
+               ED(:) = ED(:) + AC2(IDD,:,IGP)
             ENDDO
             ED(:) = ED(:) * 2. * PI * SPCSIG(:)
             IF ( IDW.NE.0 ) ED = ED * DDIR
@@ -4227,9 +4235,9 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
                REDC0(ID,IS,2)= REDC0(ID,IS,2)+ STRI / SIGPI
             ELSE
                IMATDA(ID,IS) = IMATDA(ID,IS) - STRI /&
-               &MAX(1.E-18,AC2(ID,IS,KCGRD(1))*SIGPI)
+               &MAX(1.E-18,AC2(ID,IS,IGP)*SIGPI)
                REDC1(ID,IS,2)= REDC1(ID,IS,2)+ STRI /&
-               &MAX(1.E-18,AC2(ID,IS,KCGRD(1))*SIGPI)
+               &MAX(1.E-18,AC2(ID,IS,IGP)*SIGPI)
             END IF
          END DO
       END DO
@@ -4239,9 +4247,9 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !     --- test output
 
    IF ( ITEST .GE. 5 .AND. TESTFL ) THEN
-      WRITE(PRINTF,"(' SWLTA: KCGRD ISMAX :',2I4)") KCGRD(1), ISMAX
+      WRITE(PRINTF,"(' SWLTA: KCGRD ISMAX :',2I4)") IGP, ISMAX
       WRITE(PRINTF,"(' SWLTA: G DEP :',2E12.4)") GRAV, DEP
-      WRITE(PRINTF,"(' SWLTA: P(1) P(2) P4) URSELL :',4E12.4)") PTRIAD(1), PTRIAD(2), URSELL(KCGRD(1))
+      WRITE(PRINTF,"(' SWLTA: P(1) P(2) P4) URSELL :',4E12.4)") PTRIAD(1), PTRIAD(2), URSELL(IGP)
       WRITE(PRINTF,"(' SWLTA: SMEBRK B SIN(-B) :',3E12.4)") SMEBRK, BIPH, SIN(-BIPH)
    END IF
 
@@ -4255,7 +4263,7 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 &IMATRA, IMATDA, REDC0 , REDC1 ,&
 &IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
 &SIGM  , PLTRI , URSELL, BIPHAS,&
-&QTL1  , QTL2  )
+&QTL1  , QTL2  ,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -4363,6 +4371,7 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !     SPCSIG      relative frequencies in computational domain in sigma-space
 !     URSELL      Ursell number
 
+   INTEGER, INTENT(IN) :: IGP
    INTEGER IDDLOW, IDDTOP, ISSTOP
    INTEGER IDCMIN(MSC), IDCMAX(MSC)
 
@@ -4423,8 +4432,8 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 
    IF (LTRACE) CALL STRACE (IENT,'SWDCTA')
 
-   DEP  = DEP2(KCGRD(1))
-   BIPH = BIPHAS(KCGRD(1))
+   DEP  = DEP2(IGP)
+   BIPH = BIPHAS(IGP)
    P    = PTRIAD(2)
 
    E   = 0.
@@ -4433,7 +4442,7 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 
 !     --- compute 3 wave-wave interactions
 
-   IF ( .NOT.URSELL(KCGRD(1)).LT.PTRIAD(5) ) THEN
+   IF ( .NOT.URSELL(IGP).LT.PTRIAD(5) ) THEN
 
 !       --- determine sine of biphase
 
@@ -4451,7 +4460,7 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 
 !          --- compute E(sigma) for each direction
 
-         E(:) = AC2(ID,:,KCGRD(1)) * SPCSIG(:)
+         E(:) = AC2(ID,:,IGP) * SPCSIG(:)
 
          J = 0
 
@@ -4521,7 +4530,7 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
             REDC0(ID,IS,2) = REDC0(ID,IS,2) + STRI
 
             STRI = BETA * CG * SAN(ID,IS) /&
-            &MAX(1.E-18,AC2(ID,IS,KCGRD(1)))
+            &MAX(1.E-18,AC2(ID,IS,IGP))
             IMATDA(ID,IS)  = IMATDA(ID,IS)  + STRI
             REDC1(ID,IS,2) = REDC1(ID,IS,2) - STRI
 
@@ -4539,7 +4548,7 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
 &KWAVE , IMATRA, IMATDA, REDC0 , REDC1 ,&
 &IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
 &ETOT  , SIGM  , PLTRI , URSELL, BIPHAS,&
-&QTL1  , QTL2  )
+&QTL1  , QTL2  ,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !******************************************************************
@@ -4656,6 +4665,7 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
 !     SPCSIG      relative frequencies in computational domain in sigma-space
 !     URSELL      Ursell number
 
+   INTEGER, INTENT(IN) :: IGP
    INTEGER IDDLOW, IDDTOP, ISSTOP
    INTEGER IDCMIN(MSC), IDCMAX(MSC)
 
@@ -4749,8 +4759,8 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
    INTEGER, SAVE :: IENT = 0
    IF (LTRACE) CALL STRACE (IENT,'SWDNCTA')
 
-   DEP   = DEP2(KCGRD(1))
-   BIPH  = BIPHAS(KCGRD(1))
+   DEP   = DEP2(IGP)
+   BIPH  = BIPHAS(IGP)
    P     = PTRIAD(2)
    ETRSH = 1.E-4 * ETOT
 
@@ -4760,12 +4770,12 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
 !     --- consider energy densities
 
    DO ID = 1, MDC
-      E(ID,:) = AC2(ID,:,KCGRD(1)) * SPCSIG(:)
+      E(ID,:) = AC2(ID,:,IGP) * SPCSIG(:)
    END DO
 
 !     --- compute 3 wave-wave interactions
 
-   IF ( .NOT.URSELL(KCGRD(1)).LT.PTRIAD(5) ) THEN
+   IF ( .NOT.URSELL(IGP).LT.PTRIAD(5) ) THEN
 
 !       --- determine sine of biphase
 
@@ -4929,7 +4939,7 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
             REDC0(ID,IS,2) = REDC0(ID,IS,2) + STRI
 
             STRI = BETA * CG * SAN(ID,IS) /&
-            &MAX(1.E-18,AC2(ID,IS,KCGRD(1)))
+            &MAX(1.E-18,AC2(ID,IS,IGP))
             IMATDA(ID,IS)  = IMATDA(ID,IS)  + STRI
             REDC1(ID,IS,2) = REDC1(ID,IS,2) - STRI
 
@@ -5065,7 +5075,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 &IMATRA, IMATDA, REDC0 , REDC1 ,&
 &IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
 &PLTRI , URSELL, BIPHAS,&
-&QTL1  , QTL2  )
+&QTL1  , QTL2  ,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -5163,6 +5173,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 !     SPCSIG      relative frequencies in computational domain in sigma-space
 !     URSELL      Ursell number
 
+   INTEGER, INTENT(IN) :: IGP
    INTEGER IDDLOW, IDDTOP, ISSTOP
    INTEGER IDCMIN(MSC), IDCMAX(MSC)
 
@@ -5232,7 +5243,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 
    IF (LTRACE) CALL STRACE (IENT,'SWFTIM')
 
-   BIPH = BIPHAS(KCGRD(1))
+   BIPH = BIPHAS(IGP)
 
    E    = 0.
    ED   = 0.
@@ -5241,7 +5252,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 
 !     --- compute 3 wave-wave interactions
 
-   IF ( .NOT.URSELL(KCGRD(1)).LT.PTRIAD(5) ) THEN
+   IF ( .NOT.URSELL(IGP).LT.PTRIAD(5) ) THEN
 
 !        --- determine sine of biphase, if required
 
@@ -5263,7 +5274,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 
 !        --- calculate integral of E(f,t) over all directions, if desired
       IF ( IDW.EQ.-1 ) THEN
-         ED(:) = SUM(AC2(:,:,KCGRD(1)),DIM=1) * 2.*PI*SPCSIG(:) *DDIR
+         ED(:) = SUM(AC2(:,:,IGP),DIM=1) * 2.*PI*SPCSIG(:) *DDIR
       ENDIF
 
       DO II = IDDLOW, IDDTOP
@@ -5271,7 +5282,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 
 !           --- initialize array with E(f) for the direction theta considered
 
-         E(:) = AC2(ID,:,KCGRD(1)) * 2. * PI * SPCSIG(:)
+         E(:) = AC2(ID,:,IGP) * 2. * PI * SPCSIG(:)
 
 !           --- integrate E(f,t) over range dir-p <= theta <= dir+p
 
@@ -5285,7 +5296,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
             ED(:) = 0.
             DO IDDUM = ID1, ID2
                IDD = MOD( IDDUM - 1 + MDC , MDC ) + 1
-               ED(:) = ED(:) + AC2(IDD,:,KCGRD(1))
+               ED(:) = ED(:) + AC2(IDD,:,IGP)
             ENDDO
             ED(:) = ED(:) * 2. * PI * SPCSIG(:)
             IF ( IDW.NE.0 ) ED = ED * DDIR
@@ -5432,9 +5443,9 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
                REDC0(ID,IS,2)= REDC0(ID,IS,2)+ STRI / SIGPI
             ELSE
                IMATDA(ID,IS) = IMATDA(ID,IS) - STRI /&
-               &MAX(1.E-18,AC2(ID,IS,KCGRD(1))*SIGPI)
+               &MAX(1.E-18,AC2(ID,IS,IGP)*SIGPI)
                REDC1(ID,IS,2)= REDC1(ID,IS,2)+ STRI /&
-               &MAX(1.E-18,AC2(ID,IS,KCGRD(1))*SIGPI)
+               &MAX(1.E-18,AC2(ID,IS,IGP)*SIGPI)
             END IF
          END DO
       END DO
@@ -5446,7 +5457,7 @@ end subroutine SWFTIM
 
 !****************************************************************
 
-SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV )
+SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV, IGP )
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_wave_physics, ONLY: KSCIP1
 
@@ -5459,6 +5470,7 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV )
    USE swan_math_constants
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   INTEGER, INTENT(IN) :: IGP
 
 
 !   --|-----------------------------------------------------------|--
@@ -5534,7 +5546,7 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV )
 
 !     --- determine local depth
 
-   DEP = DEP2(KCGRD(1))
+   DEP = DEP2(IGP)
 
 !     --- calculate peak frequency
 
@@ -5543,7 +5555,7 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV )
    DO IS = 1, MSC
       ETD = 0.
       DO ID = 1, MDC
-         ETD = ETD + SPCSIG(IS)*AC2(ID,IS,KCGRD(1))*DDIR
+         ETD = ETD + SPCSIG(IS)*AC2(ID,IS,IGP)*DDIR
       ENDDO
       IF ( ETD.GT.EMAX ) THEN
          EMAX = ETD
@@ -5576,10 +5588,10 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV )
 
 !     --- determine absolute bottom slope
 
-   DDDX =  RDX(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2)))&
-   &+ RDX(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
-   DDDY =  RDY(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2)))&
-   &+ RDY(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
+   DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
+   &+ RDX(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
+   DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
+   &+ RDY(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
 
    DDDS = -1. * ( DDDX + DDDY )
    DDDS = MAX( 1.E-8, ABS(DDDS) )
@@ -5592,7 +5604,7 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV )
 end subroutine PEREXC
 !****************************************************************
 
-SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
+SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN, IGP )
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -5604,6 +5616,7 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
    USE swan_math_constants
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   INTEGER, INTENT(IN) :: IGP
 
 
 !   --|-----------------------------------------------------------|--
@@ -5744,7 +5757,7 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
    DO ID = 1, MDC
       ET = 0.
       DO IS = 1, MSC
-         ET = ET + SPCSIG(IS)**2 * AC2(ID,IS,KCGRD(1))
+         ET = ET + SPCSIG(IS)**2 * AC2(ID,IS,IGP)
       ENDDO
       ETOT = ETOT + ET
       EEX  = EEX  + ET * ECOS(ID)
@@ -5761,10 +5774,10 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
 
 !     ... next, calculate bottom slope in mean wave direction
 
-   DDDX =  RDX(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2)))&
-   &+ RDX(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
-   DDDY =  RDY(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2)))&
-   &+ RDY(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
+   DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
+   &+ RDX(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
+   DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
+   &+ RDY(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
 
    DDDS = -1. * ( DDDX * COSDIR + DDDY * SINDIR )
 
@@ -5780,7 +5793,7 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
    DO IS = 1, MSC
       ET = 0.
       DO ID = 1, MDC
-         ET = ET + SPCSIG(IS) * AC2(ID,IS,KCGRD(1))
+         ET = ET + SPCSIG(IS) * AC2(ID,IS,IGP)
       ENDDO
       IF ( ET.GT.EMAX ) THEN
          EMAX = ET

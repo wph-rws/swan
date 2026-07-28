@@ -37,7 +37,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 &IMATDA  ,KWAVE   ,SPCSIG  ,UBOT    ,UX2     ,&
 &UY2     ,IDCMIN  ,IDCMAX  ,IT      ,ITER    ,&
 &SWPDIR  ,PLBTFR  ,ISSTOP  ,DISSC1  ,VARFR   ,&
-&FRCOEF  )
+&FRCOEF  ,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -54,6 +54,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   INTEGER, INTENT(IN) :: IGP
 
 
 !   --|-----------------------------------------------------------|--
@@ -339,7 +340,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 
    IF (LTRACE) CALL STRACE (IENT,'SBOT')
 
-   IF ( IBOT .GE. 1 .AND. DEP2(KCGRD(1)) .GT. 0.) THEN
+   IF ( IBOT .GE. 1 .AND. DEP2(IGP) .GT. 0.) THEN
       IF (IBOT.EQ.1) THEN
 
 !         *** Jonswap model ***
@@ -354,17 +355,17 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 !         PBOT(2) = [cfw]
 
          IF (VARFR) THEN
-            CFW = FRCOEF(KCGRD(1))
+            CFW = FRCOEF(IGP)
          ELSE
             CFW = PBOT(2)
          ENDIF
-         CFBOT = CFW * UBOT(KCGRD(1)) / GRAV
+         CFBOT = CFW * UBOT(IGP) / GRAV
       ELSEIF (IBOT.EQ.3) THEN
 
 !             *** Madsen model ***
 
          IF (VARFR) THEN
-            AKN = FRCOEF(KCGRD(1))
+            AKN = FRCOEF(IGP)
          ELSE
             AKN = PBOT(5)
          ENDIF
@@ -398,7 +399,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
          ELSE
             FW = 0.3
          ENDIF
-         CFBOT =  UBOT(KCGRD(1)) * FW / (SQRT(2.) * GRAV)
+         CFBOT =  UBOT(IGP) * FW / (SQRT(2.) * GRAV)
       ELSEIF ( IBOT.EQ.4 ) THEN
 
 !            *** Jonswap model with variable friction coefficient  ***
@@ -410,7 +411,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
             EEX  = 0.
             EEY  = 0.
             DO ID = 1, MDC
-               EAD  = SPCSIG(IS)*AC2(ID,IS,KCGRD(1))
+               EAD  = SPCSIG(IS)*AC2(ID,IS,IGP)
                ETOT = ETOT + EAD
                EEX  = EEX  + EAD * ECOS(ID)
                EEY  = EEY  + EAD * ESIN(ID)
@@ -459,11 +460,11 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
             ENDIF
          ELSE
 !          set friction factor obtained from previous time step or iteration
-            FW = FRCOEF(KCGRD(1))
+            FW = FRCOEF(IGP)
          ENDIF
 
 !          mobility number
-         PHI = ((UBOT(KCGRD(1)))**2)/((S-1.)*GRAV*D)
+         PHI = ((UBOT(IGP))**2)/((S-1.)*GRAV*D)
 
 !          Shields entrainment parameter
          THETA = 0.5 * FW * PHI
@@ -510,7 +511,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
          ENDIF
 
 !          bottom friction coefficient based on friction factor
-         CFBOT = UBOT(KCGRD(1)) * FW / (SQRT(2.) * GRAV)
+         CFBOT = UBOT(IGP) * FW / (SQRT(2.) * GRAV)
 
 !          save friction factor to FRCOEF for next time step or iteration
          IF (( SWPDIR .EQ. 1) .OR.&
@@ -519,18 +520,18 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
          &( SWPDIR .EQ. 4 .AND.&
          &(IXCGRD(1).EQ.MXC .AND. IYCGRD(1).EQ.1) )) THEN
 !          save only for first encounter in a sweep
-            FRCOEF(KCGRD(1)) = FW
+            FRCOEF(IGP) = FW
          ENDIF
       ENDIF
 
 !       *** test output ***
 
       IF (TESTFL .AND. ITEST.GE.60) THEN
-         WRITE (PRTEST, "(' SBOT :IBOT INDX DEP CFBOT:', 2I5, 2E12.4)") IBOT, KCGRD(1), DEP2(KCGRD(1)), CFBOT(1)
+         WRITE (PRTEST, "(' SBOT :IBOT INDX DEP CFBOT:', 2I5, 2E12.4)") IBOT, IGP, DEP2(IGP), CFBOT(1)
       ENDIF
 
       do IS = 1, ISSTOP
-         KD = KWAVE(IS,1) * DEP2(KCGRD(1))
+         KD = KWAVE(IS,1) * DEP2(IGP)
          IF ( KD .LT. 10. ) THEN
             FACB = CFBOT(IS) * (SPCSIG(IS) / SINH(KD)) **2
 
@@ -540,7 +541,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
                SBOTEO = FACB
                IF (IBOT.EQ.2 .AND. ICUR.EQ.1 .AND. PBOT(1).GT.0.) THEN
 !               additional dissipation due to current, seldom used
-                  CURR = UX2(KCGRD(1))*ECOS(ID) + UY2(KCGRD(1))*ESIN(ID)
+                  CURR = UX2(IGP)*ECOS(ID) + UY2(IGP)*ESIN(ID)
                   UC   = ABS(CURR)
 !               PBOT(1) = [cfc]
                   SBOTEO = FACB + PBOT(1) * UC *&
@@ -568,7 +569,7 @@ end subroutine SBOT
 SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 &KWAVE  ,KMESPC   ,PLVEGT ,&
 &IDCMIN ,IDCMAX   ,ISSTOP ,DISSC1    ,&
-&NPLA2  )
+&NPLA2  ,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -768,6 +769,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !     PLVEGT      array containing the vegetation source term for test-output
 !     SMEBRK      mean frequency according to first order moment
 
+   INTEGER, INTENT(IN) :: IGP
    INTEGER ISSTOP, IDCMIN(MSC), IDCMAX(MSC)
    REAL    DEP2(MCGRD)          ,&
    &IMATDA(MDC,MSC)      ,&
@@ -876,11 +878,11 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !
 !        --- compute layer-independent vegetation dissipation factor
 
-      KD    = KMESPC * DEP2(KCGRD(1))
+      KD    = KMESPC * DEP2(IGP)
       IF ( KD.GT.10. ) RETURN
       C     = 3.*KMESPC*(COSH(KD))**3
       SVEG1 = SQRT(2./PI)*GRAV**2 * (KMESPC/SMEBRK)**3 * SQRT(ETOT)/C
-      IF ( VARNPL ) SVEG1 = SVEG1 * NPLA2(KCGRD(1))
+      IF ( VARNPL ) SVEG1 = SVEG1 * NPLA2(IGP)
 
 !        --- compute dissipation factor for each layer and summed up
 
@@ -889,7 +891,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
       D     = 0.
       SVEG2 = 0.
 
-      IF ( DEP2(KCGRD(1)).GT.SLAYH ) THEN
+      IF ( DEP2(IGP).GT.SLAYH ) THEN
 
          DO IL = 1, ILMAX
             KVEGH = KVEGH + KMESPC * LAYH(IL)
@@ -903,7 +905,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
             SVEG2 = SVEG2 + VEGDRL(IL)*VEGDIL(IL)*VEGNSL(IL)*(A + B)
          END DO
 
-      ELSE IF ( DEP2(KCGRD(1)).LT.LAYH(1) ) THEN
+      ELSE IF ( DEP2(IGP).LT.LAYH(1) ) THEN
 
          SINHK = SINH(KD)
          A     = SINHK**3
@@ -917,11 +919,11 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
          LAYPRT = 0.
          VGLOOP : DO IL = 1, ILMAX
             SLAYH1 = SLAYH1 + LAYH(IL)
-            IF (DEP2(KCGRD(1)).LE.SLAYH1) THEN
+            IF (DEP2(IGP).LE.SLAYH1) THEN
                DO IK = 1, IL-1
                   SLAYH2 = SLAYH2 + LAYH(IK)
                END DO
-               LAYPRT = DEP2(KCGRD(1)) - SLAYH2
+               LAYPRT = DEP2(IGP) - SLAYH2
                DO IK = 1, IL-1
                   KVEGH = KVEGH + KMESPC * LAYH(IK)
                   SINHK = SINH(KVEGH)
@@ -960,27 +962,27 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 
       SVEG1 = SQRT(2./PI)*(1/GRAV) * ALFU**3 *&
       &VEGDRL(1) * VEGDIL(1) * VEGNSL(1)
-      IF ( VARNPL ) SVEG1 = SVEG1 * NPLA2(KCGRD(1))
+      IF ( VARNPL ) SVEG1 = SVEG1 * NPLA2(IGP)
 
       SVEGET = 0.
       IF ( SVEG1.NE.0. ) THEN
 
 !        --- determine integration interval (submerged vegetation is assumed)
 
-      DZ = MIN( SLAYH, DEP2(KCGRD(1)) ) / REAL(NIP)
+      DZ = MIN( SLAYH, DEP2(IGP) ) / REAL(NIP)
 
 !        --- integration from bottom to surface using Simpson's rule
 
       DO IK = 0, NIP
 
          ZH  = DZ * REAL(IK)
-         ZDH = ZH - DEP2(KCGRD(1))
+         ZDH = ZH - DEP2(IGP)
 
          MU = 0.
 
          DO IS = 1, ISSTOP
 
-            KD = KWAVE(IS,1) * DEP2(KCGRD(1))
+            KD = KWAVE(IS,1) * DEP2(IGP)
             KC = KWAVE(IS,1) * ZH
             KZ = KWAVE(IS,1) * ZDH
 
@@ -998,7 +1000,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !              --- compute first order moment
 
             DO ID = 1, MDC
-               MU = MU + FDD(IS) * SPCSIG(IS)**2 * AC2(ID,IS,KCGRD(1))
+               MU = MU + FDD(IS) * SPCSIG(IS)**2 * AC2(ID,IS,IGP)
             END DO
 
          END DO
@@ -1035,7 +1037,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !     *** test output ***
 
    IF (TESTFL .AND. ITEST.GE.60) THEN
-      WRITE (PRTEST, "(' SVEG :IVEG INDX DEP VEGFAC:', 2I5, 2E12.4)") IVEG, KCGRD(1), DEP2(KCGRD(1)), SVEGET(1)
+      WRITE (PRTEST, "(' SVEG :IVEG INDX DEP VEGFAC:', 2I5, 2E12.4)") IVEG, IGP, DEP2(IGP), SVEGET(1)
    END IF
 
    DO IS = 1, ISSTOP
@@ -1059,7 +1061,7 @@ end subroutine SVEG
 
 SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
 &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-&KWAVE   ,DISSC1  ,PLTURB, SIGPOW)
+&KWAVE   ,DISSC1  ,PLTURB, SIGPOW, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -1074,6 +1076,7 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   INTEGER, INTENT(IN) :: IGP
 
 
 !   --|-----------------------------------------------------------|--
@@ -1171,7 +1174,7 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
    INTEGER, SAVE :: IENT = 0
    IF (LTRACE) CALL STRACE (IENT,'STURBV')
 
-   VISCLOC = TURBV2(KCGRD(1))
+   VISCLOC = TURBV2(IGP)
 
    IF (TESTFL .AND. ITEST.GE.60) WRITE (PRTEST, "( 'test STURBV, point ', 2I3, 3X, 2E12.4)")&
    &IXCGRD(1)-1, IYCGRD(1)-1, VISCLOC,&
@@ -1183,7 +1186,7 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
 !         *** Tolman's model ***
          DO IS = 1, ISSTOP
 !           expression: Pt * K * k * sigma^2 / g * (tanh(kd) - kd/(cosh(kd)^2))
-            XKD = KWAVE(IS,1) * DEP2(KCGRD(1))
+            XKD = KWAVE(IS,1) * DEP2(IGP)
             CVISC = PTURBV(1) * VISCLOC * KWAVE(IS,1) *&
             &SIGPOW(IS,2) / GRAV *&
             &(TANH(MIN(30.,XKD)) - XKD/((COSH(MIN(30.,XKD)))**2))
@@ -1210,7 +1213,7 @@ end subroutine STURBV
 SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
 &KMUD    ,CGMUD   ,DMW     ,&
 &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-&DISSC1  ,PLMUD   )
+&DISSC1  ,PLMUD   ,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -1223,6 +1226,7 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
    USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   INTEGER, INTENT(IN) :: IGP
 
 
 !   --|-----------------------------------------------------------|--
@@ -1351,7 +1355,7 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
 
    DO IS = 1, ISSTOP
 
-      KD = KMUD(IS,1) * DEP2(KCGRD(1))
+      KD = KMUD(IS,1) * DEP2(IGP)
 
       IF ( KD.LT.10. ) THEN
 
@@ -1807,7 +1811,7 @@ end subroutine FRABRE
 SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 &KMESPC  ,SPCSIG  ,AC2     ,IMATRA  ,&
 &IMATDA  ,IDCMIN  ,IDCMAX  ,PLWBRK  ,&
-&ISSTOP  ,DISSC0  ,DISSC1  ,DISBK   ,ITER, SIGM_WAM)
+&ISSTOP  ,DISSC0  ,DISSC1  ,DISBK   ,ITER, SIGM_WAM,IGP)
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_spectral_integration, ONLY: SwanIntgratSpc
 
@@ -1823,6 +1827,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: SIGM_WAM
 
 
@@ -2197,9 +2202,9 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
       FMAX  = PI2*PSURF(18)
       ECS   = 1.
       ETOT0 = SwanIntgratSpc(0., FMIN, FMAX, SPCSIG, ECS, SPCSIG,&
-      &ECS, 0., 0., AC2(1,1,KCGRD(1)), 1 )
+      &ECS, 0., 0., AC2(1,1,IGP), 1 )
       EPTOT = SwanIntgratSpc(PP, FMIN, FMAX, SPCSIG, ECS, SPCSIG,&
-      &ECS, 0., 0., AC2(1,1,KCGRD(1)), 1 )
+      &ECS, 0., 0., AC2(1,1,IGP), 1 )
       FAC   = ETOT0/EPTOT
       IF ( ETOT0.GT.1.E-8 ) THEN
          DO IS = 1, ISSTOP
@@ -2219,7 +2224,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
       do IDDUM = IDCMIN(IS), IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
          IMATDA(ID,IS) = IMATDA(ID,IS) + REAL(SURFA1)
-         DIS0 = SURFA0 * DBLE(AC2(ID,IS,KCGRD(1)))
+         DIS0 = SURFA0 * DBLE(AC2(ID,IS,IGP))
          IMATRA(ID,IS) = IMATRA(ID,IS) + REAL(DIS0)
          IF (TESTFL) PLWBRK(ID,IS,IPTST) = REAL(SURFA0-SURFA1)
          DISSC0(ID,IS,2) = DISSC0(ID,IS,2) - REAL(DIS0)
@@ -2245,7 +2250,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 &ETOT    ,IMATDA  ,IMATRA  ,PLWCAP  ,&
 &CGO     ,UFRIC   ,CAS     ,&
-&DEP2    ,DISSC1  ,DISSC0, WCAP_WORKSPACE)
+&DEP2    ,DISSC1  ,DISSC0, WCAP_WORKSPACE,IGP)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
@@ -2261,6 +2266,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   INTEGER, INTENT(IN) :: IGP
    TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
 
 
@@ -2615,7 +2621,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 
          EF(IS) = 0.
          DO ID = 1,MDC
-            EF(IS) = EF(IS) + AC2(ID,IS,KCGRD(1))*SPCSIG(IS)*PI2*DDIR
+            EF(IS) = EF(IS) + AC2(ID,IS,IGP)*SPCSIG(IS)*PI2*DDIR
          ENDDO
 
 !  Calculate saturation spectrum B(k) from E(f)
@@ -2676,7 +2682,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
             END IF
          ELSE
             CALL MSGERR(2,'Whitecapping is inactive')
-            WRITE (PRINTF,*) 'Occurs in gridpoint: ', KCGRD(1)
+            WRITE (PRINTF,*) 'Occurs in gridpoint: ', IGP
          END IF
       END DO
 
@@ -2707,9 +2713,9 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
          DO IDDUM = IDCMIN(IS), IDCMAX(IS)
             ID = MOD(IDDUM - 1 + MDC, MDC) + 1
             IMATRA(ID,IS)   = IMATRA(ID,IS) +&
-            &WCIMPL(IS) * AC2(ID,IS,KCGRD(1))
+            &WCIMPL(IS) * AC2(ID,IS,IGP)
             DISSC0(ID,IS,1) = DISSC0(ID,IS,1) +&
-            &WCIMPL(IS) * AC2(ID,IS,KCGRD(1))
+            &WCIMPL(IS) * AC2(ID,IS,IGP)
          END DO
       END DO
    END IF
@@ -2743,7 +2749,7 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 &ETOT    ,IMATDA  ,IMATRA  ,PLWCAP  ,&
 &CGO     ,UFRIC   ,&
-&DEP2    ,DISSC1  ,DISSC0, WCAP_WORKSPACE)
+&DEP2    ,DISSC1  ,DISSC0, WCAP_WORKSPACE,IGP)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
@@ -2759,6 +2765,7 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
    USE SdsBabanin
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   INTEGER, INTENT(IN) :: IGP
    TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
 
 
@@ -2895,7 +2902,7 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
    DO  IS = 1, MSC
       EDENS(IS) = 0.
       DO  ID = 1, MDC
-         EDENS(IS) = EDENS(IS) + SPCSIG(IS) * AC2(ID,IS,KCGRD(1))
+         EDENS(IS) = EDENS(IS) + SPCSIG(IS) * AC2(ID,IS,IGP)
       END DO
       EDENS(IS)=EDENS(IS)*DDIR*(2.0*PI) ! multiply by 2pi, so it is m
       FREQ(IS)=SPCSIG(IS)/(2.0*PI)      ! divide by 2pi, so it is Hz
@@ -2980,7 +2987,7 @@ end subroutine SWCAP8
 SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 &SPCSIG  ,DEP2    ,BOTLV   ,&
 &RDX     ,RDY     ,KWAVE   ,&
-&IDDLOW  ,IDDTOP  ,FDIR    ,KTETA, KM_WAM)
+&IDDLOW  ,IDDTOP  ,FDIR    ,KTETA, KM_WAM, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -2996,6 +3003,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    REAL, INTENT(IN) :: KM_WAM
+   INTEGER, INTENT(IN) :: IGP
 
 
 !   --|-----------------------------------------------------------|--
@@ -3211,7 +3219,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
          EAD = 0.
          DO IS = 1, MSC
             SIGMA1 = SPCSIG(IS)
-            DETOT  = SIGMA1**2 * AC2(ID,IS,KCGRD(1))
+            DETOT  = SIGMA1**2 * AC2(ID,IS,IGP)
             EAD    = EAD + DETOT
          ENDDO
          ETOTS = ETOTS + EAD
@@ -3229,10 +3237,10 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 
 !        *** determine bottom slope in mean wave direction ***
 
-      DDDX =  RDX(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2)))&
-      &+ RDX(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
-      DDDY =  RDY(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2)))&
-      &+ RDY(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
+      DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
+      &+ RDX(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
+      DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
+      &+ RDY(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
 
       DDDS = -1. * ( DDDX * COSDIR + DDDY * SINDIR )
 
@@ -3254,7 +3262,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
       DO IS = 1, MSC
          ETD = 0.
          DO ID = 1, MDC
-            ETD = ETD + SPCSIG(IS)*AC2(ID,IS,KCGRD(1))*DDIR
+            ETD = ETD + SPCSIG(IS)*AC2(ID,IS,IGP)*DDIR
          ENDDO
          IF (ETD.GT.EMAX) THEN
             EMAX  = ETD
@@ -3267,7 +3275,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
          KP = 0.
       ENDIF
 
-      KPD = KP*DEP2(KCGRD(1))
+      KPD = KP*DEP2(IGP)
 
       IF ( KPD.LT.0.) THEN
          BRCOEF = 0.73
@@ -3283,10 +3291,10 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 !
 !        --- determine absolute bottom slope
 
-      DDDX =  RDX(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2)))&
-      &+ RDX(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
-      DDDY =  RDY(1) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(2)))&
-      &+ RDY(2) * (BOTLV(KCGRD(1)) - BOTLV(KCGRD(3)))
+      DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
+      &+ RDX(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
+      DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
+      &+ RDY(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
 
       DDDS = -1. * ( DDDX + DDDY )
 
@@ -3298,7 +3306,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 
 !        --- compute dimensionless depth
 
-      KPD = KM_WAM * DEP2(KCGRD(1))
+      KPD = KM_WAM * DEP2(IGP)
 
 !        --- calculate gamma
 
@@ -3324,7 +3332,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 !        calculate breaker index based on Saprykina et al. (2017)
 !
 !        --- first, compute E(sigma)
-      ED(:) = SUM(AC2(:,:,KCGRD(1)),DIM=1) * SPCSIG(:) * DDIR
+      ED(:) = SUM(AC2(:,:,IGP),DIM=1) * SPCSIG(:) * DDIR
 
 !        --- next, compute peak frequency
       EMAX = 0.
@@ -3381,7 +3389,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
          EAD = 0.
          DO IS = 1, MSC
             SIGMA1 = SPCSIG(IS)
-            DETOT  = SIGMA1**2 * AC2(ID,IS,KCGRD(1))
+            DETOT  = SIGMA1**2 * AC2(ID,IS,IGP)
             EAD    = EAD + DETOT
          ENDDO
          ETOTS = ETOTS + EAD
@@ -3406,8 +3414,8 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 !     *** test output ***
 
    IF ( TESTFL .AND. ITEST .GE. 40 ) THEN
-      WRITE(PRINTF,"(' BRKPAR: point nr, dir, depth, slope, br.coeff:', I4,4(1X,E12.4))") KCGRD(1), ATAN2(SINDIR,COSDIR)*180./PI,&
-      &DEP2(KCGRD(1)), DDDS, BRCOEF
+      WRITE(PRINTF,"(' BRKPAR: point nr, dir, depth, slope, br.coeff:', I4,4(1X,E12.4))") IGP, ATAN2(SINDIR,COSDIR)*180./PI,&
+      &DEP2(IGP), DDDS, BRCOEF
    END IF
 
    RETURN

@@ -3075,7 +3075,7 @@ end subroutine HSOBND
 !                                                                      *
 !****************************************************************
 
-SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX)
+SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX,IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -3138,6 +3138,7 @@ SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX)
 !     IDCMAX      integer array containing maximum counter of directions
 !     ISSTOP      maximum frequency counter in this sweep
 
+   INTEGER, INTENT(IN) :: IGP
    INTEGER IDCMIN(MSC), IDCMAX(MSC), ISSTOP
    REAL    AC2(MDC,MSC,MCGRD), AC2OLD(MDC,MSC), ACNRMS(2)
 
@@ -3179,10 +3180,10 @@ SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX)
 
 !           *** determine infinity norms |ac2 - ac2old| and |ac2|
 
-         DIFFAC = ABS(AC2(ID,IS,KCGRD(1)) - AC2OLD(ID,IS))
+         DIFFAC = ABS(AC2(ID,IS,IGP) - AC2OLD(ID,IS))
          IF (DIFFAC.GT.ACNRMS(1)) ACNRMS(1) = DIFFAC
-         IF (ABS(AC2(ID,IS,KCGRD(1))).GT.ACNRMS(2))&
-         &ACNRMS(2) = ABS(AC2(ID,IS,KCGRD(1)))
+         IF (ABS(AC2(ID,IS,IGP)).GT.ACNRMS(2))&
+         &ACNRMS(2) = ABS(AC2(ID,IS,IGP))
 
       END DO
    END DO
