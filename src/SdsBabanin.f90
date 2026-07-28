@@ -10,7 +10,10 @@ CONTAINS
 
   SUBROUTINE CALC_SDS(NFREQ,EDENS,F,KDS,ANAR_IN,TESTFL,KWAVE,CG)
 
-    USE SWCOMM3, ONLY: A1SDS,A2SDS,P1SDS,P2SDS,UPWARDS,GRAV,PI
+    USE swan_physics_selection, ONLY: A1SDS, A2SDS, P1SDS, P2SDS, UPWARDS
+    USE swan_physical_settings, ONLY: GRAV
+    USE swan_math_constants, ONLY: PI
+    USE swan_math_constants
 
     ! REAL   A1SDS  : coefficient on T1
     ! REAL   A2SDS  : coefficient on T2
@@ -293,7 +296,13 @@ CONTAINS
                          ,ZELEN )
   !****************************************************************************
 
-    USE SWCOMM3
+    USE swan_stencil
+    USE swan_physics_selection
+    USE swan_numerics
+    USE swan_physical_settings
+    USE swan_computational_grid
+    USE swan_spectral_grid
+    USE swan_math_constants
     USE swan_test_output
     USE swan_diagnostics_level
     USE swan_io_units
@@ -1220,7 +1229,7 @@ CONTAINS
 !            domain size 101x101: factor 1.27 (with substantial i/o, this drops
 !            to 1.21)
 
-    USE SWCOMM3, ONLY: WNDSCL
+    USE swan_physics_selection, ONLY: WNDSCL
 
     IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1350,7 +1359,12 @@ CONTAINS
 
 !****************************************************************
 
-      USE SWCOMM3
+      USE swan_stencil
+      USE swan_physics_selection
+      USE swan_physical_settings
+      USE swan_computational_grid
+      USE swan_spectral_grid
+      USE swan_math_constants
       USE swan_test_output
       USE swan_diagnostics_level
       USE swan_io_units
@@ -1590,7 +1604,11 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
 !
 !   Modules used
 
-    use swcomm3
+    USE swan_stencil
+    use swan_physics_selection
+    use swan_physical_settings
+    use swan_computational_grid
+    use swan_spectral_grid
     USE swan_test_output
     USE swan_diagnostics_level
     USE swan_io_units
@@ -2078,7 +2096,9 @@ end subroutine filsin
 !        SOURCE
 !-------------------------------------------------------------------------------------
 
-    USE SWCOMM3, ONLY : KCGRD, DDIR, MSC, B1Z
+    USE swan_stencil, ONLY: KCGRD
+    USE swan_physics_selection, ONLY: B1Z
+    USE swan_spectral_grid, ONLY: DDIR, MSC
 
     IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2386,7 +2406,9 @@ end subroutine filsin
 !       CD      Real   O   Drag coefficient.
 !     ----------------------------------------------------------------
 !/
-      USE SWCOMM3
+      USE swan_stencil
+      USE swan_physics_selection
+      USE swan_spectral_grid
 
       IMPLICIT NONE(TYPE, EXTERNAL)
 !/

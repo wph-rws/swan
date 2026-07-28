@@ -57,7 +57,7 @@ subroutine SwanVTKPDataSets ( upvt, pstype, nvar, ivtyp, mxk, myk, vtkfile, upvd
 !   Modules used
 
     use swan_diagnostics_level
-    use swcomm3
+    use swan_numerics
     use m_parall
     use outp_data
 

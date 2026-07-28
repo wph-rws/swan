@@ -50,7 +50,7 @@ module SwanCompdata
 !
 !   Modules used
 
-    use swcomm3
+    USE swan_stencil
 
     implicit none(type, external)
 

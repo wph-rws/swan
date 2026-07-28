@@ -1,6 +1,6 @@
 module swan_grid_point_validation
    use swan_service_interfaces, only: strace
-   use SWCOMM3, only: MXC, MYC
+   use swan_computational_grid, only: MXC, MYC
    implicit none(type, external)
    private
 
@@ -25,7 +25,7 @@ LOGICAL FUNCTION VALIDBP (IX, IY, KGRPNT,WNP)
 !                                                                      *
 !************************************************************************
 
-   USE SWCOMM3
+   USE swan_computational_grid
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 

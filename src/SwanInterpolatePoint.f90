@@ -56,7 +56,7 @@ subroutine SwanInterpolatePoint ( foutp, x, y, finp, excval )
 
     use swan_diagnostics_level
     use swan_coordinate_offset
-    use swcomm3
+    use swan_math_constants
     use SwanGriddata
     use SwanGridobjects
 

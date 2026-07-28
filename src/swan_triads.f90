@@ -11,7 +11,8 @@ SUBROUTINE TCOEF ( W1, W2, W12, K1, K2, K12, DEP, R, S )
 !********************************************************************
 
    USE swan_diagnostics_level
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_physical_settings
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 

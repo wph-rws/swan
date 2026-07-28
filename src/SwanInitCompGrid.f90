@@ -51,7 +51,8 @@ subroutine SwanInitCompGrid ( logcom )
 !   Modules used
 
     use swan_diagnostics_level
-    use swcomm3
+    use swan_computational_grid
+    use swan_spectral_grid
     use m_genarr
     use m_parall
     use SwanGriddata

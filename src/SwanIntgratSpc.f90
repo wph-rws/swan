@@ -56,7 +56,8 @@ real function SwanIntgratSpc ( p, fmin, fmax, spcsig, theta, wpar, ecs, uloc, vl
 !   Modules used
 
     USE swan_diagnostics_level
-    use swcomm3
+    use swan_physical_settings
+    use swan_spectral_grid
 
     implicit none(type, external)
 

@@ -42,7 +42,12 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -561,7 +566,12 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_input_grids
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE SDSBABANIN
 
@@ -1110,7 +1120,11 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
 
 
@@ -1338,7 +1352,9 @@ SUBROUTINE WINDP3 (ISSTOP  ,ALIMW   ,AC2     ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -1513,7 +1529,11 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -1825,7 +1845,12 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -2076,7 +2101,13 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
 !******************************************************************
 
    USE swan_run_mode
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -2627,7 +2658,12 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units

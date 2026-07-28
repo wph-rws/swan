@@ -13,7 +13,8 @@ SUBROUTINE SWIPOL (FINP, EXCVAL, XC, YC, MIP, CROSS, FOUTP,&
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3
+   USE swan_physical_settings
+   USE swan_computational_grid
    USE swan_spherical_geometry
 
 
@@ -268,7 +269,9 @@ SUBROUTINE SWOINA (XC, YC, AC2, ACLOC, KGRPNT, DEPXY, CROSS,EXCPT)
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_spherical_geometry
 
 

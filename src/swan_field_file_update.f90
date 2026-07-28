@@ -21,7 +21,8 @@ SUBROUTINE FLFILE (IGR1, IGR2,&
    USE swan_io_units
    USE swan_input_grids
    USE swan_input_field_files
-   USE SWCOMM3
+   USE swan_computational_grid
+   USE swan_compda_layout
    USE M_PARALL
    USE SwanGriddata
 

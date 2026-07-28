@@ -49,7 +49,11 @@ SUBROUTINE SWOUTP (AC2             ,&
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_computational_grid_kind
-   USE SWCOMM3
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_math_constants
    USE swan_test_output
    USE OUTP_DATA
    USE M_PARALL
@@ -554,7 +558,8 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
    USE swan_time, ONLY: default_time_context
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_numerics
    USE swan_test_output
 !NCF   USE OUTP_DATA
    USE M_PARALL
@@ -913,7 +918,7 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK,&
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3
+   USE swan_computational_grid
    USE swan_test_output
    USE OUTP_DATA
    REAL :: DXK
@@ -1176,7 +1181,7 @@ SUBROUTINE SWOEXC ( PSTYPE    ,OPI        ,OPR   ,&
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_computational_grid_kind
-   USE SWCOMM3
+   USE swan_computational_grid
    USE swan_spherical_geometry
    USE M_PARALL
 
@@ -1496,7 +1501,12 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA ,&
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
    USE swan_input_grids
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_compda_layout
+   USE swan_math_constants
    USE swan_test_output
    USE swan_spherical_geometry
    USE swan_time, ONLY: default_time_context
@@ -2987,7 +2997,12 @@ SUBROUTINE SWOEXA (OQPROC     ,BKC        ,&
    USE swan_io_units
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_spherical_geometry
    USE OUTP_DATA
@@ -4748,7 +4763,10 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_coordinate_offset
-   USE SWCOMM3
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_spherical_geometry
    USE M_PARALL

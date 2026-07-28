@@ -58,7 +58,7 @@ subroutine SwanReadGrid ( basenm, lenfnm )
 
     use swan_diagnostics_level
     use swan_coordinate_offset
-    use swcomm3
+    use swan_computational_grid
     use SwanGriddata
 
     implicit none(type, external)

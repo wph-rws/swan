@@ -46,7 +46,9 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
 !****************************************************************
 
    USE swan_coordinate_offset
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_computational_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_spherical_geometry
    USE swan_diagnostics_level
@@ -246,7 +248,12 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 
 !******************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -842,7 +849,10 @@ SUBROUTINE SPROXY (CAX        ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -1122,7 +1132,13 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 
    USE swan_coordinate_offset
    USE swan_run_mode
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_time, ONLY: default_time_context
    USE swan_diagnostics_level
@@ -1743,7 +1759,10 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
 !****************************************************************
 
    USE swan_coordinate_offset
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_spherical_geometry
    USE swan_diagnostics_level
 
@@ -1917,7 +1936,11 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !****************************************************************
 
    USE swan_run_mode
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_spherical_geometry
    USE swan_diagnostics_level
@@ -2218,7 +2241,11 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_spherical_geometry
    USE swan_diagnostics_level
@@ -2547,7 +2574,11 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 !****************************************************************
 
    USE swan_run_mode
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_propagation_scheme
    USE swan_spherical_geometry
@@ -3048,7 +3079,11 @@ SUBROUTINE STRSSI(SPCSIG  ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -3362,7 +3397,11 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -3752,7 +3791,11 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -4032,7 +4075,11 @@ SUBROUTINE STRSDFV (DD      ,IDCMIN  ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -4282,7 +4329,11 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_spherical_geometry
    USE swan_diagnostics_level
@@ -4603,7 +4654,11 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
 !****************************************************************
 
    USE swan_input_grids
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -4831,7 +4886,10 @@ SUBROUTINE SWAPRE ( DEP, MUDL, SPCSIG )
 !     The resulting module arrays are read-only inside the OpenMP sweeps
 
    USE swan_input_grids
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE m_propcache, ONLY: prop_cache_valid, prop_kwave,&
    &prop_cgo, prop_dmw, prop_cache_reset
 
@@ -4910,7 +4968,10 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     ,&
 
 !*******************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -5214,7 +5275,10 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -5522,7 +5586,12 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , DIFFR ,&
 
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_spherical_geometry
    USE swan_diagnostics_level

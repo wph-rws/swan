@@ -57,7 +57,7 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
 
     USE swan_diagnostics_level
     USE swan_io_units
-    use SWCOMM3
+    use swan_computational_grid
     use OUTP_DATA
 
     implicit none(type, external)

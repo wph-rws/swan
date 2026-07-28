@@ -50,7 +50,7 @@ subroutine SwanFindPoint ( x, y, kvert )
 !   Modules used
 
     use swan_diagnostics_level
-    use swcomm3
+    use swan_computational_grid
     use SwanGriddata
     use SwanGridobjects
     use SwanSpatialIndex

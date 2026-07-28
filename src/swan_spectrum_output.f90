@@ -12,7 +12,8 @@ SUBROUTINE WRSPEC (NREF, ACLOC)
 !************************************************************************
 
    USE swan_diagnostics_level
-   USE SWCOMM3
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE OUTP_DATA
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -158,7 +159,10 @@ end subroutine WRSPEC
          USE swan_diagnostics_level
          USE swan_io_units
          USE swan_computational_grid_kind
-         USE SWCOMM3
+         USE swan_physics_selection
+         USE swan_computational_grid
+         USE swan_spectral_grid
+         USE swan_math_constants
          USE swan_test_output
          USE swan_spherical_geometry
 

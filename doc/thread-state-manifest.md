@@ -23,10 +23,10 @@ Levensduur is de kortste eenheid waarover de waarde geldig moet blijven:
 
 | # | Locatie | Module | Symbolen | Buildvariant |
 |---|---|---|---|---|
-| 1 | [swmod1.f90:405](../src/swmod1.f90#L405) | `SWCOMM3` | `IXCGRD, IYCGRD, KCGRD, COSLAT` | altijd |
-| 2 | [swmod1.f90:406](../src/swmod1.f90#L406) | `SWCOMM3` | `RDFSIN` | altijd |
-| 3 | [swmod1.f90:1041](../src/swmod1.f90#L1041) | `SWCOMM3` | `ICMAX, CSETUP` | altijd |
-| 4 | [swan_test_output.f90:33](../src/swan_test_output.f90#L33) | `swan_test_output` | `IPTST, TESTFL` | altijd |
+| 1 | [swan_stencil.f90:41](../src/swan_stencil.f90#L41) | `swan_stencil` | `IXCGRD, IYCGRD, KCGRD, COSLAT` | altijd |
+| 2 | [swan_stencil.f90:42](../src/swan_stencil.f90#L42) | `swan_stencil` | `RDFSIN` | altijd |
+| 3 | [swan_stencil.f90:48](../src/swan_stencil.f90#L48) | `swan_stencil` | `ICMAX, CSETUP` | altijd |
+| 4 | [swan_test_output.f90:34](../src/swan_test_output.f90#L34) | `swan_test_output` | `IPTST, TESTFL` | altijd |
 | 5 | [swan_propagation_scheme.f90:27](../src/swan_propagation_scheme.f90#L27) | `swan_propagation_scheme` | `PROPSL` | altijd |
 | 6 | [SwanCompdata.f90:69](../src/SwanCompdata.f90#L69) | `SwanCompdata` | `vs` | altijd |
 | 7 | [swan_time.f90:40](../src/swan_time.f90#L40) | `swan_time` | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | **alleen `!TIMG`** |
@@ -68,7 +68,13 @@ run-shared mutable, **3** thread-state geseed via COPYIN, **4** bewezen
 write-before-read scratch, **5** conditioneel geschreven of voortlevend, **6**
 solver- of switch-specifiek.
 
-### `SWCOMM3` — stencil en propagatiekeuzes
+### `swan_stencil` — stencil en propagatiekeuzes
+
+Deze zeven zijn wat er van `SWCOMM3` over is. De module bestaat niet meer; wat
+erin stond is verdeeld over elf gerichte modules en de thread-toestand staat nu
+alleen in `swan_stencil`. Dat maakt de voorgestelde eigenaars hieronder niet
+anders, maar het scheelt een lezer het onderscheid tussen runconfiguratie en
+threadtoestand zelf te moeten maken.
 
 | Symbool | Solver | COPYIN | Eerste definitie | Levensduur | Cat. | Voorgestelde eigenaar |
 |---|---|---|---|---|---|---|

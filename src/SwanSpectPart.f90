@@ -230,7 +230,7 @@ CONTAINS
 !************************************************************************
 
       USE W3ODATMD, ONLY: WSCUT, FLCOMB
-      USE SWCOMM3 , ONLY: MSC, MDC
+      USE swan_spectral_grid, ONLY: MSC, MDC
       USE swan_io_units, ONLY: PRINTF
 
 
@@ -482,7 +482,7 @@ CONTAINS
 !                                                                      *
 !************************************************************************
 
-      USE SWCOMM3, ONLY: MSC, MDC
+      USE swan_spectral_grid, ONLY: MSC, MDC
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -619,7 +619,7 @@ CONTAINS
 !                                                                      *
 !************************************************************************
 
-      USE SWCOMM3, ONLY: MSC, MDC
+      USE swan_spectral_grid, ONLY: MSC, MDC
       USE swan_io_units, ONLY: PRINTF
 
 !   --|-----------------------------------------------------------|--
@@ -850,7 +850,7 @@ CONTAINS
 !                                                                      *
 !************************************************************************
 
-      USE SWCOMM3, ONLY: MSC, MDC
+      USE swan_spectral_grid, ONLY: MSC, MDC
 
 
 !   --|-----------------------------------------------------------|--
@@ -1193,7 +1193,9 @@ CONTAINS
 !                                                                      *
 !************************************************************************
 
-      USE SWCOMM3, ONLY: MSC, MDC, DDIR, PI2, DEGRAD, FRINTF
+      USE swan_spectral_grid, ONLY: MSC, MDC, DDIR, FRINTF
+      USE swan_math_constants, ONLY: PI2, DEGRAD
+      USE swan_math_constants
       USE swan_io_units, ONLY: PRINTF
 
 

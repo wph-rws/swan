@@ -63,7 +63,14 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
    USE swan_computational_grid_kind
    USE swan_run_mode
    USE swan_input_grids
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_math_constants
    USE swan_test_output
    USE swan_propagation_scheme
    USE swan_spherical_geometry
@@ -3770,7 +3777,9 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
    USE swan_computational_grid_kind
    USE swan_input_grids
    USE swan_input_field_files
-   USE SWCOMM3
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_spherical_geometry
    USE OUTP_DATA
@@ -4189,7 +4198,10 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
    USE swan_io_units
    USE swan_input_grids
    USE swan_input_field_files
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_compda_layout
    USE M_GENARR
    USE SwanGriddata
 
@@ -4625,7 +4637,9 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR, SPECTRAL_POWERS)
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_computational_grid_kind
-   USE SWCOMM3
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
 
 
 !   --|-----------------------------------------------------------|--
@@ -4778,7 +4792,8 @@ SUBROUTINE CGINIT (LOGCOM)
 !************************************************************************
 
    USE swan_number_formatting
-   USE SWCOMM3
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE M_GENARR
    USE M_PARALL
    USE SwanGriddata
@@ -5054,7 +5069,7 @@ SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
    USE swan_input_grids
-   USE SWCOMM3
+   USE swan_computational_grid
    USE swan_test_output
 
 
@@ -5265,7 +5280,7 @@ SUBROUTINE CGBOUN (KGRPNT, KGRBND)
 !                                                                      *
 !************************************************************************
 
-   USE SWCOMM3
+   USE swan_computational_grid
    USE swan_io_units
    USE M_PARALL
 
@@ -5629,7 +5644,7 @@ SUBROUTINE SEPARAREA(IX, IY, KGRPNT,IDIR)
 !                                                                  *
 !*******************************************************************
 
-   USE SWCOMM3
+   USE swan_computational_grid
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -5797,7 +5812,10 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
    USE swan_io_units
    USE swan_computational_grid_kind
    USE swan_run_mode
-   USE SWCOMM3
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_time, ONLY: default_time_context
    USE M_PARALL
    USE SwanGriddata
@@ -6384,7 +6402,10 @@ SUBROUTINE BACKUP (AC2, SPCSIG, SPCDIR, KGRPNT,&
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
    USE swan_input_grids
-   USE SWCOMM3
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_spherical_geometry
    USE M_PARALL
    USE SwanGriddata

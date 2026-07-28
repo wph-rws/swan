@@ -54,7 +54,10 @@ subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig )
 
     use swan_diagnostics_level
     use swan_input_grids
-    use swcomm3
+    USE swan_stencil
+    use swan_physics_selection
+    use swan_physical_settings
+    use swan_spectral_grid
     use SwanGriddata
     use SwanCompdata
 

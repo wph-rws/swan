@@ -1,5 +1,6 @@
 set( swan_src
 ${SWAN_GENERATED_SRC}/swan_kinds.f90
+${SWAN_GENERATED_SRC}/swan_math_constants.f90
 ${SWAN_GENERATED_SRC}/swan_io_limits.f90
 ${SWAN_GENERATED_SRC}/swan_io_units.f90
 ${SWAN_GENERATED_SRC}/swan_diagnostics_level.f90
@@ -9,6 +10,13 @@ ${SWAN_GENERATED_SRC}/swan_output_variables.f90
 ${SWAN_GENERATED_SRC}/swan_output_quadrature.f90
 ${SWAN_GENERATED_SRC}/swan_output_settings.f90
 ${SWAN_GENERATED_SRC}/swan_test_output.f90
+${SWAN_GENERATED_SRC}/swan_compda_layout.f90
+${SWAN_GENERATED_SRC}/swan_spectral_grid.f90
+${SWAN_GENERATED_SRC}/swan_computational_grid.f90
+${SWAN_GENERATED_SRC}/swan_physical_settings.f90
+${SWAN_GENERATED_SRC}/swan_numerics.f90
+${SWAN_GENERATED_SRC}/swan_physics_selection.f90
+${SWAN_GENERATED_SRC}/swan_stencil.f90
 ${SWAN_GENERATED_SRC}/swan_propagation_scheme.f90
 ${SWAN_GENERATED_SRC}/swan_spherical_geometry.f90
 ${SWAN_GENERATED_SRC}/swan_coordinate_offset.f90
@@ -35,7 +43,6 @@ ${SWAN_GENERATED_SRC}/swan_triads.f90
 ${SWAN_GENERATED_SRC}/swan_field_file_update.f90
 ${SWAN_GENERATED_SRC}/swan_geometry.f90
 ${SWAN_GENERATED_SRC}/swan_legacy_io.f90
-${SWAN_GENERATED_SRC}/swmod1.f90
 ${SWAN_GENERATED_SRC}/swan_io_context.f90
 ${SWAN_GENERATED_SRC}/swan_diffraction_state.f90
 ${SWAN_GENERATED_SRC}/swan_triad_state.f90

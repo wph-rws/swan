@@ -1691,7 +1691,7 @@ SUBROUTINE SWDECOMP
 !****************************************************************
 
    USE swan_diagnostics_level
-   USE SWCOMM3
+   USE swan_computational_grid
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -1855,7 +1855,7 @@ end subroutine SWDECOMP
 !JAC!****************************************************************
 !JAC!
 !JAC   USE swan_diagnostics_level
-!JAC   USE SWCOMM3
+!JAC   USE swan_computational_grid
 !JAC   USE M_PARALL
 !JAC!
 !JAC   IMPLICIT NONE
@@ -2084,7 +2084,7 @@ end subroutine SWDECOMP
 !WFR!****************************************************************
 !WFR!
 !WFR   USE swan_diagnostics_level
-!WFR   USE SWCOMM3
+!WFR   USE swan_computational_grid
 !WFR   USE M_PARALL
 !WFR!
 !WFR   IMPLICIT NONE
@@ -2271,7 +2271,8 @@ end subroutine SWDECOMP
 !WFR!****************************************************************
 !WFR!
 !WFR   USE swan_diagnostics_level
-!WFR   USE SWCOMM3
+!WFR   USE swan_computational_grid
+!WFR   USE swan_spectral_grid
 !WFR   USE M_PARALL
 !WFR!
 !WFR   IMPLICIT NONE
@@ -2434,7 +2435,8 @@ end subroutine SWDECOMP
 !WFR!****************************************************************
 !WFR!
 !WFR   USE swan_diagnostics_level
-!WFR   USE SWCOMM3
+!WFR   USE swan_computational_grid
+!WFR   USE swan_spectral_grid
 !WFR   USE M_PARALL
 !WFR!
 !WFR   IMPLICIT NONE
@@ -2597,7 +2599,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
 !****************************************************************
 
    USE swan_diagnostics_level
-   USE SWCOMM3
+   USE swan_computational_grid
    USE M_GENARR
    USE M_PARALL
 
@@ -2882,7 +2884,8 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
    USE swan_time
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
-   USE SWCOMM3
+   USE swan_numerics
+   USE swan_computational_grid
    USE OUTP_DATA
    USE M_PARALL
    USE SwanGriddata, ONLY: nvertsg
@@ -3314,7 +3317,7 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_computational_grid_kind, ONLY: OPTG
-   USE SWCOMM3
+   USE swan_numerics
    USE OUTP_DATA
    USE M_PARALL
 
@@ -3661,7 +3664,8 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
    USE swan_io_units
    USE swan_computational_grid_kind, ONLY: OPTG
    USE swan_coordinate_offset, ONLY: XOFFS, YOFFS
-   USE SWCOMM3
+   USE swan_numerics
+   USE swan_spectral_grid
    USE OUTP_DATA
    USE M_PARALL
 !NCF   USE swn_outnc, ONLY: swn_outnc_colspc
@@ -4051,7 +4055,8 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_computational_grid_kind, ONLY: OPTG
-   USE SWCOMM3, ONLY: NSTATM
+   USE swan_numerics, ONLY: NSTATM
+   USE swan_computational_grid
    USE swan_spherical_geometry, ONLY: KSPHER
    USE OUTP_DATA
    USE M_PARALL
@@ -4560,7 +4565,7 @@ end subroutine SWCOLBLK
 !JAC!
 !JAC   USE swan_diagnostics_level
 !JAC   USE swan_io_units
-!JAC   USE SWCOMM3
+!JAC   USE swan_computational_grid
 !JAC   USE M_PARALL
 !JAC!
 !JAC   IMPLICIT NONE

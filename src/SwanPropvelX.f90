@@ -52,7 +52,9 @@ subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin, diffr )
 !   Modules used
 
     use swan_diagnostics_level
-    use swcomm3
+    USE swan_stencil
+    use swan_physics_selection
+    use swan_spectral_grid
     use SwanGriddata
     use SwanCompdata
 

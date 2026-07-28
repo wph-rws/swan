@@ -7,7 +7,7 @@ program test_physics_kernels
    use swan_wave_physics, only: kscip1, kscip1_kernel
    use swan_spectrum_transform, only: gammaf, gammaf_kernel
    use swan_geometry, only: tcross, tcross_kernel
-   use swcomm3, only: GRAV
+   use swan_physical_settings, only: GRAV
    implicit none
 
    call test_deep_water_limit

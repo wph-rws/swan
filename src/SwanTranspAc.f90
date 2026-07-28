@@ -61,7 +61,10 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
     use swan_diagnostics_level
      use swan_propagation, only: STRSD, STRSSI, STRSSB
     use swan_run_mode
-    use swcomm3
+    USE swan_stencil
+    use swan_physics_selection
+    use swan_numerics
+    use swan_spectral_grid
     use swan_propagation_scheme
     use SwanGriddata
 

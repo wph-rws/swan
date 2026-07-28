@@ -148,7 +148,13 @@ subroutine SWQCINIT ( BGRIDP, COMPDA )
     use swan_io_units
     use swan_computational_grid_kind
     use swan_boundary_counters
-    use swcomm3
+    use swan_physics_selection
+    use swan_numerics
+    use swan_physical_settings
+    use swan_computational_grid
+    use swan_spectral_grid
+    use swan_compda_layout
+    use swan_math_constants
     use swan_test_output
     use m_genarr
     use m_parall
@@ -729,7 +735,10 @@ subroutine SWQCDFT ( sigft, cgft, dep2, kwave, cgo, cft, rft, sft, wft, wsave )
     use swan_diagnostics_level
     use swan_computational_grid_kind
     use swan_input_grids
-    use swcomm3
+    USE swan_stencil
+    use swan_physical_settings
+    use swan_computational_grid
+    use swan_spectral_grid
     use m_genarr
     use SwanGriddata
     use SwanCompdata
@@ -979,7 +988,10 @@ subroutine SWQCUFT ( uxft, uyft, dep2, ux2, uy2, cft, rft, sft, wft, wsave )
     use swan_diagnostics_level
     use swan_computational_grid_kind
     use swan_input_grids
-    use swcomm3
+    USE swan_stencil
+    use swan_numerics
+    use swan_physical_settings
+    use swan_computational_grid
     use m_genarr
     use SwanGriddata
     use SwanCompdata
@@ -1222,7 +1234,10 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
     use swan_diagnostics_level
    use swan_dissipation, only: SSURF
     use swan_computational_grid_kind
-    use swcomm3
+    USE swan_stencil
+    use swan_physics_selection
+    use swan_computational_grid
+    use swan_spectral_grid
     use swan_test_output
 
     implicit none(type, external)
@@ -1462,7 +1477,10 @@ subroutine SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig )
 !   Modules used
 
     use swan_diagnostics_level
-    use swcomm3
+    USE swan_stencil
+    use swan_physical_settings
+    use swan_computational_grid
+    use swan_spectral_grid
     use swan_propagation_scheme
 
     implicit none(type, external)
@@ -1701,7 +1719,8 @@ subroutine SwanGradWig ( W, dwdx, dwdy, ac2, dep2, spcdir, spcsig )
 !   Modules used
 
     use swan_diagnostics_level
-    use swcomm3
+    use swan_physical_settings
+    use swan_spectral_grid
     use SwanGriddata
     use SwanGridobjects
     use SwanCompdata
@@ -2098,7 +2117,10 @@ subroutine SWQCSCAT ( memqcm, W, dwdx, dwdy, sigft, cgft, uxft, uyft, dep2, kwav
 !   Modules used
 
     use swan_diagnostics_level
-    use swcomm3
+    USE swan_stencil
+    use swan_physical_settings
+    use swan_computational_grid
+    use swan_spectral_grid
 
     implicit none(type, external)
 
@@ -2416,7 +2438,10 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
     use swan_diagnostics_level
     use swan_io_units
-    use swcomm3
+    USE swan_stencil
+    use swan_physical_settings
+    use swan_computational_grid
+    use swan_spectral_grid
 
     implicit none(type, external)
 
@@ -3238,7 +3263,10 @@ subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbr
 
     use swan_diagnostics_level
     use swan_io_units
-    use swcomm3
+    USE swan_stencil
+    use swan_physics_selection
+    use swan_computational_grid
+    use swan_spectral_grid
     use swan_test_output
 
     implicit none(type, external)
@@ -3392,7 +3420,8 @@ subroutine tukeywin ( a, n )
 !   Modules used
 
     use swan_diagnostics_level, only: ltrace
-    use swcomm3 , only: pi
+    use swan_math_constants, only: pi
+    use swan_math_constants
 
     implicit none(type, external)
 

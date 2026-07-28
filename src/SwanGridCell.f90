@@ -55,7 +55,7 @@ subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
 
     use swan_diagnostics_level
     use swan_computational_grid_kind
-    use swcomm3
+    use swan_math_constants
     use SwanGridobjects
 
     implicit none(type, external)

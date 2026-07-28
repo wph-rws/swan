@@ -58,7 +58,11 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
     USE swan_diagnostics_level
     USE swan_coordinate_offset
     USE swan_input_grids
-    use swcomm3
+    use swan_physics_selection
+    use swan_numerics
+    use swan_physical_settings
+    use swan_spectral_grid
+    use swan_math_constants
     USE swan_spherical_geometry
     use SwanGriddata
     use SwanGridobjects

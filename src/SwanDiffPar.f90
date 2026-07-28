@@ -85,7 +85,9 @@ subroutine SwanDiffPar ( ac2, dep2, spcsig, diffr )
 
     USE swan_diagnostics_level
     USE swan_coordinate_offset
-    use swcomm3
+    use swan_physical_settings
+    use swan_spectral_grid
+    use swan_math_constants
     USE swan_spherical_geometry
     use SwanGriddata
     use SwanGridobjects

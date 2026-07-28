@@ -20,6 +20,7 @@ module swan_test_output
    public :: IFPAR, IFS1D, IFS2D
    public :: LXDMP, LYDMP
    public :: NPTST, NPTSTA
+   public :: MTSVAR
 
 !     ICOTES : minimum value for ITEST, set by the undocumented COTES command
 !     INTES  : testing parameter, set by the undocumented INTE command
@@ -45,4 +46,10 @@ module swan_test_output
 !     NPTSTA : MAX(1,NPTST); the first dimension the test arrays are sized on,
 !              so that they stay allocatable when there are no test points
    integer :: NPTST, NPTSTA
+
+!     MTSVAR : number of quantities held per test point in the array TESTDA,
+!              which is dimensioned (MDC,MSC,NPTSTA,MTSVAR). It documented the
+!              TESTDA layout from inside SWCOMM3, next to the COMPDA layout it
+!              has nothing to do with.
+   integer :: MTSVAR
 end module swan_test_output

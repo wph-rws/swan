@@ -56,7 +56,7 @@ subroutine SwanCheckGrid
 
     USE swan_diagnostics_level
     USE swan_io_units
-    use swcomm3
+    use swan_math_constants
     use SwanGriddata
     use SwanGridobjects
 

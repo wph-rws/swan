@@ -82,7 +82,9 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
 !   Modules used
 
     USE swan_diagnostics_level
-    use swcomm3
+    USE swan_stencil
+    use swan_physics_selection
+    use swan_spectral_grid
     use SwanGriddata
 
     implicit none(type, external)

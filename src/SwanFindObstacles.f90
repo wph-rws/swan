@@ -54,7 +54,7 @@ subroutine SwanFindObstacles ( cross )
 !   Modules used
 
     use swan_diagnostics_level
-    use swcomm3
+    use swan_numerics
     use m_obsta
     use SwanGriddata
     use SwanGridobjects

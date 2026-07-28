@@ -52,7 +52,9 @@ subroutine SwanConvAccur ( accur, hscurr, tmcurr, delhs, deltm, xytst, spcsig, a
 
     use swan_diagnostics_level
     use swan_io_units
-    use swcomm3
+    use swan_numerics
+    use swan_spectral_grid
+    use swan_math_constants
     use swan_test_output
     use m_parall
     use SwanGriddata

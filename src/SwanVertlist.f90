@@ -69,7 +69,9 @@ subroutine SwanVertlist ( compda )
     use swan_diagnostics_level
     use swan_io_units
     use swan_input_grids, only: COSWC, SINWC, VARWI
-    use swcomm3, only: MCMVAR, JWX2, JWY2, JWX3, JWY3
+    use swan_compda_layout, only: MCMVAR, JWX2, JWY2, JWX3, JWY3
+    use swan_numerics, only: NSTATM
+    use swan_math_constants
     use m_genarr
     use m_parall
     use SwanGriddata

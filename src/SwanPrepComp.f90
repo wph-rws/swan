@@ -50,7 +50,7 @@ subroutine SwanPrepComp ( cross )
 !   Modules used
 
     use swan_diagnostics_level
-    use swcomm3
+    use swan_numerics
     use m_obsta, only: OBSTDONE
     use SwanGriddata
     use SwanGridobjects

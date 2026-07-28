@@ -2,7 +2,8 @@ module swan_wave_physics
    use swan_kinds, only: swan_real
    use swan_service_interfaces, only: strace
    use swan_diagnostics_level, only: LTRACE
-   use SWCOMM3, only: GRAV, PMUD
+   use swan_physics_selection, only: PMUD
+   use swan_physical_settings, only: GRAV
    implicit none(type, external)
    private
 

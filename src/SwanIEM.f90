@@ -137,7 +137,10 @@ subroutine SwanIEMinitig(spectral_powers)
     USE swan_diagnostics_level
     USE swan_io_units
     use swan_boundary_counters, only: NBGRPT
-    use SWCOMM3 , only: DDIR, FRINTF, FRINTH, MCGRD, MXC, MYC, MSC, MDC, PI2
+    use swan_spectral_grid, only: DDIR, FRINTF, FRINTH, MSC, MDC
+    use swan_computational_grid, only: MCGRD, MXC, MYC
+    use swan_math_constants, only: PI2
+    use swan_math_constants
     use M_GENARR, only: SPCSIG, AC2, KGRPNT
     use M_PARALL, only: NBGGL
 
@@ -360,7 +363,12 @@ subroutine SwanIEMmeanwav ( AC2, HSIBC, SPCSIG, KGRPNT, HS )
 
     USE swan_diagnostics_level
     USE swan_io_units
-    use SWCOMM3, only: DDIR, FRINTF, MXC, MYC, MCGRD, MSC, MDC, GRAV, PI2, PWIND
+    use swan_physics_selection, only: PWIND
+    use swan_physical_settings, only: GRAV
+    use swan_spectral_grid, only: DDIR, FRINTF, MSC, MDC
+    use swan_computational_grid, only: MXC, MYC, MCGRD
+    use swan_math_constants, only: PI2
+    use swan_math_constants
 
     implicit none(type, external)
 
@@ -536,7 +544,9 @@ subroutine SwanIEMncalc
 !   Modules used
 
     USE swan_diagnostics_level
-    use SWCOMM3, only: MDC, PI2
+    use swan_spectral_grid, only: MDC
+    use swan_math_constants, only: PI2
+    use swan_math_constants
 
     implicit none(type, external)
 
@@ -726,7 +736,12 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
 !   Modules used
 
     USE swan_diagnostics_level
-    use SWCOMM3, only: DEPMIN, DX, GRAV, PI, DDIR, FRINTF, MXC, MYC, MCGRD, MDC, MSC, PWIND, PSURF
+    use swan_physics_selection, only: PWIND, PSURF
+    use swan_physical_settings, only: DEPMIN, GRAV
+    use swan_computational_grid, only: DX, MXC, MYC, MCGRD
+    use swan_spectral_grid, only: DDIR, FRINTF, MDC, MSC
+    use swan_math_constants, only: PI
+    use swan_math_constants
 
     implicit none(type, external)
 

@@ -83,7 +83,11 @@ SUBROUTINE SWMAIN
    USE swan_computational_grid_kind
    USE swan_boundary_counters
    USE swan_run_mode
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
    USE swan_test_output
    USE swan_propagation_scheme
    USE OUTP_DATA
@@ -738,7 +742,14 @@ SUBROUTINE SWINIT (INERR, SNL4)
    USE swan_run_mode
    USE swan_input_grids
    USE swan_input_field_files
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_math_constants
    USE swan_test_output
    USE swan_propagation_scheme
    USE swan_spherical_geometry
@@ -982,10 +993,7 @@ SUBROUTINE SWINIT (INERR, SNL4)
    CASTD  = 0.               ! const. air-sea temp diff
    CDCAP  = 99999.
    USCAP  = 99999.
-   PI     = 4.*ATAN(1.)
-   PI2    = 2.*PI
    DNORTH = 90.
-   DEGRAD = PI/180.
    RHO    = 1025.
 !     power of tail in spectrum, 1: E with f, 2: E with k,
 !                                3: A with f, 4: A with k
@@ -3570,7 +3578,14 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
    USE swan_run_mode
    USE swan_input_grids
    USE swan_input_field_files
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_math_constants
    USE swan_propagation_scheme
    USE M_OBSTA
    USE M_BNDSPEC
@@ -4256,7 +4271,7 @@ SUBROUTINE SPRCON (XCGRID, YCGRID, KGRPNT, KGRBND)
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
    USE swan_input_grids
-   USE SWCOMM3
+   USE swan_computational_grid
    USE OUTP_DATA
    USE SwanGriddata
 
@@ -4635,7 +4650,11 @@ SUBROUTINE SWRBC ( COMPDA )
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_input_grids
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_compda_layout
    USE swan_test_output
    USE M_GENARR
    USE M_PARALL
@@ -5390,7 +5409,12 @@ SUBROUTINE ERRCHK
    USE swan_io_units
    USE swan_computational_grid_kind
    USE swan_input_grids
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_propagation_scheme
    USE swan_spherical_geometry
    USE M_GENARR
@@ -5884,7 +5908,12 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   ,&
    USE swan_boundary_counters
    USE swan_input_grids
    USE swan_input_field_files
-   USE SWCOMM3
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_math_constants
    USE swan_test_output
    USE swan_propagation_scheme
    USE M_BNDSPEC
@@ -6644,7 +6673,10 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC,&
    USE swan_io_units
    USE swan_boundary_counters
    USE swan_input_field_files
-   USE SWCOMM3
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE M_PARALL, ONLY: IAMMASTER
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -7326,7 +7358,9 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER,&
    USE swan_time, ONLY: default_time_context
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3
+   USE swan_physical_settings
+   USE swan_spectral_grid
+   USE swan_math_constants
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
@@ -7773,7 +7807,13 @@ SUBROUTINE SWINCO (AC2    ,COMPDA ,&
    USE swan_io_units
    USE swan_coordinate_offset
    USE swan_input_grids
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_math_constants
    USE swan_test_output
    USE swan_spherical_geometry
    USE M_PARALL

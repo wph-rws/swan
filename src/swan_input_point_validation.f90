@@ -14,7 +14,7 @@ SUBROUTINE SINUPT (PSNAME, XP, YP, XCGRID, YCGRID, KGRPNT, KGRBND)
 
    USE swan_io_units
    USE swan_coordinate_offset
-   USE SWCOMM3
+   USE swan_computational_grid
 
 
 !   --|-----------------------------------------------------------|--
@@ -264,7 +264,7 @@ LOGICAL FUNCTION SINCMP (XP, YP ,XCGRID ,YCGRID ,KGRPNT, KGRBND)
 !************************************************************************
 
    USE swan_computational_grid_kind
-   USE SWCOMM3
+   USE swan_computational_grid
    USE M_PARALL
 
 

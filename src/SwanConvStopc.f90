@@ -62,7 +62,10 @@ subroutine SwanConvStopc ( accur, hscurr, hsprev, hsdifc, tmcurr, tmprev, tmdifc
 
     use swan_diagnostics_level
     use swan_io_units
-    use swcomm3
+    use swan_physics_selection
+    use swan_numerics
+    use swan_spectral_grid
+    use swan_math_constants
     use swan_test_output
     use m_parall
     use SwanGriddata

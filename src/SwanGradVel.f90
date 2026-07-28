@@ -56,7 +56,10 @@ subroutine SwanGradVel ( dep2, ux2, uy2, duxdx, duxdy, duydx, duydy, ivert )
 
     use swan_diagnostics_level
     use swan_coordinate_offset
-    use swcomm3
+    use swan_physics_selection
+    use swan_physical_settings
+    use swan_spectral_grid
+    use swan_math_constants
     use swan_spherical_geometry
     use SwanGriddata
     use SwanGridobjects

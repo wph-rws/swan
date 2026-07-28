@@ -24,7 +24,8 @@ contains
 subroutine init_constants
 !------------------------------------------------------------------------------
 
-use SWCOMM3
+use swan_physical_settings
+use swan_math_constants
 
 pih  = 0.5_swan_real*PI
 dera = PI/180.0_swan_real

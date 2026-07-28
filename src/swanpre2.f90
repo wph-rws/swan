@@ -40,7 +40,6 @@ SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
 !                                                                      *
 !************************************************************************
 
-   USE SWCOMM3
 
 
 !   --|-----------------------------------------------------------|--
@@ -205,7 +204,8 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
    USE swan_run_mode
-   USE SWCOMM3
+   USE swan_computational_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_spherical_geometry
    USE OUTP_DATA
@@ -1074,7 +1074,9 @@ SUBROUTINE SWREOQ ( FOUND )
 
    USE swan_io_units
    USE swan_time
-   USE SWCOMM3
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_compda_layout
    USE OUTP_DATA
    USE M_PARALL
 !NCF   USE swn_outnc
@@ -2152,7 +2154,7 @@ INTEGER FUNCTION SIRAY (DP, XP1, YP1, XP2, YP2, XX, YY, BOTDEP,&
    USE swan_io_units
    USE swan_coordinate_offset
    USE swan_input_grids
-   USE SWCOMM3
+   USE swan_physical_settings
 
 
 !   --|-----------------------------------------------------------|--
@@ -2570,7 +2572,12 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
    USE swan_boundary_counters
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE M_BNDSPEC
    USE M_PARALL
    USE SwanGriddata
@@ -3965,7 +3972,10 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
    USE swan_io_units
    USE swan_coordinate_offset
    USE swan_boundary_counters
-   USE SWCOMM3
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_math_constants
    USE swan_spherical_geometry
    USE M_BNDSPEC
    USE M_PARALL
@@ -4454,7 +4464,9 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
    USE swan_coordinate_offset
    USE swan_boundary_counters
    USE swan_input_field_files
-   USE SWCOMM3
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_spherical_geometry
    USE M_BNDSPEC
@@ -5033,7 +5045,9 @@ SUBROUTINE BCWW3N (FBCNAM, BCTYPE, BSPFIL,&
    USE swan_io_units
    USE swan_coordinate_offset
    USE swan_boundary_counters
-   USE SWCOMM3
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_math_constants
    USE swan_spherical_geometry
    USE M_BNDSPEC
 
@@ -5541,7 +5555,7 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
    USE swan_boundary_counters
-   USE SWCOMM3
+   USE swan_computational_grid
    USE swan_test_output
    USE swan_spherical_geometry
    USE M_BNDSPEC
@@ -5927,7 +5941,7 @@ LOGICAL FUNCTION BOUNPT (IX,IY,KGRPNT)
 !                                                                    *
 !*********************************************************************
 
-   USE SWCOMM3
+   USE swan_computational_grid
 
 
 !   --|-----------------------------------------------------------|--
@@ -6089,7 +6103,11 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
    USE swan_time
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_spherical_geometry
    USE OUTP_DATA

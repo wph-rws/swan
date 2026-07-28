@@ -61,8 +61,12 @@ module swn_outnc
     use swan_coordinate_offset, only: XOFFS, YOFFS
     use swan_computational_grid_kind, only: OPTG
     use swan_input_grids, only: EXCFLD
-    use SWCOMM3,   only: NSTATC, NSTATM, ALPC, MDC, MSC, MCGRD, MXC, MYC, DNORTH, &
-                         PI2, ICUR, BNAUT
+    use swan_physics_selection, only: ICUR
+    use swan_numerics, only: NSTATC, NSTATM
+    use swan_physical_settings, only: DNORTH, BNAUT
+    use swan_computational_grid, only: ALPC, MCGRD, MXC, MYC
+    use swan_spectral_grid, only: MDC, MSC
+    use swan_math_constants, only: PI2
     use swan_time, only: default_time_context
     use swan_spherical_geometry, only: KSPHER
 

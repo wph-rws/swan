@@ -42,7 +42,13 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -568,7 +574,12 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !****************************************************************
 
    USE swan_input_grids
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -1052,7 +1063,11 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -1199,7 +1214,10 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_diagnostics_level
 
@@ -1366,7 +1384,10 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
 
@@ -1791,7 +1812,11 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -2224,7 +2249,12 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -2717,7 +2747,12 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE SdsBabanin
@@ -2949,7 +2984,11 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -3392,7 +3431,11 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        ,&
 !****************************************************************
 
    USE swan_computational_grid_kind
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
 

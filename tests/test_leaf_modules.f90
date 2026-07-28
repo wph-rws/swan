@@ -6,7 +6,9 @@ program test_leaf_modules
    use swan_angle_conversions, only: DEGCNV, ANGRAD, ANGDEG
    use swan_number_formatting, only: INTSTR, NUMSTR
    use swan_text_utilities, only: UPCASE
-   use swcomm3, only: BNAUT, DNORTH, PI
+   use swan_physical_settings, only: BNAUT, DNORTH
+   use swan_math_constants, only: PI
+   use swan_math_constants
    use swan_number_formatting, only: INAN, RNAN
    implicit none
 
@@ -56,20 +58,16 @@ contains
    end subroutine test_nautical_conversion
 
    subroutine test_radian_conversion
-      real :: saved_pi
-
-      ! ANGRAD and ANGDEG read PI from SWCOMM3, which SWINIT fills at runtime;
-      ! in a bare unit test it is still zero. Setting it here keeps the fixture
-      ! honest about that dependency instead of hiding it.
-      saved_pi = PI
-      PI = 4.0 * atan(1.0)
-
+      ! This used to need a fixture: PI was a mutable SWCOMM3 variable that
+      ! SWINIT filled at runtime, so in a bare unit test it was still zero and
+      ! the test had to set it and put it back. PI is a parameter in
+      ! swan_math_constants now, so the conversions work with no setup at all.
+      call require(close(PI, 3.14159265), &
+         "PI is not the circular constant")
       call require(close(ANGRAD(180.0), 3.14159265), &
          "ANGRAD did not convert 180 degrees to pi")
       call require(close(ANGDEG(ANGRAD(123.75)), 123.75), &
          "degree/radian conversion did not round-trip")
-
-      PI = saved_pi
    end subroutine test_radian_conversion
 
    subroutine test_integer_formatting

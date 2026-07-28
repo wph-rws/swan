@@ -76,7 +76,12 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
     use swan_diagnostics_level
     use swan_coordinate_offset
     use swan_run_mode
-    use swcomm3
+    USE swan_stencil
+    use swan_physics_selection
+    use swan_numerics
+    use swan_physical_settings
+    use swan_spectral_grid
+    use swan_math_constants
     use swan_spherical_geometry
     use SwanGriddata
     use SwanGridobjects

@@ -165,7 +165,7 @@ SUBROUTINE DISTR (CDIR, DIR, COEF, SPCDIR)
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3
+   USE swan_spectral_grid
 
 
 !   --|-----------------------------------------------------------|--
@@ -319,7 +319,8 @@ SUBROUTINE AC2TST (XYTST, AC2,KGRPNT)
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_computational_grid_kind
-   USE SWCOMM3
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE M_PARALL
 
@@ -390,7 +391,7 @@ SUBROUTINE CVCHEK (KGRPNT, XCGRID, YCGRID)
    USE swan_io_units
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
-   USE SWCOMM3
+   USE swan_computational_grid
    USE swan_test_output
 
 
@@ -618,7 +619,7 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_coordinate_offset
-   USE SWCOMM3
+   USE swan_computational_grid
    USE swan_test_output
 
 
@@ -947,7 +948,7 @@ LOGICAL FUNCTION INMESH (XP, YP, XCGRID ,YCGRID, KGRBND)
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_coordinate_offset
-   USE SWCOMM3
+   USE swan_computational_grid
    USE M_PARALL
 
 
@@ -1136,7 +1137,7 @@ SUBROUTINE NEWTON (XP, YP, XCGRID, YCGRID,&
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3
+   USE swan_computational_grid
    USE swan_test_output
 
 
@@ -1348,7 +1349,7 @@ SUBROUTINE NEWT1D (XP, YP, XCGRID, YCGRID, KGRPNT,&
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_coordinate_offset
-   USE SWCOMM3
+   USE swan_computational_grid
 
 
 !   --|-----------------------------------------------------------|--
@@ -1498,7 +1499,7 @@ SUBROUTINE EVALF (XC ,YC ,XVC ,YVC ,XCGRID ,YCGRID)
 !************************************************************************
 
    USE swan_diagnostics_level
-   USE SWCOMM3
+   USE swan_computational_grid
 
 
 !   --|-----------------------------------------------------------|--
@@ -1619,7 +1620,8 @@ SUBROUTINE SWOBST (XCGRID, YCGRID, KGRPNT, CROSS)
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3
+   USE swan_numerics
+   USE swan_computational_grid
    USE M_OBSTA
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -1842,7 +1844,12 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
    USE swan_input_grids
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE M_OBSTA
    USE M_PARALL
@@ -2512,7 +2519,10 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -2871,7 +2881,9 @@ SUBROUTINE HSOBND (AC2   ,SPCSIG,HSIBC ,KGRPNT)
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE M_PARALL
 
 
@@ -3068,7 +3080,9 @@ SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX)
 
 !****************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)

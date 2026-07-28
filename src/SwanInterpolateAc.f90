@@ -63,7 +63,9 @@ subroutine SwanInterpolateAc ( acintp, x, y, ac2, excpt )
     use swan_diagnostics_level
     use swan_io_units
     use swan_coordinate_offset
-    use swcomm3
+    use swan_numerics
+    use swan_spectral_grid
+    use swan_math_constants
     use m_obsta
     use SwanGriddata
     use SwanGridobjects

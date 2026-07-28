@@ -64,7 +64,8 @@ subroutine SwanInterpolateOutput ( foutp, x, y, finp, mip, kvert, excval )
     use swan_diagnostics_level
     use swan_io_units
     use swan_coordinate_offset
-    use swcomm3
+    use swan_numerics
+    use swan_math_constants
     use m_obsta
     use outp_data
     use SwanGriddata

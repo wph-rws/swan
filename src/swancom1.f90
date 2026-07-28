@@ -124,7 +124,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    USE swan_io_units
    USE swan_number_formatting
    USE swan_run_mode
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_compda_layout
+   USE swan_math_constants
    USE swan_test_output
    USE swan_propagation_scheme
    USE swan_spherical_geometry
@@ -2607,7 +2614,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE swan_diagnostics_level
                   USE swan_io_units
                   USE swan_run_mode
-                  USE SWCOMM3
+                  USE swan_stencil
+                  USE swan_physics_selection
+                  USE swan_numerics
+                  USE swan_physical_settings
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
+                  USE swan_compda_layout
                   USE swan_test_output
                   USE swan_propagation_scheme
                   USE swan_spherical_geometry
@@ -3935,7 +3948,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE swan_io_units
                   USE swan_computational_grid_kind
                   USE swan_run_mode
-                  USE SWCOMM3
+                  USE swan_physics_selection
+                  USE swan_numerics
+                  USE swan_physical_settings
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
+                  USE swan_math_constants
                   USE swan_propagation_scheme
                   USE SwanIEM, only: ntf, dfiem, sflog
 
@@ -4392,7 +4410,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   USE swan_diagnostics_level
                   USE swan_io_units
-                  USE SWCOMM3
+                  USE swan_numerics
+                  USE swan_physical_settings
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
+                  USE swan_math_constants
                   USE swan_test_output
                   USE M_PARALL
                   USE M_CONVERGENCE_SHARED, ONLY: &
@@ -4842,7 +4864,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !****************************************************************
 
                   USE swan_diagnostics_level
-                  USE SWCOMM3
+                  USE swan_physical_settings
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
                   USE M_PARALL
 
 !   --|-----------------------------------------------------------|--
@@ -5061,7 +5085,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !****************************************************************
 
                   USE swan_time, ONLY: default_time_context
-                  USE SWCOMM3
+                  USE swan_stencil
+                  USE swan_physics_selection
+                  USE swan_numerics
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
                   USE swan_test_output
                   USE swan_propagation_scheme
                   USE swan_diagnostics_level
@@ -5450,7 +5478,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   USE swan_diagnostics_level
                   USE swan_io_units
-                  USE SWCOMM3
+                  USE swan_stencil
+                  USE swan_physics_selection
+                  USE swan_numerics
+                  USE swan_physical_settings
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
+                  USE swan_math_constants
                   USE swan_test_output
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
@@ -5976,7 +6010,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !****************************************************************
 
                   USE swan_run_mode
-                  USE SWCOMM3
+                  USE swan_stencil
+                  USE swan_physics_selection
+                  USE swan_numerics
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
                   USE swan_test_output
                   USE swan_diagnostics_level
                   USE swan_io_units
@@ -6191,7 +6229,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE SWCOMM3
+                  USE swan_stencil
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
                   USE swan_test_output
                   USE swan_diagnostics_level
                   USE swan_io_units
@@ -6435,7 +6475,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE SWCOMM3
+                  USE swan_stencil
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
                   USE swan_test_output
                   USE swan_diagnostics_level
                   USE swan_io_units
@@ -6797,7 +6839,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE swan_io_units
                   USE swan_computational_grid_kind
                   USE swan_input_grids
-                  USE SWCOMM3
+                  USE swan_stencil
+                  USE swan_physics_selection
+                  USE swan_numerics
+                  USE swan_physical_settings
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
                   USE swan_test_output
                   USE SdsBabanin
                   USE SwanBraggScat
@@ -7810,7 +7857,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !************************************************************************
 
-                  USE SWCOMM3
+                  USE swan_stencil
+                  USE swan_numerics
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -7965,7 +8015,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !************************************************************************
 
-                  USE SWCOMM3
+                  USE swan_stencil
+                  USE swan_numerics
+                  USE swan_physical_settings
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
+                  USE swan_math_constants
                   USE swan_time, ONLY: default_time_context
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
@@ -8107,7 +8162,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE SWCOMM3
+                  USE swan_stencil
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
                   USE swan_test_output
                   USE swan_diagnostics_level
                   USE swan_io_units
@@ -8292,7 +8349,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE SWCOMM3
+                  USE swan_stencil
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
                   USE swan_test_output
                   USE swan_diagnostics_level
                   USE swan_io_units
@@ -8895,7 +8954,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE SWCOMM3
+                  USE swan_stencil
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
                   USE swan_test_output
                   USE swan_diagnostics_level
                   USE swan_io_units
@@ -9512,7 +9573,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   USE swan_diagnostics_level
                   USE swan_io_units
-                  USE SWCOMM3
+                  USE swan_physics_selection
+                  USE swan_numerics
+                  USE swan_physical_settings
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
+                  USE swan_math_constants
                   USE swan_test_output
                   USE M_GENARR
                   USE M_PARALL
@@ -9884,7 +9950,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                                                                   *
 !********************************************************************
 
-                  USE SWCOMM3
+                  USE swan_physics_selection
+                  USE swan_numerics
+                  USE swan_physical_settings
+                  USE swan_computational_grid
+                  USE swan_spectral_grid
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -10439,7 +10509,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   USE swan_diagnostics_level
                   USE swan_io_units
-                  USE SWCOMM3
+                  USE swan_stencil
+                  USE swan_numerics
+                  USE swan_physical_settings
+                  USE swan_computational_grid
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
 

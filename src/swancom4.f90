@@ -74,7 +74,11 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
 
 !******************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_diagnostics_level
    USE swan_io_units
    TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
@@ -501,7 +505,9 @@ SUBROUTINE RANGE4 (WWINT ,IDDLOW,IDDTOP)
 
 !******************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -679,7 +685,10 @@ SUBROUTINE SWPRE4W (XIS   ,SNLC1 ,&
 
 !********************************************************************
 
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_diagnostics_level
    TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
 
@@ -902,7 +911,11 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 
 !********************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -1394,7 +1407,11 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 
 !*******************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -1849,7 +1866,11 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
 
 !*******************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -2236,7 +2257,11 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
 
 !*******************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -2629,7 +2654,11 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
    USE swan_service_interfaces, ONLY: STRACE
 !*********************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -2917,7 +2946,10 @@ SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
 
 !*******************************************************************
 
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
@@ -3248,7 +3280,11 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG, TRIADS )
 !****************************************************************
 
    USE swan_diagnostics_level
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
@@ -3797,7 +3833,12 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -4220,7 +4261,11 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !****************************************************************
 
    USE swan_diagnostics_level
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
    USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -4500,7 +4545,12 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
 !******************************************************************
 
    USE swan_diagnostics_level
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -5021,7 +5071,11 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 !****************************************************************
 
    USE swan_diagnostics_level
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_physics_selection
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -5399,7 +5453,10 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV )
 !****************************************************************
 
    USE swan_diagnostics_level
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -5541,7 +5598,10 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN )
 !****************************************************************
 
    USE swan_diagnostics_level
-   USE SWCOMM3
+   USE swan_stencil
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -5792,7 +5852,11 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC, BPHTMP )
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_computational_grid_kind
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_physical_settings
+   USE swan_computational_grid
+   USE swan_spectral_grid
+   USE swan_math_constants
    USE M_GENARR
    USE M_PARALL
 

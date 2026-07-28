@@ -120,7 +120,13 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
     use swan_propagation, only: SPREDT, ADDDIS
     use swan_coordinate_offset
     use swan_run_mode
-    use swcomm3
+    USE swan_stencil
+    use swan_physics_selection
+    use swan_numerics
+    use swan_physical_settings
+    use swan_spectral_grid
+    use swan_compda_layout
+    use swan_math_constants
     use swan_test_output
     use swan_propagation_scheme
     use swan_spherical_geometry

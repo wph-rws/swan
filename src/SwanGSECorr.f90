@@ -50,7 +50,10 @@ subroutine SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, 
 
     use swan_diagnostics_level
     use swan_coordinate_offset
-    use swcomm3
+    USE swan_stencil
+    use swan_physics_selection
+    use swan_spectral_grid
+    use swan_math_constants
     use swan_propagation_scheme
     use swan_spherical_geometry
     use SwanGriddata

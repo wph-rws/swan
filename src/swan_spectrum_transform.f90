@@ -14,7 +14,11 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3
+   USE swan_physics_selection
+   USE swan_numerics
+   USE swan_physical_settings
+   USE swan_spectral_grid
+   USE swan_math_constants
 
 
 !   --|-----------------------------------------------------------|--
@@ -470,7 +474,7 @@ SUBROUTINE SINTRP (W1, W2, FL1, FL2, FL, SPCDIR, SPCSIG)
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3
+   USE swan_spectral_grid
 
 
 !   --|-----------------------------------------------------------|--

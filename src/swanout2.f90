@@ -46,7 +46,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE SWCOMM3, ONLY: NSTATM
+   USE swan_numerics, ONLY: NSTATM
    USE swan_spherical_geometry, ONLY: KSPHER
    USE OUTP_DATA
 !NCF   USE swn_outnc
@@ -384,7 +384,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 
       USE swan_diagnostics_level
       USE swan_io_units
-      USE SWCOMM3
+      USE swan_numerics
       USE OUTP_DATA
       USE swan_time, ONLY: default_time_context
 
@@ -999,7 +999,10 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 
 !****************************************************************
 
-      USE SWCOMM3, ONLY: BNAUT, NSTATM, PI
+      USE swan_physical_settings, ONLY: BNAUT
+      USE swan_numerics, ONLY: NSTATM
+      USE swan_math_constants, ONLY: PI
+      USE swan_math_constants
       USE swan_spherical_geometry, ONLY: KSPHER
       USE swan_diagnostics_level
 
@@ -1193,7 +1196,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
          USE swan_diagnostics_level
          USE swan_io_units
          USE swan_time
-         USE SWCOMM3
+         USE swan_numerics
          USE swan_spherical_geometry
          USE OUTP_DATA
          USE swan_time, ONLY: default_time_context
@@ -1730,7 +1733,12 @@ RETURN
          USE swan_time
          USE swan_coordinate_offset
          USE swan_computational_grid_kind
-         USE SWCOMM3
+         USE swan_physics_selection
+         USE swan_numerics
+         USE swan_physical_settings
+         USE swan_computational_grid
+         USE swan_spectral_grid
+         USE swan_math_constants
          USE swan_spherical_geometry
          USE OUTP_DATA
          USE M_PARALL
