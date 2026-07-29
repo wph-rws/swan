@@ -4,9 +4,9 @@
 The manifest records the remaining thread-private state after the completed
 workspace migration. A THREADPRIVATE symbol that is added or removed without
 updating it silently invalidates the ownership design. This script parses every
-OpenMP THREADPRIVATE directive from the Fortran sources -- including the ones
-behind a build switch such as `!TIMG` -- and compares the exact symbol set
-against the manifest.
+OpenMP THREADPRIVATE directive from the Fortran sources -- including any
+remaining directives behind a custom build switch -- and compares the exact
+symbol set against the manifest.
 
 Exit status 0 means the manifest is current.
 """
@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIR = ROOT / "src"
 MANIFEST = ROOT / "doc" / "thread-state-manifest.md"
 
-# A directive line, optionally preceded by a switch marker such as `!TIMG`, and
+# A directive line, optionally preceded by a custom switch marker, and
 # optionally continued with `!$OMP&` on following lines.
 _DIRECTIVE = re.compile(r"^\s*!(?P<switch>[A-Za-z0-9]*)!?\$omp\s*threadprivate\s*\(", re.I)
 _CONTINUATION = re.compile(r"^\s*!(?:[A-Za-z0-9]*)!?\$omp&?\s*", re.I)
@@ -33,7 +33,7 @@ def _switch_of(line: str) -> str:
     """Return the build switch guarding a directive, or "" when unconditional."""
     match = _DIRECTIVE.match(line)
     switch = match.group("switch") if match else ""
-    # `!$OMP` itself yields an empty switch; `!TIMG!$OMP` yields "TIMG".
+    # `!$OMP` itself yields an empty switch; `!JAC!$OMP` yields "JAC".
     return switch.upper()
 
 

@@ -6,7 +6,7 @@ contains
 
 subroutine SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
                          rdx    , rdy  , obredf, idcmin, idcmax, isslow, &
-                         isstop , trac0, trac1 )
+                         isstop , trac0, trac1 , kcgrd , coslat, icmax )
    USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
@@ -53,7 +53,6 @@ subroutine SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
 
     use swan_diagnostics_level
     use swan_run_mode
-    USE swan_stencil
     use swan_physics_selection
     use swan_numerics
     use swan_spectral_grid
@@ -67,6 +66,8 @@ subroutine SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
 
     integer, intent(in)                         :: isslow ! minimum frequency that is propagated within a sweep
     integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
+    integer, intent(in)                         :: icmax  ! number of active stencil points
+    integer, dimension(icmax), intent(in)       :: kcgrd ! grid addresses of the stencil points
 
     integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
     integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
@@ -81,6 +82,7 @@ subroutine SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
                                                           ! 5: correspond to point (l  ,m+1)
     real, dimension(MDC,MSC,ICMAX), intent(in)  :: cax    ! wave transport velocity in x-direction
     real, dimension(MDC,MSC,ICMAX), intent(in)  :: cay    ! wave transport velocity in y-direction
+    real, dimension(icmax), intent(in)          :: coslat ! cosine of latitude at each stencil point
     real, dimension(MDC,MSC,2), intent(in)      :: obredf ! action reduction coefficient based on transmission
     real, dimension(2), intent(in)              :: rdx    ! first component of contravariant base vector rdx(b) = a^(b)_1
     real, dimension(2), intent(in)              :: rdy    ! second component of contravariant base vector rdy(b) = a^(b)_2

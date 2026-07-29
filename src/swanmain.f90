@@ -28,6 +28,7 @@
 !                                                                      *
 
 module swan_driver
+   use swan_timing_configuration, only: timing_enabled
    use swan_diffraction_state, only: diffraction_state_t
    use swan_triad_state, only: triad_state_t
    use swan_snl4_tables, only: snl4_tables_t
@@ -68,7 +69,7 @@ SUBROUTINE SWMAIN
    USE swan_services, ONLY: HSOBND
    USE swan_command_reading, ONLY: SWREAD
    USE swan_output_orchestration, ONLY: SWOUTP
-!TIMG   USE swan_time, ONLY: DCUMTM, NCUMTM
+   USE swan_time, ONLY: DCUMTM, NCUMTM
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_file_opening, ONLY: FOR
    USE swan_service_interfaces, ONLY: MSGERR, TXPBLA, STPNOW, SWTSTA, SWTSTO, SWPRTI
@@ -286,9 +287,9 @@ SUBROUTINE SWMAIN
 !     HSOBND: Generates warning if comp. and prescr. Hs differ more than  32.01
 !             a fraction HSRERR at the up-wave boundary
 !     SWOUTP
-!TIMG!     SWPRTI
-!TIMG!     SWTSTA
-!TIMG!     SWTSTO
+!     SWPRTI
+!     SWTSTA
+!     SWTSTO
 !     MSGERR : Handles error messages according to severity
 !     NUMSTR : Converts integer/real to string
 !     TXPBLA : Removes leading and trailing blanks in string
@@ -335,10 +336,10 @@ SUBROUTINE SWMAIN
 ! 13. Source text
 !
 !     --- initialize various data
-!TIMG
-!TIMG   DCUMTM(:,1:2) = 0D0
-!TIMG   NCUMTM(:)     = 0
-!TIMG   CALL SWTSTA(1)
+
+   DCUMTM(:,1:2) = 0D0
+   NCUMTM(:)     = 0
+   IF (timing_enabled) CALL SWTSTA(1)
 
    LEVERR=0
    MAXERR=1
@@ -346,9 +347,9 @@ SUBROUTINE SWMAIN
    INERR =0
    ISTAT =0
 
-!TIMG   CALL SWTSTA(2)
+   IF (timing_enabled) CALL SWTSTA(2)
    CALL SWINIT (INERR, SNL4)
-!TIMG   CALL SWTSTO(2)
+   IF (timing_enabled) CALL SWTSTO(2)
    IF (INERR.GT.0) RETURN
    IF (STPNOW()) RETURN
 
@@ -361,9 +362,9 @@ SUBROUTINE SWMAIN
 
 !       --- read and process user commands
 !
-!TIMG      CALL SWTSTA(3)
+      IF (timing_enabled) CALL SWTSTA(3)
       CALL SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
-!TIMG      CALL SWTSTO(3)
+      IF (timing_enabled) CALL SWTSTO(3)
       IF (STPNOW()) RETURN
 
 !       --- if last command was STOP then exit from repeat
@@ -402,13 +403,13 @@ SUBROUTINE SWMAIN
 
 !       --- do some preparations before computation
 !
-!TIMG      CALL SWTSTA(4)
+      IF (timing_enabled) CALL SWTSTA(4)
       CALL SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID, YCGRID, KGRPNT,&
       &KGRBND, SPCDIR, SPCSIG, DIFFRACTION, TRIADS )
       IF (OPTG.EQ.5) CALL SwanPrepComp ( CROSS )
       IF (STPNOW()) RETURN
       ALOBND = .FALSE.
-!TIMG      CALL SWTSTO(4)
+      IF (timing_enabled) CALL SWTSTO(4)
 !
 !       --- check all possible flags and if necessary change
 !           if option is not correct
@@ -440,9 +441,9 @@ SUBROUTINE SWMAIN
          RETURN
       END IF
 
-!TIMG      CALL SWTSTA(5)
+      IF (timing_enabled) CALL SWTSTA(5)
       CALL SWRBC(COMPDA)
-!TIMG      CALL SWTSTO(5)
+      IF (timing_enabled) CALL SWTSTO(5)
 
       IF ( IBRAG.NE.0 ) THEN
 !          arrays dpmean and botspc are temporary, can be de-allocated
@@ -509,10 +510,10 @@ SUBROUTINE SWMAIN
 
 !             --- compute default initial conditions
 !
-!TIMG               CALL SWTSTA(6)
+               IF (timing_enabled) CALL SWTSTA(6)
                CALL SWINCO ( AC2   , COMPDA, XCGRID, YCGRID,&
                &KGRPNT, SPCDIR, SPCSIG, XYTST )
-!TIMG               CALL SWTSTO(6)
+               IF (timing_enabled) CALL SWTSTO(6)
 !
 !             --- reset ICOND to prevent second computation of
 !                 initial condition
@@ -545,14 +546,14 @@ SUBROUTINE SWMAIN
 
 !           --- update boundary conditions and input fields
 !
-!TIMG            CALL SWTSTA(7)
+            IF (timing_enabled) CALL SWTSTA(7)
             CALL SNEXTI ( BSPECS, BGRIDP, COMPDA, AC1   , AC2   ,&
             &SPCSIG, SPCDIR, XCGRID, YCGRID, KGRPNT,&
             &XYTST , DEPTH , WLEVL , FRIC  , UXB   ,&
             &UYB   , NPLAF , TURBF , MUDLF , WXI   ,&
             &AICEF , HICEF , HSSF  , TSSF  , DSSF  ,&
             &WYI   )
-!TIMG            CALL SWTSTO(7)
+            IF (timing_enabled) CALL SWTSTO(7)
             IF (STPNOW()) RETURN
 
 !           --- initialize quasi-coherent modelling framework
@@ -574,7 +575,7 @@ SUBROUTINE SWMAIN
 
 !             --- compute action density for current time step
 !
-!TIMG               CALL SWTSTA(8)
+               IF (timing_enabled) CALL SWTSTA(8)
                IF (OPTG.NE.5) THEN
 !                structured grid
                   CALL SWCOMP( AC1   , AC2   , COMPDA, SPCDIR, SPCSIG,&
@@ -588,7 +589,7 @@ SUBROUTINE SWMAIN
                   &CROSS , IT    , DIFFRACTION, TRIADS, SNL4,&
                   &SPECTRAL_POWERS, THREAD_WORKSPACES )
                ENDIF
-!TIMG               CALL SWTSTO(8)
+               IF (timing_enabled) CALL SWTSTO(8)
                IF (STPNOW()) RETURN
 
 !             --- set ICOND=4 for stationary computation, for next
@@ -636,10 +637,10 @@ SUBROUTINE SWMAIN
 
 !           --- carry out the output requests
 !
-!TIMG            CALL SWTSTA(9)
+            IF (timing_enabled) CALL SWTSTA(9)
             CALL SWOUTP ( AC2   , SPCSIG, SPCDIR, COMPDA, XYTST ,&
             &KGRPNT, XCGRID, YCGRID, OURQT , DIFFRACTION )
-!TIMG            CALL SWTSTO(9)
+            IF (timing_enabled) CALL SWTSTO(9)
             IF (STPNOW()) RETURN
 
             IF (ERRPTS.GT.0) REWIND(ERRPTS)
@@ -663,7 +664,7 @@ SUBROUTINE SWMAIN
 
    END DO main_loop
 
-!TIMG   CALL SWTSTO(1)
+   IF (timing_enabled) CALL SWTSTO(1)
 !
 !     finalize PVD collection files
 
@@ -685,7 +686,7 @@ SUBROUTINE SWMAIN
 !         output requests in case of parallel computation
 
    CALL SWSYNC
-!TIMG   CALL SWTSTA(9)
+   IF (timing_enabled) CALL SWTSTA(9)
    IF ( PARLL ) THEN
       IF (OPTG.NE.5) THEN
          ALLOCATE (BLKND(MXC*MYC))
@@ -706,9 +707,9 @@ SUBROUTINE SWMAIN
          DEALLOCATE(BLKNDC)
       END IF
    END IF
-!TIMG   CALL SWTSTO(9)
+   IF (timing_enabled) CALL SWTSTO(9)
 !
-!TIMG   CALL SWPRTI
+   IF (timing_enabled) CALL SWPRTI
 
    INQUIRE(UNIT=PRINTF,OPENED=LOPEN)
    IF (LOPEN) CLOSE(PRINTF)

@@ -1,0 +1,7 @@
+module swan_timing_configuration
+   implicit none(type, external)
+   private
+   public :: timing_enabled
+
+   logical, parameter :: timing_enabled = @SWAN_TIMING_ENABLED@
+end module swan_timing_configuration

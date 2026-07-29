@@ -17,6 +17,7 @@
 !************************************************************************
 
 module swan_command_reading
+   use swan_timing_configuration, only: timing_enabled
    use swan_triad_state, only: triad_state_t
    use swan_snl4_tables, only: snl4_tables_t
    use swan_spectral_powers, only: spectral_powers_t
@@ -26,8 +27,8 @@ module swan_command_reading
    use swan_init_comp_grid, only: SwanInitCompGrid
    use swan_read_grid, only: SwanReadGrid
    use swan_input_processing, only: SPROUT, SVARTP, SWBOUN, RETSTP
-!  De !TIMG-timers worden uit meerdere procedures van deze module
-!  aangeroepen, dus hun interface hoort op moduleniveau zichtbaar te zijn.
+!  Timers are called from multiple procedures, so their interfaces belong at
+!  module scope.
    use swan_service_interfaces, only: SWTSTA, SWTSTO
    use swan_io_limits, only: LENFNM
    use swan_output_variables, only: NMOVAR, OVEXCV, OVHEXP, OVLEXP, OVLLIM, OVLNAM, OVSNAM, OVSVTY, OVULIM, OVUNIT
@@ -4911,8 +4912,8 @@ SUBROUTINE CGINIT
 !     SWDECOMP
 !JAC!     SWBLKCOL
 !     SWCOPI
-!TIMG!     SWTSTA
-!TIMG!     SWTSTO
+!     SWTSTA
+!     SWTSTO
 !     TXPBLA : Removes leading and trailing blanks in string
 
 
@@ -4957,12 +4958,12 @@ SUBROUTINE CGINIT
 !     --- Carry out domain decomposition meant for
 !         distributed-memory approach
 !
-!TIMG   CALL SWTSTA(211)
+   IF (timing_enabled) CALL SWTSTA(211)
    CALL SWDECOMP
-!TIMG   CALL SWTSTO(211)
+   IF (timing_enabled) CALL SWTSTO(211)
    IF (STPNOW()) RETURN
 
-!TIMG   CALL SWTSTA(212)
+   IF (timing_enabled) CALL SWTSTA(212)
 !
 !     --- Create copy of parts of KGRPGL for each subdomain -> KGRPNT
 
@@ -5029,14 +5030,14 @@ SUBROUTINE CGINIT
    END IF
    IF(ALLOCATED(IARR)) DEALLOCATE(IARR)
 
-!TIMG   CALL SWTSTO(212)
+   IF (timing_enabled) CALL SWTSTO(212)
 !JAC
 !JAC!     --- Colour subdomains with red, yellow, green and black
 !JAC
 !JAC   MCOLR = .FALSE.
-!JAC!TIMG   CALL SWTSTA(215)
+!JAC   IF (timing_enabled) CALL SWTSTA(215)
 !JAC   CALL SWBLKCOL ( MCOLR, KGRPNT )
-!JAC!TIMG   CALL SWTSTO(215)
+!JAC   IF (timing_enabled) CALL SWTSTO(215)
 !JAC   IF (STPNOW()) RETURN
 
    ISTAT = 0

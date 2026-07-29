@@ -7,7 +7,7 @@ contains
 subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
                           iddlow, iddtop, idtot , isslow, isstop, &
                           istot , cax   , cay   , rdx   , rdy   , &
-                          spcsig)
+                          spcsig, icmax)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !   --|-----------------------------------------------------------|--
@@ -82,7 +82,6 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
 !   Modules used
 
     USE swan_diagnostics_level
-    USE swan_stencil
     use swan_physics_selection
     use swan_spectral_grid
     use SwanGriddata
@@ -97,6 +96,7 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
     integer, intent(out)                       :: isslow ! minimum frequency that is propagated within a sweep
     integer, intent(out)                       :: isstop ! maximum frequency that is propagated within a sweep
     integer, intent(out)                       :: istot  ! maximum number of bins in frequency space for considered sweep
+    integer, intent(in)                        :: icmax  ! number of active stencil points
 
     integer, dimension(MSC), intent(out)       :: idcmax ! maximum frequency-dependent counter in directional space
     integer, dimension(MSC), intent(out)       :: idcmin ! minimum frequency-dependent counter in directional space

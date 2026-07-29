@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Configure, build and test SWAN across every supported build configuration.
 
-The switches SWAN ships with (`!MPI`, `!TIMG`, `!MatL4`, `!NCF`, `!JAC`) select
-different source text, so a change that compiles in the default configuration
-can still break one that is switched on. Nothing but building them all catches
-that, and doing it by hand invites doing it partially.
+Most variants SWAN ships with (`!MPI`, `!MatL4`, `!NCF`, `!JAC`) still select
+different source text; TIMG is now a normal compile-time capability. A change
+that compiles in the default configuration can therefore still break another
+configuration. Nothing but building them all catches that, and doing it by hand
+invites doing it partially.
 
 Each configuration is a separate build directory so that repeated runs are
 incremental. Pass --clean to force a fresh configure, which is what the

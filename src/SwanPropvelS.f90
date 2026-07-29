@@ -12,7 +12,7 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
                           sincos, sinsin, rdx   , rdy   , &
                           dhdx  , dhdy  , dkdx  , dkdy  , &
                           duxdx , duxdy , duydx , duydy , &
-                          diffr )
+                          diffr , kcgrd , icmax )
    USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
@@ -76,7 +76,6 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
     use swan_diagnostics_level
     use swan_coordinate_offset
     use swan_run_mode
-    USE swan_stencil
     use swan_physics_selection
     use swan_numerics
     use swan_physical_settings
@@ -93,6 +92,8 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
 
     integer, intent(in)                        :: iddlow ! minimum direction bin that is propagated within a sweep
     integer, intent(in)                        :: iddtop ! maximum direction bin that is propagated within a sweep
+    integer, intent(in)                        :: icmax  ! number of active stencil points
+    integer, dimension(icmax), intent(in)      :: kcgrd ! grid addresses of the stencil points
 
     real, dimension(MDC,MSC), intent(out)      :: cad    ! wave transport velocity in theta-direction
     real, dimension(MDC,MSC), intent(out)      :: cas    ! wave transport velocity in sigma-direction

@@ -38,10 +38,6 @@ if( NETCDF )
   list( APPEND SWITCHES -netcdf )
 endif()
 #
-if( TIMG )
-  list( APPEND SWITCHES -timg )
-endif()
-#
 if( MATL4 )
   list( APPEND SWITCHES -matl4 )
 endif()
@@ -55,9 +51,20 @@ endif()
 # obscure their Git history.
 set( SWAN_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated )
 file( MAKE_DIRECTORY ${SWAN_GENERATED_SRC} )
+if( TIMG )
+  set( SWAN_TIMING_ENABLED ".true." )
+else()
+  set( SWAN_TIMING_ENABLED ".false." )
+endif()
+configure_file(
+  ${SRC}/swan_timing_configuration.f90.in
+  ${SWAN_GENERATED_SRC}/swan_timing_configuration.f90
+  @ONLY
+)
 file( GLOB SWAN_SOURCE_INPUTS CONFIGURE_DEPENDS "${SRC}/*.f90" )
 set_property( DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   ${SWAN_SOURCE_INPUTS}
+  "${SRC}/swan_timing_configuration.f90.in"
   "${CMAKE_SOURCE_DIR}/switch.py"
 )
 execute_process(

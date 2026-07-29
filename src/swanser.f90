@@ -22,9 +22,9 @@
 !     CHGBAS
 !     GAMMAF
 !     WRSPEC
-!TIMG!     SWTSTA
-!TIMG!     SWTSTO
-!TIMG!     SWPRTI
+!     SWTSTA
+!     SWTSTO
+!     SWPRTI
 !     TXPBLA
 !     INTSTR
 !     NUMSTR
@@ -1831,7 +1831,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 &AC2   , REFLSO, KGRPNT, XCGRID,&
 &YCGRID, CAX,    CAY   , RDX   , RDY , ANYBIN,&
 &SPCSIG, SPCDIR, CGO   , KWAVE , HSS2, TSS2  ,&
-&DSS2  )
+&DSS2  , KCGRD, IXCGRD, IYCGRD )
    USE swan_geometry, ONLY: TCROSS
    USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
    USE swan_angle_conversions, ONLY: DEGCNV, ANGRAD, ANGDEG
@@ -1844,7 +1844,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
    USE swan_input_grids
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_numerics
    USE swan_physical_settings
    USE swan_computational_grid
@@ -1997,6 +1997,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
 !  unstructured callers omit them (see the KGRPNT history note in swancom2).
    INTEGER, OPTIONAL :: KGRPNT(MXC,MYC)
    INTEGER  LINK(2)
+   INTEGER, INTENT(IN) :: KCGRD(MICMAX), IXCGRD(MICMAX), IYCGRD(MICMAX)
    REAL     CHS(MCGRD), OBREDF(MDC,MSC,2), WLEV2(MCGRD), DEP2(MCGRD)
    REAL     :: AC2(MDC,MSC,MCGRD)
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint
@@ -2404,14 +2405,14 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   ,&
                &CAY, RDX, RDY, ILINK,&
                &REFLCOEF, LREFDIFF, POWN, ANYBIN,&
                &LRFRD, SPCSIG, SPCDIR, FD1, FD2, FD3, FD4,&
-               &OBREDF, REFLTST)
+               &OBREDF, REFLTST, KCGRD(1), IXCGRD(1), IYCGRD(1))
             ELSE
                CALL REFLECT(AC2, REFLSO, X1, Y1, X2, Y2,&
                &X3, Y3, X4, Y4, CAX,&
                &CAY, RDX, RDY, ILINK,&
                &REFLCOEF, LREFDIFF, POWN, ANYBIN,&
                &LRFRD, SPCSIG, SPCDIR, FD1, FD2, FD3, FD4,&
-               &OBREDF, REFLTST)
+               &OBREDF, REFLTST, KCGRD(1), IXCGRD(1), IYCGRD(1))
             ENDIF
          ENDIF
 
@@ -2512,14 +2513,14 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
 &X4, Y4, CAX, CAY, RDX, RDY,&
 &ILINK, REF0, LREFDIFF, POWN, ANYBIN,&
 &LRFRD, SPCSIG, SPCDIR, FD1, FD2, FD3, FD4,&
-&OBREDF, REFLTST)
+&OBREDF, REFLTST, IGP, IXCG, IYCG)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !************************************************************************
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
@@ -2642,6 +2643,7 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
    REAL       :: X1, X2, X3, X4, Y1, Y2, Y3, Y4
    LOGICAL    :: ANYBIN(MDC,MSC)
    INTEGER    :: ILINK
+   INTEGER, INTENT(IN) :: IGP, IXCG, IYCG
    REAL       :: POWN
    INTEGER    :: LREFDIFF, LRFRD
    LOGICAL    :: REFLTST
@@ -2794,7 +2796,7 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
          IF ((REF0 + OBREDF(ID,IS,ILINK)) .GT. 1.) THEN
             REFLTST = .FALSE.
             IF (ITEST.GE.50) THEN
-               WRITE (PRTEST, "(' Refl+Transm>1 in ', 2I4, 2X, 3I3, 2X, 2F6.2)") IXCGRD(1)-1, IYCGRD(1)-1, ILINK,&
+               WRITE (PRTEST, "(' Refl+Transm>1 in ', 2I4, 2X, 3I3, 2X, 2F6.2)") IXCG-1, IYCG-1, ILINK,&
                &IS, ID, REF0, OBREDF(ID,IS,ILINK)
             ENDIF
          ENDIF
@@ -2829,21 +2831,21 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3,&
 !               only outgoing reflected waves, i.e. not towards obstacle
                   IF (COS(TH_NORM-SPCDIR(IDA,1)) .GT. 0.)&
                   &AC2REF = AC2REF +&
-                  &REF0 * W1 * PRDIF(ABS(IDR)) * AC2(IDA,IS,KCGRD(1))
+                  &REF0 * W1 * PRDIF(ABS(IDR)) * AC2(IDA,IS,IGP)
                   IDB = 1+MOD(2*MDC+IDB-1,MDC)
                   IF (COS(TH_NORM-SPCDIR(IDB,1)) .GT. 0.)&
                   &AC2REF = AC2REF +&
-                  &REF0 * W2 * PRDIF(ABS(IDR)) * AC2(IDB,IS,KCGRD(1))
+                  &REF0 * W2 * PRDIF(ABS(IDR)) * AC2(IDB,IS,IGP)
                ELSE
                   IF (IDA.GE.1 .AND. IDA.LE.MDC) THEN
                      IF (COS(TH_NORM-SPCDIR(IDA,1)) .GT. 0.)&
                      &AC2REF = AC2REF +&
-                     &REF0 * W1 * PRDIF(ABS(IDR)) * AC2(IDA,IS,KCGRD(1))
+                     &REF0 * W1 * PRDIF(ABS(IDR)) * AC2(IDA,IS,IGP)
                   ENDIF
                   IF (IDB.GE.1 .AND. IDB.LE.MDC) THEN
                      IF (COS(TH_NORM-SPCDIR(IDB,1)) .GT. 0.)&
                      &AC2REF = AC2REF +&
-                     &REF0 * W2 * PRDIF(ABS(IDR)) * AC2(IDB,IS,KCGRD(1))
+                     &REF0 * W2 * PRDIF(ABS(IDR)) * AC2(IDB,IS,IGP)
                   ENDIF
                ENDIF
             ENDDO
@@ -3080,7 +3082,6 @@ SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX,IGP)
 
 !****************************************************************
 
-   USE swan_stencil
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_diagnostics_level
@@ -3298,22 +3299,21 @@ end subroutine MKPATH
 
 end module swan_services
 
-! The timing (!TIMG), Matlab-binary (!MatL4) and TXPBLA procedures below stay
-! external on purpose: TXPBLA is declared in the swan_service_interfaces
-! interface block, and the switch-activated timers are called as externals
-! from dozens of files in the timg variant.
-!TIMG!****************************************************************
-!TIMG!
-!TIMGSUBROUTINE SWTSTA (ITIMER)
-!TIMG!
-!TIMG!****************************************************************
-!TIMG!
-!TIMG   USE swan_time, ONLY: LASTTM, LISTTM, MXTIMR, NSECTM, TIMERS
-!TIMG   USE swan_diagnostics_level
-!TIMG   USE swan_io_units
-!TIMG!
-!TIMG   IMPLICIT NONE
-!TIMG!
+! The timing backend, Matlab-binary (!MatL4) and TXPBLA procedures below stay
+! external on purpose; swan_service_interfaces supplies their checked
+! interfaces.
+!****************************************************************
+!
+SUBROUTINE SWTSTA (ITIMER)
+!
+!****************************************************************
+!
+   USE swan_time, ONLY: LASTTM, LISTTM, MXTIMR, NSECTM, TIMERS
+   USE swan_diagnostics_level
+   USE swan_io_units
+!
+   IMPLICIT NONE
+!
 !
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -3341,145 +3341,145 @@ end module swan_services
 !     You should have received a copy of the GNU General Public License
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
-!TIMG!
-!TIMG!  0. Authors
-!TIMG!
-!TIMG!     40.23: Marcel Zijlema
-!TIMG!     40.41: Marcel Zijlema
-!TIMG!
-!TIMG!  1. Updates
-!TIMG!
-!TIMG!     40.23, Aug. 02: New subroutine
-!TIMG!     40.41, Oct. 04: common blocks replaced by modules, include files r
-!TIMG!
-!TIMG!  2. Purpose
-!TIMG!
-!TIMG!     Start timing
-!TIMG!
-!TIMG!  3. Method
-!TIMG!
-!TIMG!     Get cpu and wall-clock times and store
-!TIMG!
-!TIMG!  4. Argument variables
-!TIMG!
-!TIMG!     ITIMER      number of timer to be used
-!TIMG!
-!TIMG   INTEGER :: ITIMER
-!TIMG!
-!TIMG!  6. Local variables
-!TIMG!
-!TIMG!     C     :     clock count of processor
-!TIMG!     I     :     index in LISTTM, loop variable
-!TIMG!     IFOUND:     index in LISTTM, location of ITIMER
-!TIMG!     IFREE :     index in LISTTM, first free position
-!TIMG!     M     :     maximum clock count
-!TIMG!     R     :     number of clock counts per second
-!TIMG!F95!     TIMER :     current real cpu-time
-!TIMG!     TIMER1:     current cpu-time used
-!TIMG!     TIMER2:     current wall-clock time used
-!TIMG!
-!TIMG   INTEGER          :: I, IFOUND, IFREE
-!TIMG   INTEGER          :: C, R, M
-!TIMG!F95   REAL             :: TIMER
-!TIMG   REAL(KIND=KIND(0.0D0)) :: TIMER1, TIMER2
-!TIMG!
-!TIMG!  7. Common blocks used
-!TIMG!
-!TIMG!
-!TIMG!  8. Subroutines used
-!TIMG!
-!TIMG!F95!     CPU_TIME         Returns real value from cpu-time clock
-!TIMG!     SYSTEM_CLOCK     Returns integer values from a real-time clock
-!TIMG!
-!TIMG!  9. Subroutines calling
-!TIMG!
-!TIMG!     SWMAIN, SWCOMP, SWOMPU
-!TIMG!
-!TIMG! 12. Structure
-!TIMG!
-!TIMG!     Get and store the cpu and wall-clock times
-!TIMG!
-!TIMG! 13. Source text
-!TIMG!
-!TIMG
-!TIMG!
-!TIMG!     --- check whether a valid timer number is given
-!TIMG!
-!TIMG   IF (ITIMER.LE.0 .OR. ITIMER.GT.NSECTM) THEN
-!TIMG      WRITE(PRINTF,*) 'SWTSTA: ITIMER out of range: ',&
-!TIMG      &ITIMER, 1, NSECTM
-!TIMG      STOP
-!TIMG   END IF
-!TIMG!
-!TIMG!     --- check whether timing for ITIMER was started already,
-!TIMG!         also determine first free location in LISTTM
-!TIMG!
-!TIMG   IFOUND=0
-!TIMG   IFREE =0
-!TIMG   I     =0
-!TIMG   DO WHILE (I.LT.LASTTM .AND. (IFOUND.EQ.0 .OR. IFREE.EQ.0))
-!TIMG      I=I+1
-!TIMG      IF (LISTTM(I).EQ.ITIMER) THEN
-!TIMG         IFOUND=I
-!TIMG      END IF
-!TIMG      IF (IFREE.EQ.0 .AND. LISTTM(I).EQ.-1) THEN
-!TIMG         IFREE =I
-!TIMG      END IF
-!TIMG   END DO
-!TIMG
-!TIMG   IF (IFOUND.EQ.0 .AND. IFREE.EQ.0 .AND. LASTTM.LT.MXTIMR) THEN
-!TIMG      LASTTM=LASTTM+1
-!TIMG      IFREE =LASTTM
-!TIMG   END IF
-!TIMG!
-!TIMG!     --- produce warning if found in the list
-!TIMG!
-!TIMG   IF (IFOUND.GT.0) THEN
-!TIMG      WRITE(PRINTF,*)&
-!TIMG      &'SWTSTA: warning: previous timing for section ',&
-!TIMG      &ITIMER,' not closed properly/will be ignored.'
-!TIMG   END IF
-!TIMG!
-!TIMG!     --- produce error if not found and no free position available
-!TIMG!
-!TIMG   IF (IFOUND.EQ.0 .AND. IFREE.EQ.0) THEN
-!TIMG      WRITE(PRINTF,*)&
-!TIMG      &'SWTSTA: maximum number of simultaneous timers',&
-!TIMG      &' exceeded:',MXTIMR
-!TIMG      STOP
-!TIMG   END IF
-!TIMG!
-!TIMG!     --- register ITIMER in appropriate location of LISTTM
-!TIMG!
-!TIMG   IF (IFOUND.EQ.0) THEN
-!TIMG      IFOUND=IFREE
-!TIMG   END IF
-!TIMG   LISTTM(IFOUND)=ITIMER
-!TIMG!
-!TIMG!     --- get current cpu/wall-clock time and store in TIMERS
-!TIMG!
-!TIMG   TIMER1=0D0
-!TIMG!F95   CALL CPU_TIME (TIMER)
-!TIMG!F95   TIMER1=DBLE(TIMER)
-!TIMG   CALL SYSTEM_CLOCK (C,R,M)
-!TIMG   TIMER2=DBLE(C)/DBLE(R)
-!TIMG
-!TIMG   TIMERS(IFOUND,1)=TIMER1
-!TIMG   TIMERS(IFOUND,2)=TIMER2
-!TIMG
-!TIMG   RETURN
-!TIMGend subroutine SWTSTA
-!TIMG!****************************************************************
-!TIMG!
-!TIMGSUBROUTINE SWTSTO (ITIMER)
-!TIMG!
-!TIMG!****************************************************************
-!TIMG!
-!TIMG   USE swan_time, ONLY: DCUMTM, LASTTM, LISTTM, NCUMTM, NSECTM, TIMERS
-!TIMG   USE swan_io_units
-!TIMG!
-!TIMG   IMPLICIT NONE
-!TIMG!
+!
+!  0. Authors
+!
+!     40.23: Marcel Zijlema
+!     40.41: Marcel Zijlema
+!
+!  1. Updates
+!
+!     40.23, Aug. 02: New subroutine
+!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!
+!  2. Purpose
+!
+!     Start timing
+!
+!  3. Method
+!
+!     Get cpu and wall-clock times and store
+!
+!  4. Argument variables
+!
+!     ITIMER      number of timer to be used
+!
+   INTEGER :: ITIMER
+!
+!  6. Local variables
+!
+!     C     :     clock count of processor
+!     I     :     index in LISTTM, loop variable
+!     IFOUND:     index in LISTTM, location of ITIMER
+!     IFREE :     index in LISTTM, first free position
+!     M     :     maximum clock count
+!     R     :     number of clock counts per second
+!F95!     TIMER :     current real cpu-time
+!     TIMER1:     current cpu-time used
+!     TIMER2:     current wall-clock time used
+!
+   INTEGER          :: I, IFOUND, IFREE
+   INTEGER          :: C, R, M
+!F95   REAL             :: TIMER
+   REAL(KIND=KIND(0.0D0)) :: TIMER1, TIMER2
+!
+!  7. Common blocks used
+!
+!
+!  8. Subroutines used
+!
+!F95!     CPU_TIME         Returns real value from cpu-time clock
+!     SYSTEM_CLOCK     Returns integer values from a real-time clock
+!
+!  9. Subroutines calling
+!
+!     SWMAIN, SWCOMP, SWOMPU
+!
+! 12. Structure
+!
+!     Get and store the cpu and wall-clock times
+!
+! 13. Source text
+!
+
+!
+!     --- check whether a valid timer number is given
+!
+   IF (ITIMER.LE.0 .OR. ITIMER.GT.NSECTM) THEN
+      WRITE(PRINTF,*) 'SWTSTA: ITIMER out of range: ',&
+      &ITIMER, 1, NSECTM
+      STOP
+   END IF
+!
+!     --- check whether timing for ITIMER was started already,
+!         also determine first free location in LISTTM
+!
+   IFOUND=0
+   IFREE =0
+   I     =0
+   DO WHILE (I.LT.LASTTM .AND. (IFOUND.EQ.0 .OR. IFREE.EQ.0))
+      I=I+1
+      IF (LISTTM(I).EQ.ITIMER) THEN
+         IFOUND=I
+      END IF
+      IF (IFREE.EQ.0 .AND. LISTTM(I).EQ.-1) THEN
+         IFREE =I
+      END IF
+   END DO
+
+   IF (IFOUND.EQ.0 .AND. IFREE.EQ.0 .AND. LASTTM.LT.MXTIMR) THEN
+      LASTTM=LASTTM+1
+      IFREE =LASTTM
+   END IF
+!
+!     --- produce warning if found in the list
+!
+   IF (IFOUND.GT.0) THEN
+      WRITE(PRINTF,*)&
+      &'SWTSTA: warning: previous timing for section ',&
+      &ITIMER,' not closed properly/will be ignored.'
+   END IF
+!
+!     --- produce error if not found and no free position available
+!
+   IF (IFOUND.EQ.0 .AND. IFREE.EQ.0) THEN
+      WRITE(PRINTF,*)&
+      &'SWTSTA: maximum number of simultaneous timers',&
+      &' exceeded:',MXTIMR
+      STOP
+   END IF
+!
+!     --- register ITIMER in appropriate location of LISTTM
+!
+   IF (IFOUND.EQ.0) THEN
+      IFOUND=IFREE
+   END IF
+   LISTTM(IFOUND)=ITIMER
+!
+!     --- get current cpu/wall-clock time and store in TIMERS
+!
+   TIMER1=0D0
+!F95   CALL CPU_TIME (TIMER)
+!F95   TIMER1=DBLE(TIMER)
+   CALL SYSTEM_CLOCK (C,R,M)
+   TIMER2=DBLE(C)/DBLE(R)
+
+   TIMERS(IFOUND,1)=TIMER1
+   TIMERS(IFOUND,2)=TIMER2
+
+   RETURN
+end subroutine SWTSTA
+!****************************************************************
+!
+SUBROUTINE SWTSTO (ITIMER)
+!
+!****************************************************************
+!
+   USE swan_time, ONLY: DCUMTM, LASTTM, LISTTM, NCUMTM, NSECTM, TIMERS
+   USE swan_io_units
+!
+   IMPLICIT NONE
+!
 !
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -3507,139 +3507,139 @@ end module swan_services
 !     You should have received a copy of the GNU General Public License
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
-!TIMG!
-!TIMG!  0. Authors
-!TIMG!
-!TIMG!     40.23: Marcel Zijlema
-!TIMG!     40.41: Marcel Zijlema
-!TIMG!
-!TIMG!  1. Updates
-!TIMG!
-!TIMG!     40.23, Aug. 02: New subroutine
-!TIMG!     40.41, Oct. 04: common blocks replaced by modules, include files r
-!TIMG!
-!TIMG!  2. Purpose
-!TIMG!
-!TIMG!     Stop timing
-!TIMG!
-!TIMG!  3. Method
-!TIMG!
-!TIMG!     Get cpu and wall-clock times and store
-!TIMG!
-!TIMG!  4. Argument variables
-!TIMG!
-!TIMG!     ITIMER      number of timer to be used
-!TIMG!
-!TIMG   INTEGER :: ITIMER
-!TIMG!
-!TIMG!  6. Local variables
-!TIMG!
-!TIMG!     C     :     clock count of processor
-!TIMG!     I     :     index in LISTTM, loop variable
-!TIMG!     IFOUND:     index in LISTTM, location of ITIMER
-!TIMG!     M     :     maximum clock count
-!TIMG!     R     :     number of clock counts per second
-!TIMG!F95!     TIMER :     current real cpu-time
-!TIMG!     TIMER1:     current cpu-time used
-!TIMG!     TIMER2:     current wall-clock time used
-!TIMG!
-!TIMG   INTEGER          :: I, IFOUND
-!TIMG   INTEGER          :: C, R, M
-!TIMG!F95   REAL             :: TIMER
-!TIMG   REAL(KIND=KIND(0.0D0)) :: TIMER1, TIMER2
-!TIMG!
-!TIMG!  7. Common blocks used
-!TIMG!
-!TIMG!
-!TIMG!  8. Subroutines used
-!TIMG!
-!TIMG!F95!     CPU_TIME         Returns real value from cpu-time clock
-!TIMG!     SYSTEM_CLOCK     Returns integer values from a real-time clock
-!TIMG!
-!TIMG!  9. Subroutines calling
-!TIMG!
-!TIMG!     SWMAIN, SWCOMP, SWOMPU
-!TIMG!
-!TIMG! 12. Structure
-!TIMG!
-!TIMG!     Get and store the cpu and wall-clock times
-!TIMG!
-!TIMG! 13. Source text
-!TIMG!
-!TIMG
-!TIMG!
-!TIMG!     --- check whether a valid timer number is given
-!TIMG!
-!TIMG   IF (ITIMER.LE.0 .OR. ITIMER.GT.NSECTM) THEN
-!TIMG      WRITE(PRINTF,*) 'SWTSTO: ITIMER out of range: ',&
-!TIMG      &ITIMER, 1, NSECTM
-!TIMG      STOP
-!TIMG   END IF
-!TIMG!
-!TIMG!     --- check whether timing for ITIMER was started already,
-!TIMG!         also determine first free location in LISTTM
-!TIMG!
-!TIMG   IFOUND=0
-!TIMG   I     =0
-!TIMG   DO WHILE (I.LT.LASTTM .AND. IFOUND.EQ.0)
-!TIMG      I=I+1
-!TIMG      IF (LISTTM(I).EQ.ITIMER) THEN
-!TIMG         IFOUND=I
-!TIMG      END IF
-!TIMG   END DO
-!TIMG!
-!TIMG!     --- produce error if not found
-!TIMG!
-!TIMG   IF (IFOUND.EQ.0) THEN
-!TIMG      WRITE(PRINTF,*)&
-!TIMG      &'SWTSTO: section ',ITIMER,' not found',&
-!TIMG      &' in list of active timings'
-!TIMG      STOP
-!TIMG   END IF
-!TIMG!
-!TIMG!     --- get current cpu/wall-clock time
-!TIMG!
-!TIMG   TIMER1=0D0
-!TIMG!F95   CALL CPU_TIME (TIMER)
-!TIMG!F95   TIMER1=DBLE(TIMER)
-!TIMG   CALL SYSTEM_CLOCK (C,R,M)
-!TIMG   TIMER2=DBLE(C)/DBLE(R)
-!TIMG!
-!TIMG!     --- calculate elapsed time since start of timing,
-!TIMG!         store in appropriate location in DCUMTM,
-!TIMG!         increment number of timings for current section
-!TIMG!
-!TIMG   DCUMTM(ITIMER,1)=DCUMTM(ITIMER,1)+(TIMER1-TIMERS(IFOUND,1))
-!TIMG   DCUMTM(ITIMER,2)=DCUMTM(ITIMER,2)+(TIMER2-TIMERS(IFOUND,2))
-!TIMG   NCUMTM(ITIMER)  =NCUMTM(ITIMER)+1
-!TIMG!
-!TIMG!     --- free appropriate location of LISTTM,
-!TIMG!         adjust last occupied position of LISTTM
-!TIMG!
-!TIMG   IF (IFOUND.GT.0) THEN
-!TIMG      LISTTM(IFOUND)=-1
-!TIMG   END IF
-!TIMG   DO WHILE (LASTTM.GT.1 .AND. LISTTM(LASTTM).EQ.-1)
-!TIMG      LASTTM=LASTTM-1
-!TIMG   END DO
-!TIMG   IF (LISTTM(LASTTM).EQ.-1) LASTTM=0
-!TIMG
-!TIMG   RETURN
-!TIMGend subroutine SWTSTO
-!TIMG!****************************************************************
-!TIMG!
-!TIMGSUBROUTINE SWPRTI
-!TIMG   USE swan_service_interfaces, ONLY: STRACE
-!TIMG!
-!TIMG!****************************************************************
-!TIMG!
-!TIMG   USE swan_time, ONLY: DCUMTM, NCUMTM, NSECTM
-!TIMG   USE swan_diagnostics_level
-!TIMG   USE swan_io_units
-!TIMG   USE M_PARALL
-!TIMG
-!TIMG   IMPLICIT NONE
-!TIMG!
+!
+!  0. Authors
+!
+!     40.23: Marcel Zijlema
+!     40.41: Marcel Zijlema
+!
+!  1. Updates
+!
+!     40.23, Aug. 02: New subroutine
+!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!
+!  2. Purpose
+!
+!     Stop timing
+!
+!  3. Method
+!
+!     Get cpu and wall-clock times and store
+!
+!  4. Argument variables
+!
+!     ITIMER      number of timer to be used
+!
+   INTEGER :: ITIMER
+!
+!  6. Local variables
+!
+!     C     :     clock count of processor
+!     I     :     index in LISTTM, loop variable
+!     IFOUND:     index in LISTTM, location of ITIMER
+!     M     :     maximum clock count
+!     R     :     number of clock counts per second
+!F95!     TIMER :     current real cpu-time
+!     TIMER1:     current cpu-time used
+!     TIMER2:     current wall-clock time used
+!
+   INTEGER          :: I, IFOUND
+   INTEGER          :: C, R, M
+!F95   REAL             :: TIMER
+   REAL(KIND=KIND(0.0D0)) :: TIMER1, TIMER2
+!
+!  7. Common blocks used
+!
+!
+!  8. Subroutines used
+!
+!F95!     CPU_TIME         Returns real value from cpu-time clock
+!     SYSTEM_CLOCK     Returns integer values from a real-time clock
+!
+!  9. Subroutines calling
+!
+!     SWMAIN, SWCOMP, SWOMPU
+!
+! 12. Structure
+!
+!     Get and store the cpu and wall-clock times
+!
+! 13. Source text
+!
+
+!
+!     --- check whether a valid timer number is given
+!
+   IF (ITIMER.LE.0 .OR. ITIMER.GT.NSECTM) THEN
+      WRITE(PRINTF,*) 'SWTSTO: ITIMER out of range: ',&
+      &ITIMER, 1, NSECTM
+      STOP
+   END IF
+!
+!     --- check whether timing for ITIMER was started already,
+!         also determine first free location in LISTTM
+!
+   IFOUND=0
+   I     =0
+   DO WHILE (I.LT.LASTTM .AND. IFOUND.EQ.0)
+      I=I+1
+      IF (LISTTM(I).EQ.ITIMER) THEN
+         IFOUND=I
+      END IF
+   END DO
+!
+!     --- produce error if not found
+!
+   IF (IFOUND.EQ.0) THEN
+      WRITE(PRINTF,*)&
+      &'SWTSTO: section ',ITIMER,' not found',&
+      &' in list of active timings'
+      STOP
+   END IF
+!
+!     --- get current cpu/wall-clock time
+!
+   TIMER1=0D0
+!F95   CALL CPU_TIME (TIMER)
+!F95   TIMER1=DBLE(TIMER)
+   CALL SYSTEM_CLOCK (C,R,M)
+   TIMER2=DBLE(C)/DBLE(R)
+!
+!     --- calculate elapsed time since start of timing,
+!         store in appropriate location in DCUMTM,
+!         increment number of timings for current section
+!
+   DCUMTM(ITIMER,1)=DCUMTM(ITIMER,1)+(TIMER1-TIMERS(IFOUND,1))
+   DCUMTM(ITIMER,2)=DCUMTM(ITIMER,2)+(TIMER2-TIMERS(IFOUND,2))
+   NCUMTM(ITIMER)  =NCUMTM(ITIMER)+1
+!
+!     --- free appropriate location of LISTTM,
+!         adjust last occupied position of LISTTM
+!
+   IF (IFOUND.GT.0) THEN
+      LISTTM(IFOUND)=-1
+   END IF
+   DO WHILE (LASTTM.GT.1 .AND. LISTTM(LASTTM).EQ.-1)
+      LASTTM=LASTTM-1
+   END DO
+   IF (LISTTM(LASTTM).EQ.-1) LASTTM=0
+
+   RETURN
+end subroutine SWTSTO
+!****************************************************************
+!
+SUBROUTINE SWPRTI
+   USE swan_service_interfaces, ONLY: STRACE
+!
+!****************************************************************
+!
+   USE swan_time, ONLY: DCUMTM, NCUMTM, NSECTM
+   USE swan_diagnostics_level
+   USE swan_io_units
+   USE M_PARALL
+
+   IMPLICIT NONE
+!
 !
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -3667,360 +3667,360 @@ end module swan_services
 !     You should have received a copy of the GNU General Public License
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 !
-!TIMG!
-!TIMG!  0. Authors
-!TIMG!
-!TIMG!     40.23: Marcel Zijlema
-!TIMG!     40.30: Marcel Zijlema
-!TIMG!     40.41: Marcel Zijlema
-!TIMG!     41.75: Erick Rogers
-!TIMG!
-!TIMG!  1. Updates
-!TIMG!
-!TIMG!     40.23, Aug. 02: New subroutine
-!TIMG!     40.30, Jan. 03: introduction distributed-memory approach using MPI
-!TIMG!     40.41, Oct. 04: common blocks replaced by modules, include files r
-!TIMG!     41.75, Jan. 19: adding sea ice
-!TIMG!
-!TIMG!  2. Purpose
-!TIMG!
-!TIMG!     Print timings info
-!TIMG!
-!TIMG!  6. Local variables
-!TIMG!
-!TIMG!     IDEBUG:     level of timing output requested:
-!TIMG!                 0 - no output for detailed timings
-!TIMG!                 1 - aggregate output for detailed timings
-!TIMG!                 2 - complete output for all detailed timings
-!TIMG!     IENT  :     number of entries
-!TIMG!     J     :     loop counter
-!TIMG!     K     :     loop counter
-!TIMG!     MYPRC :     own process number
-!TIMG!     TABLE :     array for computing aggregate cpu- and wallclock-times
-!TIMG!
-!TIMG   INTEGER          :: J, K, MYPRC
-!TIMG   INTEGER, PARAMETER :: IDEBUG = 0
-!TIMG   INTEGER, SAVE :: IENT = 0
-!TIMG   REAL(KIND=KIND(0.0D0)) :: TABLE(33,2)
-!TIMG   CHARACTER(LEN=*), PARAMETER :: FMT110 = "(i3,1x,'#')"
-!TIMG   CHARACTER(LEN=*), PARAMETER :: FMT111 = "(i3,' # Details on timings of the simulation:')"
-!TIMG   CHARACTER(LEN=*), PARAMETER :: FMT112 = "(i3,1x,'#',26x,'cpu-time',1x,'wall-clock')"
-!TIMG   CHARACTER(LEN=*), PARAMETER :: FMT113 = "(i3,' # Splitting up calc. + comm. times:')"
-!TIMG   CHARACTER(LEN=*), PARAMETER :: FMT114 = "(i3,' # Overview source contributions:')"
-!TIMG   CHARACTER(LEN=*), PARAMETER :: FMT115 = "(i3,1x,'#',1x,a22,2f11.2)"
-!TIMG   CHARACTER(LEN=*), PARAMETER :: FMT120 = "(/,i3,' #    item     cpu-time    real time     count')"
-!TIMG   CHARACTER(LEN=*), PARAMETER :: FMT121 = "(i3,1x,'#',4x,i4,2f13.4,i10)"
-!TIMG!
-!TIMG!  7. Common blocks used
-!TIMG!
-!TIMG!
-!TIMG!  8. Subroutines used
-!TIMG!
-!TIMG!     STRACE           Tracing routine for debugging
-!TIMG!
-!TIMG!  9. Subroutines calling
-!TIMG!
-!TIMG!     SWMAIN (in SWANMAIN)
-!TIMG!
-!TIMG! 12. Structure
-!TIMG!
-!TIMG!     Compile table with overview of cpu/wall clock time used in
-!TIMG!     important parts of SWAN and write to PRINT file
-!TIMG!
-!TIMG! 13. Source text
-!TIMG!
-!TIMG   IF (LTRACE) CALL STRACE (IENT,'SWPRTI')
-!TIMG!
-!TIMG   MYPRC = INODE
-!TIMG!
-!TIMG!     --- compile table with overview of cpu/wall clock time used in
-!TIMG!         important parts of SWAN and write to PRINT file
-!TIMG!
-!TIMG   IF ( ITEST.GE.1 .OR. IDEBUG.GE.1 ) THEN
-!TIMG!
-!TIMG!        --- initialise table to zero
-!TIMG!
-!TIMG      DO K = 1, 30
-!TIMG         DO J = 1, 2
-!TIMG            TABLE(K,J) = 0D0
-!TIMG         END DO
-!TIMG      END DO
-!TIMG!
-!TIMG!        --- compute times for basic blocks
-!TIMG!
-!TIMG      DO J = 1, 2
-!TIMG!
-!TIMG!           --- total run-time
-!TIMG!
-!TIMG         TABLE(1,J) = DCUMTM(1,J)
-!TIMG!
-!TIMG!           --- initialisation, reading, preparation:
-!TIMG!
-!TIMG         DO K = 2, 7
-!TIMG            TABLE(2,J) = TABLE(2,J) + DCUMTM(K,J)
-!TIMG         END DO
-!TIMG!
-!TIMG!           --- domain decomposition:
-!TIMG!
-!TIMG         TABLE(2,J) = TABLE(2,J) + DCUMTM(211,J)
-!TIMG         TABLE(2,J) = TABLE(2,J) + DCUMTM(212,J)
-!TIMG!JAC         TABLE(2,J) = TABLE(2,J) + DCUMTM(215,J)
-!TIMG         TABLE(2,J) = TABLE(2,J) + DCUMTM(201,J)
-!TIMG!
-!TIMG!           --- total calculation including communication:
-!TIMG!
-!TIMG         TABLE(3,J) = TABLE(3,J) + DCUMTM(8,J)
-!TIMG!
-!TIMG!           --- output:
-!TIMG!
-!TIMG         TABLE(5,J) = TABLE(5,J) + DCUMTM(9,J)
-!TIMG!
-!TIMG!           --- exchanging data:
-!TIMG!
-!TIMG         TABLE(7,J) = TABLE(7,J) + DCUMTM(213,J)
-!TIMG!
-!TIMG!           --- solving system:
-!TIMG!
-!TIMG         TABLE(9,J) = TABLE(9,J) + DCUMTM(119,J)
-!TIMG         TABLE(9,J) = TABLE(9,J) + DCUMTM(120,J)
-!TIMG!
-!TIMG!           --- global reductions:
-!TIMG!
-!TIMG         TABLE(10,J) = TABLE(10,J) + DCUMTM(202,J)
-!TIMG!
-!TIMG!           --- collecting data:
-!TIMG!
-!TIMG         TABLE(11,J) = TABLE(11,J) + DCUMTM(214,J)
-!TIMG!
-!TIMG!           --- setup:
-!TIMG!
-!TIMG         TABLE(12,J) = TABLE(12,J) + DCUMTM(106,J)
-!TIMG!
-!TIMG!           --- propagation velocities:
-!TIMG!
-!TIMG         TABLE(14,J) = TABLE(14,J) + DCUMTM(111,J)
-!TIMG         TABLE(14,J) = TABLE(14,J) + DCUMTM(113,J)
-!TIMG         TABLE(14,J) = TABLE(14,J) + DCUMTM(114,J)
-!TIMG!
-!TIMG!           --- x-y advection:
-!TIMG!
-!TIMG         TABLE(15,J) = TABLE(15,J) + DCUMTM(140,J)
-!TIMG!
-!TIMG!           --- sigma advection:
-!TIMG!
-!TIMG         TABLE(16,J) = TABLE(16,J) + DCUMTM(141,J)
-!TIMG!
-!TIMG!           --- theta advection:
-!TIMG!
-!TIMG         TABLE(17,J) = TABLE(17,J) + DCUMTM(142,J)
-!TIMG!
-!TIMG!           --- wind:
-!TIMG!
-!TIMG         TABLE(18,J) = TABLE(18,J) + DCUMTM(132,J)
-!TIMG!
-!TIMG!           --- whitecapping:
-!TIMG!
-!TIMG         TABLE(19,J) = TABLE(19,J) + DCUMTM(133,J)
-!TIMG!
-!TIMG!           --- bottom friction:
-!TIMG!
-!TIMG         TABLE(20,J) = TABLE(20,J) + DCUMTM(130,J)
-!TIMG!
-!TIMG!           --- wave breaking:
-!TIMG!
-!TIMG         TABLE(21,J) = TABLE(21,J) + DCUMTM(131,J)
-!TIMG!
-!TIMG!           --- quadruplets:
-!TIMG!
-!TIMG         TABLE(22,J) = TABLE(22,J) + DCUMTM(135,J)
-!TIMG!
-!TIMG!           --- triads:
-!TIMG!
-!TIMG         TABLE(23,J) = TABLE(23,J) + DCUMTM(134,J)
-!TIMG!
-!TIMG!           --- limiter:
-!TIMG!
-!TIMG         TABLE(24,J) = TABLE(24,J) + DCUMTM(122,J)
-!TIMG!
-!TIMG!           --- rescaling:
-!TIMG!
-!TIMG         TABLE(25,J) = TABLE(25,J) + DCUMTM(121,J)
-!TIMG!
-!TIMG!           --- reflections:
-!TIMG!
-!TIMG         TABLE(26,J) = TABLE(26,J) + DCUMTM(136,J)
-!TIMG!
-!TIMG!           --- diffraction:
-!TIMG!
-!TIMG         TABLE(27,J) = TABLE(27,J) + DCUMTM(137,J)
-!TIMG!
-!TIMG!           --- fluid mud:
-!TIMG!
-!TIMG         TABLE(28,J) = TABLE(28,J) + DCUMTM(138,J)
-!TIMG!
-!TIMG!           --- vegetation:
-!TIMG!
-!TIMG         TABLE(29,J) = TABLE(29,J) + DCUMTM(139,J)
-!TIMG!
-!TIMG!           --- turbulence:
-!TIMG!
-!TIMG         TABLE(30,J) = TABLE(30,J) + DCUMTM(143,J)
-!TIMG
-!TIMG!           --- sea ice:
-!TIMG!
-!TIMG         TABLE(31,J) = TABLE(31,J) + DCUMTM(144,J)
-!TIMG
-!TIMG!           --- Bragg scattering:
-!TIMG!
-!TIMG         TABLE(32,J) = TABLE(32,J) + DCUMTM(145,J)
-!TIMG
-!TIMG!           --- quasi-coherent scattering:
-!TIMG!
-!TIMG         TABLE(33,J) = TABLE(33,J) + DCUMTM(146,J)
-!TIMG
-!TIMG      END DO
-!TIMG!
-!TIMG!        --- add up times for some basic blocks
-!TIMG!
-!TIMG      DO J = 1, 2
-!TIMG!
-!TIMG!           --- total calculation:
-!TIMG!
-!TIMG         TABLE(3,J) = TABLE(3,J) - TABLE( 7,J)
-!TIMG         TABLE(3,J) = TABLE(3,J) - TABLE(10,J)
-!TIMG         IF ( TABLE(3,J).LT.0D0 ) TABLE(3,J) = 0D0
-!TIMG!
-!TIMG!           --- total communication:
-!TIMG!                * exchanging data
-!TIMG!                * global reductions
-!TIMG!                * collecting data
-!TIMG!
-!TIMG         TABLE(4,J) = TABLE(4,J) + TABLE( 7,J)
-!TIMG         TABLE(4,J) = TABLE(4,J) + TABLE(10,J)
-!TIMG         TABLE(4,J) = TABLE(4,J) + TABLE(11,J)
-!TIMG!
-!TIMG!           --- total propagation:
-!TIMG!                * velocities and derivatives
-!TIMG!
-!TIMG         TABLE(6,J) = TABLE(6,J) + TABLE(14,J)
-!TIMG         TABLE(6,J) = TABLE(6,J) + TABLE(15,J)
-!TIMG         TABLE(6,J) = TABLE(6,J) + TABLE(16,J)
-!TIMG         TABLE(6,J) = TABLE(6,J) + TABLE(17,J)
-!TIMG!
-!TIMG!           --- sources:
-!TIMG!                * wind, whitecapping, friction, breaking,
-!TIMG!                * quadruplets, triads, limiter, rescaling,
-!TIMG!                * reflections
-!TIMG!
-!TIMG         DO K = 18, 26
-!TIMG            TABLE(8,J) = TABLE(8,J) + TABLE(K,J)
-!TIMG         END DO
-!TIMG!
-!TIMG!                * diffraction
-!TIMG!
-!TIMG         TABLE(8,J) = TABLE(8,J) + TABLE(27,J)
-!TIMG!
-!TIMG!                * fluid mud
-!TIMG!
-!TIMG         TABLE(8,J) = TABLE(8,J) + TABLE(28,J)
-!TIMG!
-!TIMG!                * vegetation
-!TIMG!
-!TIMG         TABLE(8,J) = TABLE(8,J) + TABLE(29,J)
-!TIMG!
-!TIMG!                * turbulence
-!TIMG!
-!TIMG         TABLE(8,J) = TABLE(8,J) + TABLE(30,J)
-!TIMG!
-!TIMG!                * sea ice
-!TIMG!
-!TIMG         TABLE(8,J) = TABLE(8,J) + TABLE(31,J)
-!TIMG!
-!TIMG!                * Bragg scattering
-!TIMG!
-!TIMG         TABLE(8,J) = TABLE(8,J) + TABLE(32,J)
-!TIMG!
-!TIMG!                * quasi-coherent scattering
-!TIMG!
-!TIMG         TABLE(8,J) = TABLE(8,J) + TABLE(33,J)
-!TIMG!
-!TIMG!           --- other computing:
-!TIMG!
-!TIMG         TABLE(13,J) = TABLE(13,J) + TABLE( 3,J)
-!TIMG         TABLE(13,J) = TABLE(13,J) - TABLE( 6,J)
-!TIMG         TABLE(13,J) = TABLE(13,J) - TABLE( 8,J)
-!TIMG         TABLE(13,J) = TABLE(13,J) - TABLE( 9,J)
-!TIMG         TABLE(13,J) = TABLE(13,J) - TABLE(12,J)
-!TIMG         IF ( TABLE(13,J).LT.0D0 ) TABLE(13,J) = 0D0
-!TIMG
-!TIMG      END DO
-!TIMG!
-!TIMG!        --- print CPU-times used in important parts of SWAN
-!TIMG!
-!TIMG      WRITE(PRINTF,'(/)')
-!TIMG      WRITE(PRINTF,FMT110) MYPRC
-!TIMG      WRITE(PRINTF,FMT111) MYPRC
-!TIMG      WRITE(PRINTF,FMT110) MYPRC
-!TIMG      WRITE(PRINTF,FMT112) MYPRC
-!TIMG      WRITE(PRINTF,FMT110) MYPRC
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'total time:'       ,(TABLE(1,J),J=1,2)
-!TIMG      WRITE(PRINTF,FMT110) MYPRC
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'total pre-processing:',&
-!TIMG      &(TABLE(2,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'total calculation:',(TABLE(3,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'total communication:',&
-!TIMG      &(TABLE(4,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'total post-processing:',&
-!TIMG      &(TABLE(5,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT110) MYPRC
-!TIMG      WRITE(PRINTF,FMT113) MYPRC
-!TIMG      WRITE(PRINTF,FMT110) MYPRC
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'calc. propagation:',(TABLE(6,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'exchanging data:'  ,(TABLE(7,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'calc. sources:'    ,(TABLE(8,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'solving system:'   ,(TABLE(9,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'reductions:'      ,(TABLE(10,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'collecting data:' ,(TABLE(11,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'calc. setup:'     ,(TABLE(12,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'other computing:' ,(TABLE(13,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT110) MYPRC
-!TIMG      WRITE(PRINTF,FMT114) MYPRC
-!TIMG      WRITE(PRINTF,FMT110) MYPRC
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'prop. velocities:',(TABLE(14,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'x-y advection:'   ,(TABLE(15,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'sigma advection:' ,(TABLE(16,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'theta advection:' ,(TABLE(17,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'wind:'            ,(TABLE(18,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'whitecapping:'    ,(TABLE(19,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'bottom friction:' ,(TABLE(20,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'fluid mud:'       ,(TABLE(28,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'vegetation:'      ,(TABLE(29,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'turbulence:'      ,(TABLE(30,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'sea ice:'         ,(TABLE(31,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'wave breaking:'   ,(TABLE(21,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'quadruplets:'     ,(TABLE(22,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'triads:'          ,(TABLE(23,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'Bragg scattering:',(TABLE(32,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'QC scattering:'   ,(TABLE(33,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'limiter:'         ,(TABLE(24,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'rescaling:'       ,(TABLE(25,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'reflections:'     ,(TABLE(26,j),j=1,2)
-!TIMG      WRITE(PRINTF,FMT115) MYPRC,'diffraction:'     ,(TABLE(27,j),j=1,2)
-!TIMG
-!TIMG   END IF
-!TIMG
-!TIMG   IF ( IDEBUG.GE.2 ) THEN
-!TIMG      WRITE(PRINTF,FMT120) MYPRC
-!TIMG      DO J = 1, NSECTM
-!TIMG         IF (NCUMTM(J).GT.0)&
-!TIMG         &WRITE(PRINTF,FMT121) MYPRC,J,DCUMTM(J,1),DCUMTM(J,2),&
-!TIMG         &NCUMTM(J)
-!TIMG      END DO
-!TIMG   END IF
-!TIMG
-!TIMG
-!TIMG   RETURN
-!TIMGend subroutine SWPRTI
+!
+!  0. Authors
+!
+!     40.23: Marcel Zijlema
+!     40.30: Marcel Zijlema
+!     40.41: Marcel Zijlema
+!     41.75: Erick Rogers
+!
+!  1. Updates
+!
+!     40.23, Aug. 02: New subroutine
+!     40.30, Jan. 03: introduction distributed-memory approach using MPI
+!     40.41, Oct. 04: common blocks replaced by modules, include files r
+!     41.75, Jan. 19: adding sea ice
+!
+!  2. Purpose
+!
+!     Print timings info
+!
+!  6. Local variables
+!
+!     IDEBUG:     level of timing output requested:
+!                 0 - no output for detailed timings
+!                 1 - aggregate output for detailed timings
+!                 2 - complete output for all detailed timings
+!     IENT  :     number of entries
+!     J     :     loop counter
+!     K     :     loop counter
+!     MYPRC :     own process number
+!     TABLE :     array for computing aggregate cpu- and wallclock-times
+!
+   INTEGER          :: J, K, MYPRC
+   INTEGER, PARAMETER :: IDEBUG = 0
+   INTEGER, SAVE :: IENT = 0
+   REAL(KIND=KIND(0.0D0)) :: TABLE(33,2)
+   CHARACTER(LEN=*), PARAMETER :: FMT110 = "(i3,1x,'#')"
+   CHARACTER(LEN=*), PARAMETER :: FMT111 = "(i3,' # Details on timings of the simulation:')"
+   CHARACTER(LEN=*), PARAMETER :: FMT112 = "(i3,1x,'#',26x,'cpu-time',1x,'wall-clock')"
+   CHARACTER(LEN=*), PARAMETER :: FMT113 = "(i3,' # Splitting up calc. + comm. times:')"
+   CHARACTER(LEN=*), PARAMETER :: FMT114 = "(i3,' # Overview source contributions:')"
+   CHARACTER(LEN=*), PARAMETER :: FMT115 = "(i3,1x,'#',1x,a22,2f11.2)"
+   CHARACTER(LEN=*), PARAMETER :: FMT120 = "(/,i3,' #    item     cpu-time    real time     count')"
+   CHARACTER(LEN=*), PARAMETER :: FMT121 = "(i3,1x,'#',4x,i4,2f13.4,i10)"
+!
+!  7. Common blocks used
+!
+!
+!  8. Subroutines used
+!
+!     STRACE           Tracing routine for debugging
+!
+!  9. Subroutines calling
+!
+!     SWMAIN (in SWANMAIN)
+!
+! 12. Structure
+!
+!     Compile table with overview of cpu/wall clock time used in
+!     important parts of SWAN and write to PRINT file
+!
+! 13. Source text
+!
+   IF (LTRACE) CALL STRACE (IENT,'SWPRTI')
+!
+   MYPRC = INODE
+!
+!     --- compile table with overview of cpu/wall clock time used in
+!         important parts of SWAN and write to PRINT file
+!
+   IF ( ITEST.GE.1 .OR. IDEBUG.GE.1 ) THEN
+!
+!        --- initialise table to zero
+!
+      DO K = 1, 30
+         DO J = 1, 2
+            TABLE(K,J) = 0D0
+         END DO
+      END DO
+!
+!        --- compute times for basic blocks
+!
+      DO J = 1, 2
+!
+!           --- total run-time
+!
+         TABLE(1,J) = DCUMTM(1,J)
+!
+!           --- initialisation, reading, preparation:
+!
+         DO K = 2, 7
+            TABLE(2,J) = TABLE(2,J) + DCUMTM(K,J)
+         END DO
+!
+!           --- domain decomposition:
+!
+         TABLE(2,J) = TABLE(2,J) + DCUMTM(211,J)
+         TABLE(2,J) = TABLE(2,J) + DCUMTM(212,J)
+!JAC         TABLE(2,J) = TABLE(2,J) + DCUMTM(215,J)
+         TABLE(2,J) = TABLE(2,J) + DCUMTM(201,J)
+!
+!           --- total calculation including communication:
+!
+         TABLE(3,J) = TABLE(3,J) + DCUMTM(8,J)
+!
+!           --- output:
+!
+         TABLE(5,J) = TABLE(5,J) + DCUMTM(9,J)
+!
+!           --- exchanging data:
+!
+         TABLE(7,J) = TABLE(7,J) + DCUMTM(213,J)
+!
+!           --- solving system:
+!
+         TABLE(9,J) = TABLE(9,J) + DCUMTM(119,J)
+         TABLE(9,J) = TABLE(9,J) + DCUMTM(120,J)
+!
+!           --- global reductions:
+!
+         TABLE(10,J) = TABLE(10,J) + DCUMTM(202,J)
+!
+!           --- collecting data:
+!
+         TABLE(11,J) = TABLE(11,J) + DCUMTM(214,J)
+!
+!           --- setup:
+!
+         TABLE(12,J) = TABLE(12,J) + DCUMTM(106,J)
+!
+!           --- propagation velocities:
+!
+         TABLE(14,J) = TABLE(14,J) + DCUMTM(111,J)
+         TABLE(14,J) = TABLE(14,J) + DCUMTM(113,J)
+         TABLE(14,J) = TABLE(14,J) + DCUMTM(114,J)
+!
+!           --- x-y advection:
+!
+         TABLE(15,J) = TABLE(15,J) + DCUMTM(140,J)
+!
+!           --- sigma advection:
+!
+         TABLE(16,J) = TABLE(16,J) + DCUMTM(141,J)
+!
+!           --- theta advection:
+!
+         TABLE(17,J) = TABLE(17,J) + DCUMTM(142,J)
+!
+!           --- wind:
+!
+         TABLE(18,J) = TABLE(18,J) + DCUMTM(132,J)
+!
+!           --- whitecapping:
+!
+         TABLE(19,J) = TABLE(19,J) + DCUMTM(133,J)
+!
+!           --- bottom friction:
+!
+         TABLE(20,J) = TABLE(20,J) + DCUMTM(130,J)
+!
+!           --- wave breaking:
+!
+         TABLE(21,J) = TABLE(21,J) + DCUMTM(131,J)
+!
+!           --- quadruplets:
+!
+         TABLE(22,J) = TABLE(22,J) + DCUMTM(135,J)
+!
+!           --- triads:
+!
+         TABLE(23,J) = TABLE(23,J) + DCUMTM(134,J)
+!
+!           --- limiter:
+!
+         TABLE(24,J) = TABLE(24,J) + DCUMTM(122,J)
+!
+!           --- rescaling:
+!
+         TABLE(25,J) = TABLE(25,J) + DCUMTM(121,J)
+!
+!           --- reflections:
+!
+         TABLE(26,J) = TABLE(26,J) + DCUMTM(136,J)
+!
+!           --- diffraction:
+!
+         TABLE(27,J) = TABLE(27,J) + DCUMTM(137,J)
+!
+!           --- fluid mud:
+!
+         TABLE(28,J) = TABLE(28,J) + DCUMTM(138,J)
+!
+!           --- vegetation:
+!
+         TABLE(29,J) = TABLE(29,J) + DCUMTM(139,J)
+!
+!           --- turbulence:
+!
+         TABLE(30,J) = TABLE(30,J) + DCUMTM(143,J)
+
+!           --- sea ice:
+!
+         TABLE(31,J) = TABLE(31,J) + DCUMTM(144,J)
+
+!           --- Bragg scattering:
+!
+         TABLE(32,J) = TABLE(32,J) + DCUMTM(145,J)
+
+!           --- quasi-coherent scattering:
+!
+         TABLE(33,J) = TABLE(33,J) + DCUMTM(146,J)
+
+      END DO
+!
+!        --- add up times for some basic blocks
+!
+      DO J = 1, 2
+!
+!           --- total calculation:
+!
+         TABLE(3,J) = TABLE(3,J) - TABLE( 7,J)
+         TABLE(3,J) = TABLE(3,J) - TABLE(10,J)
+         IF ( TABLE(3,J).LT.0D0 ) TABLE(3,J) = 0D0
+!
+!           --- total communication:
+!                * exchanging data
+!                * global reductions
+!                * collecting data
+!
+         TABLE(4,J) = TABLE(4,J) + TABLE( 7,J)
+         TABLE(4,J) = TABLE(4,J) + TABLE(10,J)
+         TABLE(4,J) = TABLE(4,J) + TABLE(11,J)
+!
+!           --- total propagation:
+!                * velocities and derivatives
+!
+         TABLE(6,J) = TABLE(6,J) + TABLE(14,J)
+         TABLE(6,J) = TABLE(6,J) + TABLE(15,J)
+         TABLE(6,J) = TABLE(6,J) + TABLE(16,J)
+         TABLE(6,J) = TABLE(6,J) + TABLE(17,J)
+!
+!           --- sources:
+!                * wind, whitecapping, friction, breaking,
+!                * quadruplets, triads, limiter, rescaling,
+!                * reflections
+!
+         DO K = 18, 26
+            TABLE(8,J) = TABLE(8,J) + TABLE(K,J)
+         END DO
+!
+!                * diffraction
+!
+         TABLE(8,J) = TABLE(8,J) + TABLE(27,J)
+!
+!                * fluid mud
+!
+         TABLE(8,J) = TABLE(8,J) + TABLE(28,J)
+!
+!                * vegetation
+!
+         TABLE(8,J) = TABLE(8,J) + TABLE(29,J)
+!
+!                * turbulence
+!
+         TABLE(8,J) = TABLE(8,J) + TABLE(30,J)
+!
+!                * sea ice
+!
+         TABLE(8,J) = TABLE(8,J) + TABLE(31,J)
+!
+!                * Bragg scattering
+!
+         TABLE(8,J) = TABLE(8,J) + TABLE(32,J)
+!
+!                * quasi-coherent scattering
+!
+         TABLE(8,J) = TABLE(8,J) + TABLE(33,J)
+!
+!           --- other computing:
+!
+         TABLE(13,J) = TABLE(13,J) + TABLE( 3,J)
+         TABLE(13,J) = TABLE(13,J) - TABLE( 6,J)
+         TABLE(13,J) = TABLE(13,J) - TABLE( 8,J)
+         TABLE(13,J) = TABLE(13,J) - TABLE( 9,J)
+         TABLE(13,J) = TABLE(13,J) - TABLE(12,J)
+         IF ( TABLE(13,J).LT.0D0 ) TABLE(13,J) = 0D0
+
+      END DO
+!
+!        --- print CPU-times used in important parts of SWAN
+!
+      WRITE(PRINTF,'(/)')
+      WRITE(PRINTF,FMT110) MYPRC
+      WRITE(PRINTF,FMT111) MYPRC
+      WRITE(PRINTF,FMT110) MYPRC
+      WRITE(PRINTF,FMT112) MYPRC
+      WRITE(PRINTF,FMT110) MYPRC
+      WRITE(PRINTF,FMT115) MYPRC,'total time:'       ,(TABLE(1,J),J=1,2)
+      WRITE(PRINTF,FMT110) MYPRC
+      WRITE(PRINTF,FMT115) MYPRC,'total pre-processing:',&
+      &(TABLE(2,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'total calculation:',(TABLE(3,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'total communication:',&
+      &(TABLE(4,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'total post-processing:',&
+      &(TABLE(5,j),j=1,2)
+      WRITE(PRINTF,FMT110) MYPRC
+      WRITE(PRINTF,FMT113) MYPRC
+      WRITE(PRINTF,FMT110) MYPRC
+      WRITE(PRINTF,FMT115) MYPRC,'calc. propagation:',(TABLE(6,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'exchanging data:'  ,(TABLE(7,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'calc. sources:'    ,(TABLE(8,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'solving system:'   ,(TABLE(9,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'reductions:'      ,(TABLE(10,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'collecting data:' ,(TABLE(11,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'calc. setup:'     ,(TABLE(12,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'other computing:' ,(TABLE(13,j),j=1,2)
+      WRITE(PRINTF,FMT110) MYPRC
+      WRITE(PRINTF,FMT114) MYPRC
+      WRITE(PRINTF,FMT110) MYPRC
+      WRITE(PRINTF,FMT115) MYPRC,'prop. velocities:',(TABLE(14,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'x-y advection:'   ,(TABLE(15,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'sigma advection:' ,(TABLE(16,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'theta advection:' ,(TABLE(17,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'wind:'            ,(TABLE(18,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'whitecapping:'    ,(TABLE(19,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'bottom friction:' ,(TABLE(20,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'fluid mud:'       ,(TABLE(28,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'vegetation:'      ,(TABLE(29,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'turbulence:'      ,(TABLE(30,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'sea ice:'         ,(TABLE(31,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'wave breaking:'   ,(TABLE(21,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'quadruplets:'     ,(TABLE(22,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'triads:'          ,(TABLE(23,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'Bragg scattering:',(TABLE(32,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'QC scattering:'   ,(TABLE(33,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'limiter:'         ,(TABLE(24,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'rescaling:'       ,(TABLE(25,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'reflections:'     ,(TABLE(26,j),j=1,2)
+      WRITE(PRINTF,FMT115) MYPRC,'diffraction:'     ,(TABLE(27,j),j=1,2)
+
+   END IF
+
+   IF ( IDEBUG.GE.2 ) THEN
+      WRITE(PRINTF,FMT120) MYPRC
+      DO J = 1, NSECTM
+         IF (NCUMTM(J).GT.0)&
+         &WRITE(PRINTF,FMT121) MYPRC,J,DCUMTM(J,1),DCUMTM(J,2),&
+         &NCUMTM(J)
+      END DO
+   END IF
+
+
+   RETURN
+end subroutine SWPRTI
 !****************************************************************
 
 SUBROUTINE TXPBLA(TEXT,IF,IL)

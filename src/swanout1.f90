@@ -4971,8 +4971,8 @@ SUBROUTINE SWOEXF (MIP      ,XC       ,YC       ,VOQR     ,&
 !                      terminated or not
 !     STRACE           Tracing routine for debugging
 !     SWEXCHG          exchanges AC2 at subdomain boundaries
-!TIMG!     SWTSTA           Start timing for a section of code
-!TIMG!     SWTSTO           Stop timing for a section of code
+!     SWTSTA           Start timing for a section of code
+!     SWTSTO           Stop timing for a section of code
 
 
 !  9. Subroutines calling

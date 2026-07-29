@@ -8,7 +8,7 @@ general principle predicted it. This is that measurement.
 
 The case is the stationary Voordelta example capped at two iterations, which
 runs in about 1.7 s with a spread of a few percent instead of 22 s with 59%.
-Timings come from SWAN's own `!TIMG` instrumentation, so the build has to be
+Timings come from SWAN's own TIMG capability, so the build has to be
 configured with -DTIMG=ON.
 
 Usage:

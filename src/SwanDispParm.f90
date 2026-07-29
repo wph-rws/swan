@@ -4,7 +4,7 @@ module swan_disp_parm
    public :: SwanDispParm
 contains
 
-subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig )
+subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig, kcgrd, icmax )
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_wave_physics, ONLY: KSCIP1, KSCIP2
 
@@ -54,7 +54,6 @@ subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig )
 
     use swan_diagnostics_level
     use swan_input_grids
-    USE swan_stencil
     use swan_physics_selection
     use swan_physical_settings
     use swan_spectral_grid
@@ -64,6 +63,9 @@ subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig )
     implicit none(type, external)
 
 !   Argument variables
+
+    integer, intent(in)                       :: icmax  ! number of active stencil points
+    integer, dimension(icmax), intent(in)     :: kcgrd ! grid addresses of the stencil points
 
     real, dimension(MSC,ICMAX), intent(out) :: cgo    ! group velocity
     real, dimension(nverts), intent(in)     :: dep2   ! water depth at current time level

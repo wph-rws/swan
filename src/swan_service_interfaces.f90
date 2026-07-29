@@ -13,6 +13,7 @@ module swan_service_interfaces
 !     parser, which uses this module.
 !
    use swan_parallel_state, only: MASTER, INODE, IAMMASTER, PARLL
+   use swan_timing_configuration, only: timing_enabled
    use swan_io_limits, only: LENFNM
    use swan_project_metadata, only: INST, PROJID, PROJNR, PROJT1, PROJT2, PROJT3, VERTXT
    implicit none(type, external)
@@ -21,6 +22,7 @@ module swan_service_interfaces
    public :: eqreal, eqdble
    public :: msgerr, stpnow, strace, txpbla
    public :: swtsta, swtsto, swprti
+   public :: timing_enabled
    public :: swi2b, swr2b
    public :: tabhed, bugfix
 
@@ -32,10 +34,8 @@ module swan_service_interfaces
          integer, intent(out)             :: first, last
       end subroutine txpbla
 
-!     SWTSTA and SWTSTO are the switch activated timers in swanser.f90. Only a
-!     !TIMG build compiles them, but declaring them unconditionally costs
-!     nothing and is what lets their callers use IMPLICIT NONE(TYPE, EXTERNAL):
-!     without an explicit interface a !TIMG build cannot resolve the calls.
+!     SWTSTA, SWTSTO and SWPRTI are the timing backend in swanser.f90.
+!     Callers guard them with the compile-time timing_enabled capability.
       subroutine swtsta(itimer)
          integer, intent(in) :: itimer
       end subroutine swtsta

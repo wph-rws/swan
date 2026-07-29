@@ -57,8 +57,9 @@ MODULE M_CONVERGENCE_SHARED
 END MODULE M_CONVERGENCE_SHARED
 
 module swan_computation
-!  De !TIMG-timers worden uit meerdere procedures van deze module
-!  aangeroepen, dus hun interface hoort op moduleniveau zichtbaar te zijn.
+   use swan_timing_configuration, only: timing_enabled
+!  Timers are called from multiple procedures, so their interfaces belong at
+!  module scope.
    use swan_service_interfaces, only: SWTSTA, SWTSTO
    use swan_diffraction_state, only: diffraction_state_t
    use swan_triad_state, only: triad_state_t
@@ -663,8 +664,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SETUPP
 !     SACCUR
 !     SWSTPC
-!TIMG!     SWTSTA
-!TIMG!     SWTSTO
+!     SWTSTA
+!     SWTSTO
 !     SWREDUCE
 !JAC!     SWEXCHG
 !WFR!     SWRECVAC
@@ -1043,7 +1044,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     *** prepare ranges of spectral space, constants and      ***
 !     *** weight factors for nonlinear 4 wave interactions     ***
 !
-!TIMG   CALL SWTSTA(135)
+   IF (timing_enabled) CALL SWTSTA(135)
    IF ( IQUAD.EQ.4 ) THEN
 !        --- cache the MDIA coefficients once and set the widest
 !            spectral range over all quadruplets
@@ -1055,15 +1056,15 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
       &DAL1  ,DAL2  ,DAL3  ,SPCSIG,&
       &WWINT ,WWAWG ,WWSWG, SNL4 )
    ENDIF
-!TIMG   CALL SWTSTO(135)
+   IF (timing_enabled) CALL SWTSTO(135)
 !
 !     --- store frequency- and space-dependent data for triads
-!TIMG   CALL SWTSTA(134)
+   IF (timing_enabled) CALL SWTSTA(134)
    IF ( ITRIAD.GT.0 ) THEN
       IF (IT.EQ.1 .OR. DYNDEP) CALL FAC3WW (COMPDA(1,JDP2), SPCSIG,&
       &TRIADS)
    ENDIF
-!TIMG   CALL SWTSTO(134)
+   IF (timing_enabled) CALL SWTSTO(134)
 !
 ! *** Indexing and bounds for SWMAT arrays
 
@@ -1101,7 +1102,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !WFR      LSTCP  = 1
    ENDIF
 
-!TIMG   CALL SWTSTA(101)
+   IF (timing_enabled) CALL SWTSTA(101)
 !
 !----------------------------------------------------------------------
 !     Begin allocate shared arrays.
@@ -1266,8 +1267,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !----------------------------------------------------------------------
 !     End initialization shared arrays.
 !----------------------------------------------------------------------
-!TIMG
-!TIMG   CALL SWTSTO(101)
+
+   IF (timing_enabled) CALL SWTSTO(101)
 !
 !----------------------------------------------------------------------
 !     Begin parallel region.
@@ -1301,8 +1302,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$ &' Number of threads during execution of parallel region = ',&
 !$ &OMP_GET_NUM_THREADS()
 !$OMP END MASTER
-!TIMG
-!TIMG   CALL SWTSTA(101)
+
+   IF (timing_enabled) CALL SWTSTA(101)
 !
    THREAD_INDEX = 1
 !$ THREAD_INDEX = OMP_GET_THREAD_NUM() + 1
@@ -1532,8 +1533,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     End initialization private arrays.
 !----------------------------------------------------------------------
 !$OMP BARRIER
-!TIMG
-!TIMG   CALL SWTSTO(101)
+
+   IF (timing_enabled) CALL SWTSTO(101)
 !
 ! Each thread compute its own spatial grid loop bounds for MCGRD
    CALL SWMTLB(1,MCGRD,I1GRD,I2GRD)
@@ -1544,11 +1545,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     *** has been reached                                    ***
 !     *** This is done in parallel within OpenMP environment  ***
 !
-!TIMG   CALL SWTSTA(102)
+   IF (timing_enabled) CALL SWTSTA(102)
    CALL INSAC (AC2               ,SPCSIG          ,COMPDA(1,JDP2)  ,&
    &HSAC2             ,SACC2           ,KGRPNT          ,&
    &I1MYC             ,I2MYC                            )
-!TIMG   CALL SWTSTO(102)
+   IF (timing_enabled) CALL SWTSTO(102)
 !
 !     *** To obtain a first estimate of energy density in a    ***
 !     *** gridpoint considered we run the SWAN model (in case  ***
@@ -1571,7 +1572,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     *** call initialization procedure of XNL to create *.BQF ***
 !     *** interaction files                                    ***
 !
-!TIMG   CALL SWTSTA(135)
+   IF (timing_enabled) CALL SWTSTA(135)
 !$OMP MASTER
    IF (IQUAD.EQ.51.OR.IQUAD.EQ.52.OR.IQUAD.EQ.53) THEN
       CALL init_constants
@@ -1591,9 +1592,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
       &MCGRD-1   , IXQUAD , IXGRID   ,INODE,IQERR )
    END IF
 !$OMP END MASTER
-!TIMG   CALL SWTSTO(135)
+   IF (timing_enabled) CALL SWTSTO(135)
 !
-!TIMG   CALL SWTSTA(103)
+   IF (timing_enabled) CALL SWTSTA(103)
    iteration_loop: do ITER = 1, ITERMX
 
 !       initialise local (thread private) counter for SIP solver
@@ -1774,11 +1775,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
       ENDIF
 
 !       --- calculate diffraction parameter and its derivatives
-!TIMG      CALL SWTSTA(137)
+      IF (timing_enabled) CALL SWTSTA(137)
       IF ( IDIFFR.GT.0 )&
       &CALL DIFPAR( AC2   , SPCSIG, KGRPNT, COMPDA(1,JDP2), DIFFR ,&
       &CROSS , XCGRID, YCGRID, XYTST  )
-!TIMG      CALL SWTSTO(137)
+      IF (timing_enabled) CALL SWTSTO(137)
 !
 !       --- spatially filter the De Wit's biphase to prevent abrupt changes
       IF (IBIPH.EQ.3) CALL SWBIPM ( COMPDA(1,JBIPH ), COMPDA(1,JDP2),&
@@ -2057,7 +2058,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !WFR!MPI!
 !WFR!MPI! ======================================================================
 !WFR!MPI
-!WFR!TIMG!MPI                        CALL SWTSTA(213)
+!WFR!MPI                        IF (timing_enabled) CALL SWTSTA(213)
 !WFR!MPI                        IF ( MXCGL.GT.MYCGL ) THEN
 !WFR!MPI                           DO III = LSTCP, 1, -1
 !WFR!MPI                              CALL SWRECVAC(AC2,IS-III*INCI,JJ,SWPDIR,KGRPNT)
@@ -2067,7 +2068,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !WFR!MPI                              CALL SWRECVAC(AC2,JJ,IS-III*INCI,SWPDIR,KGRPNT)
 !WFR!MPI                           END DO
 !WFR!MPI                        END IF
-!WFR!TIMG!MPI                        CALL SWTSTO(213)
+!WFR!MPI                        IF (timing_enabled) CALL SWTSTO(213)
 !WFR!MPI                        IF (STPNOW()) RETURN
 !WFR
 !WFR                        DO II = IS, IE, INCI
@@ -2096,7 +2097,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$                            END DO
 !$                         END IF
 !
-!TIMG                           CALL SWTSTA(104)
+                           IF (timing_enabled) CALL SWTSTA(104)
                            CALL SWOMPU (SWPDIR,KSX              ,KSY              ,&
                            &IX               ,IY               ,DDX              ,&
                            &DDY              ,default_time_context%DT               ,SNLC1            ,&
@@ -2133,7 +2134,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &TRIADS           ,SNL4             ,SPECTRAL_POWERS,&
                            &THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%WCAP&
                            &)
-!TIMG                           CALL SWTSTO(104)
+                           IF (timing_enabled) CALL SWTSTO(104)
 !MPI                           IF (STPNOW()) RETURN
 !
 !----------------------------------------------------------------------
@@ -2154,7 +2155,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !WFR!MPI!
 !WFR!MPI! ======================================================================
 !WFR!MPI
-!WFR!TIMG!MPI                        CALL SWTSTA(213)
+!WFR!MPI                        IF (timing_enabled) CALL SWTSTA(213)
 !WFR!MPI                        IF ( MXCGL.GT.MYCGL ) THEN
 !WFR!MPI                           DO III = LSTCP-1, 0, -1
 !WFR!MPI                              CALL SWSENDAC(AC2,IE-III*INCI,JJ,SWPDIR,KGRPNT)
@@ -2164,7 +2165,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !WFR!MPI                              CALL SWSENDAC(AC2,JJ,IE-III*INCI,SWPDIR,KGRPNT)
 !WFR!MPI                           END DO
 !WFR!MPI                        END IF
-!WFR!TIMG!MPI                        CALL SWTSTO(213)
+!WFR!MPI                        IF (timing_enabled) CALL SWTSTO(213)
 !WFR!MPI                        IF (STPNOW()) RETURN
 !WFR                     END IF
 !WFR
@@ -2180,7 +2181,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !JAC! ======================================================================
 !JAC
 !JAC                  IF ( ISWP.EQ.3 ) THEN
-!JAC!TIMG                     CALL SWTSTA(213)
+!JAC                     IF (timing_enabled) CALL SWTSTA(213)
 !JAC                     DO ID = 1, MDC
 !JAC                        DO IS = 1, MSC
 !JAC                           AC2LOC(:) = AC2(ID,IS,:)
@@ -2191,7 +2192,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !JAC                     END DO
 !JAC                     CALL SWSYNC
 !JAC!MPI                     IF (STPNOW()) RETURN
-!JAC!TIMG                     CALL SWTSTO(213)
+!JAC                     IF (timing_enabled) CALL SWTSTO(213)
 !JAC                  END IF
 !
 !----------------------------------------------------------------------
@@ -2204,7 +2205,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !WFR!MPI!
 !WFR!MPI!       --- exchange action densities at subdomain interfaces
 !WFR!MPI!
-!WFR!TIMG!MPI                  CALL SWTSTA(213)
+!WFR!MPI                  IF (timing_enabled) CALL SWTSTA(213)
 !WFR!MPI                  DO ID = 1, MDC
 !WFR!MPI                     DO IS = 1, MSC
 !WFR!MPI                        AC2LOC(:) = AC2(ID,IS,:)
@@ -2212,7 +2213,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !WFR!MPI                        AC2(ID,IS,:) = AC2LOC(:)
 !WFR!MPI                     END DO
 !WFR!MPI                  END DO
-!WFR!TIMG!MPI                  CALL SWTSTO(213)
+!WFR!MPI                  IF (timing_enabled) CALL SWTSTO(213)
 !WFR!MPI                  IF (STPNOW()) RETURN
 !
 !----------------------------------------------------------------------
@@ -2324,7 +2325,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       *** store the source terms for test gridpoints  ***
 !       *** in the files IFPAR, IFS1D and IFS2D         ***
 !
-!TIMG                  CALL SWTSTA(105)
+                  IF (timing_enabled) CALL SWTSTA(105)
                   IF (NPTST.GT.0 .AND. NSTATM.EQ.0&
                   &) THEN
                      IF (IFPAR.GT.0) WRITE (IFPAR, "(I4, T41, 'iteration')") ITER
@@ -2342,16 +2343,16 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &COMPDA(1,JDP2)        ,XYTST                 ,&
                      &KGRPNT                )
                   END IF
-!TIMG                  CALL SWTSTO(105)
+                  IF (timing_enabled) CALL SWTSTO(105)
 !
 !       *** compute wave-induced setup ***
 !
-!TIMG                  CALL SWTSTA(106)
+                  IF (timing_enabled) CALL SWTSTA(106)
                   IF (LSETUP.GT.0)&
                   &CALL SETUPP ( KGRPNT, MSTPDA, SETPDA, AC2, COMPDA(1,JDP2),&
                   &COMPDA(1,JDPSAV), COMPDA(1,JSETUP),&
                   &XCGRID, YCGRID, SPCSIG, SPCDIR )
-!TIMG                  CALL SWTSTO(106)
+                  IF (timing_enabled) CALL SWTSTO(106)
 !
 !----------------------------------------------------------------------
 !     End master thread region.
@@ -2361,7 +2362,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       *** check if numerical accuracy has been reached       ***
 !       *** this is done in parallel within OpenMP environment ***
 !
-!TIMG                  CALL SWTSTA(102)
+                  IF (timing_enabled) CALL SWTSTA(102)
                   IF (PNUMS(21).EQ.0.) THEN
                      CALL SACCUR (COMPDA(1,JDP2),KGRPNT          ,&
                      &XYTST           ,&
@@ -2377,7 +2378,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &COMPDA(1,JDP2),ACCUR           ,&
                      &I1MYC         ,I2MYC           )
                   END IF
-!TIMG                  CALL SWTSTO(102)
+                  IF (timing_enabled) CALL SWTSTO(102)
 !
 !----------------------------------------------------------------------
 !     Begin master thread region.
@@ -2412,12 +2413,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !MPI!       --- exchange COMPDA at subdomain interfaces
 !MPI!           within distributed-memory environment
 !MPI!
-!TIMG!MPI                  CALL SWTSTA(213)
+!MPI                  IF (timing_enabled) CALL SWTSTA(213)
 !MPI                  DO J = 1, MCMVAR
 !WFR!MPI                     CALL SWEXCHG( COMPDA(1,J), KGRPNT )
 !JAC!MPI                     CALL SWEXCHG( COMPDA(1,J), 0, KGRPNT )
 !MPI                  ENDDO
-!TIMG!MPI                  CALL SWTSTO(213)
+!MPI                  IF (timing_enabled) CALL SWTSTO(213)
 !MPI                  IF (STPNOW()) RETURN
 !MPI!
 !       --- store QC bulk dissipation for the next iteration
@@ -2444,12 +2445,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   &ACCUR.GE.PNUMS(4) ) EXIT iteration_loop
 
    end do iteration_loop
-!TIMG                  CALL SWTSTO(103)
+                  IF (timing_enabled) CALL SWTSTO(103)
 !
 !----------------------------------------------------------------------
 !     Begin deallocate private arrays.
 !----------------------------------------------------------------------
-!TIMG                  CALL SWTSTA(101)
+                  IF (timing_enabled) CALL SWTSTA(101)
                   DEALLOCATE(IDCMIN)
                   DEALLOCATE(IDCMAX)
                   DEALLOCATE(ISCMIN)
@@ -2496,7 +2497,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   DEALLOCATE(CFD)
                   DEALLOCATE(WFD)
                   DEALLOCATE(WSAVD)
-!TIMG                  CALL SWTSTO(101)
+                  IF (timing_enabled) CALL SWTSTO(101)
 !----------------------------------------------------------------------
 !     End deallocate private arrays.
 !----------------------------------------------------------------------
@@ -2515,7 +2516,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &WRITE(SCREEN,"(1X,'no convergence in set-up calculation')")
                   END IF
 
-!TIMG                  CALL SWTSTA(105)
+                  IF (timing_enabled) CALL SWTSTA(105)
                   IF (NPTST.GT.0 .AND. NSTATM.EQ.1&
                   &) THEN
                      IF (IFPAR.GT.0) WRITE (IFPAR, "(A, T41, 'date-time')") CHTIME
@@ -2534,12 +2535,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &COMPDA(1,JDP2)        ,XYTST                 ,&
                      &KGRPNT                )
                   END IF
-!TIMG                  CALL SWTSTO(105)
+                  IF (timing_enabled) CALL SWTSTO(105)
 !
 !----------------------------------------------------------------------
 !     Begin deallocate shared arrays.
 !----------------------------------------------------------------------
-!TIMG                  CALL SWTSTA(101)
+                  IF (timing_enabled) CALL SWTSTA(101)
                   DEALLOCATE(SETPDA)
                   DEALLOCATE(HSAC1)
                   DEALLOCATE(HSAC2)
@@ -2561,7 +2562,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$                DEALLOCATE(LLOCK)
 !MPI                  DEALLOCATE(AC2LOC)
                   DEALLOCATE(SWTSDA)
-!TIMG                  CALL SWTSTO(101)
+                  IF (timing_enabled) CALL SWTSTO(101)
 !----------------------------------------------------------------------
 !     End deallocate shared arrays.
 !----------------------------------------------------------------------
@@ -3256,7 +3257,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     *** If there are obstacles crossing the points in the stencil ***
 !     *** then fall back to first order scheme                      ***
 !
-!TIMG                  CALL SWTSTA(136)
+                  IF (timing_enabled) CALL SWTSTA(136)
                   IF (NUMOBS.NE.0 .AND. PROPSL.NE.1) THEN
                      IF (PROPSL.EQ.3) THEN
                         NLINK  = 10
@@ -3336,7 +3337,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         ENDDO
                      ENDIF
                   ENDIF
-!TIMG                  CALL SWTSTO(136)
+                  IF (timing_enabled) CALL SWTSTO(136)
 
                   IF (ITEST .GE. 180 ) THEN
                      WRITE(PRINTF,"(' Points in stencil in subr SWOMPU, sweep : ',I1, /,'POINT( IX, IY), INDEX, COORDX, COORDY')") SWPDIR
@@ -3408,21 +3409,21 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !         also, if we are using the BSBT scheme only,
 !         then CAX1, CAY1 are not needed.
 !
-!TIMG                     CALL SWTSTA(110)
+                     IF (timing_enabled) CALL SWTSTA(110)
                      CALL SWAPAR ( COMPDA(1,JDP1), COMPDA(1,JMUDL1),&
                      &KWAVE, CGO, DMW, SPCSIG )
-!TIMG                     CALL SWTSTO(110)
+                     IF (timing_enabled) CALL SWTSTO(110)
 !
 !         *** compute the propagation velocities CAX1 and CAY1       ***
 !         *** for all directions for the gridpoints IC = 1 to ICMAX  ***
 !
-!TIMG                     CALL SWTSTA(111)
+                     IF (timing_enabled) CALL SWTSTA(111)
                      CALL SPROXY (CAX1            ,&
                      &CAY1           ,CGO            ,SPCDIR(1,2)    ,&
                      &SPCDIR(1,3)    ,COMPDA(1,JVX1) ,COMPDA(1,JVY1) ,&
                      &SWPDIR         ,DIFFR&
                      &)
-!TIMG                     CALL SWTSTO(111)
+                     IF (timing_enabled) CALL SWTSTO(111)
 
                   END IF
 
@@ -3431,33 +3432,33 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     *** Compute wavenumber KWAVE and group velocity CGO   ***
 !     *** in the gridpoints of the stencil                  ***
 !
-!TIMG                  CALL SWTSTA(110)
+                  IF (timing_enabled) CALL SWTSTA(110)
                   CALL SWAPAR ( COMPDA(1,JDP2), COMPDA(1,JMUDL2),&
                   &KWAVE, CGO, DMW, SPCSIG )
-!TIMG                  CALL SWTSTO(110)
+                  IF (timing_enabled) CALL SWTSTO(110)
 !
 !     *** compute the propagation velocities CAX and CAY        ***
 !     *** for all directions for the gridpoints IC = 1 to ICMAX ***
 !
-!TIMG                  CALL SWTSTA(111)
+                  IF (timing_enabled) CALL SWTSTA(111)
                   CALL SPROXY (CAX            ,&
                   &CAY            ,CGO            ,SPCDIR(1,2)    ,&
                   &SPCDIR(1,3)    ,COMPDA(1,JVX2) ,COMPDA(1,JVY2) ,&
                   &SWPDIR         ,DIFFR&
                   &)
-!TIMG                  CALL SWTSTO(111)
+                  IF (timing_enabled) CALL SWTSTO(111)
 !
 !     --- compute geometric quantities due to curvilinear grid
 !
-!TIMG                  CALL SWTSTA(112)
+                  IF (timing_enabled) CALL SWTSTA(112)
                   CALL SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
-!TIMG                  CALL SWTSTO(112)
+                  IF (timing_enabled) CALL SWTSTO(112)
 !
 !     *** compute minimum and maximum counter (IDCMIN and ***
 !     *** IDCMAX) and fill the array ANYBIN to determine  ***
 !     *** if a bin lies within the sweep considered       ***
 !
-!TIMG                  CALL SWTSTA(112)
+                  IF (timing_enabled) CALL SWTSTA(112)
                   CALL SWPSEL (SWPDIR                            ,IDCMIN        ,&
                   &IDCMAX          ,CAX              ,&
                   &CAY             ,LSWMAT(1,1,JABIN),&
@@ -3468,11 +3469,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   &SPCDIR          ,RDX              ,RDY           ,&
                   &KGRPNT&
                   &)
-!TIMG                  CALL SWTSTO(112)
+                  IF (timing_enabled) CALL SWTSTO(112)
 !
 !     *** compute the propagation velocities CAS and CAD   ***
 !
-!TIMG                  CALL SWTSTA(113)
+                  IF (timing_enabled) CALL SWTSTA(113)
                   CALL SPROSD (SPCSIG         ,KWAVE          ,CAS            ,&
                   &CAD            ,CGO            ,&
                   &COMPDA(1,JDP2) ,COMPDA(1,JDP1) ,SPCDIR(1,2)    ,&
@@ -3483,9 +3484,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   &XCGRID         ,YCGRID         ,&
                   &IDDLOW         ,IDDTOP         ,DIFFR&
                   &)
-!TIMG                  CALL SWTSTO(113)
+                  IF (timing_enabled) CALL SWTSTO(113)
 !
-!TIMG                  CALL SWTSTA(114)
+                  IF (timing_enabled) CALL SWTSTA(114)
                   IF (KSPHER.GT.0 .AND. IREFR.NE.0) THEN
 
 !        *** compute the change of propagation velocity CAD   ***
@@ -3496,7 +3497,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &LSWMAT(1,1,JABIN)  ,YCGRID         ,&
                      &SPCDIR(1,2)        ,SPCDIR(1,3)    )
                   ENDIF
-!TIMG                  CALL SWTSTO(114)
+                  IF (timing_enabled) CALL SWTSTO(114)
 
                   IF ( IDTOT.GT.0 ) THEN
 
@@ -3511,7 +3512,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !         *** PM frequency, wind friction velocity U*  and the    ***
 !         *** minimum and maximum counters for active wind input  ***
 !
-!TIMG                        CALL SWTSTA(115)
+                        IF (timing_enabled) CALL SWTSTA(115)
                         CALL WINDP1 (WIND10     ,THETAW     ,&
                         &IDWMIN     ,IDWMAX     ,&
                         &FPM        ,UFRIC      ,&
@@ -3520,7 +3521,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &COMPDA(1,JVX2) ,COMPDA(1,JVY2) ,SPCSIG ,AC2&
                         &,SWMATR(1,1,JGEN0), KWAVE&
                         &, KCGRD(1))
-!TIMG                        CALL SWTSTO(115)
+                        IF (timing_enabled) CALL SWTSTO(115)
                         IF (IWIND.NE.4) COMPDA(KCGRD(1),JUSTAR) = UFRIC
                      END IF
 
@@ -3568,7 +3569,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !       Calculate various integral parameters for use in the source terms
 !
-!TIMG                     CALL SWTSTA(116)
+                     IF (timing_enabled) CALL SWTSTA(116)
                      IF (.NOT.postpone_prediction) THEN
                      CALL SINTGRL  (SPCDIR  ,KWAVE   ,AC2     ,&
                      &COMPDA(1,JDP2)   ,QBLOC   ,COMPDA(1,JURSEL),&
@@ -3583,7 +3584,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &URMSTOP          ,&
                      &IDDLOW           ,IDDTOP, TRIADS,&
                      &SPECTRAL_POWERS%value, WCAP_WORKSPACE, KCGRD(1) )
-!TIMG                     CALL SWTSTO(116)
+                     IF (timing_enabled) CALL SWTSTO(116)
 
                      COMPDA(KCGRD(1),JHS) = HS
                      END IF
@@ -3593,7 +3594,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       *** then the transmission and reflection coeff. are computed  ***
 !       *** and also the contribution to the source term              ***
 
-!TIMG                     CALL SWTSTA(136)
+                     IF (timing_enabled) CALL SWTSTA(136)
                      IF (NUMOBS .NE. 0) THEN
 
 !         *** OBREDF(:,:,2) are the transmission coeff for the two links ***
@@ -3631,18 +3632,19 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &AC2, REFLSO, KGRPNT, XCGRID,&
                            &YCGRID, CAX, CAY, RDX, RDY, LSWMAT(1,1,JABIN),&
                            &SPCSIG, SPCDIR, CGO, KWAVE,&
-                           &COMPDA(1,JHSS2), COMPDA(1,JTSS2), COMPDA(1,JDSS2))
+                           &COMPDA(1,JHSS2), COMPDA(1,JTSS2), COMPDA(1,JDSS2),&
+                           &KCGRD, IXCGRD, IYCGRD)
                         ENDIF
 
                      ENDIF
-!TIMG                     CALL SWTSTO(136)
+                     IF (timing_enabled) CALL SWTSTO(136)
                      IF (.NOT.LPREDT) EXIT prediction_pass
                      END DO prediction_pass
                      END BLOCK prediction_flow
 
 !       *** compute source terms and fill the matrix ***
 !
-!TIMG                     CALL SWTSTA(117)
+                     IF (timing_enabled) CALL SWTSTA(117)
                      IF ( IGEN.NE.4 ) THEN
                         CALL SOURCE (ITER   ,IX                  ,IY                  ,&
                         &SWPDIR              ,KWAVE               ,SPCSIG              ,&
@@ -3707,11 +3709,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &WCAP_WORKSPACE%mean_frequency_wam&
                         &, KCGRD(1))
                      ENDIF
-!TIMG                     CALL SWTSTO(117)
+                     IF (timing_enabled) CALL SWTSTO(117)
 !
 !       *** compute transport of action and fill the matrix ***
 !
-!TIMG                     CALL SWTSTA(118)
+                     IF (timing_enabled) CALL SWTSTA(118)
                      CALL ACTION (IDCMIN      ,IDCMAX            ,SPCSIG            ,&
                      &AC2               ,CAX               ,CAY               ,&
                      &CAS               ,CAD               ,SWMATR(1,1,JMATL) ,&
@@ -3729,7 +3731,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &CAX1              ,CAY1              ,SPCDIR            ,&
                      &CGO               ,SWMATR(1,1,JTRA0) ,SWMATR(1,1,JTRA1)&
                      &,KCGRD(1))
-!TIMG                     CALL SWTSTO(118)
+                     IF (timing_enabled) CALL SWTSTO(118)
 !
 !       matrix is computed now; updating action densities starts
 !       provided ACUPDA is true
@@ -3742,7 +3744,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !       preparatory steps before solution of linear system
 !
-!TIMG                     CALL SWTSTA(119)
+                     IF (timing_enabled) CALL SWTSTA(119)
                      CALL SOLPRE(AC2                ,SWMATR(1,1,JAOLD)  ,&
                      &SWMATR(1,1,JMATR)  ,SWMATR(1,1,JMATL)  ,&
                      &SWMATR(1,1,JMATD)  ,SWMATR(1,1,JMATU)  ,&
@@ -3753,14 +3755,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &IDDLOW             ,IDDTOP             ,&
                      &ISSTOP             ,&
                      &SPCSIG             ,KCGRD(1))
-!TIMG                     CALL SWTSTO(119)
+                     IF (timing_enabled) CALL SWTSTO(119)
 
                      IF ( IREFR.EQ.0 .AND. ITFRE.EQ.0 ) THEN
 
 !          *** No refraction and no frequency shift   ***
 !          *** no need to solve a system, just update ***
 !
-!TIMG                        CALL SWTSTA(120)
+                        IF (timing_enabled) CALL SWTSTA(120)
                         DO IS = 1, MSC
                            DO IDDUM = IDCMIN(IS), IDCMAX(IS)
                               ID = MOD(IDDUM-1+MDC, MDC) + 1
@@ -3778,7 +3780,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                         SWMATR(:,:,JMATR) = 0.
                         SWMATR(:,:,JMATD) = 0.
-!TIMG                        CALL SWTSTO(120)
+                        IF (timing_enabled) CALL SWTSTO(120)
 
                      ELSEIF ( (DYNDEP .OR. ICUR .EQ. 1) .AND.&
                      &PNUMS(8).NE.0.                 ) THEN
@@ -3791,7 +3793,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !           *** Implicit scheme in frequency space. Solve penta- ***
 !           *** diagonal system with the SIP solver              ***
 !
-!TIMG                           CALL SWTSTA(120)
+                           IF (timing_enabled) CALL SWTSTA(120)
                            CALL SWSIP ( AC2, SWMATR(1,1,JMATD), SWMATR(1,1,JMATR),&
                            &SWMATR(1,1,JMATL), SWMATR(1,1,JMATU),&
                            &SWMATR(1,1,JMAT5), SWMATR(1,1,JMAT6),&
@@ -3799,7 +3801,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &PNUMS(12), NINT(PNUMS(14)), NINT(PNUMS(13)),&
                            &INOCNV, IDDLOW, IDDTOP, ISSTOP, IDCMIN,&
                            &IDCMAX, KCGRD(1) )
-!TIMG                           CALL SWTSTO(120)
+                           IF (timing_enabled) CALL SWTSTO(120)
 
                         ELSE IF (INT(PNUMS(8)).EQ.2 .OR. INT(PNUMS(8)).EQ.3) THEN
 
@@ -3807,7 +3809,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !           *** blocking point is removed from the spectrum based   ***
 !           *** on CFL criterion                                    ***
 !
-!TIMG                           CALL SWTSTA(120)
+                           IF (timing_enabled) CALL SWTSTA(120)
                            CALL SOLMT1  (IDCMIN             ,IDCMAX             ,&
                            &AC2                ,SWMATR(1,1,JMATR)  ,&
                            &SWMATR(1,1,JMATD)  ,SWMATR(1,1,JMATU)  ,&
@@ -3815,7 +3817,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &ISSTOP             ,&
                            &LSWMAT(1,1,JABLK)  ,IDDLOW             ,&
                            &IDDTOP                                 , KCGRD(1))
-!TIMG                           CALL SWTSTO(120)
+                           IF (timing_enabled) CALL SWTSTO(120)
 
                         END IF
 
@@ -3824,13 +3826,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !         *** No current. Only implicit scheme in directional space  ***
 !         *** Solve the tri-diagonal matrix with Thomas algorithm    ***
 !
-!TIMG                        CALL SWTSTA(120)
+                        IF (timing_enabled) CALL SWTSTA(120)
                         CALL SOLMAT (IDCMIN            ,IDCMAX             ,&
                         &AC2                ,SWMATR(1,1,JMATR)  ,&
                         &SWMATR(1,1,JMATD)  ,SWMATR(1,1,JMATU)  ,&
                         &SWMATR(1,1,JMATL),KCGRD(1)&
                         &)
-!TIMG                        CALL SWTSTO(120)
+                        IF (timing_enabled) CALL SWTSTO(120)
 
                      END IF
 
@@ -3851,14 +3853,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       *** if negative action density occur rescale with a factor ***
 !       *** only the sector computed is rescaled !!                ***
 !
-!TIMG                     CALL SWTSTA(121)
+                     IF (timing_enabled) CALL SWTSTA(121)
                      IF (BRESCL) CALL RESCALE(AC2, ISSTOP, IDCMIN, IDCMAX, NRSCAL, KCGRD(1))
-!TIMG                     CALL SWTSTO(121)
+                     IF (timing_enabled) CALL SWTSTO(121)
 !
 !       calculate propagation, generation, dissipation, redistribution
 !       leak and radiation stress in present grid point
 !
-!TIMG                     CALL SWTSTA(124)
+                     IF (timing_enabled) CALL SWTSTA(124)
                      IF ( LADDS )&
                      &CALL ADDDIS (COMPDA(1,JDISS)    ,COMPDA(1,JLEAK)    ,&
                      &AC2                ,LSWMAT(1,1,JABIN)  ,&
@@ -3884,11 +3886,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &SWMATR(1,1,JLEK1)  ,COMPDA(1,JRADS)    ,&
                      &SPCSIG&
                      &, KCGRD(1))
-!TIMG                     CALL SWTSTO(124)
+                     IF (timing_enabled) CALL SWTSTO(124)
 !
 !       limit the change of the spectrum
 !
-!TIMG                     CALL SWTSTA(122)
+                     IF (timing_enabled) CALL SWTSTA(122)
                      IF (PNUMS(20).LT.100.) THEN
                         IF (IWIND.NE.4 .OR. NSTATC.NE.1) THEN
 !             default limiter
@@ -3906,16 +3908,16 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &QBLOC, COMPDA(1,JUSTAR), KCGRD(1))
                         END IF
                      END IF
-!TIMG                     CALL SWTSTO(122)
+                     IF (timing_enabled) CALL SWTSTO(122)
 !
 !       *** reduce the computed energy density if the value is  ***
 !       *** larger then the limit value as computed in SWIND    ***
 !       *** in case of first or second generation mode          ***
 !
-!TIMG                     CALL SWTSTA(123)
+                     IF (timing_enabled) CALL SWTSTA(123)
                      IF ( IWIND .EQ. 1 .OR. IWIND .EQ. 2 )&
                      &CALL WINDP3 (ISSTOP, ALIMW, AC2, GROWW, IDCMIN, IDCMAX , KCGRD(1))
-!TIMG                     CALL SWTSTO(123)
+                     IF (timing_enabled) CALL SWTSTO(123)
 !
 !       *** test output ***
 
@@ -5344,7 +5346,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   TRAC0(1:MDC,1:MSC,1:MTRNP) = 0.
                   TRAC1(1:MDC,1:MSC,1:MTRNP) = 0.
 
-!TIMG                  CALL SWTSTA(140)
+                  IF (timing_enabled) CALL SWTSTA(140)
 !
 !     *** Call propagation module in X-Y space  ***
 !
@@ -5365,7 +5367,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &OBREDF   ,TRAC0    ,TRAC1    )
 
                   END IF
-!TIMG                  CALL SWTSTO(140)
+                  IF (timing_enabled) CALL SWTSTO(140)
 !
 !     *** test output ***
 
@@ -5387,7 +5389,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      ENDDO
                   END IF
 
-!TIMG                  CALL SWTSTA(141)
+                  IF (timing_enabled) CALL SWTSTA(141)
                   IF ( (DYNDEP .OR. ICUR.EQ.1) .AND. ITFRE.NE.0 ) THEN
 
 !       *** call propagation module in S-direction ***
@@ -5416,11 +5418,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                      END IF
                   END IF
-!TIMG                  CALL SWTSTO(141)
+                  IF (timing_enabled) CALL SWTSTO(141)
 !
 !     *** call propagation module in D-direction ***
 !
-!TIMG                  CALL SWTSTA(142)
+                  IF (timing_enabled) CALL SWTSTA(142)
                   IF ( IREFR.NE.0 ) THEN
                      IF ( PROPFL.EQ.0 ) THEN
                         CALL STRSD (DDIR    ,IDCMIN  ,&
@@ -5433,7 +5435,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &IDCMAX, ISSTOP)
                      END IF
                   END IF
-!TIMG                  CALL SWTSTO(142)
+                  IF (timing_enabled) CALL SWTSTO(142)
 !
 !     *** test; remove on vector computer ***
 
@@ -7322,7 +7324,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      HICELOC = PICE(2)
                   ENDIF
 
-!TIMG                  CALL SWTSTA(130)
+                  IF (timing_enabled) CALL SWTSTA(130)
                   IF (IBOT .GE. 1) THEN
 
 !       *** wave-bottom interactions ***
@@ -7331,11 +7333,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &IMATDA   ,KWAVE    ,SPCSIG   ,UBOT     ,UX2      ,&
                      &UY2      ,IDCMIN   ,IDCMAX   ,IT       ,ITER     ,&
                      &SWPDIR   ,PLBTFR   ,ISSTOP   ,DISSC1   ,VARFR    ,&
-                     &FRCOEF   ,IGP)
+                     &FRCOEF   ,IGP      ,IX       ,IY)
                   END IF
-!TIMG                  CALL SWTSTO(130)
+                  IF (timing_enabled) CALL SWTSTO(130)
 !
-!TIMG                  CALL SWTSTA(138)
+                  IF (timing_enabled) CALL SWTSTA(138)
                   IF ( IMUD.GE.1 ) THEN
 
 !     *** wave-mud interactions ***
@@ -7345,11 +7347,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      CALL SMUD ( DEP2   ,IMATDA  ,&
                      &KWAVE  ,CGO     ,DMW     ,&
                      &IDCMIN ,IDCMAX  ,ISSTOP  ,&
-                     &DISSC1 ,PLMUD   ,IGP)
+                     &DISSC1 ,PLMUD   ,IGP     ,ICMAX)
                   END IF
-!TIMG                  CALL SWTSTO(138)
+                  IF (timing_enabled) CALL SWTSTO(138)
 !
-!TIMG                  CALL SWTSTA(139)
+                  IF (timing_enabled) CALL SWTSTA(139)
                   IF ( IVEG.GE.1 ) THEN
 
 !     *** wave-vegetation interactions ***
@@ -7359,20 +7361,20 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &IDCMIN ,IDCMAX   ,ISSTOP ,DISSC1    ,&
                      &NPLA2  , IGP)
                   END IF
-!TIMG                  CALL SWTSTO(139)
+                  IF (timing_enabled) CALL SWTSTO(139)
 !
-!TIMG                  CALL SWTSTA(143)
+                  IF (timing_enabled) CALL SWTSTA(143)
                   IF ( ITURBV.GE.1 ) THEN
 
 !        *** dissipation due to turbulent viscosity ***
 
                      CALL STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
                      &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-                     &KWAVE   ,DISSC1  ,PLTURB, SPECTRAL_POWERS%value, IGP)
+                     &KWAVE   ,DISSC1  ,PLTURB, SPECTRAL_POWERS%value, IGP, IX, IY, ICMAX)
                   END IF
-!TIMG                  CALL SWTSTO(143)
+                  IF (timing_enabled) CALL SWTSTO(143)
 !
-!TIMG                  CALL SWTSTA(144)
+                  IF (timing_enabled) CALL SWTSTA(144)
                   IF ( IICE.GT.2 ) THEN
 
 !        *** dissipation by sea ice ***
@@ -7383,9 +7385,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &)
 
                   END IF
-!TIMG                  CALL SWTSTO(144)
+                  IF (timing_enabled) CALL SWTSTO(144)
 !
-!TIMG                  CALL SWTSTA(131)
+                  IF (timing_enabled) CALL SWTSTA(131)
                   IF (ISURF .GE. 1) THEN
 
 !         *** calculate surf breaking source term (5 formulations) ***
@@ -7397,9 +7399,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &WCAP_WORKSPACE%mean_frequency_wam , IGP)
 
                   END IF
-!TIMG                  CALL SWTSTO(131)
+                  IF (timing_enabled) CALL SWTSTO(131)
 !
-!TIMG                  CALL SWTSTA(132)
+                  IF (timing_enabled) CALL SWTSTA(132)
                   IF ( IWIND .GE. 3&
                   &) THEN
 
@@ -7490,11 +7492,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &PLWNDS , ISSTOP, GENC0 , AICELOC , IGP)
 
                   END IF
-!TIMG                  CALL SWTSTO(132)
+                  IF (timing_enabled) CALL SWTSTO(132)
 !
 !     Calculate whitecapping source term (multiple formulations)
 !
-!TIMG                  CALL SWTSTA(133)
+                  IF (timing_enabled) CALL SWTSTA(133)
                   IF (IWCAP.GE.1) THEN
                      IF (IWCAP.LE.7) CALL SWCAP (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
                      &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
@@ -7532,11 +7534,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !           excluded : SPCDIR AC2 DEP2 IMATRA
                      END IF
                   END IF
-!TIMG                  CALL SWTSTO(133)
+                  IF (timing_enabled) CALL SWTSTO(133)
 !
 !     compute nonlinear interactions, starting with triads
 !
-!TIMG                  CALL SWTSTA(134)
+                  IF (timing_enabled) CALL SWTSTA(134)
                   IF (ITRIAD .GT. 0) THEN
 
 !       *** compute the 3 wave-wave interactions if in each ***
@@ -7578,11 +7580,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      ENDIF
 
                   ENDIF
-!TIMG                  CALL SWTSTO(134)
+                  IF (timing_enabled) CALL SWTSTO(134)
 !
 !     --- compute quadruplet interactions if Ursell number < Urmax
 !
-!TIMG                  CALL SWTSTA(135)
+                  IF (timing_enabled) CALL SWTSTA(135)
                   IF (URSELL(IGP).LT.PTRIAD(3)) THEN
 
 !       *** compute the counters for the nonlinear four ***
@@ -7779,9 +7781,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                      ENDIF
                   ENDIF
-!TIMG                  CALL SWTSTO(135)
+                  IF (timing_enabled) CALL SWTSTO(135)
 !
-!TIMG                  CALL SWTSTA(145)
+                  IF (timing_enabled) CALL SWTSTA(145)
                   IF ( IBRAG.EQ.1 ) THEN
 
 !        *** calculation for all the bins that fall within a sweep ***
@@ -7838,11 +7840,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !            Ardhuin and Herbers (2002), see pg. 22 ***
 
                   ENDIF
-!TIMG                  CALL SWTSTO(145)
+                  IF (timing_enabled) CALL SWTSTO(145)
 !
 !     --- add contribution due to reflection of obstacles
 !
-!TIMG                  CALL SWTSTA(136)
+                  IF (timing_enabled) CALL SWTSTA(136)
                   IF (NUMOBS.NE.0) THEN
                      DO IS = 1, MSC
                         DO ID = 1, MDC
@@ -7851,7 +7853,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         END DO
                      END DO
                   END IF
-!TIMG                  CALL SWTSTO(136)
+                  IF (timing_enabled) CALL SWTSTO(136)
 !
 !     End of the subroutine SOURCE
                   RETURN

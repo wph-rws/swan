@@ -1,4 +1,5 @@
 module swan_transp_ac
+   use swan_timing_configuration, only: timing_enabled
    use swan_gse_corr, only: SwanGSECorr
    use swan_transp_x, only: SwanTranspX
    implicit none(type, external)
@@ -11,7 +12,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
                           anybin, rdx   , rdy   , spcsig, spcdir, &
                           obredf, idcmin, idcmax, iscmin, iscmax, &
                           iddlow, iddtop, isslow, isstop, anyblk, &
-                          trac0 , trac1 )
+                          trac0 , trac1 , kcgrd , coslat, icmax )
    USE swan_service_interfaces, ONLY: STRACE, SWTSTA, SWTSTO
 
 !   --|-----------------------------------------------------------|--
@@ -61,7 +62,6 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
     use swan_diagnostics_level
      use swan_propagation, only: STRSD, STRSSI, STRSSB
     use swan_run_mode
-    USE swan_stencil
     use swan_physics_selection
     use swan_numerics
     use swan_spectral_grid
@@ -76,6 +76,8 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
     integer, intent(in)                         :: iddtop ! maximum direction bin that is propagated within a sweep
     integer, intent(in)                         :: isslow ! minimum frequency that is propagated within a sweep
     integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
+    integer, intent(in)                         :: icmax  ! number of active stencil points
+    integer, dimension(icmax), intent(in)       :: kcgrd ! grid addresses of the stencil points
 
     integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
     integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
@@ -95,6 +97,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
     real, dimension(MDC,MSC,ICMAX), intent(in)  :: cax    ! wave transport velocity in x-direction
     real, dimension(MDC,MSC,ICMAX), intent(in)  :: cay    ! wave transport velocity in y-direction
     real, dimension(MSC,ICMAX), intent(in)      :: cgo    ! group velocity
+    real, dimension(icmax), intent(in)          :: coslat ! cosine of latitude at each stencil point
     real, dimension(MDC,MSC), intent(out)       :: leakcf ! leak coefficient
     real, dimension(MDC,MSC,2), intent(in)      :: obredf ! action reduction coefficient based on transmission
     real, dimension(2), intent(in)              :: rdx    ! first component of contravariant base vector rdx(b) = a^(b)_1
@@ -138,19 +141,19 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
 
     ! compute transport in x-y space
 
-!TIMG    call SWTSTA(140)
+    IF (timing_enabled) CALL SWTSTA(140)
     call SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
                        rdx    , rdy  , obredf, idcmin, idcmax, isslow, &
-                       isstop , trac0, trac1 )
+                       isstop , trac0, trac1 , kcgrd , coslat, icmax )
 
     ! add GSE correction, if appropriate
 
-    if ( WAVAGE > 0. ) call SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, trac0 )
-!TIMG    call SWTSTO(140)
+    if ( WAVAGE > 0. ) call SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, trac0, kcgrd(1), icmax )
+    IF (timing_enabled) CALL SWTSTO(140)
 
     ! compute transport in theta space
 
-!TIMG    call SWTSTA(142)
+    IF (timing_enabled) CALL SWTSTA(142)
     if ( IREFR /= 0 ) then
 
        call STRSD ( DDIR       , idcmin     , idcmax     , cad    , &
@@ -159,11 +162,11 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
                     trac0      , trac1      )
 
     endif
-!TIMG    call SWTSTO(142)
+    IF (timing_enabled) CALL SWTSTO(142)
 
     ! compute transport in sigma space
 
-!TIMG    call SWTSTA(141)
+    IF (timing_enabled) CALL SWTSTA(141)
     if ( (DYNDEP .OR. ICUR /= 0) .and. ITFRE /= 0 ) then
 
        if ( int(PNUMS(8)) == 1 ) then
@@ -186,7 +189,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
        endif
 
     endif
-!TIMG    call SWTSTO(141)
+    IF (timing_enabled) CALL SWTSTO(141)
 
 end subroutine SwanTranspAc
 

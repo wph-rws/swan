@@ -37,12 +37,12 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 &IMATDA  ,KWAVE   ,SPCSIG  ,UBOT    ,UX2     ,&
 &UY2     ,IDCMIN  ,IDCMAX  ,IT      ,ITER    ,&
 &SWPDIR  ,PLBTFR  ,ISSTOP  ,DISSC1  ,VARFR   ,&
-&FRCOEF  ,IGP)
+&FRCOEF  ,IGP      ,IXCG    ,IYCG)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_numerics
    USE swan_physical_settings
@@ -54,7 +54,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
-   INTEGER, INTENT(IN) :: IGP
+   INTEGER, INTENT(IN) :: IGP, IXCG, IYCG
 
 
 !   --|-----------------------------------------------------------|--
@@ -515,10 +515,10 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 
 !          save friction factor to FRCOEF for next time step or iteration
          IF (( SWPDIR .EQ. 1) .OR.&
-         &( SWPDIR .EQ. 2 .AND. IXCGRD(1) .EQ. 1) .OR.&
-         &( SWPDIR .EQ. 3 .AND. IYCGRD(1) .EQ. 1) .OR.&
+         &( SWPDIR .EQ. 2 .AND. IXCG .EQ. 1) .OR.&
+         &( SWPDIR .EQ. 3 .AND. IYCG .EQ. 1) .OR.&
          &( SWPDIR .EQ. 4 .AND.&
-         &(IXCGRD(1).EQ.MXC .AND. IYCGRD(1).EQ.1) )) THEN
+         &(IXCG.EQ.MXC .AND. IYCG.EQ.1) )) THEN
 !          save only for first encounter in a sweep
             FRCOEF(IGP) = FW
          ENDIF
@@ -1061,12 +1061,11 @@ end subroutine SVEG
 
 SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
 &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-&KWAVE   ,DISSC1  ,PLTURB, SIGPOW, IGP)
+&KWAVE   ,DISSC1  ,PLTURB, SIGPOW, IGP, IXCG, IYCG, ICMAX)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid
@@ -1076,7 +1075,7 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
-   INTEGER, INTENT(IN) :: IGP
+   INTEGER, INTENT(IN) :: IGP, IXCG, IYCG, ICMAX
 
 
 !   --|-----------------------------------------------------------|--
@@ -1177,7 +1176,7 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
    VISCLOC = TURBV2(IGP)
 
    IF (TESTFL .AND. ITEST.GE.60) WRITE (PRTEST, "( 'test STURBV, point ', 2I3, 3X, 2E12.4)")&
-   &IXCGRD(1)-1, IYCGRD(1)-1, VISCLOC,&
+   &IXCG-1, IYCG-1, VISCLOC,&
    &PTURBV(1)
 
    IF (VISCLOC .GT. 0.) THEN
@@ -1213,12 +1212,11 @@ end subroutine STURBV
 SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
 &KMUD    ,CGMUD   ,DMW     ,&
 &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-&DISSC1  ,PLMUD   ,IGP)
+&DISSC1  ,PLMUD   ,IGP      ,ICMAX)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid
@@ -1226,7 +1224,7 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
    USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
-   INTEGER, INTENT(IN) :: IGP
+   INTEGER, INTENT(IN) :: IGP, ICMAX
 
 
 !   --|-----------------------------------------------------------|--
@@ -1389,7 +1387,7 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  ,&
 
 !****************************************************************
 
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_spectral_grid
    USE swan_math_constants

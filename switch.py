@@ -11,7 +11,6 @@ from pathlib import Path
 
 SWITCHES = {
     "-esmf": "esmf",
-    "-timg": "tim",
     "-jac": "jac",
     "-fixfront": "ffro",
     "-mpi": "mpi",
@@ -83,7 +82,6 @@ def transform(line: str, enabled: set[str]) -> str:
     replacements = [
         ("!ESMF", "esmf" in enabled),
         ("!!ESMF", "esmf" not in enabled),
-        ("!TIMG", "tim" in enabled),
         ("!JAC", "jac" in enabled),
         ("!WFR", "jac" not in enabled),
         ("!FXFRO", "ffro" in enabled),

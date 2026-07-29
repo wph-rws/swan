@@ -4,7 +4,7 @@ module swan_gse_corr
    public :: SwanGSECorr
 contains
 
-subroutine SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, trac0 )
+subroutine SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, trac0, igp, icmax )
    USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
@@ -50,7 +50,6 @@ subroutine SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, 
 
     use swan_diagnostics_level
     use swan_coordinate_offset
-    USE swan_stencil
     use swan_physics_selection
     use swan_spectral_grid
     use swan_math_constants
@@ -66,6 +65,8 @@ subroutine SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, 
 
     integer, intent(in)                         :: isslow ! minimum frequency that is propagated within a sweep
     integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
+    integer, intent(in)                         :: igp    ! grid address of the point being computed
+    integer, intent(in)                         :: icmax  ! number of active stencil points
 
     integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
     integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
@@ -133,7 +134,7 @@ subroutine SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, 
     vert => gridobject%vert_grid
     cell => gridobject%cell_grid
 
-    ivert = KCGRD(1)
+    ivert = igp
 
     if ( vert(ivert)%atti(VMARKER) == 1 ) return    ! no GSE correction in boundary vertex
 

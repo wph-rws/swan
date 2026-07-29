@@ -98,7 +98,6 @@ def switch_arguments() -> list[str]:
         "METIS": "-metis",
         "FFRO": "-fixfront",
         "NETCDF": "-netcdf",
-        "TIMG": "-timg",
         "MATL4": "-matl4",
         "SWAN_DEBUG_INVARIANTS": "-debug-invariants",
     }

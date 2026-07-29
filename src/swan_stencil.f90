@@ -11,10 +11,10 @@ module swan_stencil
 !     per-thread state, with nothing in the source saying which was which.
 !
 !     This module is the last of SWCOMM3. It is also the obstacle to making the
-!     physics kernels `pure`: ninety-three procedures reference one of these
-!     symbols, and a pure procedure may read module state but the intent here
-!     is to pass the stencil as an argument instead. The thread-state manifest
-!     records the proposed owner for each symbol.
+!     physics kernels `pure`: the remaining consumers still reference one of
+!     these symbols, and a pure procedure may read module state but the intent
+!     here is to pass the stencil as an argument instead. The thread-state
+!     manifest records the proposed owner for each symbol.
 !
    implicit none(type, external)
    private

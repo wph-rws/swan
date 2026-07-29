@@ -1,6 +1,7 @@
 ! This file contains data and routines for quasi-coherent modelling (QCM)
 
 module SwanQCM
+   USE swan_timing_configuration, ONLY: timing_enabled
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, STPNOW, SWTSTA, SWTSTO
    USE swan_wave_physics, ONLY: KSCIP1
    USE swan_input_interpolation, ONLY: SVALQI
@@ -1351,7 +1352,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
     ! compute surf breaking
 
-!TIMG    call SWTSTA(131)
+    IF (timing_enabled) CALL SWTSTA(131)
     if ( ISURF > 0 ) then
 
        ! calculate the quasi-homogeneous surf breaking in every sweep for the
@@ -1385,13 +1386,13 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
        endif
 
     endif
-!TIMG    call SWTSTO(131)
+    IF (timing_enabled) CALL SWTSTO(131)
 
     endif
 
     ! compute quasi-coherent interactions due to medium (depth, current)
 
-!TIMG    call SWTSTA(146)
+    IF (timing_enabled) CALL SWTSTA(146)
     if ( IQCM > 0 ) then
 
        ! calculate the QC scattering for all sweeps together
@@ -1424,7 +1425,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
        endif
 
     endif
-!TIMG    call SWTSTO(146)
+    IF (timing_enabled) CALL SWTSTO(146)
 
     ! get source term values for the bin that fall within a sweep and store in right hand vector
 

@@ -5,7 +5,7 @@ module swan_propvel_x
    public :: SwanPropvelX
 contains
 
-subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin, diffr )
+subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin, diffr, kcgrd, icmax )
    USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
@@ -52,7 +52,6 @@ subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin, diffr )
 !   Modules used
 
     use swan_diagnostics_level
-    USE swan_stencil
     use swan_physics_selection
     use swan_spectral_grid
     use SwanGriddata
@@ -61,6 +60,9 @@ subroutine SwanPropvelX ( cax, cay, ux2, uy2, cgo, ecos, esin, diffr )
     implicit none(type, external)
 
 !   Argument variables
+
+    integer, intent(in)                           :: icmax  ! number of active stencil points
+    integer, dimension(icmax), intent(in)         :: kcgrd ! grid addresses of the stencil points
 
     real, dimension(MDC,MSC,ICMAX), intent(out) :: cax  ! wave transport velocity in x-direction
     real, dimension(MDC,MSC,ICMAX), intent(out) :: cay  ! wave transport velocity in y-direction

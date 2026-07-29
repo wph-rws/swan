@@ -34,10 +34,10 @@ MODULE swan_time
 
 ! Timing instrumentation remains module state because it measures nested
 ! process/thread sections rather than simulation-clock state.
-!TIMG   INTEGER, PARAMETER, PUBLIC :: NSECTM = 300, MXTIMR = 10
-!TIMG   INTEGER, SAVE, PUBLIC :: NCUMTM(NSECTM), LISTTM(MXTIMR), LASTTM
-!TIMG   REAL(swan_double), SAVE, PUBLIC :: DCUMTM(NSECTM,2), TIMERS(MXTIMR,2)
-!TIMG!$OMP THREADPRIVATE(DCUMTM,TIMERS,NCUMTM,LISTTM,LASTTM)
+   INTEGER, PARAMETER, PUBLIC :: NSECTM = 300, MXTIMR = 10
+   INTEGER, SAVE, PUBLIC :: NCUMTM(NSECTM), LISTTM(MXTIMR), LASTTM
+   REAL(swan_double), SAVE, PUBLIC :: DCUMTM(NSECTM,2), TIMERS(MXTIMR,2)
+!$OMP THREADPRIVATE(DCUMTM,TIMERS,NCUMTM,LISTTM,LASTTM)
 
 !  DTSTTI and DTTIST used to be external procedures declared here; they are
 !  module procedures now. That became possible once UPCASE moved to

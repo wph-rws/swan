@@ -206,7 +206,7 @@ an initialiser — that hides the next real one instead of surfacing it.
 - **Switch variants hide real uses.** GNU Fortran only sees the variant it
   compiles. `swanparll.f90` carries 1,671 switch-prefixed lines and
   `swancom1.f90` 378, so a declaration that looks unused in the serial build may
-  well be used under `!MPI`, `!JAC`, `!TIMG` or `!MatL4`. Removing it breaks a
+  well be used under `!MPI`, `!JAC` or `!MatL4`. Removing it breaks a
   configuration nothing builds by default.
 
 The safe order is therefore: leave the vendored files alone, and check every
@@ -350,10 +350,12 @@ than below it. That file holds only `swan_input_helpers` now, and is named
 after it.
 
 What deliberately stays external: `TXPBLA`, kept in the interface block next to
-the switch-activated timing routines it shares a file with.
+the timing backend routines it shares a file with.
 
-The same applies to the switch-activated timing (`!TIMG`) and Matlab-binary
-(`!MatL4`) routines, which are called as externals from many files.
+The same applies to the timing and Matlab-binary (`!MatL4`) routines, which are
+called as externals from many files. Timing itself is no longer switch-activated
+source text: a generated logical parameter guards ordinary calls, while its
+backend is compiled in every configuration.
 
 The standalone `Swan*.f90` files (`SwanFindPoint`, `SwanReadGrid`,
 `SwanVertlist` and 34 others) are now modules too, named after the file in

@@ -31,6 +31,7 @@
 !****************************************************************
 
 module swan_parallel
+   use swan_timing_configuration, only: timing_enabled
    use swan_io_limits, only: LENFNM
    use swan_output_variables, only: NMOVAR, OVEXCV, OVHEXP, OVLNAM, OVSNAM, OVSVTY, OVUNIT
    use swan_time, only: CHTIME
@@ -1853,7 +1854,7 @@ end subroutine SWDECOMP
 !JAC!****************************************************************
 !JAC!
 !JACSUBROUTINE SWEXCHG ( FIELD, SWPDIR, KGRPNT )
-!JAC   USE swan_service_interfaces, ONLY: STRACE, STPNOW
+!JAC   USE swan_service_interfaces, ONLY: STRACE, STPNOW, SWTSTA, SWTSTO
 !JAC!
 !JAC!****************************************************************
 !JAC!
@@ -1956,8 +1957,8 @@ end subroutine SWDECOMP
 !JAC!     STRACE           Tracing routine for debugging
 !JAC!     SWRECVNB         Data is received from a neighbour
 !JAC!     SWSENDNB         Data is sent to a neighbour
-!JAC!TIMG!     SWTSTA           Start timing for a section of code
-!JAC!TIMG!     SWTSTO           Stop timing for a section of code
+!JAC!     SWTSTA           Start timing for a section of code
+!JAC!     SWTSTO           Stop timing for a section of code
 !JAC!
 !JAC!
 !JAC!  9. Subroutines calling
@@ -2000,7 +2001,7 @@ end subroutine SWDECOMP
 !JAC   IPR = RESHAPE((/2,4,2,3,1,3,1,4/), (/2,4/))
 !JAC   IPS = RESHAPE((/1,3,1,4,2,4,2,3/), (/2,4/))
 !JAC
-!JAC!TIMG   CALL SWTSTA(203)
+!JAC   IF (timing_enabled) CALL SWTSTA(203)
 !JAC
 !JAC   ISWP = MAX(1,SWPDIR)
 !JAC
@@ -2076,14 +2077,14 @@ end subroutine SWDECOMP
 !JAC
 !JAC   END DO
 !JAC
-!JAC!TIMG   CALL SWTSTO(203)
+!JAC   IF (timing_enabled) CALL SWTSTO(203)
 !JAC
 !JAC   RETURN
 !JACend subroutine SWEXCHG
 !WFR!****************************************************************
 !WFR!
 !WFRSUBROUTINE SWEXCHG ( FIELD, KGRPNT )
-!WFR   USE swan_service_interfaces, ONLY: STRACE, STPNOW
+!WFR   USE swan_service_interfaces, ONLY: STRACE, STPNOW, SWTSTA, SWTSTO
 !WFR!
 !WFR!****************************************************************
 !WFR!
@@ -2174,8 +2175,8 @@ end subroutine SWDECOMP
 !WFR!     STRACE           Tracing routine for debugging
 !WFR!     SWRECVNB         Data is received from a neighbour
 !WFR!     SWSENDNB         Data is sent to a neighbour
-!WFR!TIMG!     SWTSTA           Start timing for a section of code
-!WFR!TIMG!     SWTSTO           Stop timing for a section of code
+!WFR!     SWTSTA           Start timing for a section of code
+!WFR!     SWTSTO           Stop timing for a section of code
 !WFR!
 !WFR!
 !WFR!  9. Subroutines calling
@@ -2211,7 +2212,7 @@ end subroutine SWDECOMP
 !WFR!     --- if not parallel, return
 !WFR   IF (.NOT.PARLL) RETURN
 !WFR
-!WFR!TIMG   CALL SWTSTA(203)
+!WFR   IF (timing_enabled) CALL SWTSTA(203)
 !WFR
 !WFR   NNEIGH = IBLKAD(1)
 !WFR
@@ -2263,7 +2264,7 @@ end subroutine SWDECOMP
 !WFR
 !WFR   END DO
 !WFR
-!WFR!TIMG   CALL SWTSTO(203)
+!WFR   IF (timing_enabled) CALL SWTSTO(203)
 !WFR
 !WFR   RETURN
 !WFRend subroutine SWEXCHG

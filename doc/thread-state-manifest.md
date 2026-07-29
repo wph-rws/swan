@@ -28,11 +28,12 @@ Levensduur is de kortste eenheid waarover de waarde geldig moet blijven:
 | 3 | [swan_stencil.f90:48](../src/swan_stencil.f90#L48) | `swan_stencil` | `ICMAX, CSETUP` | altijd |
 | 4 | [swan_test_output.f90:34](../src/swan_test_output.f90#L34) | `swan_test_output` | `IPTST, TESTFL` | altijd |
 | 5 | [swan_propagation_scheme.f90:27](../src/swan_propagation_scheme.f90#L27) | `swan_propagation_scheme` | `PROPSL` | altijd |
-| 6 | [swan_time.f90:40](../src/swan_time.f90#L40) | `swan_time` | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | **alleen `!TIMG`** |
+| 6 | [swan_time.f90:40](../src/swan_time.f90#L40) | `swan_time` | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | altijd aanwezig; actief bij `TIMG=ON` |
 
-Directive 6 staat achter de `!TIMG`-schakelaar en is in een standaardbuild
-inactief. Een `THREADPRIVATE`-inventaris die alleen op actieve regels kijkt
-mist hem; de driftcontrole leest daarom ook de geschakelde varianten.
+Directive 6 is gewone, altijd zichtbare Fortran. Alleen de aanroepen die de
+tellers muteren staan achter de compile-time constante `timing_enabled`.
+Daardoor ziet de compiler de timingbackend in elke build en blijft hij in een
+standaardbuild inactief.
 
 De voormalige zesde groep, de elf scalars uit `M_WCAP`, staat niet meer in
 deze tabel: de migratie heeft de module en haar `THREADPRIVATE`-directive verwijderd.
@@ -205,24 +206,23 @@ migratie initialiseert de waarden dus niet en bevat geen stilzwijgende
 correctheidswijziging; een eventuele fix krijgt later zijn eigen, kleine
 wijziging van deze bestaande fixture.
 
-### `SwanCompdata` — ongestructureerde stencil
+### `SwanCompdata` — voormalige ongestructureerde stencilspiegel
 
-| Symbool | Solver | COPYIN | Schrijver | Levensduur | Cat. | Voorgestelde eigenaar |
-|---|---|---|---|---|---|---|
-| `vs` | unstructured | — | `SwanCompUnstruc` (3×) | punt | 4/6 | `unstructured_thread_workspace_t` |
-
-`vs` is `integer, dimension(MICMAX)` en is de bron van waarheid voor de
-ongestructureerde stencil; `KCGRD` is de spiegel ervoor.
+De threadprivate array `vs` is verwijderd. `SwanCompUnstruc` vult `KCGRD`
+rechtstreeks; de eerste zeven onderliggende kernels krijgen hun benodigde
+roosteradressen inmiddels als expliciete argumenten. `SwanCompdata` bezit
+daarmee geen afzonderlijke stenciltoestand meer.
 
 ### `swan_time` — TIMG-tellers
 
 | Symbool | Buildvariant | Levensduur | Cat. | Voorgestelde eigenaar |
 |---|---|---|---|---|
-| `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | alleen `!TIMG` | proces | 6 | `timing_context_t`, buiten de migratie |
+| `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | altijd aanwezig; actief bij `TIMG=ON` | proces | 6 | `timing_context_t`, buiten de migratie |
 
 Timing is instrumentatie, geen modeltoestand. Deze groep blijft buiten de
-context-migratie zolang `!TIMG` een schakelaar is; hij staat hier omdat een
-inventaris die hem weglaat onvolledig is.
+context-migratie. De CMake-capability bepaalt alleen of gewone, zichtbare
+aanroepen actief zijn; de tellers horen daarom nog steeds bij het proces en
+niet bij een modelrun.
 
 ## Uitkomst van de workspace-migratie
 
