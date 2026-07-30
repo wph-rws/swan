@@ -2,9 +2,9 @@
   "schema_version": 1,
   "measured": "2026-07-30",
   "summary": {
-    "occurrences": 3645,
-    "lines": 3579,
-    "files": 18
+    "occurrences": 2404,
+    "lines": 2342,
+    "files": 13
   },
   "markers": {
     "!ESMF": {
@@ -90,10 +90,16 @@
       "counterpart": "ordinary sequential I/O without forced record length",
       "dependency": "none; preserves historical Cray I/O semantics",
       "cmake_option": "SWAN_LEGACY_CRAY_IO",
-      "tests": ["legacy-cray-io"],
-      "max_occurrences": 5,
-      "files": ["ocpids.f90", "swan_file_opening.f90"],
-      "procedures": ["FOR", "OCPINI"]
+      "tests": ["build_config and full legacy-cray-io matrix"],
+      "max_occurrences": 0,
+      "files": [],
+      "procedures": [],
+      "replacement_files": ["CMakeLists.txt", "swan_build_config.f90.in", "platform/swan_file_open_backend_standard.f90"],
+      "replacement_fragments": {
+        "CMakeLists.txt": ["SWAN_LEGACY_CRAY_IO", "SWAN_SEQUENTIAL_RECORD_LENGTH 1000", "SWAN_PRINT_RECORD_LENGTH 2000"],
+        "swan_build_config.f90.in": ["sequential_record_length", "print_record_length"],
+        "platform/swan_file_open_backend_standard.f90": ["recl=recl"]
+      }
     },
     "!/SGI": {
       "owner": "legacy SGI file opening",
@@ -101,10 +107,16 @@
       "counterpart": "ordinary sequential I/O and unrestricted unit limits",
       "dependency": "none; preserves historical SGI I/O semantics",
       "cmake_option": "SWAN_LEGACY_SGI_IO",
-      "tests": ["legacy-sgi-io"],
-      "max_occurrences": 7,
-      "files": ["ocpids.f90", "swan_file_opening.f90"],
-      "procedures": ["FOR", "OCPINI"]
+      "tests": ["build_config and full legacy-sgi-io matrix"],
+      "max_occurrences": 0,
+      "files": [],
+      "procedures": [],
+      "replacement_files": ["CMakeLists.txt", "swan_build_config.f90.in", "platform/swan_file_open_backend_standard.f90"],
+      "replacement_fragments": {
+        "CMakeLists.txt": ["SWAN_LEGACY_SGI_IO", "SWAN_DEFAULT_MAXIMUM_UNIT 199", "SWAN_DEFAULT_FREE_UNIT_START 103"],
+        "swan_build_config.f90.in": ["default_maximum_unit", "default_free_unit_start"],
+        "platform/swan_file_open_backend_standard.f90": ["recl=recl"]
+      }
     },
     "!/impi": {
       "owner": "non-GNU MPI compatibility module",
@@ -112,10 +124,15 @@
       "counterpart": "generated MPI wrapper using mpif.h",
       "dependency": "MPI and a supported non-GNU compiler",
       "cmake_option": "MPI with non-GNU compiler",
-      "tests": ["none in installed GNU toolchains"],
-      "max_occurrences": 4,
-      "files": ["swmod2.f90"],
-      "procedures": ["<file>", "MPI"]
+      "tests": ["source replacement gate; no installed non-GNU MPI toolchain"],
+      "max_occurrences": 0,
+      "files": [],
+      "procedures": [],
+      "replacement_files": ["CMakeLists.txt", "platform/swan_mpi_mpif_wrapper.f90"],
+      "replacement_fragments": {
+        "CMakeLists.txt": ["MPI AND NOT CMAKE_Fortran_COMPILER_ID MATCHES \"GNU\"", "platform/swan_mpi_mpif_wrapper.f90"],
+        "platform/swan_mpi_mpif_wrapper.f90": ["module MPI", "include 'mpif.h'"]
+      }
     },
     "!CVIS": {
       "owner": "DEC-style shared file opening",
@@ -123,10 +140,15 @@
       "counterpart": "ordinary standard-conforming OPEN",
       "dependency": "non-GNU Windows compiler",
       "cmake_option": "WIN32 with non-GNU compiler",
-      "tests": ["none in current Linux matrix"],
-      "max_occurrences": 6,
-      "files": ["ocpids.f90", "swan_file_opening.f90"],
-      "procedures": ["FOR", "OCPINI"]
+      "tests": ["source replacement gate; no DEC-capable Windows compiler installed"],
+      "max_occurrences": 0,
+      "files": [],
+      "procedures": [],
+      "replacement_files": ["CMakeLists.txt", "platform/swan_file_open_backend_dec.f90"],
+      "replacement_fragments": {
+        "CMakeLists.txt": ["WIN32 AND NOT CMAKE_Fortran_COMPILER_ID MATCHES \"GNU\"", "platform/swan_file_open_backend_dec.f90"],
+        "platform/swan_file_open_backend_dec.f90": ["public :: open_swan_file", "shared"]
+      }
     },
     "!ADC": {
       "owner": "ADCIRC coupling",
@@ -178,10 +200,21 @@
       "counterpart": "built-in partitioning",
       "dependency": "METIS; meaningful distributed path also needs MPI",
       "cmake_option": "METIS",
-      "tests": ["metis; compile/link", "metis_partitioning in metis-mpi"],
-      "max_occurrences": 34,
-      "files": ["SwanCompUnstruc.f90", "swanmain.f90", "swanout1.f90", "swanpre1.f90", "swanpre2.f90"],
-      "procedures": ["SwanCompUnstruc", "SWBOUN", "SWCLME", "SWMAIN", "SWOEXD", "SWREAD"]
+      "tests": ["metis_backend in every build", "metis; compile/link", "metis_partitioning in metis-mpi"],
+      "max_occurrences": 0,
+      "files": [],
+      "procedures": [],
+      "replacement_files": ["CMakeLists.txt", "parallel/swan_metis_backend_enabled.f90", "parallel/swan_metis_backend_disabled.f90", "SwanCompUnstruc.f90", "swanmain.f90", "swanout1.f90", "swanpre1.f90", "swanpre2.f90"],
+      "replacement_fragments": {
+        "CMakeLists.txt": ["SWAN_METIS_BACKEND_SOURCE", "parallel/swan_metis_backend_enabled.f90"],
+        "parallel/swan_metis_backend_enabled.f90": ["module swan_metis_partition_backend", "metis_enabled = .true.", "call SwanDecomposition(logcom)", "call SwanUvExchgR(field)"],
+        "parallel/swan_metis_backend_disabled.f90": ["module swan_metis_partition_backend", "metis_enabled = .false."],
+        "SwanCompUnstruc.f90": ["call metis_exchange_real(temp)"],
+        "swanmain.f90": ["CALL metis_copy_ownership(BLKNDC)", "CALL metis_release()"],
+        "swanout1.f90": ["metis_vertex_is_resident(KVERT(IP))"],
+        "swanpre1.f90": ["CALL metis_decompose(LOGCOM)"],
+        "swanpre2.f90": ["CALL metis_collect_boundary_points()"]
+      }
     },
     "!NCF": {
       "owner": "netCDF output backend",
@@ -189,10 +222,19 @@
       "counterpart": "!NNCF",
       "dependency": "netCDF Fortran",
       "cmake_option": "NETCDF",
-      "tests": ["netcdf_output", "netcdf_table_output", "netcdf_mixed_block_output", "netcdf_output_mpi"],
-      "max_occurrences": 237,
-      "files": ["swanout1.f90", "swanout2.f90", "swanparll.f90", "swanpre2.f90"],
-      "procedures": ["SWBLOK", "SWCOLBLK", "SWCOLOUT", "SWCOLSPC", "SWORDC", "SWOUTP", "SWREOQ", "SWSPEC", "SWTABP"]
+      "tests": ["netcdf_output", "netcdf_table_output", "netcdf_mixed_block_output", "netcdf_spectrum_output", "netcdf_output_mpi", "netcdf_spectrum_output_mpi"],
+      "max_occurrences": 0,
+      "files": [],
+      "procedures": [],
+      "replacement_files": ["CMakeLists.txt", "output/swan_netcdf_backend_enabled.f90", "swanout1.f90", "swanout2.f90", "swanparll.f90", "swanpre2.f90"],
+      "replacement_fragments": {
+        "CMakeLists.txt": ["output/swan_netcdf_backend_enabled.f90", "SWAN_NETCDF_BACKEND_SOURCE"],
+        "output/swan_netcdf_backend_enabled.f90": ["module swan_netcdf_output_backend", "netcdf_enabled = .true.", "swn_outnc_spec", "swn_outnc_openblockfile"],
+        "swanout1.f90": ["is_netcdf_filename"],
+        "swanout2.f90": ["netcdf_block_file_needs_open", "swn_outnc_appendblock"],
+        "swanparll.f90": ["swn_outnc_colspc", "swn_outnc_openblockfile"],
+        "swanpre2.f90": ["IF (netcdf_enabled) THEN", "is_netcdf_filename"]
+      }
     },
     "!NNCF": {
       "owner": "output without netCDF support",
@@ -200,10 +242,18 @@
       "counterpart": "!NCF",
       "dependency": "none",
       "cmake_option": "default when NETCDF is OFF",
-      "tests": ["standard and all non-netCDF matrix configurations"],
-      "max_occurrences": 5,
-      "files": ["swanout1.f90", "swanout2.f90"],
-      "procedures": ["SWBLOK", "SWOUTP", "SWTABP"]
+      "tests": ["standard and all non-netCDF matrix configurations", "netcdf_disabled_plain_output"],
+      "max_occurrences": 0,
+      "files": [],
+      "procedures": [],
+      "replacement_files": ["CMakeLists.txt", "output/swan_netcdf_backend_disabled.f90", "swanout1.f90", "swanout2.f90", "swanpre2.f90"],
+      "replacement_fragments": {
+        "CMakeLists.txt": ["output/swan_netcdf_backend_disabled.f90", "SWAN_NETCDF_BACKEND_SOURCE"],
+        "output/swan_netcdf_backend_disabled.f90": ["module swan_netcdf_output_backend", "netcdf_enabled = .false.", "is_netcdf_filename", "backend_unavailable"],
+        "swanout1.f90": ["CALL SWTABP_WITH_OQR ( RTYPE, CORQ%OQI, CORQ%OQR"],
+        "swanout2.f90": ["module procedure SWTABP_WITH_OQR", "module procedure SWTABP_WITHOUT_OQR"],
+        "swanpre2.f90": [".NOT.netcdf_enabled", "IF (netcdf_enabled) THEN"]
+      }
     },
     "!MatL4": {
       "owner": "MATLAB version 4 output backend",
@@ -211,10 +261,17 @@
       "counterpart": "!MatL5",
       "dependency": "none",
       "cmake_option": "MATL4",
-      "tests": ["matlab_output in matl4", "matlab_output_mpi in matl4-mpi"],
-      "max_occurrences": 621,
-      "files": ["swanout2.f90", "swanparll.f90", "swanser.f90"],
-      "procedures": ["<file>", "SWBLOK", "SWCOLBLK", "SWI2B", "SWR2B", "SWRMAT", "SWTABP"]
+      "tests": ["matlab_output in matl4", "matlab_output_mpi in matl4-mpi", "matlab_output plus netCDF output tests in matl4-netcdf"],
+      "max_occurrences": 0,
+      "files": [],
+      "procedures": [],
+      "replacement_files": ["CMakeLists.txt", "output/swan_matlab_v4_backend.f90", "output/swan_matlab_v4_bytes.f90", "swanout2.f90"],
+      "replacement_fragments": {
+        "CMakeLists.txt": ["if( MATL4 )", "output/swan_matlab_v4_backend.f90", "output/swan_matlab_v4_bytes.f90"],
+        "output/swan_matlab_v4_backend.f90": ["module swan_matlab_output_backend", "matlab_direct_record_length = 1", "SUBROUTINE write_matlab_matrix"],
+        "output/swan_matlab_v4_bytes.f90": ["SUBROUTINE SWI2B", "SUBROUTINE SWR2B"],
+        "swanout2.f90": ["SUBROUTINE SWRMAT", "CALL write_matlab_matrix", "RECL=matlab_direct_record_length"]
+      }
     },
     "!MatL5": {
       "owner": "MATLAB version 5 output backend",
@@ -223,9 +280,15 @@
       "dependency": "none",
       "cmake_option": "default when MATL4 is OFF",
       "tests": ["matlab_output", "matlab_output_mpi in MPI configurations"],
-      "max_occurrences": 320,
-      "files": ["swanout2.f90", "swanparll.f90"],
-      "procedures": ["SWBLOK", "SWCOLBLK", "SWRMAT", "SWTABP"]
+      "max_occurrences": 0,
+      "files": [],
+      "procedures": [],
+      "replacement_files": ["CMakeLists.txt", "output/swan_matlab_v5_backend.f90", "swanout2.f90"],
+      "replacement_fragments": {
+        "CMakeLists.txt": ["output/swan_matlab_v5_backend.f90"],
+        "output/swan_matlab_v5_backend.f90": ["module swan_matlab_output_backend", "matlab_direct_record_length = 4", "SUBROUTINE write_matlab_matrix"],
+        "swanout2.f90": ["SUBROUTINE SWRMAT", "CALL write_matlab_matrix", "RECL=matlab_direct_record_length"]
+      }
     }
   }
 }

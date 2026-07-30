@@ -1081,7 +1081,7 @@ SUBROUTINE SWREOQ ( FOUND )
    USE OUTP_DATA
    USE swan_vtk_output
    USE M_PARALL
-!NCF   USE swn_outnc
+   USE swan_netcdf_output_backend
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
 !
 !
@@ -1298,7 +1298,7 @@ SUBROUTINE SWREOQ ( FOUND )
             CALL ININTG ('IDLA', IDLAO, 'REQ', 0)
             CALL INKEYW ('REQ', ' ')
             IF (IDLAO.NE.1 .AND. IDLAO.NE.3 .AND. IDLAO.NE.4&
-!NCF            &.AND. IDLAO.NE.5&
+            &.AND. (IDLAO.NE.5 .OR. .NOT.netcdf_enabled)&
             &)&
             &CALL MSGERR (2, 'Illegal value for IDLA')
          ENDIF
@@ -1323,14 +1323,13 @@ SUBROUTINE SWREOQ ( FOUND )
             CALL SVARTP (IVTYPE)
             IF (IVTYPE .EQ. 98 .OR. IVTYPE .EQ. 999) EXIT
          IF (IVTYPE .NE. 999) THEN
-!NCF            IF ( INDEX(FILENM,'.NC').NE.0  .OR.&
-!NCF            &INDEX(FILENM,'.nc').NE.0 ) THEN
-!NCF               IF ( IVTYPE.GT.2 ) THEN
-!NCF                  call stnames_init()
-!NCF                  IF ( STNAMES(IVTYPE,1).EQ. ' ' ) CALL MSGERR (2,&
-!NCF                  &'netCDF output not allowed for '//TRIM(FILENM))
-!NCF               ENDIF
-!NCF            ENDIF
+            IF (is_netcdf_filename(FILENM)) THEN
+               IF ( IVTYPE.GT.2 ) THEN
+                  call stnames_init()
+                  IF ( STNAMES(IVTYPE,1).EQ. ' ' ) CALL MSGERR (2,&
+                  &'netCDF output not allowed for '//TRIM(FILENM))
+               ENDIF
+            ENDIF
             CALL INREAL ('UNIT', DFAC, 'STA', -1.)
             IF (OVSVTY(IVTYPE).EQ.5) THEN
                CALL MSGERR (2,&
@@ -1670,11 +1669,10 @@ SUBROUTINE SWREOQ ( FOUND )
 !       unit reference number NREF is 0, will be determined in output module
       CALL INCSTR ('FNAME', FILENM, 'STA', ' ')
       IF (FILENM .NE. '    ') THEN
-!NCF         IF ( INDEX( FILENM, '.NC' ).NE.0 .OR.&
-!NCF         &INDEX (FILENM, '.nc' ).NE.0 ) THEN
-!NCF            RTYPE = 'TABC'
-!NCF            ORQTMP%RQTYPE = RTYPE
-!NCF         ENDIF
+         IF (is_netcdf_filename(FILENM)) THEN
+            RTYPE = 'TABC'
+            ORQTMP%RQTYPE = RTYPE
+         ENDIF
          NREF = 0
 !         --- append node number to FILENM in case of
 !             parallel computing
@@ -1700,14 +1698,13 @@ SUBROUTINE SWREOQ ( FOUND )
          CALL SVARTP (IVTYPE)
          IF (IVTYPE .EQ. 98 .OR. IVTYPE .EQ. 999) EXIT
       IF (IVTYPE .NE. 999) THEN
-!NCF         IF ( INDEX(FILENM,'.NC').NE.0  .OR.&
-!NCF         &INDEX(FILENM,'.nc').NE.0 ) THEN
-!NCF            IF ( IVTYPE.GT.2.AND.IVTYPE.NE.40 ) THEN
-!NCF               call stnames_init()
-!NCF               IF ( STNAMES(IVTYPE,1).EQ. ' ' ) CALL MSGERR (2,&
-!NCF               &'netCDF table does not support '//OVKEYW(IVTYPE))
-!NCF            ENDIF
-!NCF         ENDIF
+         IF (is_netcdf_filename(FILENM)) THEN
+            IF ( IVTYPE.GT.2.AND.IVTYPE.NE.40 ) THEN
+               call stnames_init()
+               IF ( STNAMES(IVTYPE,1).EQ. ' ' ) CALL MSGERR (2,&
+               &'netCDF table does not support '//OVKEYW(IVTYPE))
+            ENDIF
+         ENDIF
          IF (OVSVTY(IVTYPE).EQ.5) THEN
             CALL MSGERR (2,&
             &'Type of output not allowed for this quantity')
@@ -1889,12 +1886,12 @@ SUBROUTINE SWREOQ ( FOUND )
          END DO
          DEALLOCATE(TMP)
       END IF
-!NCF      IF ( RTYPE.EQ.'TABC') THEN
-!NCF         ALLOCATE(ORQTMP%FAC(NVAR))
-!NCF         ORQTMP%FAC=1.
-!NCF      ELSE
+      IF ( RTYPE.EQ.'TABC') THEN
+         ALLOCATE(ORQTMP%FAC(NVAR))
+         ORQTMP%FAC=1.
+      ELSE
          ALLOCATE(ORQTMP%FAC(0))
-!NCF      ENDIF
+      ENDIF
 
       IF (IVTYPE .EQ. 98) THEN
          IF (NSTATM.EQ.0) CALL MSGERR (3,&
@@ -1933,7 +1930,7 @@ SUBROUTINE SWREOQ ( FOUND )
 
 !   --------------------------------------------------------------------
 !   SPECout 'sname'  SPEC1D/SPEC2D  ABS/REL  S/L  'fname'
-!NCF!                    (MONth  ESCAle MDGRID COMPress NOAUX) (NOT document
+!                    (MONth  ESCAle MDGRID COMPress NOAUX) (NOT document
 !                    (OUTPUT [tbegspc] [deltspc] SEC/MIN/HR/DAY)
 !   --------------------------------------------------------------------
 !   SPEC   output of spectra
@@ -1993,31 +1990,33 @@ SUBROUTINE SWREOQ ( FOUND )
       ORQTMP%OQI(1) = NREF
       ORQTMP%OQI(2) = NREOQ
       OUTP_FILES(NREOQ) = FILENM
-!NCF!
-!NCF      CALL INKEYW ('STA', ' ')
-!NCF!       declare monthly netCDF file
-!NCF!       store in oqi(4) differ from idla of block!
-!NCF      ORQTMP%OQI(4) = 0
-!NCF      IF (KEYWIS('MON')) THEN
-!NCF         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 1
-!NCF      ENDIF
-!NCF      CALL INKEYW ('STA', ' ')
-!NCF      IF (KEYWIS('ESCA')) THEN
-!NCF         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 2
-!NCF      ENDIF
-!NCF      CALL INKEYW ('STA', ' ')
-!NCF      IF (KEYWIS('COMP')) THEN
-!NCF         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 4
-!NCF      ENDIF
-!NCF      CALL INKEYW ('STA', ' ')
-!NCF      IF (KEYWIS('MDGRID')) THEN
-!NCF         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 8
-!NCF      ENDIF
-!NCF      CALL INKEYW ('STA', ' ')
-!NCF      IF (KEYWIS('NOAUX')) THEN
-!NCF         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 16
-!NCF      ENDIF
-!NCF      CALL INKEYW ('STA', ' ')
+!
+      IF (netcdf_enabled) THEN
+      CALL INKEYW ('STA', ' ')
+!       declare monthly netCDF file
+!       store in oqi(4) differ from idla of block!
+      ORQTMP%OQI(4) = 0
+      IF (KEYWIS('MON')) THEN
+         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 1
+      ENDIF
+      CALL INKEYW ('STA', ' ')
+      IF (KEYWIS('ESCA')) THEN
+         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 2
+      ENDIF
+      CALL INKEYW ('STA', ' ')
+      IF (KEYWIS('COMP')) THEN
+         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 4
+      ENDIF
+      CALL INKEYW ('STA', ' ')
+      IF (KEYWIS('MDGRID')) THEN
+         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 8
+      ENDIF
+      CALL INKEYW ('STA', ' ')
+      IF (KEYWIS('NOAUX')) THEN
+         ORQTMP%OQI(4) = ORQTMP%OQI(4) + 16
+      ENDIF
+      CALL INKEYW ('STA', ' ')
+      ENDIF
 
       NVAR = 0
       ORQTMP%OQI(3) = NVAR
@@ -2105,10 +2104,8 @@ SUBROUTINE SWREOQ ( FOUND )
          OUTP_FILES(NREOQ) = FILENM
          NVAR = 0
          ORQTMP%OQI(3) = NVAR
-!NCF!         scale spectra and do not store auxillary variables
-!NCF         IF ( INDEX( FILENM, '.NC'  ).NE.0 .OR.&
-!NCF         &INDEX (FILENM, '.nc'  ).NE.0 )&
-!NCF         &ORQTMP%OQI(4) = 18
+!         scale spectra and do not store auxillary variables
+         IF (is_netcdf_filename(FILENM)) ORQTMP%OQI(4) = 18
          ALLOCATE(ORQTMP%IVTYP(0))
          ALLOCATE(ORQTMP%FAC(0))
 
@@ -2586,7 +2583,8 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
    USE SwanGriddata
    USE SwanGridobjects
    USE SwanCompdata
-!METIS   USE SwanParallel
+   USE swan_metis_partition_backend, ONLY: &
+      metis_collect_boundary_points, metis_enabled
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
@@ -2801,11 +2799,13 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 
          CALL SwanBpntlist
          IF (STPNOW()) RETURN
-!METIS!
-!METIS!           next, gather the lists of boundary points to all processes
-!METIS!
-!METIS         CALL SwanCollBpntlist
-!METIS         IF (STPNOW()) RETURN
+
+!           next, gather the lists of boundary points to all processes
+
+         IF (metis_enabled) THEN
+            CALL metis_collect_boundary_points()
+            IF (STPNOW()) RETURN
+         ENDIF
 
          IF (ITEST.GE.50.AND.IAMMASTER) THEN
             NB = SIZE(blist,1)

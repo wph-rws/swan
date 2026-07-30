@@ -1,4 +1,6 @@
 module swan_file_opening
+   use swan_build_config, only: sequential_record_length
+   use swan_file_open_backend, only: open_swan_file
    use swan_io_limits, only: LENFNM
    use swan_path_separators, only: DIRCH1, DIRCH2
    implicit none(type, external)
@@ -296,11 +298,9 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT, IO)
             IOSTAT= IENUNF
          ENDIF
       END IF
-      OPEN (UNIT=IUNIT,IOSTAT=IOSTTM,FILE=DDNAME,&
-!/Cray      &RECL=1000,&
-!/SGI      &RECL=1000,&
-!CVIS      &SHARED,&
-      &STATUS=FISTAT(IS),ACCESS='SEQUENTIAL',FORM=FORM(IFO))
+      call open_swan_file(unit=IUNIT, iostat=IOSTTM, filename=DDNAME, &
+         status=FISTAT(IS), access='SEQUENTIAL', form=FORM(IFO), &
+         record_length=sequential_record_length)
       IF (open_failed()) RETURN
    ELSE
       INQUIRE (UNIT=IUNIT, NAME=FILTTM, IOSTAT=IOSTTM,&
@@ -325,11 +325,9 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT, IO)
             IOSTAT = IEDDNM
 !             close old file and open new one with given filename
             CLOSE (IUNIT)
-            OPEN (UNIT=IUNIT,IOSTAT=IOSTTM,STATUS=FISTAT(IS),&
-!/Cray            &RECL=1000,&
-!/SGI            &RECL=1000,&
-!CVIS            &SHARED,&
-            &FILE=DDNAME,ACCESS='SEQUENTIAL',FORM=FORM(IFO))
+            call open_swan_file(unit=IUNIT, iostat=IOSTTM, filename=DDNAME, &
+               status=FISTAT(IS), access='SEQUENTIAL', form=FORM(IFO), &
+               record_length=sequential_record_length)
             IF (open_failed()) RETURN
             IF (IOSTTM.NE.IESUCC) IOSTAT = IOSTTM
             HIOPEN = IFUN
@@ -341,18 +339,14 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT, IO)
          RETURN
       END IF
       IF (DDNAME.NE.EMPTY) THEN
-         OPEN (UNIT=IUNIT,IOSTAT=IOSTTM,STATUS=FISTAT(IS),&
-!/Cray         &RECL=1000,&
-!/SGI         &RECL=1000,&
-!CVIS         &SHARED,&
-         &FILE=DDNAME,ACCESS='SEQUENTIAL',FORM=FORM(IFO))
+         call open_swan_file(unit=IUNIT, iostat=IOSTTM, filename=DDNAME, &
+            status=FISTAT(IS), access='SEQUENTIAL', form=FORM(IFO), &
+            record_length=sequential_record_length)
          IF (open_failed()) RETURN
       ELSE
-         OPEN (UNIT=IUNIT,IOSTAT=IOSTTM,STATUS=FISTAT(IS),&
-!/Cray         &RECL=1000,&
-!/SGI         &RECL=1000,&
-!CVIS         &SHARED,&
-         &ACCESS='SEQUENTIAL',FORM=FORM(IFO))
+         call open_swan_file(unit=IUNIT, iostat=IOSTTM, &
+            status=FISTAT(IS), access='SEQUENTIAL', form=FORM(IFO), &
+            record_length=sequential_record_length)
          IF (open_failed()) RETURN
       END IF
    END IF

@@ -166,7 +166,7 @@ def source_summary(source_dir: Path, markers: list[str]) -> dict[str, int]:
 
 
 def validate(manifest: dict[str, object], current: dict[str, dict[str, object]],
-             markers: list[str]) -> list[str]:
+             markers: list[str], source_dir: Path = SOURCE_DIR) -> list[str]:
     errors: list[str] = []
     entries = manifest.get("markers")
     if not isinstance(entries, dict):
@@ -178,6 +178,37 @@ def validate(manifest: dict[str, object], current: dict[str, dict[str, object]],
         errors.append(f"new transform marker is not in manifest: {marker}")
     for marker in sorted(expected - transformed):
         errors.append(f"manifest marker is no longer transformed: {marker}")
+
+    for marker, entry in entries.items():
+        if not isinstance(entry, dict):
+            continue
+        replacement_files = entry.get("replacement_files", [])
+        if not isinstance(replacement_files, list):
+            errors.append(f"{marker}: replacement_files must be a list")
+            continue
+        for relative in replacement_files:
+            replacement = source_dir / str(relative)
+            if not replacement.is_file():
+                errors.append(f"{marker}: replacement file is missing: {relative}")
+        fragments = entry.get("replacement_fragments", {})
+        if not isinstance(fragments, dict):
+            errors.append(f"{marker}: replacement_fragments must be an object")
+            continue
+        for relative, required in fragments.items():
+            replacement = source_dir / str(relative)
+            if not replacement.is_file():
+                continue
+            contents = replacement.read_text(encoding="ascii", errors="replace")
+            if not isinstance(required, list):
+                errors.append(
+                    f"{marker}: replacement fragments for {relative} must be a list"
+                )
+                continue
+            for fragment in required:
+                if str(fragment) not in contents:
+                    errors.append(
+                        f"{marker}: replacement {relative} lacks {fragment!r}"
+                    )
 
     required = {
         "owner", "variant", "counterpart", "dependency", "cmake_option",
@@ -269,6 +300,22 @@ def self_test(markers: list[str]) -> list[str]:
     result = validate(manifest, current, [*markers, "!NEW"])
     if "new transform marker is not in manifest: !NEW" not in result:
         errors.append("new transform marker was not rejected")
+    probe = markers[0]
+    replacements = copy.deepcopy(manifest)
+    replacements["markers"][probe]["replacement_files"] = ["missing-backend.f90"]
+    result = validate(replacements, current, markers)
+    if not any("replacement file is missing" in message for message in result):
+        errors.append("missing replacement file was not rejected")
+    replacements = copy.deepcopy(manifest)
+    replacements["markers"][probe]["replacement_files"] = [
+        "swan_build_config.f90.in"
+    ]
+    replacements["markers"][probe]["replacement_fragments"] = {
+        "swan_build_config.f90.in": ["missing replacement sentinel"]
+    }
+    result = validate(replacements, current, markers)
+    if not any("lacks 'missing replacement sentinel'" in message for message in result):
+        errors.append("missing replacement fragment was not rejected")
     return errors
 
 
@@ -297,7 +344,7 @@ def main() -> int:
             print(json.dumps({"summary": summary, "markers": current}, indent=2))
             return 0
         manifest = json.loads(arguments.manifest.read_text(encoding="utf-8"))
-        errors = validate(manifest, current, markers)
+        errors = validate(manifest, current, markers, arguments.source_dir)
     except (OSError, ValueError, SyntaxError, json.JSONDecodeError) as error:
         print(f"switch manifest check failed: {error}", file=sys.stderr)
         return 2

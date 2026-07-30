@@ -7,11 +7,12 @@ program check_netcdf_output
    character(len=16) :: grid_kind
    character(len=32) :: attribute
    integer :: ncid, variable, dimension, input_status
-   integer :: nx, ny, raw_hsig(1)
+   integer :: nx, ny, nfrequency, ndirection, raw_hsig(1)
    real :: scale_factor, add_offset, center_hsig, expected_hsig
+   real :: density(24,17)
 
    if (command_argument_count() /= 3) then
-      error stop 'usage: check_netcdf_output FILE EXPECTED_HSIG map|point'
+      error stop 'usage: check_netcdf_output FILE EXPECTED_HSIG map|point|spectrum'
    end if
    call get_command_argument(1, filename)
    call get_command_argument(2, expected_argument)
@@ -48,8 +49,33 @@ program check_netcdf_output
       ny = 1
       call check(nf90_get_var(ncid, variable, raw_hsig, &
          start=(/1, 1/), count=(/1, 1/)), 'read point hs')
+   else if (trim(grid_kind) == 'spectrum') then
+      call check(nf90_inq_dimid(ncid, 'points', dimension), &
+         'find points dimension')
+      call check(nf90_inquire_dimension(ncid, dimension, len=nx), &
+         'read points dimension')
+      call check(nf90_inq_dimid(ncid, 'frequency', dimension), &
+         'find frequency dimension')
+      call check(nf90_inquire_dimension(ncid, dimension, len=nfrequency), &
+         'read frequency dimension')
+      call check(nf90_inq_dimid(ncid, 'direction', dimension), &
+         'find direction dimension')
+      call check(nf90_inquire_dimension(ncid, dimension, len=ndirection), &
+         'read direction dimension')
+      if (nx /= 1 .or. nfrequency /= 17 .or. ndirection /= 24) &
+         error stop 'unexpected netCDF spectrum dimensions'
+      ny = 1
+      call check(nf90_get_var(ncid, variable, raw_hsig, &
+         start=(/1, 1/), count=(/1, 1/)), 'read spectrum-point hs')
+      call check(nf90_inq_varid(ncid, 'density', variable), &
+         'find density variable')
+      call check(nf90_get_var(ncid, variable, density, &
+         start=(/1, 1, 1, 1/), count=(/24, 17, 1, 1/)), &
+         'read spectral density')
+      if (abs(maxval(density) - 0.6653105) > 1.e-6) &
+         error stop 'unexpected maximum netCDF spectral density'
    else
-      error stop 'grid kind must be map or point'
+      error stop 'grid kind must be map, point or spectrum'
    end if
    center_hsig = real(raw_hsig(1)) * scale_factor + add_offset
    if (abs(center_hsig - expected_hsig) > 5.e-4) then
@@ -57,8 +83,14 @@ program check_netcdf_output
       error stop 'netCDF data differs from the quick-test reference'
    end if
    call check(nf90_close(ncid), 'close')
-   write (*, '(a,i0,a,i0,a,f8.5,a)') &
-      'netCDF hs grid is ', nx, 'x', ny, '; centre=', center_hsig, ' m'
+   if (trim(grid_kind) == 'spectrum') then
+      write (*, '(a,i0,a,i0,a,f8.5,a)') &
+         'netCDF spectrum is ', ndirection, 'x', nfrequency, &
+         '; point Hsig=', center_hsig, ' m'
+   else
+      write (*, '(a,i0,a,i0,a,f8.5,a)') &
+         'netCDF hs grid is ', nx, 'x', ny, '; centre=', center_hsig, ' m'
+   end if
 
 contains
 

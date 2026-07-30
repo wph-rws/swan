@@ -194,6 +194,33 @@ if( BUILD_TESTING )
   target_link_libraries( test_leaf_modules PRIVATE swan${VERSION} )
   add_test( NAME leaf_modules COMMAND test_leaf_modules )
 
+  add_executable( test_build_config tests/test_build_config.f90 )
+  target_link_libraries( test_build_config PRIVATE swan${VERSION} )
+  add_test(
+    NAME build_config
+    COMMAND test_build_config
+            ${SWAN_SEQUENTIAL_RECORD_LENGTH}
+            ${SWAN_PRINT_RECORD_LENGTH}
+            ${SWAN_DEFAULT_MAXIMUM_UNIT}
+            ${SWAN_DEFAULT_FREE_UNIT_START}
+  )
+
+  if( METIS )
+    set( SWAN_EXPECTED_METIS_BACKEND 1 )
+  else()
+    set( SWAN_EXPECTED_METIS_BACKEND 0 )
+  endif()
+  add_executable( test_metis_backend tests/test_metis_backend.f90 )
+  target_link_libraries( test_metis_backend PRIVATE swan${VERSION} )
+  add_test(
+    NAME metis_backend
+    COMMAND test_metis_backend ${SWAN_EXPECTED_METIS_BACKEND}
+  )
+
+  add_executable( test_output_interfaces tests/test_output_interfaces.f90 )
+  target_link_libraries( test_output_interfaces PRIVATE swan${VERSION} )
+  add_test( NAME output_interfaces COMMAND test_output_interfaces )
+
   # Runs SWMAIN twice in one process. It needs a directory of its own because
   # both runs write INPUT, PRINT and the result table in the working directory.
   add_executable( test_two_cases tests/test_two_cases.f90 )
@@ -273,6 +300,20 @@ if( BUILD_TESTING )
   )
   set_tests_properties( matlab_output PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
 
+  if( NOT NETCDF )
+    add_test(
+      NAME netcdf_disabled_plain_output
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --work-directory
+              ${CMAKE_CURRENT_BINARY_DIR}/test-runs/netcdf-disabled
+              --backend plain-nc
+    )
+    set_tests_properties(
+      netcdf_disabled_plain_output PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
+  endif()
+
   if( NETCDF )
     add_executable( check_netcdf_output tests/check_netcdf_output.f90 )
     target_link_libraries( check_netcdf_output PRIVATE NetCDF::NetCDF_Fortran )
@@ -312,6 +353,20 @@ if( BUILD_TESTING )
               --netcdf-table
     )
     set_tests_properties( netcdf_table_output PROPERTIES
+      RUN_SERIAL TRUE TIMEOUT 180 )
+    add_test(
+      NAME netcdf_spectrum_output
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --work-directory
+              ${CMAKE_CURRENT_BINARY_DIR}/test-runs/netcdf-spectrum
+              --backend netcdf
+              --netcdf-checker $<TARGET_FILE:check_netcdf_output>
+              --expected-center 0.87893
+              --netcdf-spectrum
+    )
+    set_tests_properties( netcdf_spectrum_output PROPERTIES
       RUN_SERIAL TRUE TIMEOUT 180 )
   endif()
 
@@ -374,6 +429,24 @@ if( BUILD_TESTING )
                 --expected-center ${QUICK_TEST_MPI_CENTER}
       )
       set_tests_properties( netcdf_output_mpi PROPERTIES
+        RUN_SERIAL TRUE TIMEOUT 180 )
+      add_test(
+        NAME netcdf_spectrum_output_mpi
+        COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+                --swan-executable $<TARGET_FILE:${EXE}>
+                --work-directory
+                ${CMAKE_CURRENT_BINARY_DIR}/test-runs/netcdf-spectrum-mpi
+                --backend netcdf
+                --netcdf-checker $<TARGET_FILE:check_netcdf_output>
+                --mpi-exec ${MPIEXEC_EXECUTABLE}
+                --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
+                --mpi-processes 2
+                --reference ${QUICK_TEST_MPI_REFERENCE}
+                --expected-center 0.87893
+                --netcdf-spectrum
+      )
+      set_tests_properties( netcdf_spectrum_output_mpi PROPERTIES
         RUN_SERIAL TRUE TIMEOUT 180 )
     endif()
 

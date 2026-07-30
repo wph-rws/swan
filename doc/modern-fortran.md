@@ -204,9 +204,9 @@ an initialiser — that hides the next real one instead of surfacing it.
   `SdsBabanin.f90` (43). Editing those buys a lower count and pays for it in
   merge friction on the next import from Delft.
 - **Switch variants hide real uses.** GNU Fortran only sees the variant it
-  compiles. `swanparll.f90` carries 1,671 switch-prefixed lines and
-  `swancom1.f90` 378, so a declaration that looks unused in the serial build may
-  well be used under `!MPI`, `!JAC` or `!MatL4`. Removing it breaks a
+  compiles. `swanparll.f90` and `swancom1.f90` still carry substantial
+  switch-prefixed sections, so a declaration that looks unused in the serial
+  build may well be used under `!MPI` or `!JAC`. Removing it breaks a
   configuration nothing builds by default.
 
 The safe order is therefore: leave the vendored files alone, and check every
@@ -218,8 +218,8 @@ Its `USE` line is then visible to *every* variant, while the calls to it stay
 behind their own switch prefix — and a default build compiles clean either way.
 So the rule is: **an import used only from a switch-prefixed call site carries
 that same prefix**. `SWRECVAC` and `SWSENDAC` do not exist under `!JAC`,
-`SWSYNC` is only called under `!JAC`, and the `!MatL4` and `!JAC` bodies need
-`INTSTR` while the default ones do not; each of those imports therefore sits
+`SWSYNC` is only called under `!JAC`, and JAC-only bodies need imports while
+the default ones do not; each of those imports therefore sits
 behind the prefix of the variant that uses it. The only way to know is to build
 the variant, which is why every one of them has a registered test.
 
@@ -350,12 +350,14 @@ than below it. That file holds only `swan_input_helpers` now, and is named
 after it.
 
 What deliberately stays external: `TXPBLA`, kept in the interface block next to
-the timing backend routines it shares a file with.
+the timing backend routines it shares a file with, plus the byte converters
+`SWI2B` and `SWR2B` in the CMake-selected Matlab-v4 compatibility source.
 
-The same applies to the timing and Matlab-binary (`!MatL4`) routines, which are
-called as externals from many files. Timing itself is no longer switch-activated
-source text: a generated logical parameter guards ordinary calls, while its
-backend is compiled in every configuration.
+Timing itself is no longer switch-activated source text: a generated logical
+parameter guards ordinary calls, while its backend is compiled in every
+configuration. Matlab output now goes through the fixed module entry point
+`SWRMAT`; CMake selects one whole v4 or v5 backend source. Only v4 links the two
+historical external byte converters.
 
 The standalone `Swan*.f90` files (`SwanFindPoint`, `SwanReadGrid`,
 `SwanVertlist` and 34 others) are now modules too, named after the file in

@@ -87,7 +87,7 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
    USE SwanIEM, only: nmax, dfiem, e_trsh, sflog
    USE SwanBraggScat, only: mkbx, mkby, dkbx, dkby, botspc
    USE SwanQCM, only: mkxc, mkyc
-!METIS   USE SwanParallel
+   USE swan_metis_partition_backend, ONLY: metis_decompose, metis_enabled
 
    IMPLICIT NONE(TYPE, EXTERNAL)
     INTEGER :: MMCGR
@@ -1584,8 +1584,10 @@ CALL NWLINE
          ELSEIF ( LOGCOM(5) .AND. LOGCOM(2) .AND.&
          &.NOT.LOGCOM(4) .AND. .NOT.ALLOCATED(AC2) .AND.&
          &.NOT.LOGCOM(7) ) THEN
-!METIS            CALL SwanDecomposition (LOGCOM)
-!METIS            IF (STPNOW()) RETURN
+            IF (metis_enabled) THEN
+               CALL metis_decompose(LOGCOM)
+               IF (STPNOW()) RETURN
+            ENDIF
             IF ( PARLL .AND. .NOT.LOGCOM(7) )&
             &CALL MSGERR (4,&
             &'to run in parallel the mesh must be partitioned first')

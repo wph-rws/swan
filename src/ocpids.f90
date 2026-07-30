@@ -6,7 +6,10 @@
 !                                                                *
 
 module swan_ocean_pack_init
-   use swan_build_config, only: alternate_path_separator, native_path_separator
+   use swan_build_config, only: alternate_path_separator, &
+      native_path_separator, print_record_length, default_maximum_unit, &
+      default_free_unit_start
+   use swan_file_open_backend, only: open_swan_file
    use swan_time, only: DTSTTI, DTTIST
    use swan_io_limits, only: LENFNM
    use swan_project_metadata, only: INST
@@ -139,8 +142,8 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
 
 !       read initialisation file
 
-      OPEN (11, FILE=INIFIL, STATUS='OLD', IOSTAT=IOSTAT)
-!CVIS      &SHARED,&
+      call open_swan_file(unit=11, iostat=IOSTAT, filename=INIFIL, &
+         status='OLD')
       IF (initialisation_open_failed(IOSTAT)) RETURN
       READ (11, *, IOSTAT=IOSTAT) INIVEF
       IF (initialisation_read_failed(IOSTAT)) RETURN
@@ -228,8 +231,7 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
       PRTEST = PRINTF
       TSTFIL = '    '
       SCREEN = 6
-      IUNMAX = 99999
-!/SGI      IUNMAX = 199
+      IUNMAX = default_maximum_unit
 !       TABC is the Tab character (interpreted as blank in command reading)
       default_command_reader%TABC = CHAR(9)
 !       COMID is the comment identifier (usually $)
@@ -299,8 +301,7 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
    ENDIF
 
    IUNMIN = 0
-   FUNLO = 21
-!/SGI   FUNLO = 103
+   FUNLO = default_free_unit_start
    FUNHI = IUNMAX
 
    CALL OCDTIM (PRCTIM)
@@ -309,10 +310,9 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
 
    IF (OUTFIL.NE.'    ') THEN
 !       WRITE (*,*) ' Open print file ', PRINTF, OUTFIL
-      OPEN (UNIT=PRINTF, FILE=OUTFIL, STATUS='UNKNOWN',&
-!/Cray      &RECL=2000,&
-!/SGI      &RECL=2000,&
-      &FORM='FORMATTED', IOSTAT=IOSTAT)
+      call open_swan_file(unit=PRINTF, iostat=IOSTAT, filename=OUTFIL, &
+         status='UNKNOWN', form='FORMATTED', &
+         record_length=print_record_length)
       IF (IOSTAT.NE.0) THEN
          INERR = 920
          IF (IAMMASTER) WRITE(*,*) 'Cannot open PRINT file '
@@ -339,8 +339,8 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
    ENDIF
    IF (LREAD) THEN
       IF (INPFIL.NE.'    ') THEN
-         OPEN (UNIT=INPUTF, FILE=INPFIL, STATUS='OLD', IOSTAT=IOSTAT)
-!CVIS         &SHARED,&
+         call open_swan_file(unit=INPUTF, iostat=IOSTAT, filename=INPFIL, &
+            status='OLD')
          IF (IOSTAT.NE.0) THEN
             CALL MSGERR(4,'Input file missing')
             RETURN

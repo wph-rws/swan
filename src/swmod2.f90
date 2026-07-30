@@ -1263,8 +1263,3 @@ CONTAINS
    end function SWVALID_COUNT
 
 end module M_PARALL
-
-!MPI!/impi
-!MPI!/impiMODULE MPI
-!MPI!/impi   INCLUDE 'mpif.h'
-!MPI!/impiend module MPI

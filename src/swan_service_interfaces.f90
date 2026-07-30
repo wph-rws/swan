@@ -47,7 +47,8 @@ module swan_service_interfaces
       subroutine swprti
       end subroutine swprti
 
-!     SWI2B and SWR2B are the !MatL4 byte converters, also in swanser.f90.
+!     SWI2B and SWR2B are the preserved Matlab-v4 byte converters selected
+!     from output/swan_matlab_v4_bytes.f90.
       subroutine swi2b(ival, bval)
          integer, intent(in)  :: ival
          integer, intent(out) :: bval(4)

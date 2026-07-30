@@ -3,13 +3,6 @@ set( SWITCHES )
 if( WIN32 )
   set( SWAN_NATIVE_PATH_SEPARATOR_CODE 92 )
   set( SWAN_ALTERNATE_PATH_SEPARATOR_CODE 47 )
-  # The CVIS switch enables the nonstandard SHARED specifier in OPEN
-  # statements. GNU Fortran rejects that DEC extension in the required
-  # standard-conforming mode, and Windows file sharing already works without
-  # it for the GNU runtime.
-  if( NOT CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
-    list( APPEND SWITCHES -cvis )
-  endif()
 elseif( UNIX )
   set( SWAN_NATIVE_PATH_SEPARATOR_CODE 47 )
   set( SWAN_ALTERNATE_PATH_SEPARATOR_CODE 92 )
@@ -17,11 +10,7 @@ endif()
 
 # include user-dependent switches
 if( MPI OR JAC )
-  if( CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
-    list( APPEND SWITCHES -mpi )
-  else()
-    list( APPEND SWITCHES -impi -mpi )
-  endif()
+  list( APPEND SWITCHES -mpi )
 endif()
 #
 if( JAC )
@@ -48,10 +37,6 @@ endif()
 if( SWAN_LEGACY_CRAY_IO AND SWAN_LEGACY_SGI_IO )
   message( FATAL_ERROR
     "-- SWAN_LEGACY_CRAY_IO and SWAN_LEGACY_SGI_IO are mutually exclusive" )
-elseif( SWAN_LEGACY_CRAY_IO )
-  list( APPEND SWITCHES -cray )
-elseif( SWAN_LEGACY_SGI_IO )
-  list( APPEND SWITCHES -sgi )
 endif()
 #
 # Generate configured Fortran sources in the build tree.  The .f90 files in
@@ -69,6 +54,27 @@ if( SWAN_DEBUG_INVARIANTS )
 else()
   set( SWAN_INVARIANT_CHECKS_ENABLED ".false." )
 endif()
+set( SWAN_SEQUENTIAL_RECORD_LENGTH 0 )
+set( SWAN_PRINT_RECORD_LENGTH 0 )
+set( SWAN_DEFAULT_MAXIMUM_UNIT 99999 )
+set( SWAN_DEFAULT_FREE_UNIT_START 21 )
+if( SWAN_LEGACY_CRAY_IO )
+  set( SWAN_SEQUENTIAL_RECORD_LENGTH 1000 )
+  set( SWAN_PRINT_RECORD_LENGTH 2000 )
+elseif( SWAN_LEGACY_SGI_IO )
+  set( SWAN_SEQUENTIAL_RECORD_LENGTH 1000 )
+  set( SWAN_PRINT_RECORD_LENGTH 2000 )
+  set( SWAN_DEFAULT_MAXIMUM_UNIT 199 )
+  set( SWAN_DEFAULT_FREE_UNIT_START 103 )
+endif()
+set( SWAN_SEQUENTIAL_RECORD_LENGTH ${SWAN_SEQUENTIAL_RECORD_LENGTH}
+  CACHE INTERNAL "Configured sequential record length" FORCE )
+set( SWAN_PRINT_RECORD_LENGTH ${SWAN_PRINT_RECORD_LENGTH}
+  CACHE INTERNAL "Configured print-file record length" FORCE )
+set( SWAN_DEFAULT_MAXIMUM_UNIT ${SWAN_DEFAULT_MAXIMUM_UNIT}
+  CACHE INTERNAL "Configured default maximum Fortran unit" FORCE )
+set( SWAN_DEFAULT_FREE_UNIT_START ${SWAN_DEFAULT_FREE_UNIT_START}
+  CACHE INTERNAL "Configured first free Fortran unit" FORCE )
 configure_file(
   ${SRC}/swan_build_config.f90.in
   ${SWAN_GENERATED_SRC}/swan_build_config.f90
@@ -111,19 +117,68 @@ else()
 endif()
 
 # build library
+if( MATL4 )
+  set( SWAN_MATLAB_SOURCES
+    ${SRC}/output/swan_matlab_v4_backend.f90
+    ${SRC}/output/swan_matlab_v4_bytes.f90
+  )
+else()
+  set( SWAN_MATLAB_SOURCES
+    ${SRC}/output/swan_matlab_v5_backend.f90
+  )
+endif()
+if( NETCDF )
+  set( SWAN_NETCDF_BACKEND_SOURCE
+    ${SRC}/output/swan_netcdf_backend_enabled.f90
+  )
+else()
+  set( SWAN_NETCDF_BACKEND_SOURCE
+    ${SRC}/output/swan_netcdf_backend_disabled.f90
+  )
+endif()
+if( METIS )
+  set( SWAN_METIS_BACKEND_SOURCE
+    ${SRC}/parallel/swan_metis_backend_enabled.f90
+  )
+else()
+  set( SWAN_METIS_BACKEND_SOURCE
+    ${SRC}/parallel/swan_metis_backend_disabled.f90
+  )
+endif()
 if( NOT TARGET swan${VERSION} )
   if( NOT NETCDF )
     include( ${SRC}/srclist.cmake )
+    list( APPEND swan_src
+      ${SWAN_MATLAB_SOURCES}
+      ${SWAN_NETCDF_BACKEND_SOURCE}
+      ${SWAN_METIS_BACKEND_SOURCE}
+    )
     add_library( swan${VERSION} STATIC ${swan_src} )
     set_target_properties( swan${VERSION} PROPERTIES LINKER_LANGUAGE Fortran )
   else()
     include( ${SRC}/srclistnc.cmake )
+    list( APPEND swan_nc_src
+      ${SWAN_MATLAB_SOURCES}
+      ${SWAN_NETCDF_BACKEND_SOURCE}
+      ${SWAN_METIS_BACKEND_SOURCE}
+    )
     add_library( swan${VERSION} STATIC ${swan_nc_src} )
     set_target_properties( swan${VERSION} PROPERTIES LINKER_LANGUAGE Fortran )
     target_include_directories( swan${VERSION} PUBLIC ${NetCDF_INCLUDE_DIRS} )
     target_link_libraries( swan${VERSION} PUBLIC NetCDF::NetCDF_Fortran )
   endif()
   target_link_libraries( swan${VERSION} PUBLIC swan_build_options FFTW3::fftw3 )
+  if( WIN32 AND NOT CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
+    target_sources( swan${VERSION} PRIVATE
+      ${SRC}/platform/swan_file_open_backend_dec.f90 )
+  else()
+    target_sources( swan${VERSION} PRIVATE
+      ${SRC}/platform/swan_file_open_backend_standard.f90 )
+  endif()
+  if( MPI AND NOT CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
+    target_sources( swan${VERSION} PRIVATE
+      ${SRC}/platform/swan_mpi_mpif_wrapper.f90 )
+  endif()
   if( OPENMP )
     target_link_libraries( swan${VERSION} PUBLIC OpenMP::OpenMP_Fortran )
   endif()

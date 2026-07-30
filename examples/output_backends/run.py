@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from reference_check import compare_with_reference  # noqa: E402
+from reference_check import compare_with_reference, same_results  # noqa: E402
 
 
 EXPECTED_ROWS = 11
@@ -126,7 +126,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--swan-executable", required=True)
     parser.add_argument("--work-directory", required=True)
-    parser.add_argument("--backend", choices=("netcdf", "matlab4", "matlab5"), required=True)
+    parser.add_argument(
+        "--backend",
+        choices=("netcdf", "plain-nc", "matlab4", "matlab5"),
+        required=True,
+    )
     parser.add_argument("--netcdf-checker")
     parser.add_argument("--mpi-exec")
     parser.add_argument("--mpi-numproc-flag", default="-n")
@@ -139,6 +143,7 @@ def main() -> int:
         help="retain the text block alongside the binary backend block",
     )
     parser.add_argument("--netcdf-table", action="store_true")
+    parser.add_argument("--netcdf-spectrum", action="store_true")
     arguments = parser.parse_args()
 
     try:
@@ -154,8 +159,17 @@ def main() -> int:
 
         if arguments.netcdf_table and arguments.backend != "netcdf":
             raise ValueError("--netcdf-table requires --backend netcdf")
-        extension = "nc" if arguments.backend == "netcdf" else "mat"
-        output_name = "quick_test_table.nc" if arguments.netcdf_table else f"quick_test.{extension}"
+        if arguments.netcdf_spectrum and arguments.backend != "netcdf":
+            raise ValueError("--netcdf-spectrum requires --backend netcdf")
+        if arguments.netcdf_table and arguments.netcdf_spectrum:
+            raise ValueError("--netcdf-table and --netcdf-spectrum are exclusive")
+        extension = "nc" if arguments.backend in ("netcdf", "plain-nc") else "mat"
+        if arguments.netcdf_table:
+            output_name = "quick_test_table.nc"
+        elif arguments.netcdf_spectrum:
+            output_name = "quick_test_spectrum.nc"
+        else:
+            output_name = f"quick_test.{extension}"
         block = (
             "BLOCK 'COMPGRID' NOHEADER 'quick_test_hs.blk' LAYOUT 3 HSIGN"
         )
@@ -164,7 +178,10 @@ def main() -> int:
         )
         replacement = f"{block}\n{backend_block}" if arguments.mixed_block else backend_block
         deck = (source_directory / "quick_test.swn").read_text()
-        if arguments.netcdf_table:
+        if arguments.netcdf_spectrum:
+            request = f"SPECOUT 'CENTER' SPEC2D ABS '{output_name}'"
+            deck = deck.replace("COMPUTE\n", f"{request}\n\nCOMPUTE\n")
+        elif arguments.netcdf_table:
             deck = deck.replace("'quick_test_center.tbl'", f"'{output_name}'")
         else:
             deck = deck.replace(block, replacement)
@@ -215,7 +232,11 @@ def main() -> int:
                     str(checker),
                     str(output),
                     str(arguments.expected_center),
-                    "point" if arguments.netcdf_table else "map",
+                    (
+                        "spectrum"
+                        if arguments.netcdf_spectrum
+                        else "point" if arguments.netcdf_table else "map"
+                    ),
                 ],
                 check=False,
             )
@@ -223,6 +244,14 @@ def main() -> int:
                 raise RuntimeError(
                     f"netCDF checker stopped with exit code {check.returncode}"
                 )
+        elif arguments.backend == "plain-nc":
+            reference = source_directory / arguments.reference / "quick_test_hs.blk"
+            if not same_results(output, reference):
+                raise RuntimeError(
+                    "a build without netCDF no longer writes .nc as ordinary "
+                    "SWAN block output"
+                )
+            print("NETCDF=OFF preserved ordinary text output for a .nc filename.")
         else:
             center = (
                 validate_matlab_v4(output)

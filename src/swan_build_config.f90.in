@@ -3,6 +3,8 @@ module swan_build_config
    private
    public :: timing_enabled, invariant_checks_enabled
    public :: native_path_separator, alternate_path_separator
+   public :: sequential_record_length, print_record_length
+   public :: default_maximum_unit, default_free_unit_start
 
    logical, parameter :: timing_enabled = @SWAN_TIMING_ENABLED@
    logical, parameter :: invariant_checks_enabled = @SWAN_INVARIANT_CHECKS_ENABLED@
@@ -10,4 +12,10 @@ module swan_build_config
       achar(@SWAN_NATIVE_PATH_SEPARATOR_CODE@)
    character(len=1), parameter :: alternate_path_separator = &
       achar(@SWAN_ALTERNATE_PATH_SEPARATOR_CODE@)
+   integer, parameter :: sequential_record_length = &
+      @SWAN_SEQUENTIAL_RECORD_LENGTH@
+   integer, parameter :: print_record_length = @SWAN_PRINT_RECORD_LENGTH@
+   integer, parameter :: default_maximum_unit = @SWAN_DEFAULT_MAXIMUM_UNIT@
+   integer, parameter :: default_free_unit_start = &
+      @SWAN_DEFAULT_FREE_UNIT_START@
 end module swan_build_config

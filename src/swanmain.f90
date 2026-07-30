@@ -102,7 +102,7 @@ SUBROUTINE SWMAIN
    USE SwanBraggScat
    USE SwanQCM
    USE SwanGriddata
-!METIS   USE SwanParallel
+   USE swan_metis_partition_backend, ONLY: metis_copy_ownership
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
@@ -700,7 +700,7 @@ SUBROUTINE SWMAIN
          CALL SWCOLLECT ( BLKNDC, BLKND, .TRUE. )
          IF (STPNOW()) RETURN
       ELSE
-!METIS         BLKNDC = REAL(ipown)
+         CALL metis_copy_ownership(BLKNDC)
       ENDIF
       IF ( IAMMASTER ) THEN
          CALL SWCOLOUT ( OURQT, BLKNDC )
@@ -8124,7 +8124,7 @@ SUBROUTINE SWCLME ( DIFFR, TRIADS, SNL4, SPECTRAL_POWERS, THREAD_WORKSPACES )
    USE SwanIEM
    USE SwanBraggScat
    USE SwanQCM
-!METIS   USE SwanParallel
+   USE swan_metis_partition_backend, ONLY: metis_release
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -8244,19 +8244,7 @@ SUBROUTINE SWCLME ( DIFFR, TRIADS, SNL4, SPECTRAL_POWERS, THREAD_WORKSPACES )
 !FXFRO   IF (ALLOCATED(fronte  )) DEALLOCATE(fronte  )
 !GRAPH   IF (ALLOCATED(nfront  )) DEALLOCATE(nfront  )
 !
-!METIS   IF (ALLOCATED(ipown   )) DEALLOCATE(ipown   )
-!METIS   IF (ALLOCATED(vres    )) DEALLOCATE(vres    )
-!METIS   IF (ALLOCATED(vsubcm  )) DEALLOCATE(vsubcm  )
-!METIS   IF (ALLOCATED(nvrecv  )) DEALLOCATE(nvrecv  )
-!METIS   IF (ALLOCATED(nvsend  )) DEALLOCATE(nvsend  )
-!METIS   IF (ALLOCATED(ivrecv  )) DEALLOCATE(ivrecv  )
-!METIS   IF (ALLOCATED(ivsend  )) DEALLOCATE(ivsend  )
-!METIS   IF (ALLOCATED(rrqst   )) DEALLOCATE(rrqst   )
-!METIS   IF (ALLOCATED(srqst   )) DEALLOCATE(srqst   )
-!METIS   IF (ALLOCATED(irbuf   )) DEALLOCATE(irbuf   )
-!METIS   IF (ALLOCATED(isbuf   )) DEALLOCATE(isbuf   )
-!METIS   IF (ALLOCATED( rbuf   )) DEALLOCATE( rbuf   )
-!METIS   IF (ALLOCATED( sbuf   )) DEALLOCATE( sbuf   )
+   CALL metis_release()
 
    IF (ALLOCATED( fb     )) DEALLOCATE( fb     )
    IF (ALLOCATED( fbdxy  )) DEALLOCATE( fbdxy  )

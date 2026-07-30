@@ -41,7 +41,8 @@ SUBROUTINE SWOUTP (AC2             ,&
 &YCGRID          ,OURQT   ,DIFFR   )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, STPNOW
    USE swan_services, ONLY: AC2TST
-   USE swan_output_writers, ONLY: SWBLOK, SWBLKP, SWBLKV, SWSPEC, SWTABP
+   USE swan_output_writers, ONLY: SWBLOK, SWBLKP, SWBLKV, SWSPEC, &
+   &SWTABP_WITH_OQR
 !                                                                      *
 !************************************************************************
 
@@ -475,15 +476,15 @@ SUBROUTINE SWOUTP (AC2             ,&
 
 !       ***** table output *****
       IF (RTYPE(1:3) .EQ. 'TAB') THEN
-!NCF         IF (PARLL.AND.(RTYPE.EQ.'TABC')) THEN
-!NCF!            --- use "block" intermediate file facility to pass data bet
-!NCF            CALL SWBLKP ( CORQ%OQI, CORQ%IVTYP, MIP, 1, VOQR,&
-!NCF            &VOQ(1), IONOD )
-!NCF         ELSE
-!NCF            CALL SWTABP ( RTYPE, CORQ%OQI, CORQ%OQR, CORQ%IVTYP, SNAME,&
-!NNCF            CALL SWTABP ( RTYPE, CORQ%OQI, CORQ%IVTYP, SNAME,&
+         IF (PARLL.AND.(RTYPE.EQ.'TABC')) THEN
+!            --- use "block" intermediate file facility to pass data bet
+            CALL SWBLKP ( CORQ%OQI, CORQ%IVTYP, MIP, 1, VOQR,&
+            &VOQ(1), IONOD )
+         ELSE
+            CALL SWTABP_WITH_OQR ( RTYPE, CORQ%OQI, CORQ%OQR, &
+            &CORQ%IVTYP, SNAME,&
             &MIP, VOQR, VOQ(1), IONOD )
-!NCF         ENDIF
+         ENDIF
          IF (STPNOW()) RETURN
          EXIT request_action
       ENDIF
@@ -551,6 +552,7 @@ end subroutine SWOUTP
 SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
 &OQPROC, BKC,&
 &VOQR, OURQT, LOGACT)
+   USE swan_netcdf_output_backend, ONLY: is_netcdf_filename
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 !                                                                      *
 !************************************************************************
@@ -561,11 +563,11 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
    USE swan_physics_selection
    USE swan_numerics
    USE swan_test_output
-!NCF   USE OUTP_DATA
+   USE OUTP_DATA
    USE M_PARALL
    USE swan_vtk_output, ONLY: NTVTK
-!NCF   use swan_io_limits, only: LENFNM
-!NCF    CHARACTER(LEN=LENFNM) :: FILENM   ! only the netCDF variant uses it here
+   use swan_io_limits, only: LENFNM
+    CHARACTER(LEN=LENFNM) :: FILENM   ! only the netCDF variant uses it here
 
 
 
@@ -701,7 +703,7 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
    REAL(KIND=KIND(0.0D0))     OURQT
    REAL(KIND=KIND(0.0D0))     DIF, TNEXT
    LOGICAL    OQPROC(NMOVAR), LOGACT
-!NCF   LOGICAL    NCF
+   LOGICAL    NCF
    CHARACTER(LEN=*) :: PSNAME, RTYPE
    CALL STRACE (IENT, 'SWORDC')
 
@@ -883,26 +885,25 @@ SUBROUTINE SWORDC (OUTI, OUTR, IVTYP, RTYPE, PSNAME, NVOQP,&
          NVOQP     = NVOQP+2
       ENDIF
    ENDIF
-!NCF!
-!NCF!     add significant wave height and wind to any netCDF file
-!NCF!
-!NCF   FILENM = OUTP_FILES(OUTI(2))
-!NCF   NCF    = INDEX( FILENM, '.NC' ).NE.0 .OR.&
-!NCF   &INDEX (FILENM, '.nc' ).NE.0
-!NCF   IF ( NCF ) THEN
-!NCF!        significant wave height must be added
-!NCF      IF (.NOT.OQPROC(10)) THEN
-!NCF         NVOQP = NVOQP + 1
-!NCF         VOQR(10) = NVOQP
-!NCF         OQPROC(10)=.TRUE.
-!NCF      ENDIF
-!NCF!        wind must be added
-!NCF      IF (.NOT.OQPROC(26)) THEN
-!NCF         NVOQP = NVOQP + 2
-!NCF         VOQR(26) = NVOQP-1
-!NCF         OQPROC(26)=.TRUE.
-!NCF      ENDIF
-!NCF   ENDIF
+!
+!     add significant wave height and wind to any netCDF file
+!
+   FILENM = OUTP_FILES(OUTI(2))
+   NCF = is_netcdf_filename(FILENM)
+   IF ( NCF ) THEN
+!        significant wave height must be added
+      IF (.NOT.OQPROC(10)) THEN
+         NVOQP = NVOQP + 1
+         VOQR(10) = NVOQP
+         OQPROC(10)=.TRUE.
+      ENDIF
+!        wind must be added
+      IF (.NOT.OQPROC(26)) THEN
+         NVOQP = NVOQP + 2
+         VOQR(26) = NVOQP-1
+         OQPROC(26)=.TRUE.
+      ENDIF
+   ENDIF
 
    RETURN
 !*    end of subroutine SWORDC   **
@@ -1516,7 +1517,7 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA ,&
    USE SwanGriddata
    USE SwanGridobjects
    use swan_io_limits, only: LENFNM
-!METIS   USE SwanParallel
+   USE swan_metis_partition_backend, ONLY: metis_vertex_is_resident
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
@@ -2934,10 +2935,10 @@ IF (OQPROC(9)) THEN
          DO IP = 1, MIP
             IF ( KVERT(IP).GT.0 ) THEN
 !                 excludes ghost nodes
-!METIS               IF ( vres(KVERT(IP)) ) THEN
-!METIS                  NOWNV = NOWNV + 1
-!METIS                  IONOD(IP) = INODE
-!METIS               ENDIF
+               IF (metis_vertex_is_resident(KVERT(IP))) THEN
+                  NOWNV = NOWNV + 1
+                  IONOD(IP) = INODE
+               ENDIF
             ENDIF
          ENDDO
       ELSE

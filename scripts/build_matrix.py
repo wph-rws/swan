@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Configure, build and test SWAN across every supported build configuration.
 
-Most variants SWAN ships with (`!MPI`, `!MatL4`, `!NCF`, `!JAC`) still select
-different source text; TIMG is now a normal compile-time capability. A change
-that compiles in the default configuration can therefore still break another
-configuration. Nothing but building them all catches that, and doing it by hand
-invites doing it partially.
+Several variants SWAN ships with (`!MPI`, `!JAC`, `!WFR`) still select
+different source text; TIMG and Matlab v4/v5 now use ordinary compile-time
+capabilities and whole CMake-selected sources. A change that compiles in the
+default configuration can therefore still break another configuration.
+Nothing but building them all catches that, and doing it by hand invites doing
+it partially.
 
 Each configuration is a separate build directory so that repeated runs are
 incremental. Pass --clean to force a fresh configure, which is what the
@@ -40,6 +41,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # variant does. METIS only reaches SwanParallel when MPI is on, the timer calls
 # inside `!MPI` lines only exist when both are on, and FFRO changes the
 # unstructured vertex order that the MPI partitioning then has to carry.
+# Matlab v4 plus netCDF proves that both selected output-source lists compose.
 MATRIX: dict[str, list[str]] = {
     "": [],
     "openmp": ["-DOPENMP=ON"],
@@ -48,6 +50,7 @@ MATRIX: dict[str, list[str]] = {
     "timg-mpi": ["-DTIMG=ON", "-DMPI=ON"],
     "matl4": ["-DMATL4=ON"],
     "matl4-mpi": ["-DMATL4=ON", "-DMPI=ON"],
+    "matl4-netcdf": ["-DMATL4=ON", "-DNETCDF=ON"],
     "netcdf": ["-DNETCDF=ON"],
     "mpi": ["-DMPI=ON"],
     "mpi-netcdf": ["-DMPI=ON", "-DNETCDF=ON"],

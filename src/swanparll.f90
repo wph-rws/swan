@@ -32,6 +32,7 @@
 
 module swan_parallel
    use swan_build_config, only: timing_enabled
+   use swan_matlab_output_backend, only: matlab_direct_record_length
    use swan_io_limits, only: LENFNM
    use swan_output_variables, only: NMOVAR, OVEXCV, OVHEXP, OVLNAM, OVSNAM, OVSVTY, OVUNIT
    use swan_time, only: CHTIME
@@ -3249,17 +3250,17 @@ SUBROUTINE SWCOLOUT ( OURQT, BLKND )
 !                  output locations
 
             IF ( RTYPE(1:3).EQ.'TAB' ) THEN
-!NCF               IF ( RTYPE.EQ.'TABC') THEN
-!NCF!                 --- use "block" intermediate file facility to pass dat
-!NCF                  CALL SWCOLBLK ( RTYPE, CORQ%OQI, CORQ%OQR, CORQ%IVTYP,&
-!NCF                  &CORQ%FAC, SNAMPF, MIP, 1, IRQ,&
-!NCF                  &BLKND, XC, YC )
-!NCF                  IF (STPNOW()) RETURN
-!NCF               ELSE
+               IF ( RTYPE.EQ.'TABC') THEN
+!                 --- use "block" intermediate file facility to pass dat
+                  CALL SWCOLBLK ( RTYPE, CORQ%OQI, CORQ%OQR, CORQ%IVTYP,&
+                  &CORQ%FAC, SNAMPF, MIP, 1, IRQ,&
+                  &BLKND, XC, YC )
+                  IF (STPNOW()) RETURN
+               ELSE
                   CALL SWCOLTAB ( RTYPE, CORQ%OQI, CORQ%IVTYP, MIP, IRQ,&
                   &BLKND, XC, YC, XP, YP )
                   IF (STPNOW()) RETURN
-!NCF               ENDIF
+               ENDIF
             END IF
 
 !              --- rewrite spectral output by means of collection of
@@ -3678,7 +3679,8 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
    USE OUTP_DATA
    USE M_PARALL
    USE swan_global_grid
-!NCF   USE swn_outnc, ONLY: swn_outnc_colspc
+   USE swan_netcdf_output_backend, ONLY: is_netcdf_filename, &
+   &swn_outnc_colspc
    USE SwanGriddata, ONLY: xcugrdgl, ycugrdgl
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -3769,7 +3771,7 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 !     IXK   :     loop counter
 !     IYK   :     loop counter
 !     MSGSTR:     string to pass message to call MSGERR
-!NCF!     NCF   :     true if netCDF file
+!     NCF   :     true if netCDF file
 !     NLINES:     number of lines in heading
 !     NREF  :     unit reference number
 !     OPENED:     logical whether a file is open or not
@@ -3783,7 +3785,7 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
    &IUNIT, IUT, IXK, IYK, NLINES, NREF, OTYPE
    REAL          RVAL1, RVAL2
       LOGICAL :: EMPTY, EXIST, OPENED
-!NCF   LOGICAL, SAVE :: NCF = .FALSE.
+   LOGICAL, SAVE :: NCF = .FALSE.
    CHARACTER(LEN=80)  MSGSTR
    CHARACTER (LEN=LENSPO) OUTLIN
    CHARACTER (LEN=8) :: CRFORM = '(2F14.4)'
@@ -3792,8 +3794,8 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 !
 !     MSGERR           Writes error message
 !     STRACE           Tracing routine for debugging
-!NCF!     STPNOW           Logical indicating whether program must
-!NCF!     swn_outnc_colspc Collect spectral output for netcdf
+!     STPNOW           Logical indicating whether program must
+!     swn_outnc_colspc Collect spectral output for netcdf
 !     TXPBLA           Removes leading and trailing blanks in string
 !
 !
@@ -3829,15 +3831,14 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 
    IF (LTRACE) CALL STRACE (IENT,'SWCOLSPC')
 
-!NCF   FILENM = OUTP_FILES(OQI(2))
-!NCF   NCF = INDEX( FILENM, '.NC' ).NE.0 .OR.&
-!NCF   &INDEX (FILENM, '.nc' ).NE.0
-!NCF!
-!NCF   IF ( NCF ) THEN
-!NCF      CALL swn_outnc_colspc( RTYPE, OQI, OQR, MIP, KGRPGL )
-!NCF      RETURN
-!NCF   ENDIF
-!NCF
+   FILENM = OUTP_FILES(OQI(2))
+   NCF = is_netcdf_filename(FILENM)
+!
+   IF ( NCF ) THEN
+      CALL swn_outnc_colspc( RTYPE, OQI, OQR, MIP, KGRPGL )
+      RETURN
+   ENDIF
+
    NREF   = OQI(1)
    NLINES = 0
 
@@ -4071,8 +4072,8 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
    USE OUTP_DATA
    USE M_PARALL
    USE swan_global_grid
-!NCF   USE SwanGridData, ONLY: XCUGRDGL, YCUGRDGL
-!NCF   USE swn_outnc
+   USE SwanGridData, ONLY: XCUGRDGL, YCUGRDGL
+   USE swan_netcdf_output_backend
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
@@ -4199,7 +4200,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
       LOGICAL :: EXIST, OPENED
    INTEGER, SAVE :: IREC(MAX_OUTP_REQ)=0
    LOGICAL, SAVE :: MATLAB=.FALSE.
-!NCF   LOGICAL, SAVE :: NCF   =.FALSE.
+   LOGICAL, SAVE :: NCF   =.FALSE.
    LOGICAL, SAVE :: RAWPRT=.FALSE.
    CHARACTER(LEN=80) MSGSTR
    CHARACTER (LEN=20) :: CTIM
@@ -4269,8 +4270,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
       INQUIRE ( FILE=FILENM, OPENED=OPENED, NUMBER=IUT )
       MATLAB = INDEX( FILENM, '.MAT' ).NE.0 .OR.&
       &INDEX (FILENM, '.mat' ).NE.0
-!NCF      NCF    = INDEX( FILENM, '.NC'  ).NE.0 .OR.&
-!NCF      &INDEX (FILENM, '.nc'  ).NE.0
+      NCF = is_netcdf_filename(FILENM)
       RAWPRT = INDEX( FILENM, '.RAW' ).NE.0 .OR.&
       &INDEX (FILENM, '.raw' ).NE.0
 
@@ -4280,21 +4280,21 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
 
 !           --- open generic output file or reset reference number
 !
-!NCF         IF (NCF .AND. .NOT.OPENED) THEN
-!NCF            IUT    = HIOPEN + IRQ
-!NCF            OQI(1) = IUT
-!NCF            IF (OPTG.NE.5) THEN
-!NCF               CALL swn_outnc_openblockfile(FILENM, MYK, MXK,&
-!NCF               &OVLNAM, XGRDGL, YGRDGL,&
-!NCF               &OQI, OQR, IVTYP, IRQ)
-!NCF            ELSE
-!NCF               CALL swn_outnc_openblockfile(FILENM, MYK, MXK,&
-!NCF               &OVLNAM, XCUGRDGL, YCUGRDGL,&
-!NCF               &OQI, OQR, IVTYP, IRQ)
-!NCF            ENDIF
-!NCF            OPENED = .TRUE.
-!NCF         END IF
-!NCF
+         IF (NCF .AND. .NOT.OPENED) THEN
+            IUT    = HIOPEN + IRQ
+            OQI(1) = IUT
+            IF (OPTG.NE.5) THEN
+               CALL swn_outnc_openblockfile(FILENM, MYK, MXK,&
+               &OVLNAM, XGRDGL, YGRDGL,&
+               &OQI, OQR, IVTYP, IRQ)
+            ELSE
+               CALL swn_outnc_openblockfile(FILENM, MYK, MXK,&
+               &OVLNAM, XCUGRDGL, YCUGRDGL,&
+               &OQI, OQR, IVTYP, IRQ)
+            ENDIF
+            OPENED = .TRUE.
+         END IF
+
          IF ( .NOT.OPENED ) THEN
             NREF = HIOPEN + IRQ
             OPEN ( UNIT=NREF, FILE=FILENM )
@@ -4307,8 +4307,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
             CLOSE(NREF)
             OPEN(UNIT=NREF, FILE=FILENM, FORM='UNFORMATTED',&
             &STATUS='REPLACE',&
-!MatL4            &ACCESS='DIRECT', RECL=1)
-!MatL5            &ACCESS='DIRECT', RECL=4)
+            &ACCESS='DIRECT', RECL=matlab_direct_record_length)
             IREC(IRQ) = 1
          END IF
 
@@ -4503,12 +4502,12 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
             END IF
             CALL SWRMAT( MYK, MXK, NAMVAR, VOQ(1,1), NREF,&
             &IREC(IRQ), IDLA, OVEXCV(IVTYPE) )
-!NCF         ELSE IF (NCF) THEN
-!NCF            IF ( IVTYPE.GT.2.AND.IVTYPE.NE.40 ) THEN
-!NCF               CALL swn_outnc_appendblock(MYK, MXK, IVTYPE, OQI(1),&
-!NCF               &IRQ, VOQ(1,1),&
-!NCF               &OVEXCV(IVTYPE), 1)
-!NCF            END IF
+         ELSE IF (NCF) THEN
+            IF ( IVTYPE.GT.2.AND.IVTYPE.NE.40 ) THEN
+               CALL swn_outnc_appendblock(MYK, MXK, IVTYPE, OQI(1),&
+               &IRQ, VOQ(1,1),&
+               &OVEXCV(IVTYPE), 1)
+            END IF
          ELSE
             CALL SBLKPT( IPD, NREF, DFAC, PSNAME, OVUNIT(IVTYPE),&
             &MXK, MYK, IDLA, OVLNAM(IVTYPE), VOQ(1,1) )
@@ -4533,15 +4532,15 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
             END IF
             CALL SWRMAT( MYK, MXK, NAMVAR,&
             &VOQ(1,2), NREF, IREC(IRQ), IDLA, OVEXCV(IVTYPE) )
-!NCF         ELSE IF (NCF) THEN
-!NCF            IF ( IVTYPE.GT.3 ) THEN
-!NCF               CALL swn_outnc_appendblock(MYK, MXK, IVTYPE, OQI(1),&
-!NCF               &IRQ, VOQ(1,1),&
-!NCF               &OVEXCV(IVTYPE), 1)
-!NCF               CALL swn_outnc_appendblock(MYK, MXK, IVTYPE, OQI(1),&
-!NCF               &IRQ, VOQ(1,2),&
-!NCF               &OVEXCV(IVTYPE), 2)
-!NCF            END IF
+         ELSE IF (NCF) THEN
+            IF ( IVTYPE.GT.3 ) THEN
+               CALL swn_outnc_appendblock(MYK, MXK, IVTYPE, OQI(1),&
+               &IRQ, VOQ(1,1),&
+               &OVEXCV(IVTYPE), 1)
+               CALL swn_outnc_appendblock(MYK, MXK, IVTYPE, OQI(1),&
+               &IRQ, VOQ(1,2),&
+               &OVEXCV(IVTYPE), 2)
+            END IF
          ELSE
             CALL SBLKPT( IPD, NREF, DFAC, PSNAME, OVUNIT(IVTYPE),&
             &MXK, MYK, IDLA, OVLNAM(IVTYPE)//'X-comp',&
@@ -4557,8 +4556,8 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
 !     generate a dump of the raw partition data, if appropriate
    IF (RAWPRT) CALL SRAWPT ( NREF, VOQR, VOQ, MXK, MYK )
 
-!NCF   IF ( NCF ) CALL swn_outnc_close_on_end(OQI(1), IRQ)
-!NCF
+   IF ( NCF ) CALL swn_outnc_close_on_end(OQI(1), IRQ)
+
    IF (IPD.EQ.1 .AND. NREF.EQ.PRINTF) WRITE (PRINTF, "(///)")
 
    DEALLOCATE(VOQ)
