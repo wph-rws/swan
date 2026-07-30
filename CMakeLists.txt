@@ -56,6 +56,8 @@ option( SWAN_NATIVE "Optimize for the CPU that performs the build" OFF )
 option( SWAN_LTO "Enable interprocedural/link-time optimization" OFF )
 option( SWAN_DEBUG_INVARIANTS "Enable diagnostic runtime invariant checks" OFF )
 option( SWAN_RUNTIME_CHECKS "Enable compiler runtime checks (bounds, allocation, arguments)" OFF )
+option( SWAN_LEGACY_CRAY_IO "Exercise the preserved Cray sequential-I/O branch" OFF )
+option( SWAN_LEGACY_SGI_IO "Exercise the preserved SGI I/O and unit-limit branch" OFF )
 
 # Compiler compatibility options are target-specific so CMake's build-type
 # flags and user-provided CMAKE_Fortran_FLAGS remain effective.
@@ -255,6 +257,64 @@ if( BUILD_TESTING )
             --swan-executable $<TARGET_FILE:${EXE}>
             --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/diffraction
   )
+
+  if( MATL4 )
+    set( MATLAB_TEST_BACKEND matlab4 )
+  else()
+    set( MATLAB_TEST_BACKEND matlab5 )
+  endif()
+  add_test(
+    NAME matlab_output
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+            --swan-executable $<TARGET_FILE:${EXE}>
+            --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/matlab
+            --backend ${MATLAB_TEST_BACKEND}
+  )
+  set_tests_properties( matlab_output PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
+
+  if( NETCDF )
+    add_executable( check_netcdf_output tests/check_netcdf_output.f90 )
+    target_link_libraries( check_netcdf_output PRIVATE NetCDF::NetCDF_Fortran )
+    add_test(
+      NAME netcdf_output
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/netcdf
+              --backend netcdf
+              --netcdf-checker $<TARGET_FILE:check_netcdf_output>
+              --expected-center 0.87872
+    )
+    set_tests_properties( netcdf_output PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
+    add_test(
+      NAME netcdf_mixed_block_output
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/netcdf-mixed
+              --backend netcdf
+              --netcdf-checker $<TARGET_FILE:check_netcdf_output>
+              --expected-center 0.87872
+              --mixed-block
+    )
+    set_tests_properties( netcdf_mixed_block_output PROPERTIES
+      RUN_SERIAL TRUE TIMEOUT 180 )
+    add_test(
+      NAME netcdf_table_output
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/netcdf-table
+              --backend netcdf
+              --netcdf-checker $<TARGET_FILE:check_netcdf_output>
+              --expected-center 0.87872
+              --netcdf-table
+    )
+    set_tests_properties( netcdf_table_output PROPERTIES
+      RUN_SERIAL TRUE TIMEOUT 180 )
+  endif()
+
   if( MPI )
     # The Jacobi sweep exchanges action density between subdomains once per
     # iteration instead of following the wavefront across them, so a run split
@@ -263,8 +323,12 @@ if( BUILD_TESTING )
     # schemes agree, which is why only this test distinguishes them.
     if( JAC )
       set( QUICK_TEST_MPI_REFERENCE reference-jac )
+      set( QUICK_TEST_MPI_CENTER 0.88086 )
+      set( HCAT_HALO 1 )
     else()
       set( QUICK_TEST_MPI_REFERENCE reference )
+      set( QUICK_TEST_MPI_CENTER 0.87872 )
+      set( HCAT_HALO 3 )
     endif()
     add_test(
       NAME quick_test_mpi
@@ -278,6 +342,73 @@ if( BUILD_TESTING )
               --reference ${QUICK_TEST_MPI_REFERENCE}
     )
     set_tests_properties( quick_test_mpi PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
+
+    add_test(
+      NAME matlab_output_mpi
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/matlab-mpi
+              --backend ${MATLAB_TEST_BACKEND}
+              --mpi-exec ${MPIEXEC_EXECUTABLE}
+              --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
+              --mpi-processes 2
+              --reference ${QUICK_TEST_MPI_REFERENCE}
+              --expected-center ${QUICK_TEST_MPI_CENTER}
+    )
+    set_tests_properties( matlab_output_mpi PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
+
+    if( NETCDF )
+      add_test(
+        NAME netcdf_output_mpi
+        COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+                --swan-executable $<TARGET_FILE:${EXE}>
+                --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/netcdf-mpi
+                --backend netcdf
+                --netcdf-checker $<TARGET_FILE:check_netcdf_output>
+                --mpi-exec ${MPIEXEC_EXECUTABLE}
+                --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
+                --mpi-processes 2
+                --reference ${QUICK_TEST_MPI_REFERENCE}
+                --expected-center ${QUICK_TEST_MPI_CENTER}
+      )
+      set_tests_properties( netcdf_output_mpi PROPERTIES
+        RUN_SERIAL TRUE TIMEOUT 180 )
+    endif()
+
+    # Preserve the complete hotfile compatibility route: SWAN writes one free
+    # hotfile per MPI subdomain, hcat merges them, and a serial SWAN run reads
+    # the combined file through INITIAL HOTSTART SINGLE.
+    add_test(
+      NAME hcat_hotstart
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/examples/hcat/run.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --hcat-executable $<TARGET_FILE:${HEXE}>
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/hcat
+              --mpi-exec ${MPIEXEC_EXECUTABLE}
+              --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
+              --mpi-processes 2
+              --halo ${HCAT_HALO}
+              --reference ${QUICK_TEST_MPI_REFERENCE}
+    )
+    set_tests_properties( hcat_hotstart PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
+
+    if( METIS )
+      add_test(
+        NAME metis_partitioning
+        COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_SOURCE_DIR}/examples/metis_partitioning/run.py
+                --swan-executable $<TARGET_FILE:${EXE}>
+                --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/metis
+                --mpi-exec ${MPIEXEC_EXECUTABLE}
+                --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
+                --mpi-processes 2
+      )
+      set_tests_properties( metis_partitioning PROPERTIES
+        RUN_SERIAL TRUE TIMEOUT 180 )
+    endif()
   endif()
   # FFRO selects the fixed-front vertex ordering (!FXFRO) instead of the
   # graph-coloured one, which changes the order the unstructured solver sweeps

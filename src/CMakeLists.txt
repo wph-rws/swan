@@ -45,6 +45,15 @@ if( MATL4 )
   list( APPEND SWITCHES -matl4 )
 endif()
 #
+if( SWAN_LEGACY_CRAY_IO AND SWAN_LEGACY_SGI_IO )
+  message( FATAL_ERROR
+    "-- SWAN_LEGACY_CRAY_IO and SWAN_LEGACY_SGI_IO are mutually exclusive" )
+elseif( SWAN_LEGACY_CRAY_IO )
+  list( APPEND SWITCHES -cray )
+elseif( SWAN_LEGACY_SGI_IO )
+  list( APPEND SWITCHES -sgi )
+endif()
+#
 # Generate configured Fortran sources in the build tree.  The .f90 files in
 # the source tree remain the only editable sources; configured variants never
 # obscure their Git history.

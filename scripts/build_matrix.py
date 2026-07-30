@@ -47,6 +47,7 @@ MATRIX: dict[str, list[str]] = {
     "timg-openmp": ["-DTIMG=ON", "-DOPENMP=ON"],
     "timg-mpi": ["-DTIMG=ON", "-DMPI=ON"],
     "matl4": ["-DMATL4=ON"],
+    "matl4-mpi": ["-DMATL4=ON", "-DMPI=ON"],
     "netcdf": ["-DNETCDF=ON"],
     "mpi": ["-DMPI=ON"],
     "mpi-netcdf": ["-DMPI=ON", "-DNETCDF=ON"],
@@ -59,6 +60,8 @@ MATRIX: dict[str, list[str]] = {
     "native": ["-DSWAN_NATIVE=ON"],
     "runtime": ["-DSWAN_RUNTIME_CHECKS=ON"],
     "debug-invariants": ["-DSWAN_DEBUG_INVARIANTS=ON"],
+    "legacy-cray-io": ["-DSWAN_LEGACY_CRAY_IO=ON"],
+    "legacy-sgi-io": ["-DSWAN_LEGACY_SGI_IO=ON"],
     "gcc15": ["-DCMAKE_Fortran_COMPILER=gfortran-15"],
     # The warning ratchet owns the strict flags; this entry only proves that a
     # strict build still compiles and passes its tests. Without the flags it

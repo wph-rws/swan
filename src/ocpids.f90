@@ -310,9 +310,9 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
    IF (OUTFIL.NE.'    ') THEN
 !       WRITE (*,*) ' Open print file ', PRINTF, OUTFIL
       OPEN (UNIT=PRINTF, FILE=OUTFIL, STATUS='UNKNOWN',&
-      &FORM='FORMATTED', IOSTAT=IOSTAT)
 !/Cray      &RECL=2000,&
 !/SGI      &RECL=2000,&
+      &FORM='FORMATTED', IOSTAT=IOSTAT)
       IF (IOSTAT.NE.0) THEN
          INERR = 920
          IF (IAMMASTER) WRITE(*,*) 'Cannot open PRINT file '

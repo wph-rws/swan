@@ -51,6 +51,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
    USE OUTP_DATA
 !NCF   USE swn_outnc
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
+   CHARACTER(LEN=LENFNM) :: NETCDF_DUMMY
 !
 !
 !
@@ -243,7 +244,8 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !NCF         ! reserve free unit number
 !NCF         IOSTAT = -1
 !NCF         INQUIRE(FILE=FILENM, EXIST=EXIST)
-!NCF         CALL FOR (NREF, TRIM(FILENM)//'.dum', 'UF', IOSTAT)
+!NCF         NETCDF_DUMMY = TRIM(FILENM)//'.dum'
+!NCF         CALL FOR (NREF, NETCDF_DUMMY, 'UF', IOSTAT)
 !NCF         IF (STPNOW()) RETURN
 !NCF         IF (.NOT.EXIST) CLOSE(NREF, STATUS='DELETE')
 !NCF         OQI(1) = NREF
@@ -1300,6 +1302,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
 !NCF!             ='TABC'; NETCDF output
 
          CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
+         CHARACTER(LEN=LENFNM) :: NETCDF_DUMMY
          CHARACTER(LEN=4) :: RTYPE
          CHARACTER(LEN=8) :: PSNAME
 
@@ -1409,7 +1412,8 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME,&
                IOSTAT = -1
 !NCF               INQUIRE(FILE=FILENM, EXIST=EXIST)
 !NCF               IF ( RTYPE.EQ.'TABC' ) THEN
-!NCF                  CALL FOR (NREF, TRIM(FILENM)//'.dum', 'UF', IOSTAT)
+!NCF                  NETCDF_DUMMY = TRIM(FILENM)//'.dum'
+!NCF                  CALL FOR (NREF, NETCDF_DUMMY, 'UF', IOSTAT)
 !NCF               ELSE
                   CALL FOR (NREF, FILENM, 'UF', IOSTAT)
 !NCF               ENDIF
