@@ -74,7 +74,6 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
 
 !******************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_spectral_grid
@@ -472,7 +471,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 ,&
 
    IF (ISLOW .LT. MSC4MI .OR. ISHGH .GT. MSC4MA .OR.&
    &IDLOW .LT. MDC4MI .OR. IDHGH .GT. MDC4MA) THEN
-      WRITE (PRINTF,"( ' ** Error : array bounds and maxima in subr FAC4WW, ', ' point ', 2I5, /,' ISL,ISH : ',2I4, ' IDL,IDH : ',2I4, /,' SMI,SMA : ',2I4, ' DMI,DMA : ',2I4)") IXCGRD(1), IYCGRD(1),&
+      WRITE (PRINTF,"( ' ** Error : array bounds and maxima in subr FAC4WW', /,' ISL,ISH : ',2I4, ' IDL,IDH : ',2I4, /,' SMI,SMA : ',2I4, ' DMI,DMA : ',2I4)")&
       &ISLOW, ISHGH, IDLOW, IDHGH,&
       &MSC4MI,MSC4MA, MDC4MI, MDC4MA
    ENDIF
@@ -500,12 +499,11 @@ end subroutine FAC4WW
 
 !******************************************************************
 
-SUBROUTINE RANGE4 (WWINT ,IDDLOW,IDDTOP)
+SUBROUTINE RANGE4 (WWINT, IDDLOW, IDDTOP, IXCG, IYCG)
    USE swan_service_interfaces, ONLY: STRACE
 
 !******************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_spectral_grid
    USE swan_test_output
@@ -634,7 +632,7 @@ SUBROUTINE RANGE4 (WWINT ,IDDLOW,IDDTOP)
 !****************************************************************
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER     IDDLOW,IDDTOP
+   INTEGER, INTENT(IN) :: IDDLOW, IDDTOP, IXCG, IYCG
 
    INTEGER     WWINT(*)
 
@@ -656,7 +654,7 @@ SUBROUTINE RANGE4 (WWINT ,IDDLOW,IDDTOP)
 
    IF (WWINT(9)  .LT. WWINT(15) .OR. WWINT(10) .GT. WWINT(16) .OR.&
    &WWINT(13) .LT. WWINT(17) .OR. WWINT(14) .GT. WWINT(18) ) THEN
-      WRITE (PRINTF,"( ' ** Error : array bounds and maxima in subr RANGE4, ', ' point ', 2I5, /,' ISL,ISH : ',2I4, ' IDL,IDH : ',2I4, /,' SMI,SMA : ',2I4, ' DMI,DMA : ',2I4)") IXCGRD(1), IYCGRD(1),&
+      WRITE (PRINTF,"( ' ** Error : array bounds and maxima in subr RANGE4, ', ' point ', 2I5, /,' ISL,ISH : ',2I4, ' IDL,IDH : ',2I4, /,' SMI,SMA : ',2I4, ' DMI,DMA : ',2I4)") IXCG, IYCG,&
       &WWINT(9) ,WWINT(10) ,WWINT(13) ,WWINT(14),&
       &WWINT(15),WWINT(16) ,WWINT(17) ,WWINT(18)
       IF (ITEST.GE.50) WRITE (PRTEST, "(' MSC, MDC, IDDLOW, IDDTOP: ', 4I5)") MSC, MDC, IDDLOW, IDDTOP
@@ -911,7 +909,6 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 
 !********************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid
@@ -1408,7 +1405,6 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 
 !*******************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid
@@ -1868,7 +1864,6 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   ,&
 
 !*******************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid
@@ -2260,7 +2255,6 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   ,&
 
 !*******************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid
@@ -2658,7 +2652,6 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
    USE swan_service_interfaces, ONLY: STRACE
 !*********************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid
@@ -2951,7 +2944,6 @@ SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
 
 !*******************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid
@@ -3840,7 +3832,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid
@@ -4269,7 +4261,7 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !****************************************************************
 
    USE swan_diagnostics_level
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid
@@ -4554,7 +4546,7 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
 !******************************************************************
 
    USE swan_diagnostics_level
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid
@@ -5081,7 +5073,6 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 !****************************************************************
 
    USE swan_diagnostics_level
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid
@@ -5457,20 +5448,20 @@ end subroutine SWFTIM
 
 !****************************************************************
 
-SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV, IGP )
+SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV, IGP,&
+&KGRD2, KGRD3 )
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_wave_physics, ONLY: KSCIP1
 
 !****************************************************************
 
    USE swan_diagnostics_level
-   USE swan_stencil
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
 
    IMPLICIT NONE(TYPE, EXTERNAL)
-   INTEGER, INTENT(IN) :: IGP
+   INTEGER, INTENT(IN) :: IGP, KGRD2, KGRD3
 
 
 !   --|-----------------------------------------------------------|--
@@ -5588,10 +5579,10 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV, IGP )
 
 !     --- determine absolute bottom slope
 
-   DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
-   &+ RDX(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
-   DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
-   &+ RDY(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
+   DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KGRD2))&
+   &+ RDX(2) * (BOTLV(IGP) - BOTLV(KGRD3))
+   DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KGRD2))&
+   &+ RDY(2) * (BOTLV(IGP) - BOTLV(KGRD3))
 
    DDDS = -1. * ( DDDX + DDDY )
    DDDS = MAX( 1.E-8, ABS(DDDS) )
@@ -5604,19 +5595,19 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV, IGP )
 end subroutine PEREXC
 !****************************************************************
 
-SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN, IGP )
+SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN, IGP,&
+&KGRD2, KGRD3 )
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
    USE swan_diagnostics_level
-   USE swan_stencil
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
 
    IMPLICIT NONE(TYPE, EXTERNAL)
-   INTEGER, INTENT(IN) :: IGP
+   INTEGER, INTENT(IN) :: IGP, KGRD2, KGRD3
 
 
 !   --|-----------------------------------------------------------|--
@@ -5774,10 +5765,10 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN, IGP )
 
 !     ... next, calculate bottom slope in mean wave direction
 
-   DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
-   &+ RDX(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
-   DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
-   &+ RDY(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
+   DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KGRD2))&
+   &+ RDX(2) * (BOTLV(IGP) - BOTLV(KGRD3))
+   DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KGRD2))&
+   &+ RDY(2) * (BOTLV(IGP) - BOTLV(KGRD3))
 
    DDDS = -1. * ( DDDX * COSDIR + DDDY * SINDIR )
 

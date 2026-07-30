@@ -827,7 +827,7 @@ subroutine SWFB ( fbd, dep2, kwave, ecos, esin ,IGP)
 !   Modules used
 
     use swan_diagnostics_level
-    USE swan_stencil
+    USE swan_stencil, ONLY: MICMAX
     use swan_physics_selection
     use swan_computational_grid
     use swan_spectral_grid
@@ -1004,7 +1004,7 @@ subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, iss
 
     use swan_diagnostics_level
     use swan_io_units
-    USE swan_stencil
+    USE swan_stencil, ONLY: MICMAX
     use swan_physics_selection
     use swan_computational_grid
     use swan_spectral_grid
@@ -1161,7 +1161,7 @@ subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax
 
     use swan_diagnostics_level
     use swan_io_units
-    USE swan_stencil
+    USE swan_stencil, ONLY: MICMAX
     use swan_physics_selection
     use swan_computational_grid
     use swan_spectral_grid
@@ -1318,7 +1318,7 @@ subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin ,IG
 !   Modules used
 
     use swan_diagnostics_level
-    USE swan_stencil
+    USE swan_stencil, ONLY: MICMAX
     use swan_computational_grid
     use swan_spectral_grid
     use swan_math_constants
@@ -1453,7 +1453,6 @@ subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 ,IGP)
 
     use swan_diagnostics_level
     use swan_io_units
-    USE swan_stencil
     use swan_physics_selection
     use swan_computational_grid
     use swan_spectral_grid

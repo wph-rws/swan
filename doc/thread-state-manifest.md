@@ -213,6 +213,12 @@ rechtstreeks; de eerste zeven onderliggende kernels krijgen hun benodigde
 roosteradressen inmiddels als expliciete argumenten. `SwanCompdata` bezit
 daarmee geen afzonderlijke stenciltoestand meer.
 
+Ook de gedeelde integraalroute is nu expliciet: `SINTGRL` ontvangt het huidige
+punt, de twee opwaartse buurpunten en `(IX,IY)` van de solver. `BRKPAR`,
+`PEREXC` en `SWBIDW` krijgen die buurpunten vervolgens als scalars. Deze
+routines kunnen daardoor niet langer ongemerkt de stencil van een andere
+thread of solvercontext lezen.
+
 ### `swan_time` — TIMG-tellers
 
 | Symbool | Buildvariant | Levensduur | Cat. | Voorgestelde eigenaar |

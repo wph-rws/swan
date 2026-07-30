@@ -1360,7 +1360,7 @@ CONTAINS
 
 !****************************************************************
 
-      USE swan_stencil
+      USE swan_stencil, ONLY: MICMAX
       USE swan_physics_selection
       USE swan_physical_settings
       USE swan_computational_grid
@@ -1606,7 +1606,6 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
 !
 !   Modules used
 
-    USE swan_stencil
     use swan_physics_selection
     use swan_physical_settings
     use swan_computational_grid

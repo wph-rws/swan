@@ -1238,7 +1238,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
     use swan_diagnostics_level
    use swan_dissipation, only: SSURF
     use swan_computational_grid_kind
-    USE swan_stencil
+    USE swan_stencil, ONLY: MICMAX
     use swan_physics_selection
     use swan_computational_grid
     use swan_spectral_grid
@@ -2123,7 +2123,7 @@ subroutine SWQCSCAT ( memqcm, W, dwdx, dwdy, sigft, cgft, uxft, uyft, dep2, kwav
 !   Modules used
 
     use swan_diagnostics_level
-    USE swan_stencil
+    USE swan_stencil, ONLY: MICMAX
     use swan_physical_settings
     use swan_computational_grid
     use swan_spectral_grid
@@ -3272,7 +3272,6 @@ subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbr
 
     use swan_diagnostics_level
     use swan_io_units
-    USE swan_stencil
     use swan_physics_selection
     use swan_computational_grid
     use swan_spectral_grid

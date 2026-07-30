@@ -3583,7 +3583,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &SWPDIR           ,&
                      &URMSTOP          ,&
                      &IDDLOW           ,IDDTOP, TRIADS,&
-                     &SPECTRAL_POWERS%value, WCAP_WORKSPACE, KCGRD(1) )
+                     &SPECTRAL_POWERS%value, WCAP_WORKSPACE, KCGRD(1),&
+                     &KCGRD(2), KCGRD(3), IXCGRD(1), IYCGRD(1) )
                      IF (timing_enabled) CALL SWTSTO(116)
 
                      COMPDA(KCGRD(1),JHS) = HS
@@ -5088,7 +5089,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !****************************************************************
 
                   USE swan_time, ONLY: default_time_context
-                  USE swan_stencil
+                  USE swan_stencil, ONLY: MICMAX
                   USE swan_physics_selection
                   USE swan_numerics
                   USE swan_computational_grid
@@ -5442,8 +5443,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   IF ( TESTFL .AND. ITEST .GE. 70 ) THEN
                      WRITE(PRINTF,*) ' *** Values at end of subroutine action ***'
                      WRITE (PRINTF,"(' ACTION: POINT MCGRD MSC MDC : ',4I5)") IGP, MCGRD, MSC, MDC
-                     WRITE (PRINTF,"(' ACTION: IDLW IDTP ISTOP ICMAX : ',4I4)") IDDLOW,IDDTOP,ISSTOP, ICMAX
-                     WRITE (PRINTF,"(' ACTION: IGP, KCGRD(2), KCGRD(3) : ',3I4)") IGP, KCGRD(2), KCGRD(3)
+                     WRITE (PRINTF,"(' ACTION: IDLW IDTP ISTOP : ',3I4)") IDDLOW, IDDTOP, ISSTOP
                      WRITE (PRINTF,"(' ACTION:RDX(1) RDX(2) RDY(1) RDY(2) : ',4E12.4)") RDX(1), RDX(2), RDY(1), RDY(2)
                      IF (ITEST.GE.210) THEN
                         DO IS = 1, MSC
@@ -5471,9 +5471,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &ABRBOT  ,UBOT    ,HS      ,QB      ,&
                &HM      ,KMESPC  ,SMEBRK  ,KTETA   ,&
                &TMBOT   ,BOTLV   ,GAMBR   ,&
-               &SWPDIR  ,&
-               &URMSTOP ,&
-&IDDLOW  ,IDDTOP, TRIADS, SIGPOW, WCAP_WORKSPACE, IGP )
+&SWPDIR  ,&
+&URMSTOP ,&
+&IDDLOW  ,IDDTOP, TRIADS, SIGPOW, WCAP_WORKSPACE, IGP,&
+&KGRD2, KGRD3, IXCG, IYCG )
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_nonlinear_interactions, ONLY: PEREXC, SWBIDW
    USE swan_dissipation, ONLY: BRKPAR, FRABRE
@@ -5482,7 +5483,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   USE swan_diagnostics_level
                   USE swan_io_units
-                  USE swan_stencil
+                  USE swan_stencil, ONLY: MICMAX
                   USE swan_physics_selection
                   USE swan_numerics
                   USE swan_physical_settings
@@ -5492,7 +5493,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE swan_test_output
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
-                  INTEGER, INTENT(IN) :: IGP
+                  INTEGER, INTENT(IN) :: IGP, KGRD2, KGRD3, IXCG, IYCG
                   TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
                   REAL, INTENT(IN) :: SIGPOW(:,:)
                   TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
@@ -5873,10 +5874,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   &.OR. ISURF.EQ.7&
                   &) THEN
                      IF (( SWPDIR .EQ. 1) .OR.&
-                     &( SWPDIR .EQ. 2 .AND. IXCGRD(1) .EQ. 1) .OR.&
-                     &( SWPDIR .EQ. 3 .AND. IYCGRD(1) .EQ. 1) .OR.&
+                     &( SWPDIR .EQ. 2 .AND. IXCG .EQ. 1) .OR.&
+                     &( SWPDIR .EQ. 3 .AND. IYCG .EQ. 1) .OR.&
                      &( SWPDIR .EQ. 4 .AND.&
-                     &(IXCGRD(1).EQ.MXC .AND. IYCGRD(1).EQ.1) )) THEN
+                     &(IXCG.EQ.MXC .AND. IYCG.EQ.1) )) THEN
 !          --- Ursell number
                         URSELL(IGP) = (GRAV*HS) /&
                         &(2.*SQRT(2.)*SIGM01**2*DEP2(IGP)**2)
@@ -5888,12 +5889,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         ELSEIF ( IBIPH.EQ.2 ) THEN
 !             Saprykina et al. (2017)
                            CALL PEREXC ( DELL, DEP2, AC2, SIGPOW(:,1), RDX, RDY,&
-                           &BOTLV, IGP )
+                           &BOTLV, IGP, KGRD2, KGRD3 )
                            BIPHAS(IGP) = 0.5*PI * (MIN(1.,DELL/PTRIAD(9)) - 1.)
                         ELSEIF ( IBIPH.EQ.3 ) THEN
 !             De Wit (2022)
                            CALL SWBIDW ( BIPH, AC2, SIGPOW(:,1), RDX, RDY, BOTLV,&
-                           &SPCDIR(1,2), SPCDIR(1,3), IGP )
+                           &SPCDIR(1,2), SPCDIR(1,3), IGP, KGRD2, KGRD3 )
 !             --- scale biphase
                            BIPH = SQRT(TANH(URSELL(IGP))) * BIPH
 !             --- in between -90 and 90 deg
@@ -5915,16 +5916,17 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      CALL BRKPAR (BRCOEF, SPCDIR(1,2), SPCDIR(1,3), AC2,&
                      &SIGPOW(:,1), DEP2, BOTLV,&
                      &RDX, RDY, KWAVE, IDDLOW, IDDTOP, SPCDIR(1,1),&
-                     &KTETA, WCAP_WORKSPACE%mean_wavenumber_wam, IGP )
+                     &KTETA, WCAP_WORKSPACE%mean_wavenumber_wam, IGP,&
+                     &KGRD2, KGRD3 )
 
                      IF (ISURF.EQ.6) THEN
 !           in case of BKD store breaker index
                         IF (MODGAM) THEN
                            IF (( SWPDIR .EQ. 1) .OR.&
-                           &( SWPDIR .EQ. 2 .AND. IXCGRD(1) .EQ. 1) .OR.&
-                           &( SWPDIR .EQ. 3 .AND. IYCGRD(1) .EQ. 1) .OR.&
+                           &( SWPDIR .EQ. 2 .AND. IXCG .EQ. 1) .OR.&
+                           &( SWPDIR .EQ. 3 .AND. IYCG .EQ. 1) .OR.&
                            &( SWPDIR .EQ. 4 .AND.&
-                           &(IXCGRD(1).EQ.MXC .AND. IYCGRD(1).EQ.1) )) THEN
+                           &(IXCG.EQ.MXC .AND. IYCG.EQ.1) )) THEN
                               GAMBR(IGP) = BRCOEF
                            ENDIF
                         ENDIF
@@ -5934,10 +5936,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !           compute breaker index based on the asymmetry
 !           of breaking waves (Saprykina et al., 2017)
                         IF (( SWPDIR .EQ. 1) .OR.&
-                        &( SWPDIR .EQ. 2 .AND. IXCGRD(1) .EQ. 1) .OR.&
-                        &( SWPDIR .EQ. 3 .AND. IYCGRD(1) .EQ. 1) .OR.&
+                        &( SWPDIR .EQ. 2 .AND. IXCG .EQ. 1) .OR.&
+                        &( SWPDIR .EQ. 3 .AND. IYCG .EQ. 1) .OR.&
                         &( SWPDIR .EQ. 4 .AND.&
-                        &(IXCGRD(1).EQ.MXC .AND. IYCGRD(1).EQ.1) )) THEN
+                        &(IXCG.EQ.MXC .AND. IYCG.EQ.1) )) THEN
 !              see also routine BRKPAR
                            IF ( BRCOEF.LT.0. ) THEN
                               BIPH = BIPHAS(IGP)
@@ -6015,7 +6017,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !****************************************************************
 
                   USE swan_run_mode
-                  USE swan_stencil
                   USE swan_physics_selection
                   USE swan_numerics
                   USE swan_computational_grid
@@ -6202,7 +6203,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     *** test output ***
 
                   IF ( TESTFL .AND. ITEST .GE. 70 ) THEN
-                     WRITE (PRINTF,"(' SOLPRE: Matrix values for point:', 2I5)") IXCGRD(1)+MXF-2, IYCGRD(1)+MYF-2
+                     WRITE (PRINTF,"(' SOLPRE: Matrix values for grid point:', I8)") IGP
                      WRITE (PRINTF,"(' bin diagonal r.h.s. ID-1 ID+1', ' IS-1 IS+1')")
 
                      DO IS = 1, ISSTOP
@@ -6235,7 +6236,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE swan_stencil
                   USE swan_computational_grid
                   USE swan_spectral_grid
                   USE swan_test_output
@@ -6460,7 +6460,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   ENDDO
 
                   IF ( TESTFL .AND. ITEST.GE. 40 ) THEN
-                     WRITE (PRINTF,"(' SOLMAT: point :',2I5)") IXCGRD(1)+MXF-2, IYCGRD(1)+MYF-2
+                     WRITE (PRINTF,"(' SOLMAT: grid point:',I8)") IGP
                      WRITE(PRINTF,*)
                   END IF
 
@@ -6482,7 +6482,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE swan_stencil
                   USE swan_computational_grid
                   USE swan_spectral_grid
                   USE swan_test_output
@@ -7597,7 +7596,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !          OpenMP path. IQUAD=4 uses its cached per-quadruplet copy belo
                         IF ( IQUAD .NE. 4 ) THEN
                            WWINTL(1:24) = WWINT(1:24)
-                           CALL RANGE4 (WWINTL,IDDLOW,IDDTOP )
+                           CALL RANGE4 (WWINTL, IDDLOW, IDDTOP, IX, IY)
                         ENDIF
                         FACHFR = 1. / XIS ** PWTAIL(1)
                      ENDIF
@@ -7683,7 +7682,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                               DAL14 = SNL4%cached_dal1(IDIA)
                               DAL24 = SNL4%cached_dal2(IDIA)
                               DAL34 = SNL4%cached_dal3(IDIA)
-                              CALL RANGE4 (WWINT4,IDDLOW,IDDTOP )
+                              CALL RANGE4 (WWINT4, IDDLOW, IDDTOP, IX, IY)
                               CALL SWSNL4 (WWINT4  ,WWAWG4  ,&
                               &SPCSIG  ,SNLC1   ,&
                               &DAL14   ,DAL24   ,DAL34   ,DEP2    ,&
@@ -8179,7 +8178,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-                  USE swan_stencil
                   USE swan_computational_grid
                   USE swan_spectral_grid
                   USE swan_test_output
@@ -8351,7 +8349,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         end do
 
                         IF ( ITEST .GE. 120 .AND. TESTFL )&
-                        &WRITE (PRINTF, "(' Rescale in Point, Isig, Factor, ATOT, ATOTP:', 3I4, 3(1X,E11.4))") IXCGRD(1)+MXF-2, IYCGRD(1)+MYF-2, IS,&
+                        &WRITE (PRINTF, "(' Rescale at point, Isig, Factor, ATOT, ATOTP:', 2I8, 3(1X,E11.4))") IGP, IS,&
                         &FACTOR , ATOT, ATOTP
                      ENDIF
                   end do

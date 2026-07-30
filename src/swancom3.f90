@@ -42,7 +42,7 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 
 !****************************************************************
 
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid
@@ -567,7 +567,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_input_grids
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid
@@ -1122,7 +1122,6 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid
@@ -1355,7 +1354,6 @@ SUBROUTINE WINDP3 (ISSTOP  ,ALIMW   ,AC2     ,&
 
 !****************************************************************
 
-   USE swan_stencil
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_test_output
@@ -1533,7 +1531,7 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 
 !****************************************************************
 
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_spectral_grid
@@ -1850,7 +1848,7 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
 
 !****************************************************************
 
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid
@@ -2107,7 +2105,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
 !******************************************************************
 
    USE swan_run_mode
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_numerics
    USE swan_physical_settings
@@ -2665,7 +2663,7 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
 
 !****************************************************************
 
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid

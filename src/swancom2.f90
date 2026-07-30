@@ -575,7 +575,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !****************************************************************
 
    USE swan_input_grids
-   USE swan_stencil
+   USE swan_stencil, ONLY: ILMAX, MICMAX
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid
@@ -1815,7 +1815,6 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 
 !****************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid
@@ -2253,7 +2252,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 
 !****************************************************************
 
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid
@@ -2752,7 +2751,7 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 
 !****************************************************************
 
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid
@@ -2985,12 +2984,12 @@ end subroutine SWCAP8
 SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 &SPCSIG  ,DEP2    ,BOTLV   ,&
 &RDX     ,RDY     ,KWAVE   ,&
-&IDDLOW  ,IDDTOP  ,FDIR    ,KTETA, KM_WAM, IGP)
+&IDDLOW  ,IDDTOP  ,FDIR    ,KTETA, KM_WAM, IGP, KGRD2, KGRD3)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid
@@ -3001,7 +3000,7 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    REAL, INTENT(IN) :: KM_WAM
-   INTEGER, INTENT(IN) :: IGP
+   INTEGER, INTENT(IN) :: IGP, KGRD2, KGRD3
 
 
 !   --|-----------------------------------------------------------|--
@@ -3235,10 +3234,10 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 
 !        *** determine bottom slope in mean wave direction ***
 
-      DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
-      &+ RDX(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
-      DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
-      &+ RDY(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
+      DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KGRD2))&
+      &+ RDX(2) * (BOTLV(IGP) - BOTLV(KGRD3))
+      DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KGRD2))&
+      &+ RDY(2) * (BOTLV(IGP) - BOTLV(KGRD3))
 
       DDDS = -1. * ( DDDX * COSDIR + DDDY * SINDIR )
 
@@ -3289,10 +3288,10 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 !
 !        --- determine absolute bottom slope
 
-      DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
-      &+ RDX(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
-      DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KCGRD(2)))&
-      &+ RDY(2) * (BOTLV(IGP) - BOTLV(KCGRD(3)))
+      DDDX =  RDX(1) * (BOTLV(IGP) - BOTLV(KGRD2))&
+      &+ RDX(2) * (BOTLV(IGP) - BOTLV(KGRD3))
+      DDDY =  RDY(1) * (BOTLV(IGP) - BOTLV(KGRD2))&
+      &+ RDY(2) * (BOTLV(IGP) - BOTLV(KGRD3))
 
       DDDS = -1. * ( DDDX + DDDY )
 

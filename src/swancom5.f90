@@ -4969,7 +4969,6 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     ,&
 
 !*******************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid

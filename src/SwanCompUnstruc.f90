@@ -1091,7 +1091,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                                        compda(1,JPBOT) , compda(1,JBOTLV), compda(1,JGAMMA)                       , swpnr , &
                                        urmstop         ,                                                                    &
                                        iddlow          , iddtop          , triads, spectral_powers%value,&
-                                       thread_workspaces%unstructured(tid)%source%wcap, KCGRD(1))
+                                       thread_workspaces%unstructured(tid)%source%wcap, KCGRD(1),&
+                                       KCGRD(2), KCGRD(3), IXCGRD(1), IYCGRD(1))
                          IF (timing_enabled) CALL SWTSTO(116)
 
                          compda(ivert,JHS) = hs
