@@ -89,7 +89,7 @@ def enabled_cmake_options() -> set[str]:
 def switch_arguments() -> list[str]:
     """Mirror the switch selection in src/CMakeLists.txt."""
     enabled = enabled_cmake_options()
-    arguments = ["-dos" if os.name == "nt" else "-unix"]
+    arguments: list[str] = []
 
     if "MPI" in enabled or "JAC" in enabled:
         arguments.append("-mpi")
@@ -99,7 +99,6 @@ def switch_arguments() -> list[str]:
         "FFRO": "-fixfront",
         "NETCDF": "-netcdf",
         "MATL4": "-matl4",
-        "SWAN_DEBUG_INVARIANTS": "-debug-invariants",
     }
     arguments.extend(
         switch

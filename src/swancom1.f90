@@ -57,7 +57,7 @@ MODULE M_CONVERGENCE_SHARED
 END MODULE M_CONVERGENCE_SHARED
 
 module swan_computation
-   use swan_timing_configuration, only: timing_enabled
+   use swan_build_config, only: timing_enabled
 !  Timers are called from multiple procedures, so their interfaces belong at
 !  module scope.
    use swan_service_interfaces, only: SWTSTA, SWTSTO
@@ -902,7 +902,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
    REAL ::  DDX   ,DDY   ,ACCUR ,XIS   ,SNLC1 ,DAL1  ,DAL2  ,DAL3
 
-   LOGICAL :: PRECOR
+   LOGICAL :: PRECOR, SETUP_CONVERGED
 
    INTEGER :: MNISL, MXNFL, MXNFR, NPFL, NPFR, NVARW, NWETP
    INTEGER, PARAMETER :: IDEBUG=0
@@ -1274,6 +1274,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     Begin parallel region.
 !----------------------------------------------------------------------
 !
+   SETUP_CONVERGED = .TRUE.
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP& PRIVATE(ITER, SWPDIR, IX, IY, II, IJ, IK, THREAD_INDEX) &
 !$OMP& PRIVATE(CAX, CAY, CAX1, CAY1, CAS, CAD, CGO, KWAVE, DMW) &
@@ -1290,7 +1291,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$OMP& PRIVATE(IS,IE,INCI,JS,JE,INCJ,JSD,JED,JNODE,JWFRS,JWFRE) &
 !$OMP& PRIVATE(QTL1,QTL2) &
 !$OMP& PRIVATE(LLOCKED) &
-!$OMP& COPYIN(ICMAX,CSETUP) &
+!$OMP& COPYIN(ICMAX) &
 !$OMP& COPYIN(COSLAT,PROPSL) &
 !$OMP& COPYIN(IPTST,TESTFL) &
 !$OMP& COPYIN(RDFSIN)
@@ -2351,7 +2352,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   IF (LSETUP.GT.0)&
                   &CALL SETUPP ( KGRPNT, MSTPDA, SETPDA, AC2, COMPDA(1,JDP2),&
                   &COMPDA(1,JDPSAV), COMPDA(1,JSETUP),&
-                  &XCGRID, YCGRID, SPCSIG, SPCDIR )
+                  &XCGRID, YCGRID, SPCSIG, SPCDIR, SETUP_CONVERGED )
                   IF (timing_enabled) CALL SWTSTO(106)
 !
 !----------------------------------------------------------------------
@@ -2510,7 +2511,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !     Print message when the solver did not converge in setup calculation
 
-                  IF (.NOT.CSETUP) THEN
+                  IF (.NOT.SETUP_CONVERGED) THEN
                      WRITE(PRINTF,"(1X,'no convergence in set-up calculation')")
                      IF (SCREEN.NE.PRINTF.AND.NSTATC.EQ.0.AND.IAMMASTER)&
                      &WRITE(SCREEN,"(1X,'no convergence in set-up calculation')")
@@ -9961,7 +9962,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !********************************************************************
 !                                                                   *
                SUBROUTINE SETUPP (KGRPNT, MSTPDA, SETPDA, AC2, DEP2, DEPSAV,&
-               &SETUP2, XCGRID, YCGRID, SPCSIG, SPCDIR )
+               &SETUP2, XCGRID, YCGRID, SPCSIG, SPCDIR, CONVERGED )
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
    USE swan_wave_physics, ONLY: KSCIP1
@@ -9975,6 +9976,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE swan_spectral_grid
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
+                  LOGICAL, INTENT(OUT) :: CONVERGED
 
 
 
@@ -10172,6 +10174,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   CHARACTER(LEN=80) MSGSTR
 
                   LOGICAL  NEIGHB
+
+                  CONVERGED = .TRUE.
 
 !  8. Subroutines used
 !
@@ -10422,7 +10426,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                      CALL SETUP2D( SETUP2, XCGRID, YCGRID, SETPDA(1,1), SETPDA(1,2),&
                      &KGRPNT, DEP2, SETPDA(1,6), SETPDA(1,15),&
-                     &SETPDA(1,16) )
+                     &SETPDA(1,16), CONVERGED )
 
                   END IF
 
@@ -10520,19 +10524,19 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !****************************************************************
 
                SUBROUTINE SETUP2D ( SETUP , XCGRID, YCGRID, WFRCX, WFRCY,&
-               &KGRPNT, DEPTH , AMAT  , RHS  , JCTA )
+               &KGRPNT, DEPTH , AMAT  , RHS  , JCTA, CONVERGED )
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
                   USE swan_diagnostics_level
                   USE swan_io_units
-                  USE swan_stencil
                   USE swan_numerics
                   USE swan_physical_settings
                   USE swan_computational_grid
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
+                  LOGICAL, INTENT(OUT) :: CONVERGED
 
 
 !   --|-----------------------------------------------------------|--
@@ -11837,7 +11841,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   IAMOUT = INT(PNUMS(24))
                   MAXIT  = INT(PNUMS(25))
 
-                  CSETUP = .TRUE.
+                  CONVERGED = .TRUE.
 
 !     --- determine relaxation factor
 
@@ -12118,7 +12122,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     --- investigate the reason to stop
 
                   IF ( ICONV.EQ.0 ) THEN
-                     CSETUP = .FALSE.
+                     CONVERGED = .FALSE.
                      IF ( RESM.GT.1.E8 ) SETUP = 0.
                   END IF
                   IF ( ICONV.EQ.0 .AND. IAMOUT.GE.1 ) THEN

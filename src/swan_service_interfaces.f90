@@ -13,7 +13,7 @@ module swan_service_interfaces
 !     parser, which uses this module.
 !
    use swan_parallel_state, only: MASTER, INODE, IAMMASTER, PARLL
-   use swan_timing_configuration, only: timing_enabled
+   use swan_build_config, only: timing_enabled
    use swan_io_limits, only: LENFNM
    use swan_project_metadata, only: INST, PROJID, PROJNR, PROJT1, PROJT2, PROJT3, VERTXT
    implicit none(type, external)

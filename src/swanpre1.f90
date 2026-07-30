@@ -17,7 +17,7 @@
 !************************************************************************
 
 module swan_command_reading
-   use swan_timing_configuration, only: timing_enabled
+   use swan_build_config, only: timing_enabled
    use swan_triad_state, only: triad_state_t
    use swan_snl4_tables, only: snl4_tables_t
    use swan_spectral_powers, only: spectral_powers_t

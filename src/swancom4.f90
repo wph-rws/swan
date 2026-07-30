@@ -58,6 +58,7 @@
 !******************************************************************
 
 module swan_nonlinear_interactions
+   use swan_build_config, only: invariant_checks_enabled
    use swan_triad_state, only: triad_state_t
    use swan_snl4_tables, only: snl4_tables_t
    implicit none(type, external)
@@ -1644,25 +1645,25 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
       IDCHGH = IDHGH
    ENDIF
 
-!DINV!     Validate the bounds on which the limited initialization below relies.
-!DINV
-!DINV   IF (LTSTFL) THEN
-!DINV      IF (ISCLW.GT.1 .OR. ISCLW+ISM1.LT.MSC4MI .OR.&
-!DINV      &ISCHG+ISP1.GT.ISHGH .OR. ISHGH.GT.MSC4MA) &
-!DINV      &ERROR STOP 'SWSNL2 frequency-range invariant violated'
-!DINV      IF (IDLOW-IIID.LT.MDC4MI .OR. IDHGH+IIID.GT.MDC4MA) &
-!DINV      &ERROR STOP 'SWSNL2 UE direction range exceeds workspace'
-!DINV      IF (IDCLOW-MAX(IDP1,IDM1).LT.IDLOW-IIID .OR.&
-!DINV      &IDCHGH+MAX(IDP1,IDM1).GT.IDHGH+IIID) &
-!DINV      &ERROR STOP 'SWSNL2 interaction direction hull is uninitialized'
-!DINV      IF (ISSTOP.GT.0) THEN
-!DINV         IF (1-ISP1.LT.MSC4MI .OR. ISSTOP-ISM1.GT.ISCHG) &
-!DINV         &ERROR STOP 'SWSNL2 source stencil frequency range is invalid'
-!DINV         IF (MINVAL(IDCMIN(1:ISSTOP))-MAX(IDP1,IDM1).LT.MDC4MI .OR.&
-!DINV         &MAXVAL(IDCMAX(1:ISSTOP))+MAX(IDP1,IDM1).GT.MDC4MA) &
-!DINV         &ERROR STOP 'SWSNL2 source stencil direction range is invalid'
-!DINV      END IF
-!DINV   END IF
+!     Validate the bounds on which the limited initialization below relies.
+
+   IF (invariant_checks_enabled .AND. LTSTFL) THEN
+      IF (ISCLW.GT.1 .OR. ISCLW+ISM1.LT.MSC4MI .OR.&
+      &ISCHG+ISP1.GT.ISHGH .OR. ISHGH.GT.MSC4MA) &
+      &ERROR STOP 'SWSNL2 frequency-range invariant violated'
+      IF (IDLOW-IIID.LT.MDC4MI .OR. IDHGH+IIID.GT.MDC4MA) &
+      &ERROR STOP 'SWSNL2 UE direction range exceeds workspace'
+      IF (IDCLOW-MAX(IDP1,IDM1).LT.IDLOW-IIID .OR.&
+      &IDCHGH+MAX(IDP1,IDM1).GT.IDHGH+IIID) &
+      &ERROR STOP 'SWSNL2 interaction direction hull is uninitialized'
+      IF (ISSTOP.GT.0) THEN
+         IF (1-ISP1.LT.MSC4MI .OR. ISSTOP-ISM1.GT.ISCHG) &
+         &ERROR STOP 'SWSNL2 source stencil frequency range is invalid'
+         IF (MINVAL(IDCMIN(1:ISSTOP))-MAX(IDP1,IDM1).LT.MDC4MI .OR.&
+         &MAXVAL(IDCMAX(1:ISSTOP))+MAX(IDP1,IDM1).GT.MDC4MA) &
+         &ERROR STOP 'SWSNL2 source stencil direction range is invalid'
+      END IF
+   END IF
 
 !     *** Zero only the array parts that are read below without being ***
 !     *** assigned first: the frequency rows below the lowest         ***

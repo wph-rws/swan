@@ -1,5 +1,5 @@
 module swan_transp_ac
-   use swan_timing_configuration, only: timing_enabled
+   use swan_build_config, only: timing_enabled
    use swan_gse_corr, only: SwanGSECorr
    use swan_transp_x, only: SwanTranspX
    implicit none(type, external)

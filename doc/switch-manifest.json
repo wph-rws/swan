@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "measured": "2026-07-30",
+  "summary": {
+    "occurrences": 3645,
+    "lines": 3579,
+    "files": 18
+  },
+  "markers": {
+    "!ESMF": {
+      "owner": "ESMF grid, wind and source-term coupling",
+      "variant": "ESMF coupling enabled",
+      "counterpart": "ordinary non-ESMF source",
+      "dependency": "ESMF",
+      "cmake_option": "not exposed",
+      "tests": ["none; support decision required"],
+      "max_occurrences": 18,
+      "files": ["SdsBabanin.f90", "swancom1.f90", "swancom3.f90", "swmod2.f90"],
+      "procedures": ["M_GENARR", "SWCOMP", "SWIND3", "SWIND4", "SWIND5", "SWIND_DBYB"]
+    },
+    "!!ESMF": {
+      "owner": "ESMF coupling",
+      "variant": "ESMF negative branch",
+      "counterpart": "!ESMF",
+      "dependency": "ESMF",
+      "cmake_option": "not exposed",
+      "tests": ["none; marker currently unused"],
+      "max_occurrences": 0,
+      "files": [],
+      "procedures": []
+    },
+    "!JAC": {
+      "owner": "Jacobi parallel sweep",
+      "variant": "Jacobi sweep enabled",
+      "counterpart": "!WFR",
+      "dependency": "MPI",
+      "cmake_option": "JAC",
+      "tests": ["jac"],
+      "max_occurrences": 975,
+      "files": ["swancom1.f90", "swancom5.f90", "swanparll.f90", "swanpre1.f90", "swanser.f90", "swmod2.f90"],
+      "procedures": ["<file>", "CGINIT", "DIFPAR", "M_PARALL", "swan_parallel", "SWBLADM", "SWBLKCOL", "SWCOMP", "SWEXCHG", "SWORB", "SWPARTIT", "SWPRTI", "SWSTRIP"]
+    },
+    "!WFR": {
+      "owner": "wavefront parallel sweep",
+      "variant": "wavefront sweep enabled",
+      "counterpart": "!JAC",
+      "dependency": "none in serial; MPI for distributed paths",
+      "cmake_option": "default when JAC is OFF",
+      "tests": ["standard", "openmp", "mpi", "timg-mpi", "metis-mpi", "ffro-mpi"],
+      "max_occurrences": 786,
+      "files": ["swancom1.f90", "swancom5.f90", "swanparll.f90", "swmod2.f90"],
+      "procedures": ["<file>", "DIFPAR", "M_PARALL", "swan_parallel", "SWBLADM", "SWCOMP", "SWEXCHG", "SWPARTIT", "SWRECVAC", "SWSENDAC", "SWSTRIP"]
+    },
+    "!FXFRO": {
+      "owner": "unstructured fixed-front vertex ordering",
+      "variant": "fixed-front ordering",
+      "counterpart": "!GRAPH",
+      "dependency": "none",
+      "cmake_option": "FFRO",
+      "tests": ["ffro", "ffro-mpi"],
+      "max_occurrences": 50,
+      "files": ["SwanCompUnstruc.f90", "SwanCompdata.f90", "SwanVertlist.f90", "swanmain.f90"],
+      "procedures": ["SwanCompdata", "SwanCompUnstruc", "SwanVertlist", "SWCLME"]
+    },
+    "!GRAPH": {
+      "owner": "unstructured graph-coloured vertex ordering",
+      "variant": "graph-coloured ordering",
+      "counterpart": "!FXFRO",
+      "dependency": "none",
+      "cmake_option": "default when FFRO is OFF",
+      "tests": ["standard", "mpi", "metis-mpi"],
+      "max_occurrences": 193,
+      "files": ["SwanCompUnstruc.f90", "SwanCompdata.f90", "SwanVertlist.f90", "swanmain.f90"],
+      "procedures": ["SwanCompdata", "SwanCompUnstruc", "SwanVertlist", "SWCLME"]
+    },
+    "!MPI": {
+      "owner": "distributed-memory services and solver paths",
+      "variant": "MPI enabled",
+      "counterpart": "ordinary serial source and !WFR paths",
+      "dependency": "MPI",
+      "cmake_option": "MPI or JAC",
+      "tests": ["mpi", "mpi-netcdf", "jac", "timg-mpi", "metis-mpi", "ffro-mpi"],
+      "max_occurrences": 379,
+      "files": ["SwanParallel.f90", "swancom1.f90", "swanparll.f90", "swmod2.f90"],
+      "procedures": ["<file>", "M_PARALL", "MPI", "SACCUR", "SwanCollBpntlist", "SwanUvExchgI", "SwanUvExchgR", "SWBROADC_C0", "SWBROADC_CHECK", "SWBROADC_I0", "SWBROADC_I1", "SWBROADC_I2", "SWBROADC_R0", "SWBROADC_R1", "SWBROADC_R2", "SWBROADC_R3", "SWBROADC_R4", "SWCOMP", "SWEXITMPI", "SWGATHER_I12", "SWGATHER_I21", "SWGATHER_LAYOUT", "SWGATHER_R11", "SWINITMPI", "SWMPI_CHECK", "SWRECVNB_R1", "SWRECVNB_R2", "SWREDUCE_I0", "SWREDUCE_I1", "SWREDUCE_R0", "SWREDUCE_R1", "SWSENDNB_R1", "SWSENDNB_R2", "SWSTPC", "SWSYNC"]
+    },
+    "!/Cray": {
+      "owner": "legacy Cray file opening",
+      "variant": "non-Cray branch",
+      "counterpart": "ordinary Cray source",
+      "dependency": "Cray compiler runtime",
+      "cmake_option": "not exposed",
+      "tests": ["none; unsupported compiler branch"],
+      "max_occurrences": 5,
+      "files": ["ocpids.f90", "swan_file_opening.f90"],
+      "procedures": ["FOR", "OCPINI"]
+    },
+    "!/SGI": {
+      "owner": "legacy SGI file opening",
+      "variant": "non-SGI branch",
+      "counterpart": "ordinary SGI source",
+      "dependency": "SGI compiler runtime",
+      "cmake_option": "not exposed",
+      "tests": ["none; unsupported compiler branch"],
+      "max_occurrences": 7,
+      "files": ["ocpids.f90", "swan_file_opening.f90"],
+      "procedures": ["FOR", "OCPINI"]
+    },
+    "!/impi": {
+      "owner": "non-GNU MPI compatibility module",
+      "variant": "non-Intel-style MPI module excluded",
+      "counterpart": "generated MPI wrapper using mpif.h",
+      "dependency": "MPI and a supported non-GNU compiler",
+      "cmake_option": "MPI with non-GNU compiler",
+      "tests": ["none in installed GNU toolchains"],
+      "max_occurrences": 4,
+      "files": ["swmod2.f90"],
+      "procedures": ["<file>", "MPI"]
+    },
+    "!CVIS": {
+      "owner": "DEC-style shared file opening",
+      "variant": "SHARED OPEN specifier enabled",
+      "counterpart": "ordinary standard-conforming OPEN",
+      "dependency": "non-GNU Windows compiler",
+      "cmake_option": "WIN32 with non-GNU compiler",
+      "tests": ["none in current Linux matrix"],
+      "max_occurrences": 6,
+      "files": ["ocpids.f90", "swan_file_opening.f90"],
+      "procedures": ["FOR", "OCPINI"]
+    },
+    "!ADC": {
+      "owner": "ADCIRC coupling",
+      "variant": "ADCIRC coupling enabled",
+      "counterpart": "!NADC",
+      "dependency": "ADCIRC",
+      "cmake_option": "not exposed",
+      "tests": ["none; marker currently unused"],
+      "max_occurrences": 0,
+      "files": [],
+      "procedures": []
+    },
+    "!NADC": {
+      "owner": "ADCIRC coupling",
+      "variant": "ADCIRC negative branch",
+      "counterpart": "!ADC",
+      "dependency": "ADCIRC",
+      "cmake_option": "not exposed",
+      "tests": ["none; marker currently unused"],
+      "max_occurrences": 0,
+      "files": [],
+      "procedures": []
+    },
+    "!COH": {
+      "owner": "coherent MPI coupling",
+      "variant": "coherent coupling enabled",
+      "counterpart": "!NCOH",
+      "dependency": "external coherent-coupling runtime",
+      "cmake_option": "not exposed",
+      "tests": ["none; marker currently unused"],
+      "max_occurrences": 0,
+      "files": [],
+      "procedures": []
+    },
+    "!NCOH": {
+      "owner": "ordinary MPI lifecycle without coherent coupling",
+      "variant": "coherent coupling disabled",
+      "counterpart": "!COH",
+      "dependency": "MPI",
+      "cmake_option": "default negative branch when MPI is enabled",
+      "tests": ["mpi", "mpi-netcdf", "jac", "timg-mpi", "metis-mpi", "ffro-mpi"],
+      "max_occurrences": 7,
+      "files": ["swanparll.f90"],
+      "procedures": ["SWEXITMPI", "SWINITMPI", "SWSYNC"]
+    },
+    "!METIS": {
+      "owner": "unstructured mesh partitioning",
+      "variant": "METIS partitioning enabled",
+      "counterpart": "built-in partitioning",
+      "dependency": "METIS; meaningful distributed path also needs MPI",
+      "cmake_option": "METIS",
+      "tests": ["metis", "metis-mpi; compile/link only for partitioning path"],
+      "max_occurrences": 34,
+      "files": ["SwanCompUnstruc.f90", "swanmain.f90", "swanout1.f90", "swanpre1.f90", "swanpre2.f90"],
+      "procedures": ["SwanCompUnstruc", "SWBOUN", "SWCLME", "SWMAIN", "SWOEXD", "SWREAD"]
+    },
+    "!NCF": {
+      "owner": "netCDF output backend",
+      "variant": "netCDF enabled",
+      "counterpart": "!NNCF",
+      "dependency": "netCDF Fortran",
+      "cmake_option": "NETCDF",
+      "tests": ["netcdf", "mpi-netcdf; compile/link only, no output reference"],
+      "max_occurrences": 235,
+      "files": ["swanout1.f90", "swanout2.f90", "swanparll.f90", "swanpre2.f90"],
+      "procedures": ["SWBLOK", "SWCOLBLK", "SWCOLOUT", "SWCOLSPC", "SWORDC", "SWOUTP", "SWREOQ", "SWSPEC", "SWTABP"]
+    },
+    "!NNCF": {
+      "owner": "output without netCDF support",
+      "variant": "netCDF disabled",
+      "counterpart": "!NCF",
+      "dependency": "none",
+      "cmake_option": "default when NETCDF is OFF",
+      "tests": ["standard and all non-netCDF matrix configurations"],
+      "max_occurrences": 5,
+      "files": ["swanout1.f90", "swanout2.f90"],
+      "procedures": ["SWBLOK", "SWOUTP", "SWTABP"]
+    },
+    "!MatL4": {
+      "owner": "MATLAB version 4 output backend",
+      "variant": "MATLAB v4 output",
+      "counterpart": "!MatL5",
+      "dependency": "none",
+      "cmake_option": "MATL4",
+      "tests": ["matl4; compile/link only, no output reference"],
+      "max_occurrences": 621,
+      "files": ["swanout2.f90", "swanparll.f90", "swanser.f90"],
+      "procedures": ["<file>", "SWBLOK", "SWCOLBLK", "SWI2B", "SWR2B", "SWRMAT", "SWTABP"]
+    },
+    "!MatL5": {
+      "owner": "MATLAB version 5 output backend",
+      "variant": "MATLAB v5 output",
+      "counterpart": "!MatL4",
+      "dependency": "none",
+      "cmake_option": "default when MATL4 is OFF",
+      "tests": ["standard and all non-MATL4 matrix configurations"],
+      "max_occurrences": 320,
+      "files": ["swanout2.f90", "swanparll.f90"],
+      "procedures": ["SWBLOK", "SWCOLBLK", "SWRMAT", "SWTABP"]
+    }
+  }
+}

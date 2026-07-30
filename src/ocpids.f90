@@ -6,6 +6,7 @@
 !                                                                *
 
 module swan_ocean_pack_init
+   use swan_build_config, only: alternate_path_separator, native_path_separator
    use swan_time, only: DTSTTI, DTTIST
    use swan_io_limits, only: LENFNM
    use swan_project_metadata, only: INST
@@ -176,10 +177,8 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
          READ (11, "(A1)", IOSTAT=IOSTAT) DIRCH2
          IF (initialisation_read_failed(IOSTAT)) RETURN
       ELSE
-!DOS         DIRCH1 = CHAR(47)
-!DOS         DIRCH2 = CHAR(92)
-!UNIX         DIRCH1 = CHAR(92)
-!UNIX         DIRCH2 = CHAR(47)
+         DIRCH1 = alternate_path_separator
+         DIRCH2 = native_path_separator
       ENDIF
       IF (INIVEF.LT.3) THEN
          READ (11, "(A4)", IOSTAT=IOSTAT) PLTOPT
@@ -237,10 +236,8 @@ SUBROUTINE OCPINI (INIFIL, LREAD, INERR)
       default_command_reader%COMID  = '$'
 !       DIRCH1 is directory separation character as appears in input file
 !       DIRCH2 is directory separation character replacing DIRCH1
-!DOS      DIRCH1 =  CHAR(47)
-!DOS      DIRCH2 =  CHAR(92)
-!UNIX      DIRCH1 =  CHAR(92)
-!UNIX      DIRCH2 =  CHAR(47)
+      DIRCH1 = alternate_path_separator
+      DIRCH2 = native_path_separator
 !       INST = name of institute, max. 40 characters
       INST = 'Delft University of Technology'
       ITMOPT = 1

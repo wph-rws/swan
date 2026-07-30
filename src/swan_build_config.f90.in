@@ -1,0 +1,13 @@
+module swan_build_config
+   implicit none(type, external)
+   private
+   public :: timing_enabled, invariant_checks_enabled
+   public :: native_path_separator, alternate_path_separator
+
+   logical, parameter :: timing_enabled = @SWAN_TIMING_ENABLED@
+   logical, parameter :: invariant_checks_enabled = @SWAN_INVARIANT_CHECKS_ENABLED@
+   character(len=1), parameter :: native_path_separator = &
+      achar(@SWAN_NATIVE_PATH_SEPARATOR_CODE@)
+   character(len=1), parameter :: alternate_path_separator = &
+      achar(@SWAN_ALTERNATE_PATH_SEPARATOR_CODE@)
+end module swan_build_config

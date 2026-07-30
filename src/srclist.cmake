@@ -1,6 +1,6 @@
 set( swan_src
 ${SWAN_GENERATED_SRC}/swan_kinds.f90
-${SWAN_GENERATED_SRC}/swan_timing_configuration.f90
+${SWAN_GENERATED_SRC}/swan_build_config.f90
 ${SWAN_GENERATED_SRC}/swan_math_constants.f90
 ${SWAN_GENERATED_SRC}/swan_io_limits.f90
 ${SWAN_GENERATED_SRC}/swan_io_units.f90

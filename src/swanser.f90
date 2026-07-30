@@ -3374,13 +3374,11 @@ SUBROUTINE SWTSTA (ITIMER)
 !     IFREE :     index in LISTTM, first free position
 !     M     :     maximum clock count
 !     R     :     number of clock counts per second
-!F95!     TIMER :     current real cpu-time
 !     TIMER1:     current cpu-time used
 !     TIMER2:     current wall-clock time used
 !
    INTEGER          :: I, IFOUND, IFREE
    INTEGER          :: C, R, M
-!F95   REAL             :: TIMER
    REAL(KIND=KIND(0.0D0)) :: TIMER1, TIMER2
 !
 !  7. Common blocks used
@@ -3388,7 +3386,7 @@ SUBROUTINE SWTSTA (ITIMER)
 !
 !  8. Subroutines used
 !
-!F95!     CPU_TIME         Returns real value from cpu-time clock
+!     CPU_TIME         Returns real value from cpu-time clock
 !     SYSTEM_CLOCK     Returns integer values from a real-time clock
 !
 !  9. Subroutines calling
@@ -3458,9 +3456,7 @@ SUBROUTINE SWTSTA (ITIMER)
 !
 !     --- get current cpu/wall-clock time and store in TIMERS
 !
-   TIMER1=0D0
-!F95   CALL CPU_TIME (TIMER)
-!F95   TIMER1=DBLE(TIMER)
+   CALL CPU_TIME (TIMER1)
    CALL SYSTEM_CLOCK (C,R,M)
    TIMER2=DBLE(C)/DBLE(R)
 
@@ -3539,13 +3535,11 @@ SUBROUTINE SWTSTO (ITIMER)
 !     IFOUND:     index in LISTTM, location of ITIMER
 !     M     :     maximum clock count
 !     R     :     number of clock counts per second
-!F95!     TIMER :     current real cpu-time
 !     TIMER1:     current cpu-time used
 !     TIMER2:     current wall-clock time used
 !
    INTEGER          :: I, IFOUND
    INTEGER          :: C, R, M
-!F95   REAL             :: TIMER
    REAL(KIND=KIND(0.0D0)) :: TIMER1, TIMER2
 !
 !  7. Common blocks used
@@ -3553,7 +3547,7 @@ SUBROUTINE SWTSTO (ITIMER)
 !
 !  8. Subroutines used
 !
-!F95!     CPU_TIME         Returns real value from cpu-time clock
+!     CPU_TIME         Returns real value from cpu-time clock
 !     SYSTEM_CLOCK     Returns integer values from a real-time clock
 !
 !  9. Subroutines calling
@@ -3599,9 +3593,7 @@ SUBROUTINE SWTSTO (ITIMER)
 !
 !     --- get current cpu/wall-clock time
 !
-   TIMER1=0D0
-!F95   CALL CPU_TIME (TIMER)
-!F95   TIMER1=DBLE(TIMER)
+   CALL CPU_TIME (TIMER1)
    CALL SYSTEM_CLOCK (C,R,M)
    TIMER2=DBLE(C)/DBLE(R)
 !
@@ -4094,8 +4086,7 @@ SUBROUTINE TXPBLA(TEXT,IF,IL)
 !
 ! 13. Source text
 !
-!DOS   ITABVL = 9
-!UNIX  ITABVL = 9
+   ITABVL = 9
    LENTXT = LEN (TEXT)
    IF = 1
    FOUND = .FALSE.

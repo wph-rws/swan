@@ -28,7 +28,7 @@
 !                                                                      *
 
 module swan_driver
-   use swan_timing_configuration, only: timing_enabled
+   use swan_build_config, only: timing_enabled
    use swan_diffraction_state, only: diffraction_state_t
    use swan_triad_state, only: triad_state_t
    use swan_snl4_tables, only: snl4_tables_t
@@ -1214,10 +1214,6 @@ SUBROUTINE SWINIT (INERR, SNL4)
 
 !     *** setup flag ***
    LSETUP = 0
-
-!     *** flag for setup convergence
-
-   CSETUP = .TRUE.
 
 !     PSETUP(1) is currently unused, but can be used as setup nesting flag
 !     PSETUP(2) is the user defined correction for the level of the setup

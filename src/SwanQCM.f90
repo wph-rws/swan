@@ -1,7 +1,7 @@
 ! This file contains data and routines for quasi-coherent modelling (QCM)
 
 module SwanQCM
-   USE swan_timing_configuration, ONLY: timing_enabled
+   USE swan_build_config, ONLY: timing_enabled
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, STPNOW, SWTSTA, SWTSTO
    USE swan_wave_physics, ONLY: KSCIP1
    USE swan_input_interpolation, ONLY: SVALQI

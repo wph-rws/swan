@@ -31,7 +31,7 @@
 !****************************************************************
 
 module swan_parallel
-   use swan_timing_configuration, only: timing_enabled
+   use swan_build_config, only: timing_enabled
    use swan_io_limits, only: LENFNM
    use swan_output_variables, only: NMOVAR, OVEXCV, OVHEXP, OVLNAM, OVSNAM, OVSVTY, OVUNIT
    use swan_time, only: CHTIME

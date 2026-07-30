@@ -14,9 +14,6 @@ SWITCHES = {
     "-jac": "jac",
     "-fixfront": "ffro",
     "-mpi": "mpi",
-    "-f95": "f95",
-    "-dos": "dos",
-    "-unix": "unx",
     "-cray": "cry",
     "-sgi": "sgi",
     "-impi": "imp",
@@ -26,7 +23,6 @@ SWITCHES = {
     "-metis": "met",
     "-netcdf": "ncf",
     "-matl4": "mv4",
-    "-debug-invariants": "dinv",
 }
 
 
@@ -87,9 +83,6 @@ def transform(line: str, enabled: set[str]) -> str:
         ("!FXFRO", "ffro" in enabled),
         ("!GRAPH", "ffro" not in enabled),
         ("!MPI", "mpi" in enabled),
-        ("!F95", "f95" in enabled),
-        ("!DOS", "dos" in enabled),
-        ("!UNIX", "unx" in enabled),
         ("!/Cray", "cry" in enabled),
         ("!/SGI", "sgi" in enabled),
         ("!/impi", "imp" in enabled),
@@ -103,7 +96,6 @@ def transform(line: str, enabled: set[str]) -> str:
         ("!NNCF", "ncf" not in enabled),
         ("!MatL4", "mv4" in enabled),
         ("!MatL5", "mv4" not in enabled),
-        ("!DINV", "dinv" in enabled),
     ]
     for marker, active in replacements:
         if active and line.startswith(marker):

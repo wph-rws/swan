@@ -25,7 +25,7 @@ Levensduur is de kortste eenheid waarover de waarde geldig moet blijven:
 |---|---|---|---|---|
 | 1 | [swan_stencil.f90:41](../src/swan_stencil.f90#L41) | `swan_stencil` | `IXCGRD, IYCGRD, KCGRD, COSLAT` | altijd |
 | 2 | [swan_stencil.f90:42](../src/swan_stencil.f90#L42) | `swan_stencil` | `RDFSIN` | altijd |
-| 3 | [swan_stencil.f90:48](../src/swan_stencil.f90#L48) | `swan_stencil` | `ICMAX, CSETUP` | altijd |
+| 3 | [swan_stencil.f90:46](../src/swan_stencil.f90#L46) | `swan_stencil` | `ICMAX` | altijd |
 | 4 | [swan_test_output.f90:34](../src/swan_test_output.f90#L34) | `swan_test_output` | `IPTST, TESTFL` | altijd |
 | 5 | [swan_propagation_scheme.f90:27](../src/swan_propagation_scheme.f90#L27) | `swan_propagation_scheme` | `PROPSL` | altijd |
 | 6 | [swan_time.f90:40](../src/swan_time.f90#L40) | `swan_time` | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | altijd aanwezig; actief bij `TIMG=ON` |
@@ -52,13 +52,14 @@ de masterwaarde hebben.
 | `IPTST` | ✅ | ✅ |
 | `TESTFL` | ✅ | ✅ |
 | `RDFSIN` | ✅ | ✅ |
-| `CSETUP` | ✅ | — |
 | `PROPSL` | ✅ | — |
 | `IXCGRD, IYCGRD, KCGRD` | — | — |
 | `wcap_workspace_t` | expliciet per thread | expliciet per thread |
 
-`CSETUP` en `PROPSL` ontbreken in de ongestructureerde regio omdat die solver
-het gestructureerde propagatieschema en de setup-optie niet gebruikt.
+`PROPSL` ontbreekt in de ongestructureerde regio omdat die solver het
+gestructureerde propagatieschema niet gebruikt. `CSETUP` is geen thread-state
+meer: `SETUP2D` retourneert zijn convergentiestatus via `SETUPP` aan de lokale
+`SETUP_CONVERGED` van `SWCOMP`.
 
 ## Manifest per symbool
 
@@ -69,7 +70,7 @@ solver- of switch-specifiek.
 
 ### `swan_stencil` — stencil en propagatiekeuzes
 
-Deze zeven zijn wat er van `SWCOMM3` over is. De module bestaat niet meer; wat
+Deze zes zijn wat er van `SWCOMM3` over is. De module bestaat niet meer; wat
 erin stond is verdeeld over elf gerichte modules en de thread-toestand staat nu
 alleen in `swan_stencil`. Dat maakt de voorgestelde eigenaars hieronder niet
 anders, maar het scheelt een lezer het onderscheid tussen runconfiguratie en
@@ -83,8 +84,6 @@ threadtoestand zelf te moeten maken.
 | `COSLAT` | beide | ✅ | [swanmain.f90](../src/swanmain.f90) via setup; swancom5 | sweep | 3 | `common_thread_seed_t` |
 | `RDFSIN` | beide | ✅ | [swanmain.f90:3757](../src/swanmain.f90#L3757) | run | 3 | `common_thread_seed_t` |
 | `ICMAX` | beide | ✅ | [swanmain.f90:1033](../src/swanmain.f90#L1033) | run | 3 | `common_thread_seed_t` |
-| `CSETUP` | structured | ✅ | [swanmain.f90:1143](../src/swanmain.f90#L1143) | run | 3/6 | `structured_thread_workspace_t` |
-
 `KCGRD` was in het ongestructureerde pad gespiegeld in `vs`, een tweede
 threadprivate array in `SwanCompdata` met dezelfde inhoud (`KCGRD = vs`, met het
 commentaar "to be used in some original SWAN routines"). Die spiegel is weg: de

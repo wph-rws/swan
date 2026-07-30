@@ -21,7 +21,7 @@ module swan_stencil
 
    public :: MICMAX
    public :: IXCGRD, IYCGRD, KCGRD, COSLAT, ICMAX
-   public :: ILMAX, RDFSIN, CSETUP
+   public :: ILMAX, RDFSIN
 
 !     MICMAX : the largest stencil SWAN uses, and so the extent of the arrays
 !              below. ICMAX says how many of those points are in use.
@@ -42,10 +42,8 @@ module swan_stencil
 !$OMP THREADPRIVATE(RDFSIN)
 
 !     ICMAX  : number of points actually in the stencil, 3 or more
-!     CSETUP : whether the setup solver has converged
    integer :: ICMAX
-   logical :: CSETUP
-!$OMP THREADPRIVATE(ICMAX,CSETUP)
+!$OMP THREADPRIVATE(ICMAX)
 
 !     ILMAX : maximum number of layers used in the vegetation model. Not
 !             thread state; it stayed here because it was declared between two

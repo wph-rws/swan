@@ -1,6 +1,8 @@
 # define switches
+set( SWITCHES )
 if( WIN32 )
-  set( SWITCHES -dos )
+  set( SWAN_NATIVE_PATH_SEPARATOR_CODE 92 )
+  set( SWAN_ALTERNATE_PATH_SEPARATOR_CODE 47 )
   # The CVIS switch enables the nonstandard SHARED specifier in OPEN
   # statements. GNU Fortran rejects that DEC extension in the required
   # standard-conforming mode, and Windows file sharing already works without
@@ -9,7 +11,8 @@ if( WIN32 )
     list( APPEND SWITCHES -cvis )
   endif()
 elseif( UNIX )
-  set( SWITCHES -unix )
+  set( SWAN_NATIVE_PATH_SEPARATOR_CODE 47 )
+  set( SWAN_ALTERNATE_PATH_SEPARATOR_CODE 92 )
 endif()
 
 # include user-dependent switches
@@ -42,10 +45,6 @@ if( MATL4 )
   list( APPEND SWITCHES -matl4 )
 endif()
 #
-if( SWAN_DEBUG_INVARIANTS )
-  list( APPEND SWITCHES -debug-invariants )
-endif()
-
 # Generate configured Fortran sources in the build tree.  The .f90 files in
 # the source tree remain the only editable sources; configured variants never
 # obscure their Git history.
@@ -56,15 +55,20 @@ if( TIMG )
 else()
   set( SWAN_TIMING_ENABLED ".false." )
 endif()
+if( SWAN_DEBUG_INVARIANTS )
+  set( SWAN_INVARIANT_CHECKS_ENABLED ".true." )
+else()
+  set( SWAN_INVARIANT_CHECKS_ENABLED ".false." )
+endif()
 configure_file(
-  ${SRC}/swan_timing_configuration.f90.in
-  ${SWAN_GENERATED_SRC}/swan_timing_configuration.f90
+  ${SRC}/swan_build_config.f90.in
+  ${SWAN_GENERATED_SRC}/swan_build_config.f90
   @ONLY
 )
 file( GLOB SWAN_SOURCE_INPUTS CONFIGURE_DEPENDS "${SRC}/*.f90" )
 set_property( DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   ${SWAN_SOURCE_INPUTS}
-  "${SRC}/swan_timing_configuration.f90.in"
+  "${SRC}/swan_build_config.f90.in"
   "${CMAKE_SOURCE_DIR}/switch.py"
 )
 execute_process(

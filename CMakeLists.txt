@@ -217,6 +217,25 @@ if( BUILD_TESTING )
             --manifest ${CMAKE_SOURCE_DIR}/doc/thread-state-manifest.md
   )
 
+  # Custom source switches are a shrinking compatibility surface.  Keep the
+  # exact switch.py vocabulary and every marker's current owners ratcheted
+  # until the generated source copies can be removed altogether.
+  add_test(
+    NAME switch_manifest
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/check_switch_manifest.py
+            --source-dir ${CMAKE_SOURCE_DIR}/src
+            --switch ${CMAKE_SOURCE_DIR}/switch.py
+            --manifest ${CMAKE_SOURCE_DIR}/doc/switch-manifest.json
+  )
+  add_test(
+    NAME switch_manifest_self_test
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/check_switch_manifest.py
+            --switch ${CMAKE_SOURCE_DIR}/switch.py
+            --self-test
+  )
+
   add_test(
     NAME quick_test
     COMMAND ${Python3_EXECUTABLE}
