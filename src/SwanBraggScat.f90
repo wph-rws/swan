@@ -1519,4 +1519,15 @@ subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 ,IGP)
 
 end subroutine FILBRG
 
+subroutine CLEAR_BRAGG_STATE ()
+!  botspc/dpmean are run-temporary (allocated in SWREAD, released in SWMAIN)
+!  and are not part of the SWCLME contract; fb/fbdxy persist the run.
+   if (allocated(fb   )) deallocate(fb   )
+   if (allocated(fbdxy)) deallocate(fbdxy)
+end subroutine CLEAR_BRAGG_STATE
+
+logical function BRAGG_STATE_IS_CLEAR ()
+   BRAGG_STATE_IS_CLEAR = .not.allocated(fb) .and. .not.allocated(fbdxy)
+end function BRAGG_STATE_IS_CLEAR
+
 end module SwanBraggScat

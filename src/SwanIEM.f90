@@ -1249,4 +1249,20 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
 
 end subroutine SwanIEMsrfbeat
 
+subroutine CLEAR_IEM_STATE ()
+   if (allocated(iss )) deallocate(iss )
+   if (allocated(iwt )) deallocate(iwt )
+   if (allocated(itt )) deallocate(itt )
+   if (allocated(freq)) deallocate(freq)
+   if (allocated(E0  )) deallocate(E0  )
+   if (allocated(Ebig)) deallocate(Ebig)
+end subroutine CLEAR_IEM_STATE
+
+logical function IEM_STATE_IS_CLEAR ()
+   IEM_STATE_IS_CLEAR = .not.allocated(iss) .and. &
+      .not.allocated(iwt) .and. .not.allocated(itt) .and. &
+      .not.allocated(freq) .and. .not.allocated(E0) .and. &
+      .not.allocated(Ebig)
+end function IEM_STATE_IS_CLEAR
+
 end module SwanIEM

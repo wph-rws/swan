@@ -13,8 +13,9 @@ else()
   set( CMAKE_INSTALL_PREFIX "$ENV{HOME}/wavemodels/swan" CACHE STRING "" )
 endif()
 
-# Fortran project for SWAN
-project( SWAN Fortran )
+# Fortran project for SWAN — wph-rws/swan fork.
+# Referentielijn: TU Delft gitlab.tudelft.nl/citg/wavemodels/swan (upstream).
+project( SWAN LANGUAGES Fortran DESCRIPTION "wph-rws/swan fork of SWAN 41.51" )
 
 # Require portable, standard-conforming free-form Fortran.  CMake 3.20 and
 # GNU Fortran 13 support Fortran 2018 as the newest enforceable language mode;
@@ -49,6 +50,9 @@ option( MPI "" OFF )
 option( JAC "" OFF )
 option( METIS "" OFF )
 option( FFRO "" OFF )
+option( COH "Preserve externally owned coherent-coupling MPI lifecycle" OFF )
+option( ESMF "Enable ESMF exponential-wind-input coupling state" OFF )
+option( ADCIRC "Compatibility selector; ADCIRC grid support is always built" OFF )
 option( NETCDF "" OFF )
 option( TIMG "Enable internal timing instrumentation" OFF )
 option( MATL4 "Enable MATLAB version 4 output" OFF )
@@ -58,37 +62,74 @@ option( SWAN_DEBUG_INVARIANTS "Enable diagnostic runtime invariant checks" OFF )
 option( SWAN_RUNTIME_CHECKS "Enable compiler runtime checks (bounds, allocation, arguments)" OFF )
 option( SWAN_LEGACY_CRAY_IO "Exercise the preserved Cray sequential-I/O branch" OFF )
 option( SWAN_LEGACY_SGI_IO "Exercise the preserved SGI I/O and unit-limit branch" OFF )
+option( SWAN_DEC_SHARED_IO "Use the preserved DEC SHARED file-opening backend" OFF )
+option( SWAN_MPIF_COMPAT "Provide the preserved mpif.h-backed MPI module" OFF )
+
+if( ESMF AND METIS )
+  message( FATAL_ERROR "ESMF and METIS are historically incompatible" )
+endif()
+if( ESMF AND ADCIRC )
+  message( FATAL_ERROR "ESMF and ADCIRC are historically incompatible" )
+endif()
+if( SWAN_MPIF_COMPAT AND NOT (MPI OR JAC) )
+  message( FATAL_ERROR "SWAN_MPIF_COMPAT requires MPI or JAC" )
+endif()
 
 # Compiler compatibility options are target-specific so CMake's build-type
 # flags and user-provided CMAKE_Fortran_FLAGS remain effective.
+# IntelLLVM (ifx) expliciet onderscheiden van Intel-classic (ifort);
+# LLVMFlang/Flang/IBMFlang alleen met taalproeven en uitvoerbewijs (kandidaat,
+# geen geclaimde ondersteuning zonder kwalificatie). Herkenning alleen is geen
+# ondersteuning. Per toolchain eigen vlaggen; waarschuwingen blijven zichtbaar
+# (geen -W0/-w-suppressie) met een parser/baseline per compiler.
 add_library( swan_build_options INTERFACE )
 if( CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
   target_compile_options( swan_build_options INTERFACE
     -std=f2018 -fimplicit-none -fno-second-underscore
     -ffree-line-length-none
   )
-elseif( CMAKE_Fortran_COMPILER_ID MATCHES "Intel" )
+elseif( CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM" )
+  # Actuele Intel-route (ifx). Zichtbare strikte set; geen -W0.
   if( UNIX )
     target_compile_options( swan_build_options INTERFACE
-      -W0 -assume byterecl -traceback
-      -diag-disable 8290 -diag-disable 8291 -diag-disable 8293
+      -warn all -assume byterecl -traceback -stand:f2018
     )
   elseif( WIN32 )
     target_compile_options( swan_build_options INTERFACE
-      /assume:byterecl /traceback /nowarn /nologo
-      /Qdiag-disable:8290 /Qdiag-disable:8291 /Qdiag-disable:8293
+      /warn:all /assume:byterecl /traceback /stand:f2018 /nologo
     )
   endif()
+  message( STATUS "IntelLLVM (ifx) herkend: tweede implementatie, kwalificatie vereist (taalproeven + serieel, dan OpenMP/MPI/netCDF); zie doc/support-matrix.md" )
+elseif( CMAKE_Fortran_COMPILER_ID STREQUAL "Intel" )
+  # Historische Intel-classic (ifort); geen nieuwe strategische basis.
+  if( UNIX )
+    target_compile_options( swan_build_options INTERFACE
+      -warn all -assume byterecl -traceback -stand:f2018
+    )
+  elseif( WIN32 )
+    target_compile_options( swan_build_options INTERFACE
+      /warn:all /assume:byterecl /traceback /stand:f2018 /nologo
+    )
+  endif()
+  message( STATUS "Intel-classic (ifort) herkend: historische compatibiliteit, geen nieuwe basis; README noemt ifx als actuele route" )
+elseif( CMAKE_Fortran_COMPILER_ID MATCHES "^(LLVMFlang|Flang|IBMFlang)$" )
+  # Aanvullende controle op de kandidaat: herkenning + zichtbare vlaggen,
+  # maar ondersteuning pas na taalproeven en uitvoerbewijs voor de doelomgeving.
+  target_compile_options( swan_build_options INTERFACE -std=f2018 )
+  message( STATUS "${CMAKE_Fortran_COMPILER_ID} herkend als kandidaat: vereist taalproeven (implicit none(type,external), allocatables, C-interop, OpenMP-threadtoestand) en serieel uitvoerbewijs; zie doc/support-matrix.md" )
 elseif( CMAKE_Fortran_COMPILER_ID MATCHES "PGI" )
   target_compile_options( swan_build_options INTERFACE "$<$<CONFIG:Release>:-fast>" )
+  message( STATUS "PGI-tak historisch; buiten scope: geen NVIDIA/NVFortran/PGI-ondersteuning" )
 elseif( CMAKE_Fortran_COMPILER_ID MATCHES "Fujitsu" )
   target_compile_options( swan_build_options INTERFACE -O1 -staticlink -nwo )
-elseif( CMAKE_Fortran_COMPILER_ID MATCHES "XL" )
+elseif( CMAKE_Fortran_COMPILER_ID MATCHES "^(XL|IBMFlang)$" )
+  # Geen -w-suppressie: leeg log is zonder zichtbare set geen bewijs voor nul.
   target_compile_options( swan_build_options INTERFACE
-    -O3 -qstrict -qarch=auto -qtune=auto -qcache=auto -qalign=4k -w
+    -O3 -qstrict -qarch=auto -qtune=auto -qcache=auto -qalign=4k
   )
+  message( STATUS "XL/IBMFlang-tak: strikte set en parser per compiler vereist met eigen baseline; zie doc/support-matrix.md" )
 else()
-  message( FATAL_ERROR "-- Current Fortran compiler ${CMAKE_Fortran_COMPILER} not supported" )
+  message( FATAL_ERROR "-- Current Fortran compiler ${CMAKE_Fortran_COMPILER} not supported (ID=${CMAKE_Fortran_COMPILER_ID}); zie doc/support-matrix.md" )
 endif()
 
 if( SWAN_RUNTIME_CHECKS )
@@ -98,8 +139,13 @@ if( SWAN_RUNTIME_CHECKS )
   # defect; -O2 reproduces the reference exactly.
   if( CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
     target_compile_options( swan_build_options INTERFACE -fcheck=all )
-  elseif( CMAKE_Fortran_COMPILER_ID MATCHES "Intel" )
-    target_compile_options( swan_build_options INTERFACE -check all )
+  elseif( CMAKE_Fortran_COMPILER_ID MATCHES "^(Intel|IntelLLVM)$" )
+    if( UNIX )
+      target_compile_options( swan_build_options INTERFACE -check all )
+    else()
+      # Native Windows-vorm apart inrichten; geen UNIX-vlaggen hergebruiken.
+      target_compile_options( swan_build_options INTERFACE /check:all )
+    endif()
   else()
     message( WARNING "SWAN_RUNTIME_CHECKS has no effect for ${CMAKE_Fortran_COMPILER_ID}" )
   endif()
@@ -205,6 +251,10 @@ if( BUILD_TESTING )
             ${SWAN_DEFAULT_FREE_UNIT_START}
   )
 
+  add_executable( test_swan_library tests/test_swan_library.f90 )
+  target_link_libraries( test_swan_library PRIVATE swan${VERSION} )
+  add_test( NAME swan_library_contract COMMAND test_swan_library )
+
   if( METIS )
     set( SWAN_EXPECTED_METIS_BACKEND 1 )
   else()
@@ -217,9 +267,141 @@ if( BUILD_TESTING )
     COMMAND test_metis_backend ${SWAN_EXPECTED_METIS_BACKEND}
   )
 
+  if( MPI )
+    set( SWAN_EXPECTED_MPI_BACKEND 1 )
+  else()
+    set( SWAN_EXPECTED_MPI_BACKEND 0 )
+  endif()
+  add_executable( test_mpi_backend tests/test_mpi_backend.f90 )
+  target_link_libraries( test_mpi_backend PRIVATE swan${VERSION} )
+  add_test(
+    NAME mpi_backend
+    COMMAND test_mpi_backend ${SWAN_EXPECTED_MPI_BACKEND}
+  )
+
+  if( JAC )
+    set( SWAN_EXPECTED_JACOBI_SWEEP 1 )
+  else()
+    set( SWAN_EXPECTED_JACOBI_SWEEP 0 )
+  endif()
+  add_executable( test_block_coloring_backend
+    tests/test_block_coloring_backend.f90 )
+  target_link_libraries( test_block_coloring_backend PRIVATE swan${VERSION} )
+  add_test(
+    NAME block_coloring_backend
+    COMMAND test_block_coloring_backend ${SWAN_EXPECTED_JACOBI_SWEEP}
+  )
+
+  add_executable( test_sweep_scheduling_backend
+    tests/test_sweep_scheduling_backend.f90 )
+  target_link_libraries( test_sweep_scheduling_backend PRIVATE swan${VERSION} )
+  add_test(
+    NAME sweep_scheduling_backend
+    COMMAND test_sweep_scheduling_backend ${SWAN_EXPECTED_JACOBI_SWEEP}
+  )
+
+  add_executable( test_partitioning_strategies
+    tests/test_partitioning_strategies.f90 )
+  target_link_libraries( test_partitioning_strategies PRIVATE swan${VERSION} )
+  add_test(
+    NAME partitioning_strategy
+    COMMAND test_partitioning_strategies ${SWAN_EXPECTED_JACOBI_SWEEP}
+  )
+
+  if( FFRO )
+    set( SWAN_EXPECTED_FIXED_FRONT 1 )
+  else()
+    set( SWAN_EXPECTED_FIXED_FRONT 0 )
+  endif()
+  add_executable( test_front_scheduling_backend
+    tests/test_front_scheduling_backend.f90 )
+  target_link_libraries( test_front_scheduling_backend PRIVATE swan${VERSION} )
+  add_test(
+    NAME front_scheduling_backend
+    COMMAND test_front_scheduling_backend ${SWAN_EXPECTED_FIXED_FRONT}
+  )
+
+  if( COH )
+    set( SWAN_EXPECTED_COHERENT_COUPLING 1 )
+  else()
+    set( SWAN_EXPECTED_COHERENT_COUPLING 0 )
+  endif()
+  add_executable( test_mpi_lifecycle_backend
+    tests/test_mpi_lifecycle_backend.f90 )
+  target_link_libraries( test_mpi_lifecycle_backend PRIVATE swan${VERSION} )
+  add_test(
+    NAME mpi_lifecycle_backend
+    COMMAND test_mpi_lifecycle_backend ${SWAN_EXPECTED_COHERENT_COUPLING}
+  )
+
+  if( ESMF )
+    set( SWAN_EXPECTED_ESMF_COUPLING 1 )
+  else()
+    set( SWAN_EXPECTED_ESMF_COUPLING 0 )
+  endif()
+  add_executable( test_esmf_coupling_backend
+    tests/test_esmf_coupling_backend.f90 )
+  target_link_libraries( test_esmf_coupling_backend PRIVATE swan${VERSION} )
+  add_test(
+    NAME esmf_coupling_backend
+    COMMAND test_esmf_coupling_backend ${SWAN_EXPECTED_ESMF_COUPLING}
+  )
+
   add_executable( test_output_interfaces tests/test_output_interfaces.f90 )
   target_link_libraries( test_output_interfaces PRIVATE swan${VERSION} )
   add_test( NAME output_interfaces COMMAND test_output_interfaces )
+
+  add_executable( test_obstacle_state tests/test_obstacle_state.f90 )
+  target_link_libraries( test_obstacle_state PRIVATE swan${VERSION} )
+  add_test( NAME obstacle_state COMMAND test_obstacle_state )
+
+  add_executable( test_boundary_state tests/test_boundary_state.f90 )
+  target_link_libraries( test_boundary_state PRIVATE swan${VERSION} )
+  add_test( NAME boundary_state COMMAND test_boundary_state )
+
+  add_executable( test_output_state tests/test_output_state.f90 )
+  target_link_libraries( test_output_state PRIVATE swan${VERSION} )
+  add_test( NAME output_state COMMAND test_output_state )
+
+  add_executable( test_general_array_state tests/test_general_array_state.f90 )
+  target_link_libraries( test_general_array_state PRIVATE swan${VERSION} )
+  add_test( NAME general_array_state COMMAND test_general_array_state )
+
+  add_executable( test_input_fields tests/test_input_fields.f90 )
+  target_link_libraries( test_input_fields PRIVATE swan${VERSION} )
+  add_test( NAME input_fields COMMAND test_input_fields )
+
+  add_executable( test_vegetation_layers tests/test_vegetation_layers.f90 )
+  target_link_libraries( test_vegetation_layers PRIVATE swan${VERSION} )
+  add_test( NAME vegetation_layers COMMAND test_vegetation_layers )
+
+  add_executable( test_global_grid tests/test_global_grid.f90 )
+  target_link_libraries( test_global_grid PRIVATE swan${VERSION} )
+  add_test( NAME global_grid COMMAND test_global_grid )
+
+  add_executable( test_parallel_storage tests/test_parallel_storage.f90 )
+  target_link_libraries( test_parallel_storage PRIVATE swan${VERSION} )
+  add_test( NAME parallel_storage COMMAND test_parallel_storage )
+
+  add_executable( test_grid_data tests/test_grid_data.f90 )
+  target_link_libraries( test_grid_data PRIVATE swan${VERSION} )
+  add_test( NAME grid_data COMMAND test_grid_data )
+
+  add_executable( test_computation_data tests/test_computation_data.f90 )
+  target_link_libraries( test_computation_data PRIVATE swan${VERSION} )
+  add_test( NAME computation_data COMMAND test_computation_data )
+
+  add_executable( test_iem_state tests/test_iem_state.f90 )
+  target_link_libraries( test_iem_state PRIVATE swan${VERSION} )
+  add_test( NAME iem_state COMMAND test_iem_state )
+
+  add_executable( test_bragg_state tests/test_bragg_state.f90 )
+  target_link_libraries( test_bragg_state PRIVATE swan${VERSION} )
+  add_test( NAME bragg_state COMMAND test_bragg_state )
+
+  add_executable( test_qcm_state tests/test_qcm_state.f90 )
+  target_link_libraries( test_qcm_state PRIVATE swan${VERSION} )
+  add_test( NAME qcm_state COMMAND test_qcm_state )
 
   # Runs SWMAIN twice in one process. It needs a directory of its own because
   # both runs write INPUT, PRINT and the result table in the working directory.
@@ -246,9 +428,15 @@ if( BUILD_TESTING )
             --manifest ${CMAKE_SOURCE_DIR}/doc/thread-state-manifest.md
   )
 
-  # Custom source switches are a shrinking compatibility surface.  Keep the
-  # exact switch.py vocabulary and every marker's current owners ratcheted
-  # until the generated source copies can be removed altogether.
+  add_test(
+    NAME run_state_ownership
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/check_run_state_ownership.py
+            --manifest ${CMAKE_SOURCE_DIR}/doc/run-state-ownership.json
+  )
+
+  # Keep the historical switch.py vocabulary ratcheted at zero use in product
+  # sources; the script remains only as a downstream compatibility interface.
   add_test(
     NAME switch_manifest
     COMMAND ${Python3_EXECUTABLE}
@@ -257,6 +445,27 @@ if( BUILD_TESTING )
             --switch ${CMAKE_SOURCE_DIR}/switch.py
             --manifest ${CMAKE_SOURCE_DIR}/doc/switch-manifest.json
   )
+  # De poorten draaien op een kale runner: een module die hier in een
+  # virtualenv aanwezig is maar daar niet geinstalleerd wordt, laat de hele
+  # job vallen op een fout die niets met SWAN te maken heeft. Bewaak dat de
+  # workflow installeert wat de testlaag importeert.
+  # De gate eist 'passed'; GitHub noemt een geslaagde job 'success'. Dat
+  # verschil laat alle jobs slagen en de gate toch falen, en blijkt pas als
+  # de workflow echt draait. Controleer het contract statisch.
+  add_test(
+    NAME ci_gate_workflow_contract
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/ci_gate.py
+            --check-workflow ${CMAKE_SOURCE_DIR}/.github/workflows/ci.yml
+  )
+
+  add_test(
+    NAME ci_dependencies
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/check_ci_dependencies.py
+            --workflow ${CMAKE_SOURCE_DIR}/.github/workflows/ci.yml
+  )
+
   add_test(
     NAME switch_manifest_self_test
     COMMAND ${Python3_EXECUTABLE}
@@ -264,6 +473,43 @@ if( BUILD_TESTING )
             --switch ${CMAKE_SOURCE_DIR}/switch.py
             --self-test
   )
+  add_test(
+    NAME switch_compatibility
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/test_switch_compatibility.py
+  )
+  add_test(
+    NAME reference_check_negatives
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_reference_check.py -q
+  )
+  add_test(
+    NAME strict_diagnostics_negatives
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_strict_diagnostics.py -q
+  )
+  add_test(
+    NAME build_matrix_negatives
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_build_matrix.py -q
+  )
+  add_test(
+    NAME ci_gate_self_test
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/ci_gate.py --self-test
+  )
+  add_test(
+    NAME mpi_field_mask_self_test
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/check_mpi_field_mask.py --self-test
+  )
+  add_test(
+    NAME lifetime_fault
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_lifetime_fault.py -q
+  )
+  set_tests_properties( lifetime_fault PROPERTIES
+    ENVIRONMENT "SWAN_EXECUTABLE=$<TARGET_FILE:${EXE}>" )
 
   add_test(
     NAME quick_test
@@ -283,6 +529,16 @@ if( BUILD_TESTING )
             ${CMAKE_SOURCE_DIR}/examples/diffraction/run.py
             --swan-executable $<TARGET_FILE:${EXE}>
             --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/diffraction
+  )
+
+  # GEN4 activates the quasi-coherent path (SWQCDFT/SWQCUFT/
+  # SWQCWIG via QCSOURCE). No other registered case reaches it.
+  add_test(
+    NAME qcm_reference
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/examples/qcm/run.py
+            --swan-executable $<TARGET_FILE:${EXE}>
+            --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/qcm
   )
 
   if( MATL4 )
@@ -511,6 +767,15 @@ if( BUILD_TESTING )
   )
   set_tests_properties(
     quick_test nonstationary_examples nonlinear_interactions
+    diffraction qcm_reference
     PROPERTIES RUN_SERIAL TRUE TIMEOUT 180
   )
+
+  # Keep the small OpenMP reference runs deterministic while still exercising
+  # real parallel work; otherwise the runtime inherits the host CPU count.
+  if( OPENMP )
+    get_property( SWAN_REGISTERED_TESTS DIRECTORY PROPERTY TESTS )
+    set_tests_properties( ${SWAN_REGISTERED_TESTS} PROPERTIES
+      ENVIRONMENT "OMP_NUM_THREADS=2" )
+  endif()
 endif()

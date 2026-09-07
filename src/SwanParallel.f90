@@ -4,6 +4,11 @@
 
 module SwanParallel
    USE swan_file_opening, ONLY: FOR
+   USE swan_mpi_backend, ONLY: mpi_backend_allgather_integer, &
+      mpi_backend_allgatherv_integer, mpi_backend_allreduce_integer, &
+      mpi_backend_irecv_integer, mpi_backend_irecv_real, &
+      mpi_backend_isend_integer, mpi_backend_isend_real, &
+      mpi_backend_wait_all, swan_mpi_success
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, STPNOW
 
 !   --|-----------------------------------------------------------|--
@@ -265,6 +270,9 @@ subroutine SwanMeshPartition
     use swan_io_units
     use m_parall
     use SwanGriddata
+    use iso_c_binding, only: c_int
+    use swan_metis_interface, only: metis_idx_width, metis_real_width, &
+       metis_set_default_options, metis_part_graph_kway
 
     implicit none(type, external)
    CHARACTER(LEN=LENFNM) :: FILENM   ! file name buffer, local to this routine
@@ -314,8 +322,7 @@ subroutine SwanMeshPartition
     logical                                         :: found                   ! true if desired vertex for symmetry check is found
     logical                                         :: symmetric               ! true if adjacency vertex matrix is symmetric
 
-    integer(kind=kint), external                    :: METIS_PartGraphKway     ! function to partition a graph into a number of parts using multilevel k-way partitioning
-    integer(kind=kint), external                    :: METIS_SetDefaultOptions ! function to set default Metis options
+    integer(c_int)                                  :: metis_status            ! C int-retourcode (ook bij 64-bit-indexen)
 
 !   Structure
 !
@@ -485,9 +492,20 @@ subroutine SwanMeshPartition
 
     tpwgts = 1./real(np)
 
+    ! ABI-controle: argumenttypes zijn afgeleid van metis.h (32/32),
+    ! niet van het Fortran-kindnummer. storage_size is in bits.
+    if (storage_size(nv) /= metis_idx_width) &
+       error stop "METIS idx-breedte komt niet overeen met metis.h"
+    if (storage_size(tpwgts) /= metis_real_width) &
+       error stop "METIS real-breedte komt niet overeen met metis.h"
+    ! Indexbereik vóór doorgifte (alleen linken bewijst geen passende ABI).
+    if (nv <= 0 .or. nvertsg <= 0 .or. np <= 0) &
+       error stop "METIS partitie-aantallen buiten bereik"
+
     ! set the Metis defaults, in particular edge-cut minimization and C-style numbering
 
-    ierr = METIS_SetDefaultOptions (options)
+    metis_status = metis_set_default_options(options)
+    ierr = int(metis_status, kind=kint)
     if ( ierr /= METIS_OK ) then
        if ( ierr == METIS_ERROR_INPUT ) then
           write (msgstr,'(a)') 'function METIS_SetDefaultOptions failed due to erroneous inputs or options'
@@ -504,7 +522,8 @@ subroutine SwanMeshPartition
 
     ! partition the graph and create the ipown array
 
-    ierr = METIS_PartGraphKway (nv, ncon, xadj, adjncy, vwgt, vsize, adjw, np, tpwgts, ubvec, options, edgecut, ipown)
+    metis_status = metis_part_graph_kway(nv, ncon, xadj, adjncy, vwgt, vsize, adjw, np, tpwgts, ubvec, options, edgecut, ipown)
+    ierr = int(metis_status, kind=kint)
 
     if ( ierr /= METIS_OK ) then
        if ( ierr == METIS_ERROR_INPUT ) then
@@ -705,12 +724,12 @@ subroutine SwanCommAdmin
     ! in effect, a layer of ghost cells is included
 
     maxncp = 0
+    ncellp = 0
 
     frstcl%clg = 0
     nullify(frstcl%nextcl)
     currcl => frstcl
     do i = 1, NPROC
-       ncellp(i) = 0
        do j = 1, ncellsg
           v1  = kvertc(1,j)
           v2  = kvertc(2,j)
@@ -1052,7 +1071,6 @@ subroutine SwanUvExchgI ( ifld )
 !
 !   Modules used
 !
-!MPI    use mpi
     use swan_diagnostics_level
     use m_parall
     use SwanGriddata
@@ -1106,12 +1124,13 @@ subroutine SwanUvExchgI ( ifld )
 
        ! post recvs
 
-!MPI       call MPI_IRECV ( irbuf(1,j), ndata, SWINT, idom-1, itag, MPI_COMM_WORLD, rrqst(j), ierr )
-!MPI       if ( ierr /= MPI_SUCCESS ) then
-!MPI          write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
-!MPI          call msgerr ( 4, trim(msgstr) )
-!MPI          return
-!MPI       endif
+       call mpi_backend_irecv_integer(irbuf(1,j), ndata, SWINT, idom-1, &
+          itag, rrqst(j), ierr)
+       if (ierr /= swan_mpi_success) then
+          write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
+          call msgerr ( 4, trim(msgstr) )
+          return
+       endif
 
        ! get number of ghost values to send
 
@@ -1119,23 +1138,24 @@ subroutine SwanUvExchgI ( ifld )
 
        ! post sends
 
-!MPI       call MPI_ISEND ( isbuf(1,j), ndata, SWINT, idom-1, itag, MPI_COMM_WORLD, srqst(j), ierr )
-!MPI       if ( ierr /= MPI_SUCCESS ) THEN
-!MPI          write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
-!MPI          call msgerr ( 4, trim(msgstr) )
-!MPI          return
-!MPI       endif
+       call mpi_backend_isend_integer(isbuf(1,j), ndata, SWINT, idom-1, &
+          itag, srqst(j), ierr)
+       if (ierr /= swan_mpi_success) THEN
+          write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
+          call msgerr ( 4, trim(msgstr) )
+          return
+       endif
 
     enddo
 
     ! wait for receives to complete
 
-!MPI    call MPI_WAITALL ( nvcomm, rrqst, MPI_STATUSES_IGNORE, ierr )
-!MPI    if ( ierr /= MPI_SUCCESS ) THEN
-!MPI       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
-!MPI       call msgerr ( 4, trim(msgstr) )
-!MPI       return
-!MPI    endif
+    call mpi_backend_wait_all(nvcomm, rrqst, ierr)
+    if (ierr /= swan_mpi_success) THEN
+       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
+       call msgerr ( 4, trim(msgstr) )
+       return
+    endif
 
     ! store the received data
 
@@ -1147,12 +1167,12 @@ subroutine SwanUvExchgI ( ifld )
 
     ! wait for sends to complete
 
-!MPI    call MPI_WAITALL ( nvcomm, srqst, MPI_STATUSES_IGNORE, ierr)
-!MPI    if ( ierr /= MPI_SUCCESS ) THEN
-!MPI       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
-!MPI       call msgerr ( 4, trim(msgstr) )
-!MPI       return
-!MPI    endif
+    call mpi_backend_wait_all(nvcomm, srqst, ierr)
+    if (ierr /= swan_mpi_success) THEN
+       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
+       call msgerr ( 4, trim(msgstr) )
+       return
+    endif
 
 end subroutine SwanUvExchgI
 
@@ -1203,7 +1223,6 @@ subroutine SwanUvExchgR ( fld )
 !
 !   Modules used
 !
-!MPI    use mpi
     use swan_diagnostics_level
     use m_parall
     use SwanGriddata
@@ -1257,12 +1276,13 @@ subroutine SwanUvExchgR ( fld )
 
        ! post recvs
 
-!MPI       call MPI_IRECV ( rbuf(1,j), ndata, SWREAL, idom-1, itag, MPI_COMM_WORLD, rrqst(j), ierr )
-!MPI       if ( ierr /= MPI_SUCCESS ) then
-!MPI          write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
-!MPI          call msgerr ( 4, trim(msgstr) )
-!MPI          return
-!MPI       endif
+       call mpi_backend_irecv_real(rbuf(1,j), ndata, SWREAL, idom-1, itag, &
+          rrqst(j), ierr)
+       if (ierr /= swan_mpi_success) then
+          write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
+          call msgerr ( 4, trim(msgstr) )
+          return
+       endif
 
        ! get number of ghost values to send
 
@@ -1270,23 +1290,24 @@ subroutine SwanUvExchgR ( fld )
 
        ! post sends
 
-!MPI       call MPI_ISEND ( sbuf(1,j), ndata, SWREAL, idom-1, itag, MPI_COMM_WORLD, srqst(j), ierr )
-!MPI       if ( ierr /= MPI_SUCCESS ) THEN
-!MPI          write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
-!MPI          call msgerr ( 4, trim(msgstr) )
-!MPI          return
-!MPI       endif
+       call mpi_backend_isend_real(sbuf(1,j), ndata, SWREAL, idom-1, itag, &
+          srqst(j), ierr)
+       if (ierr /= swan_mpi_success) THEN
+          write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
+          call msgerr ( 4, trim(msgstr) )
+          return
+       endif
 
     enddo
 
     ! wait for receives to complete
 
-!MPI    call MPI_WAITALL ( nvcomm, rrqst, MPI_STATUSES_IGNORE, ierr )
-!MPI    if ( ierr /= MPI_SUCCESS ) THEN
-!MPI       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
-!MPI       call msgerr ( 4, trim(msgstr) )
-!MPI       return
-!MPI    endif
+    call mpi_backend_wait_all(nvcomm, rrqst, ierr)
+    if (ierr /= swan_mpi_success) THEN
+       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
+       call msgerr ( 4, trim(msgstr) )
+       return
+    endif
 
     ! store the received data
 
@@ -1298,12 +1319,12 @@ subroutine SwanUvExchgR ( fld )
 
     ! wait for sends to complete
 
-!MPI    call MPI_WAITALL ( nvcomm, srqst, MPI_STATUSES_IGNORE, ierr)
-!MPI    if ( ierr /= MPI_SUCCESS ) THEN
-!MPI       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
-!MPI       call msgerr ( 4, trim(msgstr) )
-!MPI       return
-!MPI    endif
+    call mpi_backend_wait_all(nvcomm, srqst, ierr)
+    if (ierr /= swan_mpi_success) THEN
+       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
+       call msgerr ( 4, trim(msgstr) )
+       return
+    endif
 
 end subroutine SwanUvExchgR
 
@@ -1350,7 +1371,6 @@ subroutine SwanCollBpntlist
 !
 !   Modules used
 !
-!MPI    use mpi
     use swan_diagnostics_level
     use m_parall
     use SwanGriddata
@@ -1373,7 +1393,7 @@ subroutine SwanCollBpntlist
     integer, dimension(:)  , allocatable :: idsplc   ! array specifying the starting address of the incoming data from
                                                      ! each processor, relative to the global array
     integer, save                        :: ient = 0 ! number of entries in this subroutine
-!MPI    integer                              :: ierr     ! error value of MPI call
+    integer                              :: ierr     ! error value of MPI call
     integer                              :: ii       ! help index
     integer                              :: istat    ! indicate status of allocation
     integer                              :: itmp     ! temporary stored integer for swapping
@@ -1396,7 +1416,7 @@ subroutine SwanCollBpntlist
     real                                 :: xc       ! x-coordinate of centroid
     real                                 :: yc       ! y-coordinate of centroid
 
-!MPI    character(120)                       :: msgstr   ! string to pass message
+    character(120)                       :: msgstr   ! string to pass message
 !
 !   Structure
 !
@@ -1451,12 +1471,12 @@ subroutine SwanCollBpntlist
 
     ! calculate the global size as sum of the local sizes
 
-!MPI    call MPI_ALLREDUCE ( nbptot, nbpgl, 1, SWINT, SWSUM, MPI_COMM_WORLD, ierr )
-!MPI    if ( ierr /= MPI_SUCCESS ) then
-!MPI       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
-!MPI       call msgerr ( 4, trim(msgstr) )
-!MPI       return
-!MPI    endif
+    call mpi_backend_allreduce_integer(nbptot, nbpgl, SWINT, SWSUM, ierr)
+    if (ierr /= swan_mpi_success) then
+       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
+       call msgerr ( 4, trim(msgstr) )
+       return
+    endif
 
     ! allocate temporary global data
 
@@ -1471,12 +1491,12 @@ subroutine SwanCollBpntlist
 
     ! gather the array sizes to all the processes
 
-!MPI    call MPI_ALLGATHER ( nbptot, 1, SWINT, icount, 1, SWINT, MPI_COMM_WORLD, ierr )
-!MPI    if ( ierr /= MPI_SUCCESS ) then
-!MPI       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
-!MPI       call msgerr ( 4, trim(msgstr) )
-!MPI       return
-!MPI    endif
+    call mpi_backend_allgather_integer(nbptot, icount, SWINT, ierr)
+    if (ierr /= swan_mpi_success) then
+       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
+       call msgerr ( 4, trim(msgstr) )
+       return
+    endif
 
     ! calculate starting address of each local array with respect to the global array
 
@@ -1487,30 +1507,33 @@ subroutine SwanCollBpntlist
 
     ! gather blist from each processor to all the processes
 
-!MPI    call MPI_ALLGATHERV ( iarr1(1:nbptot), nbptot, SWINT, iarrg1, icount, idsplc, SWINT, MPI_COMM_WORLD, ierr )
-!MPI    if ( ierr /= MPI_SUCCESS ) then
-!MPI       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
-!MPI       call msgerr ( 4, trim(msgstr) )
-!MPI       return
-!MPI    endif
+    call mpi_backend_allgatherv_integer(iarr1(1:nbptot), nbptot, iarrg1, &
+       icount, idsplc, SWINT, ierr)
+    if (ierr /= swan_mpi_success) then
+       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
+       call msgerr ( 4, trim(msgstr) )
+       return
+    endif
 
     ! gather corresponding markers from each processor to all the processes
 
-!MPI    call MPI_ALLGATHERV ( iarr2(1:nbptot), nbptot, SWINT, iarrg2, icount, idsplc, SWINT, MPI_COMM_WORLD, ierr )
-!MPI    if ( ierr /= MPI_SUCCESS ) then
-!MPI       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
-!MPI       call msgerr ( 4, trim(msgstr) )
-!MPI       return
-!MPI    endif
+    call mpi_backend_allgatherv_integer(iarr2(1:nbptot), nbptot, iarrg2, &
+       icount, idsplc, SWINT, ierr)
+    if (ierr /= swan_mpi_success) then
+       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
+       call msgerr ( 4, trim(msgstr) )
+       return
+    endif
 
     ! gather corresponding polygon sequence number from each processor to all the processes
 
-!MPI    call MPI_ALLGATHERV ( iarr3(1:nbptot), nbptot, SWINT, iarrg3, icount, idsplc, SWINT, MPI_COMM_WORLD, ierr )
-!MPI    if ( ierr /= MPI_SUCCESS ) then
-!MPI       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
-!MPI       call msgerr ( 4, trim(msgstr) )
-!MPI       return
-!MPI    endif
+    call mpi_backend_allgatherv_integer(iarr3(1:nbptot), nbptot, iarrg3, &
+       icount, idsplc, SWINT, ierr)
+    if (ierr /= swan_mpi_success) then
+       write (msgstr, '(a,i3,a,i4)') 'MPI produces some internal error - return code is ',ierr,' and node number is ',INODE
+       call msgerr ( 4, trim(msgstr) )
+       return
+    endif
 
     deallocate ( iarr1, iarr2, iarr3, icount, idsplc )
 

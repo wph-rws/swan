@@ -19,6 +19,7 @@ module swan_input_fields
    public :: ASTDF, MUDLF, NPLAF, TURBF
    public :: AICEF, HICEF
    public :: HSSF, TSSF, DSSF
+   public :: CLEAR_INPUT_FIELDS, INPUT_FIELDS_ARE_CLEAR
 
 !     DEPTH : depth
 !     WLEVL : water level
@@ -44,4 +45,37 @@ module swan_input_fields
 !     The sea-swell parameters, which arrive as fields rather than being
 !     computed: significant height, mean period and mean direction.
    real, save, allocatable :: HSSF(:), TSSF(:), DSSF(:)
+
+contains
+
+   subroutine CLEAR_INPUT_FIELDS ()
+      if (allocated(DEPTH)) deallocate(DEPTH)
+      if (allocated(WLEVL)) deallocate(WLEVL)
+      if (allocated(FRIC )) deallocate(FRIC )
+      if (allocated(UXB  )) deallocate(UXB  )
+      if (allocated(UYB  )) deallocate(UYB  )
+      if (allocated(WXI  )) deallocate(WXI  )
+      if (allocated(WYI  )) deallocate(WYI  )
+      if (allocated(ASTDF)) deallocate(ASTDF)
+      if (allocated(MUDLF)) deallocate(MUDLF)
+      if (allocated(NPLAF)) deallocate(NPLAF)
+      if (allocated(TURBF)) deallocate(TURBF)
+      if (allocated(AICEF)) deallocate(AICEF)
+      if (allocated(HICEF)) deallocate(HICEF)
+      if (allocated(HSSF )) deallocate(HSSF )
+      if (allocated(TSSF )) deallocate(TSSF )
+      if (allocated(DSSF )) deallocate(DSSF )
+   end subroutine CLEAR_INPUT_FIELDS
+
+   logical function INPUT_FIELDS_ARE_CLEAR ()
+      INPUT_FIELDS_ARE_CLEAR = .not.allocated(DEPTH) .and. &
+         .not.allocated(WLEVL) .and. .not.allocated(FRIC) .and. &
+         .not.allocated(UXB) .and. .not.allocated(UYB) .and. &
+         .not.allocated(WXI) .and. .not.allocated(WYI) .and. &
+         .not.allocated(ASTDF) .and. .not.allocated(MUDLF) .and. &
+         .not.allocated(NPLAF) .and. .not.allocated(TURBF) .and. &
+         .not.allocated(AICEF) .and. .not.allocated(HICEF) .and. &
+         .not.allocated(HSSF) .and. .not.allocated(TSSF) .and. &
+         .not.allocated(DSSF)
+   end function INPUT_FIELDS_ARE_CLEAR
 end module swan_input_fields

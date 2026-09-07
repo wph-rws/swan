@@ -6,6 +6,7 @@ contains
 
 subroutine SwanVertlist ( compda )
    USE swan_field_file_update, ONLY: FLFILE
+   USE swan_front_scheduling_backend, ONLY: build_front_schedule
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !   --|-----------------------------------------------------------|--
@@ -50,15 +51,13 @@ subroutine SwanVertlist ( compda )
 !   41.48,   March 2013: including order along a user-given direction
 !   41.68,  August 2015: introduction of a fixed number of sweeps per iteration
 !   41.68,   April 2018: removal of the wavefront approach (based on reference point)
-!GRAPH!   43.05, January 2023: graph-level scheduling
-!FXFRO!   43.05, January 2023: wavefront scheduling
+!   43.05, January 2023: graph-level and fixed-front scheduling
 !
 !   Purpose
 !
 !   Creates vertex list in line with sweep direction
 !   Note: first sweep direction always equals user-given/wave/wind direction
-!GRAPH!   Creates wavefronts based on graph-level scheduling
-!FXFRO!   Creates wavefronts
+!   Creates wavefronts using the configured scheduling backend
 !
 !   Method
 !
@@ -85,50 +84,21 @@ subroutine SwanVertlist ( compda )
 
     real, dimension(nverts,MCMVAR), intent(in) :: compda ! array containing space-dependent info (e.g. wind)
 
-!   Parameter variables
-!
-!GRAPH    integer, parameter :: nlpf = 1 ! number of levels per wavefront
-!FXFRO    integer, parameter :: nvth = 10 ! target number of vertices per thread
-!
 !   Local variables
-!
-!GRAPH    integer                              :: icell    ! cell index
     integer, save                        :: ient = 0 ! number of entries in this subroutine
     integer                              :: ierr     ! error indicator: ierr=0: no error, otherwise error
-!GRAPH    integer                              :: ifront   ! front id / loop counter
-!FXFRO    integer                              :: ifront   ! loop counter over wavefronts
     integer                              :: istat    ! indicate status of allocation
     integer                              :: j        ! loop counter over vertices
-!GRAPH    integer                              :: jc       ! loop counter over cells
     integer                              :: k        ! counter
-!GRAPH    integer                              :: l        ! counter
-!GRAPH    integer                              :: lmax     ! indicate maximum level of upstream neighbours
-!GRAPH    integer                              :: m        ! neighbour vertex
-!GRAPH    integer                              :: maxfr    ! maximum number of wavefronts over all sweeps
-!GRAPH    integer                              :: nlevel   ! number of created graph levels per sweep
-!FXFRO    integer                              :: nth      ! number of threads
-!FXFRO    integer                              :: nvf      ! number of vertices per wavefront
     integer                              :: swpdir   ! sweep counter
-!GRAPH    integer, dimension(3)                :: v        ! vertices in present cell
-!GRAPH    integer, dimension(2)                :: vu       ! upwave vertices in present cell
 
     real                                 :: sdir     ! sweep direction
     real                                 :: wdsum    ! total sum of wind direction
     real                                 :: wx       ! wind velocity in x-direction
     real                                 :: wy       ! wind velocity in y-direction
-!GRAPH    !
-!GRAPH    integer, dimension(:,:), allocatable :: fid      ! front identifier
-!GRAPH    integer, dimension(:)  , allocatable :: fcount   ! vertex counts per front
-!GRAPH    integer, dimension(:)  , allocatable :: fill     ! auxiliary ptr array
-!GRAPH    integer, dimension(:)  , allocatable :: level    ! graph levels
-!GRAPH    integer, dimension(:)  , allocatable :: pos      ! vertex position in vlist
-
     real, dimension(:,:), allocatable    :: dist     ! distance of each point with respect to reference point
 
-!GRAPH    type(celltype), dimension(:), pointer :: cell    ! datastructure for cells with their attributes
     type(verttype), dimension(:), pointer :: vert    ! datastructure for vertices with their attributes
-!FXFRO    !
-!FXFRO!$  integer, external :: omp_get_max_threads         ! get maximum number of threads
 !
 !   Structure
 !
@@ -138,11 +108,9 @@ subroutine SwanVertlist ( compda )
 
     if (ltrace) call strace (ient,'SwanVertlist')
 
-!GRAPH    ! point to vertex and cell objects
-!FXFRO    ! point to vertex object
+    ! point to vertex objects
 
     vert => gridobject%vert_grid
-!GRAPH    cell => gridobject%cell_grid
 
     ! create vertex list
 
@@ -208,201 +176,8 @@ subroutine SwanVertlist ( compda )
 
     enddo
 
-!GRAPH    ! create wavefronts based on graph levels
-!FXFRO    ! create wavefronts
-!
-!GRAPH    allocate (nfront(nsweep))
-!GRAPH    !
-!GRAPH    allocate (pos  (nverts))
-!GRAPH    allocate (level(nverts))
-!GRAPH    !
-!GRAPH    allocate (fid(nverts,nsweep))
-!GRAPH    !
-!GRAPH    do swpdir = 1, nsweep
-!GRAPH       !
-!GRAPH       ! determine position of each vertex of vlist
-!GRAPH       !
-!GRAPH       pos = 0
-!GRAPH       !
-!GRAPH       do j = 1, nverts
-!GRAPH          !
-!GRAPH          k = vlist(j,swpdir)
-!GRAPH          !
-!GRAPH          pos(k) = j
-!GRAPH          !
-!GRAPH       enddo
-!GRAPH       !
-!GRAPH       ! construct levels from a directed dependency graph
-!GRAPH       ! note: each level contains vertices that are independent by construction
-!GRAPH       !
-!GRAPH       level = 0
-!GRAPH       !
-!GRAPH       do j = 1, nverts
-!GRAPH          !
-!GRAPH          k = vlist(j,swpdir)
-!GRAPH          !
-!GRAPH          lmax = 0
-!GRAPH          !
-!GRAPH          do jc = 1, vert(k)%noc
-!GRAPH             !
-!GRAPH             icell = vert(k)%cell(jc)%atti(CELLID)
-!GRAPH             !
-!GRAPH             v(1) = cell(icell)%atti(CELLV1)
-!GRAPH             v(2) = cell(icell)%atti(CELLV2)
-!GRAPH             v(3) = cell(icell)%atti(CELLV3)
-!GRAPH             !
-!GRAPH             ! pick up two upwave vertices
-!GRAPH             !
-!GRAPH             do l = 1, 3
-!GRAPH                if ( v(l) == k ) then
-!GRAPH                   vu(1) = v(mod(l  ,3)+1)
-!GRAPH                   vu(2) = v(mod(l+1,3)+1)
-!GRAPH                   exit
-!GRAPH                endif
-!GRAPH             enddo
-!GRAPH             !
-!GRAPH             ! pick first neighbour vertex
-!GRAPH             !
-!GRAPH             m = vu(1)
-!GRAPH             !
-!GRAPH             ! is vertex m upstream from current vertex k?
-!GRAPH             ! if so, they do not belong to the same level
-!GRAPH             !
-!GRAPH             if ( pos(m) < pos(k) ) then
-!GRAPH                !
-!GRAPH                lmax = max(lmax,level(m))
-!GRAPH                !
-!GRAPH             endif
-!GRAPH             !
-!GRAPH          enddo
-!GRAPH          !
-!GRAPH          ! make sure that vertex k is assigned to new level
-!GRAPH          !
-!GRAPH          level(k) = lmax + 1
-!GRAPH          !
-!GRAPH       enddo
-!GRAPH       !
-!GRAPH       nlevel = maxval(level)
-!GRAPH       !
-!GRAPH       nfront(swpdir) = ceiling( real(nlevel) / real(nlpf) )
-!GRAPH       !
-!GRAPH       if ( ITEST >= 40 ) then
-!GRAPH          if ( nlpf == 1 ) then
-!GRAPH             write(PRINTF,"(' sweepnr= ',i2,': number of graph levels = ',i8)") swpdir, nlevel
-!GRAPH          else
-!GRAPH             write(PRINTF,"(' sweepnr= ',i2,': number of graph levels = ',i8, &
-!GRAPH             & ' and number of fronts = ',i8)") swpdir, nlevel, nfront(swpdir)
-!GRAPH          endif
-!GRAPH       endif
-!GRAPH       !
-!GRAPH       !  aggregate a number of levels into a front
-!GRAPH       !
-!GRAPH       do j = 1, nverts
-!GRAPH          !
-!GRAPH          fid(j,swpdir) = (level(j)-1) / nlpf + 1
-!GRAPH          !
-!GRAPH       enddo
-!GRAPH       !
-!GRAPH    enddo
-!GRAPH    !
-!GRAPH    maxfr = maxval(nfront)
-!GRAPH    !
-!GRAPH    allocate (fptr(maxfr+1,nsweep))
-!GRAPH    !
-!GRAPH    do swpdir = 1, nsweep
-!GRAPH       !
-!GRAPH       ! next, count vertices per level / front
-!GRAPH       !
-!GRAPH       allocate (fcount(nfront(swpdir)))
-!GRAPH       !
-!GRAPH       fcount = 0
-!GRAPH       !
-!GRAPH       do j = 1, nverts
-!GRAPH          !
-!GRAPH          ifront = fid(j,swpdir)
-!GRAPH          !
-!GRAPH          fcount(ifront) = fcount(ifront) + 1
-!GRAPH          !
-!GRAPH       enddo
-!GRAPH       !
-!GRAPH       fptr(1,swpdir) = 1
-!GRAPH       !
-!GRAPH       do ifront = 1, nfront(swpdir)
-!GRAPH          !
-!GRAPH          fptr(ifront+1,swpdir) = fptr(ifront,swpdir) + fcount(ifront)
-!GRAPH          !
-!GRAPH       enddo
-!GRAPH       !
-!GRAPH       deallocate(fcount)
-!GRAPH       !
-!GRAPH    enddo
-!GRAPH    !
-!GRAPH    ! create front list
-!GRAPH    !
-!GRAPH    istat = 0
-!GRAPH    if(.not.allocated(flist)) allocate (flist(nverts,nsweep), stat = istat)
-!GRAPH    if ( istat /= 0 ) then
-!GRAPH       call msgerr ( 4, 'Allocation problem in SwanVertlist: array flist ' )
-!GRAPH       return
-!GRAPH    endif
-!GRAPH    flist = 0
-!GRAPH    !
-!GRAPH    do swpdir = 1, nsweep
-!GRAPH       !
-!GRAPH       allocate (fill(nfront(swpdir)))
-!GRAPH       !
-!GRAPH       fill(1:nfront(swpdir))=fptr(1:nfront(swpdir),swpdir)
-!GRAPH       !
-!GRAPH       do j = 1, nverts
-!GRAPH          !
-!GRAPH          k = vlist(j,swpdir)
-!GRAPH          !
-!GRAPH          ifront = fid(k,swpdir)
-!GRAPH          !
-!GRAPH          l = fill(ifront)
-!GRAPH          !
-!GRAPH          flist(l,swpdir) = k
-!GRAPH          !
-!GRAPH          fill(ifront) = fill(ifront) + 1
-!GRAPH          !
-!GRAPH       enddo
-!GRAPH       !
-!GRAPH       deallocate(fill)
-!GRAPH       !
-!GRAPH    enddo
-!FXFRO    ! first, determine number of threads
-!FXFRO    !
-!FXFRO    nth = 1
-!FXFRO    !$ nth = omp_get_max_threads()
-!FXFRO    !
-!FXFRO    ! next, compute target number of vertices per wavefront ...
-!FXFRO    !
-!FXFRO    nvf = nvth * nth
-!FXFRO    !
-!FXFRO    ! ... and number of wavefronts
-!FXFRO    !
-!FXFRO    nfront = min(nverts,max(100,ceiling(real(nverts)/real(nvf))))
-!FXFRO    !
-!FXFRO    if(.not.allocated(fronts)) allocate (fronts(nfront))
-!FXFRO    if(.not.allocated(fronte)) allocate (fronte(nfront))
-!FXFRO    !
-!FXFRO    ! compute actual number of vertices per front
-!FXFRO    !
-!FXFRO    nvf = int( (nverts+nfront-1)/nfront )
-!FXFRO    if ( ITEST >= 40 ) write (PRINTF, &
-!FXFRO       "(' Number of fronts = ',i4,' and number of vertices per front = ',i6)") nfront, nvf
-!FXFRO    !
-!FXFRO    ! per wavefront, determine start and end vertex indices
-!FXFRO    !
-!FXFRO    do ifront = 1, nfront
-!FXFRO       !
-!FXFRO       fronts(ifront) = 1 + (ifront-1)*nvf
-!FXFRO       fronte(ifront) = min(nverts, ifront*nvf)
-!FXFRO       !
-!FXFRO    enddo
-!
-!GRAPH    deallocate(dist,fid,level,pos)
-!FXFRO    deallocate(dist)
+    call build_front_schedule(vlist)
+    deallocate(dist)
 
 contains
 

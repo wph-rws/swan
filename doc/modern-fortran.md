@@ -173,9 +173,14 @@ categories behind the current total are dominated by `-Wconversion-extra`
 (493), `-Wunused-variable` (254) and `-Wcompare-reals` (226).
 
 Two implicit-interface call sites remain, both `METIS_*` calls into the external
-C library, which can never be Fortran interfaces. That is the floor.
-`scripts/strict_diagnostics.py` enforces it. Measure with a *clean* build — an
-incremental one only reports the files it recompiled.
+C library, via expliciete `ISO_C_BINDING`/`BIND(C)`-koppeling in
+`src/swan_metis_interface.f90`. Een C-koppeling ís een expliciete
+interface; de eerdere stelling dat dit "nooit" kan was onjuist. CMake leidt de
+`idx_t`/`real_t`-breedtes af van de geïnstalleerde `metis.h` (32/32 hier) en
+faalt luid bij een afwijkende installatie; `SwanParallel` controleert
+argumentdoorgifte en indexbereik. `scripts/strict_diagnostics.py` enforces it.
+Measure with a *clean* build — an incremental one only reports the files it
+recompiled.
 
 ### What the remaining warnings are, and where not to start
 
@@ -379,13 +384,19 @@ Two styles sit side by side, and the difference carries meaning:
 
 ### What remains shared
 
-Long-lived mutable data modules are still extensive. The contexts cover the
-clock, command parser, I/O streams, diagnostic status, diffraction, nonlinear
-interaction tables, spectral powers and the whitecapping thread-workspace. A
-reader can own its input file, its log and its error state, and the file opener
-draws from its unit range. Grid dimensions, most physics settings and output
-request tables remain in the broad `SWCOMM*`/`OCPCOMM*` families, so SWAN still
-runs one case per process.
+Long-lived mutable data modules are narrower than they were. The contexts cover
+the clock, command parser, I/O streams, diagnostic status, diffraction,
+nonlinear interaction tables, spectral powers and the whitecapping
+thread-workspace. A reader can own its input file, its log and its error
+state, and the file opener draws from its unit range. Every run-state group
+that `SWCLME` used to release piecemeal now has an idempotent owner `clear`
+(see `doc/run-state-ownership.md`), so consecutive runs in one process
+reproduce each other bit for bit (`test_two_cases`, A–B–A). Grid dimensions,
+most physics settings and output request tables live in small focused modules
+(the former `SWCOMM*`/`OCPCOMM*` families no longer exist). Only `RDFSIN`
+remains `THREADPRIVATE` in `swan_stencil`, seeded by `COPYIN`; all other
+stencil values travel as explicit procedure arguments from thread-local solver
+scratch.
 
 The accurate description is therefore “standard Fortran 2018 with a modular,
 compiler-checked interface layer and explicit ownership for the migrated

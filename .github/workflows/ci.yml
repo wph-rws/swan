@@ -1,0 +1,170 @@
+# CI-kernmatrix. Vereiste jobs: serial, openmp, runtime, strict,
+# mpi-2rank, python-manifest. Publicatie hangt af van de afsluitende gate;
+# een workflowbestand alleen dwingt ontbrekende controles niet af, de gate wel.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  serial:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y gfortran cmake ninja-build libfftw3-dev python3 python3-pytest python3-numpy python3-scipy
+      - name: Configure + build (GNU Release serieel)
+        run: |
+          cmake -S . -B build-ci-serial -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          cmake --build build-ci-serial --parallel 4
+      - name: CTest
+        run: ctest --test-dir build-ci-serial --output-on-failure
+      - name: Installatieproef + case vanuit installatie
+        run: |
+          cmake --install build-ci-serial --prefix "$PWD/install-serial"
+          ./install-serial/bin/swan.exe --help 2>&1 | head -5 || true
+          python3 examples/quick_test/run.py --swan-executable "$PWD/build-ci-serial/bin/swan.exe" --work-directory "$PWD/ci-run-serial"
+      - name: Schrijf resultaat
+        if: always()
+        run: |
+          mkdir -p ci-results
+          echo '{"job": "serial", "status": "${{ job.status == 'success' && 'passed' || job.status }}"}' > ci-results/serial.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-serial
+          path: ci-results/serial.json
+
+  openmp:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y gfortran cmake ninja-build libfftw3-dev python3 python3-pytest python3-numpy python3-scipy
+      - name: Configure + build (GNU Release OpenMP)
+        run: |
+          cmake -S . -B build-ci-openmp -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DOPENMP=ON
+          cmake --build build-ci-openmp --parallel 4
+      - name: CTest
+        run: ctest --test-dir build-ci-openmp --output-on-failure
+      - name: Schrijf resultaat
+        if: always()
+        run: |
+          mkdir -p ci-results
+          echo '{"job": "openmp", "status": "${{ job.status == 'success' && 'passed' || job.status }}"}' > ci-results/openmp.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-openmp
+          path: ci-results/openmp.json
+
+  runtime:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y gfortran cmake ninja-build libfftw3-dev python3 python3-pytest python3-numpy python3-scipy
+      - name: Configure + build (runtimechecks op -O2)
+        run: |
+          cmake -S . -B build-ci-runtime -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DSWAN_RUNTIME_CHECKS=ON
+          cmake --build build-ci-runtime --parallel 4
+      - name: CTest
+        run: ctest --test-dir build-ci-runtime --output-on-failure
+      - name: Schrijf resultaat
+        if: always()
+        run: |
+          mkdir -p ci-results
+          echo '{"job": "runtime", "status": "${{ job.status == 'success' && 'passed' || job.status }}"}' > ci-results/runtime.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-runtime
+          path: ci-results/runtime.json
+
+  strict:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y gfortran cmake make libfftw3-dev python3 python3-pytest python3-numpy python3-scipy
+      - name: Strict-poort (schone bouw + budget + fingerprints, regressiemodus)
+        run: python3 scripts/strict_diagnostics.py --build-dir build-ci-strict --require-baseline
+      - name: CTest strict-configuratie
+        run: ctest --test-dir build-ci-strict --output-on-failure
+      - name: Schrijf resultaat
+        if: always()
+        run: |
+          mkdir -p ci-results
+          echo '{"job": "strict", "status": "${{ job.status == 'success' && 'passed' || job.status }}"}' > ci-results/strict.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-strict
+          path: ci-results/strict.json
+
+  mpi-2rank:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y gfortran cmake ninja-build libfftw3-dev python3 python3-pytest python3-numpy python3-scipy libopenmpi-dev openmpi-bin
+      - name: Configure + build (MPI)
+        run: |
+          cmake -S . -B build-ci-mpi -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DMPI=ON
+          cmake --build build-ci-mpi --parallel 4
+      - name: CTest (bevat echte 2-ranks regressies)
+        run: ctest --test-dir build-ci-mpi --output-on-failure -R "quick_test_mpi|matlab_output_mpi|hcat_hotstart"
+      - name: Volledige MPI-CTest
+        run: ctest --test-dir build-ci-mpi --output-on-failure
+      - name: Schrijf resultaat
+        if: always()
+        run: |
+          mkdir -p ci-results
+          echo '{"job": "mpi-2rank", "status": "${{ job.status == 'success' && 'passed' || job.status }}"}' > ci-results/mpi-2rank.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-mpi-2rank
+          path: ci-results/mpi-2rank.json
+
+  python-manifest:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y python3 python3-pytest python3-numpy python3-scipy
+      - name: Manifest- en Python-controles
+        run: |
+          python3 scripts/check_thread_state.py --source-dir src --manifest doc/thread-state-manifest.md
+          python3 scripts/check_run_state_ownership.py --manifest doc/run-state-ownership.json
+          python3 scripts/check_switch_manifest.py --source-dir src --switch switch.py --manifest doc/switch-manifest.json
+          python3 scripts/check_ci_dependencies.py
+          python3 scripts/ci_gate.py --self-test
+          python3 scripts/ci_gate.py --check-workflow .github/workflows/ci.yml
+          python3 -m pytest tests/test_switch_compatibility.py examples -q || python3 -m pytest tests/test_switch_compatibility.py -q
+      - name: Schrijf resultaat
+        if: always()
+        run: |
+          mkdir -p ci-results
+          echo '{"job": "python-manifest", "status": "${{ job.status == 'success' && 'passed' || job.status }}"}' > ci-results/python-manifest.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-python-manifest
+          path: ci-results/python-manifest.json
+
+  gate:
+    runs-on: ubuntu-24.04
+    needs: [serial, openmp, runtime, strict, mpi-2rank, python-manifest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: ci-results-download
+      - name: Verzamel vereiste resultaten
+        run: |
+          mkdir -p ci-results
+          find ci-results-download -name "*.json" -exec cp {} ci-results/ \;
+          ls -l ci-results/
+          python3 scripts/ci_gate.py --results-dir ci-results

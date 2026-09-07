@@ -30,6 +30,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = ROOT / "examples" / "voordelta"
+EXAMPLE_UNSTRUCTURED = ROOT / "examples" / "voordelta_unstructured"
 DEFAULT_BUILD = ROOT / "build-modernization-timg"
 
 # `# <label>: <cpu> <wall>` in the timing table SWPRTI writes.
@@ -39,6 +40,14 @@ ROW = re.compile(r"^\s*\d+\s+#\s+([a-zA-Z][^:]*?):\s+(\S+)\s+(\S+)\s*$")
 def reduced_deck(iterations: int) -> str:
     """The example deck with the iteration count capped."""
     text = (EXAMPLE / "voordelta.swn").read_text()
+    return text.replace("GEN3 KOMEN",
+                        f"GEN3 KOMEN\nNUMERIC STOPC STAT {iterations}", 1)
+
+
+def reduced_deck_unstructured(iterations: int) -> str:
+    """The unstructured Voordelta deck with local file names and capped iterations."""
+    text = (EXAMPLE_UNSTRUCTURED / "voordelta_unstructured.swn").read_text()
+    text = text.replace("'../voordelta/voordelta.dep'", "'voordelta.dep'")
     return text.replace("GEN3 KOMEN",
                         f"GEN3 KOMEN\nNUMERIC STOPC STAT {iterations}", 1)
 
@@ -61,11 +70,21 @@ def run_once(workdir: Path, exe: Path) -> dict[str, float]:
     return timings
 
 
-def measure(exe: Path, repeat: int, iterations: int) -> dict[str, list[float]]:
+def measure(exe: Path, repeat: int, iterations: int,
+            case: str = "structured") -> dict[str, list[float]]:
     with tempfile.TemporaryDirectory(prefix="swan-measure-") as tmp:
         work = Path(tmp)
-        (work / "INPUT").write_text(reduced_deck(iterations))
-        shutil.copy(EXAMPLE / "voordelta.dep", work)
+        if case == "unstructured":
+            (work / "INPUT").write_text(
+                reduced_deck_unstructured(iterations))
+            shutil.copy(EXAMPLE / "voordelta.dep", work)
+            for suffix in (".node", ".ele"):
+                shutil.copy(
+                    EXAMPLE_UNSTRUCTURED / f"voordelta_unstructured{suffix}",
+                    work)
+        else:
+            (work / "INPUT").write_text(reduced_deck(iterations))
+            shutil.copy(EXAMPLE / "voordelta.dep", work)
         samples: dict[str, list[float]] = {}
         for _ in range(repeat):
             for label, value in run_once(work, exe).items():
@@ -91,6 +110,9 @@ def main() -> int:
     p.add_argument("--repeat", type=int, default=5)
     p.add_argument("--iterations", type=int, default=2,
                    help="cap on the number of SWAN iterations")
+    p.add_argument("--case", choices=("structured", "unstructured"),
+                   default="structured",
+                   help="which Voordelta case to time")
     p.add_argument("--out", type=Path, help="write the summary as JSON")
     p.add_argument("--compare", type=Path, help="report against an earlier run")
     a = p.parse_args()
@@ -99,15 +121,37 @@ def main() -> int:
     if not exe.exists():
         raise SystemExit(f"{exe} bestaat niet; bouw met -DTIMG=ON")
 
-    now = summarise(measure(exe, a.repeat, a.iterations))
+    import hashlib
+    import os
+
+    if a.case == "unstructured":
+        deck_text = reduced_deck_unstructured(a.iterations)
+    else:
+        deck_text = reduced_deck(a.iterations)
+    try:
+        affinity = sorted(os.sched_getaffinity(0))
+    except AttributeError:
+        affinity = []
+    meta = {
+        "case": a.case,
+        "exe_sha256": hashlib.sha256(exe.read_bytes()).hexdigest(),
+        "deck_sha256": hashlib.sha256(deck_text.encode()).hexdigest(),
+        "affinity": affinity,
+        "threads": os.environ.get("OMP_NUM_THREADS", ""),
+        "repeat": a.repeat,
+        "iterations": a.iterations,
+    }
+
+    samples = measure(exe, a.repeat, a.iterations, a.case)
+    now = summarise(samples)
     if a.out:
-        a.out.write_text(json.dumps(now, indent=2))
+        a.out.write_text(json.dumps({"_meta": meta, **now}, indent=2))
 
     if a.compare:
         was = json.loads(a.compare.read_text())
         print(f"{'sectie':24s} {'was':>8s} {'is':>8s} {'verschil':>10s}  spreiding")
         for label in sorted(now, key=lambda k: -now[k]["median"]):
-            if label not in was:
+            if label.startswith("_") or label not in was:
                 continue
             b, n = was[label]["median"], now[label]["median"]
             if b < 0.005 and n < 0.005:
@@ -118,6 +162,8 @@ def main() -> int:
             print(f"{label:24s} {b:8.3f} {n:8.3f} {delta:+9.1f}%  {spread:5.1f}%{flag}")
     else:
         for label in sorted(now, key=lambda k: -now[k]["median"]):
+            if label.startswith("_"):
+                continue
             s = now[label]
             if s["median"] < 0.005:
                 continue

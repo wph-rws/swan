@@ -159,7 +159,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
        call STRSD ( DDIR       , idcmin     , idcmax     , cad    , &
                     amat(1,1,4), amat(1,1,1), amat(1,1,5), rhs    , &
                     ac2        , isstop     , anybin     , leakcf , &
-                    trac0      , trac1      )
+                    trac0      , trac1      , kcgrd(1)   , icmax  )
 
     endif
     IF (timing_enabled) CALL SWTSTO(142)
@@ -176,7 +176,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
           call STRSSI ( spcsig     , cas   , amat(1,1,2), amat(1,1,1), &
                         amat(1,1,3), anybin, rhs        , ac2        , &
                         iscmin     , iscmax, iddlow     , iddtop     , &
-                        trac0      , trac1 )
+                        trac0      , trac1 , kcgrd(1)   , icmax      )
 
        elseif ( int(PNUMS(8)) == 2 ) then
 
@@ -184,7 +184,8 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
 
           call STRSSB ( iddlow, iddtop, idcmin, idcmax, isstop, &
                         cax   , cay   , cas   , ac2   , spcsig, &
-                        rhs   , anyblk, rdx   , rdy   , trac0 )
+                        rhs   , anyblk, rdx   , rdy   , trac0 , &
+                        kcgrd(1), icmax )
 
        endif
 

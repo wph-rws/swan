@@ -691,7 +691,8 @@ subroutine SWQCINIT ( BGRIDP, COMPDA )
 
 end subroutine SWQCINIT
 
-subroutine SWQCDFT ( sigft, cgft, dep2, kwave, cgo, cft, rft, sft, wft, wsave )
+subroutine SWQCDFT ( sigft, cgft, dep2, kwave, cgo, cft, rft, sft, wft, wsave, &
+                     kc1, ix1, iy1 )
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -737,7 +738,6 @@ subroutine SWQCDFT ( sigft, cgft, dep2, kwave, cgo, cft, rft, sft, wft, wsave )
     use swan_diagnostics_level
     use swan_computational_grid_kind
     use swan_input_grids
-    USE swan_stencil
     use swan_physical_settings
     use swan_computational_grid
     use swan_spectral_grid
@@ -747,6 +747,10 @@ subroutine SWQCDFT ( sigft, cgft, dep2, kwave, cgo, cft, rft, sft, wft, wsave )
     use SwanCompdata
 
     implicit none(type, external)
+
+!   Stencil context passed explicitly by QCSOURCE (ix/iy/IGP at the call site).
+    integer, intent(in) :: kc1
+    integer, intent(in) :: ix1, iy1
 
 !   Argument variables
 
@@ -804,22 +808,22 @@ subroutine SWQCDFT ( sigft, cgft, dep2, kwave, cgo, cft, rft, sft, wft, wsave )
     cgft  = 0.
 
     if ( optg /= 5 ) then
-       ix = IXCGRD(1)
-       iy = IYCGRD(1)
+       ix = ix1
+       iy = iy1
        xp = xcgrid(ix,iy)
        yp = ycgrid(ix,iy)
     else
        ix = 0
        iy = 0
-       xp = xcugrd(KCGRD(1))
-       yp = ycugrd(KCGRD(1))
+       xp = xcugrd(kc1)
+       yp = ycugrd(kc1)
     endif
 
     ierr = 0
     swqcdft_flow: do
     ish  = ncoz/2
 
-    dp = dep2(KCGRD(1))
+    dp = dep2(kc1)
 
     if ( dp > DEPMIN ) then
 
@@ -945,7 +949,8 @@ subroutine SWQCDFT ( sigft, cgft, dep2, kwave, cgo, cft, rft, sft, wft, wsave )
 
 end subroutine SWQCDFT
 
-subroutine SWQCUFT ( uxft, uyft, dep2, ux2, uy2, cft, rft, sft, wft, wsave )
+subroutine SWQCUFT ( uxft, uyft, dep2, ux2, uy2, cft, rft, sft, wft, wsave, &
+                     kc1, ix1, iy1 )
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -991,7 +996,6 @@ subroutine SWQCUFT ( uxft, uyft, dep2, ux2, uy2, cft, rft, sft, wft, wsave )
     use swan_diagnostics_level
     use swan_computational_grid_kind
     use swan_input_grids
-    USE swan_stencil
     use swan_numerics
     use swan_physical_settings
     use swan_computational_grid
@@ -1001,6 +1005,10 @@ subroutine SWQCUFT ( uxft, uyft, dep2, ux2, uy2, cft, rft, sft, wft, wsave )
     use SwanCompdata
 
     implicit none(type, external)
+
+!   Stencil context passed explicitly by QCSOURCE.
+    integer, intent(in) :: kc1
+    integer, intent(in) :: ix1, iy1
 
 !   Argument variables
 
@@ -1054,24 +1062,24 @@ subroutine SWQCUFT ( uxft, uyft, dep2, ux2, uy2, cft, rft, sft, wft, wsave )
     uyft = (0.,0.)
 
     if ( optg /= 5 ) then
-       ix = IXCGRD(1)
-       iy = IYCGRD(1)
+       ix = ix1
+       iy = iy1
        xp = xcgrid(ix,iy)
        yp = ycgrid(ix,iy)
     else
        ix = 0
        iy = 0
-       xp = xcugrd(KCGRD(1))
-       yp = ycugrd(KCGRD(1))
+       xp = xcugrd(kc1)
+       yp = ycugrd(kc1)
     endif
 
     ierr = 0
     swqcuft_flow: do
     ish  = ncoz/2
 
-    dp  = dep2(KCGRD(1))
-    uxp = ux2 (KCGRD(1))
-    uyp = uy2 (KCGRD(1))
+    dp  = dep2(kc1)
+    uxp = ux2 (kc1)
+    uyp = uy2 (kc1)
 
     cgmx = PNUMS(18) * sqrt( GRAV*dp )
 
@@ -1183,7 +1191,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
                       etot  , hm    , qb    , smebrk, kteta , kmespc, cft   , &
                       rft   , sft   , wft   , wsave , cfd   , wfd   , wsavd , &
                       sigm_wam                                               &
-                                                                            ,IGP)
+                                                                            ,IGP, qc_kc)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1252,6 +1260,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
     integer                                  , intent(in   ) :: isstop ! maximum frequency that is propagated within a sweep
     integer                                  , intent(in   ) :: iter   ! iteration counter
     integer                                  , intent(in   ) :: ix     ! counter of grid points in x-direction
+    integer, dimension(MICMAX)               , intent(in   ) :: qc_kc  ! stencil addresses for the Wigner 5-point kernel
     integer                                  , intent(in   ) :: iy     ! counter of grid points in y-direction
     integer                                  , intent(in   ) :: swpdir ! sweep counter
 
@@ -1379,7 +1388,8 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
           if ( iter > 1 ) then
 
-             call SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, spcsig , IGP)
+             call SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, spcsig , IGP, &
+                             IGP, ix, iy)
 
           endif
 
@@ -1404,15 +1414,17 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
           ! first, perform discrete Fourier transforms of the modulations ...
 
-          if ( IQCM == 1 ) call SWQCDFT ( sigft, cgft, dep2, kwave(1,1), cgo(1,1), cft, rft, sft, wft, wsave )
-          if ( ICUR == 1 ) call SWQCUFT ( uxft , uyft, dep2, ux2       , uy2     , cft, rft, sft, wft, wsave )
+          if ( IQCM == 1 ) call SWQCDFT ( sigft, cgft, dep2, kwave(1,1), cgo(1,1), cft, rft, sft, wft, wsave, &
+                                         IGP, ix, iy )
+          if ( ICUR == 1 ) call SWQCUFT ( uxft , uyft, dep2, ux2       , uy2     , cft, rft, sft, wft, wsave, &
+                                         IGP, ix, iy )
           if ( stpnow() ) return
 
           ! next, compute the Wigner distribution and its derivatives in geographical space ...
 
           if ( OPTG /= 5 ) then
              ! structured mesh
-             call SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig )
+             call SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig, qc_kc(1:5) )
           else
              ! unstructured mesh
              call SwanGradWig ( W, dwdx, dwdy, ac2, dep2, spcdir, spcsig , IGP)
@@ -1433,7 +1445,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
 end subroutine QCSOURCE
 
-subroutine SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig )
+subroutine SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig, kc5 )
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1482,13 +1494,15 @@ subroutine SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig )
 !   Modules used
 
     use swan_diagnostics_level
-    USE swan_stencil
     use swan_physical_settings
     use swan_computational_grid
     use swan_spectral_grid
     use swan_propagation_scheme
 
     implicit none(type, external)
+
+!   Five-point stencil addresses passed explicitly by QCSOURCE.
+    integer, dimension(5), intent(in) :: kc5
 
 !   Argument variables
 
@@ -1544,7 +1558,7 @@ subroutine SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig )
 
     do ic = 1, 5     ! central differences with 5-point stencil
 
-       indx = KCGRD(ic)
+       indx = kc5(ic)
 
        dp = dep2(indx)
 
@@ -2396,7 +2410,8 @@ subroutine SWQCSCAT ( memqcm, W, dwdx, dwdy, sigft, cgft, uxft, uyft, dep2, kwav
 
 end subroutine SWQCSCAT
 
-subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, spcsig ,IGP)
+subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, spcsig ,IGP, &
+                      kc1, ix1, iy1)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -2445,12 +2460,16 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
     use swan_diagnostics_level
     use swan_io_units
-    USE swan_stencil
+    use swan_stencil, ONLY: MICMAX
     use swan_physical_settings
     use swan_computational_grid
     use swan_spectral_grid
 
     implicit none(type, external)
+
+!   Stencil context passed explicitly by QCSOURCE (also visible to the
+!   internal bdiss/varchk procedures through host association).
+    integer, intent(in) :: kc1, ix1, iy1
 
 !   Argument variables
 
@@ -2617,7 +2636,7 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
     ixnyq = mxd/2 + 1
     iynyq = myd/2 + 1
 
-    disbk = disqc(iynyq,ixnyq)  ! = disbk0(KCGRD(1))
+    disbk = disqc(iynyq,ixnyq)  ! = disbk0(kc1)
 
     ! compute the product of bulk dissipation and correlation function (see Eq. 23)
 
@@ -2780,8 +2799,8 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
        ! regular grid
 
-       xp = xcgrid(IXCGRD(1),IYCGRD(1))
-       yp = ycgrid(IXCGRD(1),IYCGRD(1))
+       xp = xcgrid(ix1,iy1)
+       yp = ycgrid(ix1,iy1)
 
        j = 0
 
@@ -2806,8 +2825,8 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
        ! curvilinear grid
 
-       xp = xcgrid(IXCGRD(1),IYCGRD(1))
-       yp = ycgrid(IXCGRD(1),IYCGRD(1))
+       xp = xcgrid(ix1,iy1)
+       yp = ycgrid(ix1,iy1)
 
        itmp(1) = MXC
        itmp(2) = MYC
@@ -2929,8 +2948,8 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
        ! unstructured mesh
 
-       xp = xcugrd(KCGRD(1))
-       yp = ycugrd(KCGRD(1))
+       xp = xcugrd(kc1)
+       yp = ycugrd(kc1)
 
        do ixd = 1, mxd
 
@@ -2962,8 +2981,8 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
        ! regular grid
 
-       xp = xcgrid(IXCGRD(1),IYCGRD(1))
-       yp = ycgrid(IXCGRD(1),IYCGRD(1))
+       xp = xcgrid(ix1,iy1)
+       yp = ycgrid(ix1,iy1)
 
        j = 0
 
@@ -2988,8 +3007,8 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
        ! curvilinear grid
 
-       xp = xcgrid(IXCGRD(1),IYCGRD(1))
-       yp = ycgrid(IXCGRD(1),IYCGRD(1))
+       xp = xcgrid(ix1,iy1)
+       yp = ycgrid(ix1,iy1)
 
        itmp(1) = MXC
        itmp(2) = MYC
@@ -3111,8 +3130,8 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
        ! unstructured mesh
 
-       xp = xcugrd(KCGRD(1))
-       yp = ycugrd(KCGRD(1))
+       xp = xcugrd(kc1)
+       yp = ycugrd(kc1)
 
        do ixd = 1, mxd
 
@@ -3188,9 +3207,9 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
           ! check convergence
 
           if ( optg /= 5 ) then
-             write(PRTEST,'(a,i2,a,i5,a,i5,a)') ' ++ number of iterations to correct variance of bulk dissipation is ',j,' in grid point (',IXCGRD(1)+MXF-1,',',IYCGRD(1)+MYF-1,')'
+             write(PRTEST,'(a,i2,a,i5,a,i5,a)') ' ++ number of iterations to correct variance of bulk dissipation is ',j,' in grid point (',ix1+MXF-1,',',iy1+MYF-1,')'
           else
-             write(PRTEST,'(a,i2,a,i7)') ' ++ number of iterations to correct variance of bulk dissipation is ',j,' in vertex k = ',KCGRD(1)
+             write(PRTEST,'(a,i2,a,i7)') ' ++ number of iterations to correct variance of bulk dissipation is ',j,' in vertex k = ',kc1
           endif
 
        elseif ( disbk < 0. .and. varW > 0. ) then
@@ -3201,9 +3220,9 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
              rdev = 100. * abs(varD - varW * disbk) / abs(varW * disbk)
              if ( rdev > 1. ) then
                 if ( optg /= 5 ) then
-                   write (PRTEST, '(a,f5.1,a,i5,a,i5,a)') 'integral of QC dissipation is not consistent - deviation=',rdev,' % in grid point (',IXCGRD(1)+MXF-1,',',IYCGRD(1)+MYF-1,')'
+                   write (PRTEST, '(a,f5.1,a,i5,a,i5,a)') 'integral of QC dissipation is not consistent - deviation=',rdev,' % in grid point (',ix1+MXF-1,',',iy1+MYF-1,')'
                 else
-                   write (PRTEST, '(a,f5.1,a,i7)') 'integral of QC dissipation is not consistent - deviation=',rdev,' % in vertex k = ',KCGRD(1)
+                   write (PRTEST, '(a,f5.1,a,i7)') 'integral of QC dissipation is not consistent - deviation=',rdev,' % in vertex k = ',kc1
                 endif
              endif
           endif
@@ -3503,5 +3522,25 @@ subroutine tukeywin ( a, n )
     enddo
 
 end subroutine tukeywin
+
+subroutine CLEAR_QCM_STATE ()
+   if (allocated(kx   )) deallocate(kx   )
+   if (allocated(ky   )) deallocate(ky   )
+   if (allocated(xpsc )) deallocate(xpsc )
+   if (allocated(xpd  )) deallocate(xpd  )
+   if (allocated(ypd  )) deallocate(ypd  )
+   if (allocated(kxd  )) deallocate(kxd  )
+   if (allocated(kyd  )) deallocate(kyd  )
+   if (allocated(disbk0)) deallocate(disbk0)
+   if (allocated(disbk1)) deallocate(disbk1)
+end subroutine CLEAR_QCM_STATE
+
+logical function QCM_STATE_IS_CLEAR ()
+   QCM_STATE_IS_CLEAR = .not.allocated(kx) .and. .not.allocated(ky) .and. &
+      .not.allocated(xpsc) .and. .not.allocated(xpd) .and. &
+      .not.allocated(ypd) .and. .not.allocated(kxd) .and. &
+      .not.allocated(kyd) .and. .not.allocated(disbk0) .and. &
+      .not.allocated(disbk1)
+end function QCM_STATE_IS_CLEAR
 
 end module SwanQCM

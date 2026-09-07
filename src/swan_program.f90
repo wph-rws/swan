@@ -7,8 +7,11 @@
 !  could reach SWMAIN at all.
 !
 PROGRAM SWAN
-   USE swan_service_interfaces, ONLY: STPNOW
-   USE swan_driver, ONLY: SWMAIN
+   ! De executable gebruikt dezelfde bibliotheekroute (initialize/compute/
+   ! write_output/finalize); deck- en uitvoercontracten ongewijzigd.
+   USE swan_library, ONLY: swan_compute, swan_config_t, swan_finalize, &
+      swan_initialize, swan_result_t, swan_state_t, swan_write_output, &
+      SWAN_LIBRARY_OK
    USE swan_parallel, ONLY: SWINITMPI, SWEXITMPI
 !                                                                      *
 !************************************************************************
@@ -90,12 +93,28 @@ PROGRAM SWAN
 !     --- initialize the MPI execution environment
 
    CALL SWINITMPI
-   IF (.NOT. STPNOW()) THEN
 
-!     --- start SWAN run
+   block
+      type(swan_config_t) :: config
+      type(swan_state_t) :: state
+      type(swan_result_t) :: res
 
-      CALL SWMAIN
-   END IF
+      config%input_file = "INPUT"
+      res = swan_initialize(config, state)
+      if (res%code == SWAN_LIBRARY_OK) res = swan_compute(state)
+      if (res%code == SWAN_LIBRARY_OK) res = swan_write_output(state)
+      block
+         type(swan_result_t) :: fin
+         fin = swan_finalize(state)
+         ! Host beslist over beëindiging (bibliotheek stopt nooit zelf);
+         ! foutcode aan het OS zodat runners/CI rood zien.
+         if (res%code /= SWAN_LIBRARY_OK) then
+            write (*, '(A)') "SWAN library route failed: "//trim(res%message)
+            error stop 1
+         end if
+         if (fin%code /= SWAN_LIBRARY_OK) error stop 2
+      end block
+   end block
 
 !     --- stop MPI
 

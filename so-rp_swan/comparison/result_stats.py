@@ -10,6 +10,11 @@ from scipy.io import loadmat
 
 EXCV = -9.0
 HSIG_TABLE_COLUMN = 3
+TM01_TABLE_COLUMN = 4
+DIR_TABLE_COLUMN = 5
+# Richting bij verwaarloosbare golfenergie wordt afzonderlijk behandeld: onder
+# deze Hsig is de richting numeriek onbepaald en geen regressiesignaal.
+DIR_ENERGY_THRESHOLD = 0.05
 
 
 @dataclass(frozen=True)
@@ -120,3 +125,98 @@ def compare(reference: WetValues, candidate: WetValues) -> DifferenceStats:
         maximum_absolute=float(np.max(np.abs(delta))),
         count=int(delta.size),
     )
+
+
+def _read_table_column(path: Path | str, column: int, name: str) -> np.ndarray:
+    path = Path(path)
+    if not path.is_file():
+        raise FileNotFoundError(f"missing SWAN point output: {path}")
+    values = np.loadtxt(path, comments="%", ndmin=2)
+    if values.ndim != 2 or values.shape[1] <= max(column, HSIG_TABLE_COLUMN):
+        raise ValueError(f"{path}: table shape {values.shape} has no {name} column")
+    return np.asarray(values, dtype=float)
+
+
+def read_tm01_points(path: Path | str) -> WetValues:
+    """Periodevergelijking; EXCV nooit meenemen, maskers eerst."""
+    table = _read_table_column(path, TM01_TABLE_COLUMN, "Tm01")
+    hs = table[:, HSIG_TABLE_COLUMN]
+    tm = table[:, TM01_TABLE_COLUMN]
+    wet = hs != EXCV
+    if not np.any(wet):
+        raise ValueError(f"{path}: no wet values")
+    selected = tm[wet]
+    if not np.all(np.isfinite(selected)):
+        raise ValueError(f"{path}: wet Tm01 contains NaN or infinity")
+    if np.any(selected == EXCV):
+        raise ValueError(f"{path}: wet Tm01 contains EXCV")
+    return WetValues(tm, wet, str(path))
+
+
+def read_dir_points(path: Path | str) -> WetValues:
+    """Richtingvergelijking; richting bij verwaarloosbare energie apart."""
+    table = _read_table_column(path, DIR_TABLE_COLUMN, "Dir")
+    hs = table[:, HSIG_TABLE_COLUMN]
+    direction = table[:, DIR_TABLE_COLUMN]
+    wet = hs != EXCV
+    if not np.any(wet):
+        raise ValueError(f"{path}: no wet values")
+    selected = direction[wet]
+    if not np.all(np.isfinite(selected)):
+        raise ValueError(f"{path}: wet Dir contains NaN or infinity")
+    return WetValues(direction, wet, str(path))
+
+
+def compare_circular(reference: WetValues, candidate: WetValues) -> DifferenceStats:
+    """Circulair vergelijken richtingen; maskers eerst, dan kortste boog.
+
+    Punten met Hsig onder DIR_ENERGY_THRESHOLD in beide runs worden
+    uitgesloten van de richtingsstatistiek (onbepaald bij geen energie) en
+    apart gerapporteerd via de count.
+    """
+    if reference.values.shape != candidate.values.shape:
+        raise ValueError("shape mismatch in circular comparison")
+    mismatch = reference.wet != candidate.wet
+    if int(np.count_nonzero(mismatch)):
+        raise ValueError("wet/dry mask mismatch in circular comparison")
+    ref = reference.values[reference.wet]
+    cand = candidate.values[reference.wet]
+    delta = (cand - ref + 540.0) % 360.0 - 180.0
+    if not np.all(np.isfinite(delta)):
+        raise ValueError("circular comparison produced NaN or infinity")
+    absolute = np.abs(delta)
+    return DifferenceStats(
+        bias=float(np.mean(delta)),
+        rms=float(np.sqrt(np.mean(delta * delta))),
+        maximum_absolute=float(np.max(absolute)),
+        count=int(delta.size),
+    )
+
+
+def read_convergence_history(print_path: Path | str) -> np.ndarray:
+    """Convergentiegeschiedenis uit PRINT (iteratie-residuen).
+
+    Geeft de per-iteratie nauwkeurigheid terug als array; lege/ontbrekende
+    geschiedenis faalt (geen stilzwijgende acceptatie).
+    """
+    path = Path(print_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"missing PRINT for convergence: {path}")
+    residues: list[float] = []
+    for line in path.read_text(errors="replace").splitlines():
+        stripped = line.strip()
+        if stripped.lower().startswith("iteration") and "accuracy" in stripped.lower():
+            continue
+        if "accuracy OK" in line or "accuracy" in line.lower():
+            tokens = [token for token in line.replace(",", " ").split()]
+            for token in tokens:
+                try:
+                    value = float(token.rstrip("%"))
+                except ValueError:
+                    continue
+                if 0.0 < value <= 100.0:
+                    residues.append(value)
+                    break
+    if not residues:
+        raise ValueError(f"{path}: no convergence history found")
+    return np.asarray(residues, dtype=float)

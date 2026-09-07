@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Apply SWAN compile-time switches to the Fortran source templates."""
+"""Translate historical SWAN switches and preserve the legacy copier API.
+
+CMake now selects ordinary Fortran backend files directly. ``--cmake-args``
+maps the established command-line switches to those capabilities. Supplying
+source patterns with ``--output-dir`` retains the historical, non-destructive
+copy/transform interface for downstream build scripts.
+"""
 
 from __future__ import annotations
 
@@ -25,15 +31,36 @@ SWITCHES = {
     "-matl4": "mv4",
 }
 
+CMAKE_OPTIONS = {
+    "esmf": "ESMF",
+    "jac": "JAC",
+    "ffro": "FFRO",
+    "mpi": "MPI",
+    "cry": "SWAN_LEGACY_CRAY_IO",
+    "sgi": "SWAN_LEGACY_SGI_IO",
+    "imp": "SWAN_MPIF_COMPAT",
+    "cvi": "SWAN_DEC_SHARED_IO",
+    "adc": "ADCIRC",
+    "coh": "COH",
+    "met": "METIS",
+    "ncf": "NETCDF",
+    "mv4": "MATL4",
+}
+
 
 def parse_arguments(
     arguments: list[str],
-) -> tuple[set[str], Path | None, list[str]]:
+) -> tuple[set[str], Path | None, bool, list[str]]:
     enabled: set[str] = set()
     output_directory: Path | None = None
+    emit_cmake_arguments = False
     index = 0
     while index < len(arguments) and arguments[index].startswith("-"):
         option = arguments[index]
+        if option == "--cmake-args":
+            emit_cmake_arguments = True
+            index += 1
+            continue
         if option == "--output-dir":
             index += 1
             if index >= len(arguments):
@@ -54,7 +81,17 @@ def parse_arguments(
     if "esmf" in enabled and "met" in enabled:
         raise SystemExit(f"{Path(sys.argv[0]).name}: -esmf and -metis is not supported.")
 
-    return enabled, output_directory, arguments[index:]
+    return enabled, output_directory, emit_cmake_arguments, arguments[index:]
+
+
+def cmake_arguments(enabled: set[str]) -> list[str]:
+    """Return deterministic CMake capability arguments for old switches."""
+
+    return [
+        f"-D{CMAKE_OPTIONS[capability]}=ON"
+        for capability in CMAKE_OPTIONS
+        if capability in enabled
+    ]
 
 
 def expand_files(patterns: list[str]) -> list[Path]:
@@ -121,7 +158,9 @@ def process(
 
 
 def main(arguments: list[str]) -> int:
-    enabled, output_directory, patterns = parse_arguments(arguments)
+    enabled, output_directory, emit_cmake_arguments, patterns = parse_arguments(arguments)
+    if emit_cmake_arguments:
+        print(" ".join(cmake_arguments(enabled)))
     try:
         for source in expand_files(patterns):
             process(source, enabled, output_directory)

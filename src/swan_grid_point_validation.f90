@@ -1,5 +1,4 @@
 module swan_grid_point_validation
-   use swan_service_interfaces, only: strace
    use swan_computational_grid, only: MXC, MYC
    implicit none(type, external)
    private
@@ -8,13 +7,19 @@ module swan_grid_point_validation
 
 contains
 
-   logical function pvalid(x_index, y_index, grid_point)
+   pure logical function pvalid(x_index, y_index, grid_point)
+      ! PVALID was impuur enkel door
+      ! STRACE-diagnostiek (entry_count). In logische .AND./.OR.-ketens mag de
+      ! compiler een impure functie niet weglaten zonder de bijwerking over te
+      ! slaan; de waarschuwing is dus terecht als signaal, maar de bijwerking
+      ! was uitsluitend tracediagnostiek zonder numerieke betekenis (STRACE
+      ! retourneert direct bij ITRACE=0; VALIDBP traceert zelf). De functie is
+      ! daarom zuiver gemaakt: geen STRACE, geen SAVE-teller, alleen lezen van
+      ! MXC/MYC en het rooster. Eliminatie is nu veilig en de waarschuwing
+      ! verdwijnt zonder gedragsverandering. TEST-referenties bevatten geen
+      ! PVALID-traceregels (ITRACE=0 in regressies).
       integer, intent(in) :: x_index, y_index
       integer, intent(in) :: grid_point(MXC, MYC)
-
-      integer, save :: entry_count = 0
-
-      call strace(entry_count, 'PVALID')
 
       pvalid = x_index >= 1 .and. x_index <= MXC .and. &
                y_index >= 1 .and. y_index <= MYC
@@ -26,6 +31,7 @@ LOGICAL FUNCTION VALIDBP (IX, IY, KGRPNT,WNP)
 !************************************************************************
 
    USE swan_computational_grid
+   USE swan_service_interfaces, ONLY: STRACE
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 

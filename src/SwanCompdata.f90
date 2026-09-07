@@ -37,8 +37,7 @@ module SwanCompdata
 !
 !   40.80,    July 2007: New Module
 !   40.92,    June 2008: changes with respect to boundary polygons
-!GRAPH!   43.05, January 2023: wavefront scheduling based on graph levels
-!FXFRO!   43.05, January 2023: wavefront scheduling
+!   43.05, January 2023: wavefront and graph-level scheduling
 !
 !   Purpose
 !
@@ -54,6 +53,7 @@ module SwanCompdata
     ! vs below. Importing swan_stencil wholesale re-exported the whole of it,
     ! because a module without PRIVATE passes on everything it imports.
     use swan_stencil, only: MICMAX
+    use swan_front_scheduling_backend, only: flist, fptr, fronte, fronts, nfront
 
     implicit none(type, external)
 
@@ -64,18 +64,26 @@ module SwanCompdata
 
     integer                                    :: nbpol  ! total number of boundary polygons
     integer, dimension(10000)                  :: nbpt   ! number of boundary vertices for each boundary polygon
-!FXFRO    integer                                    :: nfront ! number of wavefronts
-
     integer, dimension(:,:), save, allocatable :: blist  ! list of boundary vertices in ascending order for each boundary polygon
     integer, dimension(:,:), save, allocatable :: bmark  ! list of corresponding boundary markers for each boundary polygon
     integer, dimension(:,:), save, allocatable :: bvertg ! global index of boundary vertex in own subdomain
-!GRAPH    integer, dimension(:,:), save, allocatable :: flist  ! wavefront list
-!GRAPH    integer, dimension(:,:), save, allocatable :: fptr   ! pointers per wavefront
-!FXFRO    integer, dimension(:)  , save, allocatable :: fronts ! start vertex index of wavefronts
-!FXFRO    integer, dimension(:)  , save, allocatable :: fronte ! end vertex index of wavefronts
-!GRAPH    integer, dimension(:)  , save, allocatable :: nfront ! number of wavefronts
-    integer, dimension(:,:), save, allocatable :: vlist  ! vertex list
+    integer, dimension(:,:), save, allocatable, target :: vlist  ! vertex list
 
 !   Source text
+
+contains
+
+   subroutine CLEAR_COMPUTATION_DATA ()
+      if (allocated(vlist )) deallocate(vlist )
+      if (allocated(blist )) deallocate(blist )
+      if (allocated(bvertg)) deallocate(bvertg)
+      if (allocated(bmark )) deallocate(bmark )
+   end subroutine CLEAR_COMPUTATION_DATA
+
+   logical function COMPUTATION_DATA_IS_CLEAR ()
+      COMPUTATION_DATA_IS_CLEAR = .not.allocated(vlist) .and. &
+         .not.allocated(blist) .and. .not.allocated(bvertg) .and. &
+         .not.allocated(bmark)
+   end function COMPUTATION_DATA_IS_CLEAR
 
 end module SwanCompdata

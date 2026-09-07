@@ -86,4 +86,22 @@ module SwanGriddata
 
 !   Source text
 
+contains
+
+   subroutine CLEAR_GRID_DATA ()
+      if (allocated(xcugrd  )) deallocate(xcugrd  )
+      if (allocated(ycugrd  )) deallocate(ycugrd  )
+      if (allocated(xcugrdgl)) deallocate(xcugrdgl)
+      if (allocated(ycugrdgl)) deallocate(ycugrdgl)
+      if (allocated(ivertg  )) deallocate(ivertg  )
+      if (allocated(vmark   )) deallocate(vmark   )
+   end subroutine CLEAR_GRID_DATA
+
+   logical function GRID_DATA_IS_CLEAR ()
+      GRID_DATA_IS_CLEAR = .not.allocated(xcugrd) .and. &
+         .not.allocated(ycugrd) .and. .not.allocated(xcugrdgl) .and. &
+         .not.allocated(ycugrdgl) .and. .not.allocated(ivertg) .and. &
+         .not.allocated(vmark)
+   end function GRID_DATA_IS_CLEAR
+
 end module SwanGriddata

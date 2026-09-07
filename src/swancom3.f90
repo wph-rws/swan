@@ -559,7 +559,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
 &UX2        ,UY2        ,&
 &SPCSIG     ,AC2&
 &,GENC0      ,KWAVE&
-&,IGP)
+&,IGP,icmax)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -689,6 +689,8 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
 ! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
    INTEGER, INTENT(IN) :: IGP
+!  Stencil width passed explicitly by the solver; forwarded to the drag law.
+   INTEGER, INTENT(IN) :: icmax
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
 
@@ -1084,7 +1086,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
       ELSE IF (IDRAG.EQ.6) THEN
 !          ECMWF drag formulation
          CALL SURF_ROUGH_ECMWF(WIND10, UFRIC, GENC0, SPCSIG,&
-         &KWAVE, CDRAG)
+         &KWAVE, CDRAG, icmax)
       END IF
 
 !       *** adapted wind friction velocity and PM-frequency ***
@@ -1857,7 +1859,7 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
-!ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
+   USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2069,8 +2071,8 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
             IF (TESTFL) PLWNDS(ID,IS,IPTST) = PLWNDS(ID,IS,IPTST) +&
             &SWINEB*AC2(ID,IS,IGP)
             GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEB*AC2(ID,IS,IGP)
-!ESMF            IF (SAVE_SINBAC) SINBAC(ID,IS,KCGRD(1)) =&
-!ESMF            &SINBAC(ID,IS,KCGRD(1)) + SWINEB*AC2(ID,IS,KCGRD(1))
+            CALL accumulate_exponential_wind_input(ID, IS, IGP, &
+               SWINEB*AC2(ID,IS,IGP))
 
          END IF
       ENDDO
@@ -2115,7 +2117,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
-!ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
+   USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2621,8 +2623,8 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
             IF (TESTFL) PLWNDS(ID,IS,IPTST) = PLWNDS(ID,IS,IPTST) +&
             &SWINEB*AC2(ID,IS,IGP)
             GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEB*AC2(ID,IS,IGP)
-!ESMF            IF (SAVE_SINBAC) SINBAC(ID,IS,KCGRD(1)) =&
-!ESMF            &SINBAC(ID,IS,KCGRD(1)) + SWINEB*AC2(ID,IS,KCGRD(1))
+            CALL accumulate_exponential_wind_input(ID, IS, IGP, &
+               SWINEB*AC2(ID,IS,IGP))
 !
 !           *** test output ***
 
@@ -2672,7 +2674,7 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
-!ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
+   USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2879,8 +2881,8 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
             IF (TESTFL) PLWNDS(ID,IS,IPTST) = PLWNDS(ID,IS,IPTST) +&
             &SWINEB*AC2(ID,IS,IGP)
             GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEB*AC2(ID,IS,IGP)
-!ESMF            IF (SAVE_SINBAC) SINBAC(ID,IS,KCGRD(1)) =&
-!ESMF            &SINBAC(ID,IS,KCGRD(1)) + SWINEB*AC2(ID,IS,KCGRD(1))
+            CALL accumulate_exponential_wind_input(ID, IS, IGP, &
+               SWINEB*AC2(ID,IS,IGP))
          END IF
       ENDDO
    ENDDO

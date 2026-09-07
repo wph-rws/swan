@@ -40,13 +40,13 @@ module swan_propagation
    public :: STRSSI, STRSSB, STRSD, SPREDT, SWAPAR, SWAPRE, ADDDIS, SWFLXD, DIFPAR
 contains
 
-SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
+SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR, st_ix, st_iy, st_kc, st_n, st_cos )
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
    USE swan_coordinate_offset
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_computational_grid
    USE swan_math_constants
    USE swan_test_output
@@ -56,6 +56,9 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
    USE M_PARALL
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+!  Stencil context passed explicitly by SWOMPU; latitude factors returned.
+   INTEGER, INTENT(IN) :: st_ix(MICMAX), st_iy(MICMAX), st_kc(MICMAX), st_n
+   REAL, INTENT(OUT) :: st_cos(MICMAX)
 
 
 !   --|-----------------------------------------------------------|--
@@ -180,8 +183,8 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
          ENDIF
       ENDIF
    ELSE
-      DX1 = XCGRID(IXCGRD(1),IYCGRD(1)) - XCGRID(IXCGRD(2),IYCGRD(2))
-      DY1 = YCGRID(IXCGRD(1),IYCGRD(1)) - YCGRID(IXCGRD(2),IYCGRD(2))
+      DX1 = XCGRID(st_ix(1),st_iy(1)) - XCGRID(st_ix(2),st_iy(2))
+      DY1 = YCGRID(st_ix(1),st_iy(1)) - YCGRID(st_ix(2),st_iy(2))
       IF  ( ONED ) THEN
 !         *** Inclusion of virtual point ***
          VIRT = 1.E6
@@ -193,8 +196,8 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
             DY2 = -VIRT * DX1
          ENDIF
       ELSE
-         DX2 = XCGRID(IXCGRD(1),IYCGRD(1))-XCGRID(IXCGRD(3),IYCGRD(3))
-         DY2 = YCGRID(IXCGRD(1),IYCGRD(1))-YCGRID(IXCGRD(3),IYCGRD(3))
+         DX2 = XCGRID(st_ix(1),st_iy(1))-XCGRID(st_ix(3),st_iy(3))
+         DY2 = YCGRID(st_ix(1),st_iy(1))-YCGRID(st_ix(3),st_iy(3))
       ENDIF
    ENDIF
 
@@ -208,23 +211,23 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
 !     note: latitude is in degrees
 
    IF (KSPHER.GT.0) THEN
-      DO IC = 1, ICMAX
-         IF ( KCGRD(IC).EQ.1 ) CYCLE   ! if point is not valid, then cy
-         COSLAT(IC) =&
-         &COS(DEGRAD*(YCGRID(IXCGRD(IC),IYCGRD(IC))+YOFFS))
+      DO IC = 1, st_n
+         IF ( st_kc(IC).EQ.1 ) CYCLE   ! if point is not valid, then cy
+         st_cos(IC) =&
+         &COS(DEGRAD*(YCGRID(st_ix(IC),st_iy(IC))+YOFFS))
       ENDDO
       DO IXY = 1, 2
          RDY(IXY) = RDY(IXY) / LENDEG
-         RDX(IXY) = RDX(IXY) / (COSLAT(1) * LENDEG)
+         RDX(IXY) = RDX(IXY) / (st_cos(1) * LENDEG)
       ENDDO
    ENDIF
 
    IF (TESTFL .AND. ITEST .GE. 30) THEN
       WRITE(PRINTF,"(' ...POINTS IN STENCIL IN SUBROUTINE SWGEOM...', /,'Point: IC, Ix, Iy, INDEX, Xc, Yc')")
       DO IC = 1, 3
-         WRITE(PRINTF,"(3(1X,I4),3X,I5,5X,F10.2,4X,F10.2)") IC, IXCGRD(IC)+MXF-1, IYCGRD(IC)+MYF-1,&
-         &KCGRD(IC),&
-         &XCGRID(IXCGRD(IC),IYCGRD(IC)),YCGRID(IXCGRD(IC),IYCGRD(IC))
+         WRITE(PRINTF,"(3(1X,I4),3X,I5,5X,F10.2,4X,F10.2)") IC, st_ix(IC)+MXF-1, st_iy(IC)+MYF-1,&
+         &st_kc(IC),&
+         &XCGRID(st_ix(IC),st_iy(IC)),YCGRID(st_ix(IC),st_iy(IC))
       ENDDO
       WRITE(PRINTF,"(' DET, RDX1, RDX2, RDY1, RDY2',/, 5(E10.4,1X))") DET,RDX(1),RDX(2),RDY(1),RDY(2)
    ENDIF
@@ -243,12 +246,13 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 &DEP2      ,UX2       ,UY2       ,&
 &SPCDIR    ,RDX       ,RDY       ,&
 &KGRPNT&
+&,kc1,ix1,iy1&
 &)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !******************************************************************
 
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid
@@ -502,6 +506,7 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 ! 13. Source text
 
    INTEGER, SAVE :: IENT = 0
+   INTEGER, INTENT(IN) :: kc1, ix1, iy1
    INTEGER   IS    ,ID    ,                     SWPDIR,&
    &IDSUM ,IDCLOW,IDCHGH,&
    &IDTOT ,ISTOT ,&
@@ -729,18 +734,18 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
    IF (ISSLOW.NE.9999) THEN
       IF (ITEST.GE.20) THEN
          IF (ISSLOW.NE.1 .OR. ISSTOP.EQ.-9999)&
-         &WRITE (PRTEST, "(' error SWPSEL in:', 2I5,', min max freq ', 5I7)") IXCGRD(1)-1, IYCGRD(1)-1, ISSLOW, ISSTOP
+         &WRITE (PRTEST, "(' error SWPSEL in:', 2I5,', min max freq ', 5I7)") ix1-1, iy1-1, ISSLOW, ISSTOP
       ENDIF
       ISSLOW = 1
 !       minimal value of ISSTOP is 4 (or MSC if MSC<4)
       IF (ICUR.GT.0) ISSTOP = MAX(MIN(4,MSC),ISSTOP)
       ISTOT = ( ISSTOP - ISSLOW ) + 1
    ELSE
-      IF (ISSTOP.NE.-9999) WRITE (PRTEST, "(' error SWPSEL in:', 2I5,', min max freq ', 5I7)") IXCGRD(1)-1,&
-      &IYCGRD(1)-1, ISSLOW, ISSTOP
+      IF (ISSTOP.NE.-9999) WRITE (PRTEST, "(' error SWPSEL in:', 2I5,', min max freq ', 5I7)") ix1-1,&
+      &iy1-1, ISSLOW, ISSTOP
       ISTOT = 0
-      IF (IDTOT.NE.0) WRITE (PRTEST, "(' error SWPSEL in:', 2I5,' min max freq dir ', 5I7)") IXCGRD(1)-1,&
-      &IYCGRD(1)-1, ISSLOW, ISSTOP, IDDLOW, IDDTOP
+      IF (IDTOT.NE.0) WRITE (PRTEST, "(' error SWPSEL in:', 2I5,' min max freq dir ', 5I7)") ix1-1,&
+      &iy1-1, ISSLOW, ISSTOP, IDDLOW, IDDTOP
    ENDIF
 
 !     *** check if IDTOT is less then MDC ***
@@ -759,36 +764,36 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
    IF (ICUR .EQ. 1 .AND. FULCIR .AND.&
    &ISSLOW.NE.1 .AND. ISSLOW.NE.9999) THEN
       CALL MSGERR (2,'The lowest freqency is blocked')
-      WRITE (PRINTF, "(A, 2I4, A, F6.2, A, 2F6.2)") ' at point:', IXCGRD(1)+MXF-2,&
-      &IYCGRD(1)+MYF-2,&
-      &' dep=', DEP2(KCGRD(1)),&
-      &'  U=', UX2(KCGRD(1)), UY2(KCGRD(1))
+      WRITE (PRINTF, "(A, 2I4, A, F6.2, A, 2F6.2)") ' at point:', ix1+MXF-2,&
+      &iy1+MYF-2,&
+      &' dep=', DEP2(kc1),&
+      &'  U=', UX2(kc1), UY2(kc1)
       IF (ITEST.GE.10) THEN
          WRITE (PRINTF, "(A, 6I8,A,I1)") ' spectral limits:', ISTOT, ISSLOW,&
          &ISSTOP, IDTOT, IDDLOW, IDDTOP, ' sweep=',SWPDIR
          IF (ITEST.GE.60) THEN
-            IF (IXCGRD(1).GT.1 .AND. IXCGRD(1).LT.MXC .AND.&
-            &IYCGRD(1).GT.1 .AND. IYCGRD(1).LT.MYC) THEN
+            IF (ix1.GT.1 .AND. ix1.LT.MXC .AND.&
+            &iy1.GT.1 .AND. iy1.LT.MYC) THEN
                WRITE (PRINTF, *) ' surrounding points'
                DO IY=-1,1
                   WRITE (PRINTF, "(1X, 3I6, 3(' | ', 3F9.2))")&
-                  &(KGRPNT(IXCGRD(1)+IX,IYCGRD(1)+IY), IX=-1,1),&
-                  &(DEP2(KGRPNT(IXCGRD(1)+IX,IYCGRD(1)+IY)), IX=-1,1),&
-                  &(UX2(KGRPNT(IXCGRD(1)+IX,IYCGRD(1)+IY)), IX=-1,1),&
-                  &(UY2(KGRPNT(IXCGRD(1)+IX,IYCGRD(1)+IY)), IX=-1,1)
+                  &(KGRPNT(ix1+IX,iy1+IY), IX=-1,1),&
+                  &(DEP2(KGRPNT(ix1+IX,iy1+IY)), IX=-1,1),&
+                  &(UX2(KGRPNT(ix1+IX,iy1+IY)), IX=-1,1),&
+                  &(UY2(KGRPNT(ix1+IX,iy1+IY)), IX=-1,1)
                ENDDO
             ENDIF
          ENDIF
       ENDIF
 !       write this point to ERRPTS file (BLOCKed option)
       IF (ERRPTS.GT.0.AND.IAMMASTER) THEN
-         WRITE(ERRPTS,"(I4, 1X, I4, 1X, I2)") IXCGRD(1)+MXF-1, IYCGRD(1)+MYF-1, 3
+         WRITE(ERRPTS,"(I4, 1X, I4, 1X, I2)") ix1+MXF-1, iy1+MYF-1, 3
       END IF
       IC = 1
-      GROUP = SQRT ( GRAV * DEP2(KCGRD(IC)) )
-      UABS  = SQRT ( UX2(KCGRD(IC))**2 + UY2(KCGRD(IC))**2 )
+      GROUP = SQRT ( GRAV * DEP2(kc1) )
+      UABS  = SQRT ( UX2(kc1)**2 + UY2(kc1)**2 )
       IF ( UABS .GT. GROUP ) THEN
-         WRITE(PRINTF,"(' warning, at point:',2I4,' |U|=',F8.2,' > Cg=',F8.2)") IXCGRD(IC)-1, IYCGRD(1)-1, UABS, GROUP
+         WRITE(PRINTF,"(' warning, at point:',2I4,' |U|=',F8.2,' > Cg=',F8.2)") ix1-1, iy1-1, UABS, GROUP
       ENDIF
    ENDIF
 
@@ -796,7 +801,7 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 
    IF ( TESTFL .AND. ITEST .GE. 30 ) THEN
       IC = 1
-      WRITE (PRTEST,"(' subr SWPSEL: Point SWPDIR ICUR :',3I5 )") KCGRD(IC),SWPDIR,ICUR
+      WRITE (PRTEST,"(' subr SWPSEL: Point SWPDIR ICUR :',3I5 )") kc1,SWPDIR,ICUR
       WRITE (PRTEST,"(' IDDLOW IDDTOP ISSLOW ISSTOP:',4I4 )") IDDLOW, IDDTOP ,ISSLOW, ISSTOP
       WRITE (PRTEST,"(' IDTOT ISTOT :',4I4 )") IDTOT , ISTOT
       IF (ITEST.GE.120) THEN
@@ -844,12 +849,13 @@ SUBROUTINE SPROXY (CAX        ,&
 &CAY        ,CGO        ,ECOS       ,&
 &ESIN       ,UX2        ,UY2        ,&
 &SWPDIR     ,DIFFR&
+&,st_kc,st_n&
 &)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid
@@ -860,6 +866,8 @@ SUBROUTINE SPROXY (CAX        ,&
    IMPLICIT NONE(TYPE, EXTERNAL)
 
    TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
+!  Stencil addresses and width passed explicitly by SWOMPU.
+   INTEGER, INTENT(IN) :: st_kc(MICMAX), st_n
 
 
 !   --|-----------------------------------------------------------|--
@@ -1040,9 +1048,9 @@ SUBROUTINE SPROXY (CAX        ,&
    INTEGER, SAVE :: IENT = 0
    INTEGER  IP, IC    ,IS    ,ID    ,SWPDIR
 
-   REAL     CAX(MDC,MSC,ICMAX)          ,&
-   &CAY(MDC,MSC,ICMAX)          ,&
-   &CGO(MSC,ICMAX)              ,&
+   REAL     CAX(MDC,MSC,MICMAX)          ,&
+   &CAY(MDC,MSC,MICMAX)          ,&
+   &CGO(MSC,MICMAX)              ,&
    &ECOS(MDC)                   ,&
    &ESIN(MDC)                   ,&
    &UX2(MCGRD)                ,&
@@ -1050,10 +1058,10 @@ SUBROUTINE SPROXY (CAX        ,&
 
    IF (LTRACE) CALL STRACE (IENT,'SPROXY')
 
-   IF (TESTFL .AND. ITEST .GE. 5 ) WRITE (PRTEST,"(' Start SPROXY ', 4I5)")SWPDIR,KCGRD(1)
+   IF (TESTFL .AND. ITEST .GE. 5 ) WRITE (PRTEST,"(' Start SPROXY ', 4I5)")SWPDIR,st_kc(1)
 
-   DO IC = 1, ICMAX
-      IF ( KCGRD(IC) .LE. 1 ) THEN
+   DO IC = 1, st_n
+      IF ( st_kc(IC) .LE. 1 ) THEN
          do IS = 1, MSC
             do ID = 1 , MDC
                CAX(ID,IS,IC) = 0.
@@ -1074,8 +1082,8 @@ SUBROUTINE SPROXY (CAX        ,&
          IF (IDIFFR.EQ.1 .AND. PDIFFR(3).NE.0.) THEN
             do IS = 1, MSC
                do ID = 1 ,MDC
-                  CAX(ID,IS,IC) = CAX(ID,IS,IC)*diffr%param(KCGRD(IC))
-                  CAY(ID,IS,IC) = CAY(ID,IS,IC)*diffr%param(KCGRD(IC))
+                  CAX(ID,IS,IC) = CAX(ID,IS,IC)*diffr%param(st_kc(IC))
+                  CAY(ID,IS,IC) = CAY(ID,IS,IC)*diffr%param(st_kc(IC))
                end do
             end do
          END IF
@@ -1085,8 +1093,8 @@ SUBROUTINE SPROXY (CAX        ,&
          IF (ICUR.EQ.1)  THEN
             do IS = 1, MSC
                do ID = 1, MDC
-                  CAX(ID,IS,IC) = CAX(ID,IS,IC) + UX2(KCGRD(IC))
-                  CAY(ID,IS,IC) = CAY(ID,IS,IC) + UY2(KCGRD(IC))
+                  CAX(ID,IS,IC) = CAX(ID,IS,IC) + UX2(st_kc(IC))
+                  CAY(ID,IS,IC) = CAY(ID,IS,IC) + UY2(st_kc(IC))
                end do
             end do
          END IF
@@ -1096,15 +1104,15 @@ SUBROUTINE SPROXY (CAX        ,&
 !       *** test output ***
 
       IF ( IC .EQ. 1 .AND. TESTFL .AND. ITEST .GE. 120 ) THEN
-         DO IP = 1, ICMAX
-            WRITE(PRINTF,"(' SPROXY: IC INDEX UX2 UY2 :', 2I5, ' UX,UY:', 2(1X,E12.4))") IP,KCGRD(IP),&
-            &UX2(KCGRD(IP)),UY2(KCGRD(IP))
+         DO IP = 1, st_n
+            WRITE(PRINTF,"(' SPROXY: IC INDEX UX2 UY2 :', 2I5, ' UX,UY:', 2(1X,E12.4))") IP,st_kc(IP),&
+            &UX2(st_kc(IP)),UY2(st_kc(IP))
          ENDDO
          IF (ITEST.GE.220) THEN
             do IS = 1, MSC
                do ID = 1, MDC
                   WRITE(PRINTF,"(' IS ID <CAX CAY>:',2I4,10(1X,2E11.4))") IS, ID,&
-                  &(CAX(ID,IS,IP), CAY(ID,IS,IP), IP=1,ICMAX)
+                  &(CAX(ID,IS,IP), CAY(ID,IS,IP), IP=1,st_n)
                end do
             end do
          ENDIF
@@ -1125,6 +1133,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 &CAX        ,CAY        ,&
 &XCGRID     ,YCGRID     ,&
 &IDDLOW     ,IDDTOP     ,DIFFR&
+&,st_kc5,st_ix1,st_iy1&
 &)
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -1132,7 +1141,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 
    USE swan_coordinate_offset
    USE swan_run_mode
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_numerics
    USE swan_physical_settings
@@ -1149,6 +1158,8 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
    IMPLICIT NONE(TYPE, EXTERNAL)
 
    TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
+!  Stencil context passed explicitly by SWOMPU.
+   INTEGER, INTENT(IN) :: st_kc5(5), st_ix1, st_iy1
 
 
 !   --|-----------------------------------------------------------|--
@@ -1410,11 +1421,11 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
    DHDX = 0.
    DHDY = 0.
 
-   KCG1 = KCGRD(1)
-   KCG2 = KCGRD(2)
-   KCG3 = KCGRD(3)
-   KCG4 = KCGRD(4)
-   KCG5 = KCGRD(5)
+   KCG1 = st_kc5(1)
+   KCG2 = st_kc5(2)
+   KCG3 = st_kc5(3)
+   KCG4 = st_kc5(4)
+   KCG5 = st_kc5(5)
 
 !     Refraction and frequency shift are not defined for points
 !     neighbouring to landpoints
@@ -1433,8 +1444,8 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
       RETURN
    ENDIF
 
-   IX1  = IXCGRD(1)
-   IY1  = IYCGRD(1)
+   IX1  = st_ix1
+   IY1  = st_iy1
 
    DLOC1 = DEP2(KCG1)
    DLOC2 = DEP2(KCG2)
@@ -1753,13 +1764,13 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 end subroutine SPROSD
 !****************************************************************
 
-SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
+SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN, st_ix1, st_iy1)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
    USE swan_coordinate_offset
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
@@ -1767,6 +1778,8 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
    USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+!  Stencil context passed explicitly by SWOMPU.
+   INTEGER, INTENT(IN) :: st_ix1, st_iy1
 
 
 !   --|-----------------------------------------------------------|--
@@ -1909,8 +1922,8 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN)
 
 !     *** TANLAT is Tan of Latitude
 
-   IX     = IXCGRD(1)
-   IY     = IYCGRD(1)
+   IX     = st_ix1
+   IY     = st_iy1
    TANLAT = TAN(DEGRAD*(YCGRID(IX,IY)+YOFFS))
 
    DO ID = 1, MDC
@@ -1930,13 +1943,13 @@ end subroutine DSPHER
 SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 &CAY     ,AC2     ,AC1     ,IMATRA  ,IMATDA  ,&
 &RDX     ,RDY     ,&
-&OBREDF  ,TRAC0   ,TRAC1   )
+&OBREDF  ,TRAC0   ,TRAC1   ,st_kc   ,st_cos)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
    USE swan_run_mode
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_numerics
    USE swan_computational_grid
@@ -1945,6 +1958,9 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
    USE swan_spherical_geometry
    USE swan_diagnostics_level
    USE swan_io_units
+!  Stencil addresses and latitude factors passed explicitly by ACTION.
+   REAL, INTENT(IN) :: st_cos(MICMAX)
+   INTEGER, INTENT(IN) :: st_kc(MICMAX)
 
 
 !   --|-----------------------------------------------------------|--
@@ -2125,8 +2141,8 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
    do IS = 1, ISSTOP
 !       test output     ver 30.50
 
-      IND2 = KCGRD(2)
-      IND3 = KCGRD(3)
+      IND2 = st_kc(2)
+      IND3 = st_kc(3)
 
 
       do IDDUM = IDCMIN(IS), IDCMAX(IS)
@@ -2137,7 +2153,7 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
             TCF1 = OBREDF(ID,IS,1)
             TCF2 = OBREDF(ID,IS,2)
             IF (TESTFL .AND. ITEST.GE.80) THEN
-               WRITE(PRINTF,"(' STRSXY obst ',3(1X,I5),2(1X,E10.4))") KCGRD(1),ID,IS,TCF1,TCF2
+               WRITE(PRINTF,"(' STRSXY obst ',3(1X,I5),2(1X,E10.4))") st_kc(1),ID,IS,TCF1,TCF2
             ENDIF
          ELSE
             TCF1 = 1.
@@ -2164,9 +2180,9 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
             DO IC = 2, 3
                FXY2 = FXY2 +&
                &RDX(IC-1) * CAX(ID,IS,IC) * TRSCF(IC) *&
-               &AC2(ID,IS,KCGRD(IC))&
+               &AC2(ID,IS,st_kc(IC))&
                &+ RDY(IC-1) * CAY(ID,IS,IC) * TRSCF(IC) *&
-               &AC2(ID,IS,KCGRD(IC)) * COSLAT(IC) / COSLAT(1)
+               &AC2(ID,IS,st_kc(IC)) * st_cos(IC) / st_cos(1)
             ENDDO
          ENDIF
 
@@ -2178,9 +2194,9 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 
          IF (NSTATC.EQ.1) THEN
             IF (ITERMX.EQ.1) THEN
-               ACOLD = AC2(ID,IS,KCGRD(1))
+               ACOLD = AC2(ID,IS,st_kc(1))
             ELSE
-               ACOLD = AC1(ID,IS,KCGRD(1))
+               ACOLD = AC1(ID,IS,st_kc(1))
             ENDIF
             IMATRA(ID,IS) = IMATRA(ID,IS) + FXY2 + ACOLD*RDTIM
             IMATDA(ID,IS) = IMATDA(ID,IS) + FXY1 + RDTIM
@@ -2236,12 +2252,12 @@ end subroutine STRSXY
 
 SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 &CAY     ,AC2     ,IMATRA  ,IMATDA  ,&
-&RDX     ,RDY     ,TRAC0   ,TRAC1   )
+&RDX     ,RDY     ,TRAC0   ,TRAC1   ,st_kc   ,st_cos)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
 
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_numerics
    USE swan_computational_grid
@@ -2250,8 +2266,10 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
    USE swan_spherical_geometry
    USE swan_diagnostics_level
    USE swan_io_units
-
    IMPLICIT NONE(TYPE, EXTERNAL)
+!  Stencil addresses and latitude factors passed explicitly by ACTION.
+   REAL, INTENT(IN) :: st_cos(MICMAX)
+   INTEGER, INTENT(IN) :: st_kc(MICMAX)
 
 
 !   --|-----------------------------------------------------------|--
@@ -2439,10 +2457,10 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
    END IF
 
    do IS = 1, ISSTOP
-      IND2 = KCGRD(2)
-      IND3 = KCGRD(3)
-      IND6 = KCGRD(6)
-      IND7 = KCGRD(7)
+      IND2 = st_kc(2)
+      IND3 = st_kc(3)
+      IND6 = st_kc(6)
+      IND7 = st_kc(7)
       do IDDUM = IDCMIN(IS), IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 !         find Courant number values: XMU, YMU
@@ -2490,11 +2508,11 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
                &-AC2(ID,IS,IND6) * CAX(ID,IS,6) * RDX(1) * 0.5&
                &+AC2(ID,IS,IND3) * CAX(ID,IS,3) * RDX(2) * 2.0&
                &-AC2(ID,IS,IND7) * CAX(ID,IS,7) * RDX(2) * 0.5&
-               &+(AC2(ID,IS,IND2) * CAY(ID,IS,2) * RDY(1) * COSLAT(2) * 2.0&
-               &-AC2(ID,IS,IND6) * CAY(ID,IS,6) * RDY(1) * COSLAT(6) * 0.5&
-               &+AC2(ID,IS,IND3) * CAY(ID,IS,3) * RDY(2) * COSLAT(3) * 2.0&
-               &-AC2(ID,IS,IND7) * CAY(ID,IS,7) * RDY(2) * COSLAT(7) * 0.5&
-               &) / COSLAT(1) !33.10
+               &+(AC2(ID,IS,IND2) * CAY(ID,IS,2) * RDY(1) * st_cos(2) * 2.0&
+               &-AC2(ID,IS,IND6) * CAY(ID,IS,6) * RDY(1) * st_cos(6) * 0.5&
+               &+AC2(ID,IS,IND3) * CAY(ID,IS,3) * RDY(2) * st_cos(3) * 2.0&
+               &-AC2(ID,IS,IND7) * CAY(ID,IS,7) * RDY(2) * st_cos(7) * 0.5&
+               &) / st_cos(1) !33.10
             ENDIF
 
          ELSE      ! switch 2<==>3, 6<==>7 and YMU<==>XMU
@@ -2520,11 +2538,11 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
                &-AC2(ID,IS,IND6) * CAX(ID,IS,6) * RDX(1) * 0.5&
                &+AC2(ID,IS,IND3) * CAX(ID,IS,3) * RDX(2) * 2.0&
                &-AC2(ID,IS,IND7) * CAX(ID,IS,7) * RDX(2) * 0.5&
-               &+(AC2(ID,IS,IND2) * CAY(ID,IS,2) * RDY(1) * COSLAT(2) * 2.0&
-               &-AC2(ID,IS,IND6) * CAY(ID,IS,6) * RDY(1) * COSLAT(6) * 0.5&
-               &+AC2(ID,IS,IND3) * CAY(ID,IS,3) * RDY(2) * COSLAT(3) * 2.0&
-               &-AC2(ID,IS,IND7) * CAY(ID,IS,7) * RDY(2) * COSLAT(7) * 0.5&
-               &)/ COSLAT(1)
+               &+(AC2(ID,IS,IND2) * CAY(ID,IS,2) * RDY(1) * st_cos(2) * 2.0&
+               &-AC2(ID,IS,IND6) * CAY(ID,IS,6) * RDY(1) * st_cos(6) * 0.5&
+               &+AC2(ID,IS,IND3) * CAY(ID,IS,3) * RDY(2) * st_cos(3) * 2.0&
+               &-AC2(ID,IS,IND7) * CAY(ID,IS,7) * RDY(2) * st_cos(7) * 0.5&
+               &)/ st_cos(1)
             ENDIF
          END IF
 
@@ -2568,13 +2586,13 @@ end subroutine SORDUP
 SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 &CAY     ,AC2     ,AC1     ,IMATRA  ,IMATDA  ,&
 &RDX     ,RDY     ,CAX1    ,CAY1    ,SPCDIR  ,&
-&TRAC0   ,TRAC1   )
+&TRAC0   ,TRAC1   ,st_kc   ,st_cos)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
 
    USE swan_run_mode
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_numerics
    USE swan_computational_grid
@@ -2585,8 +2603,10 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_time, ONLY: default_time_context
-
    IMPLICIT NONE(TYPE, EXTERNAL)
+!  Stencil addresses and latitude factors passed explicitly by ACTION.
+   REAL, INTENT(IN) :: st_cos(MICMAX)
+   INTEGER, INTENT(IN) :: st_kc(MICMAX)
 
 
 
@@ -2840,22 +2860,22 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
       ENDDO
    END IF
 
-   IND1  = KCGRD(1)
-   IND2  = KCGRD(2)
-   IND3  = KCGRD(3)
-   IND4  = KCGRD(4)
-   IND5  = KCGRD(5)
-   IND6  = KCGRD(6)
-   IND7  = KCGRD(7)
-   IND8  = KCGRD(8)
-   IND9  = KCGRD(9)
-   IND10 = KCGRD(10)
-   IND11 = KCGRD(11)
-   IND12 = KCGRD(12)
-   IND13 = KCGRD(13)
+   IND1  = st_kc(1)
+   IND2  = st_kc(2)
+   IND3  = st_kc(3)
+   IND4  = st_kc(4)
+   IND5  = st_kc(5)
+   IND6  = st_kc(6)
+   IND7  = st_kc(7)
+   IND8  = st_kc(8)
+   IND9  = st_kc(9)
+   IND10 = st_kc(10)
+   IND11 = st_kc(11)
+   IND12 = st_kc(12)
+   IND13 = st_kc(13)
 
    IF (TESTFL .AND. KSPHER.GT.0 .AND. ITEST.GE.60) THEN
-      WRITE (PRTEST, "(' Cos(Lat) ',10(1X,F7.4))") (COSLAT(IC), IC=1, 10)
+      WRITE (PRTEST, "(' Cos(Lat) ',10(1X,F7.4))") (st_cos(IC), IC=1, 10)
    ENDIF
    IF (WAVAGE.GT.0. .AND. ITEST.GE.120 .AND. TESTFL) THEN
       WRITE (PRTEST, *) '  ID  IS  DSS    DNN   ',&
@@ -2993,17 +3013,17 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
             &+(0.25*RDX(2))*(CAX1(ID,IS,3)*AC1(ID,IS,IND3)&
             &-               CAX1(ID,IS,4)*AC1(ID,IS,IND4))
             FXY2 = FXY2 + (&
-            &+1.25   * RDY(1)*CAY(ID,IS,2)*AC2(ID,IS,IND2)*COSLAT(2)&
-            &+1.25   * RDY(2)*CAY(ID,IS,3)*AC2(ID,IS,IND3)*COSLAT(3)&
-            &-0.5    * RDY(1)*CAY(ID,IS,6)*AC2(ID,IS,IND6)*COSLAT(6)&
-            &-0.5    * RDY(2)*CAY(ID,IS,7)*AC2(ID,IS,IND7)*COSLAT(7)&
-            &+0.08333* RDY(1)*CAY(ID,IS,8)*AC2(ID,IS,IND8)*COSLAT(8)&
-            &+0.08333* RDY(2)*CAY(ID,IS,9)*AC2(ID,IS,IND9)*COSLAT(9)&
-            &+(0.25*RDY(1))*(CAY1(ID,IS,2)*AC1(ID,IS,IND2)*COSLAT(2)&
-            &-               CAY1(ID,IS,5)*AC1(ID,IS,IND5)*COSLAT(5))&
-            &+(0.25*RDY(2))*(CAY1(ID,IS,3)*AC1(ID,IS,IND3)*COSLAT(3)&
-            &-               CAY1(ID,IS,4)*AC1(ID,IS,IND4)*COSLAT(4))&
-            &) / COSLAT(1)
+            &+1.25   * RDY(1)*CAY(ID,IS,2)*AC2(ID,IS,IND2)*st_cos(2)&
+            &+1.25   * RDY(2)*CAY(ID,IS,3)*AC2(ID,IS,IND3)*st_cos(3)&
+            &-0.5    * RDY(1)*CAY(ID,IS,6)*AC2(ID,IS,IND6)*st_cos(6)&
+            &-0.5    * RDY(2)*CAY(ID,IS,7)*AC2(ID,IS,IND7)*st_cos(7)&
+            &+0.08333* RDY(1)*CAY(ID,IS,8)*AC2(ID,IS,IND8)*st_cos(8)&
+            &+0.08333* RDY(2)*CAY(ID,IS,9)*AC2(ID,IS,IND9)*st_cos(9)&
+            &+(0.25*RDY(1))*(CAY1(ID,IS,2)*AC1(ID,IS,IND2)*st_cos(2)&
+            &-               CAY1(ID,IS,5)*AC1(ID,IS,IND5)*st_cos(5))&
+            &+(0.25*RDY(2))*(CAY1(ID,IS,3)*AC1(ID,IS,IND3)*st_cos(3)&
+            &-               CAY1(ID,IS,4)*AC1(ID,IS,IND4)*st_cos(4))&
+            &) / st_cos(1)
          ENDIF
 
          IF (WAVAGE.GT.0.0) THEN      ! add the anti-GSE stuff
@@ -3034,9 +3054,9 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 !         This business of doing rollback regardless of ITERMX is an
 !         artifact and has been removed.
          IF (ITERMX.EQ.1) THEN
-            ACOLD = AC2(ID,IS,KCGRD(1))
+            ACOLD = AC2(ID,IS,st_kc(1))
          ELSE
-            ACOLD = AC1(ID,IS,KCGRD(1))
+            ACOLD = AC1(ID,IS,st_kc(1))
          ENDIF
          IMATRA(ID,IS) = IMATRA(ID,IS) + FXY2 + ACOLD*RDTIM
          IMATDA(ID,IS) = IMATDA(ID,IS) + FXY1 + RDTIM
@@ -3074,12 +3094,11 @@ end subroutine SANDL
 SUBROUTINE STRSSI(SPCSIG  ,&
 &CAS     ,IMAT5L  ,IMATDA  ,IMAT6U  ,ANYBIN  ,&
 &IMATRA  ,AC2     ,ISCMIN  ,ISCMAX  ,IDDLOW  ,&
-&IDDTOP  ,TRAC0   ,TRAC1                     )
+&IDDTOP  ,TRAC0   ,TRAC1   ,st_kc1  ,st_n    )
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_numerics
    USE swan_computational_grid
@@ -3087,6 +3106,8 @@ SUBROUTINE STRSSI(SPCSIG  ,&
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
+!  Stencil point and width passed explicitly by ACTION/SwanTranspAc.
+   INTEGER, INTENT(IN) :: st_kc1, st_n
 
 
 !   --|-----------------------------------------------------------|--
@@ -3244,7 +3265,7 @@ SUBROUTINE STRSSI(SPCSIG  ,&
    LOGICAL  BIN1    ,BIN3
 
    REAL     AC2(MDC,MSC,MCGRD)         ,&
-   &CAS(MDC,MSC,ICMAX)         ,&
+   &CAS(MDC,MSC,st_n)         ,&
    &IMAT5L(MDC,MSC)            ,&
    &IMATDA(MDC,MSC)            ,&
    &IMAT6U(MDC,MSC)            ,&
@@ -3272,14 +3293,14 @@ SUBROUTINE STRSSI(SPCSIG  ,&
             BIN1 = .FALSE.
             C3   = CAS(ID,IS+1,1)
             BIN3 = ANYBIN(ID,IS+1)
-            IF (.NOT.BIN3) A3 = AC2(ID,IS+1,KCGRD(1))
+            IF (.NOT.BIN3) A3 = AC2(ID,IS+1,st_kc1)
             DS   = SPCSIG(IS+1) - SPCSIG(IS)
             S1 = 0.
             S3 = SPCSIG(IS+1)
          ELSE IF ( IS .EQ. MSC ) THEN
             C1   = CAS(ID,IS-1,1)
             BIN1 = ANYBIN(ID,IS-1)
-            IF (.NOT.BIN1) A1 = AC2(ID,IS-1,KCGRD(1))
+            IF (.NOT.BIN1) A1 = AC2(ID,IS-1,st_kc1)
             C3   = C2
             A3   = 0.
             BIN3 = .FALSE.
@@ -3291,8 +3312,8 @@ SUBROUTINE STRSSI(SPCSIG  ,&
             C3   = CAS(ID,IS+1,1)
             BIN1 = ANYBIN(ID,IS-1)
             BIN3 = ANYBIN(ID,IS+1)
-            IF (.NOT.BIN1) A1 = AC2(ID,IS-1,KCGRD(1))
-            IF (.NOT.BIN3) A3 = AC2(ID,IS+1,KCGRD(1))
+            IF (.NOT.BIN1) A1 = AC2(ID,IS-1,st_kc1)
+            IF (.NOT.BIN3) A3 = AC2(ID,IS+1,st_kc1)
             DS   = 0.5 * ( SPCSIG(IS+1) - SPCSIG(IS-1) )
             S1 = SPCSIG(IS-1)
             S3 = SPCSIG(IS+1)
@@ -3365,7 +3386,7 @@ SUBROUTINE STRSSI(SPCSIG  ,&
 !     *** test output ***
 
    IF ( TESTFL .AND. ITEST .GE. 35 ) THEN
-      WRITE(PRINTF,"(' STRSSI: POINT IDDLOW IDDTOP :',3I5)") KCGRD(1), IDDLOW, IDDTOP
+      WRITE(PRINTF,"(' STRSSI: POINT IDDLOW IDDTOP :',3I5)") st_kc1, IDDLOW, IDDTOP
       WRITE(PRINTF,"(' STRSSI: CSS :',2E12.4)") PNUMS(7)
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) ' matrix coefficients in STRSSI'
@@ -3392,12 +3413,11 @@ end subroutine STRSSI
 SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 &IDCMIN  ,IDCMAX  ,ISSTOP  ,CAX     ,CAY     ,&
 &CAS     ,AC2     ,SPCSIG  ,IMATRA  ,&
-&ANYBLK  ,RDX     ,RDY     ,TRAC0            )
+&ANYBLK  ,RDX     ,RDY     ,TRAC0   ,st_kc1  ,st_n)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_numerics
    USE swan_computational_grid
@@ -3407,6 +3427,8 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+!  Stencil point and width passed explicitly by ACTION/SwanTranspAc.
+   INTEGER, INTENT(IN) :: st_kc1, st_n
 
 
 !   --|-----------------------------------------------------------|--
@@ -3626,9 +3648,9 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
    &CAXCEN  ,CAYCEN  ,CASCEN  ,TX      ,TY      ,TS      ,&
    &CASL    ,CASR    ,PN1     ,PN2
 
-   REAL     CAS(MDC,MSC,ICMAX)       ,&
-   &CAX(MDC,MSC,ICMAX)       ,&
-   &CAY(MDC,MSC,ICMAX)       ,&
+   REAL     CAS(MDC,MSC,st_n)       ,&
+   &CAX(MDC,MSC,st_n)       ,&
+   &CAY(MDC,MSC,st_n)       ,&
    &AC2(MDC,MSC,MCGRD)       ,&
    &IMATRA(MDC,MSC)          ,&
    &RDX(*)                   ,&
@@ -3697,9 +3719,9 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 !             *** for first point an upwind scheme is used ***
                CASR  = 0.5 * ( CAS(ID,IS,1) + CAS(ID,IS+1,1) )
                IF ( CASR .LT. 0. ) THEN
-                  FRGHT = CASR * AC2(ID,IS+1,KCGRD(1))
+                  FRGHT = CASR * AC2(ID,IS+1,st_kc1)
                ELSE
-                  FRGHT = CASR * AC2(ID,IS  ,KCGRD(1))
+                  FRGHT = CASR * AC2(ID,IS  ,st_kc1)
                END IF
                FLEFT = 0.
             ELSE IF ( IS .EQ. MSC ) THEN
@@ -3708,34 +3730,34 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
                CASL = CAS(ID,IS-1,1)
                CASR = CAS(ID,IS  ,1)
                IF ( CASL .LT. 0. ) THEN
-                  FLEFT = CASL * AC2(ID,IS  ,KCGRD(1))
+                  FLEFT = CASL * AC2(ID,IS  ,st_kc1)
                ELSE
-                  FLEFT = CASL * AC2(ID,IS-1,KCGRD(1))
+                  FLEFT = CASL * AC2(ID,IS-1,st_kc1)
                END IF
                IF ( CASR .LT. 0. ) THEN
 !               *** assumption has been made that the flux is ***
 !               *** zero for the bin beyond MSC               ***
                   FRGHT = 0.
                ELSE
-                  FRGHT = CASR * AC2(ID,IS,KCGRD(1))
+                  FRGHT = CASR * AC2(ID,IS,st_kc1)
                END IF
             ELSE
 !             *** point in frequency range ***
                CASL  = 0.5 * ( CAS(ID,IS,1) + CAS(ID,IS-1,1) )
                CASR  = 0.5 * ( CAS(ID,IS,1) + CAS(ID,IS+1,1) )
                IF ( CASL .LT. 0. ) THEN
-                  FLEFT = CASL * ( PN1*AC2(ID,IS  ,KCGRD(1)) +&
-                  &PN2*AC2(ID,IS-1,KCGRD(1)) )
+                  FLEFT = CASL * ( PN1*AC2(ID,IS  ,st_kc1) +&
+                  &PN2*AC2(ID,IS-1,st_kc1) )
                ELSE
-                  FLEFT = CASL * ( PN1*AC2(ID,IS-1,KCGRD(1)) +&
-                  &PN2*AC2(ID,IS  ,KCGRD(1)) )
+                  FLEFT = CASL * ( PN1*AC2(ID,IS-1,st_kc1) +&
+                  &PN2*AC2(ID,IS  ,st_kc1) )
                END IF
                IF ( CASR .LT. 0. ) THEN
-                  FRGHT = CASR * ( PN1*AC2(ID,IS+1,KCGRD(1)) +&
-                  &PN2*AC2(ID,IS  ,KCGRD(1)) )
+                  FRGHT = CASR * ( PN1*AC2(ID,IS+1,st_kc1) +&
+                  &PN2*AC2(ID,IS  ,st_kc1) )
                ELSE
-                  FRGHT = CASR * ( PN1*AC2(ID,IS  ,KCGRD(1)) +&
-                  &PN2*AC2(ID,IS+1,KCGRD(1)) )
+                  FRGHT = CASR * ( PN1*AC2(ID,IS  ,st_kc1) +&
+                  &PN2*AC2(ID,IS+1,st_kc1) )
                END IF
             END IF
 
@@ -3761,7 +3783,7 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 
    IF ( ITEST .GE. 50 .AND. TESTFL ) THEN
       WRITE(PRINTF,"(' BLOCKB : MDC MSC MCGRD : ',3I5)") MDC,MSC,MCGRD
-      WRITE(PRINTF,"(' BLOCKB : POINT ISSTOP CFLMAX: ',2I5,F8.4)") KCGRD(1), ISSTOP, CFLMAX
+      WRITE(PRINTF,"(' BLOCKB : POINT ISSTOP CFLMAX: ',2I5,F8.4)") st_kc1, ISSTOP, CFLMAX
       WRITE(PRINTF,"(' Active bins within a sweep -> ID: ',I3,' to ',I3)") IDDLOW, IDDTOP
       WRITE(PRINTF,*)
       WRITE(PRINTF,*)(' Propagation of bin if blocking can occur')
@@ -3786,12 +3808,11 @@ end subroutine STRSSB
 SUBROUTINE STRSD (DD      ,IDCMIN  ,&
 &IDCMAX  ,CAD     ,IMATLA  ,IMATDA  ,IMATUA  ,&
 &IMATRA  ,AC2     ,ISSTOP  ,&
-&ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1            )
+&ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1   ,st_kc1  ,st_n)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_numerics
    USE swan_computational_grid
@@ -3799,6 +3820,8 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
+!  Stencil point and width passed explicitly by ACTION/SwanTranspAc.
+   INTEGER, INTENT(IN) :: st_kc1, st_n
 
 
 !   --|-----------------------------------------------------------|--
@@ -3943,7 +3966,7 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
    REAL     DIAG12, DIAG23, PCD1, PCD2, PCD3, RHS12, RHS23
 
    REAL     AC2(MDC,MSC,MCGRD)         ,&
-   &CAD(MDC,MSC,ICMAX)         ,&
+   &CAD(MDC,MSC,st_n)         ,&
    &IMATLA(MDC,MSC)            ,&
    &IMATDA(MDC,MSC)            ,&
    &IMATUA(MDC,MSC)            ,&
@@ -3973,7 +3996,7 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
                IIDM = MOD (IDDUM-2+MDC, MDC) + 1
                C1   = CAD(IIDM,IS,1)
                BIN1 = ANYBIN(IIDM,IS)
-               IF (.NOT.BIN1) A1 = AC2(IIDM,IS,KCGRD(1))
+               IF (.NOT.BIN1) A1 = AC2(IIDM,IS,st_kc1)
             ELSE
                IIDM = 0
                C1   = C2
@@ -3984,7 +4007,7 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
                IIDP = MOD (IDDUM+MDC, MDC) + 1
                C3   = CAD(IIDP,IS,1)
                BIN3 = ANYBIN(IIDP,IS)
-               IF (.NOT.BIN3) A3 = AC2(IIDP,IS,KCGRD(1))
+               IF (.NOT.BIN3) A3 = AC2(IIDP,IS,st_kc1)
             ELSE
                IIDP = 0
                C3   = C2
@@ -4057,7 +4080,7 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
 
    IF ( ITEST .GE. 80 .AND. TESTFL ) THEN
       WRITE(PRINTF,"(' FULL CIRCLE ',L4)") FULCIR
-      WRITE(PRINTF,"(' STRSD :POINT ISTOP CDD :',2I5,E12.4)") KCGRD(1), ISSTOP, PNUMS(6)
+      WRITE(PRINTF,"(' STRSD :POINT ISTOP CDD :',2I5,E12.4)") st_kc1, ISSTOP, PNUMS(6)
       WRITE(PRINTF,"(' STRSD : PN1 PN2 PNH DD :',4E12.4)") PN1, PN2, PNH ,DD
    END IF
 
@@ -4070,12 +4093,11 @@ end subroutine STRSD
 SUBROUTINE STRSDFV (DD      ,IDCMIN  ,&
 &IDCMAX  ,CAD     ,IMATLA  ,IMATDA  ,IMATUA  ,&
 &IMATRA  ,AC2     ,ISSTOP  ,&
-&ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1            )
+&ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1   ,st_kc1  ,st_n)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-   USE swan_stencil
    USE swan_physics_selection
    USE swan_numerics
    USE swan_computational_grid
@@ -4085,6 +4107,8 @@ SUBROUTINE STRSDFV (DD      ,IDCMIN  ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+!  Stencil point and width passed explicitly by ACTION/SwanTranspAc.
+   INTEGER, INTENT(IN) :: st_kc1, st_n
 
 
 !   --|-----------------------------------------------------------|--
@@ -4151,7 +4175,7 @@ SUBROUTINE STRSDFV (DD      ,IDCMIN  ,&
    INTEGER IDCMIN(MSC), IDCMAX(MSC)
    REAL    DD
    REAL    AC2(MDC,MSC,MCGRD),&
-   &CAD(MDC,MSC,ICMAX),&
+   &CAD(MDC,MSC,st_n),&
    &IMATLA(MDC,MSC)   ,&
    &IMATDA(MDC,MSC)   ,&
    &IMATUA(MDC,MSC)   ,&
@@ -4226,7 +4250,7 @@ SUBROUTINE STRSDFV (DD      ,IDCMIN  ,&
                   IDM  = MOD (IDDUM-2+MDC, MDC) + 1
                   CADM = CAD(IDM,IS,1)
                   BINM = ANYBIN(IDM,IS)
-                  IF (.NOT.BINM) ACM = AC2(IDM,IS,KCGRD(1))
+                  IF (.NOT.BINM) ACM = AC2(IDM,IS,st_kc1)
                ELSE
                   IDM  = 0
                   CADM = CAD(ID,IS,1)
@@ -4257,7 +4281,7 @@ SUBROUTINE STRSDFV (DD      ,IDCMIN  ,&
                IDP  = MOD (IDDUM+MDC, MDC) + 1
                CADP = CAD(IDP,IS,1)
                BINP = ANYBIN(IDP,IS)
-               IF (.NOT.BINP) ACP = AC2(IDP,IS,KCGRD(1))
+               IF (.NOT.BINP) ACP = AC2(IDP,IS,st_kc1)
             ELSE
                IDP  = 0
                CADP = CAD(ID,IS,1)
@@ -4297,7 +4321,7 @@ SUBROUTINE STRSDFV (DD      ,IDCMIN  ,&
 !     --- test output
 
    IF ( TESTFL .AND. ITEST.GE.80 ) THEN
-      WRITE(PRINTF,"(' STRSDFV: POINT ISSTOP :',2I5)") KCGRD(1), ISSTOP
+      WRITE(PRINTF,"(' STRSDFV: POINT ISSTOP :',2I5)") st_kc1, ISSTOP
       WRITE(PRINTF,"(' STRSDFV: CDD :',E12.4)") PNUMS(6)
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) ' matrix coefficients in STRSDFV'
@@ -4322,14 +4346,15 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 &CAY        ,IDCMIN     ,IDCMAX    ,&
 &ISSTOP     ,ANYBIN     ,&
 &XCGRID     ,YCGRID     ,&
-&RDX        ,RDY        ,OBREDF    ,IGP)
+&RDX        ,RDY        ,OBREDF    ,IGP&
+&,st_ix1,st_iy1,st_ix2,st_iy2,st_ix3,st_iy3,st_kc2,st_kc3)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
    USE swan_coordinate_offset
    USE swan_computational_grid_kind
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_numerics
    USE swan_computational_grid
    USE swan_spectral_grid
@@ -4341,6 +4366,9 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    INTEGER, INTENT(IN) :: IGP
+!  Stencil neighbours passed explicitly by both solvers.
+   INTEGER, INTENT(IN) :: st_ix1, st_iy1, st_ix2, st_iy2
+   INTEGER, INTENT(IN) :: st_ix3, st_iy3, st_kc2, st_kc3
 
 
 !   --|-----------------------------------------------------------|--
@@ -4538,11 +4566,11 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 !            consider the equation on a rectangular grid
 !            so that all bins will be filled
 
-      IDX=1./(XCGRID(IXCGRD(1),IYCGRD(1))-XCGRID(IXCGRD(2),IYCGRD(2)))
-      IDY=1./(YCGRID(IXCGRD(1),IYCGRD(1))-YCGRID(IXCGRD(3),IYCGRD(3)))
+      IDX=1./(XCGRID(st_ix1,st_iy1)-XCGRID(st_ix2,st_iy2))
+      IDY=1./(YCGRID(st_ix1,st_iy1)-YCGRID(st_ix3,st_iy3))
 
       IF ( KSPHER.GT.0 ) THEN
-         CLAT = COS(DEGRAD*(YCGRID(IXCGRD(1),IYCGRD(1))+YOFFS))
+         CLAT = COS(DEGRAD*(YCGRID(st_ix1,st_iy1)+YOFFS))
          IDX  = IDX / (CLAT * LENDEG)
          IDY  = IDY / LENDEG
       ENDIF
@@ -4589,8 +4617,8 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 
             CDEN = IDX * CAX(ID,IS,1) + IDY * CAY(ID,IS,1)
 
-            CNUM = IDX * CAX(ID,IS,2) * TCF1 * AC2(ID,IS,KCGRD(2)) +&
-            &IDY * CAY(ID,IS,3) * TCF2 * AC2(ID,IS,KCGRD(3))
+            CNUM = IDX * CAX(ID,IS,2) * TCF1 * AC2(ID,IS,st_kc2) +&
+            &IDY * CAY(ID,IS,3) * TCF2 * AC2(ID,IS,st_kc3)
 
             IF (ACUPDA) AC2(ID,IS,IGP) = CNUM / CDEN
 
@@ -4618,8 +4646,8 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
                   TCF1 = 1.
                   TCF2 = 1.
                ENDIF
-               FAC_A = TCF1 * WEIG1 * AC2(ID,IS,KCGRD(2))
-               FAC_B = TCF2 * WEIG2 * AC2(ID,IS,KCGRD(3))
+               FAC_A = TCF1 * WEIG1 * AC2(ID,IS,st_kc2)
+               FAC_B = TCF2 * WEIG2 * AC2(ID,IS,st_kc3)
 
                IF (ACUPDA)&
                &AC2(ID,IS,IGP) = MAX ( 0. , (FAC_A + FAC_B))
@@ -4635,8 +4663,8 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
          DO IDDUM = IDCMIN(IS)-1, IDCMAX(IS)+1
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
             WRITE (PRINTF,"(' : IS ID AC2 AC2(2) AC2(3) ANYBIN :', 2I5,3(E12.4),L4)") IS, ID, AC2(ID,IS,IGP),&
-            &AC2(ID,IS,KCGRD(2)),&
-            &AC2(ID,IS,KCGRD(3)),&
+            &AC2(ID,IS,st_kc2),&
+            &AC2(ID,IS,st_kc3),&
             &ANYBIN(ID,IS)
          END DO
       END DO
@@ -4648,14 +4676,14 @@ end subroutine SPREDT
 
 !****************************************************************
 
-SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
+SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG, st_kc, st_n )
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_wave_physics, ONLY: KSCIP1, KSCIP2
 
 !****************************************************************
 
    USE swan_input_grids
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid
@@ -4819,16 +4847,18 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
 
    REAL         DEP(MCGRD)         ,&
    &MUDL(MCGRD)        ,&
-   &KWAVE(MSC,ICMAX)   ,&
-   &CGO(MSC,ICMAX)     ,&
-   &DMW(MSC,ICMAX)
+   &KWAVE(MSC,MICMAX)  ,&
+   &CGO(MSC,MICMAX)    ,&
+   &DMW(MSC,MICMAX)
 
 
    INTEGER, SAVE :: IENT=0
+!  Stencil addresses and width passed explicitly by SWOMPU.
+   INTEGER, INTENT(IN) :: st_kc(MICMAX), st_n
    IF (LTRACE) CALL STRACE (IENT,'SWAPAR')
 
-   DO IC = 1, ICMAX
-      INDX   = KCGRD(IC)
+   DO IC = 1, st_n
+      INDX   = st_kc(IC)
       DEPLOC = DEP(INDX)
       IF ( prop_cache_valid ) THEN
          KWAVE(1:MSC,IC) = prop_kwave(1:MSC,INDX)
@@ -4864,7 +4894,7 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG )
       ENDIF
 
       IF ( TESTFL .AND. IC .EQ. 1 .AND. ITEST.GE. 100 ) THEN
-         WRITE(PRINTF,"(' SWAPAR : DEP :',E12.4, /, ' IS K CGO :')") DEP(KCGRD(IC))
+         WRITE(PRINTF,"(' SWAPAR : DEP :',E12.4, /, ' IS K CGO :')") DEP(st_kc(IC))
          do IS = 1, MSC
             WRITE(PRINTF,"(I4, 2E12.4)") IS, KWAVE(IS,IC), CGO(IS,IC)
          end do
@@ -5271,12 +5301,11 @@ end subroutine ADDDIS
 
 SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
 &AC2   , DD    , ANYBIN, LEAKC1, IDCMIN,&
-&IDCMAX, ISSTOP)
+&IDCMAX, ISSTOP, st_kc1, st_n)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-   USE swan_stencil
    USE swan_numerics
    USE swan_computational_grid
    USE swan_spectral_grid
@@ -5285,6 +5314,8 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+!  Stencil point and width passed explicitly by ACTION/SwanTranspAc.
+   INTEGER, INTENT(IN) :: st_kc1, st_n
 
 
 
@@ -5354,7 +5385,7 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
    INTEGER IDCMIN(MSC), IDCMAX(MSC)
    REAL    DD
    REAL    AC2(MDC,MSC,MCGRD),&
-   &CAD(MDC,MSC,ICMAX),&
+   &CAD(MDC,MSC,st_n),&
    &IMATLA(MDC,MSC)   ,&
    &IMATDA(MDC,MSC)   ,&
    &IMATUA(MDC,MSC)   ,&
@@ -5437,7 +5468,7 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
                   IDM  = MOD (IDDUM-2+MDC, MDC) + 1
                   CADM = CAD(IDM,IS,1)
                   BINM = ANYBIN(IDM,IS)
-                  IF (.NOT.BINM) ACM = AC2(IDM,IS,KCGRD(1))
+                  IF (.NOT.BINM) ACM = AC2(IDM,IS,st_kc1)
                ELSE
                   IDM  = 0
                   CADM = CAD(ID,IS,1)
@@ -5450,18 +5481,18 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
                CAN = 0.5*(CAV - ABS(CAV))
 
                IF ( FULCIR .OR. ID.GT.1 ) THEN
-                  ACT0 = AC2(MOD(IDDUM-2+MDC,MDC)+1,IS,KCGRD(1))
+                  ACT0 = AC2(MOD(IDDUM-2+MDC,MDC)+1,IS,st_kc1)
                ELSE
                   ACT0 = 0.
                END IF
                IF ( FULCIR .OR. ID.GT.2 ) THEN
-                  ACT1 = AC2(MOD(IDDUM-3+MDC,MDC)+1,IS,KCGRD(1))
+                  ACT1 = AC2(MOD(IDDUM-3+MDC,MDC)+1,IS,st_kc1)
                ELSE
                   ACT1 = 0.
                END IF
-               ACT2 = AC2(ID,IS,KCGRD(1))
+               ACT2 = AC2(ID,IS,st_kc1)
                IF ( FULCIR .OR. ID.LT.MDC ) THEN
-                  ACT3 = AC2(MOD(IDDUM+MDC,MDC)+1,IS,KCGRD(1))
+                  ACT3 = AC2(MOD(IDDUM+MDC,MDC)+1,IS,st_kc1)
                ELSE
                   ACT3 = 0.
                END IF
@@ -5493,7 +5524,7 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
                IDP  = MOD (IDDUM+MDC, MDC) + 1
                CADP = CAD(IDP,IS,1)
                BINP = ANYBIN(IDP,IS)
-               IF (.NOT.BINP) ACP = AC2(IDP,IS,KCGRD(1))
+               IF (.NOT.BINP) ACP = AC2(IDP,IS,st_kc1)
             ELSE
                IDP  = 0
                CADP = CAD(ID,IS,1)
@@ -5505,19 +5536,19 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
             CAP = 0.5*(CAV + ABS(CAV))
             CAN = 0.5*(CAV - ABS(CAV))
 
-            ACT0 = AC2(ID,IS,KCGRD(1))
+            ACT0 = AC2(ID,IS,st_kc1)
             IF ( FULCIR .OR. ID.GT.1 ) THEN
-               ACT1 = AC2(MOD(IDDUM-2+MDC,MDC)+1,IS,KCGRD(1))
+               ACT1 = AC2(MOD(IDDUM-2+MDC,MDC)+1,IS,st_kc1)
             ELSE
                ACT1 = 0.
             END IF
             IF ( FULCIR .OR. ID.LT.MDC ) THEN
-               ACT2 = AC2(MOD(IDDUM+MDC,MDC)+1,IS,KCGRD(1))
+               ACT2 = AC2(MOD(IDDUM+MDC,MDC)+1,IS,st_kc1)
             ELSE
                ACT2 = 0.
             END IF
             IF ( FULCIR .OR. ID.LT.MDC-1 ) THEN
-               ACT3 = AC2(MOD(IDDUM+1+MDC,MDC)+1,IS,KCGRD(1))
+               ACT3 = AC2(MOD(IDDUM+1+MDC,MDC)+1,IS,st_kc1)
             ELSE
                ACT3 = 0.
             END IF
@@ -5557,7 +5588,7 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
 !     --- test output
 
    IF ( TESTFL .AND. ITEST.GE.80 ) THEN
-      WRITE(PRINTF,"(' SWFLXD: POINT ISSTOP :',2I5)") KCGRD(1), ISSTOP
+      WRITE(PRINTF,"(' SWFLXD: POINT ISSTOP :',2I5)") st_kc1, ISSTOP
       WRITE(PRINTF,"(' SWFLXD: CDD :',E12.4)") PNUMS(6)
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) ' matrix coefficients in SWFLXD'
@@ -5580,7 +5611,7 @@ end subroutine SWFLXD
 SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , DIFFR ,&
 &CROSS , XCGRID, YCGRID, XYTST )
    USE swan_service_interfaces, ONLY: STRACE, EQREAL, STPNOW
-   USE swan_parallel, ONLY: SWEXCHG
+   USE swan_sweep_exchange_backend, ONLY: exchange_swan_field
    USE swan_wave_physics, ONLY: KSCIP1
 
 !****************************************************************
@@ -5715,7 +5746,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , DIFFR ,&
 !     STPNOW           Logical indicating whether program must
 !                      terminated or not
 !     STRACE           Tracing routine for debugging
-!     SWEXCHG          exchanges some data at subdomain boundaries
+!     exchange_swan_field exchanges some data at subdomain boundaries
 
 
 !  9. Subroutines calling
@@ -5894,8 +5925,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , DIFFR ,&
             END IF
          END DO
       END DO
-!WFR      CALL SWEXCHG(EN,KGRPNT)
-!JAC      CALL SWEXCHG(EN,0,KGRPNT)
+      CALL exchange_swan_field(EN,KGRPNT)
       IF (STPNOW()) RETURN
    END DO
 
@@ -6020,8 +6050,7 @@ SUBROUTINE DIFPAR( AC2   , SPCSIG, KGRPNT, DEP2  , DIFFR ,&
          diffr%param(IND) = SQRT(1.+TMP)
       END IF
    END DO
-!WFR   CALL SWEXCHG(diffr%param(:),KGRPNT)
-!JAC   CALL SWEXCHG(diffr%param(:),0,KGRPNT)
+   CALL exchange_swan_field(diffr%param(:),KGRPNT)
    IF (STPNOW()) RETURN
 
 !     --- calculate spatial derivatives of diffr%param

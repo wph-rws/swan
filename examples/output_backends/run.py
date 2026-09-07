@@ -136,6 +136,11 @@ def main() -> int:
     parser.add_argument("--mpi-numproc-flag", default="-n")
     parser.add_argument("--mpi-processes", type=int, default=1)
     parser.add_argument("--reference", default="reference")
+    parser.add_argument(
+        "--smoke",
+        action="store_true",
+        help="alleen draaien zonder regressievergelijking; telt niet als geslaagde regressie",
+    )
     parser.add_argument("--expected-center", type=float, default=EXPECTED_CENTER_HSIG)
     parser.add_argument(
         "--mixed-block",
@@ -213,12 +218,21 @@ def main() -> int:
         )
         if arguments.mixed_block and not arguments.netcdf_table:
             reference_names.append("quick_test_hs.blk")
-        if not compare_with_reference(
-            work_directory,
-            source_directory / arguments.reference,
-            tuple(reference_names),
-        ):
-            raise RuntimeError(f"quick-test reference {arguments.reference} is missing")
+        if arguments.smoke:
+            compare_with_reference(
+                work_directory,
+                source_directory / arguments.reference,
+                tuple(reference_names),
+                smoke=True,
+            )
+            print("Smoke-modus: backend draaide; geen regressievergelijking.")
+        else:
+            compare_with_reference(
+                work_directory,
+                source_directory / arguments.reference,
+                tuple(reference_names),
+            )
+            print("Results match the stored reference.")
 
         output = work_directory / output_name
         if not output.is_file() or output.stat().st_size == 0:

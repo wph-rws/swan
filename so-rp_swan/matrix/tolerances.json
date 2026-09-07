@@ -1,0 +1,21 @@
+{
+  "_comment": "Vooraf vastgelegde absolute/relatieve toleranties per grootheid, vergelijking en rekenvariant. Bitgelijkheid waar bewezen en vereist (41.51-refactor); BSS-migratie heeft eigen gedocumenteerde residualen, geen automatische tolerantie.",
+  "refactor_4151_vs_premodern": {
+    "Hsig_points": {"mode": "bit_equal", "max_abs": 0.0},
+    "Hsig_field": {"mode": "bit_equal", "max_abs": 0.0},
+    "Tm01_points": {"mode": "bit_equal", "max_abs": 0.0},
+    "Dir_points_circular": {"mode": "bit_equal", "max_abs_deg": 0.0},
+    "convergence_history": {"mode": "equal_length_and_residues", "max_abs_pct": 0.0}
+  },
+  "legacy_GEN3_KOMEN_DRAG_FIT_vs_BSS4131": {
+    "_comment": "Gemeten maximum 0.01938 m is een resultaat, geen automatisch aanvaardbare migratietolerantie. Formele sign-off vereist herhaling op volledige conditiematrix.",
+    "Hsig_points": {"mode": "report_only", "measured_max_abs_m": 0.01938, "measured_max_rms_m": 0.005644},
+    "Tm01_points": {"mode": "report_only"},
+    "Dir_points_circular": {"mode": "report_only", "exclude_below_Hsig_m": 0.05}
+  },
+  "optimization_levels_O0_O2_O3": {
+    "_comment": "Debug/-O0-onderzoek; geen generieke tolerantie-verruiming. Resterend verschil vraagt onderbouwde tolerantie per grootheid/variant.",
+    "status": "open_onderzoek",
+    "known_red": {"case": "nonstationary_regular", "Hsig_m": 2.1e-04, "Tm01_s": 4.5e-03, "Dir_deg": 0.01}
+  }
+}

@@ -39,9 +39,9 @@ if( SWAN_LEGACY_CRAY_IO AND SWAN_LEGACY_SGI_IO )
     "-- SWAN_LEGACY_CRAY_IO and SWAN_LEGACY_SGI_IO are mutually exclusive" )
 endif()
 #
-# Generate configured Fortran sources in the build tree.  The .f90 files in
-# the source tree remain the only editable sources; configured variants never
-# obscure their Git history.
+# Generate only the value-based build configuration module. All other Fortran
+# sources are compiled directly from the source tree; variant implementations
+# are selected as whole files below.
 set( SWAN_GENERATED_SRC ${CMAKE_CURRENT_BINARY_DIR}/generated )
 file( MAKE_DIRECTORY ${SWAN_GENERATED_SRC} )
 if( TIMG )
@@ -54,6 +54,21 @@ if( SWAN_DEBUG_INVARIANTS )
 else()
   set( SWAN_INVARIANT_CHECKS_ENABLED ".false." )
 endif()
+if( JAC )
+  set( SWAN_JACOBI_SWEEP_ENABLED ".true." )
+else()
+  set( SWAN_JACOBI_SWEEP_ENABLED ".false." )
+endif()
+if( FFRO )
+  set( SWAN_FIXED_FRONT_ENABLED ".true." )
+else()
+  set( SWAN_FIXED_FRONT_ENABLED ".false." )
+endif()
+# Fork-identiteit: herkenbare bouwstempel, TU Delft als referentielijn.
+set( SWAN_FORK_IDENTITY "wph-rws/swan fork of SWAN 41.51" CACHE STRING
+  "Fork identity embedded in the build" )
+set( SWAN_UPSTREAM_REFERENCE "gitlab.tudelft.nl/citg/wavemodels/swan upstream main"
+  CACHE STRING "Upstream reference line for this fork" )
 set( SWAN_SEQUENTIAL_RECORD_LENGTH 0 )
 set( SWAN_PRINT_RECORD_LENGTH 0 )
 set( SWAN_DEFAULT_MAXIMUM_UNIT 99999 )
@@ -80,16 +95,8 @@ configure_file(
   ${SWAN_GENERATED_SRC}/swan_build_config.f90
   @ONLY
 )
-file( GLOB SWAN_SOURCE_INPUTS CONFIGURE_DEPENDS "${SRC}/*.f90" )
 set_property( DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-  ${SWAN_SOURCE_INPUTS}
   "${SRC}/swan_build_config.f90.in"
-  "${CMAKE_SOURCE_DIR}/switch.py"
-)
-execute_process(
-  COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/switch.py ${SWITCHES}
-          --output-dir ${SWAN_GENERATED_SRC} ${SRC}/*.f90
-  COMMAND_ERROR_IS_FATAL ANY
 )
 
 # choose parallelisation paradigm: OpenMP or MPI
@@ -145,6 +152,60 @@ else()
     ${SRC}/parallel/swan_metis_backend_disabled.f90
   )
 endif()
+if( MPI )
+  set( SWAN_MPI_BACKEND_SOURCE
+    ${SRC}/parallel/swan_mpi_backend_enabled.f90
+  )
+else()
+  set( SWAN_MPI_BACKEND_SOURCE
+    ${SRC}/parallel/swan_mpi_backend_disabled.f90
+  )
+endif()
+if( JAC )
+  set( SWAN_BLOCK_COLORING_BACKEND_SOURCE
+    ${SRC}/parallel/swan_block_coloring_backend_enabled.f90
+  )
+else()
+  set( SWAN_BLOCK_COLORING_BACKEND_SOURCE
+    ${SRC}/parallel/swan_block_coloring_backend_disabled.f90
+  )
+endif()
+if( JAC )
+  set( SWAN_SWEEP_EXCHANGE_BACKEND_SOURCE
+    ${SRC}/parallel/swan_sweep_exchange_backend_jacobi.f90
+  )
+else()
+  set( SWAN_SWEEP_EXCHANGE_BACKEND_SOURCE
+    ${SRC}/parallel/swan_sweep_exchange_backend_wavefront.f90
+  )
+endif()
+if( FFRO )
+  set( SWAN_FRONT_SCHEDULING_BACKEND_SOURCE
+    ${SRC}/propagation/swan_front_scheduling_backend_fixed.f90
+  )
+else()
+  set( SWAN_FRONT_SCHEDULING_BACKEND_SOURCE
+    ${SRC}/propagation/swan_front_scheduling_backend_graph.f90
+  )
+endif()
+if( COH )
+  set( SWAN_MPI_LIFECYCLE_BACKEND_SOURCE
+    ${SRC}/parallel/swan_mpi_lifecycle_backend_coherent.f90
+  )
+else()
+  set( SWAN_MPI_LIFECYCLE_BACKEND_SOURCE
+    ${SRC}/parallel/swan_mpi_lifecycle_backend_standard.f90
+  )
+endif()
+if( ESMF )
+  set( SWAN_ESMF_COUPLING_BACKEND_SOURCE
+    ${SRC}/coupling/swan_esmf_coupling_backend_enabled.f90
+  )
+else()
+  set( SWAN_ESMF_COUPLING_BACKEND_SOURCE
+    ${SRC}/coupling/swan_esmf_coupling_backend_disabled.f90
+  )
+endif()
 if( NOT TARGET swan${VERSION} )
   if( NOT NETCDF )
     include( ${SRC}/srclist.cmake )
@@ -152,6 +213,12 @@ if( NOT TARGET swan${VERSION} )
       ${SWAN_MATLAB_SOURCES}
       ${SWAN_NETCDF_BACKEND_SOURCE}
       ${SWAN_METIS_BACKEND_SOURCE}
+      ${SWAN_MPI_BACKEND_SOURCE}
+      ${SWAN_BLOCK_COLORING_BACKEND_SOURCE}
+      ${SWAN_SWEEP_EXCHANGE_BACKEND_SOURCE}
+      ${SWAN_FRONT_SCHEDULING_BACKEND_SOURCE}
+      ${SWAN_MPI_LIFECYCLE_BACKEND_SOURCE}
+      ${SWAN_ESMF_COUPLING_BACKEND_SOURCE}
     )
     add_library( swan${VERSION} STATIC ${swan_src} )
     set_target_properties( swan${VERSION} PROPERTIES LINKER_LANGUAGE Fortran )
@@ -161,6 +228,12 @@ if( NOT TARGET swan${VERSION} )
       ${SWAN_MATLAB_SOURCES}
       ${SWAN_NETCDF_BACKEND_SOURCE}
       ${SWAN_METIS_BACKEND_SOURCE}
+      ${SWAN_MPI_BACKEND_SOURCE}
+      ${SWAN_BLOCK_COLORING_BACKEND_SOURCE}
+      ${SWAN_SWEEP_EXCHANGE_BACKEND_SOURCE}
+      ${SWAN_FRONT_SCHEDULING_BACKEND_SOURCE}
+      ${SWAN_MPI_LIFECYCLE_BACKEND_SOURCE}
+      ${SWAN_ESMF_COUPLING_BACKEND_SOURCE}
     )
     add_library( swan${VERSION} STATIC ${swan_nc_src} )
     set_target_properties( swan${VERSION} PROPERTIES LINKER_LANGUAGE Fortran )
@@ -168,14 +241,19 @@ if( NOT TARGET swan${VERSION} )
     target_link_libraries( swan${VERSION} PUBLIC NetCDF::NetCDF_Fortran )
   endif()
   target_link_libraries( swan${VERSION} PUBLIC swan_build_options FFTW3::fftw3 )
-  if( WIN32 AND NOT CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
+  # Geen automatische niet-GNU-selectie. DEC-SHARED en mpif.h-wrapper
+  # alleen bij bewezen capability (expliciete optie), niet bij "niet-GNU".
+  if( SWAN_DEC_SHARED_IO )
     target_sources( swan${VERSION} PRIVATE
       ${SRC}/platform/swan_file_open_backend_dec.f90 )
   else()
     target_sources( swan${VERSION} PRIVATE
       ${SRC}/platform/swan_file_open_backend_standard.f90 )
   endif()
-  if( MPI AND NOT CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
+  if( SWAN_MPIF_COMPAT )
+    if( NOT (MPI OR JAC) )
+      message( FATAL_ERROR "SWAN_MPIF_COMPAT vereist MPI of JAC (capability, geen auto-selectie)" )
+    endif()
     target_sources( swan${VERSION} PRIVATE
       ${SRC}/platform/swan_mpi_mpif_wrapper.f90 )
   endif()
@@ -191,12 +269,33 @@ if( NOT TARGET swan${VERSION} )
   if( METIS_FOUND )
     target_include_directories( swan${VERSION} PUBLIC ${Metis_INCLUDE_DIR} )
     target_link_libraries( swan${VERSION} PUBLIC ${Metis_LIBRARIES} )
+    # Controleer header én bibliotheek uit dezelfde installatie en leid
+    # de ABI-breedtes af van metis.h, niet van het Fortran-kindnummer. Alleen
+    # linken bewijst geen passende ABI; argumentdoorgifte en indexbereik worden
+    # in swan_metis_interface.f90 en SwanParallel.f90 gecontroleerd.
+    if( EXISTS "${Metis_INCLUDE_DIR}/metis.h" )
+      file( STRINGS "${Metis_INCLUDE_DIR}/metis.h" _metis_idx
+        REGEX "^#define IDXTYPEWIDTH" )
+      file( STRINGS "${Metis_INCLUDE_DIR}/metis.h" _metis_real
+        REGEX "^#define REALTYPEWIDTH" )
+      message( STATUS "METIS header ${Metis_INCLUDE_DIR}/metis.h: ${_metis_idx}; ${_metis_real}" )
+      message( STATUS "METIS library: ${Metis_LIBRARIES}" )
+      if( NOT "${_metis_idx}" MATCHES "32" OR NOT "${_metis_real}" MATCHES "32" )
+        message( FATAL_ERROR
+          "Alleen 32/32-METIS is momenteel afgeleid in swan_metis_interface.f90 "
+          "(gevonden: ${_metis_idx}; ${_metis_real}). Herleid de interface voor "
+          "64-bit-indexen en test met 32- én 64-bit-bibliotheken; "
+          "zie doc/support-matrix.md." )
+      endif()
+    else()
+      message( WARNING "metis.h niet gevonden onder ${Metis_INCLUDE_DIR}; ABI-controle overgeslagen" )
+    endif()
   endif()
 endif()
 
 # build executable
 if( NOT TARGET ${EXE} )
-  set( swanmain ${SWAN_GENERATED_SRC}/swan_program.f90 )
+  set( swanmain ${SRC}/swan_program.f90 )
   add_executable( ${EXE} ${swanmain} )
   target_link_libraries( ${EXE} PRIVATE swan${VERSION} )
 endif()

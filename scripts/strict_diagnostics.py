@@ -5,9 +5,10 @@ Configures and builds SWAN with GNU Fortran's strict warning set, counts the
 warnings per category, and fails when a budget is exceeded. The budget that
 matters is `implicit-interface`: every remaining one is a call the compiler
 cannot check, and the two that are left are calls into the METIS C library,
-which can never have a Fortran interface. Any increase means a procedure went
-back to being external, so the budget is deliberately exact rather than
-generous.
+die een expliciete C-koppeling via ISO_C_BINDING/BIND(C) kunnen krijgen
+via de expliciete C-koppeling; "nooit een Fortran-interface" was onjuist. Any increase means a
+procedure went back to being external, so the budget is deliberately exact
+rather than generous.
 
 The per-category counts alone cannot see a swap: one warning fixed and one
 introduced in the same category leaves the total untouched. A second, finer
@@ -18,12 +19,20 @@ genuinely new warning shows up. Two clean parallel builds of the same tree
 produce an identical fingerprint multiset, and a 51-file module split moved
 none of them, so the comparison is quiet enough to enforce.
 
-Always measures a clean build. An incremental one only reports the files it
-recompiled, which silently understates every count.
+Telt uitsluitend één volledig geslaagde schone bouw. Configureer-
+en bouwlogs van iedere poging worden bewaard; een mislukte schone bouw
+blokkeert de poort. Er is geen incrementeel slotlog en geen concatenatie van
+pogingen: hercompilatie kan dezelfde waarschuwing dubbel tellen. De zogeheten
+module-afhankelijkheidsrace is een niet-gereproduceerde hypothese; dit script
+claimt geen oorzaak of reparatie zonder bewaarde logs en reproductie.
 
 Usage:
-    scripts/strict_diagnostics.py [--build-dir DIR]
+    scripts/strict_diagnostics.py [--build-dir DIR] [--require-baseline]
                                   [--update-budget] [--update-fingerprints]
+    --require-baseline (regressiemodus, ook via CI): een ontbrekend budget,
+    een ontbrekende fingerprintbaseline en een niet-passende compiler/variant
+    zijn een fout. Zonder deze vlag blijft lokaal de oude soepele melding
+    behouden, maar CI gebruikt altijd --require-baseline.
 """
 
 from __future__ import annotations
@@ -58,25 +67,41 @@ INLINE = re.compile(
 
 
 def build(source: Path, build_dir: Path) -> str:
+    """Eén volledig geslaagde schone bouw; bewaar configureer- en bouwlogs.
+
+    Geen herhaling, geen incrementeel slotlog, geen concatenatie: een tweede
+    poging in dezelfde bouwmap is incrementeel en verbergt waarschuwingen uit
+    reeds gecompileerde bestanden; concatenatie telt hercompilatie dubbel.
+    Bij falen blijven configureerlog en bouwlog bewaard en blokkeert de poort;
+    een lokale herhaling dient alleen diagnose (nieuwe schone map).
+    """
     if build_dir.exists():
         shutil.rmtree(build_dir)
-    subprocess.run(
+    build_dir.mkdir(parents=True)
+    configure_log = build_dir / "strict-configure.log"
+    build_log = build_dir / "strict-build.log"
+    configured = subprocess.run(
         ["cmake", "-S", str(source), "-B", str(build_dir), "-G", "Unix Makefiles",
          "-DCMAKE_BUILD_TYPE=Release", f"-DCMAKE_Fortran_FLAGS={STRICT_FLAGS}"],
-        check=True, stdout=subprocess.DEVNULL,
+        capture_output=True, text=True,
     )
-    # The first parallel build can lose a module-ordering race; a second pass
-    # settles it. Only the last attempt's failure is worth reporting.
-    log = ""
-    for attempt in range(3):
-        finished = subprocess.run(
-            ["make", "-C", str(build_dir), f"-j{len(os_sched_affinity())}"],
-            capture_output=True, text=True,
+    configure_log.write_text(configured.stdout + configured.stderr)
+    if configured.returncode != 0:
+        raise SystemExit(
+            f"strict configure failed (zie {configure_log}):\n"
+            f"{(configured.stdout + configured.stderr)[-4000:]}"
         )
-        log = finished.stdout + finished.stderr
-        if finished.returncode == 0:
-            return log
-    raise SystemExit(f"strict build failed:\n{log[-4000:]}")
+    finished = subprocess.run(
+        ["make", "-C", str(build_dir), f"-j{len(os_sched_affinity())}"],
+        capture_output=True, text=True,
+    )
+    build_log.write_text(finished.stdout + finished.stderr)
+    if finished.returncode != 0:
+        raise SystemExit(
+            f"strict build failed (zie {configure_log} en {build_log}):\n"
+            f"{(finished.stdout + finished.stderr)[-4000:]}"
+        )
+    return finished.stdout + finished.stderr
 
 
 def os_sched_affinity() -> list[int]:
@@ -97,8 +122,8 @@ def tally(log: str) -> collections.Counter:
 def fingerprint(log: str) -> collections.Counter:
     """Count the warnings per (category, file, message).
 
-    The build compiles generated sources out of the build tree, so only the
-    base name is kept; it is the same name as the file under src/.
+    Keep only the base name so fingerprints remain stable across absolute
+    workspace paths and the generated build-configuration module.
     """
     counts = collections.Counter()
     source = None
@@ -165,6 +190,10 @@ def compare_fingerprints(baseline: collections.Counter,
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build-dir", default="build-strict-diagnostics")
+    parser.add_argument("--require-baseline", action="store_true",
+                        help="regressiemodus: ontbrekend budget, ontbrekende "
+                        "fingerprintbaseline en niet-passende compiler/variant "
+                        "zijn een fout (CI gebruikt dit altijd)")
     parser.add_argument("--update-budget", action="store_true",
                         help="store the measured counts as the new budget")
     parser.add_argument("--update-fingerprints", action="store_true",
@@ -178,7 +207,10 @@ def main() -> int:
     measured = fingerprint(log)
 
     total = sum(counts.values())
+    current_compiler = compiler_identity(build_dir)
     print(f"strict-build warnings: {total}")
+    print(f"compiler: {current_compiler}")
+    print(f"variant: Release + STRICT_FLAGS ({STRICT_FLAGS})")
     for category, count in counts.most_common():
         print(f"  {count:5d}  {category}")
     #  Every warning must end up in exactly one fingerprint. A mismatch means
@@ -189,12 +221,20 @@ def main() -> int:
               f"by the fingerprint parser", file=sys.stderr)
         return 1
 
-    budget = json.loads(BUDGET_FILE.read_text()) if BUDGET_FILE.is_file() else {}
+    if not BUDGET_FILE.is_file():
+        message = (f"geen budgetbestand {BUDGET_FILE.name}; "
+                   "run met --update-budget na beoordeelde inventaris")
+        if arguments.require_baseline:
+            print(message, file=sys.stderr)
+            return 1
+        print(message)
+        return 0
+    budget = json.loads(BUDGET_FILE.read_text())
     if arguments.update_budget:
         BUDGET_FILE.write_text(json.dumps(dict(counts.most_common()), indent=2) + "\n")
         print(f"budget updated in {BUDGET_FILE.name}")
     if arguments.update_fingerprints:
-        write_fingerprints(FINGERPRINT_FILE, compiler_identity(build_dir), measured)
+        write_fingerprints(FINGERPRINT_FILE, current_compiler, measured)
         print(f"fingerprints updated in {FINGERPRINT_FILE.name} "
               f"({len(measured)} distinct)")
     if arguments.update_budget or arguments.update_fingerprints:
@@ -221,14 +261,22 @@ def main() -> int:
     print("within budget")
 
     if not FINGERPRINT_FILE.is_file():
-        print("no fingerprint baseline; run with --update-fingerprints")
+        message = ("geen fingerprintbaseline; run met --update-fingerprints "
+                   "na beoordeelde inventaris")
+        if arguments.require_baseline:
+            print(message, file=sys.stderr)
+            return 1
+        print(message)
         return 0
     compiler, baseline = read_fingerprints(FINGERPRINT_FILE)
-    current = compiler_identity(build_dir)
-    if compiler != current:
-        #  Not a failure: a different compiler measures a different inventory,
-        #  and comparing the two says nothing about the source.
-        print(f"fingerprints skipped: baseline is {compiler}, this build is {current}")
+    if compiler != current_compiler:
+        message = (f"fingerprints skipped: baseline is {compiler}, "
+                   f"this build is {current_compiler}")
+        if arguments.require_baseline:
+            print(message + " (niet-passende compiler/variant in "
+                  "regressiemodus is een fout)", file=sys.stderr)
+            return 1
+        print(message)
         return 0
     print(f"fingerprints ({len(baseline)} distinct, {sum(baseline.values())} warnings):")
     additions = compare_fingerprints(baseline, measured)

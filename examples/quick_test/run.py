@@ -55,6 +55,7 @@ def run(
     mpi_processes: int = 1,
     mpi_numproc_flag: str = "-n",
     reference_name: str = "reference",
+    smoke: bool = False,
 ) -> None:
     for name in GENERATED_FILES:
         path = case_directory / name
@@ -96,8 +97,14 @@ def run(
         )
 
     reference_directory = Path(__file__).resolve().parent / reference_name
-    if compare_with_reference(case_directory, reference_directory,
-                              ("quick_test_center.tbl", "quick_test_hs.blk")):
+    if smoke:
+        compare_with_reference(case_directory, reference_directory,
+                               ("quick_test_center.tbl", "quick_test_hs.blk"),
+                               smoke=True)
+        print("Smoke-modus: SWAN draaide normaal; geen regressievergelijking.")
+    else:
+        compare_with_reference(case_directory, reference_directory,
+                               ("quick_test_center.tbl", "quick_test_hs.blk"))
         print("Results match the stored reference.")
 
     print(f"Quick test completed normally in {elapsed:.2f} seconds.")
@@ -136,6 +143,11 @@ def main() -> int:
         "slightly different converged state; it has its own reference rather "
         "than being exempt from the comparison.",
     )
+    parser.add_argument(
+        "--smoke",
+        action="store_true",
+        help="alleen draaien zonder regressievergelijking; telt niet als geslaagde regressie",
+    )
     arguments = parser.parse_args()
     source_directory = Path(__file__).resolve().parent
     case_directory = (
@@ -159,6 +171,7 @@ def main() -> int:
             arguments.mpi_processes,
             arguments.mpi_numproc_flag,
             arguments.reference,
+            arguments.smoke,
         )
     except (FileNotFoundError, OSError, RuntimeError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)

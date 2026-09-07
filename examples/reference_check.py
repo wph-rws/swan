@@ -4,6 +4,14 @@ Completing a run only shows SWAN did not crash. The table and block files are
 the actual model output, so they are what pins behaviour: refactoring work is
 expected to leave them unchanged. Regenerate a reference deliberately, and only
 when a physics or numerics change is intended.
+
+Regressiemodus (default) is streng: de verplichte referentielijst per case
+moet volledig aanwezig zijn en volledig kloppen. Een ontbrekende referentiemap
+of één ontbrekend referentiebestand naast een geldig ander bestand is een fout.
+Een lege of ontbrekende namenlijst is eveneens een fout. Overslaan mag alleen
+in expliciete ``--smoke``-modus; smoke telt nooit als geslaagde regressie en
+geeft ``False`` terug zonder te vergelijken. Referenties worden nooit
+automatisch opnieuw gegenereerd om een poort groen te krijgen.
 """
 
 from __future__ import annotations
@@ -40,8 +48,20 @@ def same_results(produced: Path, reference: Path) -> bool:
     changes the summation order, so the same build can print a different last
     digit from one run to the next.
     """
-    produced_lines = produced.read_text().splitlines()
-    reference_lines = reference.read_text().splitlines()
+    try:
+        produced_text = produced.read_text()
+    except OSError:
+        return False
+    try:
+        reference_text = reference.read_text()
+    except OSError:
+        return False
+    if not produced_text.strip() or not reference_text.strip():
+        #  Lege of verminkte bestanden (leeg, alleen witruimte) zijn nooit
+        #  een geslaagde vergelijking.
+        return False
+    produced_lines = produced_text.splitlines()
+    reference_lines = reference_text.splitlines()
     if len(produced_lines) != len(reference_lines):
         return False
 
@@ -71,29 +91,55 @@ def same_results(produced: Path, reference: Path) -> bool:
 
 
 def compare_with_reference(
-    produced_directory: Path, reference_directory: Path, names: tuple[str, ...]
+    produced_directory: Path,
+    reference_directory: Path,
+    names: tuple[str, ...],
+    *,
+    smoke: bool = False,
 ) -> bool:
     """Check the named output files against stored references.
 
-    Returns True when a comparison actually ran, False when no reference is
-    present, so the caller can report which of the two happened. Raises when a
-    file differs or is missing.
-    """
-    if not reference_directory.is_dir():
-        return False
+    Regressiemodus (``smoke=False``, default): ``names`` is de verplichte
+    referentielijst. Geeft ``True`` terug als iedere genoemde vergelijking
+    liep en klopte; gooit ``RuntimeError`` bij een ontbrekende referentiemap,
+    een ontbrekend referentiebestand, ontbrekende uitvoer, een lege/verkeerde
+    namenlijst, lege of verminkte bestanden, NaN/Inf of een gewijzigde
+    uitkomst. Een gedeeltelijk ontbrekende referentieset naast een geldig
+    ander bestand is dus eveneens rood.
 
-    compared = False
+    Smoke-modus (``smoke=True``): vergelijkt niets en geeft ``False`` terug.
+    De aanroeper mag dit alleen als "smoke, geen regressie" rapporteren.
+    """
+    if not names:
+        raise RuntimeError(
+            "lege referentielijst: regressie zonder verplichte namen is geen dekking."
+        )
+    if smoke:
+        return False
+    if not reference_directory.is_dir():
+        raise RuntimeError(
+            f"referentiemap ontbreekt: {reference_directory}. "
+            "Zonder referentie is er geen regressiedekking."
+        )
+
     for name in names:
         reference = reference_directory / name
         if not reference.is_file():
-            continue
+            raise RuntimeError(
+                f"referentiebestand ontbreekt: {reference}. Eén ontbrekende "
+                "referentie naast een geldige andere is een fout, geen skip."
+            )
+        if reference.stat().st_size == 0:
+            raise RuntimeError(f"referentiebestand is leeg: {reference}.")
         produced = produced_directory / name
         if not produced.is_file():
             raise RuntimeError(f"SWAN produced no {name} to compare.")
+        if produced.stat().st_size == 0:
+            raise RuntimeError(f"SWAN produced an empty {name}; vergelijking faalt.")
         if not same_results(produced, reference):
             raise RuntimeError(
-                f"{name} differs from the stored reference. Either a change "
-                "altered the results, or the reference needs updating on purpose."
+                f"{name} differs from the stored reference (of is leeg/vervormd/"
+                "bevat NaN/Inf). Either a change altered the results, or the "
+                "reference needs updating on purpose."
             )
-        compared = True
-    return compared
+    return True

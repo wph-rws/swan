@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "source": "src/swanmain.f90",
+  "procedure": "SWCLME",
+  "groups": [
+    {
+      "owner": "M_GENARR",
+      "module": "M_GENARR",
+      "symbols": ["KGRPNT", "KGRBND", "XYTST", "AC2", "XCGRID", "YCGRID", "SPCSIG", "SPCDIR", "SINBAC"],
+      "legacy_cleanup": "owner_call",
+      "latches": ["SAVE_SINBAC"],
+      "allocation_sources": ["src/swanmain.f90", "src/swanpre1.f90", "src/swanpre2.f90"],
+      "target_cleanup": "CLEAR_GENERAL_ARRAY_STATE",
+      "test": "general_array_state,two_cases"
+    },
+    {
+      "owner": "swan_input_fields",
+      "module": "swan_input_fields",
+      "symbols": ["DEPTH", "FRIC", "UXB", "UYB", "WXI", "WYI", "WLEVL", "ASTDF", "MUDLF", "NPLAF", "TURBF", "AICEF", "HICEF", "HSSF", "TSSF", "DSSF"],
+      "legacy_cleanup": "owner_call",
+      "allocation_sources": ["src/swanmain.f90", "src/swanpre1.f90", "src/swanpre2.f90"],
+      "target_cleanup": "CLEAR_INPUT_FIELDS",
+      "test": "input_fields,two_cases"
+    },
+    {
+      "owner": "M_PARALL",
+      "module": "M_PARALL",
+      "symbols": ["IBLKAD"],
+      "legacy_cleanup": "owner_call",
+      "allocation_sources": ["src/swanparll.f90"],
+      "target_cleanup": "CLEAR_PARALLEL_STORAGE",
+      "test": "parallel_storage,two_cases"
+    },
+    {
+      "owner": "swan_global_grid",
+      "module": "swan_global_grid",
+      "symbols": ["XGRDGL", "YGRDGL", "KGRPGL", "KGRBGL"],
+      "legacy_cleanup": "owner_call",
+      "allocation_sources": ["src/swanmain.f90", "src/swanpre1.f90", "src/swanparll.f90"],
+      "target_cleanup": "CLEAR_GLOBAL_GRID",
+      "test": "global_grid,two_cases"
+    },
+    {
+      "owner": "swan_vegetation_layers",
+      "module": "swan_vegetation_layers",
+      "symbols": ["LAYH", "VEGDIL", "VEGNSL", "VEGDRL"],
+      "legacy_cleanup": "owner_call",
+      "allocation_sources": ["src/swanpre1.f90", "src/swanpre2.f90"],
+      "target_cleanup": "CLEAR_VEGETATION_LAYERS",
+      "test": "vegetation_layers,two_cases"
+    },
+    {
+      "owner": "SwanGriddata",
+      "module": "SwanGriddata",
+      "symbols": ["xcugrd", "ycugrd", "xcugrdgl", "ycugrdgl", "ivertg", "vmark"],
+      "legacy_cleanup": "owner_call",
+      "allocation_sources": ["src/SwanInitCompGrid.f90", "src/SwanReadGrid.f90", "src/swanparll.f90"],
+      "target_cleanup": "CLEAR_GRID_DATA",
+      "test": "grid_data,two_cases"
+    },
+    {
+      "owner": "SwanCompdata",
+      "module": "SwanCompdata",
+      "symbols": ["vlist", "blist", "bvertg", "bmark"],
+      "legacy_cleanup": "owner_call",
+      "allocation_sources": ["src/SwanVertlist.f90", "src/SwanCompUnstruc.f90"],
+      "target_cleanup": "CLEAR_COMPUTATION_DATA",
+      "test": "computation_data,two_cases"
+    },
+    {
+      "owner": "SwanIEM",
+      "module": "SwanIEM",
+      "symbols": ["iss", "iwt", "itt", "freq", "E0", "Ebig"],
+      "legacy_cleanup": "owner_call",
+      "allocation_sources": ["src/SwanIEM.f90"],
+      "target_cleanup": "CLEAR_IEM_STATE",
+      "test": "iem_state,two_cases"
+    },
+    {
+      "owner": "SwanBraggScat",
+      "module": "SwanBraggScat",
+      "symbols": ["fb", "fbdxy"],
+      "legacy_cleanup": "owner_call",
+      "allocation_sources": ["src/SwanBraggScat.f90"],
+      "target_cleanup": "CLEAR_BRAGG_STATE",
+      "test": "bragg_state,two_cases"
+    },
+    {
+      "owner": "SwanQCM",
+      "module": "SwanQCM",
+      "symbols": ["kx", "ky", "xpsc", "xpd", "ypd", "kxd", "kyd", "disbk0", "disbk1"],
+      "legacy_cleanup": "owner_call",
+      "allocation_sources": ["src/SwanQCM.f90"],
+      "target_cleanup": "CLEAR_QCM_STATE",
+      "test": "qcm_state,two_cases"
+    },
+    {
+      "owner": "OUTP_DATA",
+      "module": "OUTP_DATA",
+      "symbols": ["FOPS", "FORQ"],
+      "legacy_cleanup": "owner_call",
+      "latches": ["LOPS", "LORQ"],
+      "allocation_sources": ["src/swanpre2.f90", "src/swanout1.f90", "src/swanout2.f90"],
+      "target_cleanup": "CLEAR_OUTPUT_STATE",
+      "test": "output_state,two_cases"
+    },
+    {
+      "owner": "M_BNDSPEC",
+      "module": "M_BNDSPEC",
+      "symbols": ["FBNDFIL", "FBS", "FBGP"],
+      "legacy_cleanup": "owner_call",
+      "latches": ["LBFILS", "LBS", "LBGP"],
+      "allocation_sources": ["src/swanpre2.f90"],
+      "target_cleanup": "CLEAR_BOUNDARY_STATE",
+      "test": "boundary_state,two_cases"
+    },
+    {
+      "owner": "M_OBSTA",
+      "module": "M_OBSTA",
+      "symbols": ["FOBSTAC", "OBSTDONE"],
+      "legacy_cleanup": "owner_call",
+      "allocation_sources": ["src/swanpre1.f90"],
+      "target_cleanup": "CLEAR_OBSTACLE_STATE",
+      "test": "obstacle_state,two_cases"
+    }
+  ],
+  "owner_calls": [
+    "SPECTRAL_POWERS%CLEAR",
+    "THREAD_WORKSPACES%CLEAR",
+    "SNL4%CLEAR",
+    "DIFFR%CLEAR",
+    "TRIADS%CLEAR",
+    "CLEAR_FRONT_SCHEDULE",
+    "METIS_RELEASE",
+    "CLEAR_OBSTACLE_STATE",
+    "CLEAR_BOUNDARY_STATE",
+    "CLEAR_OUTPUT_STATE",
+    "CLEAR_GENERAL_ARRAY_STATE",
+    "CLEAR_INPUT_FIELDS",
+    "CLEAR_GLOBAL_GRID",
+    "CLEAR_VEGETATION_LAYERS",
+    "CLEAR_PARALLEL_STORAGE",
+    "CLEAR_GRID_DATA",
+    "CLEAR_COMPUTATION_DATA",
+    "CLEAR_IEM_STATE",
+    "CLEAR_BRAGG_STATE",
+    "CLEAR_QCM_STATE"
+  ]
+}

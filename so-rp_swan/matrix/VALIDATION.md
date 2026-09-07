@@ -1,15 +1,23 @@
 # Matrix validation
 
-Final validation date: 2026-07-26. Final run root:
-`runs-validation-full-final-2026-07-26`. The matrix contains ten conditions,
-four targets and therefore 40 production-size runs. Every run used four OpenMP
-threads, returned status zero, wrote `norm_end`, rank-appropriate `PRINT`,
-block, table and both spectrum files, and passed the runner's explicit
-normal-end and nonempty-output checks.
+Latest validation date: 2026-09-07. Analysis root:
+`runs-validation-b5`. Both current targets were rebuilt after the ownership
+and stencil work
+(explicit run-state owners, no implicit stencil readers) and rerun for all
+ten conditions: 20 new production-size runs with executable SHA-256
+`3fdd7b3d77d1b09b5122289b8b8099e014fade8a63a11432dfeffc6ab6e6a879`.
+The immutable pre-modernization 41.51
+and BSS 41.31 target results are linked from
+`runs-validation-full-final-2026-07-26`, completing the same four-target,
+40-entry comparison. Every new run used four OpenMP threads, returned status
+zero, wrote `norm_end`, `PRINT`, block, table and both spectrum files, and
+passed the runner's explicit normal-end and nonempty-output checks.
+Previous validation (2026-08-25, `runs-validation-modernized-2026-08-25`,
+SHA-256 `4d443450…affbfc36b`) is superseded for the current source but kept
+for history.
 
-The four target runners were pinned to non-overlapping CPU sets. This matters
-for throughput because each runner sets `OMP_PLACES=cores` and
-`OMP_PROC_BIND=close`; it has no effect on the numerical comparison.
+The current target runs were sharded over CPU sets for throughput. CPU
+placement has no effect on the numerical comparison.
 
 ## Wet-point results
 
@@ -35,7 +43,7 @@ The current 41.51-default result is **exactly equal in all 10 conditions** to
 the distinct pre-modernization 41.51 executable, both over every shared wet
 field cell and every shared wet requested point. Bias, RMS and maximum
 absolute difference are zero. The final current OpenMP executable SHA-256 is
-`d0dfb643f72eddae2cc381eb8ea06da799996987ab4c00ea1841e9378e83b6a6`.
+`4d443450c2381cf1569e9702ea4c9861627ea0bd46ce41bb0415046affbfc36b`.
 
 The legacy column compares BSS 41.31A.1 with current 41.51 using
 `GEN3 KOMEN DRAG FIT` and the explicit old triad defaults. Its small,
@@ -64,18 +72,33 @@ serial field (71,511 versus 71,685 wet cells), identically for both decks.
 Consequently the formal physics comparison follows the plan's requested-point
 mask and does not claim whole-field mask identity across decomposition modes.
 
-## Build, test, diagnostic and performance gates
+## Build, test, diagnostic and performance gates (WP1.6-meting 2026-09-07, tranche 2)
 
-- GNU Fortran 13 and 15 Release builds pass all nine registered serial tests.
-  Intel and Flang are not installed in this environment. NVFortran 26.5 is
-  present but is explicitly outside the compiler set accepted by CMake.
-- Serial, OpenMP, netCDF, runtime checks, LTO, TIMG, MATL4, METIS, FFRO and
-  debug-invariant configurations pass 9/9 tests. MPI, JAC+MPI and MPI+netCDF
-  pass 10/10, including the genuine two-rank test.
+- CTest-registratie per configuratie (`ctest -N`, 2026-09-07, kandidaat
+  tranche 2; geen schatting): **47** voor standaard, OpenMP, TIMG,
+  TIMG+OpenMP, Matlab 4, METIS, FFRO, COH, ESMF, ADCIRC, LTO, native, runtime
+  checks, debug invariants, beide legacy-I/O-routes, GNU 15, strict en debug;
+  **50** voor netCDF, Matlab 4+netCDF, MPI, JAC, TIMG+MPI, Matlab 4+MPI,
+  FFRO+MPI en matl4-netcdf-verwant; **51** voor METIS+MPI; **55** voor
+  MPI+netCDF. Deze aantallen zijn inclusief de zeven poorttests
+  (`reference_check_negatives`, `strict_diagnostics_negatives`,
+  `build_matrix_negatives`, `ci_gate_self_test`, `mpi_field_mask_self_test`,
+  `lifetime_fault`, `swan_library_contract`) en de echte tweeranks-
+  MPI-regressies waar van toepassing. Het oude "25 tests"-getal is hiermee
+  vervallen; herhaal deze `ctest -N`-telling per configuratie na iedere
+  bronwijziging die tests toevoegt.
+- Intel and Flang are not installed in this environment. NVFortran 26.5 is
+  present but is explicitly outside the compiler set accepted by CMake
+  (buiten scope: geen NVIDIA/NVFortran/PGI-support).
 - The structured and unstructured OpenMP references pass at 1, 2 and 4
   threads. Nonlinear interaction tests exercise active triad and quadruplet
   paths.
-- The strict diagnostic ratchet remains unchanged at 1,534 warnings, including
-  exactly two unavoidable external METIS interfaces; no warning category
-  budget was raised.
+- Strict-poort (WP2.4 + WP3a-tranche 2, schone bouw met `--require-baseline`,
+  GNU 13.3.0): **1.373 waarschuwingen in 512 fingerprints**, `within budget`,
+  `no new warnings` (`function-elimination` 163→85 door zuivere `pvalid`;
+  `implicit-interface` 2→0 door `swan_metis_interface`/BIND(C); geen nieuwe
+  waarschuwingen, alleen verwijderingen). Configureerlog
+  `strict-configure.log` en bouwlog `strict-build.log` bewaard in de bouwmap;
+  geen incrementeel slotlog. Budget en fingerprints zijn meegecommit
+.
 - The complete Python matrix/comparison suite passes 785 tests.

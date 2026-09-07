@@ -1,13 +1,17 @@
 module swan_build_config
    implicit none(type, external)
    private
-   public :: timing_enabled, invariant_checks_enabled
+   public :: timing_enabled, invariant_checks_enabled, jacobi_sweep_enabled
+   public :: fixed_front_enabled
    public :: native_path_separator, alternate_path_separator
    public :: sequential_record_length, print_record_length
    public :: default_maximum_unit, default_free_unit_start
+   public :: fork_identity, upstream_reference
 
    logical, parameter :: timing_enabled = @SWAN_TIMING_ENABLED@
    logical, parameter :: invariant_checks_enabled = @SWAN_INVARIANT_CHECKS_ENABLED@
+   logical, parameter :: jacobi_sweep_enabled = @SWAN_JACOBI_SWEEP_ENABLED@
+   logical, parameter :: fixed_front_enabled = @SWAN_FIXED_FRONT_ENABLED@
    character(len=1), parameter :: native_path_separator = &
       achar(@SWAN_NATIVE_PATH_SEPARATOR_CODE@)
    character(len=1), parameter :: alternate_path_separator = &
@@ -18,4 +22,6 @@ module swan_build_config
    integer, parameter :: default_maximum_unit = @SWAN_DEFAULT_MAXIMUM_UNIT@
    integer, parameter :: default_free_unit_start = &
       @SWAN_DEFAULT_FREE_UNIT_START@
+   character(len=*), parameter :: fork_identity = "@SWAN_FORK_IDENTITY@"
+   character(len=*), parameter :: upstream_reference = "@SWAN_UPSTREAM_REFERENCE@"
 end module swan_build_config

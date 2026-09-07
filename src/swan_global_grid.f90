@@ -20,6 +20,7 @@ module swan_global_grid
 
    public :: MXCGL, MYCGL, MCGRDGL, NGRBGL, NBGGL
    public :: KGRPGL, KGRBGL, XGRDGL, YGRDGL
+   public :: CLEAR_GLOBAL_GRID, GLOBAL_GRID_IS_CLEAR
 
 !     MXCGL, MYCGL : size of the global grid in each direction
 !     MCGRDGL      : number of wet points in the global grid
@@ -34,4 +35,19 @@ module swan_global_grid
 
 !     XGRDGL, YGRDGL : coordinates of the global grid points
    real, save, allocatable :: XGRDGL(:,:), YGRDGL(:,:)
+
+contains
+
+   subroutine CLEAR_GLOBAL_GRID ()
+      if (allocated(KGRPGL)) deallocate(KGRPGL)
+      if (allocated(KGRBGL)) deallocate(KGRBGL)
+      if (allocated(XGRDGL)) deallocate(XGRDGL)
+      if (allocated(YGRDGL)) deallocate(YGRDGL)
+   end subroutine CLEAR_GLOBAL_GRID
+
+   logical function GLOBAL_GRID_IS_CLEAR ()
+      GLOBAL_GRID_IS_CLEAR = .not.allocated(KGRPGL) .and. &
+         .not.allocated(KGRBGL) .and. .not.allocated(XGRDGL) .and. &
+         .not.allocated(YGRDGL)
+   end function GLOBAL_GRID_IS_CLEAR
 end module swan_global_grid

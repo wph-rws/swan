@@ -1,4 +1,14 @@
-# Welcome to the SWAN git repository
+# Welcome to the SWAN git repository — `wph-rws/swan` fork
+
+> **Fork-herkomst.** Dit is de RWS-doorontwikkeling
+> [`github.com/wph-rws/swan`](https://github.com/wph-rws/swan) op basis van
+> SWAN 41.51. Referentielijn is TU Delft
+> [`gitlab.tudelft.nl/citg/wavemodels/swan`](https://gitlab.tudelft.nl/citg/wavemodels/swan)
+> (upstream, stabiel 41.51). Eigenschappen hieronder — CMake-capabilities,
+> backendselectie, Fortran-2018-modules, CTest-regressies, strict-ratchet —
+> beschrijven **deze fork**, niet de ongewijzigde upstream-stand. Zie
+> [`doc/moderniseringsplan.md`](doc/moderniseringsplan.md) en
+> `doc/support-matrix.md` voor plan, stand en ondersteunde combinaties.
 
 [![release](https://img.shields.io/badge/release%20-%20v41.51%20-%20brightgreen?color=success)]()
 [![site](https://img.shields.io/badge/sourceforge%20-%20site%20-%20blue?logo=sourceforge&color=informational)](https://swanmodel.sourceforge.io)
@@ -58,8 +68,8 @@ sudo apt install libfftw3-dev
 ```
 
 Check it by typing `python3 --version` on Linux or macOS, or `python --version`
-on Windows. CMake uses Python to set the compile-time switches in the Fortran
-source templates.
+on Windows. CMake uses Python for compatibility and regression checks; build
+capabilities themselves are selected directly by CMake.
 
 Finally, SWAN also requires a Fortran compiler with Fortran 2018 support to be present in your environment.
 Popular Fortran compilers are [gfortran](https://gcc.gnu.org/fortran/) and
@@ -82,7 +92,13 @@ Currently, the build scripts support the following Fortran compilers:
 ##### 1. clone the repo and navigate to the top level source directory
 
 ```bash
-git clone https://gitlab.tudelft.nl/citg/wavemodels/swan.git && cd swan
+git clone https://github.com/wph-rws/swan.git && cd swan
+```
+
+Upstream-referentie (alleen lezen, voor vergelijking):
+
+```bash
+git remote add upstream https://gitlab.tudelft.nl/citg/wavemodels/swan.git
 ```
 
 ##### 2. create the build directory
@@ -176,6 +192,9 @@ where `<value>` is a string or a boolean, depending on the specified option. The
 | `CMAKE_Fortran_COMPILER` | string     | full path to the Fortran compiler         | determined by CMake     |
 | `CMAKE_BUILD_TYPE`       | string     | build configuration                       | `Release`               |
 | `MPI`                    | boolean    | enable build with MPI                     | `OFF`                   |
+| `COH`                    | boolean    | leave MPI lifecycle to coherent coupling  | `OFF`                   |
+| `ESMF`                   | boolean    | enable ESMF wind-input coupling state     | `OFF`                   |
+| `ADCIRC`                 | boolean    | accept the historical ADCIRC selector     | `OFF`                   |
 | `OPENMP`                 | boolean    | enable build with OpenMP                  | `OFF`                   |
 | `METIS`                  | boolean    | enable build with Metis                   | `OFF`                   |
 | `NETCDF`                 | boolean    | enable build with netCDF                  | `OFF`                   |

@@ -575,7 +575,8 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !****************************************************************
 
    USE swan_input_grids
-   USE swan_stencil, ONLY: ILMAX, MICMAX
+   USE swan_stencil, ONLY: MICMAX
+   USE swan_vegetation_layers, ONLY: ILMAX
    USE swan_physics_selection
    USE swan_physical_settings
    USE swan_computational_grid

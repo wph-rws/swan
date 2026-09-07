@@ -3620,6 +3620,7 @@ end subroutine SWTSTO
 !****************************************************************
 !
 SUBROUTINE SWPRTI
+   USE swan_build_config, ONLY: jacobi_sweep_enabled
    USE swan_service_interfaces, ONLY: STRACE
 !
 !****************************************************************
@@ -3731,7 +3732,7 @@ SUBROUTINE SWPRTI
 !
 !        --- initialise table to zero
 !
-      DO K = 1, 30
+      DO K = 1, 33
          DO J = 1, 2
             TABLE(K,J) = 0D0
          END DO
@@ -3755,7 +3756,8 @@ SUBROUTINE SWPRTI
 !
          TABLE(2,J) = TABLE(2,J) + DCUMTM(211,J)
          TABLE(2,J) = TABLE(2,J) + DCUMTM(212,J)
-!JAC         TABLE(2,J) = TABLE(2,J) + DCUMTM(215,J)
+         IF (jacobi_sweep_enabled) &
+            TABLE(2,J) = TABLE(2,J) + DCUMTM(215,J)
          TABLE(2,J) = TABLE(2,J) + DCUMTM(201,J)
 !
 !           --- total calculation including communication:

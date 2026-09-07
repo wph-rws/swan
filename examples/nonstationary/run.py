@@ -65,7 +65,7 @@ def clean_case(case_directory: Path, basename: str) -> None:
 
 
 def run_case(executable: Path, example_directory: Path, case: str,
-             reference_name: str = "reference") -> float:
+             reference_name: str = "reference", smoke: bool = False) -> float:
     basename = CASES[case]
     case_directory = example_directory / case
     clean_case(case_directory, basename)
@@ -104,7 +104,11 @@ def run_case(executable: Path, example_directory: Path, case: str,
     if not reference_directory.is_dir():
         reference_directory = Path(__file__).resolve().parent / case / "reference"
     names = tuple(f"{basename}{suffix}" for suffix in ("_center.tbl", "_hs.blk"))
-    if compare_with_reference(case_directory, reference_directory, names):
+    if smoke:
+        compare_with_reference(case_directory, reference_directory, names, smoke=True)
+        print(f"{case} smoke: normaal gedraaid; geen regressievergelijking.")
+    else:
+        compare_with_reference(case_directory, reference_directory, names)
         print(f"{case} results match the stored reference.")
     return elapsed
 
@@ -133,6 +137,11 @@ def main() -> int:
         "order and converges to a slightly different state, so it has its own "
         "reference rather than being exempt from the comparison.",
     )
+    parser.add_argument(
+        "--smoke",
+        action="store_true",
+        help="alleen draaien zonder regressievergelijking; telt niet als geslaagde regressie",
+    )
     arguments = parser.parse_args()
     source_directory = Path(__file__).resolve().parent
     example_directory = (
@@ -153,7 +162,7 @@ def main() -> int:
         selected = CASES if arguments.case == "all" else (arguments.case,)
         for case in selected:
             elapsed = run_case(executable, example_directory, case,
-                               arguments.reference)
+                               arguments.reference, arguments.smoke)
             print(f"{case.capitalize()} case completed normally in {elapsed:.2f} seconds.")
             print(f"Results: {example_directory / case}")
     except (FileNotFoundError, OSError, RuntimeError) as error:

@@ -293,10 +293,10 @@ CONTAINS
   !****************************************************************************
   SUBROUTINE SWIND_DBYB ( SPCSIG,THETAW,KWAVE,MEMSINA,MEMSINB, &
                           AC2,UFRIC,WIND10,SPCDIR,ANYWND,CG    &
-                         ,ZELEN,IGP )
+                         ,ZELEN,IGP,icmax )
   !****************************************************************************
 
-    USE swan_stencil
+    USE swan_stencil, ONLY: RDFSIN
     USE swan_physics_selection
     USE swan_numerics
     USE swan_physical_settings
@@ -306,10 +306,12 @@ CONTAINS
     USE swan_test_output
     USE swan_diagnostics_level
     USE swan_io_units
-!ESMF    USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
+    USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input
 
     IMPLICIT NONE(TYPE, EXTERNAL)
     INTEGER, INTENT(IN) :: IGP
+!   Stencil width passed explicitly by SOURCE.
+    INTEGER, INTENT(IN) :: icmax
 
 
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
@@ -492,10 +494,10 @@ CONTAINS
     ! Subroutine arguments:
     REAL    SPCDIR(MDC,6)
     REAL    SPCSIG(MSC)
-    REAL    THETAW, KWAVE(MSC,ICMAX)
+    REAL    THETAW, KWAVE(MSC,icmax)
     REAL    MEMSINA(MDC,MSC,MCGRD), MEMSINB(MDC,MSC,MCGRD)
     REAL    UFRIC ,AC2(MDC,MSC,MCGRD) , WIND10
-    REAL    CG(MSC,ICMAX)
+    REAL    CG(MSC,icmax)
     REAL    ZELEN(MCGRD)
     LOGICAL ANYWND(MDC)
 
@@ -709,8 +711,8 @@ CONTAINS
        DO ID = 1, MDC
           S_IN(ID,IS)= S_IN(ID,IS) * RDFSIN(IS)
           MEMSINB(ID,IS,IGP) = S_IN(ID,IS) / SPCSIG(IS)
-!ESMF          IF (SAVE_SINBAC) SINBAC(ID,IS,IGP) = &
-!ESMF             SINBAC(ID,IS,IGP) + S_IN(ID,IS)/SPCSIG(IS)
+          CALL accumulate_exponential_wind_input(ID, IS, IGP, &
+             S_IN(ID,IS)/SPCSIG(IS))
        ENDDO
     ENDDO
 
@@ -2396,7 +2398,7 @@ end subroutine filsin
       END SUBROUTINE SURF_ROUGH_FAN
 
 
-      SUBROUTINE SURF_ROUGH_ECMWF(U, UST, S_IN, SPCSIG, KWAVE, CD)
+      SUBROUTINE SURF_ROUGH_ECMWF(U, UST, S_IN, SPCSIG, KWAVE, CD, icmax)
 !------------------------------------------------------------------------------
 !     variable list
 !     ----------------------------------------------------------------
@@ -2408,18 +2410,20 @@ end subroutine filsin
 !       CD      Real   O   Drag coefficient.
 !     ----------------------------------------------------------------
 !/
-      USE swan_stencil
+      USE swan_stencil, ONLY: RDFSIN
       USE swan_physics_selection
       USE swan_spectral_grid
 
       IMPLICIT NONE(TYPE, EXTERNAL)
+!     Stencil width passed explicitly by WINDP1.
+      INTEGER, INTENT(IN) :: icmax
 !/
 !/ ------------------------------------------------------------------- /
 !/ Parameter list
 !/
       REAL, INTENT(IN)        :: S_IN(MDC,MSC,MGENR)
       REAL, INTENT(IN)        :: SPCSIG(MSC)
-      REAL, INTENT(IN)        :: KWAVE(MSC,ICMAX)
+      REAL, INTENT(IN)        :: KWAVE(MSC,icmax)
       REAL, INTENT(IN)        :: U
       REAL, INTENT(INOUT)     :: UST
       REAL, INTENT(OUT)       :: CD

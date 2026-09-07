@@ -81,36 +81,37 @@ MODULE OUTP_DATA
 
    INTEGER, PARAMETER :: MAX_OUTP_REQ = 250 ! max. number of output r
 
-   LOGICAL            :: LCOMPGRD
+   LOGICAL            :: LCOMPGRD = .FALSE.
 
 !     longer filenames for output requests
-   CHARACTER (LEN=LENFNM) :: OUTP_FILES(1:MAX_OUTP_REQ)
+   CHARACTER (LEN=LENFNM) :: OUTP_FILES(1:MAX_OUTP_REQ) = ''
    ! filenames for output; index is output request sequence number
 
    INTEGER, SAVE :: NREOQ = 0         ! actual number of requests sav
 
    TYPE OPSDAT
-      CHARACTER (LEN=1)     :: PSTYPE                     ! type (F,
-      CHARACTER (LEN=8)     :: PSNAME                     ! name of p
-      INTEGER               :: OPI(2)                     ! integer c
-      REAL                  :: OPR(5)                     ! real coef
-      INTEGER               :: MIP                        ! number of
-      REAL, POINTER         :: XP(:), YP(:), XQ(:), YQ(:) ! point coo
-      TYPE(OPSDAT), POINTER :: NEXTOPS
+      CHARACTER (LEN=1)     :: PSTYPE = ''                ! type (F,
+      CHARACTER (LEN=8)     :: PSNAME = ''                ! name of p
+      INTEGER               :: OPI(2) = 0                 ! integer c
+      REAL                  :: OPR(5) = 0.0               ! real coef
+      INTEGER               :: MIP = 0                    ! number of
+      REAL, POINTER         :: XP(:) => NULL(), YP(:) => NULL()
+      REAL, POINTER         :: XQ(:) => NULL(), YQ(:) => NULL()
+      TYPE(OPSDAT), POINTER :: NEXTOPS => NULL()
    end type OPSDAT
 
    TYPE(OPSDAT), SAVE, TARGET  :: FOPS
-   TYPE(OPSDAT), SAVE, POINTER :: COPS
+   TYPE(OPSDAT), SAVE, POINTER :: COPS => NULL()
    LOGICAL, SAVE :: LOPS = .FALSE.
 
    TYPE ORQDAT
-      CHARACTER (LEN=4)      :: RQTYPE   ! type (BLK, TAB, SPC ...)
-      CHARACTER (LEN=8)      :: PSNAME   ! name of point set
-      INTEGER                :: OQI(4)   ! integer coefficients
-      REAL(KIND=KIND(0.0D0))                 :: OQR(2)   ! real coefficients
-      INTEGER, POINTER       :: IVTYP(:) ! type of output variable
-      REAL, POINTER          :: FAC(:)   ! multiplication factor of b
-      TYPE(ORQDAT), POINTER  :: NEXTORQ
+      CHARACTER (LEN=4)      :: RQTYPE = '' ! type (BLK, TAB, SPC ...)
+      CHARACTER (LEN=8)      :: PSNAME = '' ! name of point set
+      INTEGER                :: OQI(4) = 0  ! integer coefficients
+      REAL(KIND=KIND(0.0D0)) :: OQR(2) = 0.0D0 ! real coefficients
+      INTEGER, POINTER       :: IVTYP(:) => NULL() ! type of output variable
+      REAL, POINTER          :: FAC(:) => NULL()   ! multiplication factor of b
+      TYPE(ORQDAT), POINTER  :: NEXTORQ => NULL()
    end type ORQDAT
 
    TYPE(ORQDAT), SAVE, TARGET  :: FORQ
@@ -122,6 +123,8 @@ MODULE OUTP_DATA
       MODULE PROCEDURE DELETEOPS
       MODULE PROCEDURE DELETEORQ
    end interface DELETE
+
+   PUBLIC :: CLEAR_OUTPUT_STATE, OUTPUT_STATE_IS_CLEAR
 
 !  9. Subroutines and functions calling
 !
@@ -149,7 +152,6 @@ CONTAINS
 
       TYPE(OPSDAT) :: OPS
 
-      IF ( LOPS ) THEN
          IF ( ASSOCIATED( OPS%XP ) ) THEN
             DEALLOCATE( OPS%XP )
             NULLIFY( OPS%XP )
@@ -158,11 +160,11 @@ CONTAINS
             DEALLOCATE( OPS%YP )
             NULLIFY( OPS%YP )
          ENDIF
-         IF ( OPS%PSTYPE.EQ.'R' .AND. ASSOCIATED( OPS%XQ ) ) THEN
+         IF ( ASSOCIATED( OPS%XQ ) ) THEN
             DEALLOCATE( OPS%XQ )
             NULLIFY( OPS%XQ )
          ENDIF
-         IF ( OPS%PSTYPE.EQ.'R' .AND. ASSOCIATED( OPS%YQ ) ) THEN
+         IF ( ASSOCIATED( OPS%YQ ) ) THEN
             DEALLOCATE( OPS%YQ )
             NULLIFY( OPS%YQ )
          ENDIF
@@ -171,15 +173,12 @@ CONTAINS
             DEALLOCATE( OPS%NEXTOPS )
             NULLIFY( OPS%NEXTOPS )
          ENDIF
-      ENDIF
-
    end subroutine DELETEOPS
 
    RECURSIVE SUBROUTINE DELETEORQ ( ORQ )
 
       TYPE(ORQDAT) :: ORQ
 
-      IF ( LORQ ) THEN
          IF ( ASSOCIATED( ORQ%IVTYP ) ) THEN
             DEALLOCATE( ORQ%IVTYP )
             NULLIFY( ORQ%IVTYP )
@@ -193,9 +192,30 @@ CONTAINS
             DEALLOCATE( ORQ%NEXTORQ )
             NULLIFY( ORQ%NEXTORQ )
          ENDIF
-      ENDIF
-
    end subroutine DELETEORQ
+
+   SUBROUTINE CLEAR_OUTPUT_STATE ()
+      CALL DELETEOPS ( FOPS )
+      CALL DELETEORQ ( FORQ )
+      FOPS = OPSDAT()
+      FORQ = ORQDAT()
+      NULLIFY(COPS)
+      LOPS = .FALSE.
+      LORQ = .FALSE.
+      LCOMPGRD = .FALSE.
+      NREOQ = 0
+      OUTP_FILES = ''
+   END SUBROUTINE CLEAR_OUTPUT_STATE
+
+   LOGICAL FUNCTION OUTPUT_STATE_IS_CLEAR ()
+      OUTPUT_STATE_IS_CLEAR = .NOT.LOPS .AND. .NOT.LORQ .AND. &
+         .NOT.LCOMPGRD .AND. NREOQ.EQ.0 .AND. .NOT.ASSOCIATED(COPS) .AND. &
+         .NOT.ASSOCIATED(FOPS%XP) .AND. .NOT.ASSOCIATED(FOPS%YP) .AND. &
+         .NOT.ASSOCIATED(FOPS%XQ) .AND. .NOT.ASSOCIATED(FOPS%YQ) .AND. &
+         .NOT.ASSOCIATED(FOPS%NEXTOPS) .AND. &
+         .NOT.ASSOCIATED(FORQ%IVTYP) .AND. .NOT.ASSOCIATED(FORQ%FAC) .AND. &
+         .NOT.ASSOCIATED(FORQ%NEXTORQ) .AND. ALL(OUTP_FILES.EQ.'')
+   END FUNCTION OUTPUT_STATE_IS_CLEAR
 
 end module OUTP_DATA
 
@@ -295,35 +315,35 @@ MODULE M_BNDSPEC
 !               3: average wave direction
 !               4: directional distribution coefficient
 
-   LOGICAL :: ALOBND
+   LOGICAL :: ALOBND = .FALSE.
 
    TYPE BSPCDAT
-      INTEGER                :: BFILED(20)
-      INTEGER, POINTER       :: BSPLOC(:)
-      REAL, POINTER          :: BSPDIR(:), BSPFRQ(:)
-      TYPE(BSPCDAT), POINTER :: NEXTBSPC
+      INTEGER                :: BFILED(20) = 0
+      INTEGER, POINTER       :: BSPLOC(:) => NULL()
+      REAL, POINTER          :: BSPDIR(:) => NULL(), BSPFRQ(:) => NULL()
+      TYPE(BSPCDAT), POINTER :: NEXTBSPC => NULL()
    end type BSPCDAT
 
    TYPE(BSPCDAT), SAVE, TARGET :: FBNDFIL
    LOGICAL, SAVE :: LBFILS = .FALSE.
 
    TYPE BSDAT
-      INTEGER                :: NBS
-      INTEGER                :: FSHAPE, DSHAPE
-      REAL                   :: SPPARM(4)
-      TYPE(BSDAT), POINTER   :: NEXTBS
+      INTEGER                :: NBS = 0
+      INTEGER                :: FSHAPE = 0, DSHAPE = 0
+      REAL                   :: SPPARM(4) = 0.0
+      TYPE(BSDAT), POINTER   :: NEXTBS => NULL()
    end type BSDAT
 
    TYPE(BSDAT), SAVE, TARGET :: FBS
    LOGICAL, SAVE :: LBS = .FALSE.
 
    TYPE BGPDAT
-      INTEGER                :: BGP(6)
-      TYPE(BGPDAT), POINTER  :: NEXTBGP
+      INTEGER                :: BGP(6) = 0
+      TYPE(BGPDAT), POINTER  :: NEXTBGP => NULL()
    end type BGPDAT
 
    TYPE(BGPDAT), SAVE, TARGET  :: FBGP
-   TYPE(BGPDAT), SAVE, POINTER :: CUBGP
+   TYPE(BGPDAT), SAVE, POINTER :: CUBGP => NULL()
    LOGICAL, SAVE :: LBGP = .FALSE.
 
 !  8. Subroutines and functions used
@@ -333,6 +353,8 @@ MODULE M_BNDSPEC
       MODULE PROCEDURE DELETEBS
       MODULE PROCEDURE DELETEBGP
    end interface DELETE
+
+   PUBLIC :: CLEAR_BOUNDARY_STATE, BOUNDARY_STATE_IS_CLEAR
 
 !  9. Subroutines and functions calling
 !
@@ -358,7 +380,6 @@ CONTAINS
 
       TYPE(BSPCDAT) :: BSPC
 
-      IF ( LBFILS ) THEN
          IF ( ASSOCIATED( BSPC%BSPLOC ) ) THEN
             DEALLOCATE( BSPC%BSPLOC )
             NULLIFY( BSPC%BSPLOC )
@@ -376,37 +397,54 @@ CONTAINS
             DEALLOCATE( BSPC%NEXTBSPC )
             NULLIFY( BSPC%NEXTBSPC )
          ENDIF
-      ENDIF
-
    end subroutine DELETEBSPC
 
    RECURSIVE SUBROUTINE DELETEBS ( BS )
 
       TYPE(BSDAT) :: BS
 
-      IF ( LBS ) THEN
          IF ( ASSOCIATED( BS%NEXTBS ) ) THEN
             CALL DELETEBS ( BS%NEXTBS )
             DEALLOCATE( BS%NEXTBS )
             NULLIFY( BS%NEXTBS )
          ENDIF
-      ENDIF
-
    end subroutine DELETEBS
 
    RECURSIVE SUBROUTINE DELETEBGP ( BGP )
 
       TYPE(BGPDAT) :: BGP
 
-      IF ( LBGP ) THEN
          IF ( ASSOCIATED( BGP%NEXTBGP ) ) THEN
             CALL DELETEBGP ( BGP%NEXTBGP )
             DEALLOCATE( BGP%NEXTBGP )
             NULLIFY( BGP%NEXTBGP )
          ENDIF
-      ENDIF
-
    end subroutine DELETEBGP
+
+   SUBROUTINE CLEAR_BOUNDARY_STATE ()
+      CALL DELETEBSPC ( FBNDFIL )
+      CALL DELETEBS ( FBS )
+      CALL DELETEBGP ( FBGP )
+      FBNDFIL = BSPCDAT()
+      FBS = BSDAT()
+      FBGP = BGPDAT()
+      NULLIFY(CUBGP)
+      LBFILS = .FALSE.
+      LBS = .FALSE.
+      LBGP = .FALSE.
+      ALOBND = .FALSE.
+   END SUBROUTINE CLEAR_BOUNDARY_STATE
+
+   LOGICAL FUNCTION BOUNDARY_STATE_IS_CLEAR ()
+      BOUNDARY_STATE_IS_CLEAR = .NOT.ALOBND .AND. .NOT.LBFILS .AND. &
+         .NOT.LBS .AND. .NOT.LBGP .AND. .NOT.ASSOCIATED(CUBGP) .AND. &
+         .NOT.ASSOCIATED(FBNDFIL%BSPLOC) .AND. &
+         .NOT.ASSOCIATED(FBNDFIL%BSPDIR) .AND. &
+         .NOT.ASSOCIATED(FBNDFIL%BSPFRQ) .AND. &
+         .NOT.ASSOCIATED(FBNDFIL%NEXTBSPC) .AND. &
+         .NOT.ASSOCIATED(FBS%NEXTBS) .AND. &
+         .NOT.ASSOCIATED(FBGP%NEXTBGP)
+   END FUNCTION BOUNDARY_STATE_IS_CLEAR
 
 end module M_BNDSPEC
 
@@ -493,22 +531,23 @@ MODULE M_OBSTA
 !     XCRP    : x-coordinate of corner point
 !     YCRP    : y-coordinate of corner point
 
-   LOGICAL, SAVE             :: OBSTDONE
+   LOGICAL, SAVE             :: OBSTDONE = .FALSE.
 
    TYPE OBSTDAT
-      INTEGER                :: TRTYPE
-      REAL                   :: TRCOEF(3)
-      REAL, POINTER          :: TRCF1D(:), TRCF2D(:,:)
-      INTEGER                :: RFTYP1, RFTYP2, RFTYP3
-      REAL                   :: RFCOEF(6)
-      INTEGER                :: FBTYP1, FBTYP2
-      REAL                   :: FBCOEF(3)
-      INTEGER                :: IGTYP
-      REAL                   :: IGCOEF(7)
-      REAL, POINTER          :: IGFRQD(:)
-      INTEGER                :: NCRPTS
-      REAL, POINTER          :: XCRP(:), YCRP(:)
-      TYPE(OBSTDAT), POINTER :: NEXTOBST
+      INTEGER                :: TRTYPE = 0
+      REAL                   :: TRCOEF(3) = 0.0
+      REAL, POINTER          :: TRCF1D(:) => NULL()
+      REAL, POINTER          :: TRCF2D(:,:) => NULL()
+      INTEGER                :: RFTYP1 = 0, RFTYP2 = 0, RFTYP3 = 0
+      REAL                   :: RFCOEF(6) = 0.0
+      INTEGER                :: FBTYP1 = 0, FBTYP2 = 0
+      REAL                   :: FBCOEF(3) = 0.0
+      INTEGER                :: IGTYP = 0
+      REAL                   :: IGCOEF(7) = 0.0
+      REAL, POINTER          :: IGFRQD(:) => NULL()
+      INTEGER                :: NCRPTS = 0
+      REAL, POINTER          :: XCRP(:) => NULL(), YCRP(:) => NULL()
+      TYPE(OBSTDAT), POINTER :: NEXTOBST => NULL()
    end type OBSTDAT
 
    TYPE(OBSTDAT), SAVE, TARGET  :: FOBSTAC
@@ -534,6 +573,40 @@ MODULE M_OBSTA
 !     ---
 !
 ! 13. Source text
+
+   PUBLIC :: CLEAR_OBSTACLE_STATE, OBSTACLE_STATE_IS_CLEAR
+
+CONTAINS
+
+   RECURSIVE SUBROUTINE CLEAR_OBSTACLE_NODE ( NODE )
+      TYPE(OBSTDAT), INTENT(INOUT) :: NODE
+
+      IF ( ASSOCIATED(NODE%NEXTOBST) ) THEN
+         CALL CLEAR_OBSTACLE_NODE ( NODE%NEXTOBST )
+         DEALLOCATE(NODE%NEXTOBST)
+      END IF
+      IF ( ASSOCIATED(NODE%TRCF1D) ) DEALLOCATE(NODE%TRCF1D)
+      IF ( ASSOCIATED(NODE%TRCF2D) ) DEALLOCATE(NODE%TRCF2D)
+      IF ( ASSOCIATED(NODE%IGFRQD) ) DEALLOCATE(NODE%IGFRQD)
+      IF ( ASSOCIATED(NODE%XCRP) )   DEALLOCATE(NODE%XCRP)
+      IF ( ASSOCIATED(NODE%YCRP) )   DEALLOCATE(NODE%YCRP)
+      NODE = OBSTDAT()
+   END SUBROUTINE CLEAR_OBSTACLE_NODE
+
+   SUBROUTINE CLEAR_OBSTACLE_STATE ()
+      CALL CLEAR_OBSTACLE_NODE ( FOBSTAC )
+      OBSTDONE = .FALSE.
+   END SUBROUTINE CLEAR_OBSTACLE_STATE
+
+   LOGICAL FUNCTION OBSTACLE_STATE_IS_CLEAR ()
+      OBSTACLE_STATE_IS_CLEAR = .NOT.OBSTDONE .AND. &
+         .NOT.ASSOCIATED(FOBSTAC%TRCF1D) .AND. &
+         .NOT.ASSOCIATED(FOBSTAC%TRCF2D) .AND. &
+         .NOT.ASSOCIATED(FOBSTAC%IGFRQD) .AND. &
+         .NOT.ASSOCIATED(FOBSTAC%XCRP) .AND. &
+         .NOT.ASSOCIATED(FOBSTAC%YCRP) .AND. &
+         .NOT.ASSOCIATED(FOBSTAC%NEXTOBST)
+   END FUNCTION OBSTACLE_STATE_IS_CLEAR
 
 end module M_OBSTA
 
@@ -655,10 +728,11 @@ MODULE M_GENARR
    REAL   , SAVE, ALLOCATABLE :: AC2(:,:,:)
    REAL   , SAVE, ALLOCATABLE :: XCGRID(:,:), YCGRID(:,:)
    REAL   , SAVE, ALLOCATABLE :: SPCSIG(:)  , SPCDIR(:,:)
-!ESMF!
-!ESMF!     added to save Sin exponential growth term for coupling
-!ESMF   LOGICAL, SAVE :: SAVE_SINBAC
-!ESMF   REAL   , SAVE, ALLOCATABLE :: SINBAC(:,:,:)
+!
+!     Exponential wind-input state exposed for ESMF coupling. The selected
+!     coupling backend is a no-op unless ESMF support is enabled.
+   LOGICAL, SAVE :: SAVE_SINBAC = .FALSE.
+   REAL   , SAVE, ALLOCATABLE :: SINBAC(:,:,:)
 !
 !  8. Subroutines and functions used
 !
@@ -698,6 +772,8 @@ MODULE M_GENARR
       MODULE PROCEDURE ENSURE_FIELD_SIZE_R, ENSURE_FIELD_SIZE_I
       MODULE PROCEDURE ENSURE_FIELD_SIZE_R2, ENSURE_FIELD_SIZE_I2
    END INTERFACE ENSURE_FIELD_SIZE
+
+   PUBLIC :: CLEAR_GENERAL_ARRAY_STATE, GENERAL_ARRAY_STATE_IS_CLEAR
 
 contains
 
@@ -745,12 +821,48 @@ contains
       ALLOCATE(FIELD(LENGTH1,LENGTH2))
    END SUBROUTINE ENSURE_FIELD_SIZE_I2
 
+   SUBROUTINE CLEAR_GENERAL_ARRAY_STATE ()
+      IF (ALLOCATED(KGRPNT)) DEALLOCATE(KGRPNT)
+      IF (ALLOCATED(KGRBND)) DEALLOCATE(KGRBND)
+      IF (ALLOCATED(XYTST )) DEALLOCATE(XYTST )
+      IF (ALLOCATED(AC2   )) DEALLOCATE(AC2   )
+      IF (ALLOCATED(XCGRID)) DEALLOCATE(XCGRID)
+      IF (ALLOCATED(YCGRID)) DEALLOCATE(YCGRID)
+      IF (ALLOCATED(SPCSIG)) DEALLOCATE(SPCSIG)
+      IF (ALLOCATED(SPCDIR)) DEALLOCATE(SPCDIR)
+      IF (ALLOCATED(SINBAC)) DEALLOCATE(SINBAC)
+      SAVE_SINBAC = .FALSE.
+   END SUBROUTINE CLEAR_GENERAL_ARRAY_STATE
+
+   LOGICAL FUNCTION GENERAL_ARRAY_STATE_IS_CLEAR ()
+      GENERAL_ARRAY_STATE_IS_CLEAR = .NOT.ALLOCATED(KGRPNT) .AND. &
+         .NOT.ALLOCATED(KGRBND) .AND. .NOT.ALLOCATED(XYTST) .AND. &
+         .NOT.ALLOCATED(AC2) .AND. .NOT.ALLOCATED(XCGRID) .AND. &
+         .NOT.ALLOCATED(YCGRID) .AND. .NOT.ALLOCATED(SPCSIG) .AND. &
+         .NOT.ALLOCATED(SPCDIR) .AND. .NOT.ALLOCATED(SINBAC) .AND. &
+         .NOT.SAVE_SINBAC
+   END FUNCTION GENERAL_ARRAY_STATE_IS_CLEAR
+
 end module M_GENARR
 
 MODULE M_PARALL
+   USE swan_build_config, ONLY: jacobi_sweep_enabled
    USE swan_parallel_state, ONLY: MASTER, INODE, NPROC, IAMMASTER, PARLL
+   USE swan_mpi_backend, ONLY: mpi_backend_broadcast_character, &
+      mpi_backend_broadcast_integer_array, &
+      mpi_backend_broadcast_integer_matrix, &
+      mpi_backend_broadcast_integer_scalar, &
+      mpi_backend_broadcast_real_array, mpi_backend_broadcast_real_matrix, &
+      mpi_backend_broadcast_real_scalar, &
+      mpi_backend_broadcast_real_tensor3, &
+      mpi_backend_broadcast_real_tensor4, mpi_backend_gather_counts, &
+      mpi_backend_gatherv_integer_i12, mpi_backend_gatherv_integer_i21, &
+      mpi_backend_gatherv_real, mpi_backend_receive_real_matrix, &
+      mpi_backend_receive_real_vector, mpi_backend_reduce_integer_array, &
+      mpi_backend_reduce_integer_scalar, mpi_backend_reduce_real_array, &
+      mpi_backend_reduce_real_scalar, mpi_backend_send_real_matrix, &
+      mpi_backend_send_real_vector, swan_mpi_error_count, swan_mpi_success
    USE swan_service_interfaces, ONLY: MSGERR
-!MPI   USE MPI
 !
 !
 !   --|-----------------------------------------------------------|--
@@ -804,7 +916,27 @@ MODULE M_PARALL
 !     ---
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+   PRIVATE :: jacobi_sweep_enabled
    PRIVATE :: MSGERR
+   PRIVATE :: mpi_backend_broadcast_character
+   PRIVATE :: mpi_backend_broadcast_integer_array
+   PRIVATE :: mpi_backend_broadcast_integer_matrix
+   PRIVATE :: mpi_backend_broadcast_integer_scalar
+   PRIVATE :: mpi_backend_broadcast_real_array
+   PRIVATE :: mpi_backend_broadcast_real_matrix
+   PRIVATE :: mpi_backend_broadcast_real_scalar
+   PRIVATE :: mpi_backend_broadcast_real_tensor3
+   PRIVATE :: mpi_backend_broadcast_real_tensor4
+   PRIVATE :: mpi_backend_gather_counts
+   PRIVATE :: mpi_backend_gatherv_integer_i12
+   PRIVATE :: mpi_backend_gatherv_integer_i21
+   PRIVATE :: mpi_backend_gatherv_real
+   PRIVATE :: mpi_backend_receive_real_matrix, mpi_backend_receive_real_vector
+   PRIVATE :: mpi_backend_reduce_integer_array
+   PRIVATE :: mpi_backend_reduce_integer_scalar
+   PRIVATE :: mpi_backend_reduce_real_array, mpi_backend_reduce_real_scalar
+   PRIVATE :: mpi_backend_send_real_matrix, mpi_backend_send_real_vector
+   PRIVATE :: swan_mpi_error_count, swan_mpi_success
 
 !     Type-safe interfaces for collective communication.  The legacy
 !     implementations receive a typed first element and a count; callers
@@ -841,22 +973,22 @@ MODULE M_PARALL
 !
 !  6. Parameter variables
 !
-!JAC!     IBLACK  : integer used to colour subdomains 'black' for
-!JAC!               determining sequence of sweeps (=4,1,2,3)
-!JAC!     IGREEN  : integer used to colour subdomains 'green' for
-!JAC!               determining sequence of sweeps (=3,4,1,2)
+!     IBLACK  : integer used to colour subdomains 'black' for
+!               determining sequence of sweeps (=4,1,2,3)
+!     IGREEN  : integer used to colour subdomains 'green' for
+!               determining sequence of sweeps (=3,4,1,2)
 !     IHALOX  : width of halo area in x-direction
 !     IHALOY  : width of halo area in y-direction
-!JAC!     IRED    : integer used to colour subdomains 'red' for
-!JAC!               determining sequence of sweeps (=1,2,3,4)
-!JAC!     IYELOW  : integer used to colour subdomains 'yellow' for
-!JAC!               determining sequence of sweeps (=2,3,4,1)
+!     IRED    : integer used to colour subdomains 'red' for
+!               determining sequence of sweeps (=1,2,3,4)
+!     IYELOW  : integer used to colour subdomains 'yellow' for
+!               determining sequence of sweeps (=2,3,4,1)
 !     MASTER  : rank of master process
 
 !  MASTER now comes from swan_parallel_state (re-exported below).
-!JAC   INTEGER, PARAMETER :: IRED=1, IYELOW=2, IGREEN=3, IBLACK=4,&
-!JAC   &IHALOX=1, IHALOY=1
-!WFR   INTEGER, PARAMETER :: IHALOX=3, IHALOY=3
+   INTEGER, PARAMETER :: IRED=1, IYELOW=2, IGREEN=3, IBLACK=4
+   INTEGER, PARAMETER :: IHALOX=MERGE(1,3,jacobi_sweep_enabled)
+   INTEGER, PARAMETER :: IHALOY=MERGE(1,3,jacobi_sweep_enabled)
 
 !  7. Local variables
 !
@@ -880,7 +1012,7 @@ MODULE M_PARALL
 
 !     *** information related to global domain and subdomains
 !
-!JAC!     IBCOL   : integer indicating the color of own subdomain
+!     IBCOL   : integer indicating the color of own subdomain
 !     IBLKAD  : administration array for subdomain interfaces
 !               contents:
 !               pos. 1                     number of neighbouring subdomains
@@ -930,7 +1062,7 @@ MODULE M_PARALL
 !     XGRDGL  : x-coordinate of computational grid in global domain
 !     YGRDGL  : y-coordinate of computational grid in global domain
 !
-!JAC   INTEGER IBCOL
+   INTEGER IBCOL
    INTEGER MXF, MXL, MYF, MYL
    REAL    XCLMAX, XCLMIN, YCLMAX, YCLMIN
 
@@ -971,9 +1103,9 @@ CONTAINS
       INTEGER                :: IERR
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, 1, 'SWREDUCE')) RETURN
-!MPI      CALL MPI_ALLREDUCE ( MPI_IN_PLACE, VALUE, ILEN, SWINT,&
-!MPI      &ITYPRD, MPI_COMM_WORLD, IERR )
-!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_ALLREDUCE' )
+      CALL mpi_backend_reduce_integer_scalar(VALUE, ILEN, SWINT, ITYPRD, &
+         IERR)
+      CALL SWMPI_CHECK(IERR, 'MPI_ALLREDUCE')
    end subroutine SWREDUCE_I0
 
    SUBROUTINE SWREDUCE_I1 ( VALUES, ILEN, ITYPRD )
@@ -982,9 +1114,9 @@ CONTAINS
       INTEGER                :: IERR
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWREDUCE')) RETURN
-!MPI      CALL MPI_ALLREDUCE ( MPI_IN_PLACE, VALUES, ILEN, SWINT,&
-!MPI      &ITYPRD, MPI_COMM_WORLD, IERR )
-!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_ALLREDUCE' )
+      CALL mpi_backend_reduce_integer_array(VALUES, ILEN, SWINT, ITYPRD, &
+         IERR)
+      CALL SWMPI_CHECK(IERR, 'MPI_ALLREDUCE')
    end subroutine SWREDUCE_I1
 
    SUBROUTINE SWREDUCE_R0 ( VALUE, ILEN, ITYPRD )
@@ -993,9 +1125,8 @@ CONTAINS
       INTEGER             :: IERR
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, 1, 'SWREDUCE')) RETURN
-!MPI      CALL MPI_ALLREDUCE ( MPI_IN_PLACE, VALUE, ILEN, SWREAL,&
-!MPI      &ITYPRD, MPI_COMM_WORLD, IERR )
-!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_ALLREDUCE' )
+      CALL mpi_backend_reduce_real_scalar(VALUE, ILEN, SWREAL, ITYPRD, IERR)
+      CALL SWMPI_CHECK(IERR, 'MPI_ALLREDUCE')
    end subroutine SWREDUCE_R0
 
    SUBROUTINE SWREDUCE_R1 ( VALUES, ILEN, ITYPRD )
@@ -1004,9 +1135,8 @@ CONTAINS
       INTEGER             :: IERR
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWREDUCE')) RETURN
-!MPI      CALL MPI_ALLREDUCE ( MPI_IN_PLACE, VALUES, ILEN, SWREAL,&
-!MPI      &ITYPRD, MPI_COMM_WORLD, IERR )
-!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_ALLREDUCE' )
+      CALL mpi_backend_reduce_real_array(VALUES, ILEN, SWREAL, ITYPRD, IERR)
+      CALL SWMPI_CHECK(IERR, 'MPI_ALLREDUCE')
    end subroutine SWREDUCE_R1
 
    SUBROUTINE SWBROADC_I0 ( VALUE, ILEN )
@@ -1015,9 +1145,9 @@ CONTAINS
       INTEGER                :: IERR
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, 1, 'SWBROADC')) RETURN
-!MPI      CALL MPI_BCAST ( VALUE, ILEN, SWINT, MASTER-1,&
-!MPI      &MPI_COMM_WORLD, IERR )
-!MPI      CALL SWBROADC_CHECK ( IERR )
+      CALL mpi_backend_broadcast_integer_scalar(VALUE, ILEN, SWINT, &
+         MASTER-1, IERR)
+      CALL SWBROADC_CHECK(IERR)
    end subroutine SWBROADC_I0
 
    SUBROUTINE SWBROADC_I1 ( VALUES, ILEN )
@@ -1025,9 +1155,9 @@ CONTAINS
       INTEGER, INTENT(IN)                :: ILEN
       INTEGER                            :: IERR
       IF (.NOT.PARLL) RETURN
-!MPI      CALL MPI_BCAST ( VALUES, ILEN, SWINT, MASTER-1,&
-!MPI      &MPI_COMM_WORLD, IERR )
-!MPI      CALL SWBROADC_CHECK ( IERR )
+      CALL mpi_backend_broadcast_integer_array(VALUES, ILEN, SWINT, &
+         MASTER-1, IERR)
+      CALL SWBROADC_CHECK(IERR)
    end subroutine SWBROADC_I1
 
    SUBROUTINE SWBROADC_I2 ( VALUES, ILEN )
@@ -1036,9 +1166,9 @@ CONTAINS
       INTEGER                            :: IERR
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWBROADC')) RETURN
-!MPI      CALL MPI_BCAST ( VALUES, ILEN, SWINT, MASTER-1,&
-!MPI      &MPI_COMM_WORLD, IERR )
-!MPI      CALL SWBROADC_CHECK ( IERR )
+      CALL mpi_backend_broadcast_integer_matrix(VALUES, ILEN, SWINT, &
+         MASTER-1, IERR)
+      CALL SWBROADC_CHECK(IERR)
    end subroutine SWBROADC_I2
 
    SUBROUTINE SWBROADC_R0 ( VALUE, ILEN )
@@ -1047,9 +1177,9 @@ CONTAINS
       INTEGER             :: IERR
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, 1, 'SWBROADC')) RETURN
-!MPI      CALL MPI_BCAST ( VALUE, ILEN, SWREAL, MASTER-1,&
-!MPI      &MPI_COMM_WORLD, IERR )
-!MPI      CALL SWBROADC_CHECK ( IERR )
+      CALL mpi_backend_broadcast_real_scalar(VALUE, ILEN, SWREAL, MASTER-1, &
+         IERR)
+      CALL SWBROADC_CHECK(IERR)
    end subroutine SWBROADC_R0
 
    SUBROUTINE SWBROADC_R1 ( VALUES, ILEN )
@@ -1057,9 +1187,9 @@ CONTAINS
       INTEGER, INTENT(IN)             :: ILEN
       INTEGER                         :: IERR
       IF (.NOT.PARLL) RETURN
-!MPI      CALL MPI_BCAST ( VALUES, ILEN, SWREAL, MASTER-1,&
-!MPI      &MPI_COMM_WORLD, IERR )
-!MPI      CALL SWBROADC_CHECK ( IERR )
+      CALL mpi_backend_broadcast_real_array(VALUES, ILEN, SWREAL, MASTER-1, &
+         IERR)
+      CALL SWBROADC_CHECK(IERR)
    end subroutine SWBROADC_R1
 
    SUBROUTINE SWBROADC_R2 ( VALUES, ILEN )
@@ -1068,9 +1198,9 @@ CONTAINS
       INTEGER                         :: IERR
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWBROADC')) RETURN
-!MPI      CALL MPI_BCAST ( VALUES, ILEN, SWREAL, MASTER-1,&
-!MPI      &MPI_COMM_WORLD, IERR )
-!MPI      CALL SWBROADC_CHECK ( IERR )
+      CALL mpi_backend_broadcast_real_matrix(VALUES, ILEN, SWREAL, MASTER-1, &
+         IERR)
+      CALL SWBROADC_CHECK(IERR)
    end subroutine SWBROADC_R2
 
    SUBROUTINE SWBROADC_R3 ( VALUES, ILEN )
@@ -1079,9 +1209,9 @@ CONTAINS
       INTEGER                         :: IERR
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWBROADC')) RETURN
-!MPI      CALL MPI_BCAST ( VALUES, ILEN, SWREAL, MASTER-1,&
-!MPI      &MPI_COMM_WORLD, IERR )
-!MPI      CALL SWBROADC_CHECK ( IERR )
+      CALL mpi_backend_broadcast_real_tensor3(VALUES, ILEN, SWREAL, &
+         MASTER-1, IERR)
+      CALL SWBROADC_CHECK(IERR)
    end subroutine SWBROADC_R3
 
    SUBROUTINE SWBROADC_R4 ( VALUES, ILEN )
@@ -1090,9 +1220,9 @@ CONTAINS
       INTEGER                         :: IERR
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWBROADC')) RETURN
-!MPI      CALL MPI_BCAST ( VALUES, ILEN, SWREAL, MASTER-1,&
-!MPI      &MPI_COMM_WORLD, IERR )
-!MPI      CALL SWBROADC_CHECK ( IERR )
+      CALL mpi_backend_broadcast_real_tensor4(VALUES, ILEN, SWREAL, &
+         MASTER-1, IERR)
+      CALL SWBROADC_CHECK(IERR)
    end subroutine SWBROADC_R4
 
    SUBROUTINE SWBROADC_C0 ( VALUE, ILEN )
@@ -1101,19 +1231,19 @@ CONTAINS
       INTEGER                         :: IERR
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, LEN(VALUE), 'SWBROADC')) RETURN
-!MPI      CALL MPI_BCAST ( VALUE, ILEN, SWCHAR, MASTER-1,&
-!MPI      &MPI_COMM_WORLD, IERR )
-!MPI      CALL SWBROADC_CHECK ( IERR )
+      CALL mpi_backend_broadcast_character(VALUE, ILEN, SWCHAR, MASTER-1, &
+         IERR)
+      CALL SWBROADC_CHECK(IERR)
    end subroutine SWBROADC_C0
 
    SUBROUTINE SWBROADC_CHECK ( IERR )
       INTEGER, INTENT(IN) :: IERR
-!MPI      CHARACTER(LEN=80) :: MSGSTR
-!MPI      IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI         WRITE(MSGSTR,'(A,I0)')&
-!MPI         &'MPI_BCAST failed with return code ', IERR
-!MPI         CALL MSGERR ( 4, MSGSTR )
-!MPI      END IF
+      CHARACTER(LEN=80) :: MSGSTR
+      IF (IERR.NE.swan_mpi_success) THEN
+         WRITE(MSGSTR,'(A,I0)')&
+         &'MPI_BCAST failed with return code ', IERR
+         CALL MSGERR(4, MSGSTR)
+      END IF
    end subroutine SWBROADC_CHECK
 
    SUBROUTINE SWSENDNB_R1 ( VALUES, ILEN, IDEST, ITAG )
@@ -1122,9 +1252,9 @@ CONTAINS
       INTEGER                      :: IERR
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWSENDNB')) RETURN
-!MPI      CALL MPI_SEND ( VALUES, ILEN, SWREAL, IDEST-1, ITAG,&
-!MPI      &MPI_COMM_WORLD, IERR )
-!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_SEND' )
+      CALL mpi_backend_send_real_vector(VALUES, ILEN, SWREAL, IDEST-1, &
+         ITAG, IERR)
+      CALL SWMPI_CHECK(IERR, 'MPI_SEND')
    end subroutine SWSENDNB_R1
 
    SUBROUTINE SWSENDNB_R2 ( VALUES, ILEN, IDEST, ITAG )
@@ -1133,33 +1263,31 @@ CONTAINS
       INTEGER                      :: IERR
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWSENDNB')) RETURN
-!MPI      CALL MPI_SEND ( VALUES, ILEN, SWREAL, IDEST-1, ITAG,&
-!MPI      &MPI_COMM_WORLD, IERR )
-!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_SEND' )
+      CALL mpi_backend_send_real_matrix(VALUES, ILEN, SWREAL, IDEST-1, &
+         ITAG, IERR)
+      CALL SWMPI_CHECK(IERR, 'MPI_SEND')
    end subroutine SWSENDNB_R2
 
    SUBROUTINE SWRECVNB_R1 ( VALUES, ILEN, ISOURCE, ITAG )
       REAL, CONTIGUOUS, INTENT(OUT) :: VALUES(:)
       INTEGER, INTENT(IN)           :: ILEN, ISOURCE, ITAG
       INTEGER                       :: IERR
-!MPI      INTEGER             :: ISTAT(MPI_STATUS_SIZE)
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWRECVNB')) RETURN
-!MPI      CALL MPI_RECV ( VALUES, ILEN, SWREAL, ISOURCE-1, ITAG,&
-!MPI      &MPI_COMM_WORLD, ISTAT, IERR )
-!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_RECV' )
+      CALL mpi_backend_receive_real_vector(VALUES, ILEN, SWREAL, ISOURCE-1, &
+         ITAG, IERR)
+      CALL SWMPI_CHECK(IERR, 'MPI_RECV')
    end subroutine SWRECVNB_R1
 
    SUBROUTINE SWRECVNB_R2 ( VALUES, ILEN, ISOURCE, ITAG )
       REAL, CONTIGUOUS, INTENT(OUT) :: VALUES(:,:)
       INTEGER, INTENT(IN)            :: ILEN, ISOURCE, ITAG
       INTEGER                        :: IERR
-!MPI      INTEGER                     :: ISTAT(MPI_STATUS_SIZE)
       IF (.NOT.PARLL) RETURN
       IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWRECVNB')) RETURN
-!MPI      CALL MPI_RECV ( VALUES, ILEN, SWREAL, ISOURCE-1, ITAG,&
-!MPI      &MPI_COMM_WORLD, ISTAT, IERR )
-!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_RECV' )
+      CALL mpi_backend_receive_real_matrix(VALUES, ILEN, SWREAL, ISOURCE-1, &
+         ITAG, IERR)
+      CALL SWMPI_CHECK(IERR, 'MPI_RECV')
    end subroutine SWRECVNB_R2
 
    SUBROUTINE SWGATHER_I21 ( OUTPUT, IOLEN, INPUT, IILEN )
@@ -1172,10 +1300,10 @@ CONTAINS
       IF (.NOT.SWVALID_COUNT(IOLEN, SIZE(OUTPUT), 'SWGATHER')) RETURN
       IF (.NOT.SWVALID_COUNT(IILEN, SIZE(INPUT), 'SWGATHER')) RETURN
       CALL SWGATHER_LAYOUT ( IILEN, IOLEN, ICOUNT, IDSPLC, IERR )
-!MPI      IF ( IERR.EQ.MPI_SUCCESS )&
-!MPI      &CALL MPI_GATHERV ( INPUT, IILEN, SWINT, OUTPUT, ICOUNT,&
-!MPI      &IDSPLC, SWINT, MASTER-1, MPI_COMM_WORLD, IERR )
-!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_GATHERV' )
+      IF (IERR.EQ.swan_mpi_success) &
+         CALL mpi_backend_gatherv_integer_i21(INPUT, IILEN, OUTPUT, ICOUNT, &
+            IDSPLC, SWINT, MASTER-1, IERR)
+      CALL SWMPI_CHECK(IERR, 'MPI_GATHERV')
       DEALLOCATE(ICOUNT,IDSPLC)
    end subroutine SWGATHER_I21
 
@@ -1189,10 +1317,10 @@ CONTAINS
       IF (.NOT.SWVALID_COUNT(IOLEN, SIZE(OUTPUT), 'SWGATHER')) RETURN
       IF (.NOT.SWVALID_COUNT(IILEN, SIZE(INPUT), 'SWGATHER')) RETURN
       CALL SWGATHER_LAYOUT ( IILEN, IOLEN, ICOUNT, IDSPLC, IERR )
-!MPI      IF ( IERR.EQ.MPI_SUCCESS )&
-!MPI      &CALL MPI_GATHERV ( INPUT, IILEN, SWINT, OUTPUT, ICOUNT,&
-!MPI      &IDSPLC, SWINT, MASTER-1, MPI_COMM_WORLD, IERR )
-!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_GATHERV' )
+      IF (IERR.EQ.swan_mpi_success) &
+         CALL mpi_backend_gatherv_integer_i12(INPUT, IILEN, OUTPUT, ICOUNT, &
+            IDSPLC, SWINT, MASTER-1, IERR)
+      CALL SWMPI_CHECK(IERR, 'MPI_GATHERV')
       DEALLOCATE(ICOUNT,IDSPLC)
    end subroutine SWGATHER_I12
 
@@ -1204,10 +1332,10 @@ CONTAINS
       INTEGER, ALLOCATABLE :: ICOUNT(:), IDSPLC(:)
       IF (.NOT.PARLL) RETURN
       CALL SWGATHER_LAYOUT ( IILEN, IOLEN, ICOUNT, IDSPLC, IERR )
-!MPI      IF ( IERR.EQ.MPI_SUCCESS )&
-!MPI      &CALL MPI_GATHERV ( INPUT, IILEN, SWREAL, OUTPUT, ICOUNT,&
-!MPI      &IDSPLC, SWREAL, MASTER-1, MPI_COMM_WORLD, IERR )
-!MPI      CALL SWMPI_CHECK ( IERR, 'MPI_GATHERV' )
+      IF (IERR.EQ.swan_mpi_success) &
+         CALL mpi_backend_gatherv_real(INPUT, IILEN, OUTPUT, ICOUNT, &
+            IDSPLC, SWREAL, MASTER-1, IERR)
+      CALL SWMPI_CHECK(IERR, 'MPI_GATHERV')
       DEALLOCATE(ICOUNT,IDSPLC)
    end subroutine SWGATHER_R11
 
@@ -1221,14 +1349,13 @@ CONTAINS
       ICOUNT = 0
       IDSPLC = 0
       IERR = 0
-!MPI      CALL MPI_GATHER ( IILEN, 1, SWINT, ICOUNT, 1, SWINT,&
-!MPI      &MASTER-1, MPI_COMM_WORLD, IERR )
-!MPI      IF ( IERR.NE.MPI_SUCCESS ) RETURN
+      CALL mpi_backend_gather_counts(IILEN, ICOUNT, SWINT, MASTER-1, IERR)
+      IF (IERR.NE.swan_mpi_success) RETURN
       IF (IAMMASTER) THEN
          IF ( SUM(ICOUNT).GT.IOLEN ) THEN
             CALL MSGERR ( 4,&
             &'Not enough space allocated for gathered data' )
-!MPI            IERR = MPI_ERR_COUNT
+            IERR = swan_mpi_error_count
             RETURN
          END IF
          DO I = 1, NPROC-1
@@ -1240,12 +1367,12 @@ CONTAINS
    SUBROUTINE SWMPI_CHECK ( IERR, ROUTINE_NAME )
       INTEGER, INTENT(IN)          :: IERR
       CHARACTER(LEN=*), INTENT(IN) :: ROUTINE_NAME
-!MPI      CHARACTER(LEN=80)         :: MSGSTR
-!MPI      IF ( IERR.NE.MPI_SUCCESS ) THEN
-!MPI         WRITE(MSGSTR,'(A,A,A,I0)') TRIM(ROUTINE_NAME),&
-!MPI         &' failed on this process with return code ', '', IERR
-!MPI         CALL MSGERR ( 4, MSGSTR )
-!MPI      END IF
+      CHARACTER(LEN=80)         :: MSGSTR
+      IF (IERR.NE.swan_mpi_success) THEN
+         WRITE(MSGSTR,'(A,A,A,I0)') TRIM(ROUTINE_NAME),&
+         &' failed on this process with return code ', '', IERR
+         CALL MSGERR(4, MSGSTR)
+      END IF
    end subroutine SWMPI_CHECK
 
    LOGICAL FUNCTION SWVALID_COUNT ( COUNT, AVAILABLE, ROUTINE_NAME )
@@ -1261,5 +1388,13 @@ CONTAINS
       &' for a buffer of size ', AVAILABLE
       CALL MSGERR ( 4, TRIM(MSGSTR) )
    end function SWVALID_COUNT
+
+   SUBROUTINE CLEAR_PARALLEL_STORAGE ()
+      IF (ALLOCATED(IBLKAD)) DEALLOCATE(IBLKAD)
+   END SUBROUTINE CLEAR_PARALLEL_STORAGE
+
+   LOGICAL FUNCTION PARALLEL_STORAGE_IS_CLEAR ()
+      PARALLEL_STORAGE_IS_CLEAR = .NOT.ALLOCATED(IBLKAD)
+   END FUNCTION PARALLEL_STORAGE_IS_CLEAR
 
 end module M_PARALL

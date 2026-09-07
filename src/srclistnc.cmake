@@ -2,7 +2,7 @@ include( ${SRC}/srclist.cmake )
 
 set( swan_nc_src
   ${swan_src}
-  ${SWAN_GENERATED_SRC}/nctablemd.f90
-  ${SWAN_GENERATED_SRC}/agioncmd.f90
-  ${SWAN_GENERATED_SRC}/swn_outnc.f90
+  ${SRC}/nctablemd.f90
+  ${SRC}/agioncmd.f90
+  ${SRC}/swn_outnc.f90
 )

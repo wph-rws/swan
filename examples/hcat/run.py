@@ -60,6 +60,11 @@ def main() -> int:
         default="reference",
         help="reference variant for both the cold MPI run and the hotstart route",
     )
+    parser.add_argument(
+        "--smoke",
+        action="store_true",
+        help="alleen draaien zonder regressievergelijking; telt niet als geslaagde regressie",
+    )
     arguments = parser.parse_args()
 
     try:
@@ -100,12 +105,19 @@ def main() -> int:
             str(swan),
         ]
         run_swan(mpi_command, writer_deck, writer_directory, "parallel SWAN writer")
-        if not compare_with_reference(
-            writer_directory,
-            source_directory / arguments.reference,
-            ("quick_test_center.tbl", "quick_test_hs.blk"),
-        ):
-            raise RuntimeError(f"cold-run reference {arguments.reference} is missing")
+        if arguments.smoke:
+            compare_with_reference(
+                writer_directory,
+                source_directory / arguments.reference,
+                ("quick_test_center.tbl", "quick_test_hs.blk"),
+                smoke=True,
+            )
+        else:
+            compare_with_reference(
+                writer_directory,
+                source_directory / arguments.reference,
+                ("quick_test_center.tbl", "quick_test_hs.blk"),
+            )
 
         part_files = [
             writer_directory / f"quick_hot-{index:03d}"
@@ -126,13 +138,21 @@ def main() -> int:
 
         shutil.copy2(combined, reader_directory / combined.name)
         run_swan([str(swan)], reader_deck, reader_directory, "serial hotstart reader")
-        if not compare_with_reference(
-            reader_directory,
-            Path(__file__).resolve().parent / arguments.reference,
-            ("quick_test_center.tbl", "quick_test_hs.blk"),
-        ):
-            raise RuntimeError(f"hotstart reference {arguments.reference} is missing")
-        print("Parallel hotfiles were merged, read back, and matched the reference.")
+        if arguments.smoke:
+            compare_with_reference(
+                reader_directory,
+                Path(__file__).resolve().parent / arguments.reference,
+                ("quick_test_center.tbl", "quick_test_hs.blk"),
+                smoke=True,
+            )
+            print("Smoke-modus: hotstart-route draaide; geen regressievergelijking.")
+        else:
+            compare_with_reference(
+                reader_directory,
+                Path(__file__).resolve().parent / arguments.reference,
+                ("quick_test_center.tbl", "quick_test_hs.blk"),
+            )
+            print("Parallel hotfiles were merged, read back, and matched the reference.")
     except (FileNotFoundError, OSError, RuntimeError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1

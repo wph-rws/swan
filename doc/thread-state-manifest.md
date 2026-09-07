@@ -19,18 +19,16 @@ importeert — een naamcollisie, geen gedeelde toestand.
 Levensduur is de kortste eenheid waarover de waarde geldig moet blijven:
 `punt` (één roosterpunt of vertex), `sweep`, `iteratie`, `run`, `proces`.
 
-## De zes resterende directives
+## De vier resterende directives
 
 | # | Locatie | Module | Symbolen | Buildvariant |
 |---|---|---|---|---|
-| 1 | [swan_stencil.f90:41](../src/swan_stencil.f90#L41) | `swan_stencil` | `IXCGRD, IYCGRD, KCGRD, COSLAT` | altijd |
-| 2 | [swan_stencil.f90:42](../src/swan_stencil.f90#L42) | `swan_stencil` | `RDFSIN` | altijd |
-| 3 | [swan_stencil.f90:46](../src/swan_stencil.f90#L46) | `swan_stencil` | `ICMAX` | altijd |
-| 4 | [swan_test_output.f90:34](../src/swan_test_output.f90#L34) | `swan_test_output` | `IPTST, TESTFL` | altijd |
-| 5 | [swan_propagation_scheme.f90:27](../src/swan_propagation_scheme.f90#L27) | `swan_propagation_scheme` | `PROPSL` | altijd |
-| 6 | [swan_time.f90:40](../src/swan_time.f90#L40) | `swan_time` | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | altijd aanwezig; actief bij `TIMG=ON` |
+| 1 | [swan_stencil.f90:46](../src/swan_stencil.f90#L46) | `swan_stencil` | `RDFSIN` | altijd |
+| 2 | [swan_test_output.f90:34](../src/swan_test_output.f90#L34) | `swan_test_output` | `IPTST, TESTFL` | altijd |
+| 3 | [swan_propagation_scheme.f90:27](../src/swan_propagation_scheme.f90#L27) | `swan_propagation_scheme` | `PROPSL` | altijd |
+| 4 | [swan_time.f90:40](../src/swan_time.f90#L40) | `swan_time` | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | altijd aanwezig; actief bij `TIMG=ON` |
 
-Directive 6 is gewone, altijd zichtbare Fortran. Alleen de aanroepen die de
+Directive 4 is gewone, altijd zichtbare Fortran. Alleen de aanroepen die de
 tellers muteren staan achter de compile-time constante `timing_enabled`.
 Daardoor ziet de compiler de timingbackend in elke build en blijft hij in een
 standaardbuild inactief.
@@ -39,22 +37,32 @@ De voormalige zesde groep, de elf scalars uit `M_WCAP`, staat niet meer in
 deze tabel: de migratie heeft de module en haar `THREADPRIVATE`-directive verwijderd.
 De toestand zit nu in een expliciete `wcap_workspace_t` per solverthread.
 
+De vijf stencilwaarden `IXCGRD, IYCGRD, KCGRD, COSLAT` en `ICMAX` staan evenmin
+meer in deze tabel: tranche B heeft hun twee `THREADPRIVATE`-directives
+verwijderd. De solvers houden het actieve punt bij in thread-lokale scratch
+(`st_ix, st_iy, st_kc, st_co, st_nm` in `SWOMPU`, idem in `SwanCompUnstruc`
+waar `st_nm` via `FIRSTPRIVATE` de seriële breedte erft) en geven elke kernel
+haar context expliciet als scalars of `MICMAX`-arrays. Alleen `RDFSIN` blijft
+threadprivate met `COPYIN`-seeding.
+
 ## COPYIN: welke threads geseed worden
 
 De twee solvers seeden verschillende verzamelingen. Dat is ontwerpinput, niet
 een detail: alleen deze symbolen moeten bij het betreden van de parallelle regio
 de masterwaarde hebben.
 
-| Symbool | [swancom1.f90:1238-1241](../src/swancom1.f90#L1238-L1241) (structured) | [SwanCompUnstruc.f90:475](../src/SwanCompUnstruc.f90#L475) (unstructured) |
+| Symbool | [swancom1.f90:1281-1283](../src/swancom1.f90#L1281-L1283) (structured) | [SwanCompUnstruc.f90:514](../src/SwanCompUnstruc.f90#L514) (unstructured) |
 |---|---|---|
-| `ICMAX` | ✅ | ✅ |
-| `COSLAT` | ✅ | ✅ |
 | `IPTST` | ✅ | ✅ |
 | `TESTFL` | ✅ | ✅ |
 | `RDFSIN` | ✅ | ✅ |
 | `PROPSL` | ✅ | — |
-| `IXCGRD, IYCGRD, KCGRD` | — | — |
 | `wcap_workspace_t` | expliciet per thread | expliciet per thread |
+
+`ICMAX` en `COSLAT` zijn uit beide `COPYIN`-lijsten verwijderd: geen enkele
+kernel leest ze nog impliciet. De thread-lokale breedte (`st_nm`) erft de
+seriële waarde via `FIRSTPRIVATE` in de ongestructureerde regio; de
+gestructureerde aanroep heeft eigen stackkopieën per punt.
 
 `PROPSL` ontbreekt in de ongestructureerde regio omdat die solver het
 gestructureerde propagatieschema niet gebruikt. `CSETUP` is geen thread-state
@@ -70,26 +78,21 @@ solver- of switch-specifiek.
 
 ### `swan_stencil` — stencil en propagatiekeuzes
 
-Deze zes zijn wat er van `SWCOMM3` over is. De module bestaat niet meer; wat
-erin stond is verdeeld over elf gerichte modules en de thread-toestand staat nu
-alleen in `swan_stencil`. Dat maakt de voorgestelde eigenaars hieronder niet
-anders, maar het scheelt een lezer het onderscheid tussen runconfiguratie en
-threadtoestand zelf te moeten maken.
+`RDFSIN` is de enige resterende threadprivate waarde in deze module. De vijf
+overige zijn in tranche B gemigreerd en niet meer threadprivate:
 
-| Symbool | Solver | COPYIN | Eerste definitie | Levensduur | Cat. | Voorgestelde eigenaar |
-|---|---|---|---|---|---|---|
-| `IXCGRD` | beide | — | [swancom1.f90:3073](../src/swancom1.f90#L3073) | punt | 4 | `structured_thread_workspace_t` |
-| `IYCGRD` | beide | — | [swancom1.f90:3074](../src/swancom1.f90#L3074) | punt | 4 | `structured_thread_workspace_t` |
-| `KCGRD` | beide | — | swancom1 (59×), [SwanCompUnstruc.f90:933](../src/SwanCompUnstruc.f90#L933) | punt | 4 | `common_thread_seed_t` (stencil) |
-| `COSLAT` | beide | ✅ | [swanmain.f90](../src/swanmain.f90) via setup; swancom5 | sweep | 3 | `common_thread_seed_t` |
-| `RDFSIN` | beide | ✅ | [swanmain.f90:3757](../src/swanmain.f90#L3757) | run | 3 | `common_thread_seed_t` |
-| `ICMAX` | beide | ✅ | [swanmain.f90:1033](../src/swanmain.f90#L1033) | run | 3 | `common_thread_seed_t` |
-`KCGRD` was in het ongestructureerde pad gespiegeld in `vs`, een tweede
-threadprivate array in `SwanCompdata` met dezelfde inhoud (`KCGRD = vs`, met het
-commentaar "to be used in some original SWAN routines"). Die spiegel is weg: de
-ongestructureerde solver vult `KCGRD` nu rechtstreeks en de acht bestanden die
-`vs` lazen lezen `KCGRD`. Daarmee is er nog één stencil-eigenaar, zoals
-randvoorwaarde 2 eist.
+| Symbool | Status na B | Eigenaar nu |
+|---|---|---|
+| `IXCGRD` | thread-lokale `st_ix` in `SWOMPU`/`SwanCompUnstruc`, expliciet als scalars/arrays doorgegeven | aanroeper |
+| `IYCGRD` | idem (`st_iy`) | aanroeper |
+| `KCGRD` | idem (`st_kc`) | aanroeper |
+| `COSLAT` | `SWGEOM` schrijft de lokale `st_co` van `SWOMPU`; `ACTION`/`SwanTranspAc` geven hem expliciet door | aanroeper |
+| `RDFSIN` | ✅ COPYIN, threadprivate (windschaal per thread) | `swan_stencil` |
+| `ICMAX` | thread-lokale `st_nm`/`st_n`/`icmax`-dummy in elke kernel; `FIRSTPRIVATE` in de ongestructureerde regio | aanroeper |
+
+De oude `vs`-spiegel in `SwanCompdata` was al eerder verwijderd. Daarmee is er
+nog één stencil-eigenaar per aanroep, zoals randvoorwaarde 2 eist — maar die
+eigenaar is nu de aanroepende threadscratch, geen module meer.
 
 ### `swan_test_output` en `swan_propagation_scheme` — teststatus en lokale propagatie
 

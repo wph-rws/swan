@@ -147,6 +147,12 @@
   ],
   [
    "compare-reals",
+   "swan_matlab_v5_backend.f90",
+   "Inequality comparison for REAL(4) at (1)",
+   2
+  ],
+  [
+   "compare-reals",
    "swan_number_formatting.f90",
    "Inequality comparison for REAL(4) at (1)",
    1
@@ -263,7 +269,7 @@
    "compare-reals",
    "swanout2.f90",
    "Inequality comparison for REAL(4) at (1)",
-   5
+   3
   ],
   [
    "compare-reals",
@@ -867,12 +873,6 @@
   ],
   [
    "function-elimination",
-   "swan_grid_point_validation.f90",
-   "Impure function ‘pvalid’ at (1) might not be evaluated",
-   69
-  ],
-  [
-   "function-elimination",
    "swan_input_interpolation.f90",
    "Impure function ‘eqreal’ at (1) might not be evaluated",
    1
@@ -922,12 +922,6 @@
   [
    "function-elimination",
    "swanpre1.f90",
-   "Impure function ‘pvalid’ at (1) might not be evaluated",
-   9
-  ],
-  [
-   "function-elimination",
-   "swanpre1.f90",
    "Impure function ‘validbp’ at (1) might not be evaluated",
    9
   ],
@@ -959,18 +953,6 @@
    "function-elimination",
    "swanser.f90",
    "Impure function ‘inmesh’ at (1) might not be evaluated",
-   1
-  ],
-  [
-   "implicit-interface",
-   "SwanParallel.f90",
-   "Procedure ‘metis_partgraphkway’ called with an implicit interface at (1)",
-   1
-  ],
-  [
-   "implicit-interface",
-   "SwanParallel.f90",
-   "Procedure ‘metis_setdefaultoptions’ called with an implicit interface at (1)",
    1
   ],
   [
@@ -1102,36 +1084,6 @@
   [
    "maybe-uninitialized",
    "SwanParallel.f90",
-   "‘MEM <integer(kind=4)> [(integer(kind=4)[0:] *)_891 + -4B]’ may be used uninitialized",
-   1
-  ],
-  [
-   "maybe-uninitialized",
-   "SwanParallel.f90",
-   "‘MEM <integer(kind=4)> [(integer(kind=4)[0:] *)_891 + 4B]’ may be used uninitialized",
-   1
-  ],
-  [
-   "maybe-uninitialized",
-   "SwanParallel.f90",
-   "‘MEM <integer(kind=4)> [(integer(kind=4)[0:] *)_891]’ may be used uninitialized",
-   1
-  ],
-  [
-   "maybe-uninitialized",
-   "SwanParallel.f90",
-   "‘MEM[(integer(kind=4)[0:D.5688] *)_844][_713]’ may be used uninitialized",
-   1
-  ],
-  [
-   "maybe-uninitialized",
-   "SwanParallel.f90",
-   "‘nbpgl’ may be used uninitialized",
-   1
-  ],
-  [
-   "maybe-uninitialized",
-   "SwanParallel.f90",
    "‘nfacev.dim[0].ubound’ may be used uninitialized",
    1
   ],
@@ -1173,12 +1125,6 @@
   ],
   [
    "maybe-uninitialized",
-   "SwanVertlist.f90",
-   "‘vu[0]’ may be used uninitialized",
-   1
-  ],
-  [
-   "maybe-uninitialized",
    "mod_xnl4v5.f90",
    "‘__result_x_cosk’ may be used uninitialized",
    1
@@ -1206,6 +1152,12 @@
    "mod_xnl4v5.f90",
    "‘isig_tail’ may be used uninitialized",
    2
+  ],
+  [
+   "maybe-uninitialized",
+   "swan_front_scheduling_backend_graph.f90",
+   "‘vu[0]’ may be used uninitialized",
+   1
   ],
   [
    "maybe-uninitialized",
@@ -2043,6 +1995,12 @@
   ],
   [
    "unused-dummy-argument",
+   "swancom4.f90",
+   "Unused dummy argument ‘kcgrd’ at (1)",
+   1
+  ],
+  [
+   "unused-dummy-argument",
    "swancom5.f90",
    "Unused dummy argument ‘anybin’ at (1)",
    1
@@ -2079,21 +2037,9 @@
   ],
   [
    "unused-dummy-argument",
-   "swanout2.f90",
-   "Unused dummy argument ‘oqr’ at (1)",
-   2
-  ],
-  [
-   "unused-dummy-argument",
    "swanparll.f90",
    "Unused dummy argument ‘npart’ at (1)",
    1
-  ],
-  [
-   "unused-dummy-argument",
-   "swanparll.f90",
-   "Unused dummy argument ‘oqr’ at (1)",
-   2
   ],
   [
    "unused-dummy-argument",
@@ -2112,78 +2058,6 @@
    "swanser.f90",
    "Unused dummy argument ‘y2’ at (1)",
    1
-  ],
-  [
-   "unused-dummy-argument",
-   "swmod2.f90",
-   "Dummy argument ‘output’ at (1) was declared INTENT(OUT) but was not set",
-   1
-  ],
-  [
-   "unused-dummy-argument",
-   "swmod2.f90",
-   "Unused dummy argument ‘idest’ at (1)",
-   2
-  ],
-  [
-   "unused-dummy-argument",
-   "swmod2.f90",
-   "Unused dummy argument ‘ierr’ at (1)",
-   2
-  ],
-  [
-   "unused-dummy-argument",
-   "swmod2.f90",
-   "Unused dummy argument ‘iilen’ at (1)",
-   1
-  ],
-  [
-   "unused-dummy-argument",
-   "swmod2.f90",
-   "Unused dummy argument ‘ilen’ at (1)",
-   2
-  ],
-  [
-   "unused-dummy-argument",
-   "swmod2.f90",
-   "Unused dummy argument ‘input’ at (1)",
-   1
-  ],
-  [
-   "unused-dummy-argument",
-   "swmod2.f90",
-   "Unused dummy argument ‘isource’ at (1)",
-   2
-  ],
-  [
-   "unused-dummy-argument",
-   "swmod2.f90",
-   "Unused dummy argument ‘itag’ at (1)",
-   4
-  ],
-  [
-   "unused-dummy-argument",
-   "swmod2.f90",
-   "Unused dummy argument ‘ityprd’ at (1)",
-   4
-  ],
-  [
-   "unused-dummy-argument",
-   "swmod2.f90",
-   "Unused dummy argument ‘routine_name’ at (1)",
-   1
-  ],
-  [
-   "unused-dummy-argument",
-   "swmod2.f90",
-   "Unused dummy argument ‘values’ at (1)",
-   2
-  ],
-  [
-   "unused-dummy-argument",
-   "swmod2.f90",
-   "Unused dummy argument ‘value’ at (1)",
-   4
   ],
   [
    "unused-function",
@@ -2229,21 +2103,15 @@
   ],
   [
    "unused-parameter",
-   "SwanParallel.f90",
-   "Unused parameter ‘itag’ declared at (1)",
-   2
+   "swan_matlab_v5_backend.f90",
+   "Unused parameter ‘muint32’ declared at (1)",
+   1
   ],
   [
    "unused-parameter",
    "swan_service_interfaces.f90",
    "Unused parameter ‘master’ which has been explicitly imported at (1)",
    2
-  ],
-  [
-   "unused-parameter",
-   "swanout2.f90",
-   "Unused parameter ‘muint32’ declared at (1)",
-   1
   ],
   [
    "unused-variable",
@@ -2523,6 +2391,12 @@
   ],
   [
    "unused-variable",
+   "SwanCompUnstruc.f90",
+   "Unused module variable ‘rdfsin’ which has been explicitly imported at (1)",
+   1
+  ],
+  [
+   "unused-variable",
    "SwanGradDepthorK.f90",
    "Unused variable ‘arr’ declared at (1)",
    1
@@ -2550,18 +2424,6 @@
    "SwanIEM.f90",
    "Unused variable ‘id’ declared at (1)",
    1
-  ],
-  [
-   "unused-variable",
-   "SwanParallel.f90",
-   "Unused variable ‘ierr’ declared at (1)",
-   2
-  ],
-  [
-   "unused-variable",
-   "SwanParallel.f90",
-   "Unused variable ‘msgstr’ declared at (1)",
-   2
   ],
   [
    "unused-variable",
@@ -2938,6 +2800,12 @@
   [
    "unused-variable",
    "swancom1.f90",
+   "Unused module variable ‘rdfsin’ which has been explicitly imported at (1)",
+   1
+  ],
+  [
+   "unused-variable",
+   "swancom1.f90",
    "Unused variable ‘arr’ declared at (1)",
    1
   ],
@@ -2974,12 +2842,6 @@
   [
    "unused-variable",
    "swancom1.f90",
-   "Unused variable ‘iii’ declared at (1)",
-   1
-  ],
-  [
-   "unused-variable",
-   "swancom1.f90",
    "Unused variable ‘ij’ declared at (1)",
    1
   ],
@@ -2993,12 +2855,6 @@
    "unused-variable",
    "swancom1.f90",
    "Unused variable ‘isc’ declared at (1)",
-   1
-  ],
-  [
-   "unused-variable",
-   "swancom1.f90",
-   "Unused variable ‘j’ declared at (1)",
    1
   ],
   [
@@ -3189,54 +3045,6 @@
   ],
   [
    "unused-variable",
-   "swanparll.f90",
-   "Unused variable ‘chars’ declared at (1)",
-   2
-  ],
-  [
-   "unused-variable",
-   "swanparll.f90",
-   "Unused variable ‘ierr’ declared at (1)",
-   3
-  ],
-  [
-   "unused-variable",
-   "swanparll.f90",
-   "Unused variable ‘if1’ declared at (1)",
-   2
-  ],
-  [
-   "unused-variable",
-   "swanparll.f90",
-   "Unused variable ‘if2’ declared at (1)",
-   2
-  ],
-  [
-   "unused-variable",
-   "swanparll.f90",
-   "Unused variable ‘il1’ declared at (1)",
-   2
-  ],
-  [
-   "unused-variable",
-   "swanparll.f90",
-   "Unused variable ‘il2’ declared at (1)",
-   2
-  ],
-  [
-   "unused-variable",
-   "swanparll.f90",
-   "Unused variable ‘msgstr’ declared at (1)",
-   2
-  ],
-  [
-   "unused-variable",
-   "swanparll.f90",
-   "Unused variable ‘paralmpi’ declared at (1)",
-   1
-  ],
-  [
-   "unused-variable",
    "swanpre1.f90",
    "Unused module variable ‘default_time_context’ which has been explicitly imported at (1)",
    1
@@ -3264,12 +3072,6 @@
    "swanpre2.f90",
    "Unused variable ‘iko2’ declared at (1)",
    1
-  ],
-  [
-   "unused-variable",
-   "swmod2.f90",
-   "Unused variable ‘ierr’ declared at (1)",
-   17
   ]
  ]
 }

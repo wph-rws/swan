@@ -35,6 +35,11 @@ def main() -> int:
     parser.add_argument("--mpi-numproc-flag", default="-n")
     parser.add_argument("--mpi-processes", type=int, default=2)
     parser.add_argument("--reference", default="reference-metis-mpi")
+    parser.add_argument(
+        "--smoke",
+        action="store_true",
+        help="alleen draaien zonder regressievergelijking; telt niet als geslaagde regressie",
+    )
     arguments = parser.parse_args()
 
     try:
@@ -107,10 +112,15 @@ def main() -> int:
             )
 
         reference_directory = source_directory / arguments.reference
-        if not compare_with_reference(
-            work_directory, reference_directory, RESULTS
-        ):
-            raise RuntimeError(f"METIS reference {arguments.reference} is missing")
+        if arguments.smoke:
+            compare_with_reference(
+                work_directory, reference_directory, RESULTS, smoke=True
+            )
+            print("Smoke-modus: METIS-partitie draaide; geen regressievergelijking.")
+        else:
+            compare_with_reference(
+                work_directory, reference_directory, RESULTS
+            )
         distribution = Counter(owners)
         print(
             "METIS partitioned 15 vertices: "

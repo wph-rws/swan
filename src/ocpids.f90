@@ -465,6 +465,13 @@ SUBROUTINE OCDTIM (PRCTIM)
    CHARACTER(LEN=5) :: CDUMMY
    INTEGER :: IDUMMY(8)
 
+   ! TIMSTR(9:9) en TIMSTR(21:24) bleven ongedefinieerd (Valgrind:
+   ! ongedefinieerde tekenreeks via DTSTTI/OCPINI). DATE_AND_TIME vult alleen
+   ! (1:8) en (10:20); de geformatteerde READ in DTSTTI leest (1:15) inclusief
+   ! de scheider op (9:9). Blanco initialiseren maakt de scheider deterministisch
+   ! (1X slaat elk teken over) en de resterende staart gedefinieerd; geen
+   ! numerieke of invoercontractwijziging.
+   TIMSTR = ' '
    CALL DATE_AND_TIME (TIMSTR(1:8), TIMSTR(10:20), CDUMMY, IDUMMY)
    CALL DTSTTI (1, TIMSTR, PRCTIM)
 

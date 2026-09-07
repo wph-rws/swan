@@ -91,6 +91,7 @@ module swan_computation
    INTEGER :: JTRA1
    INTEGER :: MLSWMAT
    INTEGER :: MSWMATR
+   LOGICAL :: SWCOMP_STOP_REQUESTED = .FALSE.
    private
 !  Entry points used by the driver (SWCOMP) and by the unstructured solver,
 !  which reuses the structured sweep building blocks.
@@ -106,14 +107,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 &XCGRID     ,YCGRID     ,&
 &CROSS      ,DIFFR      ,TRIADS, SNL4, SPECTRAL_POWERS, THREAD_WORKSPACES)
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
-   USE swan_parallel, ONLY: SWCOLLECT, SWEXCHG
-!  The remaining imports are used only from switch-hidden call sites, so each
-!  carries the prefix of the variant that calls it. Importing them
-!  unconditionally instead breaks the other variant: SWRECVAC and SWSENDAC do
-!  not exist in a !JAC build at all.
-!WFR   USE swan_parallel, ONLY: SWRECVAC, SWSENDAC
-!JAC   USE swan_parallel, ONLY: SWSYNC
+   USE swan_mpi_backend, ONLY: mpi_backend_enabled
+   USE swan_parallel, ONLY: SWCOLLECT
    USE swan_propagation, ONLY: DIFPAR, SWAPRE
+   USE swan_sweep_exchange_backend, ONLY: complete_sweep, &
+      complete_sweep_iteration, configure_sweep_layout, &
+      configured_sweep_direction, exchange_swan_field, map_sweep_point, &
+      propagation_stencil_length, receive_sweep_row, send_sweep_row, &
+      sweep_layout_t
    USE swan_nonlinear_interactions, ONLY: FAC3WW, FAC4WW, SWBIPM, SWPRE4W
    USE swan_dissipation, ONLY: PLTSRC
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, STPNOW
@@ -125,7 +126,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    USE swan_io_units
    USE swan_number_formatting
    USE swan_run_mode
-   USE swan_stencil
+   USE swan_stencil, ONLY: MICMAX, RDFSIN
    USE swan_physics_selection
    USE swan_numerics
    USE swan_physical_settings
@@ -144,7 +145,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    USE m_fileio
    USE m_propcache, ONLY: prop_cache_reset
    USE swan_fftw_compat, ONLY: cfft2i
-!ESMF   USE M_GENARR, ONLY: SAVE_SINBAC, SINBAC
+   USE swan_esmf_coupling_backend, ONLY: reset_exponential_wind_input
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -667,15 +668,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     SWTSTA
 !     SWTSTO
 !     SWREDUCE
-!JAC!     SWEXCHG
-!WFR!     SWRECVAC
-!WFR!     SWSENDAC
-!JAC!     SWSYNC
+!     sweep backend exchange and synchronization services
 !     MSGERR : Handles error messages according to severity
 !     NUMSTR : Converts integer/real to string
 !     TXPBLA : Removes leading and trailing blanks in string
-!MPI!     STPNOW : Logical indicating whether program must
-!MPI!              terminated or not
+!     STPNOW : Logical indicating whether program must
+!              terminated or not
 !
 !
 !  9. Subroutines calling
@@ -916,12 +914,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    REAL     ARR(10)
    REAL     VARW
 
-!WFR   INTEGER JDUM, JS, JE, JWFRS, JWFRE, INCJ, JJ, JNODE,&
-!WFR   &JSD, JED, IE, INCI, III, LSTCP
-!WFR
-!JAC   INTEGER ISWP
-!JAC
+   INTEGER JDUM, LSTCP, ISWP
    INTEGER II, IX1, IX2, IY1, IY2
+   LOGICAL ROW_ACTIVE, STOP_REQUESTED
+   TYPE(sweep_layout_t) :: SWEEP_LAYOUT
 
 !     Add variables for the XNL interface (quadruplet interaction)
    INTEGER :: IXGRID, IXQUAD, IQERR
@@ -989,7 +985,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
    INTEGER, ALLOCATABLE :: ISLMIN(:), NFLIM(:), NRSCAL(:)
 
-!MPI   REAL, ALLOCATABLE :: AC2LOC(:)
+   REAL, ALLOCATABLE :: AC2LOC(:)
 !
 !     Add variables for OMP thread parameters.
 !$ INTEGER, EXTERNAL :: OMP_GET_NUM_THREADS, OMP_GET_THREAD_NUM
@@ -1089,18 +1085,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    JABLK = 2
    MLSWMAT = 2
 
-! *** Stencil size
-
-   IF (PROPSC.EQ.3) THEN
-      ICMAX  = 13
-!WFR      LSTCP  = 3
-   ELSE IF (PROPSC.EQ.2) THEN
-      ICMAX  = 7
-!WFR      LSTCP  = 2
-   ELSE
-      ICMAX  = 5
-!WFR      LSTCP  = 1
-   ENDIF
+! *** Stencil width for this sweep (per-thread width travels with the
+!     explicit stencil context passed to every kernel)
+   LSTCP = propagation_stencil_length(PROPSC)
 
    IF (timing_enabled) CALL SWTSTA(101)
 !
@@ -1217,8 +1204,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     *** Lock array for thread management
 !$ ALLOCATE(LLOCK(MXC,MYC))
 !
-!MPI   ALLOCATE(AC2LOC(MCGRD))
-!MPI
+   IF (mpi_backend_enabled) ALLOCATE(AC2LOC(MCGRD))
+
    ALLOCATE(SWTSDA(MDC,MSC,NPTSTA,MTSVAR))
    SWTSDA = 0.
 
@@ -1275,8 +1262,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !----------------------------------------------------------------------
 !
    SETUP_CONVERGED = .TRUE.
+   SWCOMP_STOP_REQUESTED = .FALSE.
 !$OMP PARALLEL DEFAULT(SHARED) &
-!$OMP& PRIVATE(ITER, SWPDIR, IX, IY, II, IJ, IK, THREAD_INDEX) &
+!$OMP& PRIVATE(ITER, SWPDIR, ISWP, IX, IY, II, IJ, IK, THREAD_INDEX) &
 !$OMP& PRIVATE(CAX, CAY, CAX1, CAY1, CAS, CAD, CGO, KWAVE, DMW) &
 !$OMP& PRIVATE(SIGFT, CGFT, UXFT, UYFT, CFT, RFT, SFT, WFT, WSAVE) &
 !$OMP& PRIVATE(CFD, WFD, WSAVD) &
@@ -1287,12 +1275,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$OMP& PRIVATE(REFLSO, INOCNT, FBD) &
 !$OMP& PRIVATE(IP,IDC,ISC) &
 !$OMP& PRIVATE(I1GRD,I2GRD,I1MYC,I2MYC) &
-!$OMP& PRIVATE(JDUM,JJ,III) &
-!$OMP& PRIVATE(IS,IE,INCI,JS,JE,INCJ,JSD,JED,JNODE,JWFRS,JWFRE) &
+!$OMP& PRIVATE(JDUM,ROW_ACTIVE,STOP_REQUESTED,SWEEP_LAYOUT) &
 !$OMP& PRIVATE(QTL1,QTL2) &
 !$OMP& PRIVATE(LLOCKED) &
-!$OMP& COPYIN(ICMAX) &
-!$OMP& COPYIN(COSLAT,PROPSL) &
+!$OMP& COPYIN(PROPSL) &
 !$OMP& COPYIN(IPTST,TESTFL) &
 !$OMP& COPYIN(RDFSIN)
 !
@@ -1629,7 +1615,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
          COMPDA(IP,JTSXS) = 0.
          COMPDA(IP,JRADS) = 0.
          COMPDA(IP,JQB  ) = 0.
-!ESMF         IF (SAVE_SINBAC) SINBAC(:,:,IP) = 0.
+         CALL reset_exponential_wind_input(IP)
       ENDDO
 
 !       initialise Ursell number and biphase to 0 for each iteration
@@ -1800,25 +1786,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !       *** loop over sweep directions ***
 !
-!WFR      DO SWPDIR = 1, 4
-!JAC         DO ISWP = 0, 3
-!JAC
-!JAC! ======================================================================
-!JAC!
-!JAC!           Determine sequence of sweeps depending on
-!JAC!           color of subdomain
-!JAC!
-!JAC! ======================================================================
-!JAC
-!JAC            IF ( IBCOL.EQ.IRED ) THEN
-!JAC               SWPDIR = MOD(ISWP  ,4)+1
-!JAC            ELSE IF ( IBCOL.EQ.IYELOW ) THEN
-!JAC               SWPDIR = MOD(ISWP+1,4)+1
-!JAC            ELSE IF ( IBCOL.EQ.IGREEN ) THEN
-!JAC               SWPDIR = MOD(ISWP+2,4)+1
-!JAC            ELSE
-!JAC               SWPDIR = MOD(ISWP+3,4)+1
-!JAC            END IF
+      DO ISWP = 0, 3
+         SWPDIR = configured_sweep_direction(ISWP, IBCOL)
 !
 !           Initialize LLOCK in parallel
 !           Make .FALSE. at grid points where depth is negative
@@ -1955,80 +1924,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$OMP BARRIER
 !$OMP FLUSH
 !
-!WFR! ======================================================================
-!WFR!
-!WFR!           Set up start and end indices for respectively
-!WFR!           IX- and IY-loops appropriated for block
-!WFR!           wavefront approach within distributed-memory
-!WFR!           environment
-!WFR!
-!WFR! ======================================================================
-!WFR
-!WFR            IF ( MXCGL.GT.MYCGL .OR. .NOT.PARLL ) THEN
-!WFR               JS   =  IY1
-!WFR               JE   =  IY2
-!WFR               INCJ = -IYSTEP
-!WFR               IS   =  IX1
-!WFR               IE   =  IX2
-!WFR               INCI = -KSX
-!WFR               IF (SWPDIR.EQ.1) THEN
-!WFR                  JSD   = JE - 1
-!WFR                  JED   = JS - 1
-!WFR                  JNODE = INODE
-!WFR                  JWFRS = 0
-!WFR                  JWFRE = NPROC-1
-!WFR               ELSE IF (SWPDIR.EQ.2) THEN
-!WFR                  JSD   = JE - 1
-!WFR                  JED   = JS - 1
-!WFR                  JNODE = NPROC+1-INODE
-!WFR                  JWFRS = 0
-!WFR                  JWFRE = NPROC-1
-!WFR               ELSE IF (SWPDIR.EQ.3) THEN
-!WFR                  JSD   = JS - 1
-!WFR                  JED   = JE - 1
-!WFR                  JNODE = NPROC+1-INODE
-!WFR                  JWFRS = NPROC-1
-!WFR                  JWFRE = 0
-!WFR               ELSE IF (SWPDIR.EQ.4) THEN
-!WFR                  JSD   = JS - 1
-!WFR                  JED   = JE - 1
-!WFR                  JNODE = INODE
-!WFR                  JWFRS = NPROC-1
-!WFR                  JWFRE = 0
-!WFR               END IF
-!WFR            ELSE
-!WFR               JS   =  IX1
-!WFR               JE   =  IX2
-!WFR               INCJ = -KSX
-!WFR               IS   =  IY1
-!WFR               IE   =  IY2
-!WFR               INCI = -IYSTEP
-!WFR               IF (SWPDIR.EQ.1) THEN
-!WFR                  JSD   = JE - 1
-!WFR                  JED   = JS - 1
-!WFR                  JNODE = INODE
-!WFR                  JWFRS = 0
-!WFR                  JWFRE = NPROC-1
-!WFR               ELSE IF (SWPDIR.EQ.2) THEN
-!WFR                  JSD   = JS - 1
-!WFR                  JED   = JE - 1
-!WFR                  JNODE = INODE
-!WFR                  JWFRS = NPROC-1
-!WFR                  JWFRE = 0
-!WFR               ELSE IF (SWPDIR.EQ.3) THEN
-!WFR                  JSD   = JS - 1
-!WFR                  JED   = JE - 1
-!WFR                  JNODE = NPROC+1-INODE
-!WFR                  JWFRS = NPROC-1
-!WFR                  JWFRE = 0
-!WFR               ELSE IF (SWPDIR.EQ.4) THEN
-!WFR                  JSD   = JE - 1
-!WFR                  JED   = JS - 1
-!WFR                  JNODE = NPROC+1-INODE
-!WFR                  JWFRS = 0
-!WFR                  JWFRE = NPROC-1
-!WFR               END IF
-!WFR            END IF
+         CALL configure_sweep_layout(SWEEP_LAYOUT, SWPDIR, IX1, IX2, IY1, &
+            IY2, KSX, IYSTEP, MXCGL, MYCGL, PARLL, INODE, NPROC)
 !
 !----------------------------------------------------------------------
 !     Execute loop over rows of spatial grid in a
@@ -2038,48 +1935,25 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$OMP& FIRSTPRIVATE(WWINT) &
 !$OMP& LASTPRIVATE(WWINT)
 !
-!JAC            DO IY = IY1, IY2, -IYSTEP
-!JAC               DO IX = IX1, IX2, -KSX
-!WFR! ======================================================================
-!WFR!
-!WFR!           Within distributed-memory environment, current
-!WFR!           sweep is carry out in a block wavefront manner
-!WFR!
-!WFR! ======================================================================
-!WFR
-!WFR                  DO JDUM = JS+JWFRS, JE+JWFRE, INCJ
-!WFR
-!WFR                     JJ = JDUM-JNODE+1
-!WFR                     IF (JNODE.GE.JDUM-JSD .AND. JNODE.LE.JDUM-JED) THEN
-!WFR
-!WFR!MPI! ======================================================================
-!WFR!MPI!
-!WFR!MPI!             Receive action density from previous updated
-!WFR!MPI!             row within distributed-memory environment
-!WFR!MPI!
-!WFR!MPI! ======================================================================
-!WFR!MPI
-!WFR!MPI                        IF (timing_enabled) CALL SWTSTA(213)
-!WFR!MPI                        IF ( MXCGL.GT.MYCGL ) THEN
-!WFR!MPI                           DO III = LSTCP, 1, -1
-!WFR!MPI                              CALL SWRECVAC(AC2,IS-III*INCI,JJ,SWPDIR,KGRPNT)
-!WFR!MPI                           END DO
-!WFR!MPI                        ELSE
-!WFR!MPI                           DO III = LSTCP, 1, -1
-!WFR!MPI                              CALL SWRECVAC(AC2,JJ,IS-III*INCI,SWPDIR,KGRPNT)
-!WFR!MPI                           END DO
-!WFR!MPI                        END IF
-!WFR!MPI                        IF (timing_enabled) CALL SWTSTO(213)
-!WFR!MPI                        IF (STPNOW()) RETURN
-!WFR
-!WFR                        DO II = IS, IE, INCI
-!WFR                           IF ( MXCGL.GT.MYCGL .OR. .NOT.PARLL ) THEN
-!WFR                              IX = II
-!WFR                              IY = JJ
-!WFR                           ELSE
-!WFR                              IX = JJ
-!WFR                              IY = II
-!WFR                           END IF
+            DO JDUM = SWEEP_LAYOUT%outer_first, SWEEP_LAYOUT%outer_last, &
+               SWEEP_LAYOUT%outer_step
+               CALL map_sweep_point(SWEEP_LAYOUT, JDUM, &
+                  SWEEP_LAYOUT%inner_first, ROW_ACTIVE, IX, IY)
+
+               IF (ROW_ACTIVE) THEN
+
+! ======================================================================
+!             Receive action density from the previous updated row in
+!             the distributed wavefront strategy.
+! ======================================================================
+                  CALL receive_sweep_row(SWEEP_LAYOUT, JDUM, SWPDIR, LSTCP, &
+                     AC2, KGRPNT, STOP_REQUESTED)
+                  IF (STOP_REQUESTED) SWCOMP_STOP_REQUESTED = .TRUE.
+
+                  DO II = SWEEP_LAYOUT%inner_first, SWEEP_LAYOUT%inner_last, &
+                     SWEEP_LAYOUT%inner_step
+                     CALL map_sweep_point(SWEEP_LAYOUT, JDUM, II, &
+                        ROW_ACTIVE, IX, IY)
 !
 !----------------------------------------------------------------------
 !               Wait until the upwind row is available.  A scalar atomic
@@ -2136,7 +2010,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%WCAP&
                            &)
                            IF (timing_enabled) CALL SWTSTO(104)
-!MPI                           IF (STPNOW()) RETURN
+                           IF (mpi_backend_enabled) THEN
+                              IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
+                           END IF
 !
 !----------------------------------------------------------------------
 !               Once the computation is done for grid point (IX,IY) the
@@ -2146,76 +2022,31 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$OMP ATOMIC WRITE
 !$                         LLOCK(IX,IY) = .FALSE.
 
-!JAC               END DO
-!WFR                        END DO
+                  END DO
 
-!WFR!MPI! ======================================================================
-!WFR!MPI!
-!WFR!MPI!             Send action density to next row
-!WFR!MPI!             within distributed-memory environment
-!WFR!MPI!
-!WFR!MPI! ======================================================================
-!WFR!MPI
-!WFR!MPI                        IF (timing_enabled) CALL SWTSTA(213)
-!WFR!MPI                        IF ( MXCGL.GT.MYCGL ) THEN
-!WFR!MPI                           DO III = LSTCP-1, 0, -1
-!WFR!MPI                              CALL SWSENDAC(AC2,IE-III*INCI,JJ,SWPDIR,KGRPNT)
-!WFR!MPI                           END DO
-!WFR!MPI                        ELSE
-!WFR!MPI                           DO III = LSTCP-1, 0, -1
-!WFR!MPI                              CALL SWSENDAC(AC2,JJ,IE-III*INCI,SWPDIR,KGRPNT)
-!WFR!MPI                           END DO
-!WFR!MPI                        END IF
-!WFR!MPI                        IF (timing_enabled) CALL SWTSTO(213)
-!WFR!MPI                        IF (STPNOW()) RETURN
-!WFR                     END IF
-!WFR
-!JAC            END DO
-!WFR                  END DO
+! ======================================================================
+!             Send action density to the next row in the distributed
+!             wavefront strategy. The Jacobi backend is an explicit no-op.
+! ======================================================================
+                  CALL send_sweep_row(SWEEP_LAYOUT, JDUM, SWPDIR, LSTCP, &
+                     AC2, KGRPNT, STOP_REQUESTED)
+                  IF (STOP_REQUESTED) SWCOMP_STOP_REQUESTED = .TRUE.
+               END IF
+            END DO
 !$OMP ENDDO NOWAIT
-!JAC
-!JAC! ======================================================================
-!JAC!
-!JAC!           Exchange action densities at subdomain interfaces
-!JAC!           within distributed-memory environment
-!JAC!
-!JAC! ======================================================================
-!JAC
-!JAC                  IF ( ISWP.EQ.3 ) THEN
-!JAC                     IF (timing_enabled) CALL SWTSTA(213)
-!JAC                     DO ID = 1, MDC
-!JAC                        DO IS = 1, MSC
-!JAC                           AC2LOC(:) = AC2(ID,IS,:)
-!JAC                           CALL SWEXCHG( AC2LOC, 0, KGRPNT )
-!JAC!MPI                           IF (STPNOW()) RETURN
-!JAC                           AC2(ID,IS,:) = AC2LOC(:)
-!JAC                        END DO
-!JAC                     END DO
-!JAC                     CALL SWSYNC
-!JAC!MPI                     IF (STPNOW()) RETURN
-!JAC                     IF (timing_enabled) CALL SWTSTO(213)
-!JAC                  END IF
+
+         CALL complete_sweep(ISWP, AC2, AC2LOC, KGRPNT, STOP_REQUESTED)
+         IF (STOP_REQUESTED) SWCOMP_STOP_REQUESTED = .TRUE.
 !
 !----------------------------------------------------------------------
 !     Synchronize threads before checking stop condition and
 !     before starting next sweep direction.
 !----------------------------------------------------------------------
 !$OMP BARRIER
-!WFR      END DO
-!JAC         END DO
-!WFR!MPI!
-!WFR!MPI!       --- exchange action densities at subdomain interfaces
-!WFR!MPI!
-!WFR!MPI                  IF (timing_enabled) CALL SWTSTA(213)
-!WFR!MPI                  DO ID = 1, MDC
-!WFR!MPI                     DO IS = 1, MSC
-!WFR!MPI                        AC2LOC(:) = AC2(ID,IS,:)
-!WFR!MPI                        CALL SWEXCHG( AC2LOC, KGRPNT )
-!WFR!MPI                        AC2(ID,IS,:) = AC2LOC(:)
-!WFR!MPI                     END DO
-!WFR!MPI                  END DO
-!WFR!MPI                  IF (timing_enabled) CALL SWTSTO(213)
-!WFR!MPI                  IF (STPNOW()) RETURN
+      END DO
+
+      CALL complete_sweep_iteration(AC2, AC2LOC, KGRPNT, STOP_REQUESTED)
+      IF (STOP_REQUESTED) SWCOMP_STOP_REQUESTED = .TRUE.
 !
 !----------------------------------------------------------------------
 !     Each thread sum contributions to the global INOCNV counter
@@ -2266,40 +2097,42 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         ENDDO
                      ENDIF
 
-!MPI! ======================================================================
-!MPI!
-!MPI!          Gather data meant for global reductions in arrays
-!MPI!          IARR and ARR within distributed-memory environment
-!MPI!
-!MPI! ======================================================================
-!MPI!
-!MPI                     IARR(1) = NWETP
-!MPI                     IARR(2) = NPFL
-!MPI                     IARR(3) = NPFR
-!MPI                     IARR(4) = INOCNV
-!MPI                     IARR(5) = NVARW
-!MPI!
-!MPI                     ARR(1)  = REAL(MXNFL)
-!MPI                     ARR(2)  = REAL(MXNFR)
-!MPI!
-!MPI!          --- carry out reductions across all nodes
-!MPI!
-!MPI                     CALL SWREDUCE(   ARR, 4, SWMAX )
-!MPI                     IF (STPNOW()) RETURN
-!MPI                     CALL SWREDUCE(  IARR, 5, SWSUM )
-!MPI                     IF (STPNOW()) RETURN
-!MPI                     CALL SWREDUCE( MNISL, 1, SWMIN )
-!MPI                     IF (STPNOW()) RETURN
-!MPI!
-!MPI                     NWETP     = IARR(1)
-!MPI                     NPFL      = IARR(2)
-!MPI                     NPFR      = IARR(3)
-!MPI                     INOCNV    = IARR(4)
-!MPI                     NVARW     = IARR(5)
-!MPI!
-!MPI                     MXNFL     = NINT(ARR(1))
-!MPI                     MXNFR     = NINT(ARR(2))
-!MPI!
+! ======================================================================
+!
+!          Gather data meant for global reductions in arrays
+!          IARR and ARR within distributed-memory environment
+!
+! ======================================================================
+!
+                     IF (mpi_backend_enabled) THEN
+                        IARR(1) = NWETP
+                        IARR(2) = NPFL
+                        IARR(3) = NPFR
+                        IARR(4) = INOCNV
+                        IARR(5) = NVARW
+!
+                        ARR(1)  = REAL(MXNFL)
+                        ARR(2)  = REAL(MXNFR)
+!
+!          --- carry out reductions across all nodes
+!
+                        CALL SWREDUCE(   ARR, 4, SWMAX )
+                        IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
+                        CALL SWREDUCE(  IARR, 5, SWSUM )
+                        IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
+                        CALL SWREDUCE( MNISL, 1, SWMIN )
+                        IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
+!
+                        NWETP     = IARR(1)
+                        NPFL      = IARR(2)
+                        NPFR      = IARR(3)
+                        INOCNV    = IARR(4)
+                        NVARW     = IARR(5)
+!
+                        MXNFL     = NINT(ARR(1))
+                        MXNFR     = NINT(ARR(2))
+                     END IF
+!
                      FRAC = REAL(NPFL)*100./REAL(NWETP)
                      IF(NPFL.GT.0) WRITE(PRINTF,"(1X,'use of ',A9,' in ',F6.2, ' % of wet points with maximum in spectral space = ', I4)") 'limiter',FRAC,MXNFL
                      IF (NSTATC.EQ.0 .AND. NPFL.GT.0 .AND. IAMMASTER)&
@@ -2411,23 +2244,26 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !----------------------------------------------------------------------
 !$OMP END MASTER
 !
-!MPI!       --- exchange COMPDA at subdomain interfaces
-!MPI!           within distributed-memory environment
-!MPI!
-!MPI                  IF (timing_enabled) CALL SWTSTA(213)
-!MPI                  DO J = 1, MCMVAR
-!WFR!MPI                     CALL SWEXCHG( COMPDA(1,J), KGRPNT )
-!JAC!MPI                     CALL SWEXCHG( COMPDA(1,J), 0, KGRPNT )
-!MPI                  ENDDO
-!MPI                  IF (timing_enabled) CALL SWTSTO(213)
-!MPI                  IF (STPNOW()) RETURN
-!MPI!
+!       --- exchange COMPDA at subdomain interfaces
+!           within distributed-memory environment
+!
+                  IF (mpi_backend_enabled) THEN
+                     IF (timing_enabled) CALL SWTSTA(213)
+                     DO J = 1, MCMVAR
+                        CALL exchange_swan_field(COMPDA(1,J), KGRPNT)
+                     ENDDO
+                     IF (timing_enabled) CALL SWTSTO(213)
+                     IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
+                  END IF
+!
 !       --- store QC bulk dissipation for the next iteration
                   IF ( ISURF.GT.0 .AND. IGEN.EQ.4 ) THEN
 !          --- make it global first and then scatter it to all nodes
                      CALL SWCOLLECT ( disbk0, disbk1, .FALSE. )
                      CALL SWBROADC  ( disbk0, MCGRDGL )
-!MPI                     IF (STPNOW()) RETURN
+                     IF (mpi_backend_enabled) THEN
+                        IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
+                     END IF
                   ENDIF
 
 !----------------------------------------------------------------------
@@ -2507,6 +2343,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     End parallel region.
 !----------------------------------------------------------------------
 !$OMP END PARALLEL
+
+   IF (SWCOMP_STOP_REQUESTED) RETURN
                   CALL prop_cache_reset()
 
 !     Print message when the solver did not converge in setup calculation
@@ -2561,7 +2399,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   DEALLOCATE(MEMSINA)
                   DEALLOCATE(MEMSINB)
 !$                DEALLOCATE(LLOCK)
-!MPI                  DEALLOCATE(AC2LOC)
+                  IF (ALLOCATED(AC2LOC)) DEALLOCATE(AC2LOC)
                   DEALLOCATE(SWTSDA)
                   IF (timing_enabled) CALL SWTSTO(101)
 !----------------------------------------------------------------------
@@ -2617,7 +2455,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE swan_diagnostics_level
                   USE swan_io_units
                   USE swan_run_mode
-                  USE swan_stencil
+                  USE swan_stencil, ONLY: MICMAX
                   USE swan_physics_selection
                   USE swan_numerics
                   USE swan_physical_settings
@@ -2631,6 +2469,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE M_PARALL
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
+!  Thread-local stencil scratch. SWOMPU runs inside the solver's OpenMP
+!  region, so one thread's grid point must never be visible to another
+!  through module storage. Every consumer below receives these explicitly.
+   INTEGER :: st_ix(MICMAX), st_iy(MICMAX), st_kc(MICMAX), st_nm
+   REAL :: st_co(MICMAX)
 
     TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
     TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
@@ -3142,46 +2985,46 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   IF (LTRACE) CALL STRACE (IENT,'SWOMPU')
 !     *** Get grid point numbers for points in computational stencil ***
-                  IXCGRD(1) = IX
-                  IYCGRD(1) = IY
-                  KCGRD(1)  = KGRPNT(IX,IY)
-                  IF (KCGRD(1).GT.1) THEN
-                     IXCGRD(2) = IX+KSX
-                     IYCGRD(2) = IY
-                     IXCGRD(3) = IX
-                     IYCGRD(3) = IY+KSY
-                     IXCGRD(4) = IX
-                     IYCGRD(4) = IY-KSY
-                     IXCGRD(5) = IX-KSX
-                     IYCGRD(5) = IY
+                  st_ix(1) = IX
+                  st_iy(1) = IY
+                  st_kc(1)  = KGRPNT(IX,IY)
+                  IF (st_kc(1).GT.1) THEN
+                     st_ix(2) = IX+KSX
+                     st_iy(2) = IY
+                     st_ix(3) = IX
+                     st_iy(3) = IY+KSY
+                     st_ix(4) = IX
+                     st_iy(4) = IY-KSY
+                     st_ix(5) = IX-KSX
+                     st_iy(5) = IY
                      PROPSL = PROPSC
                      IF (PROPSC.EQ.1) THEN
-                        ICMAX = 5
+                        st_nm = 5
                      ELSE
 !         add more points for higher order schemes
-                        ICMAX = 7
-                        IXCGRD(6) = IX+2*KSX
-                        IYCGRD(6) = IY
-                        IXCGRD(7) = IX
-                        IYCGRD(7) = IY+2*KSY
+                        st_nm = 7
+                        st_ix(6) = IX+2*KSX
+                        st_iy(6) = IY
+                        st_ix(7) = IX
+                        st_iy(7) = IY+2*KSY
                      ENDIF
                      IF (PROPSC.EQ.3) THEN
 !         add more points for S&L scheme
-                        ICMAX = 13
-                        IXCGRD(8)  = IX+3*KSX
-                        IYCGRD(8)  = IY
-                        IXCGRD(9)  = IX
-                        IYCGRD(9)  = IY+3*KSY
-                        IXCGRD(10) = IX+KSX
-                        IYCGRD(10) = IY+KSY
-                        IXCGRD(11) = IX+KSX
-                        IYCGRD(11) = IY-KSY
-                        IXCGRD(12) = IX-KSX
-                        IYCGRD(12) = IY-KSY
-                        IXCGRD(13) = IX-KSX
-                        IYCGRD(13) = IY+KSY
+                        st_nm = 13
+                        st_ix(8)  = IX+3*KSX
+                        st_iy(8)  = IY
+                        st_ix(9)  = IX
+                        st_iy(9)  = IY+3*KSY
+                        st_ix(10) = IX+KSX
+                        st_iy(10) = IY+KSY
+                        st_ix(11) = IX+KSX
+                        st_iy(11) = IY-KSY
+                        st_ix(12) = IX-KSX
+                        st_iy(12) = IY-KSY
+                        st_ix(13) = IX-KSX
+                        st_iy(13) = IY+KSY
                      ENDIF
-                     DO IC = 2, ICMAX
+                     DO IC = 2, st_nm
 !         if one of the points of a stencil is outside the computational  33.09
 !         domain, fall back to first order scheme
 !
@@ -3196,10 +3039,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 ! fall back to the first order scheme, it just set C_theta=0).
 
                         INSIDE = .TRUE.
-                        IF (IXCGRD(IC).LT.1) THEN
+                        IF (st_ix(IC).LT.1) THEN
                            IF (KREPTX.GT.0) THEN
 !             domain is repeating in x-direction
-                              IXCGRD(IC) = IXCGRD(IC) + MXC
+                              st_ix(IC) = st_ix(IC) + MXC
                            ELSE
                               IF (IC.LE.3) THEN
                                  PROPSL = 0
@@ -3209,9 +3052,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                               INSIDE = .FALSE.
                            ENDIF
                         ENDIF
-                        IF (IXCGRD(IC).GT.MXC) THEN
+                        IF (st_ix(IC).GT.MXC) THEN
                            IF (KREPTX.GT.0) THEN
-                              IXCGRD(IC) = IXCGRD(IC) - MXC
+                              st_ix(IC) = st_ix(IC) - MXC
                            ELSE
                               IF (IC.LE.3) THEN
                                  PROPSL = 0
@@ -3221,7 +3064,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                               INSIDE = .FALSE.
                            ENDIF
                         ENDIF
-                        IF (IYCGRD(IC).LT.1 .OR. IYCGRD(IC).GT.MYC) THEN
+                        IF (st_iy(IC).LT.1 .OR. st_iy(IC).GT.MYC) THEN
                            IF (.NOT.ONED) THEN
                               IF (IC.LE.3) THEN
                                  PROPSL = 0
@@ -3232,27 +3075,27 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            INSIDE = .FALSE.
                         ENDIF
                         IF (INSIDE) THEN
-                           KCGRD(IC) = KGRPNT(IXCGRD(IC),IYCGRD(IC))
+                           st_kc(IC) = KGRPNT(st_ix(IC),st_iy(IC))
                         ELSE
-                           KCGRD(IC) = 1
+                           st_kc(IC) = 1
                         ENDIF
 !         if point in stencil is dry, fall back to BSBT scheme.
                         IF (PROPSC.GT.1) THEN
-                           IF (COMPDA(KCGRD(IC),JDP2).LE.DEPMIN) PROPSL = 1
+                           IF (COMPDA(st_kc(IC),JDP2).LE.DEPMIN) PROPSL = 1
                            IF (NSTATC.GT.0) THEN
 !             if nonstationary, check also previous time level
-                              IF (COMPDA(KCGRD(IC),JDP1).LE.DEPMIN) PROPSL = 1
+                              IF (COMPDA(st_kc(IC),JDP1).LE.DEPMIN) PROPSL = 1
                            ENDIF
                         END IF
                      ENDDO
                      IF (PROPSL.EQ.0) THEN
-                        ICMAX = 1
+                        st_nm = 1
                      ELSEIF (PROPSL.EQ.1) THEN
-                        ICMAX = 5
+                        st_nm = 5
                      ENDIF
                   ELSE
                      PROPSL = 0
-                     ICMAX = 1
+                     st_nm = 1
                   ENDIF
 
 !     *** If there are obstacles crossing the points in the stencil ***
@@ -3263,72 +3106,72 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      IF (PROPSL.EQ.3) THEN
                         NLINK  = 10
                         IF (SWPDIR .EQ. 1 ) THEN
-                           LINK(1)  = CROSS(1,KCGRD(1))
-                           LINK(2)  = CROSS(2,KCGRD(1))
-                           LINK(3)  = CROSS(1,KCGRD(2))
-                           LINK(4)  = CROSS(2,KCGRD(2))
-                           LINK(5)  = CROSS(1,KCGRD(3))
-                           LINK(6)  = CROSS(2,KCGRD(3))
-                           LINK(7)  = CROSS(2,KCGRD(4))
-                           LINK(8)  = CROSS(1,KCGRD(5))
-                           LINK(9)  = CROSS(1,KCGRD(6))
-                           LINK(10) = CROSS(2,KCGRD(7))
+                           LINK(1)  = CROSS(1,st_kc(1))
+                           LINK(2)  = CROSS(2,st_kc(1))
+                           LINK(3)  = CROSS(1,st_kc(2))
+                           LINK(4)  = CROSS(2,st_kc(2))
+                           LINK(5)  = CROSS(1,st_kc(3))
+                           LINK(6)  = CROSS(2,st_kc(3))
+                           LINK(7)  = CROSS(2,st_kc(4))
+                           LINK(8)  = CROSS(1,st_kc(5))
+                           LINK(9)  = CROSS(1,st_kc(6))
+                           LINK(10) = CROSS(2,st_kc(7))
                         ELSE IF (SWPDIR .EQ. 2) THEN
-                           LINK(1)  = CROSS(1,KCGRD(2))
-                           LINK(2)  = CROSS(2,KCGRD(1))
-                           LINK(3)  = CROSS(1,KCGRD(6))
-                           LINK(4)  = CROSS(2,KCGRD(2))
-                           LINK(5)  = CROSS(1,KCGRD(10))
-                           LINK(6)  = CROSS(2,KCGRD(3))
-                           LINK(7)  = CROSS(2,KCGRD(4))
-                           LINK(8)  = CROSS(1,KCGRD(1))
-                           LINK(9)  = CROSS(1,KCGRD(8))
-                           LINK(10) = CROSS(2,KCGRD(7))
+                           LINK(1)  = CROSS(1,st_kc(2))
+                           LINK(2)  = CROSS(2,st_kc(1))
+                           LINK(3)  = CROSS(1,st_kc(6))
+                           LINK(4)  = CROSS(2,st_kc(2))
+                           LINK(5)  = CROSS(1,st_kc(10))
+                           LINK(6)  = CROSS(2,st_kc(3))
+                           LINK(7)  = CROSS(2,st_kc(4))
+                           LINK(8)  = CROSS(1,st_kc(1))
+                           LINK(9)  = CROSS(1,st_kc(8))
+                           LINK(10) = CROSS(2,st_kc(7))
                         ELSE IF (SWPDIR .EQ. 3) THEN
-                           LINK(1)  = CROSS(1,KCGRD(2))
-                           LINK(2)  = CROSS(2,KCGRD(3))
-                           LINK(3)  = CROSS(1,KCGRD(6))
-                           LINK(4)  = CROSS(2,KCGRD(10))
-                           LINK(5)  = CROSS(1,KCGRD(10))
-                           LINK(6)  = CROSS(2,KCGRD(7))
-                           LINK(7)  = CROSS(2,KCGRD(1))
-                           LINK(8)  = CROSS(1,KCGRD(1))
-                           LINK(9)  = CROSS(1,KCGRD(8))
-                           LINK(10) = CROSS(2,KCGRD(9))
+                           LINK(1)  = CROSS(1,st_kc(2))
+                           LINK(2)  = CROSS(2,st_kc(3))
+                           LINK(3)  = CROSS(1,st_kc(6))
+                           LINK(4)  = CROSS(2,st_kc(10))
+                           LINK(5)  = CROSS(1,st_kc(10))
+                           LINK(6)  = CROSS(2,st_kc(7))
+                           LINK(7)  = CROSS(2,st_kc(1))
+                           LINK(8)  = CROSS(1,st_kc(1))
+                           LINK(9)  = CROSS(1,st_kc(8))
+                           LINK(10) = CROSS(2,st_kc(9))
                         ELSE IF (SWPDIR .EQ. 4) THEN
-                           LINK(1)  = CROSS(1,KCGRD(1))
-                           LINK(2)  = CROSS(2,KCGRD(3))
-                           LINK(3)  = CROSS(1,KCGRD(2))
-                           LINK(4)  = CROSS(2,KCGRD(10))
-                           LINK(5)  = CROSS(1,KCGRD(3))
-                           LINK(6)  = CROSS(2,KCGRD(7))
-                           LINK(7)  = CROSS(2,KCGRD(1))
-                           LINK(8)  = CROSS(1,KCGRD(5))
-                           LINK(9)  = CROSS(1,KCGRD(6))
-                           LINK(10) = CROSS(2,KCGRD(9))
+                           LINK(1)  = CROSS(1,st_kc(1))
+                           LINK(2)  = CROSS(2,st_kc(3))
+                           LINK(3)  = CROSS(1,st_kc(2))
+                           LINK(4)  = CROSS(2,st_kc(10))
+                           LINK(5)  = CROSS(1,st_kc(3))
+                           LINK(6)  = CROSS(2,st_kc(7))
+                           LINK(7)  = CROSS(2,st_kc(1))
+                           LINK(8)  = CROSS(1,st_kc(5))
+                           LINK(9)  = CROSS(1,st_kc(6))
+                           LINK(10) = CROSS(2,st_kc(9))
                         ENDIF
                      ELSE IF (PROPSL.EQ.2) THEN
                         NLINK  = 4
                         IF (SWPDIR .EQ. 1 ) THEN
-                           LINK(1)  = CROSS(1,KCGRD(1))
-                           LINK(2)  = CROSS(2,KCGRD(1))
-                           LINK(3)  = CROSS(1,KCGRD(2))
-                           LINK(4)  = CROSS(2,KCGRD(3))
+                           LINK(1)  = CROSS(1,st_kc(1))
+                           LINK(2)  = CROSS(2,st_kc(1))
+                           LINK(3)  = CROSS(1,st_kc(2))
+                           LINK(4)  = CROSS(2,st_kc(3))
                         ELSE IF (SWPDIR .EQ. 2) THEN
-                           LINK(1)  = CROSS(1,KCGRD(2))
-                           LINK(2)  = CROSS(2,KCGRD(1))
-                           LINK(3)  = CROSS(1,KCGRD(6))
-                           LINK(4)  = CROSS(2,KCGRD(3))
+                           LINK(1)  = CROSS(1,st_kc(2))
+                           LINK(2)  = CROSS(2,st_kc(1))
+                           LINK(3)  = CROSS(1,st_kc(6))
+                           LINK(4)  = CROSS(2,st_kc(3))
                         ELSE IF (SWPDIR .EQ. 3) THEN
-                           LINK(1)  = CROSS(1,KCGRD(2))
-                           LINK(2)  = CROSS(2,KCGRD(3))
-                           LINK(3)  = CROSS(1,KCGRD(6))
-                           LINK(4)  = CROSS(2,KCGRD(7))
+                           LINK(1)  = CROSS(1,st_kc(2))
+                           LINK(2)  = CROSS(2,st_kc(3))
+                           LINK(3)  = CROSS(1,st_kc(6))
+                           LINK(4)  = CROSS(2,st_kc(7))
                         ELSE IF (SWPDIR .EQ. 4) THEN
-                           LINK(1)  = CROSS(1,KCGRD(1))
-                           LINK(2)  = CROSS(2,KCGRD(3))
-                           LINK(3)  = CROSS(1,KCGRD(2))
-                           LINK(4)  = CROSS(2,KCGRD(7))
+                           LINK(1)  = CROSS(1,st_kc(1))
+                           LINK(2)  = CROSS(2,st_kc(3))
+                           LINK(3)  = CROSS(1,st_kc(2))
+                           LINK(4)  = CROSS(2,st_kc(7))
                         ENDIF
                      ENDIF
                      IF (PROPSL.GT.1) THEN
@@ -3343,10 +3186,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   IF (ITEST .GE. 180 ) THEN
                      WRITE(PRINTF,"(' Points in stencil in subr SWOMPU, sweep : ',I1, /,'POINT( IX, IY), INDEX, COORDX, COORDY')") SWPDIR
 
-                     DO IC = 1, ICMAX
-                        IF ( KCGRD(IC).EQ.1 ) CYCLE   ! if point is not valid, then cy
-                        WRITE(PRINTF,"(4X,I4,1X,I4,3X,I5,5X,F10.2,4X,F10.2)") IXCGRD(IC), IYCGRD(IC), KCGRD(IC),&
-                        &XCGRID(IXCGRD(IC),IYCGRD(IC)), YCGRID(IXCGRD(IC),IYCGRD(IC))
+                     DO IC = 1, st_nm
+                        IF ( st_kc(IC).EQ.1 ) CYCLE   ! if point is not valid, then cy
+                        WRITE(PRINTF,"(4X,I4,1X,I4,3X,I5,5X,F10.2,4X,F10.2)") st_ix(IC), st_iy(IC), st_kc(IC),&
+                        &XCGRID(st_ix(IC),st_iy(IC)), YCGRID(st_ix(IC),st_iy(IC))
                      ENDDO
                   ENDIF
 
@@ -3360,7 +3203,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            IPTST = II
                            TESTFL = .TRUE.
                            IF (ITEST .GE. 10)&
-                           &WRITE(PRINTF, "(' Test point ', I2, ', (ix,iy)', 2I5, ', point index ',I5, ', iter ', I2, ', sweep ', I1)") IPTST, IX+MXF-2, IY+MYF-2, KCGRD(1), ITER,&
+                           &WRITE(PRINTF, "(' Test point ', I2, ', (ix,iy)', 2I5, ', point index ',I5, ', iter ', I2, ', sweep ', I1)") IPTST, IX+MXF-2, IY+MYF-2, st_kc(1), ITER,&
                            &SWPDIR
                         END IF
                      end do
@@ -3380,18 +3223,18 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !     --- in case of non-active point set action density in land points
 !         equal to zero and go back to main program
-                  IF (KCGRD(1).LE.1 .OR. COMPDA(KCGRD(1),JDP2).LE.DEPMIN) THEN
+                  IF (st_kc(1).LE.1 .OR. COMPDA(st_kc(1),JDP2).LE.DEPMIN) THEN
                      DO IS = 1, MSC
                         DO ID = 1, MDC
-                           AC2(ID,IS,KCGRD(1)) = 0.
+                           AC2(ID,IS,st_kc(1)) = 0.
                         ENDDO
                      ENDDO
-                     COMPDA(KCGRD(1),JHS) = 0.
+                     COMPDA(st_kc(1),JHS) = 0.
                      RETURN
                   END IF
 
-                  IF (KCGRD(2) .LE. 1) RETURN
-                  IF (.NOT.ONED .AND. (KCGRD(3).LE.1)) RETURN
+                  IF (st_kc(2) .LE. 1) RETURN
+                  IF (.NOT.ONED .AND. (st_kc(3).LE.1)) RETURN
 
                   IF (PROPSL.EQ.3 .AND. NSTATC.GT.0) THEN
 
@@ -3412,7 +3255,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
                      IF (timing_enabled) CALL SWTSTA(110)
                      CALL SWAPAR ( COMPDA(1,JDP1), COMPDA(1,JMUDL1),&
-                     &KWAVE, CGO, DMW, SPCSIG )
+                     &KWAVE, CGO, DMW, SPCSIG, st_kc, st_nm )
                      IF (timing_enabled) CALL SWTSTO(110)
 !
 !         *** compute the propagation velocities CAX1 and CAY1       ***
@@ -3423,6 +3266,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &CAY1           ,CGO            ,SPCDIR(1,2)    ,&
                      &SPCDIR(1,3)    ,COMPDA(1,JVX1) ,COMPDA(1,JVY1) ,&
                      &SWPDIR         ,DIFFR&
+                     &,st_kc,st_nm&
                      &)
                      IF (timing_enabled) CALL SWTSTO(111)
 
@@ -3435,7 +3279,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
                   IF (timing_enabled) CALL SWTSTA(110)
                   CALL SWAPAR ( COMPDA(1,JDP2), COMPDA(1,JMUDL2),&
-                  &KWAVE, CGO, DMW, SPCSIG )
+                  &KWAVE, CGO, DMW, SPCSIG, st_kc, st_nm )
                   IF (timing_enabled) CALL SWTSTO(110)
 !
 !     *** compute the propagation velocities CAX and CAY        ***
@@ -3446,13 +3290,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   &CAY            ,CGO            ,SPCDIR(1,2)    ,&
                   &SPCDIR(1,3)    ,COMPDA(1,JVX2) ,COMPDA(1,JVY2) ,&
                   &SWPDIR         ,DIFFR&
+                  &,st_kc,st_nm&
                   &)
                   IF (timing_enabled) CALL SWTSTO(111)
 !
 !     --- compute geometric quantities due to curvilinear grid
 !
                   IF (timing_enabled) CALL SWTSTA(112)
-                  CALL SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR )
+                  CALL SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR, st_ix, st_iy, st_kc, st_nm, st_co )
                   IF (timing_enabled) CALL SWTSTO(112)
 !
 !     *** compute minimum and maximum counter (IDCMIN and ***
@@ -3469,6 +3314,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   &COMPDA(1,JDP2)  ,COMPDA(1,JVX2)   ,COMPDA(1,JVY2),&
                   &SPCDIR          ,RDX              ,RDY           ,&
                   &KGRPNT&
+                  &,st_kc(1),st_ix(1),st_iy(1)&
                   &)
                   IF (timing_enabled) CALL SWTSTO(112)
 !
@@ -3484,6 +3330,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   &CAX            ,CAY            ,&
                   &XCGRID         ,YCGRID         ,&
                   &IDDLOW         ,IDDTOP         ,DIFFR&
+                  &,st_kc(1:5),st_ix(1),st_iy(1)&
                   &)
                   IF (timing_enabled) CALL SWTSTO(113)
 !
@@ -3496,7 +3343,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      CALL DSPHER (CAD                ,CAX            ,&
                      &CAY                ,&
                      &LSWMAT(1,1,JABIN)  ,YCGRID         ,&
-                     &SPCDIR(1,2)        ,SPCDIR(1,3)    )
+                     &SPCDIR(1,2)        ,SPCDIR(1,3)    ,&
+                     &st_ix(1),st_iy(1))
                   ENDIF
                   IF (timing_enabled) CALL SWTSTO(114)
 
@@ -3521,29 +3369,29 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &ANYWND     ,SPCDIR     ,&
                         &COMPDA(1,JVX2) ,COMPDA(1,JVY2) ,SPCSIG ,AC2&
                         &,SWMATR(1,1,JGEN0), KWAVE&
-                        &, KCGRD(1))
+                        &, st_kc(1), st_nm)
                         IF (timing_enabled) CALL SWTSTO(115)
-                        IF (IWIND.NE.4) COMPDA(KCGRD(1),JUSTAR) = UFRIC
+                        IF (IWIND.NE.4) COMPDA(st_kc(1),JUSTAR) = UFRIC
                      END IF
 
 !       *** fill in the triad interpolation and scaling factors
 !           for current grid point
 
                      IF (ITRIAD.EQ.1 .OR. ITRIAD.EQ.11) THEN
-                        QTL2(:,1) = TRIADS%scaling(:,KCGRD(1),1)
-                        QTL2(:,2) = TRIADS%scaling(:,KCGRD(1),2)
+                        QTL2(:,1) = TRIADS%scaling(:,st_kc(1),1)
+                        QTL2(:,2) = TRIADS%scaling(:,st_kc(1),2)
                      ELSE IF (ITRIAD.EQ.2 .OR. ITRIAD.EQ.3) THEN
                         QTL1(:,1) = TRIADS%interpolation(:,1)
                         QTL1(:,2) = TRIADS%interpolation(:,2)
-                        QTL2(:,1) = TRIADS%scaling(:,KCGRD(1),1)
-                        QTL2(:,2) = TRIADS%scaling(:,KCGRD(1),2)
-                        QTL2(:,3) = TRIADS%scaling(:,KCGRD(1),3)
-                        QTL2(:,4) = TRIADS%scaling(:,KCGRD(1),4)
+                        QTL2(:,1) = TRIADS%scaling(:,st_kc(1),1)
+                        QTL2(:,2) = TRIADS%scaling(:,st_kc(1),2)
+                        QTL2(:,3) = TRIADS%scaling(:,st_kc(1),3)
+                        QTL2(:,4) = TRIADS%scaling(:,st_kc(1),4)
                      ELSE IF (ITRIAD.EQ.5) THEN
                         QTL1(:,1) = TRIADS%interpolation(:,1)
                         QTL1(:,2) = TRIADS%interpolation(:,2)
-                        QTL2(:,1) = TRIADS%scaling(:,KCGRD(1),1)
-                        QTL2(:,2) = TRIADS%scaling(:,KCGRD(1),2)
+                        QTL2(:,1) = TRIADS%scaling(:,st_kc(1),1)
+                        QTL2(:,2) = TRIADS%scaling(:,st_kc(1),2)
                      ENDIF
 
 !       *** estimate action density in case of first iteration ***
@@ -3556,7 +3404,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      postpone_prediction = ICOND.NE.4 .AND. ITER.EQ.1 .AND. NSTATC.EQ.0
                      LPREDT = postpone_prediction
                      IF (ICOND.NE.4 .AND. ITER.EQ.1 .AND. NSTATC.EQ.0) THEN
-                        COMPDA(KCGRD(1),JHS) = 0.
+                        COMPDA(st_kc(1),JHS) = 0.
                      END IF
                      prediction_pass: DO
                      IF (.NOT.postpone_prediction .AND. LPREDT) THEN
@@ -3564,7 +3412,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &CAY              ,IDCMIN            ,IDCMAX    ,&
                         &ISSTOP           ,LSWMAT(1,1,JABIN) ,&
                         &XCGRID           ,YCGRID            ,&
-                        &RDX              ,RDY               ,OBREDF    ,KCGRD(1))
+                        &RDX              ,RDY               ,OBREDF    ,st_kc(1)&
+                        &,st_ix(1),st_iy(1),st_ix(2),st_iy(2)&
+                        &,st_ix(3),st_iy(3),st_kc(2),st_kc(3))
                         LPREDT=.FALSE.
                      END IF
 
@@ -3584,11 +3434,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &SWPDIR           ,&
                      &URMSTOP          ,&
                      &IDDLOW           ,IDDTOP, TRIADS,&
-                     &SPECTRAL_POWERS%value, WCAP_WORKSPACE, KCGRD(1),&
-                     &KCGRD(2), KCGRD(3), IXCGRD(1), IYCGRD(1) )
+                     &SPECTRAL_POWERS%value, WCAP_WORKSPACE, st_kc(1),&
+                     &st_kc(2), st_kc(3), st_ix(1), st_iy(1) )
                      IF (timing_enabled) CALL SWTSTO(116)
 
-                     COMPDA(KCGRD(1),JHS) = HS
+                     COMPDA(st_kc(1),JHS) = HS
                      END IF
                      postpone_prediction = .FALSE.
 
@@ -3612,22 +3462,22 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         ENDDO
 
                         IF (SWPDIR .EQ. 1 ) THEN
-                           LINK(1) = CROSS(1,KCGRD(1))
-                           LINK(2) = CROSS(2,KCGRD(1))
+                           LINK(1) = CROSS(1,st_kc(1))
+                           LINK(2) = CROSS(2,st_kc(1))
                         ELSE IF (SWPDIR .EQ. 2) THEN
-                           LINK(1) = CROSS(1,KCGRD(2))
-                           LINK(2) = CROSS(2,KCGRD(1))
+                           LINK(1) = CROSS(1,st_kc(2))
+                           LINK(2) = CROSS(2,st_kc(1))
                         ELSE IF (SWPDIR .EQ. 3) THEN
-                           LINK(1) = CROSS(1,KCGRD(2))
-                           LINK(2) = CROSS(2,KCGRD(3))
+                           LINK(1) = CROSS(1,st_kc(2))
+                           LINK(2) = CROSS(2,st_kc(3))
                         ELSE IF (SWPDIR .EQ. 4) THEN
-                           LINK(1) = CROSS(1,KCGRD(1))
-                           LINK(2) = CROSS(2,KCGRD(3))
+                           LINK(1) = CROSS(1,st_kc(1))
+                           LINK(2) = CROSS(2,st_kc(3))
                         ENDIF
 
                         IF (LINK(1) .NE. 0 .OR. LINK(2) .NE. 0) THEN
                            IF (ITEST .GE. 120) WRITE(PRINTF,"(' SWOMPU: SWPDIR POINT LINK1 LINK2 = ',4(1X,I5))")&
-                           &SWPDIR,KCGRD(1),LINK(1),LINK(2)
+                           &SWPDIR,st_kc(1),LINK(1),LINK(2)
 
                            CALL SWTRCF (COMPDA(1,JDP2),COMPDA(1,JWLV2),&
                            &COMPDA(1,JHS), LINK, OBREDF,&
@@ -3635,7 +3485,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &YCGRID, CAX, CAY, RDX, RDY, LSWMAT(1,1,JABIN),&
                            &SPCSIG, SPCDIR, CGO, KWAVE,&
                            &COMPDA(1,JHSS2), COMPDA(1,JTSS2), COMPDA(1,JDSS2),&
-                           &KCGRD, IXCGRD, IYCGRD)
+                           &st_kc, st_ix, st_iy)
                         ENDIF
 
                      ENDIF
@@ -3687,7 +3537,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &COMPDA(1,JURSEL)    ,LSWMAT(1,1,JABIN)   ,REFLSO              ,&
                         &COMPDA(1,JTAUW)     ,COMPDA(1,JBIPH)&
                         &,URMSTOP            ,TRIADS, SNL4, SPECTRAL_POWERS,&
-                        &WCAP_WORKSPACE, KCGRD(1)&
+                        &WCAP_WORKSPACE, st_kc(1), st_kc, st_nm&
                         &)
                      ENDIF
                      IF ( IQCM.GT.0 .OR. IGEN.EQ.4 ) THEN
@@ -3709,7 +3559,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &WFT                 , WSAVE               , CFD               ,&
                         &WFD                 , WSAVD               ,&
                         &WCAP_WORKSPACE%mean_frequency_wam&
-                        &, KCGRD(1))
+                        &, st_kc(1), st_kc)
                      ENDIF
                      IF (timing_enabled) CALL SWTSTO(117)
 !
@@ -3732,7 +3582,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &ITER              ,KGRPNT            ,OBREDF            ,&
                      &CAX1              ,CAY1              ,SPCDIR            ,&
                      &CGO               ,SWMATR(1,1,JTRA0) ,SWMATR(1,1,JTRA1)&
-                     &,KCGRD(1))
+                     &,st_kc(1),st_kc,st_co,st_nm)
                      IF (timing_enabled) CALL SWTSTO(118)
 !
 !       matrix is computed now; updating action densities starts
@@ -3756,7 +3606,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &IDTOT              ,ISTOT              ,&
                      &IDDLOW             ,IDDTOP             ,&
                      &ISSTOP             ,&
-                     &SPCSIG             ,KCGRD(1))
+                     &SPCSIG             ,st_kc(1))
                      IF (timing_enabled) CALL SWTSTO(119)
 
                      IF ( IREFR.EQ.0 .AND. ITFRE.EQ.0 ) THEN
@@ -3774,7 +3624,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                               ELSE
                                  TEMP = SP
                               ENDIF
-                              AC2(ID,IS,KCGRD(1)) = SWMATR(ID,IS,JMATR) / TEMP
+                              AC2(ID,IS,st_kc(1)) = SWMATR(ID,IS,JMATR) / TEMP
                            ENDDO
                         ENDDO
 
@@ -3802,7 +3652,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &SWMATR(1,1,JAOLD),&
                            &PNUMS(12), NINT(PNUMS(14)), NINT(PNUMS(13)),&
                            &INOCNV, IDDLOW, IDDTOP, ISSTOP, IDCMIN,&
-                           &IDCMAX, KCGRD(1) )
+                           &IDCMAX, st_kc(1), st_ix(1), st_iy(1) )
                            IF (timing_enabled) CALL SWTSTO(120)
 
                         ELSE IF (INT(PNUMS(8)).EQ.2 .OR. INT(PNUMS(8)).EQ.3) THEN
@@ -3818,7 +3668,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &SWMATR(1,1,JMATL)  ,&
                            &ISSTOP             ,&
                            &LSWMAT(1,1,JABLK)  ,IDDLOW             ,&
-                           &IDDTOP                                 , KCGRD(1))
+                           &IDDTOP                                 , st_kc(1))
                            IF (timing_enabled) CALL SWTSTO(120)
 
                         END IF
@@ -3832,7 +3682,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         CALL SOLMAT (IDCMIN            ,IDCMAX             ,&
                         &AC2                ,SWMATR(1,1,JMATR)  ,&
                         &SWMATR(1,1,JMATD)  ,SWMATR(1,1,JMATU)  ,&
-                        &SWMATR(1,1,JMATL),KCGRD(1)&
+                        &SWMATR(1,1,JMATL),st_kc(1)&
                         &)
                         IF (timing_enabled) CALL SWTSTO(120)
 
@@ -3847,7 +3697,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            ID_MIN = IDCMIN(IS)
                            ID_MAX = IDCMAX(IS)
                            WRITE(PRINTF,"(3I4,600(1X,E12.4))") IS, ID_MIN, ID_MAX,&
-                           &(AC2(MOD(IDDUM-1+MDC,MDC)+1, IS, KCGRD(1)),&
+                           &(AC2(MOD(IDDUM-1+MDC,MDC)+1, IS, st_kc(1)),&
                            &IDDUM = ID_MIN, ID_MAX)
                         ENDDO
                      END IF
@@ -3856,7 +3706,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       *** only the sector computed is rescaled !!                ***
 !
                      IF (timing_enabled) CALL SWTSTA(121)
-                     IF (BRESCL) CALL RESCALE(AC2, ISSTOP, IDCMIN, IDCMAX, NRSCAL, KCGRD(1))
+                     IF (BRESCL) CALL RESCALE(AC2, ISSTOP, IDCMIN, IDCMAX, NRSCAL, st_kc(1))
                      IF (timing_enabled) CALL SWTSTO(121)
 !
 !       calculate propagation, generation, dissipation, redistribution
@@ -3887,7 +3737,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &COMPDA(1,JTSXS)    ,COMPDA(1,JTRAN)    ,&
                      &SWMATR(1,1,JLEK1)  ,COMPDA(1,JRADS)    ,&
                      &SPCSIG&
-                     &, KCGRD(1))
+                     &, st_kc(1))
                      IF (timing_enabled) CALL SWTSTO(124)
 !
 !       limit the change of the spectrum
@@ -3900,14 +3750,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &CGO, KWAVE,&
                            &SPCSIG, LSWMAT(1,1,JABIN),&
                            &ISLMIN, NFLIM,&
-                           &QBLOC, KCGRD(1))
+                           &QBLOC, st_kc(1))
                         ELSE
 !             Hersbach and Janssen (1999) limiter
                            CALL HJLIM (AC2, SWMATR(1,1,JAOLD),&
                            &CGO, KWAVE,&
                            &SPCSIG, LSWMAT(1,1,JABIN),&
                            &ISLMIN, NFLIM,&
-                           &QBLOC, COMPDA(1,JUSTAR), KCGRD(1))
+                           &QBLOC, COMPDA(1,JUSTAR), st_kc(1))
                         END IF
                      END IF
                      IF (timing_enabled) CALL SWTSTO(122)
@@ -3918,7 +3768,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
                      IF (timing_enabled) CALL SWTSTA(123)
                      IF ( IWIND .EQ. 1 .OR. IWIND .EQ. 2 )&
-                     &CALL WINDP3 (ISSTOP, ALIMW, AC2, GROWW, IDCMIN, IDCMAX , KCGRD(1))
+                     &CALL WINDP3 (ISSTOP, ALIMW, AC2, GROWW, IDCMIN, IDCMAX , st_kc(1))
                      IF (timing_enabled) CALL SWTSTO(123)
 !
 !       *** test output ***
@@ -3930,7 +3780,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            ID_MIN = IDCMIN(IS)
                            ID_MAX = IDCMAX(IS)
                            WRITE(PRINTF,"(3I4,600(1X,E12.4))") IS, ID_MIN, ID_MAX,&
-                           &(AC2(MOD(IDDUM-1+MDC,MDC)+1, IS, KCGRD(1)),&
+                           &(AC2(MOD(IDDUM-1+MDC,MDC)+1, IS, st_kc(1)),&
                            &IDDUM = ID_MIN, ID_MAX)
                         ENDDO
                      END IF
@@ -4409,6 +4259,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &HSACC1     ,HSACC2     ,SACC1      ,&
                &SACC2      ,DELHS      ,DELTM      ,&
                &I1MYC      ,I2MYC                  )
+   USE swan_mpi_backend, ONLY: mpi_backend_enabled
    USE swan_service_interfaces, ONLY: STRACE, EQREAL, STPNOW
 
 !****************************************************************
@@ -4752,7 +4603,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   ARR(2) = SMN2
                   CALL SWREDUCE( ARR, 2, SWSUM )
                   CALL SWREDUCE( NINDX, 1, SWSUM )
-!MPI                  IF (STPNOW()) RETURN
+                  IF (mpi_backend_enabled) THEN
+                     IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
+                  END IF
                   HSMN2 = ARR(1) / REAL(NINDX)
                   SMN2 = ARR(2) / REAL(NINDX)
 !$OMP END MASTER
@@ -4841,7 +4694,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$OMP MASTER
 
                   CALL SWREDUCE ( IACCUR, 1, SWSUM )
-!MPI                  IF (STPNOW()) RETURN
+                  IF (mpi_backend_enabled) THEN
+                     IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
+                  END IF
                   ACCUR  = REAL(IACCUR) * 100. / REAL(NINDX)
 !$OMP END MASTER
 !$OMP BARRIER
@@ -5083,7 +4938,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &ITER       ,KGRPNT     ,OBREDF     ,&
                &CAX1       ,CAY1       ,SPCDIR     ,&
                &CGO        ,TRAC0      ,TRAC1&
-               &,IGP)
+               &,IGP,st_kc,st_cos,st_n)
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_propagation, ONLY: SANDL, SORDUP, STRSD, STRSSB, STRSSI, STRSXY, SWFLXD
 
@@ -5101,6 +4956,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE swan_io_units
 
                   INTEGER, INTENT(IN) :: IGP
+!  Stencil context passed explicitly by SWOMPU; forwarded to the STRS kernels.
+                  REAL, INTENT(IN) :: st_cos(MICMAX)
+                  INTEGER, INTENT(IN) :: st_kc(MICMAX), st_n
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -5357,16 +5215,16 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      CALL SANDL(ISSTOP   ,IDCMIN   ,IDCMAX   ,CGO     ,CAX    ,&
                      &CAY      ,AC2      ,AC1      ,IMATRA  ,IMATDA ,&
                      &RDX      ,RDY      ,CAX1     ,CAY1    ,SPCDIR ,&
-                     &TRAC0    ,TRAC1    )
+                     &TRAC0    ,TRAC1    ,st_kc    ,st_cos  )
                   ELSE IF (PROPSL.EQ.2) THEN ! use SORDUP scheme
                      CALL SORDUP(ISSTOP   ,IDCMIN   ,IDCMAX   ,CAX      ,&
                      &CAY      ,AC2      ,IMATRA   ,IMATDA   ,&
-                     &RDX      ,RDY      ,TRAC0    ,TRAC1    )
+                     &RDX      ,RDY      ,TRAC0    ,TRAC1    ,st_kc,st_cos)
                   ELSE                     ! use BSBT scheme
                      CALL STRSXY(ISSTOP   ,IDCMIN   ,IDCMAX   ,CAX      ,&
                      &CAY      ,AC2      ,AC1      ,IMATRA   ,IMATDA   ,&
                      &RDX      ,RDY      ,&
-                     &OBREDF   ,TRAC0    ,TRAC1    )
+                     &OBREDF   ,TRAC0    ,TRAC1    ,st_kc    ,st_cos  )
 
                   END IF
                   IF (timing_enabled) CALL SWTSTO(140)
@@ -5404,7 +5262,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         CALL STRSSI (SPCSIG  ,&
                         &CAS     ,IMAT5L  ,IMATDA  ,IMAT6U  ,ANYBIN  ,&
                         &IMATRA  ,AC2     ,ISCMIN  ,ISCMAX  ,IDDLOW  ,&
-                        &IDDTOP  ,TRAC0   ,TRAC1                     )
+                        &IDDTOP  ,TRAC0   ,TRAC1   ,st_kc(1),st_n    )
 
                      ELSE IF ( INT(PNUMS(8)) .EQ. 2 ) THEN
 
@@ -5416,7 +5274,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         CALL STRSSB (IDDLOW  ,IDDTOP  ,&
                         &IDCMIN  ,IDCMAX  ,ISSTOP  ,CAX     ,CAY     ,&
                         &CAS     ,AC2     ,SPCSIG  ,IMATRA  ,&
-                        &ANYBLK  ,RDX     ,RDY     ,TRAC0            )
+                        &ANYBLK  ,RDX     ,RDY     ,TRAC0   ,st_kc(1),st_n)
 
                      END IF
                   END IF
@@ -5430,11 +5288,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         CALL STRSD (DDIR    ,IDCMIN  ,&
                         &IDCMAX  ,CAD     ,IMATLA  ,IMATDA  ,IMATUA  ,&
                         &IMATRA  ,AC2     ,ISSTOP  ,&
-                        &ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1            )
+                        &ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1   ,st_kc(1),st_n)
                      ELSE IF ( PROPFL.EQ.1 ) THEN
                         CALL SWFLXD (CAD, IMATLA, IMATDA, IMATUA, IMATRA,&
                         &AC2, DDIR, ANYBIN, LEAKC1, IDCMIN,&
-                        &IDCMAX, ISSTOP)
+                        &IDCMAX, ISSTOP, st_kc(1), st_n)
                      END IF
                   END IF
                   IF (timing_enabled) CALL SWTSTO(142)
@@ -6835,6 +6693,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                &URSELL     ,ANYBIN     ,REFLSO     ,&
                &TAUWV      ,BIPHAS&
                &,URMSTOP   ,TRIADS, SNL4, SPECTRAL_POWERS, WCAP_WORKSPACE, IGP&
+               &,st_kc,st_n&
                &)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
    USE swan_nonlinear_interactions, ONLY: FILNL3, RANGE4, SWDCTA, SWDNCTA, SWFTIM, SWINTFXNL, SWLTA, SWSNL1, SWSNL2, SWSNL3, SWSNL4, SWSNL8
@@ -6847,7 +6706,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE swan_io_units
                   USE swan_computational_grid_kind
                   USE swan_input_grids
-                  USE swan_stencil
+                  USE swan_stencil, ONLY: MICMAX
                   USE swan_physics_selection
                   USE swan_numerics
                   USE swan_physical_settings
@@ -6859,6 +6718,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
                   INTEGER, INTENT(IN) :: IGP
+!  Stencil addresses and width passed explicitly by both solvers.
+                  INTEGER, INTENT(IN) :: st_kc(MICMAX), st_n
                   TYPE(triad_state_t), INTENT(IN) :: TRIADS
                   TYPE(snl4_tables_t), INTENT(IN) :: SNL4
                   TYPE(spectral_powers_t), INTENT(IN) :: SPECTRAL_POWERS
@@ -7347,7 +7208,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      CALL SMUD ( DEP2   ,IMATDA  ,&
                      &KWAVE  ,CGO     ,DMW     ,&
                      &IDCMIN ,IDCMAX  ,ISSTOP  ,&
-                     &DISSC1 ,PLMUD   ,IGP     ,ICMAX)
+                     &DISSC1 ,PLMUD   ,IGP     ,st_n)
                   END IF
                   IF (timing_enabled) CALL SWTSTO(138)
 !
@@ -7370,7 +7231,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                      CALL STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
                      &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-                     &KWAVE   ,DISSC1  ,PLTURB, SPECTRAL_POWERS%value, IGP, IX, IY, ICMAX)
+                     &KWAVE   ,DISSC1  ,PLTURB, SPECTRAL_POWERS%value, IGP, IX, IY, st_n)
                   END IF
                   IF (timing_enabled) CALL SWTSTO(143)
 !
@@ -7483,7 +7344,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &(SWPDIR .EQ. 4 .AND. (IX.EQ.MXC .AND. IY.EQ.1)) )&
                      &CALL SWIND_DBYB (SPCSIG  ,THETAW  ,KWAVE  ,MEMSINA ,&
                      &MEMSINB ,AC2     ,UFRIC  ,WIND10  ,&
-                     &SPCDIR  ,ANYWND  ,CGO    ,ZELEN   ,IGP)
+                     &SPCDIR  ,ANYWND  ,CGO    ,ZELEN   ,IGP, st_n)
 
 !       *** get source term value of array MEMSINB for the bin that  ***
 !       *** falls within a sweep and store in right hand side IMATRA ***
@@ -7755,7 +7616,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &ITER, SWPDIR, IGP, IQUAD, DEP2(IGP)
 
                            CALL SWINTFXNL(AC2,SPCSIG,SPCDIR,MDC,MSC,MCGRD,&
-                           &DEP2,IQUAD,MEMNL4,KCGRD,ICMAX,IQERR,IGP)
+                           &DEP2,IQUAD,MEMNL4,st_kc,st_n,IQERR,IGP)
 
                         ENDIF
 
@@ -8361,12 +8222,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                SUBROUTINE SWSIP ( AC2   , IMATDA, IMATRA, IMATLA, IMATUA,&
                &IMAT5L, IMAT6U, AC2OLD, REPS  , MAXIT ,&
                &IAMOUT, INOCNV, IDDLOW, IDDTOP, ISSTOP,&
-               &IDCMIN, IDCMAX, IGP )
+               &IDCMIN, IDCMAX, IGP, st_ix1, st_iy1 )
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
 
-                  USE swan_stencil
                   USE swan_computational_grid
                   USE swan_spectral_grid
                   USE swan_test_output
@@ -8376,6 +8236,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
                   INTEGER, INTENT(IN) :: IGP
+                  INTEGER, INTENT(IN) :: st_ix1, st_iy1
 
 
 !   --|-----------------------------------------------------------|--
@@ -8898,11 +8759,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   END IF
                   IF ( ICONV.EQ.0 .AND. IAMOUT.GE.1 ) THEN
                      IF (ERRPTS.GT.0.AND.IAMMASTER) THEN
-                        WRITE(ERRPTS,"(I4,1X,I4,1X,I2)") IXCGRD(1)+MXF-1, IYCGRD(1)+MYF-1, 2
+                        WRITE(ERRPTS,"(I4,1X,I4,1X,I2)") st_ix1+MXF-1, st_iy1+MYF-1, 2
                      END IF
                      WRITE (PRINTF,'(A,I5,A,I5,A)')&
                      &' ++ SWSIP: no convergence in grid point (',&
-                     &IXCGRD(1)+MXF-1,',',IYCGRD(1)+MYF-1,')'
+                     &st_ix1+MXF-1,',',st_iy1+MYF-1,')'
                      WRITE (PRINTF,'(A,I3)')&
                      &'           total number of iterations     = ',IT
                      WRITE (PRINTF,'(A,E12.6)')&
@@ -8967,12 +8828,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                SUBROUTINE SWSOR ( AC2   , IMATDA, IMATRA, IMATLA, IMATUA,&
                &IMAT5L, IMAT6U, AC2OLD, REPS  , MAXIT ,&
                &IAMOUT, INOCNV, IDDLOW, IDDTOP, ISSTOP,&
-               &IDCMIN, IDCMAX, IGP )
+               &IDCMIN, IDCMAX, IGP, st_ix1, st_iy1 )
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
 
-                  USE swan_stencil
                   USE swan_computational_grid
                   USE swan_spectral_grid
                   USE swan_test_output
@@ -8982,6 +8842,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
                   INTEGER, INTENT(IN) :: IGP
+                  INTEGER, INTENT(IN) :: st_ix1, st_iy1
 
 
 !   --|-----------------------------------------------------------|--
@@ -9403,11 +9264,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   END IF
                   IF ( ICONV.EQ.0 .AND. IAMOUT.GE.1 ) THEN
                      IF (ERRPTS.GT.0.AND.IAMMASTER) THEN
-                        WRITE(ERRPTS,"(I4,1X,I4,1X,I2)") IXCGRD(1)+MXF-1, IYCGRD(1)+MYF-1, 2
+                        WRITE(ERRPTS,"(I4,1X,I4,1X,I2)") st_ix1+MXF-1, st_iy1+MYF-1, 2
                      END IF
                      WRITE (PRINTF,'(A,I5,A,I5,A)')&
                      &' ++ SWSOR: no convergence in grid point (',&
-                     &IXCGRD(1)+MXF-1,',',IYCGRD(1)+MYF-1,')'
+                     &st_ix1+MXF-1,',',st_iy1+MYF-1,')'
                      WRITE (PRINTF,'(A,I3)')&
                      &'           total number of iterations       = ',IT
                      WRITE (PRINTF,'(A,E12.6)')&
@@ -9586,6 +9447,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                SUBROUTINE SWSTPC ( HSACC0, HSACC1, HSACC2, SACC0 , SACC1,&
                &SACC2 , HSDIFC, TMDIFC, DELHS , DELTM,&
                &DEP2  , ACCUR , I1MYC , I2MYC )
+   USE swan_mpi_backend, ONLY: mpi_backend_enabled
    USE swan_service_interfaces, ONLY: STRACE, EQREAL, STPNOW
 
 !****************************************************************
@@ -9941,7 +9803,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   IARR(1) = IACCUR
                   IARR(2) = WETGRD
                   CALL SWREDUCE ( IARR, 2, SWSUM )
-!MPI                  IF (STPNOW()) RETURN
+                  IF (mpi_backend_enabled) THEN
+                     IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
+                  END IF
                   IACCUR = IARR(1)
                   WETGRD = IARR(2)
                   ACCUR  = CEILING(REAL(IACCUR) * 10000. / REAL(WETGRD))/100.

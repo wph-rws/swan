@@ -17,7 +17,7 @@
 !************************************************************************
 
 module swan_command_reading
-   use swan_build_config, only: timing_enabled
+   use swan_build_config, only: jacobi_sweep_enabled, timing_enabled
    use swan_triad_state, only: triad_state_t
    use swan_snl4_tables, only: snl4_tables_t
    use swan_spectral_powers, only: spectral_powers_t
@@ -64,7 +64,7 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
    USE swan_computational_grid_kind
    USE swan_run_mode
    USE swan_input_grids
-   USE swan_stencil
+   USE swan_vegetation_layers, ONLY: ILMAX
    USE swan_physics_selection
    USE swan_numerics
    USE swan_physical_settings
@@ -379,7 +379,6 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
    INTEGER           :: ITMP1, ITMP2, ITMP3, ITMP4
 
    LOGICAL           :: MORE
-   LOGICAL, SAVE     :: LOBST = .FALSE.
    LOGICAL           :: FILB
 
    LOGICAL CHGALF
@@ -395,7 +394,7 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
    REAL(KIND=KIND(0.0D0))       DVAL
 
    TYPE(OBSTDAT), POINTER :: OBSTMP
-   TYPE(OBSTDAT), SAVE, POINTER :: COBST
+   TYPE(OBSTDAT), POINTER :: COBST => NULL()
 
    TYPE(OPSDAT), POINTER :: OPSTMP
 
@@ -1092,7 +1091,13 @@ CALL NWLINE
             OBSTMP%TRCF1D(JJ) = CURRFT%C
             CURRFT => CURRFT%NEXTFT
          END DO
-         DEALLOCATE(TMPFT)
+         CURRFT => FRSTFT%NEXTFT
+         DO WHILE ( ASSOCIATED(CURRFT) )
+            TMPFT => CURRFT%NEXTFT
+            DEALLOCATE(CURRFT)
+            CURRFT => TMPFT
+         END DO
+         NULLIFY(FRSTFT%NEXTFT)
       ELSE IF (KEYWIS ('TRANS2')) THEN
          ITRAS    = 12
          IFTMAX   = 0
@@ -1137,7 +1142,13 @@ CALL NWLINE
             OBSTMP%TRCF2D(I,J) = CURRFT%C
             CURRFT => CURRFT%NEXTFT
          END DO
-         DEALLOCATE(TMPFT)
+         CURRFT => FRSTFT%NEXTFT
+         DO WHILE ( ASSOCIATED(CURRFT) )
+            TMPFT => CURRFT%NEXTFT
+            DEALLOCATE(CURRFT)
+            CURRFT => TMPFT
+         END DO
+         NULLIFY(FRSTFT%NEXTFT)
       ELSE IF (KEYWIS ('TRANS')) THEN
          ITRAS = 0
          CALL INREAL ('TRCOEF', TRCF, 'REQ', 0.)
@@ -1340,17 +1351,23 @@ CALL NWLINE
          OBSTMP%YCRP(JJ) = CURR%Y
          CURR => CURR%NEXTXY
       END DO
-      DEALLOCATE(TMP)
+      CURR => FRST%NEXTXY
+      DO WHILE ( ASSOCIATED(CURR) )
+         TMP => CURR%NEXTXY
+         DEALLOCATE(CURR)
+         CURR => TMP
+      END DO
+      NULLIFY(FRST%NEXTXY)
       NULLIFY(OBSTMP%NEXTOBST)
       IF (NUMCOR .LE. 1) THEN
          CALL MSGERR(1,'No corner points for obstacle were found')
       ELSE
 !         *** NUMOBS : Number of obstacles ***
          NUMOBS = NUMOBS + 1
-         IF ( .NOT.LOBST ) THEN
+         IF ( NUMOBS.EQ.1 ) THEN
             FOBSTAC = OBSTMP
             COBST => FOBSTAC
-            LOBST = .TRUE.
+            DEALLOCATE(OBSTMP)
          ELSE
             COBST%NEXTOBST => OBSTMP
             COBST => OBSTMP
@@ -4796,8 +4813,8 @@ end subroutine SSFILL
 !                                                                      *
 SUBROUTINE CGINIT
    USE swan_array_copy, ONLY: SWCOPI
+   USE swan_block_coloring_backend, ONLY: color_swan_subdomains
    USE swan_parallel, ONLY: SWDECOMP
-!JAC   USE swan_parallel, ONLY: SWBLKCOL
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE, TXPBLA
 !                                                                      *
@@ -4889,15 +4906,15 @@ SUBROUTINE CGINIT
 !     IX    :     loop counter
 !     IY    :     loop counter
 !     MCGRDL:     number of wet grid points in own subdomain
-!JAC!     MCOLR :     flag to indicate multi-colouring
-!JAC!                 of subdomains (.TRUE.) or not (.FALSE.)
+!     MCOLR :     flag to indicate multi-colouring
+!                 of subdomains (.TRUE.) or not (.FALSE.)
 !     MSGSTR:     string to pass message to call MSGERR
 
    INTEGER, SAVE :: IENT = 0
    INTEGER INDX, IX, IY, MCGRDL
    INTEGER ISTAT, IF1, IL1
    INTEGER, ALLOCATABLE :: IARR(:)
-!JAC   LOGICAL   MCOLR
+   LOGICAL   MCOLR
    CHARACTER(LEN=20) CHARS(1)
    CHARACTER(LEN=80) MSGSTR
 
@@ -4912,7 +4929,7 @@ SUBROUTINE CGINIT
 !     NUMSTR : Converts integer/real to string
 !     STRACE           Tracing routine for debugging
 !     SWDECOMP
-!JAC!     SWBLKCOL
+!     color_swan_subdomains
 !     SWCOPI
 !     SWTSTA
 !     SWTSTO
@@ -4943,7 +4960,7 @@ SUBROUTINE CGINIT
 
    IF (ONED) THEN
       CALL ENSURE_FIELD_SIZE (KGRBGL, 4)
-!JAC      IF(.NOT.ALLOCATED(IARR)) ALLOCATE(IARR(4))
+      IF (jacobi_sweep_enabled .AND. .NOT.ALLOCATED(IARR)) ALLOCATE(IARR(4))
       CALL CGBOUN ( KGRPGL, KGRBGL )
    ELSE
       IF(.NOT.ALLOCATED(IARR)) ALLOCATE(IARR(2*MCGRD))
@@ -5033,14 +5050,15 @@ SUBROUTINE CGINIT
    IF(ALLOCATED(IARR)) DEALLOCATE(IARR)
 
    IF (timing_enabled) CALL SWTSTO(212)
-!JAC
-!JAC!     --- Colour subdomains with red, yellow, green and black
-!JAC
-!JAC   MCOLR = .FALSE.
-!JAC   IF (timing_enabled) CALL SWTSTA(215)
-!JAC   CALL SWBLKCOL ( MCOLR, KGRPNT )
-!JAC   IF (timing_enabled) CALL SWTSTO(215)
-!JAC   IF (STPNOW()) RETURN
+!     --- Colour subdomains with red, yellow, green and black for the
+!         Jacobi sweep. The selected wavefront backend is an explicit no-op.
+   IF (jacobi_sweep_enabled) THEN
+      MCOLR = .FALSE.
+      IF (timing_enabled) CALL SWTSTA(215)
+      CALL color_swan_subdomains ( MCOLR, KGRPNT )
+      IF (timing_enabled) CALL SWTSTO(215)
+      IF (STPNOW()) RETURN
+   END IF
 
    ISTAT = 0
    IF(.NOT.ALLOCATED(AC2)) ALLOCATE(AC2(MDC,MSC,MCGRD),STAT=ISTAT)
