@@ -10,12 +10,27 @@ module swan_library
 ! inlezen tot resultaat met idempotent finalize, ook na mislukte
 ! initialisatie. Een bibliotheekaanroep retourneert fouten aan de host (geen
 ! STOP, geen procesbrede chdir). De executable gebruikt dezelfde route; deck-
-! en uitvoercontracten zijn ongewijzigd. De toestand achter SWMAIN is nog
-! globaal (WP5b migreert per subsysteem voortbouwend op bestaande owners);
-! twee tegelijk bestaande instanties en overlappende uitvoering zijn WP5c-bewijs
-! en uitdrukkelijk nog niet geclaimd.
+! en uitvoercontracten zijn ongewijzigd. Deze route bindt het bestaande
+! run-state-ownership-contract in finalize (alleen lezen): overlevende
+! toestand na een geslaagde compute is een fout, geen stil succes. De
+! toestand achter SWMAIN is verder nog globaal (volgende stappen
+! migreren per subsysteem); twee tegelijk bestaande instanties en overlappende
+! uitvoering zijn nog niet bewezen en uitdrukkelijk niet geclaimd.
    use swan_service_interfaces, only: stpnow
    use swan_driver, only: swmain
+   use M_OBSTA, only: OBSTACLE_STATE_IS_CLEAR
+   use M_BNDSPEC, only: BOUNDARY_STATE_IS_CLEAR
+   use OUTP_DATA, only: OUTPUT_STATE_IS_CLEAR
+   use M_GENARR, only: GENERAL_ARRAY_STATE_IS_CLEAR
+   use swan_input_fields, only: INPUT_FIELDS_ARE_CLEAR
+   use swan_vegetation_layers, only: VEGETATION_LAYERS_ARE_CLEAR
+   use swan_global_grid, only: GLOBAL_GRID_IS_CLEAR
+   use M_PARALL, only: PARALLEL_STORAGE_IS_CLEAR
+   use SwanGriddata, only: GRID_DATA_IS_CLEAR
+   use SwanCompdata, only: COMPUTATION_DATA_IS_CLEAR
+   use SwanIEM, only: IEM_STATE_IS_CLEAR
+   use SwanBraggScat, only: BRAGG_STATE_IS_CLEAR
+   use SwanQCM, only: QCM_STATE_IS_CLEAR
    implicit none(type, external)
    private
 
@@ -131,13 +146,90 @@ contains
       ! Idempotent opruiming, ook na mislukte initialisatie. SWMAIN ruimt via
       ! SWCLME/owners op; finalize markeert de bibliotheektoestand als gesloten
       ! en is veilig herhaald aan te roepen.
+      !
+      ! Na een geslaagde compute verifieert finalize het
+      ! eigendomscontract (alleen lezen, geen tweede mutatiepad): overlevende
+      ! toestand is een fout aan de host, geen stil succes. Na een niet
+      ! geslaagde compute/initialisatie wordt alleen teruggezet (veilig en
+      ! idempotent), omdat een afgebroken run legitiem gedeeltelijke toestand
+      ! kan achterlaten die de volgende initialize/compute via SWINIT/SWREAD
+      ! opnieuw opbouwt.
       type(swan_state_t), intent(inout) :: state
       type(swan_result_t) :: res
 
+      if (state%is_computed) then
+         res = verify_owners_clear()
+         if (res%code /= SWAN_LIBRARY_OK) then
+            state%is_initialized = .false.
+            state%is_computed = .false.
+            state%config%validated = .false.
+            return
+         end if
+      end if
       state%is_initialized = .false.
       state%is_computed = .false.
       state%config%validated = .false.
       res = swan_result_ok()
    end function swan_finalize
+
+   function verify_owners_clear() result(res)
+      ! Lees-only bewaking van het run-state-ownership-contract
+      ! (doc/run-state-ownership.md); zelfde predicaten als de A-B-A-tests.
+      type(swan_result_t) :: res
+
+      if (.not. OBSTACLE_STATE_IS_CLEAR()) then
+         res = swan_result_error("eigendom overleeft run: obstacle state")
+         return
+      end if
+      if (.not. BOUNDARY_STATE_IS_CLEAR()) then
+         res = swan_result_error("eigendom overleeft run: boundary state")
+         return
+      end if
+      if (.not. OUTPUT_STATE_IS_CLEAR()) then
+         res = swan_result_error("eigendom overleeft run: output state")
+         return
+      end if
+      if (.not. GENERAL_ARRAY_STATE_IS_CLEAR()) then
+         res = swan_result_error("eigendom overleeft run: general array state")
+         return
+      end if
+      if (.not. INPUT_FIELDS_ARE_CLEAR()) then
+         res = swan_result_error("eigendom overleeft run: input fields")
+         return
+      end if
+      if (.not. VEGETATION_LAYERS_ARE_CLEAR()) then
+         res = swan_result_error("eigendom overleeft run: vegetation layers")
+         return
+      end if
+      if (.not. GLOBAL_GRID_IS_CLEAR()) then
+         res = swan_result_error("eigendom overleeft run: global grid")
+         return
+      end if
+      if (.not. PARALLEL_STORAGE_IS_CLEAR()) then
+         res = swan_result_error("eigendom overleeft run: parallel storage")
+         return
+      end if
+      if (.not. GRID_DATA_IS_CLEAR()) then
+         res = swan_result_error("eigendom overleeft run: grid data")
+         return
+      end if
+      if (.not. COMPUTATION_DATA_IS_CLEAR()) then
+         res = swan_result_error("eigendom overleeft run: computation data")
+         return
+      end if
+      if (.not. IEM_STATE_IS_CLEAR()) then
+         res = swan_result_error("eigendom overleeft run: IEM state")
+         return
+      end if
+      if (.not. BRAGG_STATE_IS_CLEAR()) then
+         res = swan_result_error("eigendom overleeft run: Bragg state")
+         return
+      end if
+      if (.not. QCM_STATE_IS_CLEAR()) then
+         res = swan_result_error("eigendom overleeft run: QCM state")
+         return
+      end if
+      res = swan_result_ok()
+   end function verify_owners_clear
 
 end module swan_library

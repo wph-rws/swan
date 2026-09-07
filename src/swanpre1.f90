@@ -1605,9 +1605,15 @@ CALL NWLINE
                CALL metis_decompose(LOGCOM)
                IF (STPNOW()) RETURN
             ENDIF
-            IF ( PARLL .AND. .NOT.LOGCOM(7) )&
-            &CALL MSGERR (4,&
-            &'to run in parallel the mesh must be partitioned first')
+             IF ( PARLL .AND. .NOT.LOGCOM(7) )&
+             &CALL MSGERR (4,&
+             &'to run in parallel the mesh must be partitioned first')
+             !  Zonder deze bewaking liep een MPI-run zonder METIS na de
+             !  fatale MSGERR(4) door naar ongepartitioneerde ivertg/xcugrdgl en
+             !  segfaultte (reproduceerbaar, compacte niet-stationaire case, 2
+             !  ranks). Voor groene paden verandert er niets: STPNOW() is daar
+             !  onwaar en de bewaking is inert.
+             IF (STPNOW()) RETURN
 
 !           --- create copies of parts of xcugrd and ycugrd
 !               for each subdomain

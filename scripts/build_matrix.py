@@ -111,12 +111,16 @@ COMMON_REQUIRED = {
     "swan_library_contract",
     "mpi_field_mask_self_test",
     "lifetime_fault",
+    "physics_reuse",
+    "grid_reuse",
+    "spectrum_reuse",
 }
 EXPECTED_TESTS: dict[str, set[str]] = {}
 for _name, _args in MATRIX.items():
     _need = set(COMMON_REQUIRED)
     if "MPI=ON" in " ".join(_args) or "JAC=ON" in " ".join(_args):
         _need.add("quick_test_mpi")
+        _need.add("mpi_unstructured_partition")
     if "NETCDF=ON" in " ".join(_args):
         _need.add("netcdf_output")
     EXPECTED_TESTS[_name] = _need

@@ -413,6 +413,40 @@ if( BUILD_TESTING )
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/two_cases )
   file( MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/two_cases )
 
+  # Runs SWMAIN three times in one process with alternating physics (GEN3
+  # KOMEN, 41.51 default, KOMEN again). Needs a directory of its own because
+  # the runs write INPUT, PRINT and the result table in the working directory.
+  add_executable( test_physics_reuse tests/test_physics_reuse.f90 )
+  target_link_libraries( test_physics_reuse PRIVATE swan${VERSION} )
+  add_test( NAME physics_reuse COMMAND ${CMAKE_COMMAND} -E env
+            ${CMAKE_CURRENT_BINARY_DIR}/bin/test_physics_reuse )
+  set_tests_properties( physics_reuse PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/physics_reuse )
+  file( MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/physics_reuse )
+
+  # Runs SWMAIN three times in one process with alternating grids (CGRID 4x2,
+  # 6x3, 4x2 over the same domain). Needs a directory of its own because
+  # the runs write INPUT, PRINT and the result table in the working directory.
+  add_executable( test_grid_reuse tests/test_grid_reuse.f90 )
+  target_link_libraries( test_grid_reuse PRIVATE swan${VERSION} )
+  add_test( NAME grid_reuse COMMAND ${CMAKE_COMMAND} -E env
+            ${CMAKE_CURRENT_BINARY_DIR}/bin/test_grid_reuse )
+  set_tests_properties( grid_reuse PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/grid_reuse )
+  file( MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/grid_reuse )
+
+  # Runs SWMAIN three times in one process with alternating spectral
+  # discretisations (CIRCLE 12/8, 16/10, 12/8 on the same grid). Needs a
+  # directory of its own because the runs write INPUT, PRINT and the result
+  # table in the working directory.
+  add_executable( test_spectrum_reuse tests/test_spectrum_reuse.f90 )
+  target_link_libraries( test_spectrum_reuse PRIVATE swan${VERSION} )
+  add_test( NAME spectrum_reuse COMMAND ${CMAKE_COMMAND} -E env
+            ${CMAKE_CURRENT_BINARY_DIR}/bin/test_spectrum_reuse )
+  set_tests_properties( spectrum_reuse PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/spectrum_reuse )
+  file( MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/spectrum_reuse )
+
   add_executable( test_physics_kernels tests/test_physics_kernels.f90 )
   target_link_libraries( test_physics_kernels PRIVATE swan${VERSION} )
   add_test( NAME physics_kernels COMMAND test_physics_kernels )
@@ -738,6 +772,26 @@ if( BUILD_TESTING )
       set_tests_properties( metis_partitioning PROPERTIES
         RUN_SERIAL TRUE TIMEOUT 180 )
     endif()
+    # Ongestructureerd + MPI vereist partitie. Met METIS slaagt deze
+    # case met 2 ranks; zonder METIS faalt ze schoon met de bedoelde melding
+    # (geen segfault). De verwachting ligt per configuratie vast.
+    if( METIS )
+      set( MPI_UNSTRUCTURED_EXPECT success )
+    else()
+      set( MPI_UNSTRUCTURED_EXPECT clean-failure )
+    endif()
+    add_test(
+      NAME mpi_unstructured_partition
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/tests/test_mpi_unstructured_partition.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --mpi-exec ${MPIEXEC_EXECUTABLE}
+              --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
+              --expect ${MPI_UNSTRUCTURED_EXPECT}
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/mpi-unstructured
+    )
+    set_tests_properties( mpi_unstructured_partition PROPERTIES
+      RUN_SERIAL TRUE TIMEOUT 180 )
   endif()
   # FFRO selects the fixed-front vertex ordering (!FXFRO) instead of the
   # graph-coloured one, which changes the order the unstructured solver sweeps

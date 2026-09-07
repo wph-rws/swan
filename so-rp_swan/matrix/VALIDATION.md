@@ -72,32 +72,34 @@ serial field (71,511 versus 71,685 wet cells), identically for both decks.
 Consequently the formal physics comparison follows the plan's requested-point
 mask and does not claim whole-field mask identity across decomposition modes.
 
-## Build, test, diagnostic and performance gates (WP1.6-meting 2026-09-07, tranche 2)
+## Build, test, diagnostic and performance gates (WP1.6-meting 2026-09-07, tranche 6)
 
 - CTest-registratie per configuratie (`ctest -N`, 2026-09-07, kandidaat
-  tranche 2; geen schatting): **47** voor standaard, OpenMP, TIMG,
+  tranche 6; geen schatting): **50** voor standaard, OpenMP, TIMG,
   TIMG+OpenMP, Matlab 4, METIS, FFRO, COH, ESMF, ADCIRC, LTO, native, runtime
   checks, debug invariants, beide legacy-I/O-routes, GNU 15, strict en debug;
-  **50** voor netCDF, Matlab 4+netCDF, MPI, JAC, TIMG+MPI, Matlab 4+MPI,
-  FFRO+MPI en matl4-netcdf-verwant; **51** voor METIS+MPI; **55** voor
-  MPI+netCDF. Deze aantallen zijn inclusief de zeven poorttests
+  **53** voor netCDF en Matlab 4+netCDF; **54** voor MPI, JAC, TIMG+MPI,
+  Matlab 4+MPI en FFRO+MPI; **55** voor METIS+MPI; **59** voor MPI+netCDF.
+  Deze aantallen zijn inclusief de tien configuratie-onafhankelijke poorttests
   (`reference_check_negatives`, `strict_diagnostics_negatives`,
   `build_matrix_negatives`, `ci_gate_self_test`, `mpi_field_mask_self_test`,
-  `lifetime_fault`, `swan_library_contract`) en de echte tweeranks-
-  MPI-regressies waar van toepassing. Het oude "25 tests"-getal is hiermee
-  vervallen; herhaal deze `ctest -N`-telling per configuratie na iedere
-  bronwijziging die tests toevoegt.
+  `lifetime_fault`, `swan_library_contract`, `physics_reuse`, `grid_reuse`,
+  `spectrum_reuse`), de echte tweeranks-MPI-regressies waar van toepassing en
+  de MPI-only poort `mpi_unstructured_partition` (partitiecontract:
+  success-verwachting met METIS, clean-failure-verwachting zonder). Het oude
+  "25 tests"-getal is hiermee vervallen; herhaal deze `ctest -N`-telling per
+  configuratie na iedere bronwijziging die tests toevoegt.
 - Intel and Flang are not installed in this environment. NVFortran 26.5 is
   present but is explicitly outside the compiler set accepted by CMake
   (buiten scope: geen NVIDIA/NVFortran/PGI-support).
 - The structured and unstructured OpenMP references pass at 1, 2 and 4
   threads. Nonlinear interaction tests exercise active triad and quadruplet
   paths.
-- Strict-poort (WP2.4 + WP3a-tranche 2, schone bouw met `--require-baseline`,
+- Strict-poort (WP2.4 + WP3a/WP5b-tranches, schone bouw met `--require-baseline`,
   GNU 13.3.0): **1.373 waarschuwingen in 512 fingerprints**, `within budget`,
   `no new warnings` (`function-elimination` 163→85 door zuivere `pvalid`;
-  `implicit-interface` 2→0 door `swan_metis_interface`/BIND(C); geen nieuwe
-  waarschuwingen, alleen verwijderingen). Configureerlog
+  `implicit-interface` 2→0 door `swan_metis_interface`/BIND(C); WP5b-tranches 1–3
+  voegen geen nieuwe waarschuwingen toe). Configureerlog
   `strict-configure.log` en bouwlog `strict-build.log` bewaard in de bouwmap;
   geen incrementeel slotlog. Budget en fingerprints zijn meegecommit
 .
