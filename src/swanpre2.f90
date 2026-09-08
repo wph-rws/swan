@@ -546,7 +546,16 @@ CALL NWLINE
          ENDIF
          CURR => CURR%NEXTXY
       END DO
-      DEALLOCATE(TMP)
+!     Waarden staan in de arrays; geef de hele tijdelijke keten vrij
+!     (alleen de laatste vrijgeven lekte de rest, elke aanroep).
+      CURR => FRST%NEXTXY
+      DO WHILE (ASSOCIATED(CURR))
+         TMP => CURR%NEXTXY
+         DEALLOCATE(CURR)
+         CURR => TMP
+      END DO
+      NULLIFY(FRST%NEXTXY)
+      NULLIFY(TMP)
 !       ***** store number of points of the curve *****
       OPSTMP%MIP = MIP
       IF (MIP .EQ. 0) CALL MSGERR(1,'No output points found')
@@ -620,7 +629,16 @@ CALL NWLINE
          OPSTMP%YP(JJ) = CURR%Y
          CURR => CURR%NEXTXY
       END DO
-      DEALLOCATE(TMP)
+!     Waarden staan in de arrays; geef de hele tijdelijke keten vrij
+!     (alleen de laatste vrijgeven lekte de rest, elke aanroep).
+      CURR => FRST%NEXTXY
+      DO WHILE (ASSOCIATED(CURR))
+         TMP => CURR%NEXTXY
+         DEALLOCATE(CURR)
+         CURR => TMP
+      END DO
+      NULLIFY(FRST%NEXTXY)
+      NULLIFY(TMP)
 !       ***** store number of output points *****
       OPSTMP%MIP = MIP
       IF (MIP .EQ. 0) CALL MSGERR (2, 'No output points found')
@@ -706,7 +724,16 @@ CALL NWLINE
             OPSTMP%YQ(JJ) = CURR%YQ
             CURR => CURR%NEXTXY
          END DO
-         DEALLOCATE(TMP)
+!        Waarden staan in de arrays; geef de hele tijdelijke keten vrij
+!        (alleen de laatste vrijgeven lekte de rest, elke aanroep).
+         CURR => FRST%NEXTXY
+         DO WHILE (ASSOCIATED(CURR))
+            TMP => CURR%NEXTXY
+            DEALLOCATE(CURR)
+            CURR => TMP
+         END DO
+         NULLIFY(FRST%NEXTXY)
+         NULLIFY(TMP)
 
 !         ***** termination *****
          OPSTMP%MIP = MIP
@@ -805,7 +832,16 @@ CALL NWLINE
             OPSTMP%YP(IK) = CURR%Y
             CURR => CURR%NEXTXY
          END DO
-         DEALLOCATE(TMP)
+!        Waarden staan in de arrays; geef de hele tijdelijke keten vrij
+!        (alleen de laatste vrijgeven lekte de rest, elke aanroep).
+         CURR => FRST%NEXTXY
+         DO WHILE (ASSOCIATED(CURR))
+            TMP => CURR%NEXTXY
+            DEALLOCATE(CURR)
+            CURR => TMP
+         END DO
+         NULLIFY(FRST%NEXTXY)
+         NULLIFY(TMP)
          IF (MIP.EQ.0) CALL MSGERR&
          &(2, 'No points with valid depth found')
 !             ***** store number of points of the curve *****
@@ -1538,7 +1574,16 @@ SUBROUTINE SWREOQ ( FOUND )
                ORQTMP%FAC  (JJ) = CURR%R
                CURR => CURR%NEXTI
             END DO
-            DEALLOCATE(TMP)
+!           Waarden staan in de arrays; geef de hele tijdelijke keten
+!           vrij (alleen de laatste vrijgeven lekte de rest, elke aanroep).
+            CURR => FRST%NEXTI
+            DO WHILE (ASSOCIATED(CURR))
+               TMP => CURR%NEXTI
+               DEALLOCATE(CURR)
+               CURR => TMP
+            END DO
+            NULLIFY(FRST%NEXTI)
+            NULLIFY(TMP)
          END IF
 
          IF (IVTYPE .EQ. 98) THEN
@@ -1613,6 +1658,9 @@ SUBROUTINE SWREOQ ( FOUND )
          IF ( .NOT.LORQ ) THEN
             FORQ = ORQTMP
             CORQ => FORQ
+!           Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+            DEALLOCATE(ORQTMP)
+            NULLIFY(ORQTMP)
             LORQ = .TRUE.
          ELSE
             CORQ%NEXTORQ => ORQTMP
@@ -1877,15 +1925,24 @@ SUBROUTINE SWREOQ ( FOUND )
          ENDIF
       ENDIF
       END DO
-      IF (NVAR.GT.0) THEN
-         ALLOCATE(ORQTMP%IVTYP(NVAR))
-         CURR => FRST%NEXTI
-         DO JJ = 1, NVAR
-            ORQTMP%IVTYP(JJ) = CURR%I
-            CURR => CURR%NEXTI
-         END DO
-         DEALLOCATE(TMP)
-      END IF
+       IF (NVAR.GT.0) THEN
+          ALLOCATE(ORQTMP%IVTYP(NVAR))
+          CURR => FRST%NEXTI
+          DO JJ = 1, NVAR
+             ORQTMP%IVTYP(JJ) = CURR%I
+             CURR => CURR%NEXTI
+          END DO
+!         Waarden staan in de array; geef de hele tijdelijke keten
+!         vrij (alleen de laatste vrijgeven lekte de rest, elke aanroep).
+          CURR => FRST%NEXTI
+          DO WHILE (ASSOCIATED(CURR))
+             TMP => CURR%NEXTI
+             DEALLOCATE(CURR)
+             CURR => TMP
+          END DO
+          NULLIFY(FRST%NEXTI)
+          NULLIFY(TMP)
+       END IF
       IF ( RTYPE.EQ.'TABC') THEN
          ALLOCATE(ORQTMP%FAC(NVAR))
          ORQTMP%FAC=1.
@@ -1909,6 +1966,9 @@ SUBROUTINE SWREOQ ( FOUND )
       IF ( .NOT.LORQ ) THEN
          FORQ = ORQTMP
          CORQ => FORQ
+!        Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+         DEALLOCATE(ORQTMP)
+         NULLIFY(ORQTMP)
          LORQ = .TRUE.
       ELSE
          CORQ%NEXTORQ => ORQTMP
@@ -2037,6 +2097,9 @@ SUBROUTINE SWREOQ ( FOUND )
       IF ( .NOT.LORQ ) THEN
          FORQ = ORQTMP
          CORQ => FORQ
+!        Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+         DEALLOCATE(ORQTMP)
+         NULLIFY(ORQTMP)
          LORQ = .TRUE.
       ELSE
          CORQ%NEXTORQ => ORQTMP
@@ -2124,6 +2187,9 @@ SUBROUTINE SWREOQ ( FOUND )
          IF ( .NOT.LORQ ) THEN
             FORQ = ORQTMP
             CORQ => FORQ
+!           Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+            DEALLOCATE(ORQTMP)
+            NULLIFY(ORQTMP)
             LORQ = .TRUE.
          ELSE
             CORQ%NEXTORQ => ORQTMP
@@ -2978,6 +3044,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
       IF ( .NOT.LBFILS ) THEN
          FBNDFIL = BFLTMP
          CUBFL => FBNDFIL
+!        Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+         DEALLOCATE(BFLTMP)
+         NULLIFY(BFLTMP)
          LBFILS = .TRUE.
       ELSE
          CUBFL%NEXTBSPC => BFLTMP
@@ -3027,6 +3096,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
       IF ( .NOT.LBFILS ) THEN
          FBNDFIL = BFLTMP
          CUBFL => FBNDFIL
+!        Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+         DEALLOCATE(BFLTMP)
+         NULLIFY(BFLTMP)
          LBFILS = .TRUE.
       ELSE
          CUBFL%NEXTBSPC => BFLTMP
@@ -3086,6 +3158,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
       IF ( .NOT.LBFILS ) THEN
          FBNDFIL = BFLTMP
          CUBFL => FBNDFIL
+!        Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+         DEALLOCATE(BFLTMP)
+         NULLIFY(BFLTMP)
          LBFILS = .TRUE.
       ELSE
          CUBFL%NEXTBSPC => BFLTMP
@@ -3755,6 +3830,9 @@ IF (ISIDM.EQ.1) THEN
             IF ( .NOT.LBS ) THEN
                FBS = BSTMP
                CUBS => FBS
+!              Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+               DEALLOCATE(BSTMP)
+               NULLIFY(BSTMP)
                LBS = .TRUE.
             ELSE
                CUBS%NEXTBS => BSTMP
@@ -3774,6 +3852,9 @@ IF (ISIDM.EQ.1) THEN
             IF ( .NOT.LBFILS ) THEN
                FBNDFIL = BFLTMP
                CUBFL => FBNDFIL
+!              Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+               DEALLOCATE(BFLTMP)
+               NULLIFY(BFLTMP)
                LBFILS = .TRUE.
             ELSE
                CUBFL%NEXTBSPC => BFLTMP
@@ -3801,6 +3882,9 @@ IF (ISIDM.EQ.1) THEN
             IF ( .NOT.LBGP ) THEN
                FBGP = BGPTMP
                CUBGP => FBGP
+!              Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+               DEALLOCATE(BGPTMP)
+               NULLIFY(BGPTMP)
                LBGP = .TRUE.
             ELSE
                CUBGP%NEXTBGP => BGPTMP
@@ -3872,6 +3956,9 @@ IF (ISIDM.EQ.1) THEN
                   IF ( .NOT.LBS ) THEN
                      FBS = BSTMP
                      CUBS => FBS
+!                    Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+                     DEALLOCATE(BSTMP)
+                     NULLIFY(BSTMP)
                      LBS = .TRUE.
                   ELSE
                      CUBS%NEXTBS => BSTMP
@@ -3897,6 +3984,9 @@ IF (ISIDM.EQ.1) THEN
                      IF ( .NOT.LBFILS ) THEN
                         FBNDFIL = BFLTMP
                         CUBFL => FBNDFIL
+!                       Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+                        DEALLOCATE(BFLTMP)
+                        NULLIFY(BFLTMP)
                         LBFILS = .TRUE.
                      ELSE
                         CUBFL%NEXTBSPC => BFLTMP
@@ -3945,6 +4035,9 @@ IF (ISIDM.EQ.1) THEN
                IF ( .NOT.LBGP ) THEN
                   FBGP = BGPTMP
                   CUBGP => FBGP
+!                 Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+                  DEALLOCATE(BGPTMP)
+                  NULLIFY(BGPTMP)
                   LBGP = .TRUE.
                ELSE
                   CUBGP%NEXTBGP => BGPTMP
@@ -4959,6 +5052,9 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
                                  IF ( .NOT.LBGP ) THEN
                                     FBGP = BGPTMP
                                     CUBGP => FBGP
+!                                   Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+                                    DEALLOCATE(BGPTMP)
+                                    NULLIFY(BGPTMP)
                                     LBGP = .TRUE.
                                  ELSE
                                     CUBGP%NEXTBGP => BGPTMP
@@ -5818,6 +5914,9 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
                      IF ( .NOT.LBGP ) THEN
                         FBGP = BGPTMP
                         CUBGP => FBGP
+!                       Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+                        DEALLOCATE(BGPTMP)
+                        NULLIFY(BGPTMP)
                         LBGP = .TRUE.
                      ELSE
                         CUBGP%NEXTBGP => BGPTMP
@@ -5894,6 +5993,9 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID,&
                      IF ( .NOT.LBGP ) THEN
                         FBGP = BGPTMP
                         CUBGP => FBGP
+!                       Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+                        DEALLOCATE(BGPTMP)
+                        NULLIFY(BGPTMP)
                         LBGP = .TRUE.
                      ELSE
                         CUBGP%NEXTBGP => BGPTMP

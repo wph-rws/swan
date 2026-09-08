@@ -72,28 +72,29 @@ serial field (71,511 versus 71,685 wet cells), identically for both decks.
 Consequently the formal physics comparison follows the plan's requested-point
 mask and does not claim whole-field mask identity across decomposition modes.
 
-## Build, test, diagnostic and performance gates (WP1.6-meting 2026-09-07, tranche 18)
+## Build, test, diagnostic and performance gates (meting 2026-09-07)
 
 - CTest-registratie per configuratie (`ctest -N`, 2026-09-07, kandidaat
-  tranche 18; geen schatting): **56** voor standaard, OpenMP, TIMG,
+  de kandidaat; geen schatting): **58** voor standaard, OpenMP, TIMG,
   TIMG+OpenMP, Matlab 4, METIS, FFRO, COH, ESMF, ADCIRC, LTO, native, runtime
   checks, debug invariants, beide legacy-I/O-routes, GNU 15, strict en debug;
-  **59** voor netCDF en Matlab 4+netCDF; **60** voor MPI, JAC, TIMG+MPI,
-  Matlab 4+MPI en FFRO+MPI; **61** voor METIS+MPI; **65** voor MPI+netCDF.
-  Deze aantallen zijn inclusief de zestien configuratie-onafhankelijke poorttests
+  **61** voor netCDF en Matlab 4+netCDF; **62** voor MPI, JAC, TIMG+MPI,
+  Matlab 4+MPI en FFRO+MPI; **63** voor METIS+MPI; **67** voor MPI+netCDF.
+  Deze aantallen zijn inclusief de achttien configuratie-onafhankelijke poorttests
   (`reference_check_negatives`, `strict_diagnostics_negatives`,
   `build_matrix_negatives`, `ci_gate_self_test`, `mpi_field_mask_self_test`,
   `lifetime_fault`, `swan_library_contract`, `physics_reuse`, `grid_reuse`,
   `spectrum_reuse`, `shoaling`, `shoaling_units`, `grid_convergence`,
-  `grid_convergence_units`, `time_convergence`, `time_convergence_units`), de
-  echte tweeranks-MPI-regressies waar van toepassing en de MPI-only poort
-  `mpi_unstructured_partition` (partitiecontract: success-verwachting met
-  METIS, clean-failure-verwachting zonder). Het oude "25 tests"-getal is
-  hiermee vervallen; herhaal deze `ctest -N`-telling per configuratie na
-  iedere bronwijziging die tests toevoegt. `shoaling`/`grid_convergence`/
-  `time_convergence` zijn bewezen op serieel/OpenMP/MPI/METIS+MPI; overige
-  varianten staan via registratie (werking volgt uit onafhankelijkheid van
-  hun selecties: gestructureerd, serieel, tekstuitvoer).
+  `grid_convergence_units`, `time_convergence`, `time_convergence_units`,
+  `curve_output`, `curve_output_units`), de echte tweeranks-MPI-regressies
+  waar van toepassing en de MPI-only poort `mpi_unstructured_partition`
+  (partitiecontract: success-verwachting met METIS, clean-failure-verwachting
+  zonder). Het oude "25 tests"-getal is hiermee vervallen; herhaal deze
+  `ctest -N`-telling per configuratie na iedere bronwijziging die tests
+  toevoegt. `shoaling`/`grid_convergence`/`time_convergence`/`curve_output`
+  zijn bewezen op serieel/OpenMP/MPI/METIS+MPI; overige varianten staan via
+  registratie (werking volgt uit onafhankelijkheid van hun selecties:
+  gestructureerd, serieel, tekstuitvoer).
 - Intel and Flang are not installed in this environment. NVFortran 26.5 is
   present but is explicitly outside the compiler set accepted by CMake
   (buiten scope: geen NVIDIA/NVFortran/PGI-support).
@@ -101,11 +102,13 @@ mask and does not claim whole-field mask identity across decomposition modes.
   threads. Nonlinear interaction tests exercise active triad and quadruplet
   paths.
 - Strict-poort (WP2.4 + WP3a/WP3b/WP5b-tranches, schone bouw met `--require-baseline`,
-  GNU 13.3.0): **1.363 waarschuwingen in 504 fingerprints**, `within budget`,
+  GNU 13.3.0): **1.361 waarschuwingen in 504 fingerprints**, `within budget`,
   `no new warnings` (`function-elimination` 163→85 door zuivere `pvalid`;
   `implicit-interface` 2→0 door `swan_metis_interface`/BIND(C);
   `unused-function` 4→0 plus één `compare-reals` in dood `SWSOR` door
   verwijderde dode procedures; −5 `unused-parameter` buiten gevenderde code;
+  −1 `maybe-uninitialized` als nevenopbrengst van correcte keten-vrijgave (138→136);
+  SPROUT-vrijgave lost nog een `TMP`-pad op;
   alles volledig geattribueerd zonder compensatie).
   Configureerlog `strict-configure.log` en bouwlog `strict-build.log` bewaard
   in de bouwmap; geen incrementeel slotlog. Budget en fingerprints zijn

@@ -1643,7 +1643,7 @@
    "maybe-uninitialized",
    "swanpre2.f90",
    "‘tmp’ may be used uninitialized",
-   3
+   1
   ],
   [
    "maybe-uninitialized",

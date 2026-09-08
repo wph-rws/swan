@@ -2,7 +2,7 @@
   "conversion-extra": 493,
   "compare-reals": 225,
   "unused-variable": 217,
-  "maybe-uninitialized": 138,
+  "maybe-uninitialized": 136,
   "function-elimination": 85,
   "conversion": 72,
   "unused-dummy-argument": 67,

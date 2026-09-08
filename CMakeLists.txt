@@ -553,6 +553,23 @@ if( BUILD_TESTING )
             --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/quick
   )
 
+  # The curve output case covers the SPROUT XYPT builders (POINTS-list,
+  # CURVE, RAY) that previously had no coverage anywhere; its reference was
+  # produced with the pre-repair binary.
+  add_test(
+    NAME curve_output
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/examples/curve_output/run.py
+            --swan-executable $<TARGET_FILE:${EXE}>
+            --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/curve
+  )
+  set_tests_properties( curve_output PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
+  add_test(
+    NAME curve_output_units
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_curve_output.py -q
+  )
+
   # The quick test leaves DIFFRAC off, so no other registered case reaches
   # DIFPAR or the diffraction terms in the propagation velocities. This case
   # is the quick test plus DIFFRAC; its reference was produced before the

@@ -120,6 +120,8 @@ COMMON_REQUIRED = {
     "grid_convergence_units",
     "time_convergence",
     "time_convergence_units",
+    "curve_output",
+    "curve_output_units",
 }
 EXPECTED_TESTS: dict[str, set[str]] = {}
 for _name, _args in MATRIX.items():
