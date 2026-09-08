@@ -13,11 +13,14 @@ from result_stats import (
     WetValues,
     compare,
     compare_circular,
+    compare_spectra,
     read_convergence_history,
     read_dir_points,
     read_hsig_field,
     read_hsig_points,
+    read_spectra,
     read_tm01_points,
+    report_spectral_difference,
 )
 
 
@@ -191,3 +194,73 @@ def test_convergence_history_without_series_is_a_hard_error(tmp_path: Path):
         read_convergence_history(path)
     with pytest.raises(FileNotFoundError, match="missing PRINT"):
         read_convergence_history(tmp_path / "absent")
+
+
+def _write_spectrum(path: Path, *, rows_loc1: list[str],
+                     nodata_loc2: bool = True) -> None:
+    path.write_text(
+        "SWAN   1 test\n"
+        "LOCATIONS x\n"
+        "   2                                  number of locations\n"
+        "    0.0 0.0\n"
+        "    1.0 0.0\n"
+        "RFREQ hz\n"
+        "    2                                  number of frequencies\n"
+        "    0.10\n"
+        "    0.20\n"
+        "QUANT\n"
+        "     2                                  number of quantities in table\n"
+        "VaDens m2/Hz\n"
+        "m2/Hz unit\n"
+        "   -0.9900E+02                          exception value\n"
+        "NDIR degr\n"
+        "degr unit\n"
+        "   -0.9990E+03                          exception value\n"
+        "LOCATION     1\n"
+        + "".join(row + "\n" for row in rows_loc1)
+        + ("NODATA\n" if nodata_loc2 else "")
+    )
+
+
+def test_spectra_parse_and_compare_bit_equal(tmp_path: Path):
+    path = tmp_path / "a.sp1"
+    _write_spectrum(path, rows_loc1=["  0.5  10.0", "  1.5  20.0"])
+    parsed = read_spectra(path)
+    assert parsed.present.tolist() == [True, False]
+    assert parsed.values["VaDens"].shape == (2, 2)
+    stats = compare_spectra(parsed, read_spectra(path))
+    assert all(s.maximum_absolute == 0.0 for s in stats.values())
+
+
+def test_spectra_detect_difference(tmp_path: Path):
+    first = tmp_path / "a.sp1"
+    second = tmp_path / "b.sp1"
+    _write_spectrum(first, rows_loc1=["  0.5  10.0", "  1.5  20.0"])
+    _write_spectrum(second, rows_loc1=["  0.5  10.0", "  2.5  20.0"])
+    stats = compare_spectra(read_spectra(first), read_spectra(second))
+    assert stats["VaDens"].maximum_absolute == pytest.approx(1.0)
+
+
+def test_spectra_mask_mismatch_strict_fails_report_counts(tmp_path: Path):
+    first = tmp_path / "a.sp1"
+    second = tmp_path / "b.sp1"
+    _write_spectrum(first, rows_loc1=["  0.5  10.0", "  1.5  20.0"])
+    _write_spectrum(second, rows_loc1=["  -99.0  10.0", "  1.5  20.0"])
+    with pytest.raises(ValueError, match="geldig/ongeldig-verschillen"):
+        compare_spectra(read_spectra(first), read_spectra(second))
+    stats, mismatches = report_spectral_difference(
+        read_spectra(first), read_spectra(second))
+    assert mismatches["VaDens"] == 1
+    assert stats["VaDens"].count == 1
+
+
+def test_spectra_malformed_is_a_hard_error(tmp_path: Path):
+    path = tmp_path / "a.sp1"
+    _write_spectrum(path, rows_loc1=["  0.5  10.0"])
+    with pytest.raises(ValueError, match="kolommen"):
+        read_spectra(path)
+    path.write_text("SWAN   1 test\nLOCATIONS x\n")
+    with pytest.raises(ValueError, match="aantal|onverwacht einde"):
+        read_spectra(path)
+    with pytest.raises(FileNotFoundError, match="missing SWAN spectrum"):
+        read_spectra(tmp_path / "absent.sp1")

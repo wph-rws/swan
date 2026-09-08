@@ -825,6 +825,52 @@ if( BUILD_TESTING )
     PROPERTIES RUN_SERIAL TRUE TIMEOUT 180
   )
 
+  # Analytische shoaling-/behoudsproef; referentie is de lineaire theorie
+  # in de runner, geen opgeslagen SWAN-uitvoer.
+  add_test(
+    NAME shoaling
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/examples/shoaling/run.py
+            --swan-executable $<TARGET_FILE:${EXE}>
+            --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/shoaling
+  )
+  set_tests_properties( shoaling PROPERTIES RUN_SERIAL TRUE TIMEOUT 300 )
+  add_test(
+    NAME shoaling_units
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_shoaling.py -q
+  )
+
+  # Roosterconvergentieproef (eerste-orde-theorie als referentie).
+  add_test(
+    NAME grid_convergence
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/examples/grid_convergence/run.py
+            --swan-executable $<TARGET_FILE:${EXE}>
+            --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/grid-convergence
+  )
+  set_tests_properties( grid_convergence PROPERTIES RUN_SERIAL TRUE TIMEOUT 300 )
+  add_test(
+    NAME grid_convergence_units
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_grid_convergence.py -q
+  )
+
+  # Tijdstapgevoeligheid (rapporterend; harde poorten structureel).
+  add_test(
+    NAME time_convergence
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/examples/time_convergence/run.py
+            --swan-executable $<TARGET_FILE:${EXE}>
+            --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/time-convergence
+  )
+  set_tests_properties( time_convergence PROPERTIES RUN_SERIAL TRUE TIMEOUT 300 )
+  add_test(
+    NAME time_convergence_units
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_time_convergence.py -q
+  )
+
   # Keep the small OpenMP reference runs deterministic while still exercising
   # real parallel work; otherwise the runtime inherits the host CPU count.
   if( OPENMP )

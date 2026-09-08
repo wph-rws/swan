@@ -247,3 +247,196 @@ def read_convergence_history(print_path: Path | str) -> np.ndarray:
     if not residues:
         raise ValueError(f"{path}: no convergence history found")
     return np.asarray(residues, dtype=float)
+
+
+@dataclass(frozen=True)
+class SpectralSet:
+    """Geparseerd SWAN-spectrum bestand (.sp1/.sp2): per locatie per frequentie.
+
+    values: grootheid-naam -> (nlocaties, nfreq) array; exceptions: idem de
+    exceptiewaarde; present: per opgevraagde locatie of er een LOCATION-blok
+    staat (droge punten krijgen een NODATA-regel, bewezen op de matrixdata:
+    exact de droge uitvoerpunten). Geldig = aanwezig én eindig én ongelijk
+    aan de exceptiewaarde; NaN/Inf faalt altijd. Afwezige cellen dragen de
+    exceptiewaarde.
+    """
+
+    values: dict[str, np.ndarray]
+    exceptions: dict[str, float]
+    present: np.ndarray
+    source: str
+
+
+def read_spectra(path: Path | str) -> SpectralSet:
+    """Lees een SWAN-standaard-spectrumbestand strikt structureel.
+
+    Verwacht: LOCATIONS + aantal, coördinaten, frequentielijst + aantal,
+    QUANT + aantal grootheden met elk naam/unit/exceptiewaarde, daarna per
+    locatie een LOCATION-blok met precies nfreq rijen van nquant kolommen.
+    Elke afwijking is een fout (geen giswerk naar kolommen).
+    """
+    path = Path(path)
+    if not path.is_file():
+        raise FileNotFoundError(f"missing SWAN spectrum output: {path}")
+    raw = path.read_text(errors="replace").splitlines()
+    cursor = [0]
+
+    def next_line() -> str:
+        if cursor[0] >= len(raw):
+            raise ValueError(f"{path}: onverwacht einde spectrumbestand")
+        line = raw[cursor[0]]
+        cursor[0] += 1
+        return line
+
+    def expect_count(keyword: str) -> int:
+        while True:
+            line = next_line()
+            if keyword in line:
+                break
+        # Het aantal staat soms op dezelfde regel ("3  number of ...") en
+        # soms op de volgende regel; probeer lui (nooit een regel te veel).
+        try:
+            return int(float(line.split()[0]))
+        except (ValueError, IndexError):
+            pass
+        try:
+            return int(float(next_line().split()[0]))
+        except (ValueError, IndexError):
+            raise ValueError(f"{path}: geen aantal bij {keyword!r}") from None
+
+    locations = expect_count("LOCATIONS")
+    for _ in range(locations):
+        parts = next_line().split()
+        if len(parts) != 2:
+            raise ValueError(f"{path}: locatieregel heeft geen x y-paar")
+        for token in parts:
+            float(token)
+    frequencies = expect_count("number of frequencies")
+    for _ in range(frequencies):
+        float(next_line().split()[0])
+    quantities = expect_count("number of quantities")
+    names: list[str] = []
+    exceptions: dict[str, float] = {}
+    for _ in range(quantities):
+        name = next_line().split()[0]
+        next_line()
+        exc_line = next_line()
+        if "exception value" not in exc_line:
+            raise ValueError(f"{path}: geen exceptiewaarde bij {name!r}")
+        try:
+            exceptions[name] = float(exc_line.split()[0])
+        except (ValueError, IndexError):
+            raise ValueError(
+                f"{path}: onleesbare exceptiewaarde bij {name!r}") from None
+        names.append(name)
+    values: dict[str, np.ndarray] = {}
+    present = np.zeros(locations, dtype=bool)
+    for location in range(1, locations + 1):
+        header = next_line()
+        if header.strip() == "NODATA":
+            continue
+        parts = header.split()
+        if len(parts) != 2 or parts[0] != "LOCATION":
+            raise ValueError(f"{path}: geen LOCATION/NODATA bij punt {location}")
+        try:
+            number = int(parts[1])
+        except ValueError:
+            raise ValueError(
+                f"{path}: onleesbaar locatienummer bij punt {location}") from None
+        if number != location:
+            raise ValueError(
+                f"{path}: LOCATION {number} waar punt {location} hoort")
+        present[location - 1] = True
+        for frequency in range(frequencies):
+            parts = next_line().split()
+            if len(parts) != quantities:
+                raise ValueError(
+                    f"{path}: locatie {location} frequentie "
+                    f"{frequency + 1}: {len(parts)} kolommen, "
+                    f"{quantities} verwacht")
+            try:
+                row = [float(token) for token in parts]
+            except ValueError:
+                raise ValueError(
+                    f"{path}: niet-numerieke spectraalwaarde bij locatie "
+                    f"{location}") from None
+            for name, value in zip(names, row):
+                values.setdefault(name, np.full(
+                    (locations, frequencies), np.nan))[location - 1,
+                                                       frequency] = value
+    for name in names:
+        values.setdefault(name, np.full((locations, frequencies), np.nan))
+    rest = [line for line in raw[cursor[0]:] if line.strip()]
+    if rest:
+        raise ValueError(f"{path}: {len(rest)} overbodige regels na laatste blok")
+    for name, array in values.items():
+        array[~np.repeat(present, frequencies).reshape(locations, frequencies)] = (
+            exceptions[name])
+        selected = array[array != exceptions[name]]
+        if not np.all(np.isfinite(selected)):
+            raise ValueError(f"{path}: {name} bevat NaN of oneindig")
+    return SpectralSet(values, exceptions, present, str(path))
+
+
+def compare_spectra(reference: SpectralSet, candidate: SpectralSet,
+                    ) -> dict[str, DifferenceStats]:
+    """Vergelijk spectra per grootheid; maskers eerst (strikt).
+
+    Geldigmaskers (aanwezigheid én ongelijk exceptiewaarde) moeten exact
+    overeenkomen; NDIR wordt circulair vergeleken, de overige lineair. Geeft
+    per grootheid statistieken over gedeelde geldige cellen. Voor
+    rapportage over verschillende fysica, zie report_spectral_difference.
+    """
+    return _compare_spectra_inner(reference, candidate, strict=True)[0]
+
+
+def report_spectral_difference(reference: SpectralSet, candidate: SpectralSet,
+                               ) -> tuple[dict[str, DifferenceStats], dict[str, int]]:
+    """Rapporteer spectrale verschillen inclusief maskerverschillen.
+
+    Structurele verschillen (grootheden, vorm, aanwezige locatiesets) blijven
+    fouten; geldig/ongeldig-verschillen per grootheid worden geteld en de
+    statistieken lopen over gedeelde geldige cellen. NDIR circulair.
+    Geeft (statistieken, maskerverschillen) terug.
+    """
+    return _compare_spectra_inner(reference, candidate, strict=False)
+
+
+def _compare_spectra_inner(reference: SpectralSet, candidate: SpectralSet,
+                           *, strict: bool,
+                           ) -> tuple[dict[str, DifferenceStats], dict[str, int]]:
+    """Gedeelde implementatie; strict eist gelijke maskers, anders tellen."""
+    if set(reference.values) != set(candidate.values):
+        raise ValueError(
+            f"grootheden verschillen: {sorted(reference.values)} vs "
+            f"{sorted(candidate.values)}")
+    if reference.present.shape != candidate.present.shape or not bool(
+            np.array_equal(reference.present, candidate.present)):
+        raise ValueError("aanwezige locatiesets verschillen")
+    outcome: dict[str, DifferenceStats] = {}
+    mismatches: dict[str, int] = {}
+    for name in sorted(reference.values):
+        left, right = reference.values[name], candidate.values[name]
+        if left.shape != right.shape:
+            raise ValueError(f"{name}: vorm {left.shape} vs {right.shape}")
+        valid_left = left != reference.exceptions[name]
+        valid_right = right != candidate.exceptions[name]
+        mask = valid_left & valid_right
+        mismatch = int(np.count_nonzero(valid_left != valid_right))
+        if mismatch and strict:
+            raise ValueError(f"{name}: {mismatch} geldig/ongeldig-verschillen")
+        mismatches[name] = mismatch
+        if name == "NDIR":
+            delta = (right[mask] - left[mask] + 540.0) % 360.0 - 180.0
+        else:
+            delta = right[mask] - left[mask]
+        if not np.all(np.isfinite(delta)):
+            raise ValueError(f"{name}: vergelijking geeft NaN of oneindig")
+        absolute = np.abs(delta)
+        outcome[name] = DifferenceStats(
+            bias=float(np.mean(delta)) if delta.size else 0.0,
+            rms=float(np.sqrt(np.mean(delta * delta))) if delta.size else 0.0,
+            maximum_absolute=float(np.max(absolute)) if delta.size else 0.0,
+            count=int(delta.size),
+        )
+    return outcome, mismatches

@@ -114,6 +114,12 @@ COMMON_REQUIRED = {
     "physics_reuse",
     "grid_reuse",
     "spectrum_reuse",
+    "shoaling",
+    "shoaling_units",
+    "grid_convergence",
+    "grid_convergence_units",
+    "time_convergence",
+    "time_convergence_units",
 }
 EXPECTED_TESTS: dict[str, set[str]] = {}
 for _name, _args in MATRIX.items():

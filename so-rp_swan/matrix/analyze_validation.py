@@ -19,11 +19,14 @@ from result_stats import (
     DifferenceStats,
     compare,
     compare_circular,
+    compare_spectra,
     read_convergence_history,
     read_dir_points,
     read_hsig_field,
     read_hsig_points,
+    read_spectra,
     read_tm01_points,
+    report_spectral_difference,
 )
 
 
@@ -76,6 +79,21 @@ def analyze(root: Path, manifest_path: Path) -> str:
     ]
     current_hashes: set[str] = set()
     exact_default_conditions = 0
+    spectral_lines = [
+        "",
+        "## Spectra",
+        "",
+        "1D-spectra (VaDens/NDIR/DSPRDEGR per frequentie per locatie) uit "
+        ".sp1 en .sp2; droge punten dragen NODATA. De default-vs-premodern "
+        "poort eist bitgelijkheid op beide bestanden; legacy-vs-BSS alleen "
+        "rapportage (NDIR circulair; maxima inclusief energiearme cellen, "
+        "aantallen erbij).",
+        "",
+        "| Condition | Default spectral max abs sp1/sp2 | "
+        "Legacy VaDens max abs vs BSS | Legacy NDIR max abs vs BSS (deg) | "
+        "Legacy mask differences |",
+        "|---|---:|---:|---:|---:|",
+    ]
     extended_lines = [
         "",
         "## Extended quantities",
@@ -180,6 +198,36 @@ def analyze(root: Path, manifest_path: Path) -> str:
         legacy_dir_delta = compare_circular(
             bss_dir, legacy_dir, bss_points, legacy_points
         )
+        # Spectra: de default-poort eist bitgelijkheid op .sp1 én .sp2;
+        # legacy alleen rapportage (maskerverschillen geteld, niet gemiddeld).
+        default_spectral_max = 0.0
+        for spectrum_file in ("uitvoerpunten.sp1", "uitvoerpunten.sp2"):
+            pre_spectra = read_spectra(
+                runs["premodern_4151"].directory / spectrum_file
+            )
+            current_spectra = read_spectra(
+                runs["current_4151_default"].directory / spectrum_file
+            )
+            for stats in compare_spectra(
+                    pre_spectra, current_spectra).values():
+                if stats.maximum_absolute != 0.0:
+                    raise ValueError(
+                        f"{condition}: current default spectra differ from "
+                        f"premodern 41.51 in {spectrum_file}")
+                default_spectral_max = max(
+                    default_spectral_max, stats.maximum_absolute)
+        legacy_spectra = read_spectra(
+            runs["current_4151_legacy"].directory / "uitvoerpunten.sp1")
+        bss_spectra = read_spectra(
+            runs["bss_4131"].directory / "uitvoerpunten.sp1")
+        legacy_spectral, spectral_masks = report_spectral_difference(
+            bss_spectra, legacy_spectra)
+        spectral_lines.append(
+            f"| `{condition}` | {default_spectral_max:.6f} | "
+            f"{legacy_spectral['VaDens'].maximum_absolute:.6f} | "
+            f"{legacy_spectral['NDIR'].maximum_absolute:.6f} | "
+            f"{spectral_masks} |"
+        )
         extended_lines.append(
             f"| `{condition}` | {default_tm01_delta.maximum_absolute:.6f} | "
             f"{default_dir_delta.maximum_absolute:.6f} | "
@@ -221,6 +269,15 @@ def analyze(root: Path, manifest_path: Path) -> str:
         "Extended gate: default-vs-premodern Tm01, direction and convergence "
         f"history are bit-equal in all {exact_default_conditions} conditions "
         "(failure raises before this line is reached)."
+    )
+    lines.extend(spectral_lines)
+    lines.append(
+        "",
+    )
+    lines.append(
+        "Spectral gate: default-vs-premodern spectra are bit-equal in .sp1 "
+        f"and .sp2 in all {exact_default_conditions} conditions (failure "
+        "raises before this line is reached)."
     )
     return "\n".join(lines)
 

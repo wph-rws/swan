@@ -3716,6 +3716,18 @@ IF (ISIDM.EQ.1) THEN
                   &'0 or larger than 360 degrees, and no '//&
                   &'exception value')
                END IF
+!              Same narrowness guard as the POWER branch below. A beam
+!              narrower than half a directional bin loses its energy in the
+!              discrete cos^ms integration in SSHAPE (measured: dd=2 op 15
+!              graden-bins injecteert Hs 0.07 i.p.v. 1.0; dd=10 blijft 0.999).
+!              Alleen diagnose + LSPNAR-latch, zoals de POWER-tak.
+               IF (.NOT.LSPNAR .AND. DDIR.GT.0. .AND. SPPARM(4).GT.0. &
+               &.AND. DDIR .GT. 2.*SPPARM(4)*DEGRAD) THEN
+                  CALL MSGERR (2,&
+                  &'directional spreading too narrow to be represented properly')
+                  WRITE (PRINTF, "(' Advise: choose spreading > ', F8.3, ' degr')") 0.5*DDIR/DEGRAD
+                  LSPNAR = .TRUE.
+               END IF
             ELSE
                CALL INREAL ('DD',  SPPARM(4), 'STA', 2.)
                IF (SPPARM(4).LE. 0.) THEN

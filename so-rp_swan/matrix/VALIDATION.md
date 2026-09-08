@@ -72,23 +72,28 @@ serial field (71,511 versus 71,685 wet cells), identically for both decks.
 Consequently the formal physics comparison follows the plan's requested-point
 mask and does not claim whole-field mask identity across decomposition modes.
 
-## Build, test, diagnostic and performance gates (WP1.6-meting 2026-09-07, tranche 6)
+## Build, test, diagnostic and performance gates (WP1.6-meting 2026-09-07, tranche 18)
 
 - CTest-registratie per configuratie (`ctest -N`, 2026-09-07, kandidaat
-  tranche 6; geen schatting): **50** voor standaard, OpenMP, TIMG,
+  tranche 18; geen schatting): **56** voor standaard, OpenMP, TIMG,
   TIMG+OpenMP, Matlab 4, METIS, FFRO, COH, ESMF, ADCIRC, LTO, native, runtime
   checks, debug invariants, beide legacy-I/O-routes, GNU 15, strict en debug;
-  **53** voor netCDF en Matlab 4+netCDF; **54** voor MPI, JAC, TIMG+MPI,
-  Matlab 4+MPI en FFRO+MPI; **55** voor METIS+MPI; **59** voor MPI+netCDF.
-  Deze aantallen zijn inclusief de tien configuratie-onafhankelijke poorttests
+  **59** voor netCDF en Matlab 4+netCDF; **60** voor MPI, JAC, TIMG+MPI,
+  Matlab 4+MPI en FFRO+MPI; **61** voor METIS+MPI; **65** voor MPI+netCDF.
+  Deze aantallen zijn inclusief de zestien configuratie-onafhankelijke poorttests
   (`reference_check_negatives`, `strict_diagnostics_negatives`,
   `build_matrix_negatives`, `ci_gate_self_test`, `mpi_field_mask_self_test`,
   `lifetime_fault`, `swan_library_contract`, `physics_reuse`, `grid_reuse`,
-  `spectrum_reuse`), de echte tweeranks-MPI-regressies waar van toepassing en
-  de MPI-only poort `mpi_unstructured_partition` (partitiecontract:
-  success-verwachting met METIS, clean-failure-verwachting zonder). Het oude
-  "25 tests"-getal is hiermee vervallen; herhaal deze `ctest -N`-telling per
-  configuratie na iedere bronwijziging die tests toevoegt.
+  `spectrum_reuse`, `shoaling`, `shoaling_units`, `grid_convergence`,
+  `grid_convergence_units`, `time_convergence`, `time_convergence_units`), de
+  echte tweeranks-MPI-regressies waar van toepassing en de MPI-only poort
+  `mpi_unstructured_partition` (partitiecontract: success-verwachting met
+  METIS, clean-failure-verwachting zonder). Het oude "25 tests"-getal is
+  hiermee vervallen; herhaal deze `ctest -N`-telling per configuratie na
+  iedere bronwijziging die tests toevoegt. `shoaling`/`grid_convergence`/
+  `time_convergence` zijn bewezen op serieel/OpenMP/MPI/METIS+MPI; overige
+  varianten staan via registratie (werking volgt uit onafhankelijkheid van
+  hun selecties: gestructureerd, serieel, tekstuitvoer).
 - Intel and Flang are not installed in this environment. NVFortran 26.5 is
   present but is explicitly outside the compiler set accepted by CMake
   (buiten scope: geen NVIDIA/NVFortran/PGI-support).
@@ -135,3 +140,30 @@ source terms are explicit follow-up work, not claimed here.
 
 Extended gate: default-vs-premodern Tm01, direction and convergence history are
 bit-equal in all 10 conditions.
+
+## Spectra — VaDens/NDIR/DSPRDEGR per frequentie per locatie
+
+Generated with the current `analyze_validation.py` on the same stored data
+(premodern/BSS via the symlinked full-final runs, same identities as above;
+no new model runs). Parser is strikt structureel (aantallen, LOCATION/NODATA-
+grammatica, exceptiewaarden per grootheid); droge punten dragen NODATA
+(bewezen exact de droge uitvoerpunten). Default-vs-premodern eist
+bitgelijkheid op `.sp1` én `.sp2`; legacy-vs-BSS alleen rapportage
+(`tolerances.json`: report_only — maxima inclusief energiearme cellen en
+maskerverschillen zijn resultaten, geen toleranties).
+
+| Condition | Default spectral max abs sp1/sp2 | Legacy VaDens max abs vs BSS | Legacy NDIR max abs vs BSS (deg) | Legacy mask differences |
+|---|---:|---:|---:|---:|
+| `u20_d310_lp300_open` | 0.000000 | 0.064900 | 16.900000 | {'DSPRDEGR': 0, 'NDIR': 0, 'VaDens': 0} |
+| `u02_d090_l0000_open` | 0.000000 | 0.000000 | 0.500000 | {'DSPRDEGR': 8, 'NDIR': 8, 'VaDens': 8} |
+| `u20_d300_lm200_open` | 0.000000 | 0.019700 | 3.900000 | {'DSPRDEGR': 0, 'NDIR': 0, 'VaDens': 0} |
+| `u20_d300_lp650_open` | 0.000000 | 0.074300 | 6.400000 | {'DSPRDEGR': 0, 'NDIR': 0, 'VaDens': 0} |
+| `u20_d310_lp300_closed` | 0.000000 | 0.064900 | 11.600000 | {'DSPRDEGR': 1, 'NDIR': 1, 'VaDens': 1} |
+| `u20_d120_lp300_open` | 0.000000 | 0.000010 | 0.100000 | {'DSPRDEGR': 0, 'NDIR': 0, 'VaDens': 0} |
+| `u40_d300_lp300_open` | 0.000000 | 0.075000 | 3.900000 | {'DSPRDEGR': 0, 'NDIR': 0, 'VaDens': 0} |
+| `u20_d315_lp300_open` | 0.000000 | 0.066500 | 72.000000 | {'DSPRDEGR': 0, 'NDIR': 0, 'VaDens': 0} |
+| `u20_d316_lp300_open` | 0.000000 | 0.034900 | 152.300000 | {'DSPRDEGR': 3, 'NDIR': 3, 'VaDens': 3} |
+| `u20_d346_lp300_open` | 0.000000 | 0.010300 | 51.300000 | {'DSPRDEGR': 2, 'NDIR': 2, 'VaDens': 2} |
+
+Spectral gate: default-vs-premodern spectra are bit-equal in .sp1 and .sp2 in
+all 10 conditions.

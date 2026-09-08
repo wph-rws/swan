@@ -52,6 +52,35 @@ def _write_run(
             for value in series
         )
     )
+    spectrum = (
+        "SWAN   1 test\n"
+        "LOCATIONS x\n"
+        "   3                                  number of locations\n"
+        "    0.0 0.0\n"
+        "    1.0 0.0\n"
+        "    2.0 0.0\n"
+        "RFREQ hz\n"
+        "    2                                  number of frequencies\n"
+        "    0.10\n"
+        "    0.20\n"
+        "QUANT\n"
+        "     2                                  number of quantities in table\n"
+        "VaDens m2/Hz\n"
+        "m2/Hz unit\n"
+        "   -0.9900E+02                          exception value\n"
+        "NDIR degr\n"
+        "degr unit\n"
+        "   -0.9990E+03                          exception value\n"
+        "LOCATION     1\n"
+        "  0.5  10.0\n"
+        "  1.5  20.0\n"
+        "LOCATION     2\n"
+        "  0.5  10.0\n"
+        "  1.5  20.0\n"
+        "NODATA\n"
+    )
+    (directory / "uitvoerpunten.sp1").write_text(spectrum)
+    (directory / "uitvoerpunten.sp2").write_text(spectrum)
 
 
 def _matrix(tmp_path: Path) -> tuple[Path, Path]:
@@ -121,4 +150,25 @@ def test_missing_print_fails_the_gate(tmp_path: Path):
     (changed / "PRINT").unlink()
 
     with pytest.raises((FileNotFoundError, ValueError), match="PRINT|convergence"):
+        analyze_validation.analyze(root, manifest)
+
+
+def test_default_spectra_difference_fails_the_gate(tmp_path: Path):
+    root, manifest = _matrix(tmp_path)
+    changed = root / "current_4151_default" / "case" / "replicate-001"
+    text = (changed / "uitvoerpunten.sp1").read_text().replace(
+        "  1.5  20.0\n", "  2.5  20.0\n", 1)
+
+    (changed / "uitvoerpunten.sp1").write_text(text)
+
+    with pytest.raises(ValueError, match="spectra differ"):
+        analyze_validation.analyze(root, manifest)
+
+
+def test_missing_spectra_fail_the_gate(tmp_path: Path):
+    root, manifest = _matrix(tmp_path)
+    changed = root / "current_4151_default" / "case" / "replicate-001"
+    (changed / "uitvoerpunten.sp2").unlink()
+
+    with pytest.raises((FileNotFoundError, ValueError), match="spectrum"):
         analyze_validation.analyze(root, manifest)
