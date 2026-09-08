@@ -388,6 +388,9 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          IF ( .NOT.LOPS ) THEN
             FOPS = OPSTMP
             COPS => FOPS
+!           Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+            DEALLOCATE(OPSTMP)
+            NULLIFY(OPSTMP)
             LOPS = .TRUE.
          ELSE
             COPS%NEXTOPS => OPSTMP
@@ -479,6 +482,9 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          IF ( .NOT.LOPS ) THEN
             FOPS = OPSTMP
             COPS => FOPS
+!           Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+            DEALLOCATE(OPSTMP)
+            NULLIFY(OPSTMP)
             LOPS = .TRUE.
          ELSE
             COPS%NEXTOPS => OPSTMP
@@ -563,6 +569,9 @@ CALL NWLINE
       IF ( .NOT.LOPS ) THEN
          FOPS = OPSTMP
          COPS => FOPS
+!        Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+         DEALLOCATE(OPSTMP)
+         NULLIFY(OPSTMP)
          LOPS = .TRUE.
       ELSE
          COPS%NEXTOPS => OPSTMP
@@ -646,6 +655,9 @@ CALL NWLINE
       IF ( .NOT.LOPS ) THEN
          FOPS = OPSTMP
          COPS => FOPS
+!        Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+         DEALLOCATE(OPSTMP)
+         NULLIFY(OPSTMP)
          LOPS = .TRUE.
       ELSE
          COPS%NEXTOPS => OPSTMP
@@ -742,6 +754,9 @@ CALL NWLINE
          IF ( .NOT.LOPS ) THEN
             FOPS = OPSTMP
             COPS => FOPS
+!           Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+            DEALLOCATE(OPSTMP)
+            NULLIFY(OPSTMP)
             LOPS = .TRUE.
          ELSE
             COPS%NEXTOPS => OPSTMP
@@ -850,6 +865,9 @@ CALL NWLINE
          IF ( .NOT.LOPS ) THEN
             FOPS = OPSTMP
             COPS => FOPS
+!           Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+            DEALLOCATE(OPSTMP)
+            NULLIFY(OPSTMP)
             LOPS = .TRUE.
          ELSE
             COPS%NEXTOPS => OPSTMP
@@ -1066,6 +1084,9 @@ CALL NWLINE
          IF ( .NOT.LOPS ) THEN
             FOPS = OPSTMP
             COPS => FOPS
+!           Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+            DEALLOCATE(OPSTMP)
+            NULLIFY(OPSTMP)
             LOPS = .TRUE.
          ELSE
             COPS%NEXTOPS => OPSTMP
@@ -3039,7 +3060,13 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
       CALL INCSTR ('FNAME',FILENM,'REQ', ' ')
       CALL BCWAMN (FILENM, 'NEST', BFLTMP,&
       &XCGRID, YCGRID, KGRPNT, XYTST)
-      IF (STPNOW()) RETURN
+      IF (STPNOW()) THEN
+!        Bij een mislukt bestand is het knooppunt nooit gekoppeld;
+!        geef het hier vrij (voorheen 280 B lek per foutieve run).
+         DEALLOCATE(BFLTMP)
+         NULLIFY(BFLTMP)
+         RETURN
+      ENDIF
       NULLIFY(BFLTMP%NEXTBSPC)
       IF ( .NOT.LBFILS ) THEN
          FBNDFIL = BFLTMP
@@ -3091,7 +3118,13 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
       CALL INCSTR ('FNAME',FILENM,'REQ', ' ')
       CALL BCWW3N (FILENM, 'NEST', BFLTMP,&
       &XCGRID, YCGRID, KGRPNT, XYTST, KGRBND)
-      IF (STPNOW()) RETURN
+      IF (STPNOW()) THEN
+!        Bij een mislukt bestand is het knooppunt nooit gekoppeld;
+!        geef het hier vrij (voorheen 280 B lek per foutieve run).
+         DEALLOCATE(BFLTMP)
+         NULLIFY(BFLTMP)
+         RETURN
+      ENDIF
       NULLIFY(BFLTMP%NEXTBSPC)
       IF ( .NOT.LBFILS ) THEN
          FBNDFIL = BFLTMP
@@ -3153,7 +3186,13 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
       CALL BCFILE (FILENM, 'NEST', BFLTMP,&
       &XCGRID, YCGRID, KGRPNT, XYTST,  KGRBND,&
       &DONALL)
-      IF (STPNOW()) RETURN
+      IF (STPNOW()) THEN
+!        Bij een mislukt bestand is het knooppunt nooit gekoppeld;
+!        geef het hier vrij (voorheen 280 B lek per foutieve run).
+         DEALLOCATE(BFLTMP)
+         NULLIFY(BFLTMP)
+         RETURN
+      ENDIF
       NULLIFY(BFLTMP%NEXTBSPC)
       IF ( .NOT.LBFILS ) THEN
          FBNDFIL = BFLTMP
@@ -3847,7 +3886,22 @@ IF (ISIDM.EQ.1) THEN
             CALL BCFILE (FILENM, 'PNTS', BFLTMP,&
             &XCGRID, YCGRID, KGRPNT, XYTST, KGRBND,&
             &DONALL)
-            IF (STPNOW()) RETURN
+            IF (STPNOW()) THEN
+!              Geef het niet-gekoppelde knooppunt én de reeds
+!              opgebouwde XYPT-keten vrij (voorheen 280 B + 2 knopen
+!              à 16 B lek per foutieve run).
+               DEALLOCATE(BFLTMP)
+               NULLIFY(BFLTMP)
+               CURR => FRST%NEXTXY
+               DO WHILE (ASSOCIATED(CURR))
+                  TMP => CURR%NEXTXY
+                  DEALLOCATE(CURR)
+                  CURR => TMP
+               END DO
+               NULLIFY(FRST%NEXTXY)
+               NULLIFY(TMP)
+               RETURN
+            ENDIF
             NULLIFY(BFLTMP%NEXTBSPC)
             IF ( .NOT.LBFILS ) THEN
                FBNDFIL = BFLTMP
@@ -3917,6 +3971,14 @@ IF (ISIDM.EQ.1) THEN
                   CALL MSGERR(1,&
                   &'Length of segment short, boundary values ignored')
                   WRITE (PRINTF, "(' segment length=', F9.2, '; [len]=', F9.2)") RDIST, RLEN2
+!                 Neem de melding letterlijk: verdelen kan niet meer.
+!                 De blokken worden verder wél ingelezen (de invoerstroom
+!                 moet uitgelijnd blijven), maar er wordt geen grenspunt
+!                 meer herschreven. Voorheen werd de laatste knoop van de
+!                 al verbruikte XYPT-keten hier opnieuw geconsumeerd: een
+!                 dubbele grenspunt-entry met wegingsfactor >1 (en een
+!                 negatieve tegenweging) op hetzelfde punt. De bewaking
+!                 staat nu bovenaan de boundary_points-lus.
                ENDIF
                IF (BPARF) THEN
                   CALL INREAL ('HS',  SPPARM(1), 'REQ', 0.)
@@ -3979,7 +4041,22 @@ IF (ISIDM.EQ.1) THEN
                      CALL BCFILE (FILENM, 'PNTS', BFLTMP,&
                      &XCGRID, YCGRID, KGRPNT, XYTST, KGRBND,&
                      &DONALL)
-                     IF (STPNOW()) RETURN
+                     IF (STPNOW()) THEN
+!                       Geef het niet-gekoppelde knooppunt én de reeds
+!                       opgebouwde XYPT-keten vrij (voorheen 280 B + restant
+!                       van de keten lek per foutieve run).
+                        DEALLOCATE(BFLTMP)
+                        NULLIFY(BFLTMP)
+                        CURR => FRST%NEXTXY
+                        DO WHILE (ASSOCIATED(CURR))
+                           TMP => CURR%NEXTXY
+                           DEALLOCATE(CURR)
+                           CURR => TMP
+                        END DO
+                        NULLIFY(FRST%NEXTXY)
+                        NULLIFY(TMP)
+                        RETURN
+                     ENDIF
                      NULLIFY(BFLTMP%NEXTBSPC)
                      IF ( .NOT.LBFILS ) THEN
                         FBNDFIL = BFLTMP
@@ -4003,6 +4080,10 @@ IF (ISIDM.EQ.1) THEN
             ENDIF
             LFRST3 = .TRUE.
             boundary_points: DO
+!              Is de keten al volledig verdeeld (kort segment), lees
+!              dan geen knoop meer; voorheen werd de laatste knoop van de
+!              verbruikte keten hier opnieuw geconsumeerd.
+               IF (IKO.GT.KOUNTR) EXIT boundary_points
                IX = CURR%JX
                IF (OPTG.NE.5) THEN
                   IY = CURR%JY
@@ -4058,8 +4139,20 @@ IF (ISIDM.EQ.1) THEN
       ELSE
          CALL WRNKEY
       ENDIF
-      IF (ASSOCIATED(TMP)) DEALLOCATE(TMP)
-   ENDIF
+      IF (KOUNTR.GT.0) THEN
+!        XYPT-keten is volledig verbruikt door de IKO/VAR-lussen;
+!        geef alle knopen vrij (één knoop vrijgeven lekte de rest, elke
+!        aanroep). KOUNTR bewaakt gedefinieerdheid: reset per commando.
+         CURR => FRST%NEXTXY
+         DO WHILE (ASSOCIATED(CURR))
+            TMP => CURR%NEXTXY
+            DEALLOCATE(CURR)
+            CURR => TMP
+         END DO
+         NULLIFY(FRST%NEXTXY)
+         NULLIFY(TMP)
+      END IF
+    ENDIF
 RETURN
 end subroutine SWBOUN
 !*********************************************************************
@@ -6487,6 +6580,9 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
    IF ( .NOT.LOPS ) THEN
       FOPS = OPSTMP
       COPS => FOPS
+!     Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+      DEALLOCATE(OPSTMP)
+      NULLIFY(OPSTMP)
       LOPS = .TRUE.
    ELSE
       COPS%NEXTOPS => OPSTMP

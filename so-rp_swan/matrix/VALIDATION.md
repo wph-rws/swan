@@ -101,14 +101,18 @@ mask and does not claim whole-field mask identity across decomposition modes.
 - The structured and unstructured OpenMP references pass at 1, 2 and 4
   threads. Nonlinear interaction tests exercise active triad and quadruplet
   paths.
-- Strict-poort (WP2.4 + WP3a/WP3b/WP5b-tranches, schone bouw met `--require-baseline`,
-  GNU 13.3.0): **1.361 waarschuwingen in 504 fingerprints**, `within budget`,
-  `no new warnings` (`function-elimination` 163→85 door zuivere `pvalid`;
+- Strict-poort (WP2.4 + WP3a/WP3b/WP5b-tranches + WP4-hersteltranches, schone
+  bouw met `--require-baseline`, GNU 13.3.0): **1.360 waarschuwingen in 503
+  fingerprints**, `within budget`, `no new warnings` — herhaald op commit
+  "Isoleer de tests en sluit de geheugenlevensduur af" (8 september 2026; op kandidaat tranche 25 van 7 september:
+  1.361/504). Attributie: `function-elimination` 163→85 door zuivere `pvalid`;
   `implicit-interface` 2→0 door `swan_metis_interface`/BIND(C);
   `unused-function` 4→0 plus één `compare-reals` in dood `SWSOR` door
   verwijderde dode procedures; −5 `unused-parameter` buiten gevenderde code;
-  −1 `maybe-uninitialized` als nevenopbrengst van correcte keten-vrijgave (138→136);
-  SPROUT-vrijgave lost nog een `TMP`-pad op;
+  −3 `maybe-uninitialized` (138→135): 137 door de NEXTI/ORQTMP-keten-vrijgave,
+  136 door de SPROUT-vrijgave (`TMP`-pad), 135 door de XYPT-vrijgave
+  (XYPT-`SWBOUN`-keten; de oude kale `DEALLOCATE(TMP)`-regel verdwenen;
+  geheugen cumulatief 2040 B → 0 B);
   alles volledig geattribueerd zonder compensatie).
   Configureerlog `strict-configure.log` en bouwlog `strict-build.log` bewaard
   in de bouwmap; geen incrementeel slotlog. Budget en fingerprints zijn

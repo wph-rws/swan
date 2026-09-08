@@ -1662,6 +1662,9 @@ CALL NWLINE
                IF ( .NOT.LOPS ) THEN
                   FOPS = OPSTMP
                   COPS => FOPS
+!                 Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+                  DEALLOCATE(OPSTMP)
+                  NULLIFY(OPSTMP)
                   LOPS = .TRUE.
                ELSE
                   COPS%NEXTOPS => OPSTMP
@@ -1932,6 +1935,9 @@ CALL NWLINE
          IF ( .NOT.LOPS ) THEN
             FOPS = OPSTMP
             COPS => FOPS
+!           Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+            DEALLOCATE(OPSTMP)
+            NULLIFY(OPSTMP)
             LOPS = .TRUE.
          ELSE
             COPS%NEXTOPS => OPSTMP
@@ -4193,6 +4199,9 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
    IF ( .NOT.LOPS ) THEN
       FOPS = OPSTMP
       COPS => FOPS
+!     Kopie bewaart alle data; geef het tijdelijke knooppunt vrij
+      DEALLOCATE(OPSTMP)
+      NULLIFY(OPSTMP)
       LOPS = .TRUE.
    ELSE
       COPS%NEXTOPS => OPSTMP

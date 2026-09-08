@@ -2,21 +2,34 @@
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "examples"
-                       / "shoaling"))
-from run import (  # noqa: E402
-    check_case,
-    circular_distance,
-    green_ratio,
-    intended_depth,
-    refraction_factor,
-    snell_from_direction,
-)
+
+def _load_runner() -> object:
+    # Locatiegebonden import onder een unieke modulenaam: meerdere runners
+    # heten `run.py`; via sys.path zouden ze elkaar overschaduwen in één
+    # pytest-sessie (gevonden doordat een gecombineerde run faalde).
+    path = (Path(__file__).resolve().parent.parent / "examples" / "shoaling"
+            / "run.py")
+    spec = importlib.util.spec_from_file_location("shoaling_run", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["shoaling_run"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+_run = _load_runner()
+check_case = _run.check_case
+circular_distance = _run.circular_distance
+green_ratio = _run.green_ratio
+intended_depth = _run.intended_depth
+refraction_factor = _run.refraction_factor
+snell_from_direction = _run.snell_from_direction
 
 
 def test_green_ratio_is_one_at_reference_depth():

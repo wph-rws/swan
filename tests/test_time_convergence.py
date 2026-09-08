@@ -2,14 +2,27 @@
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "examples"
-                       / "time_convergence"))
-from run import report  # noqa: E402
+
+def _load_runner() -> object:
+    # Locatiegebonden import onder een unieke modulenaam (zie test_shoaling).
+    path = (Path(__file__).resolve().parent.parent / "examples"
+            / "time_convergence" / "run.py")
+    spec = importlib.util.spec_from_file_location("time_convergence_run", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["time_convergence_run"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+_run = _load_runner()
+report = _run.report
 
 
 def _write_run(work: Path, step: int, values: list[float],

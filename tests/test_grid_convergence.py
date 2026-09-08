@@ -2,14 +2,29 @@
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "examples"
-                       / "grid_convergence"))
-from run import check_all, circular_distance, estimated_order  # noqa: E402
+
+def _load_runner() -> object:
+    # Locatiegebonden import onder een unieke modulenaam (zie test_shoaling).
+    path = (Path(__file__).resolve().parent.parent / "examples"
+            / "grid_convergence" / "run.py")
+    spec = importlib.util.spec_from_file_location("grid_convergence_run", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["grid_convergence_run"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+_run = _load_runner()
+check_all = _run.check_all
+circular_distance = _run.circular_distance
+estimated_order = _run.estimated_order
 
 
 def test_estimated_order_first_order():

@@ -142,7 +142,7 @@ jobs:
           python3 scripts/check_ci_dependencies.py
           python3 scripts/ci_gate.py --self-test
           python3 scripts/ci_gate.py --check-workflow .github/workflows/ci.yml
-          python3 -m pytest tests/test_switch_compatibility.py examples -q || python3 -m pytest tests/test_switch_compatibility.py -q
+          python3 -m pytest tests/ -q
       - name: Schrijf resultaat
         if: always()
         run: |
