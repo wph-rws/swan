@@ -9,11 +9,22 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
+
 HERE = Path(__file__).resolve().parent
 COMPARISON = HERE.parent / "comparison"
 sys.path.insert(0, str(COMPARISON))
 
-from result_stats import DifferenceStats, compare, read_hsig_field, read_hsig_points
+from result_stats import (
+    DifferenceStats,
+    compare,
+    compare_circular,
+    read_convergence_history,
+    read_dir_points,
+    read_hsig_field,
+    read_hsig_points,
+    read_tm01_points,
+)
 
 
 TARGETS = (
@@ -49,6 +60,10 @@ def zero(stats: DifferenceStats) -> bool:
     return stats.bias == 0.0 and stats.rms == 0.0 and stats.maximum_absolute == 0.0
 
 
+def same_convergence(first: np.ndarray, second: np.ndarray) -> bool:
+    return len(first) == len(second) and bool(np.array_equal(first, second))
+
+
 def analyze(root: Path, manifest_path: Path) -> str:
     manifest = json.loads(manifest_path.read_text())
     conditions = [item["id"] for item in manifest["conditions"]]
@@ -61,6 +76,22 @@ def analyze(root: Path, manifest_path: Path) -> str:
     ]
     current_hashes: set[str] = set()
     exact_default_conditions = 0
+    extended_lines = [
+        "",
+        "## Extended quantities",
+        "",
+        "Tm01 and direction use the header-named table columns (not positions); "
+        "direction is compared circularly excluding points below 0.05 m Hsig in "
+        "both runs; convergence is the per-iteration PRINT accuracy series. "
+        "The default-vs-premodern gate demands bit-equality here too; the "
+        "legacy-vs-BSS columns only report (tolerances.json: report_only).",
+        "",
+        "| Condition | Default Tm01 max abs vs premodern (s) | "
+        "Default Dir max abs vs premodern (deg) | Convergence iters "
+        "premodern/current | Legacy Tm01 max abs vs BSS (s) | "
+        "Legacy Dir max abs vs BSS (deg) |",
+        "|---|---:|---:|---:|---:|---:|",
+    ]
 
     for condition in conditions:
         runs = {target: load_run(root, target, condition) for target in TARGETS}
@@ -87,6 +118,40 @@ def analyze(root: Path, manifest_path: Path) -> str:
             raise ValueError(
                 f"{condition}: current default differs from premodern 41.51"
             )
+        # Dezelfde bitgelijkheidseis voor perioden, richtingen en
+        # convergentiegeschiedenis; maskers eerst, EXCV nooit mee, richting
+        # circulair en bij verwaarloosbare energie apart.
+        pre_tm01 = read_tm01_points(
+            runs["premodern_4151"].directory / "uitvoerpunten.tab"
+        )
+        current_tm01 = read_tm01_points(
+            runs["current_4151_default"].directory / "uitvoerpunten.tab"
+        )
+        default_tm01_delta = compare(pre_tm01, current_tm01)
+        pre_dir = read_dir_points(
+            runs["premodern_4151"].directory / "uitvoerpunten.tab"
+        )
+        current_dir = read_dir_points(
+            runs["current_4151_default"].directory / "uitvoerpunten.tab"
+        )
+        default_dir_delta = compare_circular(
+            pre_dir, current_dir, pre_points, current_points
+        )
+        pre_conv = read_convergence_history(
+            runs["premodern_4151"].directory / "PRINT"
+        )
+        current_conv = read_convergence_history(
+            runs["current_4151_default"].directory / "PRINT"
+        )
+        if (
+            not zero(default_tm01_delta)
+            or not zero(default_dir_delta)
+            or not same_convergence(pre_conv, current_conv)
+        ):
+            raise ValueError(
+                f"{condition}: current default differs from premodern 41.51 "
+                "in Tm01, direction or convergence history"
+            )
         exact_default_conditions += 1
 
         bss_field = read_hsig_field(runs["bss_4131"].directory / "scaloost_rp.mat")
@@ -103,6 +168,25 @@ def analyze(root: Path, manifest_path: Path) -> str:
         # the requested wet points, not over the domain.
         compare(bss_field, legacy_field)
         legacy_delta = compare(bss_points, legacy_points)
+        bss_tm01 = read_tm01_points(runs["bss_4131"].directory / "uitvoerpunten.tab")
+        legacy_tm01 = read_tm01_points(
+            runs["current_4151_legacy"].directory / "uitvoerpunten.tab"
+        )
+        legacy_tm01_delta = compare(bss_tm01, legacy_tm01)
+        bss_dir = read_dir_points(runs["bss_4131"].directory / "uitvoerpunten.tab")
+        legacy_dir = read_dir_points(
+            runs["current_4151_legacy"].directory / "uitvoerpunten.tab"
+        )
+        legacy_dir_delta = compare_circular(
+            bss_dir, legacy_dir, bss_points, legacy_points
+        )
+        extended_lines.append(
+            f"| `{condition}` | {default_tm01_delta.maximum_absolute:.6f} | "
+            f"{default_dir_delta.maximum_absolute:.6f} | "
+            f"{len(pre_conv)}/{len(current_conv)} | "
+            f"{legacy_tm01_delta.maximum_absolute:.6f} | "
+            f"{legacy_dir_delta.maximum_absolute:.6f} |"
+        )
 
         lines.append(
             f"| `{condition}` | {legacy_points.wet_count}/{legacy_points.dry_count} | "
@@ -128,6 +212,15 @@ def analyze(root: Path, manifest_path: Path) -> str:
             "",
             f"Current executable SHA-256: `{next(iter(current_hashes))}`.",
         )
+    )
+    lines.extend(extended_lines)
+    lines.append(
+        "",
+    )
+    lines.append(
+        "Extended gate: default-vs-premodern Tm01, direction and convergence "
+        f"history are bit-equal in all {exact_default_conditions} conditions "
+        "(failure raises before this line is reached)."
     )
     return "\n".join(lines)
 

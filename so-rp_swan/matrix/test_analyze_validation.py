@@ -18,6 +18,9 @@ def _write_run(
     *,
     field: np.ndarray,
     points: np.ndarray,
+    tm01: np.ndarray | None = None,
+    direction: np.ndarray | None = None,
+    convergence: list[float] | None = None,
 ) -> None:
     directory = root / target / "case" / "replicate-001"
     directory.mkdir(parents=True)
@@ -30,9 +33,25 @@ def _write_run(
     }
     (directory / "run.json").write_text(json.dumps(metadata))
     savemat(directory / "scaloost_rp.mat", {"Hsig": field})
-    table = np.zeros((points.size, 4))
+    table = np.zeros((points.size, 6))
     table[:, 3] = points
-    np.savetxt(directory / "uitvoerpunten.tab", table)
+    table[:, 4] = points if tm01 is None else tm01
+    table[:, 5] = points if direction is None else direction
+    header = (
+        "%\n%\n"
+        "%       Xp            Yp            Depth         Hsig          Tm01          Dir\n"
+    )
+    (directory / "uitvoerpunten.tab").write_text(
+        header
+        + "".join(" ".join(f"{value:.4f}" for value in row) + "\n" for row in table)
+    )
+    series = [5.0, 98.0] if convergence is None else convergence
+    (directory / "PRINT").write_text(
+        "".join(
+            f" accuracy OK in {value:.2f} % of wet grid points ( 98.00 % required)\n"
+            for value in series
+        )
+    )
 
 
 def _matrix(tmp_path: Path) -> tuple[Path, Path]:
@@ -54,6 +73,8 @@ def test_complete_matrix_requires_exact_default_and_reports_wet_points(tmp_path:
     assert "1/1 conditions exactly equal" in text
     assert "| `case` | 2/1 |" in text
     assert "Current executable SHA-256: `current-hash`" in text
+    assert "## Extended quantities" in text
+    assert "bit-equal in all 1 conditions" in text
 
 
 def test_default_difference_fails_the_gate(tmp_path: Path):
@@ -62,4 +83,42 @@ def test_default_difference_fails_the_gate(tmp_path: Path):
     savemat(changed / "scaloost_rp.mat", {"Hsig": [[1.0, 2.1], [-9.0, 4.0]]})
 
     with pytest.raises(ValueError, match="current default differs"):
+        analyze_validation.analyze(root, manifest)
+
+
+def test_default_tm01_difference_fails_the_gate(tmp_path: Path):
+    root, manifest = _matrix(tmp_path)
+    changed = root / "current_4151_default" / "case" / "replicate-001"
+    table = np.loadtxt(changed / "uitvoerpunten.tab", comments="%")
+    table[:, 4] += 0.5
+    header = (
+        "%\n%\n"
+        "%       Xp            Yp            Depth         Hsig          Tm01          Dir\n"
+    )
+    (changed / "uitvoerpunten.tab").write_text(
+        header
+        + "".join(" ".join(f"{value:.4f}" for value in row) + "\n" for row in table)
+    )
+
+    with pytest.raises(ValueError, match="Tm01, direction or convergence"):
+        analyze_validation.analyze(root, manifest)
+
+
+def test_default_convergence_difference_fails_the_gate(tmp_path: Path):
+    root, manifest = _matrix(tmp_path)
+    changed = root / "current_4151_default" / "case" / "replicate-001"
+    (changed / "PRINT").write_text(
+        " accuracy OK in   5.66 % of wet grid points ( 98.00 % required)\n"
+    )
+
+    with pytest.raises(ValueError, match="Tm01, direction or convergence"):
+        analyze_validation.analyze(root, manifest)
+
+
+def test_missing_print_fails_the_gate(tmp_path: Path):
+    root, manifest = _matrix(tmp_path)
+    changed = root / "current_4151_default" / "case" / "replicate-001"
+    (changed / "PRINT").unlink()
+
+    with pytest.raises((FileNotFoundError, ValueError), match="PRINT|convergence"):
         analyze_validation.analyze(root, manifest)

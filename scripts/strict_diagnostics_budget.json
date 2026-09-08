@@ -1,6 +1,6 @@
 {
   "conversion-extra": 493,
-  "compare-reals": 226,
+  "compare-reals": 225,
   "unused-variable": 217,
   "maybe-uninitialized": 138,
   "function-elimination": 85,
@@ -8,7 +8,6 @@
   "unused-dummy-argument": 67,
   "do-subscript": 37,
   "character-truncation": 25,
-  "unused-parameter": 7,
-  "unused-function": 4,
+  "unused-parameter": 2,
   "uninitialized": 2
 }

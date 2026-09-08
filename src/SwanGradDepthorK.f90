@@ -99,7 +99,6 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
     real, dimension(3)                    :: dm       ! local mud layer at vertices
     real                                  :: dmaxc    ! maximum depth found per cell of centroid dual
     real                                  :: dminc    ! minimum depth found per cell of centroid dual
-    real, parameter                       :: drat= 5. ! ratio between maximum and minimum depths in centroid dual
     real                                  :: h0       ! depth in centroid of present cell
     real                                  :: h1       ! depth in centroid of next cell
     real, dimension(MSC)                  :: k0       ! wave number in centroid of present cell

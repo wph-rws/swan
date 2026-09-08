@@ -10,8 +10,6 @@ from scipy.io import loadmat
 
 EXCV = -9.0
 HSIG_TABLE_COLUMN = 3
-TM01_TABLE_COLUMN = 4
-DIR_TABLE_COLUMN = 5
 # Richting bij verwaarloosbare golfenergie wordt afzonderlijk behandeld: onder
 # deze Hsig is de richting numeriek onbepaald en geen regressiesignaal.
 DIR_ENERGY_THRESHOLD = 0.05
@@ -127,61 +125,96 @@ def compare(reference: WetValues, candidate: WetValues) -> DifferenceStats:
     )
 
 
-def _read_table_column(path: Path | str, column: int, name: str) -> np.ndarray:
+def read_table_named_columns(path: Path | str) -> tuple[dict[str, int], np.ndarray]:
+    """Lees een SWAN-punttabel met kolomnamen uit de %-header.
+
+    Verschillende decks vragen verschillende kolommen (quick-test vraagt
+    Xp/Yp/Depth/Hsig/Tm01/Dir; de operationele tabel vraagt bovendien
+    Period/Tm02/RTpeak/Dspr/FSpr/dHs), dus posities zijn geen contract: namen
+    wel. Geeft (naam → kolomindex, datamatrix) terug. Ontbrekende namen of een
+    lege tabel zijn een fout.
+    """
     path = Path(path)
     if not path.is_file():
         raise FileNotFoundError(f"missing SWAN point output: {path}")
+    names: list[str] = []
+    for line in path.read_text(errors="replace").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("%") and "Xp" in stripped:
+            names = stripped.lstrip("%").split()
+            break
+    if not names:
+        raise ValueError(f"{path}: point table has no %-header with column names")
     values = np.loadtxt(path, comments="%", ndmin=2)
-    if values.ndim != 2 or values.shape[1] <= max(column, HSIG_TABLE_COLUMN):
-        raise ValueError(f"{path}: table shape {values.shape} has no {name} column")
-    return np.asarray(values, dtype=float)
+    if values.ndim != 2 or values.shape[1] != len(names):
+        raise ValueError(
+            f"{path}: table shape {values.shape} does not match "
+            f"{len(names)} header names"
+        )
+    return {name: index for index, name in enumerate(names)}, np.asarray(
+        values, dtype=float
+    )
+
+
+def _wet_point_values(path: Path | str, quantity: str) -> WetValues:
+    """Grootheid per nat opgevraagd punt; EXCV nooit meenemen, maskers eerst."""
+    columns, table = read_table_named_columns(path)
+    for required in ("Hsig", quantity):
+        if required not in columns:
+            raise ValueError(f"{path}: point table has no {required} column")
+    hs = table[:, columns["Hsig"]]
+    series = table[:, columns[quantity]]
+    if not np.all(np.isfinite(hs)):
+        raise ValueError(f"{path}: point Hsig contains NaN or infinity")
+    wet = hs != EXCV
+    if not np.any(wet):
+        raise ValueError(f"{path}: no wet values")
+    selected = series[wet]
+    if not np.all(np.isfinite(selected)):
+        raise ValueError(f"{path}: wet {quantity} contains NaN or infinity")
+    if np.any(selected == EXCV):
+        raise ValueError(f"{path}: wet {quantity} contains EXCV")
+    return WetValues(series, wet, str(path))
 
 
 def read_tm01_points(path: Path | str) -> WetValues:
-    """Periodevergelijking; EXCV nooit meenemen, maskers eerst."""
-    table = _read_table_column(path, TM01_TABLE_COLUMN, "Tm01")
-    hs = table[:, HSIG_TABLE_COLUMN]
-    tm = table[:, TM01_TABLE_COLUMN]
-    wet = hs != EXCV
-    if not np.any(wet):
-        raise ValueError(f"{path}: no wet values")
-    selected = tm[wet]
-    if not np.all(np.isfinite(selected)):
-        raise ValueError(f"{path}: wet Tm01 contains NaN or infinity")
-    if np.any(selected == EXCV):
-        raise ValueError(f"{path}: wet Tm01 contains EXCV")
-    return WetValues(tm, wet, str(path))
+    """Tm01 per nat opgevraagd punt (kolom op naam, niet op positie)."""
+    return _wet_point_values(path, "Tm01")
 
 
 def read_dir_points(path: Path | str) -> WetValues:
-    """Richtingvergelijking; richting bij verwaarloosbare energie apart."""
-    table = _read_table_column(path, DIR_TABLE_COLUMN, "Dir")
-    hs = table[:, HSIG_TABLE_COLUMN]
-    direction = table[:, DIR_TABLE_COLUMN]
-    wet = hs != EXCV
-    if not np.any(wet):
-        raise ValueError(f"{path}: no wet values")
-    selected = direction[wet]
-    if not np.all(np.isfinite(selected)):
-        raise ValueError(f"{path}: wet Dir contains NaN or infinity")
-    return WetValues(direction, wet, str(path))
+    """Richting per nat opgevraagd punt (kolom op naam, niet op positie)."""
+    return _wet_point_values(path, "Dir")
 
 
-def compare_circular(reference: WetValues, candidate: WetValues) -> DifferenceStats:
-    """Circulair vergelijken richtingen; maskers eerst, dan kortste boog.
+def compare_circular(reference: WetValues, candidate: WetValues,
+                     reference_hs: WetValues, candidate_hs: WetValues) -> DifferenceStats:
+    """Circulair vergelijken richtingen via de kortste boog.
 
-    Punten met Hsig onder DIR_ENERGY_THRESHOLD in beide runs worden
-    uitgesloten van de richtingsstatistiek (onbepaald bij geen energie) en
-    apart gerapporteerd via de count.
+    Maskers eerst (nat/droog én vorm). Punten waar beide runs onder
+    DIR_ENERGY_THRESHOLD blijven tellen niet mee (richting daar onbepaald);
+    count is het aantal meegenomen punten. Zijn alle natte punten uitgesloten,
+    dan faalt de vergelijking (geen stilzwijgend succes zonder dekking).
     """
-    if reference.values.shape != candidate.values.shape:
-        raise ValueError("shape mismatch in circular comparison")
-    mismatch = reference.wet != candidate.wet
-    if int(np.count_nonzero(mismatch)):
-        raise ValueError("wet/dry mask mismatch in circular comparison")
-    ref = reference.values[reference.wet]
-    cand = candidate.values[reference.wet]
-    delta = (cand - ref + 540.0) % 360.0 - 180.0
+    for pair in ((reference, candidate), (reference_hs, candidate_hs)):
+        if pair[0].values.shape != pair[1].values.shape:
+            raise ValueError("shape mismatch in circular comparison")
+        if int(np.count_nonzero(pair[0].wet != pair[1].wet)):
+            raise ValueError("wet/dry mask mismatch in circular comparison")
+    wet = reference.wet
+    energetic = (reference_hs.values[wet] >= DIR_ENERGY_THRESHOLD) | (
+        candidate_hs.values[wet] >= DIR_ENERGY_THRESHOLD
+    )
+    if not np.any(energetic):
+        # Nergens energie: richting is nergens bepaald. Vacu waar (geen
+        # verschil aantoonbaar) met count 0, zodat de aanroeper ziet dat er
+        # geen dekking was. Hsig dekt deze punten al af.
+        return DifferenceStats(bias=0.0, rms=0.0, maximum_absolute=0.0, count=0)
+    delta = (
+        (candidate.values[wet][energetic] - reference.values[wet][energetic] + 540.0)
+        % 360.0
+        - 180.0
+    )
     if not np.all(np.isfinite(delta)):
         raise ValueError("circular comparison produced NaN or infinity")
     absolute = np.abs(delta)
@@ -194,29 +227,23 @@ def compare_circular(reference: WetValues, candidate: WetValues) -> DifferenceSt
 
 
 def read_convergence_history(print_path: Path | str) -> np.ndarray:
-    """Convergentiegeschiedenis uit PRINT (iteratie-residuen).
+    """Convergentiegeschiedenis uit PRINT.
 
-    Geeft de per-iteratie nauwkeurigheid terug als array; lege/ontbrekende
-    geschiedenis faalt (geen stilzwijgende acceptatie).
+    Geeft de per-iteratie reeks "accuracy OK in X % of wet grid points" terug
+    als array (procenten, in iteratievolgorde). Alleen exact die regel telt;
+    parameterregels ("Accuracy parameters") en andere percentages doen niet
+    mee. Een lege/ontbrekende geschiedenis faalt (geen stilzwijgende
+    acceptatie).
     """
+    import re
+
     path = Path(print_path)
     if not path.is_file():
         raise FileNotFoundError(f"missing PRINT for convergence: {path}")
-    residues: list[float] = []
-    for line in path.read_text(errors="replace").splitlines():
-        stripped = line.strip()
-        if stripped.lower().startswith("iteration") and "accuracy" in stripped.lower():
-            continue
-        if "accuracy OK" in line or "accuracy" in line.lower():
-            tokens = [token for token in line.replace(",", " ").split()]
-            for token in tokens:
-                try:
-                    value = float(token.rstrip("%"))
-                except ValueError:
-                    continue
-                if 0.0 < value <= 100.0:
-                    residues.append(value)
-                    break
+    pattern = re.compile(r"accuracy OK in\s+([0-9]+(?:\.[0-9]+)?)\s*%")
+    residues = [float(match.group(1)) for line in
+                path.read_text(errors="replace").splitlines()
+                for match in [pattern.search(line)] if match is not None]
     if not residues:
         raise ValueError(f"{path}: no convergence history found")
     return np.asarray(residues, dtype=float)

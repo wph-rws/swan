@@ -120,7 +120,6 @@ contains
 !     HeaderSize  size of the header in bytes
 !     mChar       character data
 !     mInt32      signed   INTEGER(KIND=SELECTED_INT_KIND(9))
-!     mUInt32     unsigned INTEGER(KIND=SELECTED_INT_KIND(18))
 !     mSingle     real
 !
 !     --- standard sizes
@@ -133,7 +132,6 @@ contains
 !
          INTEGER, PARAMETER :: mChar      = 1
          INTEGER, PARAMETER :: mInt32     = 5
-         INTEGER, PARAMETER :: mUInt32    = 6
          INTEGER, PARAMETER :: mSingle    = 7
 !
 !  6. Local variables

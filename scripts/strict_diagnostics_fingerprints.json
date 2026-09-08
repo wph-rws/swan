@@ -191,7 +191,7 @@
    "compare-reals",
    "swancom1.f90",
    "Inequality comparison for REAL(4) at (1)",
-   31
+   30
   ],
   [
    "compare-reals",
@@ -2060,57 +2060,9 @@
    1
   ],
   [
-   "unused-function",
-   "swancom1.f90",
-   "‘swsor’ defined but not used",
-   1
-  ],
-  [
-   "unused-function",
-   "swancom5.f90",
-   "‘strsdfv’ defined but not used",
-   1
-  ],
-  [
-   "unused-function",
-   "swanmain.f90",
-   "‘wrtest’ defined but not used",
-   1
-  ],
-  [
-   "unused-function",
-   "swanser.f90",
-   "‘distr’ defined but not used",
-   1
-  ],
-  [
    "unused-parameter",
    "SdsBabanin.f90",
    "Unused parameter ‘nu_water’ declared at (1)",
-   2
-  ],
-  [
-   "unused-parameter",
-   "SwanGradDepthorK.f90",
-   "Unused parameter ‘drat’ declared at (1)",
-   1
-  ],
-  [
-   "unused-parameter",
-   "SwanGradVel.f90",
-   "Unused parameter ‘drat’ declared at (1)",
-   1
-  ],
-  [
-   "unused-parameter",
-   "swan_matlab_v5_backend.f90",
-   "Unused parameter ‘muint32’ declared at (1)",
-   1
-  ],
-  [
-   "unused-parameter",
-   "swan_service_interfaces.f90",
-   "Unused parameter ‘master’ which has been explicitly imported at (1)",
    2
   ],
   [

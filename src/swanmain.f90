@@ -13,7 +13,6 @@
 !     SINUPT
 !     SINBTG
 !     SINCMP
-!     WRTEST
 !     ERRCHK
 !     SNEXTI
 !     RBFILE: Read boundary spectra from one file
@@ -5305,106 +5304,6 @@ SUBROUTINE SWRBC ( COMPDA )
    RETURN
 ! * end of subroutine SWRBC *
 end subroutine SWRBC
-!************************************************************************
-!                                                                      *
-
-!************************************************************************
-!                                                                      *
-
-!************************************************************************
-!                                                                      *
-!************************************************************************
-!                                                                      *
-!************************************************************************
-!                                                                      *
-SUBROUTINE WRTEST (NAME, NA, IARR, RARR)
-!                                                                      *
-!************************************************************************
-
-   USE swan_io_units
-
-
-!   --|-----------------------------------------------------------|--
-!     | Delft University of Technology                            |
-!     | Faculty of Civil Engineering and Geosciences              |
-!     | Environmental Fluid Mechanics Section                     |
-!     | P.O. Box 5048, 2600 GA  Delft, The Netherlands            |
-!     |                                                           |
-!     | Programmers: The SWAN team                                |
-!   --|-----------------------------------------------------------|--
-!
-!
-!     SWAN (Simulating WAves Nearshore); a third generation wave model
-!     Copyright (C) 1993-2024  Delft University of Technology
-!
-!     This program is free software: you can redistribute it and/or modify
-!     it under the terms of the GNU General Public License as published
-!     the Free Software Foundation, either version 3 of the License, or
-!     (at your option) any later version.
-!
-!     This program is distributed in the hope that it will be useful,
-!     but WITHOUT ANY WARRANTY; without even the implied warranty of
-!     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-!     GNU General Public License for more details.
-!
-!     You should have received a copy of the GNU General Public License
-!     along with this program. If not, see <http://www.gnu.org/licenses/>.
-!
-!
-!  0. Authors
-!
-!     40.41: Marcel Zijlema
-!
-!  1. Updates
-!
-!     40.41, Oct. 04: common blocks replaced by modules, include files removed
-!
-!  2. Purpose
-!
-!     ---
-!
-!  3. Method
-!
-!     ---
-!
-!  4. Argument variables
-!
-!     IARR(*)
-!     NA
-!     NAME*(*)
-!     RARR(*)
-
-   INTEGER   IARR(*), NA, II
-   REAL      RARR(*)
-   CHARACTER(LEN=*) :: NAME
-
-!  8. Subroutines used
-!
-!     ---
-!
-!  9. Subroutines calling
-!
-!     ---
-!
-! 10. Error messages
-!
-!     ---
-!
-! 11. Remarks
-!
-!     ---
-!
-! 12. Structure
-!
-!     ---
-!
-! 13. Source text
-
-   WRITE (PRINTF, "(1X, A, 10(1X, I8))") NAME, (IARR(II), II=1,NA)
-   WRITE (PRINTF, "(10(1X, E12.4))") (RARR(II), II=1,NA)
-   RETURN
-! * end of subroutine WRTEST *
-end subroutine WRTEST
 !********************************************************************
 
 SUBROUTINE ERRCHK

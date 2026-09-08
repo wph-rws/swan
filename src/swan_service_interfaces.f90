@@ -71,7 +71,7 @@ SUBROUTINE STRACE (IENT, SUBNAM, DIAG, IO)
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE swan_parallel_state, ONLY: MASTER, INODE, IAMMASTER, PARLL
+   USE swan_parallel_state, ONLY: INODE, IAMMASTER, PARLL
    USE swan_io_context, ONLY: diagnostics_context_t, io_context_t
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -200,7 +200,7 @@ SUBROUTINE MSGERR (LEV,STRING,DIAG,IO)
 
    USE swan_diagnostics_level
    USE swan_io_units
-   USE swan_parallel_state, ONLY: MASTER, INODE, IAMMASTER, PARLL
+   USE swan_parallel_state, ONLY: INODE, IAMMASTER, PARLL
    USE swan_io_context, ONLY: diagnostics_context_t, io_context_t
 
    IMPLICIT NONE(TYPE, EXTERNAL)

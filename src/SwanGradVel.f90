@@ -95,7 +95,6 @@ subroutine SwanGradVel ( dep2, ux2, uy2, duxdx, duxdy, duydx, duydy, ivert )
     real, dimension(3)                    :: dloc     ! local depth at vertices
     real                                  :: dmaxc    ! maximum depth found per cell of centroid dual
     real                                  :: dminc    ! minimum depth found per cell of centroid dual
-    real, parameter                       :: drat= 5. ! ratio between maximum and minimum depths in centroid dual
     real                                  :: ux0      ! u-velocity in centroid of present cell
     real                                  :: ux1      ! u-velocity in centroid of next cell
     real                                  :: uy0      ! v-velocity in centroid of present cell

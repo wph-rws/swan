@@ -95,12 +95,43 @@ mask and does not claim whole-field mask identity across decomposition modes.
 - The structured and unstructured OpenMP references pass at 1, 2 and 4
   threads. Nonlinear interaction tests exercise active triad and quadruplet
   paths.
-- Strict-poort (WP2.4 + WP3a/WP5b-tranches, schone bouw met `--require-baseline`,
-  GNU 13.3.0): **1.373 waarschuwingen in 512 fingerprints**, `within budget`,
+- Strict-poort (WP2.4 + WP3a/WP3b/WP5b-tranches, schone bouw met `--require-baseline`,
+  GNU 13.3.0): **1.363 waarschuwingen in 504 fingerprints**, `within budget`,
   `no new warnings` (`function-elimination` 163→85 door zuivere `pvalid`;
-  `implicit-interface` 2→0 door `swan_metis_interface`/BIND(C); WP5b-tranches 1–3
-  voegen geen nieuwe waarschuwingen toe). Configureerlog
-  `strict-configure.log` en bouwlog `strict-build.log` bewaard in de bouwmap;
-  geen incrementeel slotlog. Budget en fingerprints zijn meegecommit
-.
-- The complete Python matrix/comparison suite passes 785 tests.
+  `implicit-interface` 2→0 door `swan_metis_interface`/BIND(C);
+  `unused-function` 4→0 plus één `compare-reals` in dood `SWSOR` door
+  verwijderde dode procedures; −5 `unused-parameter` buiten gevenderde code;
+  alles volledig geattribueerd zonder compensatie).
+  Configureerlog `strict-configure.log` en bouwlog `strict-build.log` bewaard
+  in de bouwmap; geen incrementeel slotlog. Budget en fingerprints zijn
+  meegecommit.
+- The complete Python matrix/comparison suite passes 797 tests.
+
+## Extended quantities — Tm01, direction, convergence
+
+Generated with the current `analyze_validation.py` on the same stored data
+(`runs-validation-b5`, same four targets and run hashes as above; no new model
+runs). Tm01 and direction use the header-named table columns (not positions);
+direction is compared circularly excluding points below 0.05 m Hsig in both
+runs; convergence is the per-iteration PRINT accuracy series. The
+default-vs-premodern gate demands bit-equality here too (any nonzero raises
+before the table completes); the legacy-vs-BSS columns only report
+(`tolerances.json`: report_only — the maxima below are results, not
+automatically acceptable migration tolerances). Spectra (`.sp1`/`.sp2`) and
+source terms are explicit follow-up work, not claimed here.
+
+| Condition | Default Tm01 max abs vs premodern (s) | Default Dir max abs vs premodern (deg) | Convergence iters premodern/current | Legacy Tm01 max abs vs BSS (s) | Legacy Dir max abs vs BSS (deg) |
+|---|---:|---:|---:|---:|---:|
+| `u20_d310_lp300_open` | 0.000000 | 0.000000 | 35/35 | 0.030800 | 0.741000 |
+| `u02_d090_l0000_open` | 0.000000 | 0.000000 | 4/4 | 0.000100 | 0.000000 |
+| `u20_d300_lm200_open` | 0.000000 | 0.000000 | 37/37 | 0.010200 | 0.062000 |
+| `u20_d300_lp650_open` | 0.000000 | 0.000000 | 40/40 | 0.025900 | 0.668000 |
+| `u20_d310_lp300_closed` | 0.000000 | 0.000000 | 35/35 | 0.030800 | 0.741000 |
+| `u20_d120_lp300_open` | 0.000000 | 0.000000 | 37/37 | 0.000400 | 0.006000 |
+| `u40_d300_lp300_open` | 0.000000 | 0.000000 | 34/34 | 0.011500 | 0.078000 |
+| `u20_d315_lp300_open` | 0.000000 | 0.000000 | 36/36 | 0.027300 | 0.635000 |
+| `u20_d316_lp300_open` | 0.000000 | 0.000000 | 36/36 | 0.022000 | 0.623000 |
+| `u20_d346_lp300_open` | 0.000000 | 0.000000 | 35/35 | 0.006400 | 0.152000 |
+
+Extended gate: default-vs-premodern Tm01, direction and convergence history are
+bit-equal in all 10 conditions.
