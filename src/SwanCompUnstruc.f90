@@ -1022,8 +1022,11 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                      st_kc(2) = vu(1)
                      st_kc(3) = vu(2)
 
-                     swpnr = 0 ! this trick assures to calculate Ursell number and
-                     if ( all(mask=vert(ivert)%updated(:)==0) ) swpnr = 1 ! quadruplets only once in each vertex during an iteration
+                     ! this trick assures to calculate Ursell number and quadruplets only
+                     ! once in each vertex during an iteration; only the first noc entries
+                     ! of updated belong to the cells around this vertex, the rest is unset
+                     swpnr = 0
+                     if ( all(mask=vert(ivert)%updated(1:vert(ivert)%noc)==0) ) swpnr = 1
 
                      ! compute wavenumber and group velocity in points of stencil
 
