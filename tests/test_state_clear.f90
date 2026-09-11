@@ -141,6 +141,7 @@ subroutine check_input_fields()
    use swan_input_fields, only: DEPTH, WLEVL, FRIC, UXB, UYB, WXI, WYI, &
       ASTDF, MUDLF, NPLAF, TURBF, AICEF, HICEF, HSSF, TSSF, DSSF, &
       CLEAR_INPUT_FIELDS, INPUT_FIELDS_ARE_CLEAR
+   use M_GENARR, only: ENSURE_FIELD_SIZE
 
    call CLEAR_INPUT_FIELDS()
    call require(INPUT_FIELDS_ARE_CLEAR(), 'initial state is not clear')
@@ -151,6 +152,13 @@ subroutine check_input_fields()
 
    call require(.not.INPUT_FIELDS_ARE_CLEAR(), &
       'filled state was reported as clear')
+
+   ! A field can be read again after its input grid has changed.  The old
+   ! allocate-once guard retained the first extent and let the subsequent
+   ! copy write past it; pin the resize primitive used by SREDEP directly.
+   call ENSURE_FIELD_SIZE(DEPTH, 5)
+   call require(allocated(DEPTH), 'resized depth field is not allocated')
+   call require(size(DEPTH) == 5, 'depth field retained its old extent')
 
    call CLEAR_INPUT_FIELDS()
    call require(INPUT_FIELDS_ARE_CLEAR(), 'clear left input fields behind')
