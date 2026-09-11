@@ -1618,6 +1618,12 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                   IF ( PARLL .AND. .NOT.LOGCOM(7) ) &
                      CALL MSGERR (4, &
                      'to run in parallel the mesh must be partitioned first')
+                  !  Without this guard an MPI run without METIS went on after the
+                  !  fatal MSGERR(4) to the unpartitioned ivertg/xcugrdgl and
+                  !  segfaulted (reproducible, compact nonstationary case, 2
+                  !  ranks). Nothing changes for green paths: STPNOW() is false
+                  !  there and the guard is inert.
+                  IF (STPNOW()) RETURN
 
 !           --- create copies of parts of xcugrd and ycugrd               43.01
 !               for each subdomain                                        43.01

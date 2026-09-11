@@ -810,6 +810,26 @@ if( BUILD_TESTING )
       set_tests_properties( metis_partitioning PROPERTIES
         RUN_SERIAL TRUE TIMEOUT 180 )
     endif()
+    # Unstructured + MPI requires a partition. With METIS this case
+    # passes with 2 ranks; without METIS it fails cleanly with the intended
+    # message (no segfault). The expectation is fixed per configuration.
+    if( METIS )
+      set( MPI_UNSTRUCTURED_EXPECT success )
+    else()
+      set( MPI_UNSTRUCTURED_EXPECT clean-failure )
+    endif()
+    add_test(
+      NAME mpi_unstructured_partition
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/tests/test_mpi_unstructured_partition.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --mpi-exec ${MPIEXEC_EXECUTABLE}
+              --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
+              --expect ${MPI_UNSTRUCTURED_EXPECT}
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/mpi-unstructured
+    )
+    set_tests_properties( mpi_unstructured_partition PROPERTIES
+      RUN_SERIAL TRUE TIMEOUT 180 )
   endif()
   # COH leaves starting and stopping MPI to the host program. A small
   # host program starts MPI, runs the quick test through the library and
