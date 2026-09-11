@@ -38,9 +38,16 @@ module swan_input_helpers
    use swan_io_limits, only: LENFNM
    implicit none(type, external)
    private
-   public :: REPARM, LSPLIT
+   public :: REPARM, LSPLIT, reset_input_file_tracking
 
+   ! REPARM reuses an already-open data file when consecutive READINP
+   ! commands name the same file. The remembered name belongs to one run.
+   character(len=36), save :: old_input_file = ' '
 contains
+
+SUBROUTINE reset_input_file_tracking
+   old_input_file = ' '
+END SUBROUTINE reset_input_file_tracking
 
 SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM, &
    NHEDF, IDYN, NHEDT, LOGC, NHEDC)
@@ -156,7 +163,6 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM, &
    LOGICAL :: BNEW
 
    CHARACTER(LEN=80) :: HEDLIN
-   character(len=36), save :: old_input_file = ' '
 
 !  8. SUBROUTINE USED
 

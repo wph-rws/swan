@@ -12,6 +12,7 @@ Errfile*
 PRINT*
 norm_end
 swaninit
+two_cases.tbl
 
 # Python
 __pycache__/

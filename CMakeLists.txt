@@ -360,9 +360,57 @@ if( BUILD_TESTING )
     file( MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/esmf_wind_input )
   endif()
 
+  add_executable( test_state_clear tests/test_state_clear.f90 )
+  target_link_libraries( test_state_clear PRIVATE swan${VERSION} )
+  add_test( NAME state_clear COMMAND test_state_clear )
+
   add_executable( test_sweep_sector_budget tests/test_sweep_sector_budget.f90 )
   target_link_libraries( test_sweep_sector_budget PRIVATE swan${VERSION} )
   add_test( NAME sweep_sector_budget COMMAND test_sweep_sector_budget )
+
+  # Runs SWMAIN twice in one process. It needs a directory of its own because
+  # both runs write INPUT, PRINT and the result table in the working directory.
+  add_executable( test_two_cases tests/test_two_cases.f90 )
+  target_link_libraries( test_two_cases PRIVATE swan${VERSION} )
+  add_test( NAME two_cases COMMAND ${CMAKE_COMMAND} -E env
+            ${CMAKE_CURRENT_BINARY_DIR}/bin/test_two_cases )
+  set_tests_properties( two_cases PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/two_cases )
+  file( MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/two_cases )
+
+  # Runs SWMAIN three times in one process with alternating physics (GEN3
+  # KOMEN, 41.51 default, KOMEN again). Needs a directory of its own because
+  # the runs write INPUT, PRINT and the result table in the working directory.
+  add_executable( test_physics_reuse tests/test_physics_reuse.f90 )
+  target_link_libraries( test_physics_reuse PRIVATE swan${VERSION} )
+  add_test( NAME physics_reuse COMMAND ${CMAKE_COMMAND} -E env
+            ${CMAKE_CURRENT_BINARY_DIR}/bin/test_physics_reuse )
+  set_tests_properties( physics_reuse PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/physics_reuse )
+  file( MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/physics_reuse )
+
+  # Runs SWMAIN three times in one process with alternating grids (CGRID 4x2,
+  # 6x3, 4x2 over the same domain). Needs a directory of its own because
+  # the runs write INPUT, PRINT and the result table in the working directory.
+  add_executable( test_grid_reuse tests/test_grid_reuse.f90 )
+  target_link_libraries( test_grid_reuse PRIVATE swan${VERSION} )
+  add_test( NAME grid_reuse COMMAND ${CMAKE_COMMAND} -E env
+            ${CMAKE_CURRENT_BINARY_DIR}/bin/test_grid_reuse )
+  set_tests_properties( grid_reuse PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/grid_reuse )
+  file( MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/grid_reuse )
+
+  # Runs SWMAIN three times in one process with alternating spectral
+  # discretisations (CIRCLE 12/8, 16/10, 12/8 on the same grid). Needs a
+  # directory of its own because the runs write INPUT, PRINT and the result
+  # table in the working directory.
+  add_executable( test_spectrum_reuse tests/test_spectrum_reuse.f90 )
+  target_link_libraries( test_spectrum_reuse PRIVATE swan${VERSION} )
+  add_test( NAME spectrum_reuse COMMAND ${CMAKE_COMMAND} -E env
+            ${CMAKE_CURRENT_BINARY_DIR}/bin/test_spectrum_reuse )
+  set_tests_properties( spectrum_reuse PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/spectrum_reuse )
+  file( MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/spectrum_reuse )
 
   add_executable( test_physics_kernels tests/test_physics_kernels.f90 )
   target_link_libraries( test_physics_kernels PRIVATE swan${VERSION} )

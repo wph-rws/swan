@@ -498,7 +498,11 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 !     *** LOGCOM(3): command READINP BOTTOM has been carried out  ***     40.31
 !     *** LOGCOM(4): command READ COOR has been carried out       ***     40.31
 !     *** LOGCOM(5): command READ UNSTRUC has been carried out    ***     40.80
-!     *** LOGCOM(6): array AC2 has been allocated                 ***     40.31
+!     *** LOGCOM(6) is gone: it recorded that AC2 had been allocated,   ***
+!     *** which ALLOCATED(AC2) already says. The two could disagree --  ***
+!     *** SWCLME deallocates AC2 at the end of a run and the latch      ***
+!     *** stayed set, so a second run in the same process skipped the   ***
+!     *** grid setup and crashed on an unallocated KGRPNT.              ***
 !     *** LOGCOM(7): mesh partitioning has been carried out       ***     42.10
 !     *** In the current version, LOGCOM(1) has no meanings       ***     40.80 40.31
 
@@ -1559,8 +1563,8 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 !           have been read and AC2 is not allocated                       40.31
             IF (OPTG .EQ. 1) THEN
 !         regular grid
-               IF (LOGCOM(3) .AND. .NOT. LOGCOM(6)) THEN
-                  CALL CGINIT(LOGCOM)
+               IF (LOGCOM(3) .AND. .NOT. ALLOCATED(AC2)) THEN
+                  CALL CGINIT
                   IF (STPNOW()) RETURN
                ENDIF
             ELSEIF (OPTG.EQ.3) THEN
@@ -1570,8 +1574,8 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                   CALL MSGERR (3, '** read curvilinear coordinates         *')
                   CALL MSGERR (3, '** before reading the bottom grid       *')
                ELSE IF (LOGCOM(2) .AND. LOGCOM(3) .AND. &
-                  LOGCOM(4) .AND. .NOT. LOGCOM(6)) THEN
-                  CALL CGINIT(LOGCOM)
+                  LOGCOM(4) .AND. .NOT. ALLOCATED(AC2)) THEN
+                  CALL CGINIT
                   IF (STPNOW()) RETURN
                ENDIF
             ELSEIF (OPTG.EQ.5) THEN
@@ -1583,7 +1587,7 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                   IF ( LOGCOM(4) ) &
                      CALL MSGERR (3, '* instead of curvilinear coordinates    *')
                ELSEIF ( LOGCOM(5) .AND. LOGCOM(2) .AND. &
-                  .NOT.LOGCOM(4) .AND. .NOT.LOGCOM(6) .AND. &
+                  .NOT.LOGCOM(4) .AND. .NOT.ALLOCATED(AC2) .AND. &
                   .NOT.LOGCOM(7) ) THEN
                   IF (metis_enabled) THEN
                      CALL metis_decompose(LOGCOM)
@@ -4783,7 +4787,7 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR, SPECTRAL_POWERS)
 end subroutine SSFILL
 !************************************************************************
 !                                                                      *
-SUBROUTINE CGINIT (LOGCOM)
+SUBROUTINE CGINIT
 !                                                                      *
 !************************************************************************
 
@@ -4865,9 +4869,7 @@ SUBROUTINE CGINIT (LOGCOM)
 !
 !  4. Argument variables
 !
-!     LOGCOM:
-!
-   LOGICAL LOGCOM(7)
+!     (no arguments: the caller decides when to call this)
 
 !  6. Local variables
 !
@@ -5042,7 +5044,6 @@ SUBROUTINE CGINIT (LOGCOM)
       RETURN
    END IF
    AC2 = 0.
-   LOGCOM(6) = .TRUE.
 
 !     Note: piece of code w.r.t. defining COMPGRID has been               40.31
 !           moved to command CGRID in routine SWREAD!                     40.31

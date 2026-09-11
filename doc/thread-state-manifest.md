@@ -105,7 +105,7 @@ modules: one for the test status and one for the propagation scheme.
 | Symbol | Solver | COPYIN | First definition | Lifetime | Cat. | Proposed owner |
 |---|---|---|---|---|---|---|
 | `IPTST` | both | ✅ | [swancom1.f90:3181](../src/swancom1.f90#L3205), [SwanCompUnstruc.f90:995](../src/SwanCompUnstruc.f90#L1001) | point | 3 | `common_thread_seed_t` |
-| `TESTFL` | both | ✅ | [swanmain.f90:1654](../src/swanmain.f90#L1654) | point | 3 | `common_thread_seed_t` |
+| `TESTFL` | both | ✅ | [swanmain.f90:1654](../src/swanmain.f90#L1655) | point | 3 | `common_thread_seed_t` |
 | `PROPSL` | structured | ✅ | [swanmain.f90:1217](../src/swanmain.f90#L1218) | sweep | 3/6 | `structured_thread_workspace_t` |
 
 The COPYIN of `IPTST` and `TESTFL` is probably unnecessary. Both solvers set
@@ -120,7 +120,7 @@ already reads `TESTFL`. Check that before deleting the COPYIN; until then, the
 COPYIN is unnecessary but not wrong.
 
 `IPTST` is also used as a `DO` loop variable in
-[swanmain.f90:6096](../src/swanmain.f90#L6095) onwards, outside the parallel
+[swanmain.f90:6096](../src/swanmain.f90#L6090) onwards, outside the parallel
 region. That is legal, but it means the symbol carries two meanings. If this
 state moves into a context type, the loop variable should become a local
 variable, not a field of the context.

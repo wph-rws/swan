@@ -734,6 +734,7 @@ SUBROUTINE SWINIT (INERR, SNL4)
 
    USE swan_service_interfaces, ONLY: STPNOW, BUGFIX
    USE swan_ocean_pack_init, ONLY: OCPINI
+   USE swan_input_helpers, ONLY: reset_input_file_tracking
    USE swan_input_parser, ONLY: default_command_reader
    USE swan_diagnostics_level
    USE swan_io_units
@@ -956,6 +957,8 @@ SUBROUTINE SWINIT (INERR, SNL4)
 !     ----------------------------------------------------------------    40.17
 !
 ! 13. Source text
+
+   CALL reset_input_file_tracking
 
    VERTXT = default_command_reader%BLANK
    WRITE (VERTXT, '(F5.2)') SWAN_VERSION_NUMBER
