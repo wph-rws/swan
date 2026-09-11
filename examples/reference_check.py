@@ -38,7 +38,12 @@ def _as_float(token: str) -> float | None:
         return None
 
 
-def same_results(produced: Path, reference: Path) -> bool:
+def same_results(
+    produced: Path,
+    reference: Path,
+    *,
+    tolerance: float = NUMERIC_TOLERANCE,
+) -> bool:
     """Compare two SWAN output files field by field.
 
     Text (headers, units) has to match exactly apart from trailing blanks: the
@@ -85,7 +90,7 @@ def same_results(produced: Path, reference: Path) -> bool:
             if not (math.isfinite(produced_value) and math.isfinite(reference_value)):
                 return False
             scale = max(abs(produced_value), abs(reference_value), NEGLIGIBLE)
-            if abs(produced_value - reference_value) > NUMERIC_TOLERANCE * scale:
+            if abs(produced_value - reference_value) > tolerance * scale:
                 return False
     return True
 
@@ -96,6 +101,7 @@ def compare_with_reference(
     names: tuple[str, ...],
     *,
     smoke: bool = False,
+    tolerances: dict[str, float] | None = None,
 ) -> bool:
     """Check the named output files against stored references.
 
@@ -136,7 +142,8 @@ def compare_with_reference(
             raise RuntimeError(f"SWAN produced no {name} to compare.")
         if produced.stat().st_size == 0:
             raise RuntimeError(f"SWAN produced an empty {name}; vergelijking faalt.")
-        if not same_results(produced, reference):
+        tolerance = (tolerances or {}).get(name, NUMERIC_TOLERANCE)
+        if not same_results(produced, reference, tolerance=tolerance):
             raise RuntimeError(
                 f"{name} differs from the stored reference (of is leeg/vervormd/"
                 "bevat NaN/Inf). Either a change altered the results, or the "

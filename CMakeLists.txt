@@ -602,6 +602,21 @@ if( BUILD_TESTING )
             --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/qcm
   )
 
+  # ST6/Babanin source terms with test-point output. This is the only
+  # registered case that reaches the SSWELL_* routines: they sit behind
+  # IWCAP == 8, which only ST6 whitecapping sets, and they are the only
+  # kernels that need TESTFL/IPTST to place their diagnostics. Every other
+  # test-point deck runs GEN3 WESTH, so the swell-dissipation column of the
+  # test output had no coverage at all until this case existed -- a defect
+  # there stayed invisible to all other tests and to the bit-identity gate.
+  add_test(
+    NAME source_terms_st6
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/examples/source_terms_st6/run.py
+            --swan-executable $<TARGET_FILE:${EXE}>
+            --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/source-terms-st6
+  )
+
   if( MATL4 )
     set( MATLAB_TEST_BACKEND matlab4 )
   else()
@@ -848,7 +863,7 @@ if( BUILD_TESTING )
   )
   set_tests_properties(
     quick_test nonstationary_examples nonlinear_interactions
-    diffraction qcm_reference
+    diffraction qcm_reference source_terms_st6
     PROPERTIES RUN_SERIAL TRUE TIMEOUT 180
   )
 
