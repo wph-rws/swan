@@ -22,3 +22,8 @@ __pycache__/
 *.swp
 .vscode/
 
+# Operational so-rp/Voordelta case: local and large (data + binaries), not in git.
+/so-rp_swan/*
+
+# The comparison tooling belongs in git.
+!/so-rp_swan/comparison/
