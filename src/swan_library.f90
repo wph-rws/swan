@@ -173,7 +173,8 @@ contains
    end function swan_finalize
 
    function verify_owners_clear() result(res)
-      ! Read-only check that every owner of run state has been cleared.
+      ! Read-only check of the run-state ownership contract
+      ! (doc/run-state-ownership.md); same predicates as the A-B-A tests.
       type(swan_result_t) :: res
 
       if (.not. OBSTACLE_STATE_IS_CLEAR()) then

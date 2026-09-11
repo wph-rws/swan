@@ -465,6 +465,13 @@ SUBROUTINE OCDTIM (PRCTIM)
    CHARACTER(LEN=5) :: CDUMMY
    INTEGER :: IDUMMY(8)
 
+   ! TIMSTR(9:9) and TIMSTR(21:24) were left undefined (Valgrind:
+   ! undefined string via DTSTTI/OCPINI). DATE_AND_TIME only fills
+   ! (1:8) and (10:20); the formatted READ in DTSTTI reads (1:15), including
+   ! the separator at (9:9). Blank initialisation makes the separator deterministic
+   ! (1X skips any character) and the remaining tail defined; no
+   ! change to the numerics or to the input contract.
+   TIMSTR = ' '
    CALL DATE_AND_TIME (TIMSTR(1:8), TIMSTR(10:20), CDUMMY, IDUMMY)
    CALL DTSTTI (1, TIMSTR, PRCTIM)
 

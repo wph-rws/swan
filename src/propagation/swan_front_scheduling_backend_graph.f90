@@ -59,10 +59,16 @@ contains
                      exit
                   end if
                end do
-                ! pick the first neighbour vertex; if it is upstream from
-                ! the current vertex, they do not belong to the same level
-                m = vu(1)
-                if (pos(m) < pos(k)) lmax = max(lmax,level(m))
+                ! Both neighbours of the stencil count: the solver reads
+                ! ac2 of vu(1) AND vu(2) (SwanTranspX) and writes ac2 of
+                ! the vertex itself. Taking only vu(1) lets open-fan
+                ! vertices (boundary/coast/obstacle) end up in the same
+                ! front as a neighbour they read
+                ! (BF-15).
+                do i = 1, 2
+                   m = vu(i)
+                   if (pos(m) < pos(k)) lmax = max(lmax,level(m))
+                end do
             end do
             level(k) = lmax + 1
          end do

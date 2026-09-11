@@ -1,0 +1,87 @@
+{
+  "_comment": "Official TU Delft benchmark cases. URLs + SHA-256 recorded 2026-09-10. Only cases with an analytical solution gate; ring/Haringvliet stay open (no .ana / buoy criteria pending).",
+  "base_url": "https://swanmodel.sourceforge.io/download/zip",
+  "cases": [
+    {
+      "name": "refrac",
+      "tarball": "refrac.tar.gz",
+      "sha256": "440994427d45a41aa06c9db2089469d8b728f50955ec069282007f1b8b69a7d8",
+      "deck": "a11refr.swn",
+      "table": "a11ref01.tab",
+      "table_columns": {
+        "key": 0,
+        "hs": 1,
+        "dir": 3,
+        "depth": 4
+      },
+      "ana": "a11refr.ana",
+      "ana_columns": {
+        "key": 0,
+        "hs": 1,
+        "dir": 2
+      },
+      "tolerances": {
+        "hs": 0.005,
+        "dir": 0.5
+      },
+      "description": "Refraction over a planar beach vs Ris (1997) analytic solution",
+      "dir_min_depth": 1.0,
+      "vendor_table": "a11ref01.tab",
+      "vendor_check": "exact"
+    },
+    {
+      "name": "shoal01",
+      "tarball": "shoal.tar.gz",
+      "sha256": "6f2cf67d62ac0ebb89d401a50543a9466017a15742e19caa54995e2676430924",
+      "deck": "a21sho01.swn",
+      "table": "a21sho01.tab",
+      "table_columns": {
+        "key": 0,
+        "hs": 2,
+        "dir": 7,
+        "depth": 1
+      },
+      "ana": "a21shoa.ana",
+      "ana_columns": {
+        "key": 0,
+        "hs": 1,
+        "dir": 2
+      },
+      "tolerances": {
+        "hs": 0.005,
+        "dir": 0.5
+      },
+      "description": "Shoaling over a sloping beach (rectangular grid) vs analytic solution",
+      "dir_min_depth": 1.0,
+      "vendor_table": "a21sho01.tab",
+      "vendor_check": "report"
+    },
+    {
+      "name": "slancur",
+      "tarball": "slancur.tar.gz",
+      "sha256": "60aa535a6ab7394d19197bcd09000b7ec43deef3579966627743cefdb010ec36",
+      "deck": "a33curs.swn",
+      "table": "a33cur01.tab",
+      "table_columns": {
+        "key": 0,
+        "hs": 1,
+        "dir": 3,
+        "depth": 4
+      },
+      "ana": "a33curs.ana",
+      "ana_columns": {
+        "key": 0,
+        "hs": 1,
+        "dir": 2
+      },
+      "tolerances": {
+        "hs": 0.005,
+        "dir": 0.5
+      },
+      "description": "Slanting current vs Ris (1997) analytic solution",
+      "dir_min_depth": 1.0,
+      "vendor_table": "a33cur01.tab",
+      "vendor_check": "report"
+    }
+  ]
+}

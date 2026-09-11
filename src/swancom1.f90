@@ -5587,6 +5587,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   ELSE
 !        breaking disabled, assign very high value to Hmax
                      POINT_INTEGRALS%hm = 100.
+!        and a directional spreading factor: BRKPAR sets it only when
+!        breaking is on, but FRABRE below still divides by it, and an
+!        undefined value gave a random fraction of breakers
+                     POINT_INTEGRALS%kteta = 1.
                   ENDIF
 
 !     --- calculate fraction of breakers

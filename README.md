@@ -5,8 +5,10 @@
 > SWAN 41.51. The reference is TU Delft
 > [`gitlab.tudelft.nl/citg/wavemodels/swan`](https://gitlab.tudelft.nl/citg/wavemodels/swan)
 > (upstream, stable 41.51). The features described below (CMake build options,
-> choice of back ends, Fortran 2018 modules) describe **this fork**, not the
-> unchanged upstream code.
+> choice of back ends, Fortran 2018 modules, CTest regression tests) describe **this fork**, not the unchanged
+> upstream code. The individual fixes on top of the
+> current TU Delft source are listed in
+> [`doc/bug-fixes-vs-tu-delft-41.51.md`](doc/bug-fixes-vs-tu-delft-41.51.md).
 
 [![release](https://img.shields.io/badge/release%20-%20v41.51%20-%20brightgreen?color=success)]()
 [![site](https://img.shields.io/badge/sourceforge%20-%20site%20-%20blue?logo=sourceforge&color=informational)](https://swanmodel.sourceforge.io)
@@ -27,6 +29,7 @@
   - [run modes](#run-modes)
   - [how to run](#how-to-run)
   - [has a stationary run converged?](#has-a-stationary-run-converged)
+  - [quick smoke test](#quick-smoke-test)
 - [documentation](#documentation)
 - [bugs and questions](#bugs-and-questions)
 
@@ -67,8 +70,8 @@ sudo apt install libfftw3-dev
 ```
 
 Check it by typing `python3 --version` on Linux or macOS, or `python --version`
-on Windows. Python runs `switch.py`, which translates the historical build
-switches; build capabilities themselves are selected directly by CMake.
+on Windows. CMake uses Python for compatibility and regression checks; build
+capabilities themselves are selected directly by CMake.
 
 Finally, SWAN also requires a Fortran compiler with Fortran 2018 support to be present in your environment.
 Popular Fortran compilers are [gfortran](https://gcc.gnu.org/fortran/) and
@@ -79,7 +82,8 @@ Please check this [page](https://fortran-lang.org/learn/os_setup/install_gfortra
 Because the source code uses standard Fortran 2018, SWAN can be ported to
 various architectures (e.g., Windows, Linux, macOS and Unix-like systems).
 Qualified in this fork is GNU Fortran: the reference compiler is gfortran
-16.2, for every build including MPI and netCDF. The build also recognises Intel `ifx`/`ifort`, Flang, IBM XL
+16.2, for every build including MPI and netCDF (the stored test references
+were made with it). The build also recognises Intel `ifx`/`ifort`, Flang, IBM XL
 and Fujitsu, but those routes are not qualified; Lahey and PGI/NVFortran are
 outside scope.
 
@@ -223,7 +227,9 @@ because the checks can alter compiler optimization and reduce performance.
 
 The source is compiled in standard Fortran 2018 mode. Every collector file has
 been split into subsystem modules, so the compiler checks every call; the
-METIS C calls go through an explicit `BIND(C)` interface.
+METIS C calls go through an explicit `BIND(C)` interface. See
+[Modern Fortran status](doc/modern-fortran.md) for concrete before/after
+examples and the measured diagnostic improvements.
 
 For example, the following commands
 
@@ -266,7 +272,7 @@ The system default Fortran compiler (e.g., f77, g95) can be overwritten as follo
 cmake .. [options] -DCMAKE_Fortran_COMPILER=/path/to/the/desired/compiler/including/the/name/of/compiler
 ```
 
-Choose the reference compiler
+To reproduce the stored test references, choose the reference compiler
 explicitly, for instance `-DCMAKE_Fortran_COMPILER=gfortran-16` (16.2);
 another compiler version can shift some outputs in the last digits.
 
@@ -337,6 +343,31 @@ how the iterations progress; `STOPC` also takes the curvature into account.
 Small changes do not guarantee that the final solution has been reached.
 Raising `MXITST` alone does not prevent an early stop.
 
+#### quick smoke test
+
+A small stationary example is available in [`examples/quick_test`](examples/quick_test).
+It exercises the regular grid, bathymetry input, boundary waves, wind and output
+pipeline, and is sized to finish well within three minutes on typical hardware.
+See the example README for Windows and Unix run instructions.
+
+Two compact nonstationary examples are available in
+[`examples/nonstationary`](examples/nonstationary). They apply a time-varying
+wind to comparable regular and unstructured grids, with time-dependent block
+and point output.
+
+A substantially larger, geographically realistic example is available in
+[`examples/voordelta`](examples/voordelta). It covers a 65 x 70 km domain on
+public Rijkswaterstaat bathymetry and documents the source data and model
+limitations. Its `run_mpi.py` runner builds on the same case to demonstrate and
+verify execution with multiple MPI processes.
+
+Focused nonlinear-interaction examples are available in
+[`examples/nonlinear_interactions`](examples/nonlinear_interactions). They
+compare DIA and exact XNL quadruplets, DCTA and FTIM triads over a submerged
+bar, and a combined ocean-to-nearshore run in which both source terms are
+active. The runner validates spectra and source terms and creates comparison
+figures.
+
 ## documentation
 
 See
@@ -344,6 +375,8 @@ See
 1. the [SWAN website](https://swanmodel.sourceforge.io/) for general information
 1. the [SWAN documentation](https://delftwaves.github.io/swan-docs/) that provides the user manual, scientific/technical documentation and many more
 1. the [SWAN settings](https://swanmodel.sourceforge.io/settings/settings.htm) page for an overview of the source term packages
+1. the [RWS bugfix inventory](doc/bug-fixes-vs-tu-delft-41.51.md) for the
+   repairs in this fork relative to the latest fetched TU Delft 41.51 source
 
 ## bugs and questions
 

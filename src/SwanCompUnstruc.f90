@@ -238,7 +238,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
     real, dimension(2)                    :: acnrms    ! array containing infinity norms
     real                                  :: dhdx      ! derivative of depth in x-direction
     real                                  :: dhdy      ! derivative of depth in y-direction
-    real, target                          :: dummy     ! dummy variable (to be used in existing SWAN routine call)
+    real, target                          :: dummy     ! scratch for SWAN routine arguments that are not used here;
+                                                       ! private per thread, because SINTGRL and WINDP2 write it (BF-17)
     real, target                          :: abrbot, etot, fpm, hm, hs
     real, target                          :: kmespc, kteta, qbloc, smebrk, wind10
     real                                  :: duxdx     ! derivative of ux2 to x
@@ -465,6 +466,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
     !$omp private(disc0, disc1, genc0, genc1, redc0, redc1, trac0, trac1, leakcf) &
     !$omp private(qtl1, qtl2) &
     !$omp private(tid, iter, kvert, ifront, first_front_vertex, last_front_vertex) &
+    !$omp private(dummy) &
     !$omp private(ivert, jc, k, j, icell, n, v, vu, swpnr, swpdir, sdir, rdx, rdy, lpredt, initial_prediction_pass, vb, ve, iface, link, inocnt, thmin, thmax, th1, th2) &
     !$omp private(idtot, isslow, istot, spectral_window) &
     !$omp private(point_integrals, test_output, source_budget, system_matrix) &
@@ -489,7 +491,10 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
 !   every vertex uniformly (all sweep-boundary comparisons false). Workers
 !   never inherited that value through the unseeded module storage, so pin it
 !   explicitly instead of inheriting stack leftovers. Seeding with
-!   undefined/0/-9999 gives mutually bit-identical output.
+!   undefined/0/-9999 gives mutually bit-identical output. Because the fronts
+!   order on both stencil neighbours (BF-15) and every thread writes its own
+!   scratch (BF-17, both in doc/bug-fixes-vs-tu-delft-41.51.md), the result
+!   does not depend on the number of threads.
     st_ix = -9999
     st_iy = -9999
     tid = tid + 1
@@ -1011,8 +1016,11 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                       st_kc(2) = vu(1)
                       st_kc(3) = vu(2)
 
-                      swpnr = 0                                              ! this trick assures to calculate Ursell number and
-                      if ( all(mask=vert(ivert)%updated(:)==0) ) swpnr = 1   ! quadruplets only once in each vertex during an iteration
+                      ! this trick assures to calculate Ursell number and quadruplets only
+                      ! once in each vertex during an iteration; only the first noc entries
+                      ! of updated belong to the cells around this vertex, the rest is unset
+                      swpnr = 0
+                      if ( all(mask=vert(ivert)%updated(1:vert(ivert)%noc)==0) ) swpnr = 1
 
                       ! compute wavenumber and group velocity in points of stencil
 
@@ -1539,6 +1547,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
           endif
           !$omp end master
           IF (timing_enabled) CALL SWTSTO(102)
+          ! every thread must see accur as the master leaves it before deciding
+          !$omp barrier
 
           ! if accuracy has been reached then terminates iteration process
 
@@ -1568,6 +1578,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
           acnrmo = acnrms(1)
           IF (timing_enabled) CALL SWTSTO(102)
           !$omp end master
+          ! every thread must see stopcr as the master leaves it before deciding
+          !$omp barrier
           !
           ! if accuracy has been reached then terminates iteration process
 

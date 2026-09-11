@@ -12,6 +12,7 @@ Errfile*
 PRINT*
 norm_end
 swaninit
+two_cases.tbl
 
 # Python
 __pycache__/
@@ -22,3 +23,12 @@ __pycache__/
 *.swp
 .vscode/
 
+# Operational so-rp/Voordelta case: local and large (data + binaries), not in git.
+/so-rp_swan/*
+
+# The comparison tooling belongs in git.
+!/so-rp_swan/comparison/
+
+# Pinned upstream source and build for the delta gate (a path without hyphens:
+# upstream switch.pl loops forever on a path with a hyphen in it).
+/.upstream/

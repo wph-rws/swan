@@ -1,0 +1,154 @@
+{
+  "upstream": {
+    "remote": "gitlab.tudelft.nl/citg/wavemodels/swan",
+    "branch": "main",
+    "commit": "43e9bbba393f2cf9eaff78bc92eaed118a3a5c8e",
+    "version": "41.51",
+    "note": "The source the fork is compared against. If this pin changes, the whole inventory has to be measured again."
+  },
+  "comparison": "Built serially, with the same compiler and the same optimisation level (-O3) on both sides: the gate reads the compiler from the CMake cache of the fork build, builds upstream with it in .upstream/build_O3_gfortran<version>, and refuses to compare binaries whose .comment section names a different or mixed compiler version. Both the optimisation level and the compiler version change the outcome of some of the decks. Fields must be exactly equal; white space in header lines does not count. Differences that only show under OpenMP or MPI are therefore not seen by this gate -- those are covered by the stored ctest references.",
+  "memory_layout": "Both binaries run under setarch -R, with a fixed memory layout. Without that pin, upstream 41.51 gave two answers from run to run on quad_dia2 and src_nobreak: in decks without breaking, FRABRE reads an unset KTETA (valgrind, BF-16). The fork sets that value and does not depend on the memory layout; the pin stays to keep upstream reproducible. Run with --no-pin to see the instability of upstream for yourself.",
+  "unexplained_budget": 0,
+  "decks": [
+    {
+      "deck": "curve_output/curve.swn",
+      "status": "identical",
+      "measured": "2 output file(s) equal"
+    },
+    {
+      "deck": "diffraction/diffraction.swn",
+      "status": "identical",
+      "measured": "2 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/combined/combined.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_dia1.swn",
+      "status": "differs",
+      "bugfix": "BF-16",
+      "measured": "differs in: quad_dia1.spc, quad_dia1.tbl, quad_dia1_sources.spc",
+      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged."
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_dia2.swn",
+      "status": "differs",
+      "bugfix": "BF-16",
+      "measured": "differs in: quad_dia2.spc, quad_dia2.tbl, quad_dia2_sources.spc",
+      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged."
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_dia3.swn",
+      "status": "differs",
+      "bugfix": "BF-16",
+      "measured": "differs in: quad_dia3.spc, quad_dia3.tbl, quad_dia3_sources.spc",
+      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged."
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_off.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_xnl.swn",
+      "status": "skipped",
+      "reason": "The exact XNL route takes about four minutes per run; with the instability check added that grows to half an hour per deck, too long for a gate that runs at every source change. Include it deliberately with --include-skipped --timeout 3600.",
+      "measured": "With --include-skipped: differs from upstream; byte-identical with the KTETA repair reverted. Deck without breaking.",
+      "bugfix": "BF-16"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_all.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_nobreak.swn",
+      "status": "differs",
+      "bugfix": "BF-16",
+      "measured": "differs in: src_nobreak.spc, src_nobreak.tbl, src_nobreak_sources.spc",
+      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged."
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_nofric.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_nowcap.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_nowind.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_dcta.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_ftim.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_lta.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_off.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonstationary/regular/nonstationary_regular.swn",
+      "status": "identical",
+      "measured": "2 output file(s) equal"
+    },
+    {
+      "deck": "nonstationary/unstructured/nonstationary_unstructured.swn",
+      "status": "differs",
+      "bugfix": "BF-15",
+      "measured": "differs in: nonstationary_unstructured_hs.blk",
+      "note": "Attributed by measurement (the same compiler and -O3 on both sides): with only the first stencil neighbour in the front ordering, as upstream does, the fork is byte-identical to upstream; with both neighbours it is byte-identical to upstream built with FFRO. Even serially, the front ordering decides the order in which the sweep updates the nodes, and at two boundary nodes upstream read a neighbour's value from the previous sweep. Up to 11% in the block file; the table at the centre point is equal."
+    },
+    {
+      "deck": "qcm/qcm.swn",
+      "status": "identical",
+      "measured": "1 output file(s) equal"
+    },
+    {
+      "deck": "qcm/qcm_scatter.swn",
+      "status": "identical",
+      "measured": "1 output file(s) equal",
+      "note": "The deck that lets this gate see the FFT path: on the flat bottom of qcm.swn the QC scattering is zero. The fork transforms with FFTW, upstream with FFTPACK; their rounding differs only in the last bits of double precision, which the single-precision fields almost never show. Measured: a change of 1e-9 in part of the transform output changes 350 of the 3234 output values, one of 1e-12 none. A larger deck (40 x 20 meshes, 36 directions, 30 frequencies) did show it once: Tm01 one unit in the last place at 1 of 861 points. Should this deck ever differ by such a single last-place value, the cause is that rounding, not a defect."
+    },
+    {
+      "deck": "quick_test/quick_test.swn",
+      "status": "identical",
+      "measured": "2 output file(s) equal"
+    },
+    {
+      "deck": "source_terms_st6/st6_testpoints.swn",
+      "status": "identical",
+      "measured": "2 output file(s) equal"
+    },
+    {
+      "deck": "voordelta/voordelta.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "voordelta_unstructured/voordelta_unstructured.swn",
+      "status": "skipped",
+      "reason": "The upstream binary needs more than ten minutes per run for this unstructured case, too long for a gate that runs at every source change. Include it deliberately with --include-skipped --timeout 3600.",
+      "measured": "With --include-skipped: differs in voordelta_hs.blk; byte-identical with only the first stencil neighbour in the front ordering, as upstream does.",
+      "bugfix": "BF-15"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+/results/
+/**/INPUT
+/**/PRINT
+/**/Errfile
+/**/ERRPTS
+/**/norm_end
+/**/swaninit
+/**/COMPGRID
+/**/*.prt
+/**/*.erf
+/**/*.tbl
+/**/*.spc
+/**/*.bqf
+/**/xnl4v5.log
+
+#  The reference directories do belong under version control: the patterns
+#  above match the names of the reference files themselves.
+!**/reference/**
+!**/reference-*/**

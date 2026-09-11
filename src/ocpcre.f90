@@ -1493,6 +1493,15 @@ SUBROUTINE ININTV_CTX (STATE, NAME, RVAR, KONT, RSTA)
 
    CALL STRACE (IENT, 'ININTV')
 
+!     Seed the auxiliary with the caller's current value. When no new
+!     value is read under KONT='UNC' (or 'RQI' against a non-default current
+!     value), INREAL deliberately leaves RI untouched and the tail below runs
+!     with FAC = 1, so RVAR = 1 * RI must mean "unchanged" -- exactly the
+!     documented UNC contract. Any other seed (in particular a blind zero)
+!     would corrupt that contract; no seed reads undefined memory (the two
+!     -Wuninitialized warnings). Every STA/REQ path overwrites RI, so those
+!     callers -- the only production callers -- are bit-identical.
+   RI = RVAR
    CALL INREAL (STATE, NAME, RI, KONT, RSTA)
    IF (STATE%CHGVAL) THEN
       CALL INKEYW (STATE, 'STA', 'S')
@@ -1630,6 +1639,11 @@ SUBROUTINE INITVD_CTX (STATE, NAME, RVAR, KONT, RSTA)
 
    CALL STRACE (IENT, 'INITVD')
 
+!     Same contract seed as ININTV above (UNC/RQI keep-paths leave RI
+!     untouched with FAC = 1, so RI must enter as RVAR, never undefined and
+!     never a blind zero). All production callers pass 'REQ', which always
+!     overwrites RI, so they are bit-identical.
+   RI = RVAR
    CALL INDBLE (STATE, NAME, RI, KONT, RSTA)
    IF (STATE%CHGVAL) THEN
       CALL INKEYW (STATE, 'STA', 'S')

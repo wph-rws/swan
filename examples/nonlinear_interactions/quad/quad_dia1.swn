@@ -1,0 +1,44 @@
+$ Deep-water wind-wave growth with the semi-implicit DIA per sweep
+$
+$ Identical to quad_dia2 apart from QUADRUPLET 1, so the two decks isolate the
+$ semi-implicit variant of SWSNL1 against the explicit SWSNL2 of the default.
+$ This is the only deck in the repository that reaches SWSNL1; without it the
+$ bounds-checked CI build has nothing to check that routine against.
+$
+$ ALFA=0.01 keeps the deck in the regime where the change-based criterion
+$ stops too early: it reports convergence after 40 iterations, while the
+$ same run carried on for about 1500 iterations puts Hs at 25 km at
+$ 1.923 m instead of the 1.403 m it reports. The reference output of this deck therefore pins
+$ the code path, not a converged wave height.
+$
+$ Without ALFA the run converges in 28 iterations. Upstream 41.51 shows a limit
+$ cycle there instead: with breaking off, an undefined KTETA switches its action
+$ limiter off everywhere (BF-16).
+PROJECT 'QUADDIA1' '001'
+SET CARTESIAN
+MODE STATIONARY ONEDIMENSIONAL
+COORDINATES CARTESIAN
+
+CGRID REGULAR 0.0 0.0 0.0 100000.0 0.0 40 0 &
+      CIRCLE 36 0.04 1.0 34
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 0 100000.0 1.0
+READINP BOTTOM 1.0 'bottom.bot' 1 0 FREE
+
+WIND 15.0 0.0
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 0.05 2.0 0.0 20.0
+
+GEN3 WESTH
+QUADRUPLET 1
+OFF BREAKING
+
+POINTS 'GAUGES' 0.0 0.0 25000.0 0.0 50000.0 0.0 &
+         75000.0 0.0 100000.0 0.0
+TABLE 'GAUGES' HEADER 'quad_dia1.tbl' XP DEPTH HSIGN TM01 RTP REDTRIAD REDQUAD
+SPECOUT 'GAUGES' SPEC1D ABS 'quad_dia1.spc'
+TEST 1 0 POINTS XY 50000.0 0.0 S1D 'quad_dia1_sources.spc'
+
+NUMERIC STOPC STAT MXITST=100 ALFA=0.01
+
+COMPUTE
+STOP

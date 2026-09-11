@@ -1,0 +1,232 @@
+# Core CI matrix. Required jobs: serial, openmp, runtime, mpi-2rank,
+# the build variants (variant-*), python-manifest. Publication
+# depends on the final gate;
+# a workflow file alone does not enforce missing checks, the gate does.
+#
+# Compiler: gfortran 16.2, for all jobs. The stored references were made
+# with it; another compiler version can shift the output. The mpi.mod and netcdf.mod of the
+# system packages can be read by gfortran 16.2.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  serial:
+    runs-on: ubuntu-24.04
+    container: ubuntu:26.10
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      FC: gfortran-16
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: apt-get update && apt-get install -y gfortran-16 cmake ninja-build libfftw3-dev python3 python3-pytest python3-numpy python3-scipy
+      - name: Configure + build (GNU Release serial)
+        run: |
+          cmake -S . -B build-ci-serial -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          cmake --build build-ci-serial --parallel 4
+      - name: CTest
+        run: ctest --test-dir build-ci-serial --output-on-failure
+      - name: Install test + case from the installation
+        run: |
+          cmake --install build-ci-serial --prefix "$PWD/install-serial"
+          python3 examples/quick_test/run.py --swan-executable "$PWD/install-serial/bin/swan.exe" --work-directory "$PWD/ci-run-serial"
+      - name: Write result
+        if: always()
+        run: |
+          mkdir -p ci-results
+          echo '{"job": "serial", "status": "${{ job.status == 'success' && 'passed' || job.status }}"}' > ci-results/serial.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-serial
+          path: ci-results/serial.json
+
+  openmp:
+    runs-on: ubuntu-24.04
+    container: ubuntu:26.10
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      FC: gfortran-16
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: apt-get update && apt-get install -y gfortran-16 cmake ninja-build libfftw3-dev python3 python3-pytest python3-numpy python3-scipy
+      - name: Configure + build (GNU Release OpenMP)
+        run: |
+          cmake -S . -B build-ci-openmp -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DOPENMP=ON
+          cmake --build build-ci-openmp --parallel 4
+      - name: CTest
+        run: ctest --test-dir build-ci-openmp --output-on-failure
+      - name: Determinism smoke test, unstructured (2 runs × 4 threads)
+        run: python3 scripts/unstruc_determinism_smoke.py --exe "$PWD/build-ci-openmp/bin/swan.exe"
+      - name: Write result
+        if: always()
+        run: |
+          mkdir -p ci-results
+          echo '{"job": "openmp", "status": "${{ job.status == 'success' && 'passed' || job.status }}"}' > ci-results/openmp.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-openmp
+          path: ci-results/openmp.json
+
+  runtime:
+    runs-on: ubuntu-24.04
+    container: ubuntu:26.10
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      FC: gfortran-16
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: apt-get update && apt-get install -y gfortran-16 cmake ninja-build libfftw3-dev python3 python3-pytest python3-numpy python3-scipy
+      - name: Configure + build (runtime checks at -O2)
+        run: |
+          cmake -S . -B build-ci-runtime -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DSWAN_RUNTIME_CHECKS=ON
+          cmake --build build-ci-runtime --parallel 4
+      - name: CTest
+        run: ctest --test-dir build-ci-runtime --output-on-failure
+      - name: Write result
+        if: always()
+        run: |
+          mkdir -p ci-results
+          echo '{"job": "runtime", "status": "${{ job.status == 'success' && 'passed' || job.status }}"}' > ci-results/runtime.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-runtime
+          path: ci-results/runtime.json
+
+  mpi-2rank:
+    runs-on: ubuntu-24.04
+    container: ubuntu:26.10
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      OMPI_ALLOW_RUN_AS_ROOT: 1
+      OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+      FC: gfortran-16
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: apt-get update && apt-get install -y gfortran-16 cmake ninja-build libfftw3-dev python3 python3-pytest python3-numpy python3-scipy libopenmpi-dev openmpi-bin
+      - name: Configure + build (MPI)
+        run: |
+          cmake -S . -B build-ci-mpi -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DMPI=ON
+          cmake --build build-ci-mpi --parallel 4
+      - name: Full MPI CTest (includes real 2-rank regressions)
+        run: ctest --test-dir build-ci-mpi --output-on-failure
+      - name: Write result
+        if: always()
+        run: |
+          mkdir -p ci-results
+          echo '{"job": "mpi-2rank", "status": "${{ job.status == 'success' && 'passed' || job.status }}"}' > ci-results/mpi-2rank.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-mpi-2rank
+          path: ci-results/mpi-2rank.json
+
+  # Build variants. Each variant has its own test that reaches its own path
+  #; besides that the whole suite runs, so that a
+  # variant that shifts the ordinary output also turns red. ESMF runs with
+  # runtime checks: the ESMF test writes through grid point indices into an
+  # array that the coupler supplies.
+  variants:
+    runs-on: ubuntu-24.04
+    container: ubuntu:26.10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ffro
+            flags: -DFFRO=ON
+          - name: ffro-openmp
+            flags: -DFFRO=ON -DOPENMP=ON
+          - name: metis
+            flags: -DMETIS=ON
+          - name: coh
+            flags: -DCOH=ON
+          - name: esmf
+            flags: -DESMF=ON -DSWAN_RUNTIME_CHECKS=ON
+          - name: adcirc
+            flags: -DADCIRC=ON
+          - name: netcdf
+            flags: -DNETCDF=ON
+          - name: mpi-netcdf
+            flags: -DMPI=ON -DNETCDF=ON
+          - name: metis-mpi
+            flags: -DMETIS=ON -DMPI=ON
+          - name: jac
+            flags: -DJAC=ON
+          - name: coh-mpi
+            flags: -DCOH=ON -DMPI=ON
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      FC: gfortran-16
+      OMPI_ALLOW_RUN_AS_ROOT: 1
+      OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: apt-get update && apt-get install -y gfortran-16 cmake ninja-build libfftw3-dev libnetcdff-dev libmetis-dev libopenmpi-dev openmpi-bin python3 python3-pytest python3-numpy python3-scipy
+      - name: Configure + build (${{ matrix.name }})
+        run: |
+          cmake -S . -B build-ci-${{ matrix.name }} -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON ${{ matrix.flags }}
+          cmake --build build-ci-${{ matrix.name }} --parallel 4
+      - name: CTest
+        run: ctest --test-dir build-ci-${{ matrix.name }} --output-on-failure
+      - name: Write result
+        if: always()
+        run: |
+          mkdir -p ci-results
+          echo '{"job": "variant-${{ matrix.name }}", "status": "${{ job.status == 'success' && 'passed' || job.status }}"}' > ci-results/variant-${{ matrix.name }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-variant-${{ matrix.name }}
+          path: ci-results/variant-${{ matrix.name }}.json
+
+  python-manifest:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y python3 python3-pytest python3-numpy python3-scipy
+      - name: Manifest and Python checks
+        run: |
+          python3 scripts/check_thread_state.py --source-dir src --manifest doc/thread-state-manifest.md
+          python3 scripts/check_run_state_ownership.py --manifest doc/run-state-ownership.json
+          python3 scripts/check_switch_manifest.py --source-dir src --switch switch.py --manifest doc/switch-manifest.json
+          python3 scripts/check_source_bundle_boundaries.py
+          python3 scripts/check_ci_dependencies.py
+          python3 scripts/ci_gate.py --self-test
+          python3 scripts/ci_gate.py --check-workflow .github/workflows/ci.yml
+          python3 -m pytest tests/ so-rp_swan/comparison -q
+      - name: Write result
+        if: always()
+        run: |
+          mkdir -p ci-results
+          echo '{"job": "python-manifest", "status": "${{ job.status == 'success' && 'passed' || job.status }}"}' > ci-results/python-manifest.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-python-manifest
+          path: ci-results/python-manifest.json
+
+  gate:
+    runs-on: ubuntu-24.04
+    needs: [serial, openmp, runtime, mpi-2rank, variants, python-manifest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: ci-results-download
+      - name: Collect required results
+        run: |
+          mkdir -p ci-results
+          find ci-results-download -name "*.json" -exec cp {} ci-results/ \;
+          ls -l ci-results/
+          python3 scripts/ci_gate.py --results-dir ci-results
