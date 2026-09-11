@@ -76,6 +76,7 @@ Here the code broke a language or interface rule, or a warning was missing, with
 | ID | Qualification | Defect in the TU Delft base and fix | Evidence |
 |---|---|---|---|
 | BF-03 | **proven** | **`INTSTR` changed the caller's integer argument while formatting.** The conversion now works on a local copy and the argument is `INTENT(IN)`. | A leaf-module fixture guards that the argument stays unchanged. See `src/swan_number_formatting.f90` and `tests/test_leaf_modules.f90`. |
+| BF-04 | **latent** | **Several unstructured calls had invalid dummy argument ranks or shapes.** For `PLTSRC`, `SPREDT`, `SWTRCF`, `STRSSB`, `PEREXC`, `SWBIDW` and `BRKPAR`, scalars were passed as a rank-2 placeholder, or arrays with two elements to a dummy `RDX(MICMAX)`/`RDY(MICMAX)` — with `MICMAX = 13` as a parameter, while `SwanCompUnstruc` passes `real, dimension(2) :: rdx`. Unused placeholders have been made `OPTIONAL`, and the two-element windows that are actually used have a matching assumed-size interface. | The routines did not read beyond the second index, so no wrong value was dereferenced: **latent**. The explicit module interfaces make the old calls invalid at compile time. The regular and unstructured non-stationary references stayed bit-identical. See also `doc/modern-fortran.md`. |
 
 ### D. Changed, but no bug shown
 
