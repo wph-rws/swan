@@ -65,7 +65,7 @@ CHARACTER(LEN=20) FUNCTION INTSTR ( IVAL )
 !
 !     IVAL        integer to be converted
 
-   INTEGER IVAL
+   INTEGER, INTENT(IN) :: IVAL
 
 !  6. Local variables
 !
@@ -74,7 +74,7 @@ CHARACTER(LEN=20) FUNCTION INTSTR ( IVAL )
 !     IPOS  :     position in mantisse
 !     IQUO  :     whole quotient
 
-   INTEGER I, IPOS, IQUO
+   INTEGER I, IPOS, IQUO, IVALUE
    CHARACTER(LEN=1), ALLOCATABLE :: CVAL(:)
 
 ! 12. Structure
@@ -83,16 +83,17 @@ CHARACTER(LEN=20) FUNCTION INTSTR ( IVAL )
 !
 ! 13. Source text
 
+   IVALUE = IVAL
    IPOS = 1
-   DO WHILE (IVAL/10**IPOS.GE.1.)
+   DO WHILE (IVALUE/10**IPOS.GE.1.)
       IPOS = IPOS + 1
    END DO
    ALLOCATE(CVAL(IPOS))
 
    DO I=IPOS,1,-1
-      IQUO=IVAL/10**(I-1)
+      IQUO=IVALUE/10**(I-1)
       CVAL(IPOS-I+1)=CHAR(INT(IQUO)+48)
-      IVAL=IVAL-IQUO*10**(I-1)
+      IVALUE=IVALUE-IQUO*10**(I-1)
    END DO
 
    WRITE (INTSTR,*) (CVAL(I), I=1,IPOS)

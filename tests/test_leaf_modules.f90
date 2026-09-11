@@ -71,10 +71,20 @@ subroutine test_radian_conversion
 end subroutine test_radian_conversion
 
 subroutine test_integer_formatting
+   integer :: value
+
    call require(trim(adjustl(INTSTR(42))) == "42", &
       "INTSTR formatted a positive integer incorrectly")
    call require(trim(adjustl(INTSTR(0))) == "0", &
       "INTSTR formatted zero incorrectly")
+
+   ! INTSTR used to consume its argument while formatting it. Guard that:
+   ! the caller's value has to survive the call.
+   value = 12345
+   call require(trim(adjustl(INTSTR(value))) == "12345", &
+      "INTSTR formatted a variable incorrectly")
+   call require(value == 12345, &
+      "INTSTR modified the integer supplied by its caller")
 end subroutine test_integer_formatting
 
 subroutine test_number_formatting

@@ -75,6 +75,7 @@ Here the code broke a language or interface rule, or a warning was missing, with
 
 | ID | Qualification | Defect in the TU Delft base and fix | Evidence |
 |---|---|---|---|
+| BF-03 | **proven** | **`INTSTR` changed the caller's integer argument while formatting.** The conversion now works on a local copy and the argument is `INTENT(IN)`. | A leaf-module fixture guards that the argument stays unchanged. See `src/swan_number_formatting.f90` and `tests/test_leaf_modules.f90`. |
 
 ### D. Changed, but no bug shown
 
