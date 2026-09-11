@@ -334,6 +334,18 @@ if( BUILD_TESTING )
     NAME front_scheduling_backend
     COMMAND test_front_scheduling_backend ${SWAN_EXPECTED_FIXED_FRONT}
   )
+  # The fixed fronts do not keep neighbours apart; this property belongs only
+  # to the graph ordering. Under FFRO the test could only print "skip" and
+  # pass, which would count as coverage that is not there, so it is left out.
+  if( NOT FFRO )
+    add_executable( test_front_dependency_completeness
+      tests/test_front_dependency_completeness.f90 )
+    target_link_libraries( test_front_dependency_completeness PRIVATE swan${VERSION} )
+    add_test(
+      NAME front_dependency_completeness
+      COMMAND test_front_dependency_completeness
+    )
+  endif()
 
   if( COH )
     set( SWAN_EXPECTED_COHERENT_COUPLING 1 )

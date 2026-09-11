@@ -101,8 +101,10 @@
     },
     {
       "deck": "nonstationary/unstructured/nonstationary_unstructured.swn",
-      "status": "identical",
-      "measured": "2 output file(s) equal"
+      "status": "differs",
+      "bugfix": "BF-15",
+      "measured": "differs in: nonstationary_unstructured_hs.blk",
+      "note": "Attributed by measurement (the same compiler and -O3 on both sides): with only the first stencil neighbour in the front ordering, as upstream does, the fork is byte-identical to upstream; with both neighbours it is byte-identical to upstream built with FFRO. Even serially, the front ordering decides the order in which the sweep updates the nodes, and at two boundary nodes upstream read a neighbour's value from the previous sweep. Up to 11% in the block file; the table at the centre point is equal."
     },
     {
       "deck": "qcm/qcm.swn",
@@ -133,7 +135,9 @@
     {
       "deck": "voordelta_unstructured/voordelta_unstructured.swn",
       "status": "skipped",
-      "reason": "The upstream binary needs more than ten minutes per run for this unstructured case, too long for a gate that runs at every source change. Include it deliberately with --include-skipped --timeout 3600."
+      "reason": "The upstream binary needs more than ten minutes per run for this unstructured case, too long for a gate that runs at every source change. Include it deliberately with --include-skipped --timeout 3600.",
+      "measured": "With --include-skipped: differs in voordelta_hs.blk; byte-identical with only the first stencil neighbour in the front ordering, as upstream does.",
+      "bugfix": "BF-15"
     }
   ]
 }
