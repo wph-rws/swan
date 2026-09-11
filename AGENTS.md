@@ -93,3 +93,22 @@ This also applies to an option that is off by default: the disabled path must
 be shown to cost nothing, and on several cores that is not a given. One
 unconditional atomic counter in the grid-point loop costs little serially and
 creates a point of contention on several cores.
+
+## Convergence: "converged" is not the same as "stopped changing"
+
+SWAN's stationary stopping criteria judge how the iterations progress: `ACCUR`
+measures changes in Hs and Tm; the default criterion `STOPC` also takes the
+curvature into account. Both exist upstream. Under-relaxation (the `[alfa]` of
+false time stepping) makes that change smaller, and that is exactly what it is
+for. The test cannot tell those two causes apart. The extra curvature check of
+`STOPC` does not prove that the balance closes either; the criterion is not
+applied on the first iteration.
+
+This is not an edge case here: most decks in this repository set `ALFA`.
+Measured on `examples/nonlinear_interactions/quad/quad_dia1`: with `ALFA=0.10`
+the run stops after two iterations and with `ALFA=0.05` after ten, with the
+message "accuracy OK in 100.00 %", while Hs at 25 km is then 1.278 m.
+`ALFA=0.01` also stops too early: after 40 iterations it reports 100% at 1.403
+m, while the same run carried on for about 1500 iterations ends at 1.923 m,
+27% higher.
+

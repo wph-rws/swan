@@ -1,0 +1,71 @@
+{
+ "question": "Does a stationary run stop too early under under-relaxation in every SWAN version, or only in the fork?",
+ "deck": "examples/nonlinear_interactions/quad/quad_dia2.swn: a 1D fetch case, 41 grid points, default numerics with NUMERIC STOPC STAT MXITST=500 and the ALFA below, so that the iteration limit never applies.",
+ "programs": {
+  "fork": "this repository, gfortran 16.2, -O3",
+  "upstream": "TU Delft 43e9bbb (41.51), gfortran 16.2, -O3",
+  "rws4131": "RWS 41.31A.1, the Rijkswaterstaat production build of 41.31 (Intel), run with one OpenMP thread"
+ },
+ "hs_at_25km_m": {
+  "fork": {
+   "0.00": 1.90718,
+   "0.01": 1.41426,
+   "0.02": 1.30435,
+   "0.05": 1.27989
+  },
+  "upstream": {
+   "0.00": 1.90718,
+   "0.01": 1.41715,
+   "0.02": 1.30435,
+   "0.05": 1.27853
+  },
+  "rws4131": {
+   "0.00": 1.802,
+   "0.01": 1.35101,
+   "0.02": 1.2832,
+   "0.05": 1.27451
+  }
+ },
+ "iterations": {
+  "fork": {
+   "0.00": 28,
+   "0.01": 41,
+   "0.02": 35,
+   "0.05": 11
+  },
+  "upstream": {
+   "0.00": 28,
+   "0.01": 42,
+   "0.02": 35,
+   "0.05": 2
+  },
+  "rws4131": {
+   "0.00": 26,
+   "0.01": 37,
+   "0.02": 35,
+   "0.05": 19
+  }
+ },
+ "accuracy_percent": {
+  "fork": {
+   "0.00": 100.0,
+   "0.01": 100.0,
+   "0.02": 100.0,
+   "0.05": 100.0
+  },
+  "upstream": {
+   "0.00": 100.0,
+   "0.01": 100.0,
+   "0.02": 100.0,
+   "0.05": 100.0
+  },
+  "rws4131": {
+   "0.00": 100.0,
+   "0.01": 100.0,
+   "0.02": 100.0,
+   "0.05": 100.0
+  }
+ },
+ "finding": "Every run reports 'accuracy OK in 100.00 %'. Under-relaxation changes the path of the iteration, not its end point, so every column should be equal; instead Hs falls as ALFA rises, in all three programs. At ALFA=0.01, Hs at 25 km is 26% below the run without under-relaxation for the fork and for upstream, and 25% below for RWS 41.31A.1. The mechanism has been in SWAN since at least 41.31.",
+ "note": "The fork and upstream differ at ALFA=0.05 (11 against 2 iterations) because upstream reads an unset KTETA in decks without breaking (BF-16); the fork sets it. Each program is compared only with itself."
+}

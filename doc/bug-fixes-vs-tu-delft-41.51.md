@@ -136,3 +136,32 @@ are:
 - the changed default physics since SWAN 41.45. That is a deliberate
   upstream change. `GEN3 KOMEN DRAG FIT` is a compatibility setting to
   approximate the 41.31 physics, not a bug fix in 41.51.
+
+## Known open issues
+
+These issues are in upstream and have been investigated, but not resolved:
+
+- **A stop message does not prove convergence.** SWAN stops a stationary run
+  when Hs and Tm hardly change any more between two iterations.
+  Under-relaxation (`ALFA`) makes that change small, even when the solution
+  has not been reached yet, and the criterion cannot tell those two apart. On
+  `quad_dia1` the run stops at `ALFA=0.10` after two iterations and at
+  `ALFA=0.05` after ten with "accuracy OK in 100.00 %" at Hs 1.278 m at 25 km,
+  and at `ALFA=0.01` after 40 iterations at 1.403 m. Computed on for about
+  1500 iterations, the same run arrives at 1.923 m. This is not a property of
+  the fork: on `quad_dia2` upstream 41.51 and RWS 41.31A.1 behave the same
+  way. At `ALFA=0.01` all three report 100%, while Hs at 25 km is a quarter
+  below the run without under-relaxation (`doc/early-stop-by-version.json`).
+  The mechanism has therefore been in SWAN since at least 41.31. Because a
+  stationary growth problem builds up energy towards the balance, stopping too
+  early ends too low; for design conditions that is the unsafe direction.
+ 
+- **How complete this list is.** Some defects were found by reading code that
+  looks wrong and checking the pattern against `43e9bbb`, the others through
+  runtime checks, Valgrind and the comparison with upstream per deck. All 25
+  example decks have been run against upstream with the same compiler and
+  `-O3`, and each difference was assigned to BF-15 or BF-16, each time proven
+  by reverting the fix and measuring byte-identity. That covers the paths
+  these decks touch, not the branches outside them, and that is exactly where
+  BF-15 was. So there are almost certainly still bugs in upstream that are not
+  listed here.
