@@ -1,0 +1,43 @@
+$ ----------------------------------------------------------------------
+$ Small nonstationary SWAN example on a regular grid
+$ Three spatially uniform wind fields are interpolated over one hour
+$ ----------------------------------------------------------------------
+
+PROJECT 'NSTREG' '001'
+SET NAUTICAL
+MODE NONSTATIONARY TWODIMENSIONAL
+COORDINATES CARTESIAN
+
+$ Computational grid: 20 x 10 meshes; compact spectral discretization.
+CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 20 10 &
+      CIRCLE 24 0.05 1.0 32
+
+$ Constant 20 m depth on a 2 x 2 input grid.
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0
+READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE
+
+$ Time-dependent Cartesian x/y wind input at 00:00, 00:30 and 01:00.
+$ SWAN updates the forcing at the one-minute computational time steps.
+INPGRID WIND REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0 &
+        NONSTATIONARY 20260101.000000 30 MIN 20260101.010000
+READINP WIND 1.0 'wind.wnd' 3 0 1 0 FREE
+
+$ Constant waves enter from the west; the initial field is explicit.
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 1.0 6.0 270.0 20.0
+INITIAL PAR 0.5 5.0 270.0 25.0
+
+GEN3 KOMEN
+BREAKING CONSTANT 1.0 0.73
+FRICTION JONSWAP CONSTANT 0.038
+
+$ Write seven time levels, including both ends of the one-hour window.
+BLOCK 'COMPGRID' NOHEADER 'nonstationary_regular_hs.blk' LAYOUT 3 HSIGN &
+      OUTPUT 20260101.000000 10 MIN
+POINTS 'CENTER' 1000.0 500.0
+TABLE 'CENTER' HEADER 'nonstationary_regular_center.tbl' &
+      TIME TSEC XP YP WIND HSIGN TM01 DIR &
+      OUTPUT 20260101.000000 10 MIN
+
+COMPUTE NONSTATIONARY 20260101.000000 1 MIN 20260101.010000
+STOP

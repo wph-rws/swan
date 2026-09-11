@@ -1,0 +1,12 @@
+__pycache__/
+INPUT
+PRINT
+Errfile
+ERRPTS
+norm_end
+swaninit
+*.prt
+*.erf
+st6_testpoints.tbl
+st6_testpoints_sources.spc
+!reference/*

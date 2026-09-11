@@ -1,0 +1,46 @@
+$ ----------------------------------------------------------------------
+$ ST6/Babanin source terms with test-point output.
+$
+$ Purpose: this is the only registered case that reaches the SSWELL_*
+$ routines. They sit behind IWCAP == 8, which only ST6/Babanin
+$ whitecapping sets, and they are the only source-term kernels that need
+$ TESTFL and IPTST to place their diagnostics. Every other test-point deck
+$ in the suite runs GEN3 WESTH, so the swell-dissipation column of the
+$ test output was unexercised until this case existed.
+$
+$ Synthetic 1D fetch-limited growth; not an observation or a design
+$ condition.
+$ ----------------------------------------------------------------------
+
+PROJECT 'ST6TEST' '001'
+SET CARTESIAN
+MODE STATIONARY ONEDIMENSIONAL
+COORDINATES CARTESIAN
+
+CGRID REGULAR 0.0 0.0 0.0 50000.0 0.0 250 0 &
+      CIRCLE 36 0.04 1.0 34
+
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 50 0 1000.0 1.0
+READINP BOTTOM 1.0 'bottom.bot' 1 0 FREE
+
+WIND 15.0 0.0
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 0.5 5.0 0.0 20.0
+
+$ ST6 wind input and whitecapping (IWCAP = 8), with Zieger swell
+$ dissipation so SSWELL_ZIEGER is the active branch.
+GEN3 ST6 4.7E-7 6.6E-6 4.0 4.0 UP HWANG VECTAU U10PROXY 28.0 AGROW
+SSWELL ZIEGER
+QUADRUPLET 3
+BREAKING CONSTANT 1.0 0.73
+FRICTION JONSWAP CONSTANT 0.038
+
+POINTS 'GAUGES' 20000.0 0.0 40000.0 0.0 45000.0 0.0
+TABLE 'GAUGES' HEADER 'st6_testpoints.tbl' XP DEPTH HSIGN TM01 GENW DISW DISSU DISB
+
+$ The test point drives the source-term diagnostics. Column 4 of the S1D
+$ file is the swell dissipation written by SSWELL_ZIEGER.
+TEST 1 0 POINTS XY 45000.0 0.0 S1D 'st6_testpoints_sources.spc'
+
+COMPUTE
+STOP

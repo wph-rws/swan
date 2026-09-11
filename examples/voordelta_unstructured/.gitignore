@@ -1,0 +1,15 @@
+/INPUT
+/PRINT
+/Errfile
+/ERRPTS
+/norm_end
+/swaninit
+/voordelta_unstructured.node
+/voordelta_unstructured.ele
+/voordelta_unstructured.prt
+/voordelta_unstructured.erf
+/voordelta_depth.blk
+/voordelta_hs.blk
+/voordelta_sites.tbl
+/results/
+/__pycache__/

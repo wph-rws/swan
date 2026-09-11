@@ -1,0 +1,40 @@
+$ ----------------------------------------------------------------------
+$ Stationary Voordelta demonstration on Rijkswaterstaat bathymetry
+$ Coordinates: Amersfoort / RD New (EPSG:28992), vertical datum: NAP
+$ Domain: x=20-85 km, y=380-450 km; water level fixed at NAP
+$ ----------------------------------------------------------------------
+
+PROJECT 'VOORDELT' '001'
+SET LEVEL 0.0 NAUTICAL
+MODE STATIONARY TWODIMENSIONAL
+COORDINATES CARTESIAN
+
+$ Computational grid: 500 m, 130 x 140 meshes (131 x 141 points).
+$ Spectral grid: 36 directions and 24 frequency meshes, 0.04-1.0 Hz.
+CGRID REGULAR 20000.0 380000.0 0.0 65000.0 70000.0 130 140 &
+      CIRCLE 36 0.04 1.0 24
+
+$ Bathymetry grid: 250 m, positive water depth relative to NAP.
+$ -999 marks land or cells without bathymetric coverage.
+INPGRID BOTTOM REGULAR 20000.0 380000.0 0.0 260 280 250.0 250.0 &
+        EXCEPTION -999.0
+READINP BOTTOM 1.0 'voordelta.dep' 3 0 FREE
+
+$ Illustrative stationary westerly storm. These are synthetic forcing values,
+$ not observations and not an operational or calibrated design condition.
+WIND 15.0 270.0
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 2.0 7.5 270.0 25.0
+
+GEN3 KOMEN
+BREAKING CONSTANT 1.0 0.73
+FRICTION JONSWAP CONSTANT 0.038
+
+$ Full-domain maps and three easy-to-inspect locations.
+BLOCK 'COMPGRID' NOHEADER 'voordelta_depth.blk' LAYOUT 3 DEPTH
+BLOCK 'COMPGRID' NOHEADER 'voordelta_hs.blk' LAYOUT 3 HSIGN
+POINTS 'SITES' 30000.0 430000.0 45000.0 420000.0 55000.0 440000.0
+TABLE 'SITES' HEADER 'voordelta_sites.tbl' XP YP DEPTH HSIGN TM01 DIR
+
+COMPUTE
+STOP

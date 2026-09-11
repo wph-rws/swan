@@ -1,0 +1,48 @@
+$ ----------------------------------------------------------------------
+$ Stationary QCM (GEN4) test with a bottom that actually scatters: a
+$ shoal of 9 m in 20 m of water with 2 m ripples on top of it. On the flat
+$ bottom of qcm.swn the QC scattering is zero, so the two-dimensional FFTs
+$ in SWQCDFT and SWQCSURF do not affect the result; here they do.
+$
+$ The upstream comparison uses this deck to see the FFT path. The fork uses
+$ FFTW and upstream FFTPACK; both give the same field here. Their rounding
+$ differs only in the last bits of double precision, which the
+$ single-precision fields almost never show. A change of 1e-9 in part of
+$ the transform already changes several hundred of the output values.
+$ ----------------------------------------------------------------------
+
+PROJECT 'QCMSCAT' '001'
+SET NAUTICAL
+MODE STATIONARY TWODIMENSIONAL
+COORDINATES CARTESIAN
+
+$ Computational grid: 20 x 10 meshes; 24 directions and 20 frequencies
+$ from 0.05 to 0.25 Hz, enough for the 10 s swell below.
+CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 20 10 CIRCLE 24 0.05 0.25 20
+
+$ Bottom on a 25 m grid; see the header for its shape.
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 80 40 25.0 25.0
+READINP BOTTOM 1.0 'bottom_scatter.bot' 1 0 FREE
+
+$ Uniform 8 m/s wind and a narrow 1 m, 10 s swell from the west.
+WIND 8.0 270.0
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 1.0 10.0 270.0 10.0
+
+$ A finer wavenumber grid (GRID WIDTH 8) gives transforms of 10 x 10 for
+$ the scattering and about 125 x 125 for the surf breaking.
+GEN4
+SCAT GRID WIDTH 8
+BREAKING CONSTANT 1.0 0.73
+FRICTION JONSWAP CONSTANT 0.038
+
+$ Exactly five iterations: the unreachable 101% keeps the stopping
+$ criterion from ending the run earlier.
+NUMERIC STOPC 0.0 0.01 0.001 101 STAT 5
+
+$ Binary output keeps every bit of the single-precision fields.
+BLOCK 'COMPGRID' NOHEADER 'qcm_scatter.mat' HSIGN TM01 TM02 TMM10 TPS &
+      DIR DSPR FSPR DISSIP DISSURF GENERAT REDIST PROPAGAT QB
+
+COMPUTE
+STOP

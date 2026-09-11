@@ -1,0 +1,40 @@
+$ ----------------------------------------------------------------------
+$ Small stationary SWAN test that exercises the quasi-coherent (GEN4/QCM)
+$ path added for the quasi-coherent regression.
+$
+$ Identical to the two-cases mini deck apart from GEN4: IQCM=1 activates
+$ QCSOURCE, which calls SWQCDFT/SWQCUFT/SWQCWIG. Those three read the
+$ threadprivate stencil in the pre-B1 code and receive it explicitly now.
+$ ----------------------------------------------------------------------
+
+PROJECT 'QCMREF' '001'
+SET NAUTICAL
+MODE STATIONARY TWODIMENSIONAL
+COORDINATES CARTESIAN
+
+$ Computational grid: 4 x 2 meshes (5 x 3 points).
+$ Spectral grid: 8 directions and 12 frequencies from 0.05 to 1.0 Hz.
+CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 4 2 CIRCLE 12 0.05 1.0 8
+
+$ A 2 x 2 input grid is sufficient for the spatially constant 20 m depth.
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0
+READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE
+
+$ Uniform 8 m/s wind and a 1 m, 6 s JONSWAP spectrum enter from the west.
+WIND 8.0 270.0
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 1.0 6.0 270.0 20.0
+
+$ GEN4 activates the quasi-coherent scattering (IQCM=1); keep the breaking
+$ and friction choices explicit so default changes do not alter the test.
+GEN4
+NUMERIC STOPC STAT 2
+BREAKING CONSTANT 1.0 0.73
+FRICTION JONSWAP CONSTANT 0.038
+
+$ A single easy-to-inspect value at the domain centre.
+POINTS 'CENTER' 1000.0 500.0
+TABLE 'CENTER' HEADER 'qcm_center.tbl' XP YP DEPTH HSIGN TM01 DIR
+
+COMPUTE
+STOP
