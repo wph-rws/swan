@@ -1098,7 +1098,13 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                   OBSTMP%TRCF1D(JJ) = CURRFT%C
                   CURRFT => CURRFT%NEXTFT
                END DO
-               DEALLOCATE(TMPFT)
+               CURRFT => FRSTFT%NEXTFT
+               DO WHILE ( ASSOCIATED(CURRFT) )
+                  TMPFT => CURRFT%NEXTFT
+                  DEALLOCATE(CURRFT)
+                  CURRFT => TMPFT
+               END DO
+               NULLIFY(FRSTFT%NEXTFT)
             ELSE IF (KEYWIS ('TRANS2')) THEN
                ITRAS    = 12
                IFTMAX   = 0
@@ -1143,7 +1149,13 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                   OBSTMP%TRCF2D(I,J) = CURRFT%C
                   CURRFT => CURRFT%NEXTFT
                END DO
-               DEALLOCATE(TMPFT)
+               CURRFT => FRSTFT%NEXTFT
+               DO WHILE ( ASSOCIATED(CURRFT) )
+                  TMPFT => CURRFT%NEXTFT
+                  DEALLOCATE(CURRFT)
+                  CURRFT => TMPFT
+               END DO
+               NULLIFY(FRSTFT%NEXTFT)
             ELSE IF (KEYWIS ('TRANS')) THEN
                ITRAS = 0
                CALL INREAL ('TRCOEF', TRCF, 'REQ', 0.)
@@ -1346,7 +1358,13 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                OBSTMP%YCRP(JJ) = CURR%Y
                CURR => CURR%NEXTXY
             END DO
-            DEALLOCATE(TMP)
+            CURR => FRST%NEXTXY
+            DO WHILE ( ASSOCIATED(CURR) )
+               TMP => CURR%NEXTXY
+               DEALLOCATE(CURR)
+               CURR => TMP
+            END DO
+            NULLIFY(FRST%NEXTXY)
             NULLIFY(OBSTMP%NEXTOBST)
             IF (NUMCOR .LE. 1) THEN
                CALL MSGERR(1,'No corner points for obstacle were found')
@@ -1356,6 +1374,7 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                IF ( NUMOBS.EQ.1 ) THEN
                   FOBSTAC = OBSTMP
                   COBST => FOBSTAC
+                  DEALLOCATE(OBSTMP)
                ELSE
                   COBST%NEXTOBST => OBSTMP
                   COBST => OBSTMP
@@ -1644,6 +1663,9 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                      IF ( .NOT.LOPS ) THEN
                         FOPS = OPSTMP
                         COPS => FOPS
+!                 The copy keeps all data; free the temporary node
+                        DEALLOCATE(OPSTMP)
+                        NULLIFY(OPSTMP)
                         LOPS = .TRUE.
                      ELSE
                         COPS%NEXTOPS => OPSTMP
@@ -1913,6 +1935,9 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                IF ( .NOT.LOPS ) THEN
                   FOPS = OPSTMP
                   COPS => FOPS
+!           The copy keeps all data; free the temporary node
+                  DEALLOCATE(OPSTMP)
+                  NULLIFY(OPSTMP)
                   LOPS = .TRUE.
                ELSE
                   COPS%NEXTOPS => OPSTMP
@@ -4166,6 +4191,9 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
    IF ( .NOT.LOPS ) THEN
       FOPS = OPSTMP
       COPS => FOPS
+!     The copy keeps all data; free the temporary node
+      DEALLOCATE(OPSTMP)
+      NULLIFY(OPSTMP)
       LOPS = .TRUE.
    ELSE
       COPS%NEXTOPS => OPSTMP

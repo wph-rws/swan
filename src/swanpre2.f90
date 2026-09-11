@@ -385,6 +385,9 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          IF ( .NOT.LOPS ) THEN
             FOPS = OPSTMP
             COPS => FOPS
+!           The copy keeps all data; free the temporary node
+            DEALLOCATE(OPSTMP)
+            NULLIFY(OPSTMP)
             LOPS = .TRUE.
          ELSE
             COPS%NEXTOPS => OPSTMP
@@ -476,6 +479,9 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          IF ( .NOT.LOPS ) THEN
             FOPS = OPSTMP
             COPS => FOPS
+!           The copy keeps all data; free the temporary node
+            DEALLOCATE(OPSTMP)
+            NULLIFY(OPSTMP)
             LOPS = .TRUE.
          ELSE
             COPS%NEXTOPS => OPSTMP
@@ -542,7 +548,16 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          ENDIF
          CURR => CURR%NEXTXY
       END DO
-      DEALLOCATE(TMP)
+!     The values are in the arrays; free the whole temporary chain
+!     (freeing only the last one leaked the rest, on every call).
+      CURR => FRST%NEXTXY
+      DO WHILE (ASSOCIATED(CURR))
+         TMP => CURR%NEXTXY
+         DEALLOCATE(CURR)
+         CURR => TMP
+      END DO
+      NULLIFY(FRST%NEXTXY)
+      NULLIFY(TMP)
 !       ***** store number of points of the curve *****
       OPSTMP%MIP = MIP
       IF (MIP .EQ. 0) CALL MSGERR(1,'No output points found')
@@ -550,6 +565,9 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
       IF ( .NOT.LOPS ) THEN
          FOPS = OPSTMP
          COPS => FOPS
+!        The copy keeps all data; free the temporary node
+         DEALLOCATE(OPSTMP)
+         NULLIFY(OPSTMP)
          LOPS = .TRUE.
       ELSE
          COPS%NEXTOPS => OPSTMP
@@ -616,7 +634,16 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          OPSTMP%YP(JJ) = CURR%Y
          CURR => CURR%NEXTXY
       END DO
-      DEALLOCATE(TMP)
+!     The values are in the arrays; free the whole temporary chain
+!     (freeing only the last one leaked the rest, on every call).
+      CURR => FRST%NEXTXY
+      DO WHILE (ASSOCIATED(CURR))
+         TMP => CURR%NEXTXY
+         DEALLOCATE(CURR)
+         CURR => TMP
+      END DO
+      NULLIFY(FRST%NEXTXY)
+      NULLIFY(TMP)
 !       ***** store number of output points *****
       OPSTMP%MIP = MIP
       IF (MIP .EQ. 0) CALL MSGERR (2, 'No output points found')
@@ -624,6 +651,9 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
       IF ( .NOT.LOPS ) THEN
          FOPS = OPSTMP
          COPS => FOPS
+!        The copy keeps all data; free the temporary node
+         DEALLOCATE(OPSTMP)
+         NULLIFY(OPSTMP)
          LOPS = .TRUE.
       ELSE
          COPS%NEXTOPS => OPSTMP
@@ -702,7 +732,16 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             OPSTMP%YQ(JJ) = CURR%YQ
             CURR => CURR%NEXTXY
          END DO
-         DEALLOCATE(TMP)
+!        The values are in the arrays; free the whole temporary chain
+!        (freeing only the last one leaked the rest, on every call).
+         CURR => FRST%NEXTXY
+         DO WHILE (ASSOCIATED(CURR))
+            TMP => CURR%NEXTXY
+            DEALLOCATE(CURR)
+            CURR => TMP
+         END DO
+         NULLIFY(FRST%NEXTXY)
+         NULLIFY(TMP)
 
 !         ***** termination *****
          OPSTMP%MIP = MIP
@@ -711,6 +750,9 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          IF ( .NOT.LOPS ) THEN
             FOPS = OPSTMP
             COPS => FOPS
+!           The copy keeps all data; free the temporary node
+            DEALLOCATE(OPSTMP)
+            NULLIFY(OPSTMP)
             LOPS = .TRUE.
          ELSE
             COPS%NEXTOPS => OPSTMP
@@ -801,7 +843,16 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             OPSTMP%YP(IK) = CURR%Y
             CURR => CURR%NEXTXY
          END DO
-         DEALLOCATE(TMP)
+!        The values are in the arrays; free the whole temporary chain
+!        (freeing only the last one leaked the rest, on every call).
+         CURR => FRST%NEXTXY
+         DO WHILE (ASSOCIATED(CURR))
+            TMP => CURR%NEXTXY
+            DEALLOCATE(CURR)
+            CURR => TMP
+         END DO
+         NULLIFY(FRST%NEXTXY)
+         NULLIFY(TMP)
          IF (MIP.EQ.0) CALL MSGERR &
             (2, 'No points with valid depth found')
 !             ***** store number of points of the curve *****
@@ -810,6 +861,9 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          IF ( .NOT.LOPS ) THEN
             FOPS = OPSTMP
             COPS => FOPS
+!           The copy keeps all data; free the temporary node
+            DEALLOCATE(OPSTMP)
+            NULLIFY(OPSTMP)
             LOPS = .TRUE.
          ELSE
             COPS%NEXTOPS => OPSTMP
@@ -1026,6 +1080,9 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          IF ( .NOT.LOPS ) THEN
             FOPS = OPSTMP
             COPS => FOPS
+!           The copy keeps all data; free the temporary node
+            DEALLOCATE(OPSTMP)
+            NULLIFY(OPSTMP)
             LOPS = .TRUE.
          ELSE
             COPS%NEXTOPS => OPSTMP
@@ -1535,7 +1592,16 @@ SUBROUTINE SWREOQ ( FOUND )
                ORQTMP%FAC  (JJ) = CURR%R
                CURR => CURR%NEXTI
             END DO
-            DEALLOCATE(TMP)
+!           The values are in the arrays; free the whole temporary chain
+!           (freeing only the last one leaked the rest, on every call).
+            CURR => FRST%NEXTI
+            DO WHILE (ASSOCIATED(CURR))
+               TMP => CURR%NEXTI
+               DEALLOCATE(CURR)
+               CURR => TMP
+            END DO
+            NULLIFY(FRST%NEXTI)
+            NULLIFY(TMP)
          END IF
 
          IF (IVTYPE .EQ. 98) THEN
@@ -1610,6 +1676,9 @@ SUBROUTINE SWREOQ ( FOUND )
          IF ( .NOT.LORQ ) THEN
             FORQ = ORQTMP
             CORQ => FORQ
+!           The copy keeps all data; free the temporary node
+            DEALLOCATE(ORQTMP)
+            NULLIFY(ORQTMP)
             LORQ = .TRUE.
          ELSE
             CORQ%NEXTORQ => ORQTMP
@@ -1881,7 +1950,16 @@ SUBROUTINE SWREOQ ( FOUND )
             ORQTMP%IVTYP(JJ) = CURR%I
             CURR => CURR%NEXTI
          END DO
-         DEALLOCATE(TMP)
+!         The values are in the array; free the whole temporary chain
+!         (freeing only the last one leaked the rest, on every call).
+         CURR => FRST%NEXTI
+         DO WHILE (ASSOCIATED(CURR))
+            TMP => CURR%NEXTI
+            DEALLOCATE(CURR)
+            CURR => TMP
+         END DO
+         NULLIFY(FRST%NEXTI)
+         NULLIFY(TMP)
       END IF
       IF ( RTYPE.EQ.'TABC') THEN
          ALLOCATE(ORQTMP%FAC(NVAR))
@@ -1906,6 +1984,9 @@ SUBROUTINE SWREOQ ( FOUND )
       IF ( .NOT.LORQ ) THEN
          FORQ = ORQTMP
          CORQ => FORQ
+!        The copy keeps all data; free the temporary node
+         DEALLOCATE(ORQTMP)
+         NULLIFY(ORQTMP)
          LORQ = .TRUE.
       ELSE
          CORQ%NEXTORQ => ORQTMP
@@ -2034,6 +2115,9 @@ SUBROUTINE SWREOQ ( FOUND )
       IF ( .NOT.LORQ ) THEN
          FORQ = ORQTMP
          CORQ => FORQ
+!        The copy keeps all data; free the temporary node
+         DEALLOCATE(ORQTMP)
+         NULLIFY(ORQTMP)
          LORQ = .TRUE.
       ELSE
          CORQ%NEXTORQ => ORQTMP
@@ -2121,6 +2205,9 @@ SUBROUTINE SWREOQ ( FOUND )
          IF ( .NOT.LORQ ) THEN
             FORQ = ORQTMP
             CORQ => FORQ
+!           The copy keeps all data; free the temporary node
+            DEALLOCATE(ORQTMP)
+            NULLIFY(ORQTMP)
             LORQ = .TRUE.
          ELSE
             CORQ%NEXTORQ => ORQTMP
@@ -2965,11 +3052,20 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
       CALL INCSTR ('FNAME',FILENM,'REQ', ' ')
       CALL BCWAMN (FILENM, 'NEST', BFLTMP, &
          XCGRID, YCGRID, KGRPNT, XYTST)
-      IF (STPNOW()) RETURN
+      IF (STPNOW()) THEN
+!        If the file failed, the node was never linked;
+!        free it here (previously a 280 B leak per faulty run).
+         DEALLOCATE(BFLTMP)
+         NULLIFY(BFLTMP)
+         RETURN
+      ENDIF
       NULLIFY(BFLTMP%NEXTBSPC)
       IF ( .NOT.LBFILS ) THEN
          FBNDFIL = BFLTMP
          CUBFL => FBNDFIL
+!        The copy keeps all data; free the temporary node
+         DEALLOCATE(BFLTMP)
+         NULLIFY(BFLTMP)
          LBFILS = .TRUE.
       ELSE
          CUBFL%NEXTBSPC => BFLTMP
@@ -3014,11 +3110,20 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
       CALL INCSTR ('FNAME',FILENM,'REQ', ' ')
       CALL BCWW3N (FILENM, 'NEST', BFLTMP, &
          XCGRID, YCGRID, KGRPNT, XYTST, KGRBND)
-      IF (STPNOW()) RETURN
+      IF (STPNOW()) THEN
+!        If the file failed, the node was never linked;
+!        free it here (previously a 280 B leak per faulty run).
+         DEALLOCATE(BFLTMP)
+         NULLIFY(BFLTMP)
+         RETURN
+      ENDIF
       NULLIFY(BFLTMP%NEXTBSPC)
       IF ( .NOT.LBFILS ) THEN
          FBNDFIL = BFLTMP
          CUBFL => FBNDFIL
+!        The copy keeps all data; free the temporary node
+         DEALLOCATE(BFLTMP)
+         NULLIFY(BFLTMP)
          LBFILS = .TRUE.
       ELSE
          CUBFL%NEXTBSPC => BFLTMP
@@ -3073,11 +3178,20 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
       CALL BCFILE (FILENM, 'NEST', BFLTMP, &
          XCGRID, YCGRID, KGRPNT, XYTST,  KGRBND, &
          DONALL)
-      IF (STPNOW()) RETURN
+      IF (STPNOW()) THEN
+!        If the file failed, the node was never linked;
+!        free it here (previously a 280 B leak per faulty run).
+         DEALLOCATE(BFLTMP)
+         NULLIFY(BFLTMP)
+         RETURN
+      ENDIF
       NULLIFY(BFLTMP%NEXTBSPC)
       IF ( .NOT.LBFILS ) THEN
          FBNDFIL = BFLTMP
          CUBFL => FBNDFIL
+!        The copy keeps all data; free the temporary node
+         DEALLOCATE(BFLTMP)
+         NULLIFY(BFLTMP)
          LBFILS = .TRUE.
       ELSE
          CUBFL%NEXTBSPC => BFLTMP
@@ -3735,6 +3849,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             IF ( .NOT.LBS ) THEN
                FBS = BSTMP
                CUBS => FBS
+!              The copy keeps all data; free the temporary node
+               DEALLOCATE(BSTMP)
+               NULLIFY(BSTMP)
                LBS = .TRUE.
             ELSE
                CUBS%NEXTBS => BSTMP
@@ -3749,11 +3866,29 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             CALL BCFILE (FILENM, 'PNTS', BFLTMP, &
                XCGRID, YCGRID, KGRPNT, XYTST, KGRBND, &
                DONALL)
-            IF (STPNOW()) RETURN
+            IF (STPNOW()) THEN
+!              Free the unlinked node and the XYPT chain
+!              built so far (previously a leak of 280 B + 2 nodes
+!              of 16 B per faulty run).
+               DEALLOCATE(BFLTMP)
+               NULLIFY(BFLTMP)
+               CURR => FRST%NEXTXY
+               DO WHILE (ASSOCIATED(CURR))
+                  TMP => CURR%NEXTXY
+                  DEALLOCATE(CURR)
+                  CURR => TMP
+               END DO
+               NULLIFY(FRST%NEXTXY)
+               NULLIFY(TMP)
+               RETURN
+            ENDIF
             NULLIFY(BFLTMP%NEXTBSPC)
             IF ( .NOT.LBFILS ) THEN
                FBNDFIL = BFLTMP
                CUBFL => FBNDFIL
+!              The copy keeps all data; free the temporary node
+               DEALLOCATE(BFLTMP)
+               NULLIFY(BFLTMP)
                LBFILS = .TRUE.
             ELSE
                CUBFL%NEXTBSPC => BFLTMP
@@ -3781,6 +3916,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             IF ( .NOT.LBGP ) THEN
                FBGP = BGPTMP
                CUBGP => FBGP
+!              The copy keeps all data; free the temporary node
+               DEALLOCATE(BGPTMP)
+               NULLIFY(BGPTMP)
                LBGP = .TRUE.
             ELSE
                CUBGP%NEXTBGP => BGPTMP
@@ -3852,6 +3990,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                   IF ( .NOT.LBS ) THEN
                      FBS = BSTMP
                      CUBS => FBS
+!                    The copy keeps all data; free the temporary node
+                     DEALLOCATE(BSTMP)
+                     NULLIFY(BSTMP)
                      LBS = .TRUE.
                   ELSE
                      CUBS%NEXTBS => BSTMP
@@ -3872,11 +4013,29 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                      CALL BCFILE (FILENM, 'PNTS', BFLTMP, &
                         XCGRID, YCGRID, KGRPNT, XYTST, KGRBND, &
                         DONALL)
-                     IF (STPNOW()) RETURN
+                     IF (STPNOW()) THEN
+!                       Free the unlinked node and the XYPT chain
+!                       built so far (previously a leak of 280 B + the rest
+!                       of the chain per faulty run).
+                        DEALLOCATE(BFLTMP)
+                        NULLIFY(BFLTMP)
+                        CURR => FRST%NEXTXY
+                        DO WHILE (ASSOCIATED(CURR))
+                           TMP => CURR%NEXTXY
+                           DEALLOCATE(CURR)
+                           CURR => TMP
+                        END DO
+                        NULLIFY(FRST%NEXTXY)
+                        NULLIFY(TMP)
+                        RETURN
+                     ENDIF
                      NULLIFY(BFLTMP%NEXTBSPC)
                      IF ( .NOT.LBFILS ) THEN
                         FBNDFIL = BFLTMP
                         CUBFL => FBNDFIL
+!                       The copy keeps all data; free the temporary node
+                        DEALLOCATE(BFLTMP)
+                        NULLIFY(BFLTMP)
                         LBFILS = .TRUE.
                      ELSE
                         CUBFL%NEXTBSPC => BFLTMP
@@ -3925,6 +4084,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                IF ( .NOT.LBGP ) THEN
                   FBGP = BGPTMP
                   CUBGP => FBGP
+!                 The copy keeps all data; free the temporary node
+                  DEALLOCATE(BGPTMP)
+                  NULLIFY(BGPTMP)
                   LBGP = .TRUE.
                ELSE
                   CUBGP%NEXTBGP => BGPTMP
@@ -3945,7 +4107,19 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
       ELSE
          CALL WRNKEY
       ENDIF
-      IF (ASSOCIATED(TMP)) DEALLOCATE(TMP)
+      IF (KOUNTR.GT.0) THEN
+!        The XYPT chain has been fully used by the IKO/VAR loops;
+!        free all nodes (freeing one node leaked the rest, on every
+!        call). KOUNTR guards definedness: reset per command.
+         CURR => FRST%NEXTXY
+         DO WHILE (ASSOCIATED(CURR))
+            TMP => CURR%NEXTXY
+            DEALLOCATE(CURR)
+            CURR => TMP
+         END DO
+         NULLIFY(FRST%NEXTXY)
+         NULLIFY(TMP)
+      END IF
    ENDIF
    RETURN
 end subroutine SWBOUN
@@ -4932,6 +5106,9 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
                                  IF ( .NOT.LBGP ) THEN
                                     FBGP = BGPTMP
                                     CUBGP => FBGP
+!                                   The copy keeps all data; free the temporary node
+                                    DEALLOCATE(BGPTMP)
+                                    NULLIFY(BGPTMP)
                                     LBGP = .TRUE.
                                  ELSE
                                     CUBGP%NEXTBGP => BGPTMP
@@ -5786,6 +5963,9 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID, &
                         IF ( .NOT.LBGP ) THEN
                            FBGP = BGPTMP
                            CUBGP => FBGP
+!                       The copy keeps all data; free the temporary node
+                           DEALLOCATE(BGPTMP)
+                           NULLIFY(BGPTMP)
                            LBGP = .TRUE.
                         ELSE
                            CUBGP%NEXTBGP => BGPTMP
@@ -5862,6 +6042,9 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID, &
                         IF ( .NOT.LBGP ) THEN
                            FBGP = BGPTMP
                            CUBGP => FBGP
+!                       The copy keeps all data; free the temporary node
+                           DEALLOCATE(BGPTMP)
+                           NULLIFY(BGPTMP)
                            LBGP = .TRUE.
                         ELSE
                            CUBGP%NEXTBGP => BGPTMP
@@ -6351,6 +6534,9 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID, &
    IF ( .NOT.LOPS ) THEN
       FOPS = OPSTMP
       COPS => FOPS
+!     The copy keeps all data; free the temporary node
+      DEALLOCATE(OPSTMP)
+      NULLIFY(OPSTMP)
       LOPS = .TRUE.
    ELSE
       COPS%NEXTOPS => OPSTMP

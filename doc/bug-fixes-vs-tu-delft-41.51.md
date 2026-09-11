@@ -50,6 +50,13 @@ separates what was **measured** from what was **derived** from the source;
 where there is no before/after measurement of the numerical consequence, none
 is claimed.
 
+Two fixes (BF-01 and BF-05) only bite when one process runs more than one
+computation. The standalone 41.51 binary runs one case per process; the way
+to get there is an external coupler — the upstream source refers, in the
+comment at `SWMAIN`, to `couple2swan.F`, which is not included — or the
+library API of this fork. That does not make them any less real, but it does
+decide who is affected.
+
 ## Bug fixes delivered
 
 The items are grouped by what a user notices. The numbers were assigned in
@@ -57,10 +64,13 @@ the order the bugs were found, so they are not in sequence.
 
 ### A. Valid input gave a wrong result, a crash or an unjustified message
 
+These are the bugs a user with a correct deck could hit. BF-01 and BF-05 only apply when one process runs more than one computation.
+
 | ID | Qualification | Defect in the TU Delft base and fix | Evidence |
 |---|---|---|---|
 | BF-01 | **proven** | **A second computation in the same process could crash or misread input.** `LOGCOM(6)` is set to `.TRUE.` as soon as `AC2` has been allocated (`swanpre1.ftn:4990`) and is never reset, while `AC2` is freed at shutdown (`swanmain.ftn:9243`); a following run therefore saw an array that no longer existed. The input file name remembered by `REPARM` also stayed in place between runs. The duplicate allocation status has been replaced by `ALLOCATED(AC2)` and the file registration is reset at every run. The owner `clear` paths have also been made idempotent. Reachable through a coupler or the library API, not in the standalone binary. | The A–B–A tests for equal cases, changing physics, grids and spectra are bit-identical. See `tests/test_two_cases.f90`, `tests/test_physics_reuse.f90`, `tests/test_grid_reuse.f90` and `tests/test_spectrum_reuse.f90`. |
 | BF-02 | **proven** | **Mixed netCDF output could end with an allocator error after correct output.** Two simultaneous `BLOCK` requests for the same grid, one text and one netCDF, passed with `CALL FOR (NREF, TRIM(FILENM)//'.dum', 'UF', IOSTAT)` a short string result to an interface that declares the argument as `CHARACTER DDNAME*(LENFNM)` (140 characters). Both netCDF calls now use a local buffer of the required length; the same has been done for the table route. | `netcdf_mixed_block_output` reproduces the former crash; `netcdf_table_output` covers the second call. Valgrind no longer reports an invalid read. See `src/swanout2.f90`, `examples/output_backends/run.py` and `tests/check_netcdf_output.f90`. |
+| BF-05 | **proven** | **Linked parser, boundary, obstacle and output lists leaked memory.** Single head nodes were never freed (`OPSTMP` is allocated eight times in `swanpre2.ftn` and freed nowhere), and of chains only the last node was freed (`IF (ASSOCIATED(TMP)) DEALLOCATE(TMP)`). The fix covers `BFLTMP`/`BSTMP`/`BGPTMP`, `ORQTMP`/`OPSTMP`, `NEXTI`, several `XYPT` chains and the obstacle transmission and corner point chains. Five error paths after `BCWAMN`/`BCWW3N`/`BCFILE` now also clean up their node that is not yet linked and any point chain. Relevant where one process does more than one run; in a process that runs one case, the operating system cleans up at exit. | On the A–B–A case, definitely/indirectly lost fell cumulatively from **2040 B to 0 B** (216 + 792 + 936 + 96 B, measured at the four checkpoints of the test). The separate FILE error decks fell from 280 B and 328 B total loss respectively to 0 B. The shutdown protocol with 50 changing runs, an input error and recovery passes without lost blocks or growth in open units (`scripts/lifetime_protocol.py`). |
 
 ### B. Wrong input gave a crash, a hang or a silent computation instead of a message
 
