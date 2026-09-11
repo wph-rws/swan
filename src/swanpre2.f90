@@ -3951,6 +3951,14 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                   CALL MSGERR(1, &
                      'Length of segment short, boundary values ignored')
                   WRITE (PRINTF, "(' segment length=', F9.2, '; [len]=', F9.2)") RDIST, RLEN2
+!                 Take the message literally: distributing is no longer possible.
+!                 The blocks are still read (the input stream
+!                 must stay aligned), but no boundary point is
+!                 rewritten any more. Previously the last node of the
+!                 already used XYPT chain was consumed again here: a
+!                 duplicate boundary point entry with weighting factor >1 (and a
+!                 negative counterweight) at the same point. The guard
+!                 now sits at the top of the boundary_points loop.
                ENDIF
                IF (BPARF) THEN
                   CALL INREAL ('HS',  SPPARM(1), 'REQ', 0.)
@@ -4052,6 +4060,10 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             ENDIF
             LFRST3 = .TRUE.
             boundary_points: DO
+!              If the chain has already been fully distributed (short segment),
+!              read no further node; previously the last node of the
+!              used chain was consumed again here.
+               IF (IKO.GT.KOUNTR) EXIT boundary_points
                IX = CURR%JX
                IF (OPTG.NE.5) THEN
                   IY = CURR%JY

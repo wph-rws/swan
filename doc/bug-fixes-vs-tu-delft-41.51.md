@@ -79,6 +79,7 @@ A deck with an error should stop with a message that names the error. In these c
 
 | ID | Qualification | Defect in the TU Delft base and fix | Evidence |
 |---|---|---|---|
+| BF-10 | **proven** | **A surplus length in a variable boundary segment displaced the following boundary conditions.** Upstream links a duplicate grid-point node when the next length lies beyond the end of the segment. With one segment the duplicate is beyond the part copied by `SWPREP`; with another segment it replaces a genuine node. The fork consumes surplus parameters without adding that node. | On two segments, the last west point gave Hs 1.992 m instead of 1.872 m, and the last south point 0.851 m instead of 1.676 m. The fork gives the latter values with and without the surplus length. `test_surplus_boundary_lengths_do_not_change_the_next_segment` guards this; a single-segment comparison alone cannot detect it. See `src/swanpre2.f90` (`SWBOUN`), upstream `swanmain.ftn:4015-4035`. |
 
 ### C. Latent, diagnostics and build
 
