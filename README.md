@@ -8,7 +8,9 @@
 > backendselectie, Fortran-2018-modules, CTest-regressies, strict-ratchet —
 > beschrijven **deze fork**, niet de ongewijzigde upstream-stand. Zie
 > [`doc/moderniseringsplan.md`](doc/moderniseringsplan.md) en
-> `doc/support-matrix.md` voor plan, stand en ondersteunde combinaties.
+> `doc/support-matrix.md` voor plan, stand en ondersteunde combinaties. De
+> afzonderlijke reparaties boven de actuele TU Delft-bronbasis staan in
+> [`doc/bugfixes-tov-tu-delft-41.51.md`](doc/bugfixes-tov-tu-delft-41.51.md).
 
 [![release](https://img.shields.io/badge/release%20-%20v41.51%20-%20brightgreen?color=success)]()
 [![site](https://img.shields.io/badge/sourceforge%20-%20site%20-%20blue?logo=sourceforge&color=informational)](https://swanmodel.sourceforge.io)
@@ -357,9 +359,12 @@ figures.
 ## documentation
 
 See
+
 1. the [SWAN website](https://swanmodel.sourceforge.io/) for general information
 1. the [SWAN documentation](https://delftwaves.github.io/swan-docs/) that provides the user manual, scientific/technical documentation and many more
 1. the [SWAN settings](https://swanmodel.sourceforge.io/settings/settings.htm) page for an overview of the source term packages
+1. the [RWS bugfix inventory](doc/bugfixes-tov-tu-delft-41.51.md) for the
+   repairs in this fork relative to the latest fetched TU Delft 41.51 source
 
 ## bugs and questions
 
