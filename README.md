@@ -5,8 +5,10 @@
 > SWAN 41.51. The reference is TU Delft
 > [`gitlab.tudelft.nl/citg/wavemodels/swan`](https://gitlab.tudelft.nl/citg/wavemodels/swan)
 > (upstream, stable 41.51). The features described below (CMake build options,
-> choice of back ends, Fortran 2018 modules) describe **this fork**, not the
-> unchanged upstream code.
+> choice of back ends, Fortran 2018 modules, CTest regression tests) describe **this fork**, not the unchanged
+> upstream code. The individual fixes on top of the
+> current TU Delft source are listed in
+> [`doc/bug-fixes-vs-tu-delft-41.51.md`](doc/bug-fixes-vs-tu-delft-41.51.md).
 
 [![release](https://img.shields.io/badge/release%20-%20v41.51%20-%20brightgreen?color=success)]()
 [![site](https://img.shields.io/badge/sourceforge%20-%20site%20-%20blue?logo=sourceforge&color=informational)](https://swanmodel.sourceforge.io)
@@ -373,6 +375,8 @@ See
 1. the [SWAN website](https://swanmodel.sourceforge.io/) for general information
 1. the [SWAN documentation](https://delftwaves.github.io/swan-docs/) that provides the user manual, scientific/technical documentation and many more
 1. the [SWAN settings](https://swanmodel.sourceforge.io/settings/settings.htm) page for an overview of the source term packages
+1. the [RWS bugfix inventory](doc/bug-fixes-vs-tu-delft-41.51.md) for the
+   repairs in this fork relative to the latest fetched TU Delft 41.51 source
 
 ## bugs and questions
 
