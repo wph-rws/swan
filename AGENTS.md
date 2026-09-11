@@ -44,15 +44,27 @@ deck, so such a deck never matches 41.31 exactly.
 ## Compiler
 
 The compiler is **gfortran 16.2**, for everything: serial, OpenMP, MPI,
-netCDF. Always choose it explicitly:
+netCDF, the upstream build of the delta gate and CI. The stored references
+were made with it. Always choose it explicitly:
 `-DCMAKE_Fortran_COMPILER=/usr/bin/gfortran-16` for CMake and
-`OMPI_FC=gfortran-16` for MPI builds. The plain `gfortran` command may point
-to another version, and another compiler version can shift output. A build
-directory that continues incrementally after a compiler change mixes versions;
-when in doubt, check `readelf -p .comment` on the binary. The `mpi.mod` and
-`netcdf.mod` of the system packages can be read by gfortran 16.2. Locally,
-OpenMPI needs `OMPI_MCA_pml=ob1 OMPI_MCA_btl=self,sm OMPI_MCA_mtl=^ofi
-OMPI_MCA_osc=^ucx` to avoid crashing at start-up.
+`OMPI_FC=gfortran-16` for MPI builds. The plain `gfortran` command may point to
+another version, and another compiler version can shift output.
+A build directory that continues incrementally after a compiler change mixes
+versions; when in doubt, check `readelf -p .comment` on the binary. The
+`mpi.mod` and `netcdf.mod` of the system packages can be read by gfortran 16.2.
+Locally, OpenMPI needs
+`OMPI_MCA_pml=ob1 OMPI_MCA_btl=self,sm OMPI_MCA_mtl=^ofi OMPI_MCA_osc=^ucx` to
+avoid crashing at start-up.
+
+## Verification: targeted gate selection
+
+Not every change needs the full breadth (serial + OpenMP + MPI). For each change, use `python3 scripts/select_gates.py [--base HEAD]` to find which gates the change can break, and run only those, with the commands it prints:
+
+- MPI only for paths that touch MPI (source with mpi/parall/metis/coh/esmf/adcirc in the name, MPI tests, toolchain/CMake). A deck or physics change without a code difference behaves under MPI exactly as in serial on the same code.
+- Docs or comments only: no gates.
+- upstream_delta for anything that can shift the output of a deck (source, toolchain, decks, the inventory itself). That gate runs every deck (the four heavy ones only with `--include-skipped`) through its own build of the pinned TU Delft source (`43e9bbb`) and through the fork, and checks the result against `doc/upstream-delta.json`: every difference must have a BF number. The inventory itself is checked on every commit in the pytest gate; the measured half runs under `SWAN_UPSTREAM_DELTA=1` and needs a one-off upstream build in `.upstream/build_O3_gfortran<version>`, with the same compiler as the fork build and at `-O3`, because both the optimisation level and the compiler version change output (use a path without a hyphen, because upstream `switch.pl` loops forever on one).
+- Unknown paths safely choose everything; never silently nothing.
+- Skipped gates stay at their last green commit. Mention that commit with the change, so the release claim stays traceable.
 
 ## Performance measurements: always multicore as well
 

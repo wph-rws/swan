@@ -406,6 +406,27 @@ if( BUILD_TESTING )
             --switch ${CMAKE_SOURCE_DIR}/switch.py
             --manifest ${CMAKE_SOURCE_DIR}/doc/switch-manifest.json
   )
+  # The gates run on a bare runner: a module that is present in a local
+  # virtualenv but not installed there brings down the whole job on an
+  # error that has nothing to do with SWAN. Check that the workflow
+  # installs what the test layer imports.
+  # The gate demands 'passed'; GitHub calls a successful job 'success'. That
+  # difference lets every job pass and the gate still fail, and only shows
+  # once the workflow really runs. Check the contract statically.
+  add_test(
+    NAME ci_gate_workflow_contract
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/ci_gate.py
+            --check-workflow ${CMAKE_SOURCE_DIR}/.github/workflows/ci.yml
+  )
+
+  add_test(
+    NAME ci_dependencies
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/check_ci_dependencies.py
+            --workflow ${CMAKE_SOURCE_DIR}/.github/workflows/ci.yml
+  )
+
   add_test(
     NAME switch_manifest_self_test
     COMMAND ${Python3_EXECUTABLE}
@@ -417,6 +438,16 @@ if( BUILD_TESTING )
     NAME reference_check_negatives
     COMMAND ${Python3_EXECUTABLE} -m pytest
             ${CMAKE_SOURCE_DIR}/tests/test_reference_check.py -q
+  )
+  add_test(
+    NAME build_matrix_negatives
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_build_matrix.py -q
+  )
+  add_test(
+    NAME ci_gate_self_test
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/ci_gate.py --self-test
   )
   add_test(
     NAME mpi_field_mask_self_test
