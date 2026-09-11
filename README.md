@@ -7,7 +7,8 @@
 > (upstream, stabiel 41.51). Eigenschappen hieronder — CMake-capabilities,
 > backendselectie, Fortran-2018-modules, CTest-regressies, strict-ratchet —
 > beschrijven **deze fork**, niet de ongewijzigde upstream-stand. Zie
-> [`doc/moderniseringsplan.md`](doc/moderniseringsplan.md) en
+> [`doc/moderniseringsplan.md`](doc/moderniseringsplan.md),
+> [`doc/eindverantwoording.md`](doc/eindverantwoording.md) en
 > `doc/support-matrix.md` voor plan, stand en ondersteunde combinaties. De
 > afzonderlijke reparaties boven de actuele TU Delft-bronbasis staan in
 > [`doc/bugfixes-tov-tu-delft-41.51.md`](doc/bugfixes-tov-tu-delft-41.51.md).

@@ -141,6 +141,7 @@ jobs:
           python3 scripts/check_thread_state.py --source-dir src --manifest doc/thread-state-manifest.md
           python3 scripts/check_run_state_ownership.py --manifest doc/run-state-ownership.json
           python3 scripts/check_switch_manifest.py --source-dir src --switch switch.py --manifest doc/switch-manifest.json
+          python3 scripts/check_source_bundle_boundaries.py
           python3 scripts/check_ci_dependencies.py
           python3 scripts/ci_gate.py --self-test
           python3 scripts/ci_gate.py --check-workflow .github/workflows/ci.yml

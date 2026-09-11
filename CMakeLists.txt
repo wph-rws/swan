@@ -479,6 +479,16 @@ if( BUILD_TESTING )
             --manifest ${CMAKE_SOURCE_DIR}/doc/run-state-ownership.json
   )
 
+  # The bundled source-term argument groups only stay honest while the set of
+  # procedures that may receive them is fixed: a bundle handed one level deeper
+  # is shared state again under a new name. Guard it like the other invariants
+  # the compiler cannot see.
+  add_test(
+    NAME source_bundle_boundaries
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/check_source_bundle_boundaries.py
+  )
+
   # Keep the historical switch.py vocabulary ratcheted at zero use in product
   # sources; the script remains only as a downstream compatibility interface.
   add_test(

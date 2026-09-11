@@ -106,7 +106,7 @@ mask and does not claim whole-field mask identity across decomposition modes.
   unconditionally) does not touch the structured operational suite, which
   is bit-exact before and after.
 - Strict-poort (schone bouw met `--require-baseline`, GNU 13.3.0):
-  **1.317 waarschuwingen** tegen een budget van **1.318**, `within budget`,
+  **1.317 waarschuwingen** tegen een budget van **1.317**, `within budget`,
   `no new warnings` — gemeten 11 september 2026 (1.324/488 na
   de fysicabenoeming, 10 september; 1.358/502 na de `RI`-contractseed; 1.360/503 na
   de laatste geheugenvrijgave; 1.361/504 op de kandidaat van 7 september). De daling van

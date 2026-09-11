@@ -1071,12 +1071,6 @@
   ],
   [
    "maybe-uninitialized",
-   "swan_front_scheduling_backend_graph.f90",
-   "‘vu[0]’ may be used uninitialized",
-   1
-  ],
-  [
-   "maybe-uninitialized",
    "swan_input_point_validation.f90",
    "‘__result_sincmp’ may be used uninitialized",
    1
@@ -1732,24 +1726,6 @@
   [
    "unused-dummy-argument",
    "swancom1.f90",
-   "Unused dummy argument ‘hs’ at (1)",
-   1
-  ],
-  [
-   "unused-dummy-argument",
-   "swancom1.f90",
-   "Unused dummy argument ‘iddlow’ at (1)",
-   1
-  ],
-  [
-   "unused-dummy-argument",
-   "swancom1.f90",
-   "Unused dummy argument ‘iddtop’ at (1)",
-   1
-  ],
-  [
-   "unused-dummy-argument",
-   "swancom1.f90",
    "Unused dummy argument ‘idtot’ at (1)",
    1
   ],
@@ -1804,12 +1780,6 @@
   [
    "unused-dummy-argument",
    "swancom1.f90",
-   "Unused dummy argument ‘smespc’ at (1)",
-   1
-  ],
-  [
-   "unused-dummy-argument",
-   "swancom1.f90",
    "Unused dummy argument ‘swpdir’ at (1)",
    1
   ],
@@ -1841,18 +1811,6 @@
    "unused-dummy-argument",
    "swancom2.f90",
    "Unused dummy argument ‘fdir’ at (1)",
-   1
-  ],
-  [
-   "unused-dummy-argument",
-   "swancom2.f90",
-   "Unused dummy argument ‘iddlow’ at (1)",
-   1
-  ],
-  [
-   "unused-dummy-argument",
-   "swancom2.f90",
-   "Unused dummy argument ‘iddtop’ at (1)",
    1
   ],
   [
