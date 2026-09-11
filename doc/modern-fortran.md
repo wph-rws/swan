@@ -267,6 +267,27 @@ scenario is covered.
 argument checks. They pass because of one fix to a defect that upstream has as
 well (BF-08): 25 arrays that could be passed on while still unallocated.
 
+Input fields are only allocated once a `READINP` command supplies them, and the
+global grid arrays only when the grid is structured; both are passed on
+unconditionally, because whether the data exists is decided by flags like `LEDS`,
+never by `ALLOCATED`. In upstream, any deck that leaves one out therefore
+passes an unallocated allocatable. That is undefined behaviour that happens to
+work, because the callee guards on the flag and never dereferences.
+
+In the fork `SWINIT` gives all of them the empty state. That alone would be
+worse than the disease: the allocations that fill them are guarded by
+`IF (.NOT.ALLOCATED(..))` in upstream, so an array pre-allocated at size zero
+would *stay* at size zero and the fill would write past its end. Sizing is
+what makes the empty state safe, so they go through `ENSURE_FIELD_SIZE` in
+`M_GENARR`, which grows the array to the size asked for. That also closes a
+latent bug in upstream's guard (BF-09): reading the same grid again at a
+different size silently kept the first one.
+
+One deliberate exception, marked in the source: the `TEST` branch that falls
+back to an empty `XYTST` still only allocates when unallocated, because
+`NPTST` keeps its count from an earlier `TEST POI` and a resize there would
+leave the two disagreeing.
+
 Use it on top of an optimizing build type. Integer powers go through
 `src/swan_integer_powers.f90`, so `-O0` evaluates them in the same order as an
 optimized build, and the Debug route passes all tests.
