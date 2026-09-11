@@ -819,16 +819,16 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
              usrset(1) = IWIND
              usrset(2) = IWCAP
              usrset(3) = IQUAD
-             usrset(4) = PNUMS(20)
-             usrset(5) = PNUMS(30)
+             usrset(4) = PNUMS(PNUMS_LIMGRW)
+             usrset(5) = PNUMS(PNUMS_ALFA)
 
              ! first guess settings
 
-             IWIND     = 2               ! if first guess should be based on 1st generation mode, set IWIND = 1
-             IWCAP     = 0
-             IQUAD     = 0
-             PNUMS(20) = 1.E22           ! no limiter
-             PNUMS(30) = 0.              ! no under-relaxation
+             IWIND = IWIND_GEN2               ! if first guess should be based on 1st generation mode, set IWIND = 1
+             IWCAP = IWCAP_OFF
+             IQUAD = IQUAD_OFF
+             PNUMS(PNUMS_LIMGRW) = 1.E22           ! no limiter
+             PNUMS(PNUMS_ALFA) = 0.              ! no under-relaxation
 
              write (PRINTF,"(// ' Settings of 2nd generation mode as first guess are used:')")
 
@@ -839,8 +839,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
              IWIND     = usrset(1)
              IWCAP     = usrset(2)
              IQUAD     = usrset(3)
-             PNUMS(20) = usrset(4)
-             PNUMS(30) = usrset(5)
+             PNUMS(PNUMS_LIMGRW) = usrset(4)
+             PNUMS(PNUMS_ALFA) = usrset(5)
 
              write (PRINTF,"(// ' User-defined settings of 3rd generation mode is re-used:')")
 
@@ -849,7 +849,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
           ! print info
 
           if ( iter < 3 ) then
-             write (PRINTF,"(' ITER ',i4,' GRWMX ',e12.4,' ALFA ',e12.4)") iter, PNUMS(20), PNUMS(30)
+             write (PRINTF,"(' ITER ',i4,' GRWMX ',e12.4,' ALFA ',e12.4)") iter, PNUMS(PNUMS_LIMGRW), PNUMS(PNUMS_ALFA)
              write (PRINTF,"(' IWIND ',i4,' IWCAP ',i4 ,' IQUAD ',i4)") IWIND, IWCAP, IQUAD
              write (PRINTF,"(' ISURF ',i4,' IBOT ',i4 ,' ITRIAD ',i4)") ISURF, IBOT , ITRIAD
              write (PRINTF,"(' IVEG ',i4,' ITURBV',i4 ,' IMUD ',i4/ ' IICE ',i4,' IBRAG ',i4 )") IVEG , ITURBV, IMUD, IICE, IBRAG
@@ -1325,7 +1325,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                                rhs         = 0.
                                IF (timing_enabled) CALL SWTSTO(120)
 
-                            elseif ( .not.DYNDEP .and. ICUR == 0 .or. int(PNUMS(8)) == 0 ) then
+                            elseif ( .not.DYNDEP .and. ICUR == 0 .or. int(PNUMS(PNUMS_SCHEMEFR)) == 0 ) then
 
                                ! propagation in theta space only
                                ! solve tridiagonal system of equations using Thomas' algorithm
@@ -1339,7 +1339,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
 
                                ! propagation in both sigma and theta spaces
 
-                               if ( int(PNUMS(8)) == 1 ) then
+                               if ( int(PNUMS(PNUMS_SCHEMEFR)) == 1 ) then
 
                                   ! implicit scheme in sigma space
                                   ! solve pentadiagonal system of equations using SIP solver
@@ -1347,12 +1347,12 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                                   IF (timing_enabled) CALL SWTSTA(120)
                                   call SWSIP ( ac2        , amat(1,1,1)    , rhs            , amat(1,1,4), &
                                                amat(1,1,5), amat(1,1,2)    , amat(1,1,3)    , ac2old     , &
-                                               PNUMS(12)  , nint(PNUMS(14)), nint(PNUMS(13)), inocnt     , &
+                                               PNUMS(PNUMS_EPS2)  , nint(PNUMS(PNUMS_SIPMAX)), nint(PNUMS(PNUMS_SIPPRN)), inocnt     , &
                                                iddlow     , iddtop         , isstop         , idcmin     , &
                                                idcmax     , st_kc(1), st_ix(1), st_iy(1))
                                   IF (timing_enabled) CALL SWTSTO(120)
 
-                               elseif (int(PNUMS(8)) == 2 ) then
+                               elseif (int(PNUMS(PNUMS_SCHEMEFR)) == 2 ) then
 
                                   ! explicit scheme in sigma space
                                   ! solve tridiagonal system of equations using Thomas' algorithm
@@ -1399,7 +1399,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                             ! limit the change of the spectrum
 
                             IF (timing_enabled) CALL SWTSTA(122)
-                            if ( PNUMS(20) < 100. ) call PHILIM ( ac2, ac2old, cgo, kwave, spcsig, anybin, islmin, nflim, qbloc, st_kc(1) )
+                            if ( PNUMS(PNUMS_LIMGRW) < 100. ) call PHILIM ( ac2, ac2old, cgo, kwave, spcsig, anybin, islmin, nflim, qbloc, st_kc(1) )
                             IF (timing_enabled) CALL SWTSTO(122)
 
                             ! reduce the computed energy density if the value is larger then the limit value
@@ -1411,7 +1411,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
 
                             ! store some infinity norms meant for convergence check
 
-                            if ( PNUMS(21) == 2. ) call SWACC ( ac2, ac2old, acnrms, isstop, idcmin, idcmax , st_kc(1))
+                            if ( PNUMS(PNUMS_STOPTY) == 2. ) call SWACC ( ac2, ac2old, acnrms, isstop, idcmin, idcmax , st_kc(1))
 
                          endif
 
@@ -1566,10 +1566,10 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
 
        ! info regarding the iteration process and the accuracy
 
-       if ( PNUMS(21) <= 1. ) then
+       if ( PNUMS(PNUMS_STOPTY) <= 1. ) then
 
           IF (timing_enabled) CALL SWTSTA(102)
-          if ( PNUMS(21) == 0. ) then
+          if ( PNUMS(PNUMS_STOPTY) == 0. ) then
 
              !$omp single
              call SwanConvAccur ( accur, hscurr, tmcurr, compda(1,JDHS), compda(1,JDTM), xytst, spcsig, ac2 )
@@ -1589,17 +1589,17 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
              write (PRINTF,"(' not possible to compute accuracy, first iteration',/)")
              if ( NSTATC == 0 .and. IAMMASTER ) write (SCREEN,"(' not possible to compute accuracy, first iteration',/)")
           else
-             write (PRINTF,"(' accuracy OK in ',f6.2,' % of wet grid points (',f6.2,' % required)',/ )") accur, PNUMS(4)
-             if ( NSTATC == 0 .and. IAMMASTER ) write (SCREEN,"(' accuracy OK in ',f6.2,' % of wet grid points (',f6.2,' % required)',/ )") accur, PNUMS(4)
+             write (PRINTF,"(' accuracy OK in ',f6.2,' % of wet grid points (',f6.2,' % required)',/ )") accur, PNUMS(PNUMS_NPNTS)
+             if ( NSTATC == 0 .and. IAMMASTER ) write (SCREEN,"(' accuracy OK in ',f6.2,' % of wet grid points (',f6.2,' % required)',/ )") accur, PNUMS(PNUMS_NPNTS)
           endif
           !$omp end master
           IF (timing_enabled) CALL SWTSTO(102)
 
           ! if accuracy has been reached then terminates iteration process
 
-          if ( accur >= PNUMS(4) ) exit iterloop
+          if ( accur >= PNUMS(PNUMS_NPNTS) ) exit iterloop
 
-       elseif ( PNUMS(21) == 2. ) then
+       elseif ( PNUMS(PNUMS_STOPTY) == 2. ) then
 
          !$omp master
           IF (timing_enabled) CALL SWTSTA(102)
@@ -1615,7 +1615,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                 if ( NSTATC == 0 .and. IAMMASTER ) write (SCREEN,"(' norm less then 1e-20, no stopping criterion',/)")
              else
                 rhof   = acnrms(1)/acnrmo
-                stopcr = PNUMS(1)*acnrms(2)*(1.-rhof)/rhof
+                stopcr = PNUMS(PNUMS_DREL)*acnrms(2)*(1.-rhof)/rhof
                 write (PRINTF,"(1x,ss,' ',1pe13.6e2,' ',1pe13.6e2,' ',1pe13.6e2,/)") rhof, acnrms(1), stopcr
                 if ( NSTATC == 0 .and. IAMMASTER ) write (SCREEN,"(1x,ss,' ',1pe13.6e2,' ',1pe13.6e2,' ',1pe13.6e2,/)") rhof, acnrms(1), stopcr
              endif

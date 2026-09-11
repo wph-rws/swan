@@ -849,72 +849,6 @@
   ],
   [
    "function-elimination",
-   "SwanBndStruc.f90",
-   "Impure function ‘eqreal’ at (1) might not be evaluated",
-   1
-  ],
-  [
-   "function-elimination",
-   "SwanInterpolateAc.f90",
-   "Impure function ‘eqreal’ at (1) might not be evaluated",
-   1
-  ],
-  [
-   "function-elimination",
-   "SwanInterpolateOutput.f90",
-   "Impure function ‘eqreal’ at (1) might not be evaluated",
-   1
-  ],
-  [
-   "function-elimination",
-   "SwanInterpolatePoint.f90",
-   "Impure function ‘eqreal’ at (1) might not be evaluated",
-   3
-  ],
-  [
-   "function-elimination",
-   "swan_input_interpolation.f90",
-   "Impure function ‘eqreal’ at (1) might not be evaluated",
-   1
-  ],
-  [
-   "function-elimination",
-   "swancom1.f90",
-   "Impure function ‘eqreal’ at (1) might not be evaluated",
-   2
-  ],
-  [
-   "function-elimination",
-   "swanout1.f90",
-   "Impure function ‘eqreal’ at (1) might not be evaluated",
-   2
-  ],
-  [
-   "function-elimination",
-   "swanout2.f90",
-   "Impure function ‘eqreal’ at (1) might not be evaluated",
-   1
-  ],
-  [
-   "function-elimination",
-   "swanparll.f90",
-   "Impure function ‘eqreal’ at (1) might not be evaluated",
-   10
-  ],
-  [
-   "function-elimination",
-   "swanpre1.f90",
-   "Impure function ‘eqcstr’ at (1) might not be evaluated",
-   3
-  ],
-  [
-   "function-elimination",
-   "swanpre1.f90",
-   "Impure function ‘eqreal’ at (1) might not be evaluated",
-   2
-  ],
-  [
-   "function-elimination",
    "swanpre1.f90",
    "Impure function ‘keywis_default’ at (1) might not be evaluated",
    30
@@ -928,26 +862,8 @@
   [
    "function-elimination",
    "swanpre2.f90",
-   "Impure function ‘eqcstr’ at (1) might not be evaluated",
-   3
-  ],
-  [
-   "function-elimination",
-   "swanpre2.f90",
-   "Impure function ‘eqreal’ at (1) might not be evaluated",
-   3
-  ],
-  [
-   "function-elimination",
-   "swanpre2.f90",
    "Impure function ‘keywis_default’ at (1) might not be evaluated",
    11
-  ],
-  [
-   "function-elimination",
-   "swanser.f90",
-   "Impure function ‘eqreal’ at (1) might not be evaluated",
-   1
   ],
   [
    "function-elimination",
@@ -1685,12 +1601,6 @@
    "maybe-uninitialized",
    "swanser.f90",
    "‘yp1’ may be used uninitialized",
-   2
-  ],
-  [
-   "uninitialized",
-   "ocpcre.f90",
-   "‘ri’ is used uninitialized",
    2
   ],
   [

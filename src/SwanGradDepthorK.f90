@@ -139,7 +139,7 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
 
     if ( vert(ivert)%atti(VMARKER) == 1 ) return    ! boundary vertex
 
-    if ( (IREFR /= 0 .and. int(PNUMS(32)) == 0) .or. (ITFRE /= 0 .and. ICUR /= 0) ) then
+    if ( (IREFR /= 0 .and. int(PNUMS(PNUMS_GRADK)) == 0) .or. (ITFRE /= 0 .and. ICUR /= 0) ) then
        depth_gradient: do
 
        area  =  0d0
@@ -261,7 +261,7 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
 
     endif
 
-    if ( IREFR /= 0 .and. int(PNUMS(32)) == 1 ) then
+    if ( IREFR /= 0 .and. int(PNUMS(PNUMS_GRADK)) == 1 ) then
        wave_number_gradient: do
 
        area  =  0d0

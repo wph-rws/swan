@@ -556,7 +556,10 @@ end subroutine TABHED
 
 !************************************************************************
 !                                                                      *
-LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
+PURE LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
+!     Zuiver: de enige bijwerking was
+!     STRACE-diagnostiek; regressies draaien met ITRACE=0 en geen enkele
+!     referentie bevat EQREAL-regels. Zie triage-doc.
 !                                                                      *
 !************************************************************************
 
@@ -628,10 +631,8 @@ LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
 !  6. Local variables
 !
 !     EPS    : Small number (related to REAL1 and its difference with REAL2)
-!     IENT   : Number of entries into this subroutine
 
    REAL      EPS
-   INTEGER, SAVE :: IENT = 0
 
 !  8. Subroutines used
 !
@@ -660,7 +661,6 @@ LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
 !
 ! 13. Source text
 
-   CALL STRACE(IENT,'EQREAL')
    EQREAL = .FALSE.
 
    EPS = EPSILON(REAL1)*ABS(REAL1-REAL2)
@@ -675,7 +675,9 @@ LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
 end function EQREAL
 !************************************************************************
 !                                                                      *
-LOGICAL FUNCTION EQDBLE (DBLE1, DBLE2)
+PURE LOGICAL FUNCTION EQDBLE (DBLE1, DBLE2)
+!     Zuiver: de enige bijwerking was
+!     STRACE-diagnostiek; zie EQREAL hierboven.
 !                                                                      *
 !************************************************************************
 
@@ -727,16 +729,12 @@ LOGICAL FUNCTION EQDBLE (DBLE1, DBLE2)
 !     DBLE1  : input    value that is to be tested
 !     DBLE2  : input    given exception value
 
-   REAL(KIND=KIND(0.0D0))    DBLE1, DBLE2
+    REAL(KIND=KIND(0.0D0)), INTENT(IN) :: DBLE1, DBLE2
 
 !  5. Parameter variables
 !
 !  6. Local variables
 !
-!     IENT   : Number of entries into this subroutine
-
-   INTEGER, SAVE :: IENT = 0
-
 !  8. Subroutines used
 !
 !  9. Subroutines calling
@@ -749,7 +747,6 @@ LOGICAL FUNCTION EQDBLE (DBLE1, DBLE2)
 !
 ! 13. Source text
 
-   CALL STRACE(IENT,'EQDBLE')
    EQDBLE = .FALSE.
 
    IF ( .NOT. DBLE1 /= DBLE2 ) EQDBLE = .TRUE.

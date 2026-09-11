@@ -230,9 +230,9 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
 
        ! limit velocity using Courant number
 
-       if ( int(PNUMS(33)) == 1 ) then
+       if ( int(PNUMS(PNUMS_LCSON)) == 1 ) then
 
-          alpha = PNUMS(34)
+          alpha = PNUMS(PNUMS_LCSAL)
 
           do is = 1, MSC
 
@@ -261,7 +261,7 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
 
           ! compute frequency-dependent coefficients
 
-          if ( int(PNUMS(32)) == 0 ) then
+          if ( int(PNUMS(PNUMS_GRADK)) == 0 ) then
 
              kd = min(30.,kwave(is,1) * dep2(iv1))
 
@@ -307,10 +307,10 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
 
        ! limit velocity in some frequency range if requested
 
-       if ( int(PNUMS(29)) == 1 ) then
+       if ( int(PNUMS(PNUMS_LCTON)) == 1 ) then
 
-          frlim = PI2*PNUMS(26)
-          pp    =     PNUMS(27)
+          frlim = PI2*PNUMS(PNUMS_LCTFRQ)
+          pp    =     PNUMS(PNUMS_LCTPP)
 
           do is = 1, MSC
 
@@ -325,9 +325,9 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
 
        ! limit velocity using Courant number
 
-       if ( int(PNUMS(35)) == 1 ) then
+       if ( int(PNUMS(PNUMS_LCTCON)) == 1 ) then
 
-          alpha = PNUMS(36)
+          alpha = PNUMS(PNUMS_LCTAL)
 
           fac2 = alpha * DDIR
 

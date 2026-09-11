@@ -102,17 +102,20 @@ mask and does not claim whole-field mask identity across decomposition modes.
   threads. Nonlinear interaction tests exercise active triad and quadruplet
   paths.
 - Strict-poort (WP2.4 + WP3a/WP3b/WP5b-tranches + WP4-hersteltranches, schone
-  bouw met `--require-baseline`, GNU 13.3.0): **1.360 waarschuwingen in 503
-  fingerprints**, `within budget`, `no new warnings` — herhaald op commit
-  "Isoleer de tests en sluit de geheugenlevensduur af" (8 september 2026; op kandidaat tranche 25 van 7 september:
-  1.361/504). Attributie: `function-elimination` 163→85 door zuivere `pvalid`;
+  bouw met `--require-baseline`, GNU 13.3.0): **1.324 waarschuwingen in 488
+  fingerprints**, `within budget`, `no new warnings` — herhaald op de
+  werkboom van 10 september 2026 (1.358/502 na WP3a-`RI`; 1.360/503 op
+  "Isoleer de tests en sluit de geheugenlevensduur af"; 1.361/504 op kandidaat tranche 25 van 7 september). Attributie: `function-elimination` 163→85 door zuivere `pvalid`;
   `implicit-interface` 2→0 door `swan_metis_interface`/BIND(C);
   `unused-function` 4→0 plus één `compare-reals` in dood `SWSOR` door
   verwijderde dode procedures; −5 `unused-parameter` buiten gevenderde code;
   −3 `maybe-uninitialized` (138→135): 137 door de NEXTI/ORQTMP-keten-vrijgave,
   136 door de SPROUT-vrijgave (`TMP`-pad), 135 door de XYPT-vrijgave
   (XYPT-`SWBOUN`-keten; de oude kale `DEALLOCATE(TMP)`-regel verdwenen;
-  geheugen cumulatief 2040 B → 0 B);
+  geheugen cumulatief 2040 B → 0 B);   `uninitialized` 2→0 door de
+  de `RI`-contractseed in `ININTV`/`INITVD`; `function-elimination` 85→51
+  door zuivere `EQREAL`/`EQDBLE`/`EQCSTR` (+`UPCASE`)
+  (10 september 2026);
   alles volledig geattribueerd zonder compensatie).
   Configureerlog `strict-configure.log` en bouwlog `strict-build.log` bewaard
   in de bouwmap; geen incrementeel slotlog. Budget en fingerprints zijn

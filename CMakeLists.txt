@@ -134,9 +134,12 @@ endif()
 
 if( SWAN_RUNTIME_CHECKS )
   # Keep this on top of an optimizing build type. At -O0 the nonstationary
-  # regular case drifts about 1.2e-3 in the mean period against the stored
-  # reference, which is the optimization level's floating point and not a
-  # defect; -O2 reproduces the reference exactly.
+  # regular case differs from the stored reference (Hsig 2.1e-4 m, Tm01
+  # 4.5e-3 s, direction 0.01 deg, abrupt from step 5); the mechanism is under
+  # investigation and no rounding
+  # explanation has been accepted, so the Debug/-O0 route stays unqualified
+  # and must not be silently widened with a generic tolerance. -O1 and -O2
+  # reproduce the reference exactly.
   if( CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
     target_compile_options( swan_build_options INTERFACE -fcheck=all )
   elseif( CMAKE_Fortran_COMPILER_ID MATCHES "^(Intel|IntelLLVM)$" )
@@ -871,6 +874,23 @@ if( BUILD_TESTING )
     NAME grid_convergence_units
     COMMAND ${Python3_EXECUTABLE} -m pytest
             ${CMAKE_SOURCE_DIR}/tests/test_grid_convergence.py -q
+  )
+
+  # Officiële Delftse benchmarkcases met analytische poort (Ris 1997).
+  # Tarballs worden tijdens de test gedownload en tegen SHA-256 gecontroleerd
+  # (geen herdistributie); een mislukte download is een fout, geen skip.
+  add_test(
+    NAME official_cases
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/examples/official_cases/run.py
+            --swan-executable $<TARGET_FILE:${EXE}>
+            --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/official
+  )
+  set_tests_properties( official_cases PROPERTIES RUN_SERIAL TRUE TIMEOUT 600 )
+  add_test(
+    NAME official_cases_units
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_official_cases.py -q
   )
 
   # Tijdstapgevoeligheid (rapporterend; harde poorten structureel).

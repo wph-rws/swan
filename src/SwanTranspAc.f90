@@ -169,7 +169,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
     IF (timing_enabled) CALL SWTSTA(141)
     if ( (DYNDEP .OR. ICUR /= 0) .and. ITFRE /= 0 ) then
 
-       if ( int(PNUMS(8)) == 1 ) then
+       if ( int(PNUMS(PNUMS_SCHEMEFR)) == 1 ) then
 
           ! implicit scheme
 
@@ -178,7 +178,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
                         iscmin     , iscmax, iddlow     , iddtop     , &
                         trac0      , trac1 , kcgrd(1)   , icmax      )
 
-       elseif ( int(PNUMS(8)) == 2 ) then
+       elseif ( int(PNUMS(PNUMS_SCHEMEFR)) == 2 ) then
 
           ! explicit scheme
 

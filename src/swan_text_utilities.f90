@@ -10,8 +10,9 @@ MODULE swan_text_utilities
 
 CONTAINS
 
-SUBROUTINE UPCASE (CHARST)
-   USE swan_service_interfaces, ONLY: STRACE
+PURE SUBROUTINE UPCASE (CHARST)
+!     Zuiver: de enige bijwerking was
+!     STRACE-diagnostiek; vereist voor zuivere EQCSTR hierboven.
 !                                                               *
 !****************************************************************
 
@@ -64,18 +65,16 @@ SUBROUTINE UPCASE (CHARST)
 !
 !     CHARST : a character string
 
-   CHARACTER(LEN=*) :: CHARST
+   CHARACTER(LEN=*), INTENT(INOUT) :: CHARST
 
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
 !
 !     IC     : sequence number of a character in the string CHARST
-!     IENT   : Number of entries into this subroutine
 !     KK     : position of a character in a given string
 !     LLCC   : length of the given character string
 
-   INTEGER, SAVE :: IENT = 0
    INTEGER   IC, KK, LLCC
 
 !     ABCUP  : A to Z upper case characters
@@ -97,8 +96,6 @@ SUBROUTINE UPCASE (CHARST)
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-
-   CALL STRACE (IENT, 'UPCASE')
 
    LLCC = LEN (CHARST)
    do IC = 1, LLCC

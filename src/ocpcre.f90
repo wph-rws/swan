@@ -1493,6 +1493,15 @@ SUBROUTINE ININTV_CTX (STATE, NAME, RVAR, KONT, RSTA)
 
    CALL STRACE (IENT, 'ININTV')
 
+!     Seed the auxiliary with the caller's current value. When no new
+!     value is read under KONT='UNC' (or 'RQI' against a non-default current
+!     value), INREAL deliberately leaves RI untouched and the tail below runs
+!     with FAC = 1, so RVAR = 1 * RI must mean "unchanged" -- exactly the
+!     documented UNC contract. Any other seed (in particular a blind zero)
+!     would corrupt that contract; no seed reads undefined memory (the two
+!     -Wuninitialized warnings). Every STA/REQ path overwrites RI, so those
+!     callers -- the only production callers -- are bit-identical.
+   RI = RVAR
    CALL INREAL (STATE, NAME, RI, KONT, RSTA)
    IF (STATE%CHGVAL) THEN
       CALL INKEYW (STATE, 'STA', 'S')
@@ -1630,6 +1639,11 @@ SUBROUTINE INITVD_CTX (STATE, NAME, RVAR, KONT, RSTA)
 
    CALL STRACE (IENT, 'INITVD')
 
+!     Same contract seed as ININTV above (UNC/RQI keep-paths leave RI
+!     untouched with FAC = 1, so RI must enter as RVAR, never undefined and
+!     never a blind zero). All production callers pass 'REQ', which always
+!     overwrites RI, so they are bit-identical.
+   RI = RVAR
    CALL INDBLE (STATE, NAME, RI, KONT, RSTA)
    IF (STATE%CHGVAL) THEN
       CALL INKEYW (STATE, 'STA', 'S')
@@ -2231,8 +2245,11 @@ end subroutine PUTKAR_CTX
 !                                                               *
 !****************************************************************
 !                                                               *
-LOGICAL FUNCTION EQCSTR (STR1, STR2)
-   USE swan_service_interfaces, ONLY: STRACE
+PURE LOGICAL FUNCTION EQCSTR (STR1, STR2)
+!     Zuiver: de enige bijwerking was
+!     STRACE-diagnostiek; UPCASE is in dezelfde stap zuiver gemaakt.
+!     Regressies draaien met ITRACE=0 en geen enkele referentie bevat
+!     EQCSTR/UPCASE-regels.
 !                                                               *
 !****************************************************************
 
@@ -2286,15 +2303,12 @@ LOGICAL FUNCTION EQCSTR (STR1, STR2)
 !
 !  4. ARGUMENT VARIABLES
 
-   CHARACTER (LEN=*) :: STR1, STR2
+   CHARACTER (LEN=*), INTENT(IN) :: STR1, STR2
 !     two character strings to be compared
 !
 !  5. PARAMETER VARIABLES
 !
 !  6. LOCAL VARIABLES
-
-   INTEGER, SAVE  :: IENT = 0
-!     IENT   : Number of entries into this subroutine
 
    INTEGER :: IC, LLCC
 !     IC     : sequence number of a character in the string
@@ -2314,8 +2328,6 @@ LOGICAL FUNCTION EQCSTR (STR1, STR2)
 ! 12. STRUCTURE
 !
 ! 13. SOURCE TEXT
-
-   CALL STRACE (IENT, 'UPCASE')
 
    EQCSTR = .TRUE.
    LLCC = LEN (STR2)

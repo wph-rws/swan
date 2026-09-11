@@ -1594,9 +1594,9 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 
 !          *** computation of CAS and CAD ***
 
-         IF ( INT(PNUMS(32)).EQ.0 ) THEN
+         IF ( INT(PNUMS(PNUMS_GRADK)).EQ.0 ) THEN
             CAD_TMP=COEF*(ESIN(ID)*DHDX-ECOS(ID)*DHDY) ! @h/@x method,
-         ELSE IF ( INT(PNUMS(32)).EQ.1 ) THEN
+         ELSE IF ( INT(PNUMS(PNUMS_GRADK)).EQ.1 ) THEN
             CAD_TMP=(CGLOC1/CLOC1)*(ESIN(ID)*DCDX-ECOS(ID)*DCDY) ! @C/@
 !             CAD_TMP=(CGLOC1/KLOC1)*(-1.0)*(ESIN(ID)*DKDX-ECOS(ID)*DKDY)   ! @k/@x method, differs only very slightly from @C/dx
          ENDIF
@@ -1671,9 +1671,9 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 
 !     --- limit Ctheta in some frequency range if requested
 
-   IF ( INT(PNUMS(29)).EQ.1 ) THEN
-      FRLIM = PI2*PNUMS(26)
-      PP    =     PNUMS(27)
+   IF ( INT(PNUMS(PNUMS_LCTON)).EQ.1 ) THEN
+      FRLIM = PI2*PNUMS(PNUMS_LCTFRQ)
+      PP    =     PNUMS(PNUMS_LCTPP)
       DO IS = 1, MSC
          FAC = MIN(1.,(SPCSIG(IS)/FRLIM)**PP)
          DO ID = 1, MDC
@@ -1684,9 +1684,9 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 
 !     --- limit Csigma using Courant number
 
-   IF ( INT(PNUMS(33)).EQ.1 ) THEN
+   IF ( INT(PNUMS(PNUMS_LCSON)).EQ.1 ) THEN
 
-      ALPHA = PNUMS(34)
+      ALPHA = PNUMS(PNUMS_LCSAL)
 
       DO IS = 1, MSC
 
@@ -1714,9 +1714,9 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 
 !     --- limit Ctheta using Courant number
 
-   IF ( INT(PNUMS(35)) == 1 ) THEN
+   IF ( INT(PNUMS(PNUMS_LCTCON)) == 1 ) THEN
 
-      ALPHA = PNUMS(36)
+      ALPHA = PNUMS(PNUMS_LCTAL)
 
       FAC2 = ALPHA * DDIR
 
@@ -3320,8 +3320,8 @@ SUBROUTINE STRSSI(SPCSIG  ,&
          END IF
 
          PNH = 1. / (2. * DS)
-         PN1 =  (1. - PNUMS(7) ) * PNH
-         PN2 =  (1. + PNUMS(7) ) * PNH
+         PN1 =  (1. - PNUMS(PNUMS_CSS) ) * PNH
+         PN2 =  (1. + PNUMS(PNUMS_CSS) ) * PNH
 
 !         *** fill the lower diagonal and the diagonal ***
 
@@ -3387,7 +3387,7 @@ SUBROUTINE STRSSI(SPCSIG  ,&
 
    IF ( TESTFL .AND. ITEST .GE. 35 ) THEN
       WRITE(PRINTF,"(' STRSSI: POINT IDDLOW IDDTOP :',3I5)") st_kc1, IDDLOW, IDDTOP
-      WRITE(PRINTF,"(' STRSSI: CSS :',2E12.4)") PNUMS(7)
+      WRITE(PRINTF,"(' STRSSI: CSS :',2E12.4)") PNUMS(PNUMS_CSS)
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) ' matrix coefficients in STRSSI'
       WRITE(PRINTF,*)
@@ -3669,8 +3669,8 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 
 !     --- determine blending factor
 
-   PN1 = 0.5*(1.+PNUMS(7))
-   PN2 = 0.5*(1.-PNUMS(7))
+   PN1 = 0.5*(1.+PNUMS(PNUMS_CSS))
+   PN2 = 0.5*(1.-PNUMS(PNUMS_CSS))
 
 !     *** initialization of ANYBLK and CFLMAX value ***
 
@@ -3679,7 +3679,7 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
          ANYBLK(ID,IS) = .FALSE.
       ENDDO
    ENDDO
-   CFLMAX = PNUMS(19)
+   CFLMAX = PNUMS(PNUMS_CFLFR)
 
    DO IS = 1, ISSTOP
       IF ( IS .EQ. 1 ) THEN
@@ -3983,8 +3983,8 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
    IF (LTRACE) CALL STRACE (IENT,'STRSD')
 
    PNH = 1. / (2. * DD)
-   PN1 =  (1. - PNUMS(6) ) * PNH
-   PN2 =  (1. + PNUMS(6) ) * PNH
+   PN1 =  (1. - PNUMS(PNUMS_CDD) ) * PNH
+   PN2 =  (1. + PNUMS(PNUMS_CDD) ) * PNH
 
    do IS = 1, ISSTOP
       do IDDUM = IDCMIN(IS), IDCMAX(IS)
@@ -4080,7 +4080,7 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
 
    IF ( ITEST .GE. 80 .AND. TESTFL ) THEN
       WRITE(PRINTF,"(' FULL CIRCLE ',L4)") FULCIR
-      WRITE(PRINTF,"(' STRSD :POINT ISTOP CDD :',2I5,E12.4)") st_kc1, ISSTOP, PNUMS(6)
+      WRITE(PRINTF,"(' STRSD :POINT ISTOP CDD :',2I5,E12.4)") st_kc1, ISSTOP, PNUMS(PNUMS_CDD)
       WRITE(PRINTF,"(' STRSD : PN1 PN2 PNH DD :',4E12.4)") PN1, PN2, PNH ,DD
    END IF
 
@@ -5201,7 +5201,7 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
    IF (LTRACE) CALL STRACE (IENT,'SWFLXD')
 
    DDI  = 1./DD
-   XKAP = PNUMS(6)
+   XKAP = PNUMS(PNUMS_CDD)
 
    do IS = 1, ISSTOP
 
@@ -5337,7 +5337,7 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
 
    IF ( TESTFL .AND. ITEST.GE.80 ) THEN
       WRITE(PRINTF,"(' SWFLXD: POINT ISSTOP :',2I5)") st_kc1, ISSTOP
-      WRITE(PRINTF,"(' SWFLXD: CDD :',E12.4)") PNUMS(6)
+      WRITE(PRINTF,"(' SWFLXD: CDD :',E12.4)") PNUMS(PNUMS_CDD)
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) ' matrix coefficients in SWFLXD'
       WRITE(PRINTF,*)

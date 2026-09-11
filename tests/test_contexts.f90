@@ -21,6 +21,7 @@ program test_contexts
    call test_error_reporting
    call test_file_opening_context
    call test_reader_own_log
+   call test_interval_reader_contract
    call test_spectral_powers
    call test_wcap_zero_energy_invariants
 
@@ -93,7 +94,53 @@ contains
          "spectral powers could not be reused after cleanup")
    end subroutine test_spectral_powers
 
-   subroutine test_reader_own_log
+    subroutine test_interval_reader_contract
+!      ININTV/INITVD left their auxiliary RI unseeded, so KONT='UNC'
+!      with no value read RVAR = 1 * <undefined> (two -Wuninitialized
+!      warnings). The fix seeds RI with RVAR, which is exactly the documented
+!      UNC contract ("variable will not be changed"). No production caller
+!      passes 'UNC' (one 'STA', five 'REQ'), so this pins the contract at
+!      unit level instead of through a deck.
+       use swan_input_parser, only: inintv, initvd
+       type(command_reader_t) :: reader
+       integer :: saved_itest, saved_itrace
+       real :: kept, defaulted
+       real(swan_double) :: kept_d
+
+       saved_itest = ITEST; saved_itrace = ITRACE
+       ITEST = 0; ITRACE = 0
+
+!      No value available: end-of-record. UNC must leave RVAR bit-identical.
+       call rdinit(reader)
+       reader%ELTYPE = 'EOR'
+       kept = 123.25
+       call inintv(reader, 'WAVEAGE', kept, 'UNC', 0.0)
+       call require(same_bits(kept, 123.25), &
+          "ININTV UNC with no value changed RVAR")
+       call require(.not. reader%CHGVAL, &
+          "ININTV UNC with no value reported a change")
+
+!      Same for the double-precision twin.
+       call rdinit(reader)
+       reader%ELTYPE = 'EOR'
+       kept_d = 123.25_swan_double
+       call initvd(reader, 'DELTC', kept_d, 'UNC', 0.0_swan_double)
+       call require(same_bits_d(kept_d, 123.25_swan_double), &
+          "INITVD UNC with no value changed RVAR")
+
+!      STA with no value still takes the default (the production WAVEAGE
+!      path when GSE is off): RVAR becomes RSTA, flagged unchanged.
+       call rdinit(reader)
+       reader%ELTYPE = 'EOR'
+       defaulted = 123.25
+       call inintv(reader, 'WAVEAGE', defaulted, 'STA', 0.0)
+       call require(same_bits(defaulted, 0.0), &
+          "ININTV STA with no value did not take the default")
+
+       ITEST = saved_itest; ITRACE = saved_itrace
+    end subroutine test_interval_reader_contract
+
+    subroutine test_reader_own_log
       use swan_input_parser, only: inkeyw
       type(command_reader_t) :: reader
       integer :: ulog, saved_leverr
@@ -408,5 +455,11 @@ contains
 
       same_bits = transfer(actual, 0) == transfer(expected, 0)
    end function same_bits
+
+    elemental logical function same_bits_d(actual, expected)
+       real(swan_double), intent(in) :: actual, expected
+
+       same_bits_d = transfer(actual, 0_8) == transfer(expected, 0_8)
+    end function same_bits_d
 
 end program test_contexts

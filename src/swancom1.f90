@@ -1716,26 +1716,26 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
             KWCAP  = IWCAP
             KQUAD  = IQUAD
 !             ***  save maximum change per bin and under-relaxation ***
-            GRWOLD = PNUMS(20)
-            ALFAT  = PNUMS(30)
+            GRWOLD = PNUMS(PNUMS_LIMGRW)
+            ALFAT  = PNUMS(PNUMS_ALFA)
 
 !             first guess settings
 !
 !             if 1st generation is to be used as first guess, replace
 !             the next statement by IWIND = 1
-            IWIND  = 2
-            IWCAP  = 0
-            IQUAD  = 0
-            PNUMS(20) = 1.E22
+            IWIND = IWIND_GEN2
+            IWCAP = IWCAP_OFF
+            IQUAD = IQUAD_OFF
+            PNUMS(PNUMS_LIMGRW) = 1.E22
 !             ***  under-relaxation parameter is PNUMS(30) and
 !                  temporarily set to zero
-            PNUMS(30) = 0.
+            PNUMS(PNUMS_ALFA) = 0.
          ELSE IF ( ITER .EQ. 2 ) THEN
             IWIND  = KWIND
             IWCAP  = KWCAP
             IQUAD  = KQUAD
-            PNUMS(20) = GRWOLD
-            PNUMS(30) = ALFAT
+            PNUMS(PNUMS_LIMGRW) = GRWOLD
+            PNUMS(PNUMS_ALFA) = ALFAT
          ENDIF
 
       ENDIF
@@ -1750,7 +1750,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
             WRITE(PRINTF,*) ' Options given by user are activated',&
             &' for proceeding calculation:'
          ENDIF
-         WRITE(PRINTF,"(' ITER ',I4,' GRWMX ',E12.4,' ALFA ', E12.4)") ITER, PNUMS(20), PNUMS(30)
+         WRITE(PRINTF,"(' ITER ',I4,' GRWMX ',E12.4,' ALFA ', E12.4)") ITER, PNUMS(PNUMS_LIMGRW), PNUMS(PNUMS_ALFA)
          WRITE(PRINTF,"(' IWIND ',I4,' IWCAP ',I4,' IQUAD ',I4)") IWIND, IWCAP, IQUAD
          WRITE(PRINTF,"(' ITRIAD ',I4,' IBOT ',I4,' ISURF ',I4)") ITRIAD, IBOT , ISURF
          WRITE(PRINTF,"(' IVEG ',I4,' ITURBV ',I4,' IMUD ',I4, ' IBRAG ',I4)") IVEG, ITURBV, IMUD, IBRAG
@@ -2195,14 +2195,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       *** this is done in parallel within OpenMP environment ***
 !
                   IF (timing_enabled) CALL SWTSTA(102)
-                  IF (PNUMS(21).EQ.0.) THEN
+                  IF (PNUMS(PNUMS_STOPTY).EQ.0.) THEN
                      CALL SACCUR (COMPDA(1,JDP2),KGRPNT          ,&
                      &XYTST           ,&
                      &AC2             ,SPCSIG          ,ACCUR           ,&
                      &HSAC1           ,HSAC2           ,SACC1           ,&
                      &SACC2           ,COMPDA(1,JDHS)  ,COMPDA(1,JDTM)  ,&
                      &I1MYC           ,I2MYC                            )
-                  ELSE IF (PNUMS(21).EQ.1.) THEN
+                  ELSE IF (PNUMS(PNUMS_STOPTY).EQ.1.) THEN
                      CALL SWSTPC ( HSAC0         ,HSAC1           ,HSAC2 ,&
                      &SACC0         ,SACC1           ,SACC2 ,&
                      &HSDIFC        ,TMDIFC          ,&
@@ -2219,13 +2219,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !       *** info regarding the iteration process and the accuracy ***
 
-                  IF (PNUMS(21).EQ.1. .AND. ITER.EQ.1) THEN
+                  IF (PNUMS(PNUMS_STOPTY).EQ.1. .AND. ITER.EQ.1) THEN
                      WRITE(PRINTF,"(' not possible to compute, first iteration',/)")
                      IF (NSTATC.EQ.0.AND.IAMMASTER) WRITE(SCREEN,"(' not possible to compute, first iteration',/)")
                   ELSE
-                     WRITE(PRINTF,"(' accuracy OK in ',F6.2, ' % of wet grid points (',F6.2,' % required)',/ )") ACCUR,PNUMS(4)
+                     WRITE(PRINTF,"(' accuracy OK in ',F6.2, ' % of wet grid points (',F6.2,' % required)',/ )") ACCUR,PNUMS(PNUMS_NPNTS)
                      IF (NSTATC.EQ.0.AND.IAMMASTER)&
-                     &WRITE(SCREEN,"(' accuracy OK in ',F6.2, ' % of wet grid points (',F6.2,' % required)',/ )") ACCUR,PNUMS(4)
+                     &WRITE(SCREEN,"(' accuracy OK in ',F6.2, ' % of wet grid points (',F6.2,' % required)',/ )") ACCUR,PNUMS(PNUMS_NPNTS)
                   END IF
 
 !       *** number of points in which the penta-diagonal solver ***
@@ -2271,13 +2271,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$OMP BARRIER
 !
 !       --- check if breaker index for BKD needs to be modified
-                  IF (MODGAM .AND. ACCUR.GE.PNUMS(37)) MODGAM = .FALSE.
+                  IF (MODGAM .AND. ACCUR.GE.PNUMS(PNUMS_BKDACC)) MODGAM = .FALSE.
 
 !       *** if accuracy has been reached then the iteration ***
 !       *** can be terminated ---> EXIT iteration_loop      ***
 
-                  IF ( (ITER.NE.1 .OR. PNUMS(21).EQ.0.) .AND.&
-                  &ACCUR.GE.PNUMS(4) ) EXIT iteration_loop
+                  IF ( (ITER.NE.1 .OR. PNUMS(PNUMS_STOPTY).EQ.0.) .AND.&
+                  &ACCUR.GE.PNUMS(PNUMS_NPNTS) ) EXIT iteration_loop
 
    end do iteration_loop
                   IF (timing_enabled) CALL SWTSTO(103)
@@ -3633,12 +3633,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         IF (timing_enabled) CALL SWTSTO(120)
 
                      ELSEIF ( (DYNDEP .OR. ICUR .EQ. 1) .AND.&
-                     &PNUMS(8).NE.0.                 ) THEN
+                     &PNUMS(PNUMS_SCHEMEFR).NE.0.                 ) THEN
 
 !         *** Implicit or explicit scheme in frequency space and ***
 !         *** implicit scheme in directional space               ***
 
-                        IF ( INT(PNUMS(8)) .EQ. 1 ) THEN
+                        IF ( INT(PNUMS(PNUMS_SCHEMEFR)) .EQ. 1 ) THEN
 
 !           *** Implicit scheme in frequency space. Solve penta- ***
 !           *** diagonal system with the SIP solver              ***
@@ -3648,12 +3648,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &SWMATR(1,1,JMATL), SWMATR(1,1,JMATU),&
                            &SWMATR(1,1,JMAT5), SWMATR(1,1,JMAT6),&
                            &SWMATR(1,1,JAOLD),&
-                           &PNUMS(12), NINT(PNUMS(14)), NINT(PNUMS(13)),&
+                           &PNUMS(PNUMS_EPS2), NINT(PNUMS(PNUMS_SIPMAX)), NINT(PNUMS(PNUMS_SIPPRN)),&
                            &INOCNV, IDDLOW, IDDTOP, ISSTOP, IDCMIN,&
                            &IDCMAX, st_kc(1), st_ix(1), st_iy(1) )
                            IF (timing_enabled) CALL SWTSTO(120)
 
-                        ELSE IF (INT(PNUMS(8)).EQ.2 .OR. INT(PNUMS(8)).EQ.3) THEN
+                        ELSE IF (INT(PNUMS(PNUMS_SCHEMEFR)).EQ.2 .OR. INT(PNUMS(PNUMS_SCHEMEFR)).EQ.3) THEN
 
 !           *** Explicit scheme in frequency space. Energy near the ***
 !           *** blocking point is removed from the spectrum based   ***
@@ -3741,7 +3741,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       limit the change of the spectrum
 !
                      IF (timing_enabled) CALL SWTSTA(122)
-                     IF (PNUMS(20).LT.100.) THEN
+                     IF (PNUMS(PNUMS_LIMGRW).LT.100.) THEN
                         IF (IWIND.NE.4 .OR. NSTATC.NE.1) THEN
 !             default limiter
                            CALL PHILIM (AC2, SWMATR(1,1,JAOLD),&
@@ -3919,13 +3919,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   WRITE(PRINTF,'(A,F5.2)')'                      : ICEWIND ',ICEWIND
                   WRITE(PRINTF,"(' Tail parameters : E(f) ',E12.4,' E(k) ',E12.4)") PWTAIL(1),PWTAIL(2)
                   WRITE(PRINTF,"(' : A(f) ',E12.4,' A(k) ',E12.4)") PWTAIL(3),PWTAIL(4)
-                  WRITE(PRINTF,"(' Accuracy parameters : DREL ',E12.4,' NPNTS ',E12.4)") PNUMS(1), PNUMS(4)
-                  IF (PNUMS(21).EQ.0.) THEN
-                     WRITE(PRINTF,"(' : DHOVAL ',E12.4,' DTOVAL',E12.4)") PNUMS(15),PNUMS(16)
-                  ELSE IF (PNUMS(21).EQ.1.) THEN
-                     WRITE(PRINTF,"(' : DHABS ',E12.4,' CURVAT',E12.4)") PNUMS(2),PNUMS(15)
+                  WRITE(PRINTF,"(' Accuracy parameters : DREL ',E12.4,' NPNTS ',E12.4)") PNUMS(PNUMS_DREL), PNUMS(PNUMS_NPNTS)
+                  IF (PNUMS(PNUMS_STOPTY).EQ.0.) THEN
+                     WRITE(PRINTF,"(' : DHOVAL ',E12.4,' DTOVAL',E12.4)") PNUMS(PNUMS_TOLHS),PNUMS(PNUMS_TOLTM)
+                  ELSE IF (PNUMS(PNUMS_STOPTY).EQ.1.) THEN
+                     WRITE(PRINTF,"(' : DHABS ',E12.4,' CURVAT',E12.4)") PNUMS(PNUMS_DABS),PNUMS(PNUMS_TOLHS)
                   END IF
-                  WRITE(PRINTF,"(' : GRWMX ',E12.4)") PNUMS(20)
+                  WRITE(PRINTF,"(' : GRWMX ',E12.4)") PNUMS(PNUMS_LIMGRW)
                   WRITE(PRINTF,"(' Drying/flooding : LEVEL ',E12.4,' DEPMIN',E12.4)") WLEV, DEPMIN
                   IF (BNAUT) THEN
                      WRITE (PRINTF,"(' The ',A9, ' convention for wind and wave directions is used')") 'nautical '
@@ -3945,12 +3945,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      ICMX = 5
                   ENDIF
                   IF (OPTG.NE.5) WRITE(PRINTF,"(' Scheme geogr. space : PROPSC ',I12 ,' ICMAX ',I12)") PROPSC, ICMX
-                  WRITE(PRINTF,"(' Scheme spectral space: CSS ',E12.4,' CDD ',E12.4)") PNUMS(7), PNUMS(6)
+                  WRITE(PRINTF,"(' Scheme spectral space: CSS ',E12.4,' CDD ',E12.4)") PNUMS(PNUMS_CSS), PNUMS(PNUMS_CDD)
 
-                  IF ( (DYNDEP .OR. ICUR.EQ.1) .AND. INT(PNUMS(8)).EQ.1 ) THEN
+                  IF ( (DYNDEP .OR. ICUR.EQ.1) .AND. INT(PNUMS(PNUMS_SCHEMEFR)).EQ.1 ) THEN
                      WRITE(PRINTF,*) 'Solver is SIP'
-                     WRITE(PRINTF,"(' : EPS2 ',E12.4,' OUTPUT',I12)") PNUMS(12), INT(PNUMS(13))
-                     WRITE(PRINTF,"(' : NITER ',I12)") INT(PNUMS(14))
+                     WRITE(PRINTF,"(' : EPS2 ',E12.4,' OUTPUT',I12)") PNUMS(PNUMS_EPS2), INT(PNUMS(PNUMS_SIPPRN))
+                     WRITE(PRINTF,"(' : NITER ',I12)") INT(PNUMS(PNUMS_SIPMAX))
                   ENDIF
 
                   IF (ICUR.GT.0) THEN
@@ -4655,8 +4655,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                               WRITE(PRINTF,"(' SACCUR: TMREL HSREL TMABS HSABS :',4E12.4)") TMREL, HSREL, TMABS, HSABS
                            ENDIF
 
-                           IF ( (TMREL .LE. PNUMS(1) .OR. TMOVAL .LE. PNUMS(16)) .AND.&
-                           &(HSREL .LE. PNUMS(1) .OR. HSOVAL .LE. PNUMS(15)) ) THEN
+                           IF ( (TMREL .LE. PNUMS(PNUMS_DREL) .OR. TMOVAL .LE. PNUMS(PNUMS_TOLTM)) .AND.&
+                           &(HSREL .LE. PNUMS(PNUMS_DREL) .OR. HSOVAL .LE. PNUMS(PNUMS_TOLHS)) ) THEN
                               IACCURt = IACCURt + 1
                            END IF
 
@@ -4703,7 +4703,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !$OMP MASTER
                   IF ( ITEST .GE. 30 ) THEN
-                     WRITE(PRINTF,"(' SACCUR: PNUMS(1) DHABS DTABS :',3E12.4)") PNUMS(1), PNUMS(2), PNUMS(3)
+                     WRITE(PRINTF,"(' SACCUR: PNUMS(PNUMS_DREL) DHABS DTABS :',3E12.4)") PNUMS(PNUMS_DREL), PNUMS(PNUMS_DABS), PNUMS(PNUMS_DTABS)
                      WRITE(PRINTF,"(' SACCUR: WETGRD IACCUR ACCUR :',2I8,E12.4)") NINDX,IACCUR,ACCUR
                   END IF
 !$OMP END MASTER
@@ -5252,7 +5252,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !       *** call propagation module in S-direction ***
 
-                     IF ( INT(PNUMS(8)) .EQ. 1 ) THEN
+                     IF ( INT(PNUMS(PNUMS_SCHEMEFR)) .EQ. 1 ) THEN
 
 !         *** use implicit scheme for the integration in frequency ***
 !         *** space (no a priori assumptions)                      ***
@@ -5262,7 +5262,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &IMATRA  ,AC2     ,ISCMIN  ,ISCMAX  ,IDDLOW  ,&
                         &IDDTOP  ,TRAC0   ,TRAC1   ,st_kc(1),st_n    )
 
-                     ELSE IF ( INT(PNUMS(8)) .EQ. 2 ) THEN
+                     ELSE IF ( INT(PNUMS(PNUMS_SCHEMEFR)) .EQ. 2 ) THEN
 
 !         *** Explicit numerical scheme in frequency space    ***
 !         *** based on flux transport of action across        ***
@@ -6012,7 +6012,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !     --- apply under-relaxation approach, if requested
 
-                  ALFA = PNUMS(30)
+                  ALFA = PNUMS(PNUMS_ALFA)
                   IF (ALFA.GT.0. .AND. NSTATC.EQ.0) THEN
                      DO IS = 1, ISSTOP
                         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
@@ -7848,10 +7848,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   IF (MSC.GT.3) THEN
                      DO IS=1,MSC
-                        DAC2MX=ABS((PNUMS(20)*0.0081)/&
+                        DAC2MX=ABS((PNUMS(PNUMS_LIMGRW)*0.0081)/&
                         &(2.*SPCSIG(IS)*(KWAVE(IS,1)**3)*CGO(IS,1)))
                         NLIMIT=0
-                        IF (QB_LOC.LT.PNUMS(28)) THEN
+                        IF (QB_LOC.LT.PNUMS(PNUMS_QBCOEF)) THEN
                            DO ID=1,MDC
                               IF (ANYBIN(ID,IS)) THEN
                                  IF (AC2(ID,IS,IGP).GT.AC2OLD(ID,IS)+DAC2MX) THEN
@@ -8017,7 +8017,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                               ISLMIN(IGP) = MIN(IS,ISLMIN(IGP))
                            END IF
                         END DO
-                        IF (QB_LOC.LT.PNUMS(28)) THEN
+                        IF (QB_LOC.LT.PNUMS(PNUMS_QBCOEF)) THEN
                            DO ID=1,MDC
                               IF (ANYBIN(ID,IS) .AND.&
                               &AC2(ID,IS,IGP).LT.AC2OLD(ID,IS)-DAC2MX) THEN
@@ -9247,15 +9247,15 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            END IF
 
                            IF ( IQCM.EQ.0 ) THEN
-                              LCONV = ( HSABS.LE.PNUMS(2) .OR.&
-                              &(HSREL.LE.PNUMS(1).AND.HSCURV.LE.PNUMS(15)) )&
+                              LCONV = ( HSABS.LE.PNUMS(PNUMS_DABS) .OR.&
+                              &(HSREL.LE.PNUMS(PNUMS_DREL).AND.HSCURV.LE.PNUMS(PNUMS_TOLHS)) )&
                               &.AND.&
-                              &( TMCURV.LE.PNUMS(16) .AND.&
-                              &(TMREL.LE.PNUMS(1) .OR. TMABS.LE.PNUMS(3)) )
+                              &( TMCURV.LE.PNUMS(PNUMS_TOLTM) .AND.&
+                              &(TMREL.LE.PNUMS(PNUMS_DREL) .OR. TMABS.LE.PNUMS(PNUMS_DTABS)) )
                            ELSE
                               IF ( HSACC1(INDX).NE.1.E-20 .AND.&
                               &HSACC2(INDX).NE.-1.          ) THEN
-                                 LCONV = HSREL.LE.PNUMS(1) .OR. HSABS.LE.PNUMS(2)
+                                 LCONV = HSREL.LE.PNUMS(PNUMS_DREL) .OR. HSABS.LE.PNUMS(PNUMS_DABS)
                               ELSE
                                  LCONV = .FALSE.
                               ENDIF
@@ -9304,7 +9304,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !$OMP MASTER
                   IF ( ITEST.GE.30 ) THEN
-                     WRITE(PRINTF,"(' SWSTPC: DHREL DHABS CURV :',3E12.4)") PNUMS(1), PNUMS(2), PNUMS(15)
+                     WRITE(PRINTF,"(' SWSTPC: DHREL DHABS CURV :',3E12.4)") PNUMS(PNUMS_DREL), PNUMS(PNUMS_DABS), PNUMS(PNUMS_TOLHS)
                      WRITE(PRINTF,"(' SWSTPC: WETGRD IACCUR ACCUR :',2I8,E12.4)") WETGRD,IACCUR,ACCUR
                   END IF
 !$OMP END MASTER
@@ -11189,9 +11189,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !     --- set parameters for the solver
 
-                  REPS   = PNUMS(23)
-                  IAMOUT = INT(PNUMS(24))
-                  MAXIT  = INT(PNUMS(25))
+                  REPS   = PNUMS(PNUMS_SUPEPS)
+                  IAMOUT = INT(PNUMS(PNUMS_SUPPRN))
+                  MAXIT  = INT(PNUMS(PNUMS_SUPMAX))
 
                   CONVERGED = .TRUE.
 

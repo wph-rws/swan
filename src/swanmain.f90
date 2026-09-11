@@ -1115,7 +1115,7 @@ SUBROUTINE SWINIT (INERR, SNL4)
    MXITST = 50
    MXITNS = 1
    ITERMX = MXITST
-   ICUR   = 0
+   ICUR = ICUR_OFF
    IDIF   = 0
    IINC   = 0
 
@@ -1124,25 +1124,25 @@ SUBROUTINE SWINIT (INERR, SNL4)
 !         IREFR =  1: No limiter on Ctheta
 !         IREFR =  0: No refraction
 
-   IREFR  = 1
-   ITFRE  = 1
-   IWIND  = 0
+   IREFR = IREFR_NO_LIMITER
+   ITFRE = ITFRE_ON
+   IWIND = IWIND_OFF
 !     when coupled with ADCIRC, the default is to use ADCIRC drag formulation
-   IDRAG  = 1
-   IGEN   = 3
-   IQUAD  = 2
-   IWCAP  = 7
-   ISURF  = 1
-   IBOT   = 0
-   ITRIAD = 0
-   IBIPH  = 0
-   IMUD   = 0
-   IVEG   = 0
-   ITURBV = 0
-   IICE   = 0
+   IDRAG = IDRAG_WU
+   IGEN = IGEN_GEN3
+   IQUAD = IQUAD_DIA_WAM
+   IWCAP = IWCAP_AB
+   ISURF = ISURF_CON
+   IBOT = IBOT_OFF
+   ITRIAD = ITRIAD_OFF
+   IBIPH = IBIPH_OFF
+   IMUD = IMUD_OFF
+   IVEG = IVEG_OFF
+   ITURBV = ITURBV_OFF
+   IICE = IICE_OFF
    ICEWIND= 0.
-   IBRAG  = 0
-   IQCM   = 0
+   IBRAG = IBRAG_OFF
+   IQCM = IQCM_OFF
    VARWI  = .FALSE.
    VARFR  = .FALSE.
    VARWLV = .FALSE.
@@ -1222,11 +1222,11 @@ SUBROUTINE SWINIT (INERR, SNL4)
 
 !     flag for frequency dependent surf breaking
 
-   IFRSRF = 0
+   IFRSRF = IFRSRF_OFF
 
 !     flag for wave directionality in surf breaking
 
-   IDISRF = 0
+   IDISRF = IDISRF_OFF
 
 !     surfbeat model
 
@@ -1236,27 +1236,27 @@ SUBROUTINE SWINIT (INERR, SNL4)
 !     *** ACCURACY criterion ***
 !
 !     *** relative error in significant wave height and mean period ***
-   PNUMS(1)  = 0.01
+   PNUMS(PNUMS_DREL)  = 0.01
 !     *** absolute error in significant wave heigth (m) ***
-   PNUMS(2)  = -1.
+   PNUMS(PNUMS_DABS)  = -1.
 !     *** absolute error in mean wave period (s) ***
 !      PNUMS(3)  = 0.3
-   PNUMS(3)  = 1000.
+   PNUMS(PNUMS_DTABS)  = 1000.
 !     *** total number of wet gridpoints were accuracy has ***
 !     *** been reached                                     ***
-   PNUMS(4)  = 99.50
+   PNUMS(PNUMS_NPNTS)  = 99.50
 
 !     *** DIFFUSION schemes ***
 !
 !     *** Numerical diffusion over theta ***
-   PNUMS(6)  = 0.5
+   PNUMS(PNUMS_CDD)  = 0.5
 !     *** Numerical diffusion over sigma ***
-   PNUMS(7)  = 0.5
+   PNUMS(PNUMS_CSS)  = 0.5
 !     *** Explicit or implicit scheme in frequency space ***
 !     *** default = implicit : PNUMS(8) = 1              ***
-   PNUMS(8) = -999.
+   PNUMS(PNUMS_SCHEMEFR) = -999.
 !     *** diffusion coefficient for explicit scheme ***
-   PNUMS(9) = 0.01
+   PNUMS(PNUMS_CEXPL) = 0.01
 
 !     *** parameters for the SIP solver                        ***
 !
@@ -1276,9 +1276,9 @@ SUBROUTINE SWINIT (INERR, SNL4)
 !
 !     *** PNUMS(14) : maximum number of iterations             ***
 
-   PNUMS(12) = 1.E-4
-   PNUMS(13) = 0.
-   PNUMS(14) = 20.
+   PNUMS(PNUMS_EPS2) = 1.E-4
+   PNUMS(PNUMS_SIPPRN) = 0.
+   PNUMS(PNUMS_SIPMAX) = 20.
 
 !     For the setup calculation, next parameters for the solver are used:
 !
@@ -1286,22 +1286,22 @@ SUBROUTINE SWINIT (INERR, SNL4)
 !     PNUMS(24) : output for the solver (see PNUMS(13) for meanings)
 !     PNUMS(25) : maximum number of iterations
 
-   PNUMS(23) = 1.E-6
-   PNUMS(24) = 0.
-   PNUMS(25) = 1000.
+   PNUMS(PNUMS_SUPEPS) = 1.E-6
+   PNUMS(PNUMS_SUPPRN) = 0.
+   PNUMS(PNUMS_SUPMAX) = 1000.
 
 !     Maximum growth in spectral bin
 !     The value is the default in the command GEN3 KOM
 
-   PNUMS(20) = 0.1
+   PNUMS(PNUMS_LIMGRW) = 0.1
 
 !     Added coefficient for use with limiter on action (Qb switch)
 
-   PNUMS(28) = 1.
+   PNUMS(PNUMS_QBCOEF) = 1.
 
 !     *** set the values of PNUMS that are not used equal 0. ***
 
-   PNUMS(5)  = 0.
+   PNUMS(PNUMS_NOTUSED)  = 0.
 
 !     The allowed global errors in the iteration procedure:
 !     PNUMS(15) for Hs and PNUMS(16) for Tm01
@@ -1309,51 +1309,51 @@ SUBROUTINE SWINIT (INERR, SNL4)
 !      PNUMS(15) = 0.02
 !      PNUMS(16) = 0.02
 !     The next two values are meant for STOPC command
-   PNUMS(15) = 0.005
-   PNUMS(16) = 1000.
+   PNUMS(PNUMS_TOLHS) = 0.005
+   PNUMS(PNUMS_TOLTM) = 1000.
 
 !     coefficient for limitation of Ctheta
 !     default no limitation on refraction
 
-   PNUMS(17) = -999.
+   PNUMS(PNUMS_CDLIM) = -999.
 
 !     Limitation on Froude number; current velocity is reduced if greater
 !     than Pnums(18)*Sqrt(grav*depth)
 
-   PNUMS(18) = 0.8
+   PNUMS(PNUMS_FROUDE) = 0.8
 
 !     *** CFL criterion for explicit scheme in frequency space ***
 
-   PNUMS(19) = 0.5 * sqrt (2.)
+   PNUMS(PNUMS_CFLFR) = 0.5 * sqrt (2.)
 
 !     --- coefficient for type stopping criterion
 
-   PNUMS(21) = 1.
+   PNUMS(PNUMS_STOPTY) = 1.
 
 !     --- under-relaxation factor
 
-   PNUMS(30) = 0.00
+   PNUMS(PNUMS_ALFA) = 0.00
 
 !     --- parameters for limiting Ctheta
 
-   PNUMS(26) = 0.2
-   PNUMS(27) = 2.0
-   PNUMS(29) = 0.0
+   PNUMS(PNUMS_LCTFRQ) = 0.2
+   PNUMS(PNUMS_LCTPP) = 2.0
+   PNUMS(PNUMS_LCTON) = 0.0
 
 !     --- computation of Ctheta based on wave number
 
-   PNUMS(32) = 1.
+   PNUMS(PNUMS_GRADK) = 1.
 
 !     --- parameters for limiting Csigma and Ctheta
 
-   PNUMS(33) = 0.0
-   PNUMS(34) = 0.9
-   PNUMS(35) = 0.0
-   PNUMS(36) = 0.9
+   PNUMS(PNUMS_LCSON) = 0.0
+   PNUMS(PNUMS_LCSAL) = 0.9
+   PNUMS(PNUMS_LCTCON) = 0.0
+   PNUMS(PNUMS_LCTAL) = 0.9
 
 !     --- parameter for BKD surf breaking
 
-   PNUMS(37) = 95.
+   PNUMS(PNUMS_BKDACC) = 95.
 
 !     *** (1) and (2): Komen et al. (1984) formulation ***
 
@@ -1386,7 +1386,7 @@ SUBROUTINE SWINIT (INERR, SNL4)
 
 !     flag for current-induced wave dissipation
 
-   IWCCUR = 0
+   IWCCUR = IWCCUR_OFF
 
 !     *** (14): coefficient for enhanced current-induced dissipation
 
@@ -1512,7 +1512,7 @@ SUBROUTINE SWINIT (INERR, SNL4)
 
 !     --- coefficients for diffraction approximation
 
-   IDIFFR    = 0
+   IDIFFR = IDIFFR_OFF
    PDIFFR(:) = 0.
 
 !     pointers in array COMPDA
@@ -3829,12 +3829,12 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
 !     check wind drag
    IF (IWIND.EQ.8) THEN
 !        apply Hwang if wrong wind drag
-      IF (IDRAG.LT.4) IDRAG = 4
+      IF (IDRAG.LT.IDRAG_HWANG) IDRAG = IDRAG_HWANG
    ELSE
 !        apply parabolic fit if wrong wind drag
-      IF (IDRAG.GT.3) IDRAG = 2
+      IF (IDRAG.GT.IDRAG_SWELL) IDRAG = IDRAG_FIT
    ENDIF
-   IF (IBOT.EQ.5) IDRAG = 1
+   IF (IBOT.EQ.5) IDRAG = IDRAG_WU
 
 !     initialize reduction factor for wind input term
 !     - this array contains at most 100 frequencies (see module SWCOMM3)
@@ -3867,10 +3867,10 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
    IF (IQCM.NE.0) THEN
       ! refraction due to depth variations only is already
       ! included in the QC scattering
-      IF (IQCM.EQ.1) IREFR = 0
+      IF (IQCM.EQ.1) IREFR = IREFR_OFF
       ! frequency shift due to mean current is already included
       ! in the QC scattering
-      ITFRE = 0
+      ITFRE = ITFRE_OFF
       ! rescaling is unwanted since action density may be negative
       BRESCL = .FALSE.
       ! no check on boundary because of coherence effects
@@ -4254,7 +4254,7 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
 
    IF ( ITRIAD.EQ.0 ) THEN
       IF ( ISURF.EQ.7 ) THEN
-         IBIPH = 2
+         IBIPH = IBIPH_SAPR
          PTRIAD(9) = 1.
       ENDIF
    ENDIF
@@ -4918,7 +4918,7 @@ SUBROUTINE SWRBC ( COMPDA )
                UU  = SVALQI (XP, YP, 2, UXB, 0 ,IX ,IY)
                VV  = SVALQI (XP, YP, 3, UYB, 0 ,IX ,IY)
                VTOT = SQRT (UU*UU + VV*VV)
-               CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
+               CGMAX = PNUMS(PNUMS_FROUDE)*SQRT(GRAV*DEPW)
                IF (VTOT .GT. CGMAX) THEN
                   CGFACT = CGMAX / VTOT
                   UU = UU * CGFACT
@@ -5109,7 +5109,7 @@ SUBROUTINE SWRBC ( COMPDA )
                VV = SVALQI (XP, YP, 3, UYB, 0, 0, 0)
             ENDIF
             VTOT = SQRT (UU*UU + VV*VV)
-            CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
+            CGMAX = PNUMS(PNUMS_FROUDE)*SQRT(GRAV*DEPW)
             IF (VTOT .GT. CGMAX) THEN
                CGFACT = CGMAX / VTOT
                UU = UU * CGFACT
@@ -5465,10 +5465,10 @@ SUBROUTINE ERRCHK
          CALL MSGERR (0, 'the deep water physics are excluded from')
          CALL MSGERR (0, 'the fourth-generation mode')
       ENDIF
-      IWIND = 0
-      IQUAD = 0
-      IWCAP = 0
-      PNUMS(20) = 1.E20
+      IWIND = IWIND_OFF
+      IQUAD = IQUAD_OFF
+      IWCAP = IWCAP_OFF
+      PNUMS(PNUMS_LIMGRW) = 1.E20
       IF (PWTAIL(1).LT.1.E8) THEN
          CALL MSGERR (1, 'the shape of the spectral tail cannot be')
          CALL MSGERR (1, 'specified as it is not fixed')
@@ -5486,7 +5486,7 @@ SUBROUTINE ERRCHK
          CALL MSGERR (0, 'the phase-decoupled diffraction cannot be')
          CALL MSGERR (0, 'applied in case of fourth-generation mode')
       ENDIF
-      IDIFFR = 0
+      IDIFFR = IDIFFR_OFF
    ENDIF
 
 !     *** Check formulation for whitecapping ***
@@ -5497,7 +5497,7 @@ SUBROUTINE ERRCHK
       CALL MSGERR( 1, TRIM(MSGSTR) )
       CALL MSGERR( 1,&
       &'Whitecapping according to Komen et al. (1984) will be used')
-      IWCAP     = 1
+      IWCAP = IWCAP_KOMEN
       PWCAP(1)  = 2.36E-5
       PWCAP(2)  = 3.02E-3
       PWCAP(9)  = 2.
@@ -5539,28 +5539,28 @@ SUBROUTINE ERRCHK
    IF ( ICUR.EQ.0 .AND. IQCM.GT.1 ) THEN
       CALL MSGERR(1,'Wave-current interaction is deactivated '//&
       &'in case of zero current')
-      IQCM = 1
+      IQCM = IQCM_ON
    ENDIF
 
    IF ( IQCM.NE.0 .AND. IDIFFR.GT.0 ) THEN
       CALL MSGERR (1, 'the phase-decoupled diffraction should not')
       CALL MSGERR (1, 'be activated in case of QC scattering')
-      IDIFFR = 0
+      IDIFFR = IDIFFR_OFF
    ENDIF
 
 !     check refraction scheme in case of QC scattering
-   IF ( IQCM.EQ.1 .AND. INT(PNUMS(17)).EQ.-1 ) THEN
+   IF ( IQCM.EQ.1 .AND. INT(PNUMS(PNUMS_CDLIM)).EQ.-1 ) THEN
       CALL MSGERR (1, 'numerical scheme for refraction should not')
       CALL MSGERR (1, 'be activated in case of QC scattering')
-      IREFR = 0
+      IREFR = IREFR_OFF
    ENDIF
 
 !     check numerical scheme for transport in frequency space
-   IF ( INT(PNUMS(8)).EQ.-999 ) THEN
+   IF ( INT(PNUMS(PNUMS_SCHEMEFR)).EQ.-999 ) THEN
       IF ( IQCM.EQ.0 ) THEN
-         PNUMS(8) = 1.
+         PNUMS(PNUMS_SCHEMEFR) = 1.
       ELSE
-         PNUMS(8) = 0.
+         PNUMS(PNUMS_SCHEMEFR) = 0.
       ENDIF
    ELSE
       IF ( IQCM.NE.0 ) THEN
@@ -5568,21 +5568,21 @@ SUBROUTINE ERRCHK
          &(1, 'numerical scheme for transport in frequency space')
          CALL MSGERR&
          &(1, 'should not be activated in case of QC scattering')
-         PNUMS(8) = 0.
-         ITFRE = 0
+         PNUMS(PNUMS_SCHEMEFR) = 0.
+         ITFRE = ITFRE_OFF
       ENDIF
    ENDIF
 
 !     *** check option numerical scheme in presence of a current ***
 
    IF ( ICUR .EQ. 1 .AND. IQCM.EQ.0 ) THEN
-      IF ( PNUMS(6) .EQ. 0. ) THEN
+      IF ( PNUMS(PNUMS_CDD) .EQ. 0. ) THEN
          CALL MSGERR(1,'In presence of a current it is recommended to')
          CALL MSGERR(1,'use an implicit upwind scheme in theta space ')
          CALL MSGERR(1,'-> set CDD = 1.')
          WRITE(PRINTF,*)
       ENDIF
-      IF ( PNUMS(7) .EQ. 0. ) THEN
+      IF ( PNUMS(PNUMS_CSS) .EQ. 0. ) THEN
          CALL MSGERR(1,'In presence of a current it is recommended to')
          CALL MSGERR(1,'use an implicit upwind scheme in sigma space ')
          CALL MSGERR(1,'-> set CSS = 1.')
@@ -5591,15 +5591,15 @@ SUBROUTINE ERRCHK
    END IF
 
 !     check absolute stopping criterion
-   IF ( .NOT. PNUMS(2).NE.-1. ) THEN
+   IF ( .NOT. PNUMS(PNUMS_DABS).NE.-1. ) THEN
       IF ( IQCM.EQ.0 ) THEN
          IF ( ITRIAD.NE.3 ) THEN
-            PNUMS(2) = 0.005
+            PNUMS(PNUMS_DABS) = 0.005
          ELSE
-            PNUMS(2) = 0.01
+            PNUMS(PNUMS_DABS) = 0.01
          ENDIF
       ELSE
-         PNUMS(2) = 0.05
+         PNUMS(PNUMS_DABS) = 0.05
       ENDIF
    ENDIF
 
@@ -5633,7 +5633,7 @@ SUBROUTINE ERRCHK
       CALL MSGERR(1,'the act of rescaling.')
       CALL MSGERR(1,'Also full upwind scheme in theta space is set.')
       BRESCL   = .FALSE.
-      PNUMS(6) = 1.
+      PNUMS(PNUMS_CDD) = 1.
    ENDIF
 
 !     check combination of REPeating option and grid type and dimension
@@ -5740,10 +5740,10 @@ SUBROUTINE ERRCHK
 
 !     check whether limiter should be de-activated
 
-   IF (IQUAD.EQ.0 .AND. PNUMS(20).LT.100.) THEN
+   IF (IQUAD.EQ.0 .AND. PNUMS(PNUMS_LIMGRW).LT.100.) THEN
       CALL MSGERR(1,&
       &'Limiter is de-activated in case of no quadruplets')
-      PNUMS(20) = 1.E+20
+      PNUMS(PNUMS_LIMGRW) = 1.E+20
    END IF
 
 !     check resolution in frequency-space when DIA is used
@@ -5770,13 +5770,13 @@ SUBROUTINE ERRCHK
 
 !     check stopping criterion in case of 4th generation model
    IF (IGEN.EQ.4) THEN
-      IF (PNUMS(21).EQ.0.) THEN
+      IF (PNUMS(PNUMS_STOPTY).EQ.0.) THEN
          CALL MSGERR(1,'command NUM ACCUR is obsolete')
          CALL MSGERR(0,'default stopping criterion is used instead')
-         PNUMS(21) = 1.
-         PNUMS(1)  = 0.01
-         PNUMS(2)  = 0.05
-         PNUMS(4)  = 99.
+         PNUMS(PNUMS_STOPTY) = 1.
+         PNUMS(PNUMS_DREL)  = 0.01
+         PNUMS(PNUMS_DABS)  = 0.05
+         PNUMS(PNUMS_NPNTS)  = 99.
       ENDIF
    ENDIF
 
@@ -6276,7 +6276,7 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   ,&
                   UU = COMPDA(INDX,JVX2)
                   VV = COMPDA(INDX,JVY2)
                   VTOT = SQRT (UU*UU + VV*VV)
-                  CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
+                  CGMAX = PNUMS(PNUMS_FROUDE)*SQRT(GRAV*DEPW)
                   IF (VTOT .GT. CGMAX) THEN
                      CGFACT = CGMAX / VTOT
                      COMPDA(INDX,JVX2) = UU * CGFACT
@@ -6297,7 +6297,7 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   ,&
             UU = COMPDA(INDX,JVX2)
             VV = COMPDA(INDX,JVY2)
             VTOT = SQRT (UU*UU + VV*VV)
-            CGMAX = PNUMS(18)*SQRT(GRAV*DEPW)
+            CGMAX = PNUMS(PNUMS_FROUDE)*SQRT(GRAV*DEPW)
             IF (VTOT .GT. CGMAX) THEN
                CGFACT = CGMAX / VTOT
                COMPDA(INDX,JVX2) = UU * CGFACT

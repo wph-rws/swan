@@ -35,6 +35,11 @@ VARIANTS = {
     "combined": Variant(
         "combined", "combined", "DIA and FTIM from ocean to coast"
     ),
+    "src_all": Variant("sources", "src_all", "wind/wcap/breaking/friction on"),
+    "src_nowind": Variant("sources", "src_nowind", "wind input disabled"),
+    "src_nowcap": Variant("sources", "src_nowcap", "whitecapping disabled"),
+    "src_nobreak": Variant("sources", "src_nobreak", "breaking disabled"),
+    "src_nofric": Variant("sources", "src_nofric", "bottom friction disabled"),
 }
 
 STANDARD_KEYS = (
@@ -45,7 +50,21 @@ STANDARD_KEYS = (
     "triad_dcta",
     "triad_ftim",
     "combined",
+    "src_all",
+    "src_nowind",
+    "src_nowcap",
+    "src_nobreak",
+    "src_nofric",
 )
+
+# TABLE columns of the sources group: XP DEPTH HSIGN TM01 GENW DISW DISSU DISB.
+SOURCE_COLUMNS = {"wind": 4, "wcap": 5, "breaking": 6, "friction": 7}
+SOURCE_VARIANTS = {
+    "src_nowind": "wind",
+    "src_nowcap": "wcap",
+    "src_nobreak": "breaking",
+    "src_nofric": "friction",
+}
 
 
 @dataclass
@@ -89,6 +108,8 @@ def select_variants(selection: str) -> tuple[str, ...]:
         return STANDARD_KEYS[3:6]
     if selection == "combined":
         return ("combined",)
+    if selection == "sources":
+        return ("src_all", "src_nowind", "src_nowcap", "src_nobreak", "src_nofric")
     if selection == "xnl":
         return ("quad_xnl",)
     raise ValueError(f"unknown selection: {selection}")
@@ -103,15 +124,15 @@ def clean_result_directory(directory: Path) -> None:
             raise RuntimeError(f"unexpected directory in generated results: {path}")
 
 
-def parse_table(path: Path) -> list[list[float]]:
+def parse_table(path: Path, columns: int = 7) -> list[list[float]]:
     rows = []
     for line in path.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("%"):
             continue
         values = [float(value) for value in stripped.split()]
-        if len(values) != 7:
-            raise ValueError(f"{path} has a row with {len(values)} columns; expected 7")
+        if len(values) != columns:
+            raise ValueError(f"{path} has a row with {len(values)} columns; expected {columns}")
         if not all(math.isfinite(value) for value in values):
             raise ValueError(f"{path} contains a non-finite table value")
         rows.append(values)
@@ -235,7 +256,7 @@ def run_variant(
     if not (result_directory / "norm_end").is_file():
         raise RuntimeError(f"{key} did not complete normally")
 
-    table = parse_table(table_file)
+    table = parse_table(table_file, 8 if variant.directory == "sources" else 7)
     frequencies, locations, spectra = parse_spectrum(spectrum_file)
     if not any(value > 0.0 for spectrum in spectra for value in spectrum):
         raise RuntimeError(f"{key} produced only empty spectra")
@@ -294,6 +315,30 @@ def validate_results(results: dict[str, RunResult]) -> list[str]:
             f"TRIAD: DCTA differs {dcta_difference:.1%} and FTIM differs "
             f"{ftim_difference:.1%} from OFF at x=25 m."
         )
+
+    if {"src_all", *SOURCE_VARIANTS}.issubset(results):
+        # Wind, whitecapping, breaking and bottom friction each report their
+        # own source column in the gauges table. Every OFF toggle must zero
+        # exactly its column (input validation forbids bare IWIND=0 with
+        # quadruplets, so src_nowind also disables QUAD — quad coverage lives
+        # with the quad variants above) and move the spectrum measurably.
+        for key, process in SOURCE_VARIANTS.items():
+            column = SOURCE_COLUMNS[process]
+            if max(abs(row[column]) for row in results[key].table) > 1.0e-12:
+                raise RuntimeError(f"{key} reports a source term that should be disabled")
+        active = [
+            max(abs(row[SOURCE_COLUMNS[process]]) for row in results["src_all"].table)
+            for process in ("wind", "wcap", "breaking", "friction")
+        ]
+        if min(active) <= 1.0e-6:
+            raise RuntimeError("src_all did not activate every source term")
+        full = results["src_all"].spectra[3]
+        for key in SOURCE_VARIANTS:
+            difference = relative_spectral_difference(
+                full, results[key].spectra[3])
+            if difference <= 0.01:
+                raise RuntimeError(f"{key} did not measurably change the x=45 km spectrum")
+            messages.append(f"SOURCE: {key} differs {difference:.1%} from ALL at x=45 km.")
 
     messages.append(f"Validated {len(results)} runs and their spectra/source terms.")
     return messages
@@ -399,7 +444,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--case",
-        choices=("standard", "all", "quad", "triad", "combined", "xnl"),
+        choices=("standard", "all", "quad", "triad", "combined", "sources", "xnl"),
         default="standard",
         help=(
             "case group to run; standard excludes the roughly two-minute XNL "

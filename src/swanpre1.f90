@@ -803,7 +803,7 @@ CALL NWLINE
 !         switch on flag for computation of default initial condition
          ICOND = 1
 !         no relaxation
-         PNUMS(30) = 0.
+         PNUMS(PNUMS_ALFA) = 0.
       ELSEIF (KEYWIS ('STA')) THEN
          IF (NSTATM.EQ.1) CALL MSGERR (2, 'Mode STAT incorrect here')
          NSTATM = 0
@@ -860,7 +860,7 @@ CALL NWLINE
       ENDIF
       IF (KEYWIS ('FLUXLIM')) THEN
          PROPFL   = 1
-         PNUMS(6) = 0.
+         PNUMS(PNUMS_CDD) = 0.
       END IF
       CYCLE command_loop
    ENDIF
@@ -1982,7 +1982,7 @@ CALL NWLINE
 
    IF (KEYWIS ('LIM')) THEN
       CALL INREAL('URSELL',PTRIAD(3),'UNC',0.)
-      CALL INREAL('QB'    ,PNUMS(28),'UNC',0.)
+      CALL INREAL('QB'    ,PNUMS(PNUMS_QBCOEF),'UNC',0.)
       CYCLE command_loop
    ENDIF
 
@@ -2022,17 +2022,17 @@ CALL NWLINE
       CALL INKEYW ('REQ','  ')
 !       *** accuracy and criterion to terminate the iteration ***
       IF (KEYWIS ('STOPC')) THEN
-         PNUMS(21) = 1.
-         CALL INREAL ('DABS'   , PNUMS(2) , 'UNC', 0.)
-         CALL INREAL ('DREL'   , PNUMS(1) , 'UNC', 0.)
-         CALL INREAL ('CURVAT' , PNUMS(15), 'UNC', 0.)
-         CALL INREAL ('NPNTS'  , PNUMS(4) , 'UNC', 0.)
-         CALL INREAL ('DTABS'  , PNUMS(3) , 'STA', 1000.)
-         CALL INREAL ('CURVT'  , PNUMS(16), 'STA', 1000.)
+         PNUMS(PNUMS_STOPTY) = 1.
+         CALL INREAL ('DABS'   , PNUMS(PNUMS_DABS) , 'UNC', 0.)
+         CALL INREAL ('DREL'   , PNUMS(PNUMS_DREL) , 'UNC', 0.)
+         CALL INREAL ('CURVAT' , PNUMS(PNUMS_TOLHS), 'UNC', 0.)
+         CALL INREAL ('NPNTS'  , PNUMS(PNUMS_NPNTS) , 'UNC', 0.)
+         CALL INREAL ('DTABS'  , PNUMS(PNUMS_DTABS) , 'STA', 1000.)
+         CALL INREAL ('CURVT'  , PNUMS(PNUMS_TOLTM), 'STA', 1000.)
          CALL INKEYW ('STA', 'STAT')
          IF (KEYWIS ('STAT')) THEN
             CALL ININTG ('MXITST' , MXITST   , 'STA', 50)
-            CALL INREAL ('ALFA'   , PNUMS(30), 'UNC', 0.)
+            CALL INREAL ('ALFA'   , PNUMS(PNUMS_ALFA), 'UNC', 0.)
          ELSE IF (KEYWIS ('ITERMX')) THEN
             CALL ININTG ('MXITST' , MXITST   , 'REQ', 0 )
             MXITNS = MXITST
@@ -2040,17 +2040,17 @@ CALL NWLINE
          ELSE IF (KEYWIS ('NONST')) THEN
             CALL ININTG ('MXITNS' , MXITNS   , 'REQ', 0 )
          ENDIF
-         CALL INREAL ('LIMITER', PNUMS(20), 'UNC', 0.)
+         CALL INREAL ('LIMITER', PNUMS(PNUMS_LIMGRW), 'UNC', 0.)
       ELSE IF (KEYWIS ('ACCUR')) THEN
-         PNUMS(21) = 0.
-         CALL INREAL ('DREL'   , PNUMS(1) , 'UNC', 0.)
-         CALL INREAL ('DHOVAL' , PNUMS(15), 'UNC', 0.)
-         CALL INREAL ('DTOVAL' , PNUMS(16), 'UNC', 0.)
-         CALL INREAL ('NPNTS'  , PNUMS(4) , 'UNC', 0.)
+         PNUMS(PNUMS_STOPTY) = 0.
+         CALL INREAL ('DREL'   , PNUMS(PNUMS_DREL) , 'UNC', 0.)
+         CALL INREAL ('DHOVAL' , PNUMS(PNUMS_TOLHS), 'UNC', 0.)
+         CALL INREAL ('DTOVAL' , PNUMS(PNUMS_TOLTM), 'UNC', 0.)
+         CALL INREAL ('NPNTS'  , PNUMS(PNUMS_NPNTS) , 'UNC', 0.)
          CALL INKEYW ('STA', 'STAT')
          IF (KEYWIS ('STAT')) THEN
             CALL ININTG ('MXITST' , MXITST   , 'UNC', 0 )
-            CALL INREAL ('ALFA'   , PNUMS(30), 'UNC', 0.)
+            CALL INREAL ('ALFA'   , PNUMS(PNUMS_ALFA), 'UNC', 0.)
          ELSE IF (KEYWIS ('ITERMX')) THEN
             CALL ININTG ('MXITST' , MXITST   , 'REQ', 0 )
             MXITNS = MXITST
@@ -2058,7 +2058,7 @@ CALL NWLINE
          ELSE IF (KEYWIS ('NONST')) THEN
             CALL ININTG ('MXITNS' , MXITNS   , 'REQ', 0 )
          ENDIF
-         CALL INREAL ('LIMITER', PNUMS(20), 'UNC', 0.)
+         CALL INREAL ('LIMITER', PNUMS(PNUMS_LIMGRW), 'UNC', 0.)
       END IF
 
 !       *** numerical scheme in directional space (standard  ***
@@ -2066,18 +2066,18 @@ CALL NWLINE
 
       CALL INKEYW ('STA','  ')
       IF (KEYWIS ('DIR')) THEN
-         CALL INREAL ('CDD'    , PNUMS(6) , 'UNC', 0.)
-         CALL INREAL ('CDLIM'  , PNUMS(17), 'STA',-1.)
-         IF (PNUMS(17).LT.0.) IREFR = 1
-         IF (EQREAL(PNUMS(17),0.)) THEN
-            IREFR = 0
+         CALL INREAL ('CDD'    , PNUMS(PNUMS_CDD) , 'UNC', 0.)
+         CALL INREAL ('CDLIM'  , PNUMS(PNUMS_CDLIM), 'STA',-1.)
+         IF (PNUMS(PNUMS_CDLIM).LT.0.) IREFR = IREFR_NO_LIMITER
+         IF (EQREAL(PNUMS(PNUMS_CDLIM),0.)) THEN
+            IREFR = IREFR_OFF
             CALL MSGERR(0, 'Refraction deactivated')
          ENDIF
          CALL INKEYW ('STA', 'WNUM')
          IF (KEYWIS('DEP')) THEN
-            PNUMS(32) = 0.
+            PNUMS(PNUMS_GRADK) = 0.
          ELSE IF (KEYWIS('WNUM')) THEN
-            PNUMS(32) = 1.
+            PNUMS(PNUMS_GRADK) = 1.
          ENDIF
       ENDIF
 
@@ -2085,9 +2085,9 @@ CALL NWLINE
 
       CALL INKEYW ('STA','  ')
       IF (KEYWIS ('REFRL')) THEN
-         PNUMS(29) = 1.
-         CALL INREAL ('FRLIM', PNUMS(26) ,'UNC', 0.)
-         CALL INREAL ('POWER', PNUMS(27), 'UNC', 0.)
+         PNUMS(PNUMS_LCTON) = 1.
+         CALL INREAL ('FRLIM', PNUMS(PNUMS_LCTFRQ) ,'UNC', 0.)
+         CALL INREAL ('POWER', PNUMS(PNUMS_LCTPP), 'UNC', 0.)
       ENDIF
 
 !       *** numerical scheme in frequency space :                  ***
@@ -2105,23 +2105,23 @@ CALL NWLINE
       IF (KEYWIS('SIGIM') .OR. KEYWIS ('IMP')) THEN
 !         *** implicit solver ***
 !         ***  This is the default option   PNUMS(8) = 1.  ***
-         PNUMS(8) = 1.
+         PNUMS(PNUMS_SCHEMEFR) = 1.
          CALL INREAL ('CSS'  , PNUMS (7), 'UNC', 0.)
-         CALL INREAL ('EPS1' , PNUMS(11), 'UNC', 0.)
-         CALL INREAL ('EPS2' , PNUMS(12), 'UNC', 0.)
-         CALL INREAL ('OUTP' , PNUMS(13), 'UNC', 0.)
-         CALL INREAL ('NITER', PNUMS(14), 'UNC', 0.)
+         CALL INREAL ('EPS1' , PNUMS(PNUMS_EPS1), 'UNC', 0.)
+         CALL INREAL ('EPS2' , PNUMS(PNUMS_EPS2), 'UNC', 0.)
+         CALL INREAL ('OUTP' , PNUMS(PNUMS_SIPPRN), 'UNC', 0.)
+         CALL INREAL ('NITER', PNUMS(PNUMS_SIPMAX), 'UNC', 0.)
       ELSE IF (KEYWIS('SIGEX') .OR. KEYWIS('EXP')) THEN
 
 !         *** 2) explicit scheme ***
-         PNUMS(8) = 2.
+         PNUMS(PNUMS_SCHEMEFR) = 2.
          CALL INREAL ('CSS'  , PNUMS (7), 'UNC', 0.)
-         CALL INREAL ('CFL'  , PNUMS(19), 'UNC', 0.)
+         CALL INREAL ('CFL'  , PNUMS(PNUMS_CFLFR), 'UNC', 0.)
 
       ELSE IF (KEYWIS ('FIL')) THEN
 !         *** 3) explicit scheme -> filter the spectrum  ***
-         PNUMS(8) = 3.
-         CALL INREAL ('DIFFC'  , PNUMS(9), 'UNC', 0.)
+         PNUMS(PNUMS_SCHEMEFR) = 3.
+         CALL INREAL ('DIFFC'  , PNUMS(PNUMS_CEXPL), 'UNC', 0.)
 
       END IF
 
@@ -2129,25 +2129,25 @@ CALL NWLINE
 
       CALL INKEYW ('STA','  ')
       IF (KEYWIS ('CT')) THEN
-         PNUMS(35) = 1.
-         CALL INREAL ('CFL', PNUMS(36) ,'STA', 0.9)
+         PNUMS(PNUMS_LCTCON) = 1.
+         CALL INREAL ('CFL', PNUMS(PNUMS_LCTAL) ,'STA', 0.9)
       ENDIF
 
 !       limit Csigma if user want so
 
       CALL INKEYW ('STA','  ')
       IF (KEYWIS ('CS')) THEN
-         PNUMS(33) = 1.
-         CALL INREAL ('CFL', PNUMS(34) ,'STA', 0.9)
+         PNUMS(PNUMS_LCSON) = 1.
+         CALL INREAL ('CFL', PNUMS(PNUMS_LCSAL) ,'STA', 0.9)
       ENDIF
 
       CALL INKEYW ('STA','  ')
       IF (KEYWIS('SETUP')) THEN
 !         *** iterative solver        ***
 !         *** Settings for the setup  ***
-         CALL INREAL ('EPS2' , PNUMS(23), 'UNC', 0.)
-         CALL INREAL ('OUTP' , PNUMS(24), 'UNC', 0.)
-         CALL INREAL ('NITER', PNUMS(25), 'UNC', 0.)
+         CALL INREAL ('EPS2' , PNUMS(PNUMS_SUPEPS), 'UNC', 0.)
+         CALL INREAL ('OUTP' , PNUMS(PNUMS_SUPPRN), 'UNC', 0.)
+         CALL INREAL ('NITER', PNUMS(PNUMS_SUPMAX), 'UNC', 0.)
       ENDIF
       CYCLE command_loop
    ENDIF
@@ -2276,7 +2276,7 @@ CALL NWLINE
          IF (PWTAIL(1).LE.1.) CALL MSGERR (3, 'Incorrect PWTAIL')
          PWTAIL(3) = PWTAIL(1) + 1.
       ENDIF
-      CALL INREAL ('FROUDMAX', PNUMS(18), 'UNC', 0.)
+      CALL INREAL ('FROUDMAX', PNUMS(PNUMS_FROUDE), 'UNC', 0.)
       CALL INREAL ('ICEWIND' , ICEWIND  , 'UNC', 0.)
       CALL ININTG ('EXCMARK' , excmark  , 'UNC', 0 )
       CALL INREAL ('SORT'    , usort    , 'UNC', 0.)
@@ -2423,10 +2423,10 @@ CALL NWLINE
 !
 ! ============================================================
    IF (KEYWIS('CICE')) THEN
-      IICE=1
+      IICE = IICE_CICE
       CALL INKEYW('STA','ADCICE')
       IF (KEYWIS('ADCICE')) THEN
-         IICE=2
+         IICE = IICE_ADCICE
          CALL INREAL('WBICETH',WBICETH,'STA',70.0)
       ELSE
          CALL WRNKEY
@@ -2459,11 +2459,11 @@ CALL NWLINE
    IF (KEYWIS ('BRE')) THEN
       CALL INKEYW ('STA', 'CON')
       IF (KEYWIS('CON')) THEN
-         ISURF = 1
+         ISURF = ISURF_CON
          CALL INREAL ('ALPHA', PSURF(1), 'STA', 1.0)
          CALL INREAL ('GAMMA', PSURF(2), 'STA', 0.73)
       ELSE IF (KEYWIS('VAR') .OR. KEYWIS('NEL')) THEN
-         ISURF = 2
+         ISURF = ISURF_VAR
          CALL INREAL ('ALPHA',  PSURF(1), 'STA', 1.5)
          CALL INREAL ('GAMMIN', PSURF(4), 'STA', 0.55)
          CALL INREAL ('GAMMAX', PSURF(5), 'STA', 0.81)
@@ -2471,30 +2471,30 @@ CALL NWLINE
          CALL INREAL ('COEFF1', PSURF(7), 'STA', 0.88)
          CALL INREAL ('COEFF2', PSURF(8), 'STA', 0.012)
       ELSE IF (KEYWIS('RUE')) THEN
-         ISURF = 3
+         ISURF = ISURF_RUE
          CALL INREAL ('ALPHA', PSURF(1), 'STA', 1.0)
          CALL INREAL ('A'    , PSURF(4), 'STA', 0.76)
          CALL INREAL ('B'    , PSURF(5), 'STA', 0.29)
       ELSE IF (KEYWIS('TG')) THEN
-         ISURF = 4
+         ISURF = ISURF_TG
          CALL INREAL ('ALPHA',  PSURF(1), 'STA', 1.0)
          CALL INREAL ('GAMMA',  PSURF(4), 'STA', 0.42)
          CALL INREAL ('POWN' ,  PSURF(5), 'STA', 4.0)
       ELSE IF (KEYWIS('BKD')) THEN
-         ISURF = 6
+         ISURF = ISURF_BKD
          CALL INREAL ('ALPHA' , PSURF(1) ,'STA', 1.00)
          CALL INREAL ('GAMMA0', PSURF(4) ,'STA', 0.54)
          CALL INREAL ('A1'    , PSURF(5) ,'STA', 7.59)
          CALL INREAL ('A2'    , PSURF(6) ,'STA',-8.06)
          CALL INREAL ('A3'    , PSURF(7) ,'STA', 8.09)
 !         [npnts] not documented!
-         CALL INREAL ('NPNTS' , PNUMS(37),'STA', 95. )
+         CALL INREAL ('NPNTS' , PNUMS(PNUMS_BKDACC),'STA', 95. )
 
          JGAMMA = MCMVAR+1
          MCMVAR = MCMVAR+1
          ALOCMP = .TRUE.
       ELSE IF (KEYWIS('ASYM')) THEN
-         ISURF = 7
+         ISURF = ISURF_ASYM
          CALL INREAL ('ALPHA' , PSURF(1) ,'STA', 1.0)
          CALL INREAL ('GAMMA0', PSURF(4) ,'STA', 0.6)
          CALL INREAL ('A'     , PSURF(5) ,'STA', 0.8)
@@ -2505,13 +2505,13 @@ CALL NWLINE
 
       CALL INKEYW ('STA', '  ')
       IF (KEYWIS ('DIR').OR.ISURF.EQ.6) THEN
-         IDISRF = 1
+         IDISRF = IDISRF_ON
          CALL INREAL ('SPREAD', PSURF(15), 'STA', 12.5)
       END IF
 
       CALL INKEYW ('STA', '  ')
       IF (KEYWIS ('FREQD')) THEN
-         IFRSRF = 1
+         IFRSRF = IFRSRF_ON
          CALL INREAL ('POWER', PSURF(16), 'STA', 2.0)
          CALL INREAL ('FMIN' , PSURF(17), 'STA', 0.0)
          CALL INREAL ('FMAX' , PSURF(18), 'STA', 1000.)
@@ -2546,7 +2546,7 @@ CALL NWLINE
 !
 !         error checking in case user has already selected Babanin physics
          IF (WCAPSET) CALL MSGERR (4, 'whitecapping is already set')
-         IWCAP = 1
+         IWCAP = IWCAP_KOMEN
          WCAPSET = .TRUE.
          CALL INREAL ('CDS2',  PWCAP(1),  'UNC', 0.)
          CALL INREAL ('STPM',  PWCAP(2),  'UNC', 0.)
@@ -2555,7 +2555,7 @@ CALL NWLINE
          CALL INREAL ('POWK',  PWCAP(11), 'UNC', 0.)
       ELSE IF ( KEYWIS ('JANS')) THEN
 !         *** whitecapping according to Janssen (1989, 1991) ***
-         IWCAP = 2
+         IWCAP = IWCAP_JANSSEN
          CALL INREAL ('CDS1',  PWCAP(3), 'UNC', 0.)
          CALL INREAL ('DELTA', PWCAP(4), 'UNC', 0.)
 
@@ -2574,28 +2574,28 @@ CALL NWLINE
          PWTAIL(3) = PWTAIL(1) + 1.
       ELSE IF ( KEYWIS ('LHIG')) THEN
 !         *** whitecapping according to Longuett Higgins ***
-         IWCAP = 3
+         IWCAP = IWCAP_LHIG
          CALL INREAL ('CFLHIG', PWCAP(5), 'UNC', 0.)
       ELSE IF ( KEYWIS ('BJ')) THEN
 !         *** whitecapping according to Battjes/Janssen formulation ***
-         IWCAP = 4
+         IWCAP = IWCAP_BJ
          CALL INREAL ('BJSTP' , PWCAP(6), 'UNC', 0.)
          CALL INREAL ('BJALF' , PWCAP(7), 'UNC', 0.)
       ELSE IF ( KEYWIS ('KBJ')) THEN
 !         *** whitecapping according to a combination of Komen et al ***
 !         *** and Battjes/Janssen                                    ***
-         IWCAP = 5
+         IWCAP = IWCAP_KBJ
          CALL INREAL ('BJSTP' , PWCAP(6), 'UNC', 0.)
          CALL INREAL ('BJALF' , PWCAP(7), 'UNC', 0.)
          CALL INREAL ('KCONV' , PWCAP(8), 'UNC', 0.)
       ELSE IF ( KEYWIS ('AB')) THEN
 !         *** whitecapping according to Alves and Banner (2003) ***
-         IWCAP = 7
+         IWCAP = IWCAP_AB
          CALL INREAL ('CDS2',  PWCAP(1),  'STA', 5.0E-5)
          CALL INREAL ('BR',    PWCAP(12), 'STA', 1.75E-3)
          CALL INKEYW ('STA', '  ')
          IF (KEYWIS ('CUR')) THEN
-            IWCCUR = 1
+            IWCCUR = IWCCUR_ON
             CALL INREAL ('CDS3', PWCAP(14), 'STA', 0.8)
          ENDIF
       ELSE
@@ -2625,30 +2625,30 @@ CALL NWLINE
 ! ===============================================
 
    IF (KEYWIS ('FRIC')) THEN
-      IBOT = 1
+      IBOT = IBOT_JONSWAP
       CALL INKEYW ('STA','JON')
       IF (KEYWIS('JON')) THEN
          CALL INKEYW ('STA', 'CON')
          IF (KEYWIS('VAR')) THEN
-            IBOT = 4
+            IBOT = IBOT_JONSWAP_VAR
             CALL INREAL ('CFJ1', PBOT(6), 'STA', 0.038)
             CALL INREAL ('CFJ2', PBOT(7), 'STA', 0.067)
             CALL INREAL ('DSP1', PBOT(8), 'STA', 10.)
             CALL INREAL ('DSP2', PBOT(9), 'STA', 30.)
          ELSE
             CALL IGNORE ('CON')
-            IBOT = 1
+            IBOT = IBOT_JONSWAP
             CALL INREAL('CFJON',PBOT(3),'UNC',0.)
          ENDIF
       ELSE IF (KEYWIS('COLL')) THEN
-         IBOT = 2
+         IBOT = IBOT_COLLINS
          CALL INREAL('CFW',PBOT(2),'UNC',0.)
          CALL INREAL('CFC',PBOT(1),'UNC',0.)
       ELSE IF (KEYWIS('MAD')) THEN
-         IBOT = 3
+         IBOT = IBOT_MADSEN
          CALL INREAL('KN',PBOT(5),'UNC',0.)
       ELSE IF (KEYWIS('RIP')) THEN
-         IBOT = 5
+         IBOT = IBOT_RIPPLES
          CALL INREAL('S',PBOT(6),'UNC',0.)
          CALL INREAL('D',PBOT(7),'UNC',0.)
          JFRC2  = MCMVAR+1
@@ -2667,7 +2667,7 @@ CALL NWLINE
 ! ==========================================
 
    IF (KEYWIS ('MUD')) THEN
-      IMUD = 1
+      IMUD = IMUD_ON
       CALL INREAL('LAYER',PMUD(1),'UNC',0.)
       CALL INREAL('RHOM' ,PMUD(2),'UNC',0.)
       CALL INREAL('VISCM',PMUD(3),'UNC',0.)
@@ -2686,7 +2686,7 @@ CALL NWLINE
 ! Note that IC4M2 is deprecated in manual but left intact
 
    IF (KEYWIS ('IC4M2')) THEN
-      IICE = 3
+      IICE = IICE_IC4M2
       CALL INREAL('AICE',PICE(1) ,'REQ',0.)
       CALL INREAL('C0'  ,PSICE(2),'REQ',0.)
       CALL INREAL('C1'  ,PSICE(3),'REQ',0.)
@@ -2720,7 +2720,7 @@ CALL NWLINE
 ! ==========================================
 
    IF (KEYWIS ('SICE')) THEN
-      IICE = 3 ! default: IICE=3 indicates R19
+      IICE = IICE_IC4M2 ! default: IICE=3 indicates R19
       CALL INKEYW ('STA','R19')
       IF (KEYWIS('R19')) THEN
          CALL INREAL('C0'  ,PSICE(2),'STA',0.)
@@ -2731,13 +2731,13 @@ CALL NWLINE
          CALL INREAL('C5'  ,PSICE(7),'STA',0.)
          CALL INREAL('C6'  ,PSICE(8),'STA',0.)
       ELSE IF (KEYWIS('D15')) THEN
-         IICE = 4 ! IICE=4 indicates D15
+         IICE = IICE_D15 ! IICE=4 indicates D15
          CALL INREAL('CHF',PSICE(1),'STA',0.1)
       ELSE IF (KEYWIS('M18')) THEN
-         IICE = 5 ! IICE=5 indicates M18
+         IICE = IICE_M18 ! IICE=5 indicates M18
          CALL INREAL('CHF',PSICE(1),'STA',0.059)
       ELSE IF (KEYWIS('R21B')) THEN
-         IICE = 6 ! IICE=6 indicates R21B
+         IICE = IICE_R21B ! IICE=6 indicates R21B
          CALL INREAL('CHF',PSICE(1),'STA',2.9)
          CALL INREAL('NPF',PSICE(2),'STA',4.5)
       ELSE
@@ -2821,7 +2821,7 @@ CALL NWLINE
 ! =================================================================
 
    IF (KEYWIS ('TURB')) THEN
-      ITURBV = 1
+      ITURBV = ITURBV_ON
       CALL INREAL ('CTB',  PTURBV(1), 'STA', 0.01)
       CALL INKEYW ('STA', ' ')
       IF (KEYWIS('CUR')) THEN
@@ -2872,7 +2872,7 @@ CALL NWLINE
 
       WDIP = DEGCNV (WDIP)
 
-      IF (IWIND.EQ.0) IWIND = 4
+      IF (IWIND.EQ.0) IWIND = IWIND_JANSSEN
       ALTMP = WDIP / 360.
       WDIP = PI2 * (ALTMP - NINT(ALTMP))
 
@@ -2890,11 +2890,11 @@ CALL NWLINE
 
    IF (KEYWIS('GEN1')) THEN
 !       *** initialize first generation model ***
-      IGEN = 1
+      IGEN = IGEN_GEN1
       LWINDM = 1
       IF (LWINDR .GT. 0) IWIND = LWINDM
-      IQUAD = 0
-      IWCAP = 0
+      IQUAD = IQUAD_OFF
+      IWCAP = IWCAP_OFF
 !       *** set value for the windparameters ***
 !       *** first generation wind model ***
       CALL INREAL ('CF10', PWIND(1), 'UNC', 0.)
@@ -2925,11 +2925,11 @@ CALL NWLINE
 
    IF (KEYWIS('GEN2')) THEN
 !       *** initialize second generation model ***
-      IGEN = 2
+      IGEN = IGEN_GEN2
       LWINDM = 2
       IF (LWINDR .GT. 0) IWIND = LWINDM
-      IQUAD = 0
-      IWCAP = 0
+      IQUAD = IQUAD_OFF
+      IWCAP = IWCAP_OFF
 !       *** set value for the windparameters ***
       CALL INREAL ('CF10', PWIND(1), 'UNC', 0.)
       CALL INREAL ('CF20', PWIND(2), 'UNC', 0.)
@@ -2986,13 +2986,13 @@ CALL NWLINE
 
    IF (KEYWIS('GEN3')) THEN
 !       *** initialize third generation model ***
-      IGEN = 3
+      IGEN = IGEN_GEN3
       CALL INKEYW ('STA', 'WESTH')
       IF (KEYWIS('JANS')) THEN
          LWINDM = 4
          IF (LWINDR .GT. 0) IWIND = LWINDM
 !         *** whitecapping according to Janssen (1989, 1991) ***
-         IWCAP = 2
+         IWCAP = IWCAP_JANSSEN
          CALL INREAL ('CDS1',  PWCAP(3), 'UNC', 0.)
          CALL INREAL ('DELTA', PWCAP(4), 'UNC', 0.)
 
@@ -3020,7 +3020,7 @@ CALL NWLINE
          LWINDM = 5
          IF (LWINDR .GT. 0) IWIND = LWINDM
 !         *** whitecapping according to Alves and Banner (2003) ***
-         IWCAP = 7
+         IWCAP = IWCAP_AB
          CALL INREAL ('CDS2',  PWCAP(1),  'STA', 5.0E-5)
          CALL INREAL ('BR',    PWCAP(12), 'STA', 1.75E-3)
       ELSE IF (KEYWIS('BAB')) THEN
@@ -3030,12 +3030,12 @@ CALL NWLINE
          LWINDM = 8
          IF (LWINDR .GT. 0) IWIND = LWINDM
 !         note: command "GEN3 BABANIN" supports Hwang wind drag only
-         IDRAG = 4
+         IDRAG = IDRAG_HWANG
 !         *** whitecapping according to Rogers et al. (JTECH 2012) based on work of
 !             Babanin, Young, Tsagareli, Ardhuin and others
          IF (WCAPSET) CALL MSGERR (4, 'whitecapping is already set')
          WCAPSET = .TRUE.
-         IWCAP = 8
+         IWCAP = IWCAP_BABANIN
          CALL INREAL ('A1SDS', A1SDS, 'REQ', 0.)
          CALL INREAL ('A2SDS', A2SDS, 'REQ', 0.)
          CALL INREAL ('P1SDS', P1SDS, 'REQ', 0.)
@@ -3071,7 +3071,7 @@ CALL NWLINE
          IF (LWINDR .GT. 0) IWIND = LWINDM
 !         *** whitecapping according to Rogers et al. (JTECH 2012) based on work of
 !             Babanin, Young, Tsagareli, Ardhuin and others
-         IWCAP = 8
+         IWCAP = IWCAP_BABANIN
          CALL INREAL ('A1SDS', A1SDS, 'UNC', 0.)
          CALL INREAL ('A2SDS', A2SDS, 'UNC', 0.)
          CALL INREAL ('P1SDS', P1SDS, 'STA', 4.)
@@ -3085,11 +3085,11 @@ CALL NWLINE
          ENDIF
          CALL INKEYW ('STA', 'HWANG')
          IF (KEYWIS('HWANG')) THEN
-            IDRAG = 4
+            IDRAG = IDRAG_HWANG
          ELSE IF (KEYWIS ('FAN')) THEN
-            IDRAG = 5
+            IDRAG = IDRAG_FAN
          ELSE IF (KEYWIS ('ECMWF')) THEN
-            IDRAG = 6
+            IDRAG = IDRAG_ECMWF
          ENDIF
          CALL INKEYW ('STA', 'VECTAU')
          IF (KEYWIS('VECTAU')) THEN
@@ -3120,7 +3120,7 @@ CALL NWLINE
             LWINDM = 3
             IF (LWINDR .GT. 0) IWIND = LWINDM
 !         *** whitecapping according to Komen et al. (1984) ***
-            IWCAP = 1
+            IWCAP = IWCAP_KOMEN
             CALL INREAL ('CDS2', PWCAP(1), 'UNC', 0.)
             CALL INREAL ('STPM', PWCAP(2), 'UNC', 0.)
          ENDIF
@@ -3130,11 +3130,11 @@ CALL NWLINE
          IF ( KEYWIS('DRAG') ) THEN
             CALL INKEYW ('STA','WU')
             IF (KEYWIS ('WU')) THEN
-               IDRAG = 1
+               IDRAG = IDRAG_WU
             ELSE IF (KEYWIS ('FIT')) THEN
-               IDRAG = 2
+               IDRAG = IDRAG_FIT
             ELSE IF (KEYWIS ('SWELL')) THEN
-               IDRAG = 3
+               IDRAG = IDRAG_SWELL
             ENDIF
          ENDIF
       ENDIF
@@ -3164,30 +3164,30 @@ CALL NWLINE
 
    IF ( KEYWIS('GEN4') ) THEN
 !        *** initialize fourth generation model ***
-      IGEN  = 4
+      IGEN = IGEN_GEN4
       ! deep water physics not included
-      IWIND = 0
-      IQUAD = 0
-      IWCAP = 0
+      IWIND = IWIND_OFF
+      IQUAD = IQUAD_OFF
+      IWCAP = IWCAP_OFF
       ! activate the QC scattering
-      IQCM  = 1
+      IQCM = IQCM_ON
       PSCAT(1) = 1.
       ! other stuff which should not be included
-      IDIFFR = 0
+      IDIFFR = IDIFFR_OFF
       LSETUP = 0
       ! action limiter deactivated
-      PNUMS(20) = 1.E20
+      PNUMS(PNUMS_LIMGRW) = 1.E20
       ! do not include spectral tail in postprocessing
       PWTAIL(1)    = 1.E8
       PWTAIL(2:10) = 0.
       ! spherical coordinates not supported
       KSPHER = 0
       ! use suitable stopping criterion
-      PNUMS(21) = 1.
+      PNUMS(PNUMS_STOPTY) = 1.
       ! stopping criterion based on abs/rel changes in Hs only
-      PNUMS(1) = 0.01
-      PNUMS(2) = 0.05
-      PNUMS(4) = 99.
+      PNUMS(PNUMS_DREL) = 0.01
+      PNUMS(PNUMS_DABS) = 0.05
+      PNUMS(PNUMS_NPNTS) = 99.
       CYCLE command_loop
    ENDIF
 !  -------------------------------------------------------------------
@@ -3311,9 +3311,9 @@ CALL NWLINE
 !         *** initialize first generation model ***
       CALL INKEYW ('STA', 'G3')
       IF (KEYWIS('G1') .OR. KEYWIS ('SNY1')) THEN
-         IGEN = 1
+         IGEN = IGEN_GEN1
          LWINDM = 1
-         IQUAD = 0
+         IQUAD = IQUAD_OFF
 !           *** set value for the windparameters ***
 !           *** first generation wind model ***
          CALL INREAL ('CF10', PWIND(1), 'UNC', 0.)
@@ -3330,9 +3330,9 @@ CALL NWLINE
          CALL INREAL ('UMIN', PWIND(12), 'UNC', 0.)
          CALL INREAL ('CFPM',  PWIND(13), 'UNC', 0.)
       ELSE IF (KEYWIS('G2') .OR. KEYWIS('SNY2')) THEN
-         IGEN = 2
+         IGEN = IGEN_GEN2
          LWINDM = 2
-         IQUAD = 0
+         IQUAD = IQUAD_OFF
 !           *** second generation wind model ***
          CALL INREAL ('CF10', PWIND(1), 'UNC', 0.)
          CALL INREAL ('CF20', PWIND(2), 'UNC', 0.)
@@ -3348,7 +3348,7 @@ CALL NWLINE
          CALL INREAL ('UMIN', PWIND(12), 'UNC', 0.)
          CALL INREAL ('CFPM',  PWIND(13), 'UNC', 0.)
       ELSE IF (KEYWIS('G3')) THEN
-         IGEN = 3
+         IGEN = IGEN_GEN3
          CALL INKEYW ('STA', 'KOM')
          IF (KEYWIS('JANS')) THEN
             LWINDM = 4
@@ -3428,7 +3428,7 @@ CALL NWLINE
 
    IF ( KEYWIS ('TRI') .OR. KEYWIS ('NL3') ) THEN
 
-      ITRIAD = 5
+      ITRIAD = ITRIAD_DCTA
       CALL INKEYW ('REQ',' ')
       IF ( KEYWIS('LTA') ) THEN
 
@@ -3438,7 +3438,7 @@ CALL NWLINE
          !
          ! ============================================================
 
-         ITRIAD = 1
+         ITRIAD = ITRIAD_LTA
          CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 1.0)
          CALL INREAL ('CUTFR', PTRIAD(2), 'STA', -1.)
          CALL INREAL ('DINT' , PTRIAD(8), 'STA',60.0)
@@ -3451,7 +3451,7 @@ CALL NWLINE
          !
          ! ============================================================
 
-         ITRIAD = 5
+         ITRIAD = ITRIAD_DCTA
          CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 4.4 )
          CALL INREAL ('P'    , PTRIAD(2), 'STA', 4./3.)
 
@@ -3463,7 +3463,7 @@ CALL NWLINE
          !
          ! ============================================================
 
-         ITRIAD = 2
+         ITRIAD = ITRIAD_SPB
          CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 0.90)
          CALL INREAL ('A'    , PTRIAD(6), 'STA', 0.95)
          CALL INREAL ('B'    , PTRIAD(7), 'STA', 0.0 )
@@ -3477,7 +3477,7 @@ CALL NWLINE
          !
          ! ============================================================
 
-         ITRIAD = 3
+         ITRIAD = ITRIAD_FTIM
          CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 1.)
          CALL INREAL ('DINT' , PTRIAD(8), 'STA',-1.)
 
@@ -3526,17 +3526,17 @@ CALL NWLINE
       ENDIF
       IF (ITRIAD.NE.5) TCOLL = .TRUE.
 
-      IBIPH = 1
+      IBIPH = IBIPH_ELDEBERKY
       CALL INKEYW ('REQ',' ')
       IF (KEYWIS('BIPH')) THEN
          CALL INKEYW ('STA', 'ELD')
          IF (KEYWIS('SAPR')) THEN
-            IBIPH = 2
+            IBIPH = IBIPH_SAPR
             CALL INREAL ('A', PTRIAD(9), 'STA', 1.0)
             IF (.NOT.PTRIAD(9).NE.0.)&
             &CALL MSGERR (2, '[A] should not be set to zero')
          ELSEIF (KEYWIS('WIT') .OR. KEYWIS('DEWIT')) THEN
-            IBIPH = 3
+            IBIPH = IBIPH_DEWIT
             CALL INREAL ('LPAR', PTRIAD(9), 'STA', 0.)
             IF ( OPTG.EQ.5 .AND. PTRIAD(9).NE.0. ) THEN
                CALL MSGERR(2,&
@@ -3545,7 +3545,7 @@ CALL NWLINE
             ENDIF
          ELSE
             CALL IGNORE ('ELD')
-            IBIPH = 1
+            IBIPH = IBIPH_ELDEBERKY
             CALL INREAL ('URCRIT', PTRIAD(4), 'STA', 0.63)
          ENDIF
       ENDIF
@@ -3735,17 +3735,17 @@ CALL NWLINE
    IF (KEYWIS ('OFF')) THEN
       CALL INKEYW ('REQ', ' ')
       IF (KEYWIS ('REF')) THEN
-         IREFR = 0
+         IREFR = IREFR_OFF
       ELSE IF (KEYWIS ('FSH')) THEN
-         ITFRE = 0
+         ITFRE = ITFRE_OFF
       ELSE IF (KEYWIS ('BRE')) THEN
-         ISURF = 0
+         ISURF = ISURF_OFF
       ELSE IF (KEYWIS ('WCAP')) THEN
-         IWCAP = 0
+         IWCAP = IWCAP_OFF
       ELSE IF (KEYWIS ('QUAD')) THEN
-         IQUAD = 0
+         IQUAD = IQUAD_OFF
       ELSE IF (KEYWIS ('WINDG')) THEN
-         IWIND = 0
+         IWIND = IWIND_OFF
       ELSE IF (KEYWIS ('BNDCHK')) THEN
 !         switch off checking of Hs on boundary
          BNDCHK = .FALSE.
@@ -3754,12 +3754,12 @@ CALL NWLINE
          BRESCL = .FALSE.
       ELSE IF (KEYWIS ('SOURCES')) THEN
          OFFSRC = .TRUE.
-         IWIND  = 0
-         IQUAD  = 0
-         IWCAP  = 0
-         ISURF  = 0
-         ITRIAD = 0
-         IBOT   = 0
+         IWIND = IWIND_OFF
+         IQUAD = IQUAD_OFF
+         IWCAP = IWCAP_OFF
+         ISURF = ISURF_OFF
+         ITRIAD = ITRIAD_OFF
+         IBOT = IBOT_OFF
       ELSE
          CALL WRNKEY
       ENDIF
@@ -4413,7 +4413,7 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
    ELSE IF (KEYWIS ('CUR')) THEN
       IGR1 = 2
       IGR2 = 3
-      ICUR = 1
+      ICUR = ICUR_ON
    ELSE IF (KEYWIS ('FR')) THEN
       IGR1   = 4
       VARFR  = .TRUE.
@@ -4474,7 +4474,7 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
 !       fluid mud layer
       IGR1   = 13
       VARMUD = .TRUE.
-      IMUD   = 1
+      IMUD = IMUD_ON
       IF (JMUDL2.LE.1) THEN
          MCMVAR = MCMVAR + 3
          JMUDL1 = MCMVAR - 2

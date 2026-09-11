@@ -208,11 +208,11 @@ subroutine SwanConvAccur ( accur, hscurr, tmcurr, delhs, deltm, xytst, spcsig, a
 
           ! compute required accuracies for wave height and mean period
 
-          hsrel  = PNUMS( 1) * hsprev
-          hsoval = PNUMS(15) * hsmean
+          hsrel  = PNUMS(PNUMS_DREL) * hsprev
+          hsoval = PNUMS(PNUMS_TOLHS) * hsmean
 
-          tmrel  = PNUMS( 1) * tmprev
-          tmoval = PNUMS(16) * tmmean
+          tmrel  = PNUMS(PNUMS_DREL) * tmprev
+          tmoval = PNUMS(PNUMS_TOLTM) * tmmean
 
           ! count vertices where wave height and mean period have reached required accuracies
 

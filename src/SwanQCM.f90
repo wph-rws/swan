@@ -362,7 +362,7 @@ subroutine SWQCINIT ( BGRIDP, COMPDA )
 
     ! redefine absolute stopping criterion by taking into account the scale of incident wave height
 
-    PNUMS(2) = PNUMS(2) * hsi
+    PNUMS(PNUMS_DABS) = PNUMS(PNUMS_DABS) * hsi
 
     ! determine size and resolution of the wave number grid
 
@@ -1081,7 +1081,7 @@ subroutine SWQCUFT ( uxft, uyft, dep2, ux2, uy2, cft, rft, sft, wft, wsave, &
     uxp = ux2 (kc1)
     uyp = uy2 (kc1)
 
-    cgmx = PNUMS(18) * sqrt( GRAV*dp )
+    cgmx = PNUMS(PNUMS_FROUDE) * sqrt( GRAV*dp )
 
     if ( dp > DEPMIN ) then
 

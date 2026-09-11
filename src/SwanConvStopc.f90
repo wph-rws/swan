@@ -218,24 +218,24 @@ subroutine SwanConvStopc ( accur, hscurr, hsprev, hsdifc, tmcurr, tmprev, tmdifc
 
           ! compute required accuracies for wave height
 
-          hsrel  = PNUMS( 1) * hscurr(ivert)
-          curvah = PNUMS(15) * hscurr(ivert)
+          hsrel  = PNUMS(PNUMS_DREL) * hscurr(ivert)
+          curvah = PNUMS(PNUMS_TOLHS) * hscurr(ivert)
 
           ! compute required accuracies for mean period
 
-          tmrel  = PNUMS( 1) * tmcurr(ivert)
-          curvat = PNUMS(16) * tmcurr(ivert)
+          tmrel  = PNUMS(PNUMS_DREL) * tmcurr(ivert)
+          curvat = PNUMS(PNUMS_TOLTM) * tmcurr(ivert)
 
           if ( IQCM == 0 ) then
 
-             lconv = ( hsabs <= PNUMS(2) .or. (hsabs <= hsrel .and. hscurv <= curvah) ) .and. &
-                     ( tmcurv <= curvat .and. tmabs <= max(tmrel,PNUMS(3)) )
+             lconv = ( hsabs <= PNUMS(PNUMS_DABS) .or. (hsabs <= hsrel .and. hscurv <= curvah) ) .and. &
+                     ( tmcurv <= curvat .and. tmabs <= max(tmrel,PNUMS(PNUMS_DTABS)) )
 
           else
 
              if ( hscurr(ivert) /= -1. .and. hsprev(ivert) /= 1.e-20 ) then
 
-                lconv = hsabs <= max(hsrel,PNUMS(2))
+                lconv = hsabs <= max(hsrel,PNUMS(PNUMS_DABS))
 
              else
 
