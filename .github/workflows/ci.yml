@@ -48,6 +48,8 @@ jobs:
           cmake --build build-ci-openmp --parallel 4
       - name: CTest
         run: ctest --test-dir build-ci-openmp --output-on-failure
+      - name: Determinisme-smoke ongestructureerd (2 runs × 4 threads)
+        run: python3 scripts/unstruc_determinism_smoke.py --exe "$PWD/build-ci-openmp/bin/swan.exe"
       - name: Schrijf resultaat
         if: always()
         run: |

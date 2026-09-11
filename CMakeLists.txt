@@ -323,6 +323,13 @@ if( BUILD_TESTING )
     NAME front_scheduling_backend
     COMMAND test_front_scheduling_backend ${SWAN_EXPECTED_FIXED_FRONT}
   )
+  add_executable( test_front_dependency_completeness
+    tests/test_front_dependency_completeness.f90 )
+  target_link_libraries( test_front_dependency_completeness PRIVATE swan${VERSION} )
+  add_test(
+    NAME front_dependency_completeness
+    COMMAND test_front_dependency_completeness
+  )
 
   if( COH )
     set( SWAN_EXPECTED_COHERENT_COUPLING 1 )

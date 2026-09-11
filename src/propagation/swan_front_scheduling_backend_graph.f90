@@ -20,7 +20,7 @@ contains
    subroutine build_front_schedule(vlist)
       integer, intent(in) :: vlist(:,:)
       integer, parameter :: nlpf = 1
-      integer :: icell, ifront, istat, j, jc, k, l, lmax, m, maxfr
+      integer :: i, icell, ifront, istat, j, jc, k, l, lmax, m, maxfr
       integer :: nlevel, nverts, nsweep, swpdir
       integer :: v(3), vu(2)
       integer, allocatable :: fcount(:), fid(:,:), fill(:), level(:), pos(:)
@@ -49,6 +49,9 @@ contains
                v(1) = cell(icell)%atti(CELLV1)
                v(2) = cell(icell)%atti(CELLV2)
                v(3) = cell(icell)%atti(CELLV3)
+               vu = 0  ! k zit per constructie in v, dus de zoeklus hieronder
+                       ! wijst beide buren toe; de initialisatie maakt dat
+                       ! expliciet voor de compiler (geen gedragsverandering)
                do l = 1, 3
                   if (v(l) == k) then
                      vu(1) = v(mod(l  ,3)+1)
@@ -56,8 +59,16 @@ contains
                      exit
                   end if
                end do
-               m = vu(1)
-               if (pos(m) < pos(k)) lmax = max(lmax,level(m))
+                ! Beide buren van de stencil tellen mee: de solver leest
+                ! ac2 van vu(1) EN vu(2) (SwanTranspX) en schrijft ac2 van
+                ! de vertex zelf. Alleen vu(1) meenemen laat open-waaier-
+                ! vertices (rand/kust/obstakel) in hetzelfde front terecht-
+                ! komen als een buur die ze lezen
+                ! (doc/moderniseringsplan.md).
+                do i = 1, 2
+                   m = vu(i)
+                   if (pos(m) < pos(k)) lmax = max(lmax,level(m))
+                end do
             end do
             level(k) = lmax + 1
          end do

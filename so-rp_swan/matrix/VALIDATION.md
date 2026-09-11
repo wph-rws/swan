@@ -100,7 +100,11 @@ mask and does not claim whole-field mask identity across decomposition modes.
   (buiten scope: geen NVIDIA/NVFortran/PGI-support).
 - The structured and unstructured OpenMP references pass at 1, 2 and 4
   threads. Nonlinear interaction tests exercise active triad and quadruplet
-  paths.
+  paths. The unstructured OpenMP solver is outside the operational so-rp
+  route (structured decks only): the front-scheduling race documented in
+  `doc/moderniseringsplan.md` (missing `vu(2)` edge, fixed
+  unconditionally) does not touch the structured operational suite, which
+  is bit-exact before and after.
 - Strict-poort (WP2.4 + WP3a/WP3b/WP5b-tranches + WP4-hersteltranches, schone
   bouw met `--require-baseline`, GNU 13.3.0): **1.324 waarschuwingen in 488
   fingerprints**, `within budget`, `no new warnings` — herhaald op de

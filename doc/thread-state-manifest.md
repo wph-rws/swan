@@ -23,7 +23,7 @@ Levensduur is de kortste eenheid waarover de waarde geldig moet blijven:
 
 | # | Locatie | Module | Symbolen | Buildvariant |
 |---|---|---|---|---|
-| 1 | [swan_stencil.f90:46](../src/swan_stencil.f90#L46) | `swan_stencil` | `RDFSIN` | altijd |
+| 1 | [swan_stencil.f90:38](../src/swan_stencil.f90#L38) | `swan_stencil` | `RDFSIN` | altijd |
 | 2 | [swan_test_output.f90:34](../src/swan_test_output.f90#L34) | `swan_test_output` | `IPTST, TESTFL` | altijd |
 | 3 | [swan_propagation_scheme.f90:27](../src/swan_propagation_scheme.f90#L27) | `swan_propagation_scheme` | `PROPSL` | altijd |
 | 4 | [swan_time.f90:40](../src/swan_time.f90#L40) | `swan_time` | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | altijd aanwezig; actief bij `TIMG=ON` |
@@ -38,8 +38,10 @@ deze tabel: de migratie heeft de module en haar `THREADPRIVATE`-directive verwij
 De toestand zit nu in een expliciete `wcap_workspace_t` per solverthread.
 
 De vijf stencilwaarden `IXCGRD, IYCGRD, KCGRD, COSLAT` en `ICMAX` staan evenmin
-meer in deze tabel: tranche B heeft hun twee `THREADPRIVATE`-directives
-verwijderd. De solvers houden het actieve punt bij in thread-lokale scratch
+meer in deze tabel: de stencilmigratie heeft hun twee `THREADPRIVATE`-directives
+verwijderd, en de determinisme-opruiming heeft de
+gedeelde moduledata zelf geschrapt. De solvers houden het actieve punt bij in
+thread-lokale scratch
 (`st_ix, st_iy, st_kc, st_co, st_nm` in `SWOMPU`, idem in `SwanCompUnstruc`
 waar `st_nm` via `FIRSTPRIVATE` de seriële breedte erft) en geven elke kernel
 haar context expliciet als scalars of `MICMAX`-arrays. Alleen `RDFSIN` blijft
@@ -78,17 +80,18 @@ solver- of switch-specifiek.
 
 ### `swan_stencil` — stencil en propagatiekeuzes
 
-`RDFSIN` is de enige resterende threadprivate waarde in deze module. De vijf
-overige zijn in tranche B gemigreerd en niet meer threadprivate:
+`RDFSIN` is de enige resterende waarde in deze module (threadprivate, zie
+onder). De vijf overige zijn bij de stencilmigratie gemigreerd en bij de
+determinisme-opruiming geschrapt als gedeelde moduledata:
 
-| Symbool | Status na B | Eigenaar nu |
+| Symbool | Status nu | Eigenaar nu |
 |---|---|---|
-| `IXCGRD` | thread-lokale `st_ix` in `SWOMPU`/`SwanCompUnstruc`, expliciet als scalars/arrays doorgegeven | aanroeper |
-| `IYCGRD` | idem (`st_iy`) | aanroeper |
-| `KCGRD` | idem (`st_kc`) | aanroeper |
-| `COSLAT` | `SWGEOM` schrijft de lokale `st_co` van `SWOMPU`; `ACTION`/`SwanTranspAc` geven hem expliciet door | aanroeper |
+| `IXCGRD` | geschrapt uit `swan_stencil` | thread-lokale `st_ix` in `SWOMPU`/`SwanCompUnstruc`, expliciet als scalars/arrays doorgegeven (aanroeper) |
+| `IYCGRD` | idem | idem (`st_iy`) |
+| `KCGRD` | idem | idem (`st_kc`) |
+| `COSLAT` | idem | `SWGEOM` schrijft de lokale `st_co` van `SWOMPU`; `ACTION`/`SwanTranspAc` geven hem expliciet door |
 | `RDFSIN` | ✅ COPYIN, threadprivate (windschaal per thread) | `swan_stencil` |
-| `ICMAX` | thread-lokale `st_nm`/`st_n`/`icmax`-dummy in elke kernel; `FIRSTPRIVATE` in de ongestructureerde regio | aanroeper |
+| `ICMAX` | geschrapt uit `swan_stencil` | thread-lokale `st_nm`/`st_n`/`icmax`-dummy in elke kernel; `FIRSTPRIVATE` in de ongestructureerde regio |
 
 De oude `vs`-spiegel in `SwanCompdata` was al eerder verwijderd. Daarmee is er
 nog één stencil-eigenaar per aanroep, zoals randvoorwaarde 2 eist — maar die
@@ -210,8 +213,8 @@ wijziging van deze bestaande fixture.
 
 ### `SwanCompdata` — voormalige ongestructureerde stencilspiegel
 
-De threadprivate array `vs` is verwijderd. `SwanCompUnstruc` vult `KCGRD`
-rechtstreeks; de eerste zeven onderliggende kernels krijgen hun benodigde
+De threadprivate array `vs` is verwijderd. `SwanCompUnstruc` vult de lokale
+`st_kc` rechtstreeks; de onderliggende kernels krijgen hun benodigde
 roosteradressen inmiddels als expliciete argumenten. `SwanCompdata` bezit
 daarmee geen afzonderlijke stenciltoestand meer.
 

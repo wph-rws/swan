@@ -746,7 +746,6 @@ SUBROUTINE SWINIT (INERR, SNL4)
    USE swan_run_mode
    USE swan_input_grids
    USE swan_input_field_files
-   USE swan_stencil, ONLY: ICMAX
    USE swan_physics_selection
    USE swan_numerics
    USE swan_physical_settings
@@ -1103,8 +1102,6 @@ SUBROUTINE SWINIT (INERR, SNL4)
    usort  = -999.
    nsweep = -999
    CCURV  = .FALSE.
-!     number of points needed in computational stencil:
-   ICMAX  = 5
 !     ***** numerical scheme *****
    NCOR   = 1
    NSTATM = -1
