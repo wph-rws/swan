@@ -495,6 +495,11 @@ if( BUILD_TESTING )
             --self-test
   )
   add_test(
+    NAME switch_compatibility
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/test_switch_compatibility.py
+  )
+  add_test(
     NAME reference_check_negatives
     COMMAND ${Python3_EXECUTABLE} -m pytest
             ${CMAKE_SOURCE_DIR}/tests/test_reference_check.py -q

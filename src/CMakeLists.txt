@@ -241,10 +241,9 @@ if( NOT TARGET swan${VERSION} )
     target_link_libraries( swan${VERSION} PUBLIC NetCDF::NetCDF_Fortran )
   endif()
   target_link_libraries( swan${VERSION} PUBLIC swan_build_options FFTW3::fftw3 )
-  # As upstream (switch -cvis on Windows): the DEC SHARED backend is always
-  # selected on Windows, whatever the compiler. The mpif.h wrapper only with
-  # a proven capability (explicit option), not because of "non-GNU".
-  if( SWAN_DEC_SHARED_IO OR WIN32 )
+  # No automatic non-GNU selection. DEC-SHARED and the mpif.h wrapper
+  # only with a proven capability (explicit option), not because of "non-GNU".
+  if( SWAN_DEC_SHARED_IO )
     target_sources( swan${VERSION} PRIVATE
       ${SRC}/platform/swan_file_open_backend_dec.f90 )
   else()
