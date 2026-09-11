@@ -954,7 +954,7 @@ subroutine SWFB ( fbd, dep2, kwave, ecos, esin ,IGP)
 
 end subroutine SWFB
 
-subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, isstop, ecos, esin, plbrag, redc0 ,IGP)
+subroutine SWBRAGG1 (imatra, ac2, dep2, kwave, cgo, spcsig, WINDOW, ecos, esin, plbrag, redc0, IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1013,13 +1013,12 @@ subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, iss
 
     implicit none(type, external)
 
+   TYPE(spectral_window_t) :: WINDOW
+
 !   Argument variables
 
    INTEGER, INTENT(IN) :: IGP
-    integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
 
-    integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
-    integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
 
     real, dimension(MDC,MSC,MCGRD), intent(in)  :: ac2    ! action density at current time level
     real, dimension(MSC,MICMAX), intent(in)     :: cgo    ! group velocity
@@ -1061,7 +1060,7 @@ subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, iss
 
     d = dep2(IGP)
 
-    do is = 1, isstop
+    do is = 1, WINDOW%ISSTOP
 
        k  = kwave(is,1)
        cg = cgo  (is,1)
@@ -1073,7 +1072,7 @@ subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, iss
 
           cf = PI2 * fac**2 * k**3 / cg
 
-          do iddum = idcmin(is), idcmax(is)
+          do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
              id = mod ( iddum - 1 + MDC , MDC ) + 1
 
              sbragg = 0.
@@ -1111,7 +1110,7 @@ subroutine SWBRAGG1 ( imatra, ac2, dep2, kwave, cgo, spcsig, idcmin, idcmax, iss
 
 end subroutine SWBRAGG1
 
-subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax, isstop, ecos, esin, plbrag, redc0 ,IGP)
+subroutine SWBRAGG2 (imatra, ac2, dep2, kwave, cgo, fbd, spcsig, WINDOW, ecos, esin, plbrag, redc0, IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1170,13 +1169,12 @@ subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax
 
     implicit none(type, external)
 
+   TYPE(spectral_window_t) :: WINDOW
+
 !   Argument variables
 
    INTEGER, INTENT(IN) :: IGP
-    integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
 
-    integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
-    integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
 
     real, dimension(MDC,MSC,MCGRD), intent(in)  :: ac2    ! action density at current time level
     real, dimension(MSC,MICMAX), intent(in)     :: cgo    ! group velocity
@@ -1219,7 +1217,7 @@ subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax
 
     d = dep2(IGP)
 
-    do is = 1, isstop
+    do is = 1, WINDOW%ISSTOP
 
        k  = kwave(is,1)
        cg = cgo  (is,1)
@@ -1231,7 +1229,7 @@ subroutine SWBRAGG2 ( imatra, ac2, dep2, kwave, cgo, fbd, spcsig, idcmin, idcmax
 
           cf = PI2 * fac**2 * k**3 / cg
 
-          do iddum = idcmin(is), idcmax(is)
+          do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
              id = mod ( iddum - 1 + MDC , MDC ) + 1
 
              sbragg = 0.
@@ -1408,7 +1406,7 @@ subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin ,IG
 
 end subroutine SWBRAGG3
 
-subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 ,IGP)
+subroutine FILBRG (imatra, WINDOW, membrg, plbrag, redc0, IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1460,13 +1458,12 @@ subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 ,IGP)
 
     implicit none(type, external)
 
+   TYPE(spectral_window_t) :: WINDOW
+
 !   Argument variables
 
    INTEGER, INTENT(IN) :: IGP
-    integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
 
-    integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
-    integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
 
     real, dimension(MDC,MSC)      , intent(out) :: imatra ! coefficients of right hand side of action balance equation
     real, dimension(MDC,MSC,MCGRD), intent(in)  :: membrg ! auxiliary array to store results of Bragg scattering in full spectral space
@@ -1488,9 +1485,9 @@ subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 ,IGP)
 
     if (ltrace) call strace (ient,'FILBRG')
 
-    do is = 1, isstop
+    do is = 1, WINDOW%ISSTOP
 
-       do iddum = idcmin(is), idcmax(is)
+       do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
           id = mod ( iddum - 1 + MDC , MDC ) + 1
 
           ! store the results in the array IMATRA
@@ -1505,10 +1502,10 @@ subroutine FILBRG ( imatra, idcmin, idcmax, isstop, membrg, plbrag, redc0 ,IGP)
     enddo
 
     if ( TESTFL .and. ITEST > 50 ) then
-       write (PRTEST,"(' FILBRG: ID_MIN ID_MAX MSC ISTOP :',4i6)") idcmin(1), idcmax(1), MSC, isstop
+       write (PRTEST,"(' FILBRG: ID_MIN ID_MAX MSC ISTOP :',4i6)") WINDOW%IDCMIN(1), WINDOW%IDCMAX(1), MSC, WINDOW%ISSTOP
        if ( ITEST > 100 ) then
-          do is = 1, isstop
-             do iddum = idcmin(is), idcmax(is)
+          do is = 1, WINDOW%ISSTOP
+             do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
                 id = mod ( iddum - 1 + MDC , MDC ) + 1
                 write (PRTEST,"(' FILBRG: IS ID MEMBRG() :',2i6,e12.4)") is, id, membrg(id,is,IGP)
              enddo

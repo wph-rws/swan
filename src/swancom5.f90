@@ -237,12 +237,9 @@ end subroutine SWGEOM
 
 !******************************************************************
 
-SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
-&IDCMAX    ,CAX       ,&
+SUBROUTINE SWPSEL(SWPDIR    ,WINDOW    ,CAX       ,&
 &CAY       ,ANYBIN    ,&
-&ISCMIN    ,&
-&ISCMAX    ,IDTOT     ,ISTOT     ,&
-&IDDLOW    ,IDDTOP    ,ISSTOP    ,&
+&IDTOT     ,ISTOT     ,&
 &DEP2      ,UX2       ,UY2       ,&
 &SPCDIR    ,RDX       ,RDY       ,&
 &KGRPNT&
@@ -507,20 +504,17 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 
    INTEGER, SAVE :: IENT = 0
    INTEGER, INTENT(IN) :: kc1, ix1, iy1
+   TYPE(spectral_window_t), INTENT(INOUT) :: WINDOW
    INTEGER   IS    ,ID    ,                     SWPDIR,&
    &IDSUM ,IDCLOW,IDCHGH,&
    &IDTOT ,ISTOT ,&
-   &IDDLOW,IDDTOP,ISSLOW,ISSTOP,&
+   &ISSLOW,&
    &IDDUM, ISCLOW, ISCHGH, IX, IY ,IC
 
    REAL      CAXMID,CAYMID,&
    &GROUP, UABS, THDIR
 
-   INTEGER   IDCMIN(MSC)     ,&
-   &IDCMAX(MSC)     ,&
-   &ISCMIN(MDC)     ,&
-   &ISCMAX(MDC)     ,&
-   &SECTOR(MSC)
+   INTEGER   SECTOR(MSC)
 
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint
    REAL  ::  CAX(MDC,MSC,MICMAX)
@@ -538,8 +532,8 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 !     *** initialize array's in theta direction ***
 
    do IS = 1, MSC
-      IDCMIN(IS) = 0
-      IDCMAX(IS) = 0
+      WINDOW%IDCMIN(IS) = 0
+      WINDOW%IDCMAX(IS) = 0
       SECTOR(IS) = 0
       do ID = 1, MDC
          ANYBIN(ID,IS) = .FALSE.
@@ -549,8 +543,8 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 !     *** initialize arrays in frequency direction ***
 
    do ID = 1, MDC
-      ISCMIN(ID) = 1
-      ISCMAX(ID) = 1
+      WINDOW%ISCMIN(ID) = 1
+      WINDOW%ISCMAX(ID) = 1
    end do
 
 !     *** set variables ***
@@ -558,7 +552,7 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
    IDTOT  =     1
    ISTOT  =     1
    ISSLOW =  9999
-   ISSTOP = -9999
+   WINDOW%ISSTOP = -9999
 
 !     --- part of computation of RDXs and RDYs moved to routine SWGEOM
 !
@@ -583,7 +577,7 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
                ANYBIN(ID,IS) = .TRUE.
                IDSUM = IDSUM + 1
                ISSLOW = MIN(IS,ISSLOW)
-               ISSTOP = MAX(IS,ISSTOP)
+               WINDOW%ISSTOP = MAX(IS,WINDOW%ISSTOP)
             ENDIF
             IF (TESTFL .AND. ITEST .GE. 190)&
             &WRITE(PRINTF,"( ' IS ID CXM CYM ANYBIN :',2(1X,I4),2(1X,E11.4),L2)") IS,ID,CAXMID,CAYMID,ANYBIN(ID,IS)
@@ -592,7 +586,7 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
             ANYBIN(ID,IS) = ANYBIN(ID,1)
             IF (ANYBIN(ID,1)) THEN
                IDSUM = IDSUM + 1
-               ISSTOP = MAX(IS,ISSTOP)
+               WINDOW%ISSTOP = MAX(IS,WINDOW%ISSTOP)
             ENDIF
          ENDIF
       ENDDO
@@ -641,28 +635,28 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
       IF ( IDSUM .EQ. MDC ) THEN
          IF (FULCIR .AND. SECTOR(IS).NE.0) WRITE (PRTEST, "(' error SWPSEL directions ', 6I6)")&
          &SWPDIR, IS, SECTOR(IS), IDSUM, IDCLOW, IDCHGH
-         IDCMIN(IS) = 1
-         IDCMAX(IS) = MDC
+         WINDOW%IDCMIN(IS) = 1
+         WINDOW%IDCMAX(IS) = MDC
          SECTOR(IS) = 1
       ELSE IF ( IDSUM .EQ. 0 ) THEN
 !         for this IS there are no active bins
          IF (SECTOR(IS).NE.0) WRITE (PRTEST, "(' error SWPSEL directions ', 6I6)") SWPDIR, IS,&
          &SECTOR(IS), IDSUM, IDCLOW, IDCHGH
 !         new values assigned because old ones cause problems in SWSNL2
-         IDCMIN(IS) = 9
-         IDCMAX(IS) = -9
+         WINDOW%IDCMIN(IS) = 9
+         WINDOW%IDCMAX(IS) = -9
          SECTOR(IS) = 0
       ELSE
          IF ( IDCLOW .GT. IDCHGH ) IDCLOW = IDCLOW - MDC
-         IDCMIN(IS) = IDCLOW
-         IDCMAX(IS) = IDCHGH
+         WINDOW%IDCMIN(IS) = IDCLOW
+         WINDOW%IDCMAX(IS) = IDCHGH
       END IF
 
 !       *** if 4 sectors are present then set counters ***
 
       IF ( SECTOR(IS) .GT. 2 ) THEN
-         IDCMIN(IS) = 1
-         IDCMAX(IS) = MDC
+         WINDOW%IDCMIN(IS) = 1
+         WINDOW%IDCMAX(IS) = MDC
       END IF
 
    end do
@@ -670,18 +664,18 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 !     *** calculate minimum and maximum counters in frequency ***
 !     *** space if a current is present: ISCMIN and ISCMAX    ***
 
-   IDDLOW =  9999
-   IDDTOP = -9999
+   WINDOW%IDDLOW =  9999
+   WINDOW%IDDTOP = -9999
    DO IS = 1 , MSC
       IF ( SECTOR(IS) .GT. 0 ) THEN
-         IDDLOW = MIN ( IDDLOW , IDCMIN(IS) )
-         IDDTOP = MAX ( IDDTOP , IDCMAX(IS) )
+         WINDOW%IDDLOW = MIN ( WINDOW%IDDLOW , WINDOW%IDCMIN(IS) )
+         WINDOW%IDDTOP = MAX ( WINDOW%IDDTOP , WINDOW%IDCMAX(IS) )
       END IF
    ENDDO
 
 !     *** Determine counters for a certain sweep ***
 
-   do IDDUM = IDDLOW, IDDTOP
+   do IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
       LOWEST = .TRUE.
       do IS = 1, MSC
@@ -697,18 +691,18 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 !       *** set the minimum and maximum counters in arrays ***
 
       IF (.NOT.LOWEST) THEN
-         ISCMIN(ID) = ISCLOW
-         ISCMAX(ID) = ISCHGH
-         IF (ISCMIN(ID).LT.ISSLOW) WRITE (PRINTF,*)&
-         &' error SWPSEL, ISSLOW=', ISSLOW, 'ISCMIN=', ISCMIN(ID),&
+         WINDOW%ISCMIN(ID) = ISCLOW
+         WINDOW%ISCMAX(ID) = ISCHGH
+         IF (WINDOW%ISCMIN(ID).LT.ISSLOW) WRITE (PRINTF,*)&
+         &' error SWPSEL, ISSLOW=', ISSLOW, 'ISCMIN=', WINDOW%ISCMIN(ID),&
          &' for ID=', ID
-         IF (ISCMAX(ID).GT.ISSTOP) WRITE (PRINTF,*)&
-         &' error SWPSEL, ISSTOP=', ISSTOP, 'ISCMAX=', ISCMAX(ID),&
+         IF (WINDOW%ISCMAX(ID).GT.WINDOW%ISSTOP) WRITE (PRINTF,*)&
+         &' error SWPSEL, ISSTOP=', WINDOW%ISSTOP, 'ISCMAX=', WINDOW%ISCMAX(ID),&
          &' for ID=', ID
       ELSE
 !         *** no frequencies fall within the sweep ***
-         ISCMIN(ID) = 0
-         ISCMAX(ID) = 0
+         WINDOW%ISCMIN(ID) = 0
+         WINDOW%ISCMAX(ID) = 0
       ENDIF
 
    end do
@@ -716,43 +710,43 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
 !     *** calculate the maximum number of counters in both ***
 !     *** directional space and frequency space            ***
 
-   IF (IDDLOW.NE.9999) THEN
-      IF (IDDTOP.EQ.-9999) WRITE (PRTEST, "(' error SWPSEL min max dir ', 5I7)") IDDLOW, IDDTOP
-      IDTOT = ( IDDTOP - IDDLOW ) + 1
+   IF (WINDOW%IDDLOW.NE.9999) THEN
+      IF (WINDOW%IDDTOP.EQ.-9999) WRITE (PRTEST, "(' error SWPSEL min max dir ', 5I7)") WINDOW%IDDLOW, WINDOW%IDDTOP
+      IDTOT = ( WINDOW%IDDTOP - WINDOW%IDDLOW ) + 1
       IF (ICUR .EQ. 1) THEN
          IF (IDTOT.LT.3) THEN
-            IDDTOP = IDDTOP + 1
-            IF (IDTOT.EQ.1) IDDLOW = IDDLOW - 1
+            WINDOW%IDDTOP = WINDOW%IDDTOP + 1
+            IF (IDTOT.EQ.1) WINDOW%IDDLOW = WINDOW%IDDLOW - 1
             IDTOT = 3
          ENDIF
       ENDIF
    ELSE
-      IF (IDDTOP.NE.-9999) WRITE (PRTEST, "(' error SWPSEL min max dir ', 5I7)") IDDLOW, IDDTOP
+      IF (WINDOW%IDDTOP.NE.-9999) WRITE (PRTEST, "(' error SWPSEL min max dir ', 5I7)") WINDOW%IDDLOW, WINDOW%IDDTOP
       IDTOT = 0
    ENDIF
 
    IF (ISSLOW.NE.9999) THEN
       IF (ITEST.GE.20) THEN
-         IF (ISSLOW.NE.1 .OR. ISSTOP.EQ.-9999)&
-         &WRITE (PRTEST, "(' error SWPSEL in:', 2I5,', min max freq ', 5I7)") ix1-1, iy1-1, ISSLOW, ISSTOP
+         IF (ISSLOW.NE.1 .OR. WINDOW%ISSTOP.EQ.-9999)&
+         &WRITE (PRTEST, "(' error SWPSEL in:', 2I5,', min max freq ', 5I7)") ix1-1, iy1-1, ISSLOW, WINDOW%ISSTOP
       ENDIF
       ISSLOW = 1
 !       minimal value of ISSTOP is 4 (or MSC if MSC<4)
-      IF (ICUR.GT.0) ISSTOP = MAX(MIN(4,MSC),ISSTOP)
-      ISTOT = ( ISSTOP - ISSLOW ) + 1
+      IF (ICUR.GT.0) WINDOW%ISSTOP = MAX(MIN(4,MSC),WINDOW%ISSTOP)
+      ISTOT = ( WINDOW%ISSTOP - ISSLOW ) + 1
    ELSE
-      IF (ISSTOP.NE.-9999) WRITE (PRTEST, "(' error SWPSEL in:', 2I5,', min max freq ', 5I7)") ix1-1,&
-      &iy1-1, ISSLOW, ISSTOP
+      IF (WINDOW%ISSTOP.NE.-9999) WRITE (PRTEST, "(' error SWPSEL in:', 2I5,', min max freq ', 5I7)") ix1-1,&
+      &iy1-1, ISSLOW, WINDOW%ISSTOP
       ISTOT = 0
       IF (IDTOT.NE.0) WRITE (PRTEST, "(' error SWPSEL in:', 2I5,' min max freq dir ', 5I7)") ix1-1,&
-      &iy1-1, ISSLOW, ISSTOP, IDDLOW, IDDTOP
+      &iy1-1, ISSLOW, WINDOW%ISSTOP, WINDOW%IDDLOW, WINDOW%IDDTOP
    ENDIF
 
 !     *** check if IDTOT is less then MDC ***
 
    IF ( IDTOT .GT. MDC ) THEN
-      IDDLOW = 1
-      IDDTOP = MDC
+      WINDOW%IDDLOW = 1
+      WINDOW%IDDTOP = MDC
       IDTOT  = MDC
    END IF
 
@@ -770,7 +764,7 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
       &'  U=', UX2(kc1), UY2(kc1)
       IF (ITEST.GE.10) THEN
          WRITE (PRINTF, "(A, 6I8,A,I1)") ' spectral limits:', ISTOT, ISSLOW,&
-         &ISSTOP, IDTOT, IDDLOW, IDDTOP, ' sweep=',SWPDIR
+         &WINDOW%ISSTOP, IDTOT, WINDOW%IDDLOW, WINDOW%IDDTOP, ' sweep=',SWPDIR
          IF (ITEST.GE.60) THEN
             IF (ix1.GT.1 .AND. ix1.LT.MXC .AND.&
             &iy1.GT.1 .AND. iy1.LT.MYC) THEN
@@ -802,39 +796,39 @@ SUBROUTINE SWPSEL(SWPDIR    ,           IDCMIN    ,&
    IF ( TESTFL .AND. ITEST .GE. 30 ) THEN
       IC = 1
       WRITE (PRTEST,"(' subr SWPSEL: Point SWPDIR ICUR :',3I5 )") kc1,SWPDIR,ICUR
-      WRITE (PRTEST,"(' IDDLOW IDDTOP ISSLOW ISSTOP:',4I4 )") IDDLOW, IDDTOP ,ISSLOW, ISSTOP
+      WRITE (PRTEST,"(' IDDLOW IDDTOP ISSLOW ISSTOP:',4I4 )") WINDOW%IDDLOW, WINDOW%IDDTOP ,ISSLOW, WINDOW%ISSTOP
       WRITE (PRTEST,"(' IDTOT ISTOT :',4I4 )") IDTOT , ISTOT
       IF (ITEST.GE.120) THEN
          WRITE(PRTEST,*) ' Counters in directional space '
          WRITE(PRTEST,*) '       IS     IDCMIN  IDCMAX  SECTOR'
-         DO IS = ISSLOW, ISSTOP
-            WRITE(PRTEST,"(2X,I5,3X,3I8)") IS, IDCMIN(IS), IDCMAX(IS) , SECTOR(IS)
+         DO IS = ISSLOW, WINDOW%ISSTOP
+            WRITE(PRTEST,"(2X,I5,3X,3I8)") IS, WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS) , SECTOR(IS)
          ENDDO
          WRITE(PRTEST,*) ' Counters in frequency space '
          WRITE(PRTEST,*) '       ID     ISCMIN  ISCMAX  THETA'
-         DO IDDUM = IDDTOP, IDDLOW, -1
+         DO IDDUM = WINDOW%IDDTOP, WINDOW%IDDLOW, -1
             ID = MOD ( IDDUM - 1 + MDC, MDC) + 1
             THDIR = SPCDIR(ID,1) * 180. / PI
-            WRITE(PRTEST,"(2X,I5,3X,2I8,3X,F8.2)") ID, ISCMIN(ID), ISCMAX(ID), THDIR
+            WRITE(PRTEST,"(2X,I5,3X,2I8,3X,F8.2)") ID, WINDOW%ISCMIN(ID), WINDOW%ISCMAX(ID), THDIR
          ENDDO
          WRITE(PRTEST,*)
       ENDIF
       IF (IDTOT.GT.0) THEN
          IF (ITEST.GE.90) THEN
-            WRITE(PRTEST,"(' Active bins in spectral space -> ID: ', I3,' to ',I3)") IDDLOW, IDDTOP
-            DO IDDUM = IDDTOP+1, IDDLOW-1, -1
+            WRITE(PRTEST,"(' Active bins in spectral space -> ID: ', I3,' to ',I3)") WINDOW%IDDLOW, WINDOW%IDDTOP
+            DO IDDUM = WINDOW%IDDTOP+1, WINDOW%IDDLOW-1, -1
                ID = MOD ( IDDUM - 1 + MDC, MDC) + 1
                WRITE(PRTEST,"(I4,25L3)")&
-               &ID, (ANYBIN(ID,IS),IS=ISSLOW, MIN(ISSTOP,25))
+               &ID, (ANYBIN(ID,IS),IS=ISSLOW, MIN(WINDOW%ISSTOP,25))
             ENDDO
-            WRITE(PRTEST,"(6X,'1',9X,5(I3,12X))")(IS, IS=ISSLOW+4, MIN(ISSTOP,25), 5 )
+            WRITE(PRTEST,"(6X,'1',9X,5(I3,12X))")(IS, IS=ISSLOW+4, MIN(WINDOW%ISSTOP,25), 5 )
             WRITE(PRTEST,*)
          ENDIF
       ELSE
          WRITE(PRTEST,"(' No active bins in sweep', I2)") SWPDIR
       ENDIF
       IF ( ICUR .EQ. 0 ) THEN
-         WRITE (PRTEST,"(' SWPSEL: IDDLOW IDDTOP :',5(1X,I3))") IDDLOW, IDDTOP
+         WRITE (PRTEST,"(' SWPSEL: IDDLOW IDDTOP :',5(1X,I3))") WINDOW%IDDLOW, WINDOW%IDDTOP
       END IF
    END IF
 
@@ -1131,8 +1125,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 &COSCOS     ,SINSIN     ,SINCOS     ,&
 &RDX        ,RDY        ,&
 &CAX        ,CAY        ,&
-&XCGRID     ,YCGRID     ,&
-&IDDLOW     ,IDDTOP     ,DIFFR&
+&XCGRID     ,YCGRID     ,WINDOW     ,DIFFR&
 &,st_kc5,st_ix1,st_iy1&
 &)
    USE swan_service_interfaces, ONLY: STRACE
@@ -1268,7 +1261,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 !     IDDLOW: minimum direction that is propagated within a sweep
 !     IDDTOP: maximum direction that is propagated within a sweep
 
-   INTEGER, INTENT(IN) :: IDDLOW, IDDTOP
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
 
 !     CAS   : Wave transport velocity in S-direction, function of (ID,IS,IC)
 !     CAD   : Wave transport velocity in D-dirctiion, function of (ID,IS,IC)
@@ -1589,7 +1582,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 
 !       loop over spectral directions
 
-      DO IDDUM = IDDLOW-1, IDDTOP+1 !            40.61 40.03
+      DO IDDUM = WINDOW%IDDLOW-1, WINDOW%IDDTOP+1 !            40.61 40.03
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
 !          *** computation of CAS and CAD ***
@@ -1696,7 +1689,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
             FAC2 = ALPHA * FRINTF * SPCSIG(IS)
          ENDIF
 
-         DO IDDUM = IDDLOW-1, IDDTOP+1
+         DO IDDUM = WINDOW%IDDLOW-1, WINDOW%IDDTOP+1
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
             FAC = FAC2 * ( ABS((RDX(1)+RDX(2))*CAX(ID,IS,1)) +&
@@ -1722,7 +1715,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
 
       DO IS = 1, MSC
 
-         DO IDDUM = IDDLOW-1, IDDTOP+1
+         DO IDDUM = WINDOW%IDDLOW-1, WINDOW%IDDTOP+1
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
             FAC = FAC2 * ( ABS((RDX(1)+RDX(2))*CAX(ID,IS,1)) +&
@@ -1744,16 +1737,16 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        ,&
       IF (DYNDEP .OR. ICUR.GT.0) THEN
          WRITE(PRINTF, *) ' IS ID1 ID2        values of CAS'
          DO IS = 1, MSC
-            ID1 = IDDLOW-1
-            ID2 = IDDTOP+1
+            ID1 = WINDOW%IDDLOW-1
+            ID2 = WINDOW%IDDTOP+1
             WRITE(PRINTF, "(3I4, 2X, 600E12.4)") IS, ID1, ID2,&
             &(CAS(MOD(IDDUM-1+MDC,MDC)+1, IS, 1), IDDUM=ID1,ID2)
          ENDDO
       ENDIF
       WRITE(PRINTF, *) ' IS ID1 ID2        values of CAD'
       DO IS = 1, MSC
-         ID1 = IDDLOW-1
-         ID2 = IDDTOP+1
+         ID1 = WINDOW%IDDLOW-1
+         ID2 = WINDOW%IDDTOP+1
          WRITE(PRINTF,"(3I4, 2X, 600E12.4)") IS, ID1, ID2,&
          &(CAD(MOD(IDDUM-1+MDC,MDC)+1, IS, 1), IDDUM=ID1,ID2)
       ENDDO
@@ -1940,7 +1933,7 @@ end subroutine DSPHER
 
 !****************************************************************
 
-SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
+SUBROUTINE STRSXY (         WINDOW  ,CAX     ,&
 &CAY     ,AC2     ,AC1     ,IMATRA  ,IMATDA  ,&
 &RDX     ,RDY     ,&
 &OBREDF  ,TRAC0   ,TRAC1   ,st_kc   ,st_cos)
@@ -2105,7 +2098,8 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !            Store the terms in arrays IMATRA and IMATDA
 !   ------------------------------------------------------------
 
-   INTEGER  IC, IND2, IND3, IS, ID, IDDUM, ISSTOP
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
+   INTEGER  IC, IND2, IND3, IS, ID, IDDUM
 
    REAL     ACOLD, FXY1, FXY2, TCF1, TCF2
 
@@ -2119,9 +2113,6 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
    REAL  :: TRAC0(MDC,MSC,MTRNP)
    REAL  :: TRAC1(MDC,MSC,MTRNP)
 
-   INTEGER  IDCMIN(MSC)                ,&
-   &IDCMAX(MSC)
-
    INTEGER, SAVE :: IENT = 0
    IF (LTRACE) CALL STRACE (IENT,'STRSXY')
 
@@ -2129,8 +2120,8 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
       WRITE(PRINTF,*) ' Initial matrix coefficients at STRSXY : '
       WRITE(PRINTF,*)&
       &'IS ID IDDUM     IMATDA    IMATRA'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
             WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID,&
             &IMATDA(ID,IS), IMATRA(ID,IS)
@@ -2138,14 +2129,14 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
       ENDDO
    END IF
 
-   do IS = 1, ISSTOP
+   do IS = 1, WINDOW%ISSTOP
 !       test output     ver 30.50
 
       IND2 = st_kc(2)
       IND3 = st_kc(3)
 
 
-      do IDDUM = IDCMIN(IS), IDCMAX(IS)
+      do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 !         test output     ver 30.50
 
@@ -2237,8 +2228,8 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
       WRITE(PRINTF,*) '  matrix coefficients at STRSXY : '
       WRITE(PRINTF,*)&
       &'IS ID IDDUM     IMATDA    IMATRA'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
             WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID,&
             &IMATDA(ID,IS), IMATRA(ID,IS)
@@ -2250,7 +2241,7 @@ SUBROUTINE STRSXY (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 end subroutine STRSXY
 !****************************************************************
 
-SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
+SUBROUTINE SORDUP (         WINDOW  ,CAX     ,&
 &CAY     ,AC2     ,IMATRA  ,IMATDA  ,&
 &RDX     ,RDY     ,TRAC0   ,TRAC1   ,st_kc   ,st_cos)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
@@ -2420,7 +2411,8 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 !            Store the terms in arrays IMATRA and IMATDA
 !   ------------------------------------------------------------
 
-   INTEGER  IS,ID,IDDUM,ISSTOP&
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
+   INTEGER  IS,ID,IDDUM&
    &,IND2,IND3,IND6,IND7
 
    REAL  :: FXY1 ,FXY2
@@ -2435,7 +2427,7 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
    REAL  :: TRAC1(MDC,MSC,MTRNP)
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER  IDCMIN(MSC), IDCMAX(MSC), IXY
+   INTEGER  IXY
    LOGICAL  XNUM
 
    IF (LTRACE) CALL STRACE (IENT,'SORDUP')
@@ -2447,8 +2439,8 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
       WRITE(PRINTF,*) ' Initial matrix coefficients at SORDUP : '
       WRITE(PRINTF,*)&
       &'IS ID IDDUM     IMATDA    IMATRA'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
             WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID,&
             &IMATDA(ID,IS), IMATRA(ID,IS)
@@ -2456,12 +2448,12 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
       ENDDO
    END IF
 
-   do IS = 1, ISSTOP
+   do IS = 1, WINDOW%ISSTOP
       IND2 = st_kc(2)
       IND3 = st_kc(3)
       IND6 = st_kc(6)
       IND7 = st_kc(7)
-      do IDDUM = IDCMIN(IS), IDCMAX(IS)
+      do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 !         find Courant number values: XMU, YMU
 !         depending on relative size of XMU and YMU, XNUM is true or
@@ -2570,8 +2562,8 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
       WRITE(PRINTF,*) '  matrix coefficients at SORDUP : '
       WRITE(PRINTF,*)&
       &'IS ID IDDUM     IMATDA    IMATRA'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
             WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID,&
             &IMATDA(ID,IS), IMATRA(ID,IS)
@@ -2583,7 +2575,7 @@ SUBROUTINE SORDUP (         ISSTOP  ,IDCMIN  ,IDCMAX  ,CAX     ,&
 end subroutine SORDUP
 !****************************************************************
 
-SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
+SUBROUTINE SANDL ( WINDOW  ,CGO     ,CAX     ,&
 &CAY     ,AC2     ,AC1     ,IMATRA  ,IMATDA  ,&
 &RDX     ,RDY     ,CAX1    ,CAY1    ,SPCDIR  ,&
 &TRAC0   ,TRAC1   ,st_kc   ,st_cos)
@@ -2821,7 +2813,8 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
 !            Store the terms in arrays IMATRA and IMATDA
 !   ------------------------------------------------------------
 
-   INTEGER  IS      ,ID      ,IDDUM   ,ISSTOP  ,IC    ,&
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
+   INTEGER  IS      ,ID      ,IDDUM   ,IC    ,&
    &IND1,IND2,IND3,IND4,IND5,IND6,IND7,IND8,IND9,IND10,&
    &IND11,IND12,IND13
 
@@ -2842,8 +2835,6 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
    REAL  :: MYU,DX1DUM,DY1DUM,DX2DUM,DY2DUM,DXMYU,DYMYU
    LOGICAL, SAVE :: NOWARN = .FALSE.
 
-   INTEGER :: IDCMIN(MSC), IDCMAX(MSC)
-
    INTEGER, SAVE :: IENT=0
    IF (LTRACE) CALL STRACE (IENT,'SANDL')
 
@@ -2851,8 +2842,8 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
       WRITE(PRINTF,*) ' Initial matrix coefficients at SANDL : '
       WRITE(PRINTF,*)&
       &'IS ID IDDUM     IMATDA    IMATRA'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
             WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID,&
             &IMATDA(ID,IS), IMATRA(ID,IS)
@@ -2937,9 +2928,9 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
       NOWARN=.TRUE.
    END IF
 
-   do IS = 1, ISSTOP
+   do IS = 1, WINDOW%ISSTOP
 
-      do IDDUM = IDCMIN(IS), IDCMAX(IS)
+      do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
          IF (WAVAGE.GT.0.) THEN
@@ -2949,7 +2940,7 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
             IF (IS.EQ.1) THEN
                DCG = ABS(CGO(IS+1,IC)-CGO(IS,IC))
 
-            ELSE IF (IS.EQ.ISSTOP) THEN
+            ELSE IF (IS.EQ.WINDOW%ISSTOP) THEN
                DCG = ABS(CGO(IS,IC)-CGO(IS-1,IC))
 
             ELSE
@@ -3077,8 +3068,8 @@ SUBROUTINE SANDL ( ISSTOP  ,IDCMIN  ,IDCMAX  ,CGO     ,CAX     ,&
       WRITE(PRINTF,*) '  matrix coefficients at SANDL : '
       WRITE(PRINTF,*)&
       &'IS ID IDDUM     IMATDA    IMATRA'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
             WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID,&
             &IMATDA(ID,IS), IMATRA(ID,IS)
@@ -3093,8 +3084,8 @@ end subroutine SANDL
 
 SUBROUTINE STRSSI(SPCSIG  ,&
 &CAS     ,IMAT5L  ,IMATDA  ,IMAT6U  ,ANYBIN  ,&
-&IMATRA  ,AC2     ,ISCMIN  ,ISCMAX  ,IDDLOW  ,&
-&IDDTOP  ,TRAC0   ,TRAC1   ,st_kc1  ,st_n    )
+&IMATRA  ,AC2     ,WINDOW  ,&
+&TRAC0   ,TRAC1   ,st_kc1  ,st_n    )
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -3254,8 +3245,9 @@ SUBROUTINE STRSSI(SPCSIG  ,&
 !
 !****************************************************************
 
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
    INTEGER, SAVE :: IENT = 0
-   INTEGER  IS      ,ID      ,IDDLOW  ,IDDTOP  ,IDDUM
+   INTEGER  IS      ,ID      ,IDDUM
 
    REAL     DS      ,PNH     ,PN1     ,PN2     ,C1      ,C2      ,&
    &C3      ,A1      ,A3      ,PCD1    ,PCD2    ,PCD3, RHS12   ,&
@@ -3273,17 +3265,14 @@ SUBROUTINE STRSSI(SPCSIG  ,&
    REAL  :: TRAC0(MDC,MSC,MTRNP)
    REAL  :: TRAC1(MDC,MSC,MTRNP)
 
-   INTEGER  ISCMIN(MDC)                ,&
-   &ISCMAX(MDC)
-
    LOGICAL  ANYBIN(MDC,MSC)
 
    IF (LTRACE) CALL STRACE (IENT,'STRSSI')
 
-   direction_loop: do IDDUM = IDDLOW, IDDTOP
+   direction_loop: do IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-      IF (ISCMIN(ID).EQ.0) CYCLE direction_loop
-      do IS = ISCMIN(ID), ISCMAX(ID)
+      IF (WINDOW%ISCMIN(ID).EQ.0) CYCLE direction_loop
+      do IS = WINDOW%ISCMIN(ID), WINDOW%ISCMAX(ID)
          A1 = 0.
          A3 = 0.
          C2 = CAS(ID,IS,1)
@@ -3386,17 +3375,17 @@ SUBROUTINE STRSSI(SPCSIG  ,&
 !     *** test output ***
 
    IF ( TESTFL .AND. ITEST .GE. 35 ) THEN
-      WRITE(PRINTF,"(' STRSSI: POINT IDDLOW IDDTOP :',3I5)") st_kc1, IDDLOW, IDDTOP
+      WRITE(PRINTF,"(' STRSSI: POINT IDDLOW IDDTOP :',3I5)") st_kc1, WINDOW%IDDLOW, WINDOW%IDDTOP
       WRITE(PRINTF,"(' STRSSI: CSS :',2E12.4)") PNUMS(PNUMS_CSS)
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) ' matrix coefficients in STRSSI'
       WRITE(PRINTF,*)
       WRITE(PRINTF,*)&
       &'   IS   ID    IMAT5L       IMATDA       IMAT6U    IMATRA    CAS'
-      DO IDDUM = IDDLOW, IDDTOP
+      DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-         IF (ISCMIN(ID).GT.0) THEN
-            DO IS = ISCMIN(ID), ISCMAX(ID)
+         IF (WINDOW%ISCMIN(ID).GT.0) THEN
+            DO IS = WINDOW%ISCMIN(ID), WINDOW%ISCMAX(ID)
                WRITE(PRINTF,"(1X,2I4,4X,4E12.4,E10.2)") IS, ID, IMAT5L(ID,IS),IMATDA(ID,IS),&
                &IMAT6U(ID,IS),IMATRA(ID,IS),CAS(ID,IS,1)
             ENDDO
@@ -3410,8 +3399,7 @@ end subroutine STRSSI
 
 !****************************************************************
 
-SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
-&IDCMIN  ,IDCMAX  ,ISSTOP  ,CAX     ,CAY     ,&
+SUBROUTINE STRSSB (WINDOW  ,CAX     ,CAY     ,&
 &CAS     ,AC2     ,SPCSIG  ,IMATRA  ,&
 &ANYBLK  ,RDX     ,RDY     ,TRAC0   ,st_kc1  ,st_n)
    USE swan_service_interfaces, ONLY: STRACE
@@ -3640,9 +3628,9 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 !
 !************************************************************************
 
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
    INTEGER, SAVE :: IENT = 0
-   INTEGER  IS      ,ID      ,ISSTOP  ,&
-   &IDDLOW  ,IDDTOP  ,IDDUM
+   INTEGER  IS      ,ID      ,IDDUM
 
    REAL     FSA     ,FLEFT   ,FRGHT   ,DS      ,CFLMAX  ,CFLCEN  ,&
    &CAXCEN  ,CAYCEN  ,CASCEN  ,TX      ,TY      ,TS      ,&
@@ -3659,9 +3647,6 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 !  STRSSB only reads RDX(1:2). The module's explicit interface rejected the old
 !  RDX(MICMAX) declaration against that shorter actual argument.
    REAL  :: TRAC0(MDC,MSC,MTRNP)
-
-   INTEGER  IDCMIN(MSC)              ,&
-   &IDCMAX(MSC)
 
    LOGICAL  ANYBLK(MDC,MSC)
 
@@ -3681,7 +3666,7 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
    ENDDO
    CFLMAX = PNUMS(PNUMS_CFLFR)
 
-   DO IS = 1, ISSTOP
+   DO IS = 1, WINDOW%ISSTOP
       IF ( IS .EQ. 1 ) THEN
          DS = SPCSIG(IS+1) - SPCSIG(IS)
       ELSE IF ( IS .EQ. MSC ) THEN
@@ -3689,7 +3674,7 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
       ELSE
          DS = 0.5 * ( SPCSIG(IS+1) - SPCSIG(IS-1) )
       END IF
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
          CAXCEN = ABS ( CAX(ID,IS,1) )
          CAYCEN = ABS ( CAY(ID,IS,1) )
@@ -3783,18 +3768,18 @@ SUBROUTINE STRSSB (IDDLOW  ,IDDTOP  ,&
 
    IF ( ITEST .GE. 50 .AND. TESTFL ) THEN
       WRITE(PRINTF,"(' BLOCKB : MDC MSC MCGRD : ',3I5)") MDC,MSC,MCGRD
-      WRITE(PRINTF,"(' BLOCKB : POINT ISSTOP CFLMAX: ',2I5,F8.4)") st_kc1, ISSTOP, CFLMAX
-      WRITE(PRINTF,"(' Active bins within a sweep -> ID: ',I3,' to ',I3)") IDDLOW, IDDTOP
+      WRITE(PRINTF,"(' BLOCKB : POINT ISSTOP CFLMAX: ',2I5,F8.4)") st_kc1, WINDOW%ISSTOP, CFLMAX
+      WRITE(PRINTF,"(' Active bins within a sweep -> ID: ',I3,' to ',I3)") WINDOW%IDDLOW, WINDOW%IDDTOP
       WRITE(PRINTF,*)
       WRITE(PRINTF,*)(' Propagation of bin if blocking can occur')
       WRITE(PRINTF,*)('   1) No blocking of bin -> ANYBLK = .F.')
       WRITE(PRINTF,*)('   2) Blocking of bin    -> ANYBLK = .T.')
       WRITE(PRINTF,*)
-      DO IDDUM = IDDTOP+1, IDDLOW-1, -1
+      DO IDDUM = WINDOW%IDDTOP+1, WINDOW%IDDLOW-1, -1
          ID = MOD ( IDDUM - 1 + MDC, MDC) + 1
-         WRITE(PRINTF,"(I4,25L3)") ID, (ANYBLK(ID,IS),IS=1,MIN(ISSTOP,25))
+         WRITE(PRINTF,"(I4,25L3)") ID, (ANYBLK(ID,IS),IS=1,MIN(WINDOW%ISSTOP,25))
       ENDDO
-      WRITE(PRINTF,"(6X,'1',9X,5(I3,12X))")(IS, IS=1+4, MIN(ISSTOP,25), 5 )
+      WRITE(PRINTF,"(6X,'1',9X,5(I3,12X))")(IS, IS=1+4, MIN(WINDOW%ISSTOP,25), 5 )
       WRITE(PRINTF,*)
 
    ENDIF
@@ -3805,9 +3790,9 @@ end subroutine STRSSB
 
 !****************************************************************
 
-SUBROUTINE STRSD (DD      ,IDCMIN  ,&
-&IDCMAX  ,CAD     ,IMATLA  ,IMATDA  ,IMATUA  ,&
-&IMATRA  ,AC2     ,ISSTOP  ,&
+SUBROUTINE STRSD (DD      ,WINDOW  ,&
+&CAD     ,IMATLA  ,IMATDA  ,IMATUA  ,&
+&IMATRA  ,AC2     ,&
 &ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1   ,st_kc1  ,st_n)
    USE swan_service_interfaces, ONLY: STRACE
 
@@ -3958,9 +3943,9 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
 
    LOGICAL  BIN1, BIN2, BIN3
 
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
    INTEGER, SAVE :: IENT = 0
-   INTEGER  IS    ,ID    ,IIDM  ,IIDP  ,&
-   &ISSTOP,IDDUM
+   INTEGER  IS    ,ID    ,IIDM  ,IIDP  ,IDDUM
 
    REAL     DD, PNH, PN1, PN2, A1, A3, C1, C2, C3
    REAL     DIAG12, DIAG23, PCD1, PCD2, PCD3, RHS12, RHS23
@@ -3975,9 +3960,6 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
    REAL  :: TRAC0(MDC,MSC,MTRNP)
    REAL  :: TRAC1(MDC,MSC,MTRNP)
 
-   INTEGER  IDCMIN(MSC)                ,&
-   &IDCMAX(MSC)
-
    LOGICAL  ANYBIN(MDC,MSC)
 
    IF (LTRACE) CALL STRACE (IENT,'STRSD')
@@ -3986,8 +3968,8 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
    PN1 =  (1. - PNUMS(PNUMS_CDD) ) * PNH
    PN2 =  (1. + PNUMS(PNUMS_CDD) ) * PNH
 
-   do IS = 1, ISSTOP
-      do IDDUM = IDCMIN(IS), IDCMAX(IS)
+   do IS = 1, WINDOW%ISSTOP
+      do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD (IDDUM-1+MDC, MDC) + 1
          C2 = CAD(ID,IS,1)
          BIN2 = ANYBIN(ID,IS)
@@ -4080,7 +4062,7 @@ SUBROUTINE STRSD (DD      ,IDCMIN  ,&
 
    IF ( ITEST .GE. 80 .AND. TESTFL ) THEN
       WRITE(PRINTF,"(' FULL CIRCLE ',L4)") FULCIR
-      WRITE(PRINTF,"(' STRSD :POINT ISTOP CDD :',2I5,E12.4)") st_kc1, ISSTOP, PNUMS(PNUMS_CDD)
+      WRITE(PRINTF,"(' STRSD :POINT ISTOP CDD :',2I5,E12.4)") st_kc1, WINDOW%ISSTOP, PNUMS(PNUMS_CDD)
       WRITE(PRINTF,"(' STRSD : PN1 PN2 PNH DD :',4E12.4)") PN1, PN2, PNH ,DD
    END IF
 
@@ -4091,8 +4073,8 @@ end subroutine STRSD
 !****************************************************************
 
 SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
-&CAY        ,IDCMIN     ,IDCMAX    ,&
-&ISSTOP     ,ANYBIN     ,&
+&CAY        ,WINDOW     ,&
+&ANYBIN     ,&
 &XCGRID     ,YCGRID     ,&
 &RDX        ,RDY        ,OBREDF    ,IGP&
 &,st_ix1,st_iy1,st_ix2,st_iy2,st_ix3,st_iy3,st_kc2,st_kc3)
@@ -4279,8 +4261,9 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 !
 !************************************************************************
 
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
    INTEGER  IS    ,ID    ,&
-   &SWPDIR,IDDUM ,ISSTOP
+   &SWPDIR,IDDUM
 
    REAL     FAC_A ,FAC_B, WEIG1, WEIG2, TCF1, TCF2, CDEN, CNUM
 
@@ -4296,9 +4279,6 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
    REAL  :: RDX(*),  RDY(*),&
    &OBREDF(MDC,MSC,2)
    REAL, OPTIONAL  :: XCGRID(MXC,MYC), YCGRID(MXC,MYC)
-
-   INTEGER  IDCMIN(MSC)              ,&
-   &IDCMAX(MSC)
 
    LOGICAL  ANYBIN(MDC,MSC)
 
@@ -4374,8 +4354,8 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
       ENDDO
 
    ELSE
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
             IF ( ANYBIN(ID,IS) ) THEN
 
@@ -4407,8 +4387,8 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       ,&
 
    IF ( ITEST .GE. 140 .AND. TESTFL ) THEN
       WRITE(PRINTF,"(' PREDT : POINT INDX SWPDIR :',2I5)") IGP, SWPDIR
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS)-1, IDCMAX(IS)+1
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS)-1, WINDOW%IDCMAX(IS)+1
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
             WRITE (PRINTF,"(' : IS ID AC2 AC2(2) AC2(3) ANYBIN :', 2I5,3(E12.4),L4)") IS, ID, AC2(ID,IS,IGP),&
             &AC2(ID,IS,st_kc2),&
@@ -5048,8 +5028,8 @@ end subroutine ADDDIS
 !****************************************************************
 
 SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
-&AC2   , DD    , ANYBIN, LEAKC1, IDCMIN,&
-&IDCMAX, ISSTOP, st_kc1, st_n)
+&AC2   , DD    , ANYBIN, LEAKC1, WINDOW,&
+&st_kc1, st_n)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -5129,8 +5109,7 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
 !     ISSTOP      maximum frequency counter in a sweep
 !     LEAKC1      leak coefficient
 
-   INTEGER ISSTOP
-   INTEGER IDCMIN(MSC), IDCMAX(MSC)
+   TYPE(spectral_window_t), INTENT(IN) :: WINDOW
    REAL    DD
    REAL    AC2(MDC,MSC,MCGRD),&
    &CAD(MDC,MSC,st_n),&
@@ -5203,14 +5182,14 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
    DDI  = 1./DD
    XKAP = PNUMS(PNUMS_CDD)
 
-   do IS = 1, ISSTOP
+   do IS = 1, WINDOW%ISSTOP
 
-      do IDDUM = IDCMIN(IS), IDCMAX(IS)
+      do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD (IDDUM-1+MDC, MDC) + 1
 
          IF ( ANYBIN(ID,IS) ) THEN
 
-            IF ( IDDUM.EQ.IDCMIN(IS) ) THEN
+            IF ( IDDUM.EQ.WINDOW%IDCMIN(IS) ) THEN
 
                IF ( FULCIR .OR. ID.GT.1 ) THEN
                   IDM  = MOD (IDDUM-2+MDC, MDC) + 1
@@ -5336,15 +5315,15 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA,&
 !     --- test output
 
    IF ( TESTFL .AND. ITEST.GE.80 ) THEN
-      WRITE(PRINTF,"(' SWFLXD: POINT ISSTOP :',2I5)") st_kc1, ISSTOP
+      WRITE(PRINTF,"(' SWFLXD: POINT ISSTOP :',2I5)") st_kc1, WINDOW%ISSTOP
       WRITE(PRINTF,"(' SWFLXD: CDD :',E12.4)") PNUMS(PNUMS_CDD)
       WRITE(PRINTF,*)
       WRITE(PRINTF,*) ' matrix coefficients in SWFLXD'
       WRITE(PRINTF,*)
       WRITE(PRINTF,*)&
       &'   IS ID      IMATLA      IMATDA      IMATUA      IMATRA     CAD'
-      DO IS = 1, ISSTOP
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IS = 1, WINDOW%ISSTOP
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD (IDDUM-1+MDC, MDC) + 1
             WRITE(PRINTF,"(1X,2I4,4X,4E12.4,E10.2)") IS, ID, IMATLA(ID,IS),IMATDA(ID,IS),&
             &IMATUA(ID,IS),IMATRA(ID,IS),CAD(ID,IS,1)

@@ -500,7 +500,7 @@ end subroutine FAC4WW
 
 !******************************************************************
 
-SUBROUTINE RANGE4 (WWINT, IDDLOW, IDDTOP, IXCG, IYCG)
+SUBROUTINE RANGE4 (WWINT, WINDOW, IXCG, IYCG)
    USE swan_service_interfaces, ONLY: STRACE
 
 !******************************************************************
@@ -632,8 +632,10 @@ SUBROUTINE RANGE4 (WWINT, IDDLOW, IDDTOP, IXCG, IYCG)
 !
 !****************************************************************
 
+   TYPE(spectral_window_t) :: WINDOW
+
    INTEGER, SAVE :: IENT = 0
-   INTEGER, INTENT(IN) :: IDDLOW, IDDTOP, IXCG, IYCG
+   INTEGER, INTENT(IN) :: IXCG, IYCG
 
    INTEGER     WWINT(*)
 
@@ -643,8 +645,8 @@ SUBROUTINE RANGE4 (WWINT, IDDLOW, IDDTOP, IXCG, IYCG)
 
    IF ( IQUAD .LT. 3 .AND. IQUAD .GT. 0 ) THEN
 !       *** counters based on bins which fall within a sweep ***
-      WWINT(13) = IDDLOW - MAX( WWINT(4), WWINT(2) )
-      WWINT(14) = IDDTOP + MAX( WWINT(4), WWINT(2) )
+      WWINT(13) = WINDOW%IDDLOW - MAX( WWINT(4), WWINT(2) )
+      WWINT(14) = WINDOW%IDDTOP + MAX( WWINT(4), WWINT(2) )
    ELSE
 !       *** counters initially based on full circle ***
       WWINT(13) = 1   - MAX( WWINT(4), WWINT(2) )
@@ -658,7 +660,7 @@ SUBROUTINE RANGE4 (WWINT, IDDLOW, IDDTOP, IXCG, IYCG)
       WRITE (PRINTF,"( ' ** Error : array bounds and maxima in subr RANGE4, ', ' point ', 2I5, /,' ISL,ISH : ',2I4, ' IDL,IDH : ',2I4, /,' SMI,SMA : ',2I4, ' DMI,DMA : ',2I4)") IXCG, IYCG,&
       &WWINT(9) ,WWINT(10) ,WWINT(13) ,WWINT(14),&
       &WWINT(15),WWINT(16) ,WWINT(17) ,WWINT(18)
-      IF (ITEST.GE.50) WRITE (PRTEST, "(' MSC, MDC, IDDLOW, IDDTOP: ', 4I5)") MSC, MDC, IDDLOW, IDDTOP
+      IF (ITEST.GE.50) WRITE (PRTEST, "(' MSC, MDC, IDDLOW, IDDTOP: ', 4I5)") MSC, MDC, WINDOW%IDDLOW, WINDOW%IDDTOP
    ENDIF
 
 !     test output
@@ -898,15 +900,9 @@ end subroutine SWPRE4W
 
 !********************************************************************
 
-SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
-&IDCMIN  ,IDCMAX  ,UE      ,SA1     ,&
-&SA2     ,DA1C    ,DA1P    ,DA1M    ,DA2C    ,&
-&DA2P    ,DA2M    ,SPCSIG  ,SNLC1   ,KMESPC  ,&
-&FACHFR  ,ISSTOP  ,DAL1    ,DAL2    ,DAL3    ,&
-&SFNL    ,DSNL    ,DEP2    ,AC2     ,IMATDA  ,&
-&IMATRA  ,PLNL4S  ,PLNL4D  ,&
-&IDDLOW  ,IDDTOP  ,REDC0   ,REDC1, AF11 ,IGP)
+SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, SPCSIG, KMESPC, FACHFR, DEP2, AC2, IMATDA, IMATRA, PLNL4S, PLNL4D, REDC0, REDC1, AF11, IGP)
    USE swan_service_interfaces, ONLY: STRACE
+   USE swan_source_workspaces, ONLY: dia_workspace_t
 
 !********************************************************************
 
@@ -917,8 +913,11 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
+
+   TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
+   TYPE(dia_workspace_t), INTENT(INOUT) :: DIA_WORKSPACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1091,43 +1090,23 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 !*************************************************************
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER   IS, ID, ID0, I, J, IDDUM, IIID, ISLOW, ISSTOP, &
-   &ISHGH  ,IDLOW  ,ISP    ,ISP1   ,IDP    ,IDP1   ,&
-   &ISM    ,ISM1   ,IDHGH  ,IDM    ,IDM1   ,ISCLW  ,&
-   &ISCHG  ,IDDLOW ,IDDTOP, IDCLOW, IDCHGH
+   INTEGER :: IS, ID, ID0, I, J, IDDUM, IIID, ISLOW, ISHGH, IDLOW, ISP, ISP1, IDP, IDP1, ISM, ISM1, IDHGH, IDM, IDM1, ISCLW, ISCHG, IDCLOW, IDCHGH
 
    REAL      X      ,X2     ,CONS   ,FACTOR ,SNLCS1 ,SNLCS2 ,SNLCS3,&
    &E00    ,EP1    ,EM1    ,EP2    ,EM2    ,SA1A   ,SA1B  ,&
    &SA2A   ,SA2B   ,KMESPC ,FACHFR ,AWG1   ,AWG2   ,AWG3  ,&
-   &AWG4   ,AWG5   ,AWG6   ,AWG7   ,AWG8   ,DAL1   ,DAL2  ,&
-   &DAL3   ,SNLC1  ,SWG1   ,SWG2   ,SWG3   ,SWG4   ,SWG5  ,&
-   &SWG6   ,SWG7   ,SWG8, JACOBI, SIGPI, PI3
+   &AWG4   ,AWG5   ,AWG6   ,AWG7   ,AWG8   ,SWG1   ,SWG2  ,&
+   &SWG3   ,SWG4   ,SWG5   ,SWG6   ,SWG7   ,SWG8, JACOBI, SIGPI, PI3
 
    REAL      AC2(MDC,MSC,MCGRD)                    ,&
    &DEP2(MCGRD)                           ,&
-   &UE(MSC4MI:MSC4MA , MDC4MI:MDC4MA )    ,&
-   &SA1(MSC4MI:MSC4MA , MDC4MI:MDC4MA )   ,&
-   &SA2(MSC4MI:MSC4MA , MDC4MI:MDC4MA )   ,&
-   &DA1C(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-   &DA1P(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-   &DA1M(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-   &DA2C(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-   &DA2P(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-   &DA2M(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-   &SFNL(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-   &DSNL(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
    &IMATDA(MDC,MSC)                       ,&
    &IMATRA(MDC,MSC)                       ,&
    &PLNL4S(MDC,MSC,NPTST)                 ,&
-   &PLNL4D(MDC,MSC,NPTST)                 ,&
-   &WWAWG(*)                              ,&
-   &WWSWG(*)
+   &PLNL4D(MDC,MSC,NPTST)
    REAL :: REDC0 (MDC,MSC,MREDS)
    REAL :: REDC1 (MDC,MSC,MREDS)
 
-   INTEGER   IDCMIN(MSC)        ,&
-   &IDCMAX(MSC)        ,&
-   &WWINT(*)
 
    LOGICAL   PERCIR
 
@@ -1139,56 +1118,56 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 !     only tests this single flag
    LTSTFL = ITEST.GE.100 .AND. TESTFL
 
-   IDP    = WWINT(1)
-   IDP1   = WWINT(2)
-   IDM    = WWINT(3)
-   IDM1   = WWINT(4)
-   ISP    = WWINT(5)
-   ISP1   = WWINT(6)
-   ISM    = WWINT(7)
-   ISM1   = WWINT(8)
-   ISLOW  = WWINT(9)
-   ISHGH  = WWINT(10)
-   ISCLW  = WWINT(11)
-   ISCHG  = WWINT(12)
-   IDLOW  = WWINT(13)
-   IDHGH  = WWINT(14)
+   IDP    = DIA_WORKSPACE%WWINT(1)
+   IDP1   = DIA_WORKSPACE%WWINT(2)
+   IDM    = DIA_WORKSPACE%WWINT(3)
+   IDM1   = DIA_WORKSPACE%WWINT(4)
+   ISP    = DIA_WORKSPACE%WWINT(5)
+   ISP1   = DIA_WORKSPACE%WWINT(6)
+   ISM    = DIA_WORKSPACE%WWINT(7)
+   ISM1   = DIA_WORKSPACE%WWINT(8)
+   ISLOW  = DIA_WORKSPACE%WWINT(9)
+   ISHGH  = DIA_WORKSPACE%WWINT(10)
+   ISCLW  = DIA_WORKSPACE%WWINT(11)
+   ISCHG  = DIA_WORKSPACE%WWINT(12)
+   IDLOW  = DIA_WORKSPACE%WWINT(13)
+   IDHGH  = DIA_WORKSPACE%WWINT(14)
 
-   AWG1 = WWAWG(1)
-   AWG2 = WWAWG(2)
-   AWG3 = WWAWG(3)
-   AWG4 = WWAWG(4)
-   AWG5 = WWAWG(5)
-   AWG6 = WWAWG(6)
-   AWG7 = WWAWG(7)
-   AWG8 = WWAWG(8)
+   AWG1 = DIA_WORKSPACE%WWAWG(1)
+   AWG2 = DIA_WORKSPACE%WWAWG(2)
+   AWG3 = DIA_WORKSPACE%WWAWG(3)
+   AWG4 = DIA_WORKSPACE%WWAWG(4)
+   AWG5 = DIA_WORKSPACE%WWAWG(5)
+   AWG6 = DIA_WORKSPACE%WWAWG(6)
+   AWG7 = DIA_WORKSPACE%WWAWG(7)
+   AWG8 = DIA_WORKSPACE%WWAWG(8)
 
-   SWG1 = WWSWG(1)
-   SWG2 = WWSWG(2)
-   SWG3 = WWSWG(3)
-   SWG4 = WWSWG(4)
-   SWG5 = WWSWG(5)
-   SWG6 = WWSWG(6)
-   SWG7 = WWSWG(7)
-   SWG8 = WWSWG(8)
+   SWG1 = DIA_WORKSPACE%WWSWG(1)
+   SWG2 = DIA_WORKSPACE%WWSWG(2)
+   SWG3 = DIA_WORKSPACE%WWSWG(3)
+   SWG4 = DIA_WORKSPACE%WWSWG(4)
+   SWG5 = DIA_WORKSPACE%WWSWG(5)
+   SWG6 = DIA_WORKSPACE%WWSWG(6)
+   SWG7 = DIA_WORKSPACE%WWSWG(7)
+   SWG8 = DIA_WORKSPACE%WWSWG(8)
 
 !     *** Calculate factor R(X) to calculate the NL wave-wave ***
 !     *** interaction for shallow water                       ***
-!     *** SNLC1 = 1/GRAV**4                                   ***
+!     *** DIA_WORKSPACE%SNLC1 = 1/GRAV**4                                   ***
 
    SNLCS1 = PQUAD(3)
    SNLCS2 = PQUAD(4)
    SNLCS3 = PQUAD(5)
    X      = MAX ( 0.75 * DEP2(IGP) * KMESPC , 0.5 )
    X2     = MAX ( -1.E15, SNLCS3*X)
-   CONS   = SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
+   CONS   = DIA_WORKSPACE%SNLC1 * ( 1. + SNLCS1/X * (1.-SNLCS2*X) * EXP(X2))
    JACOBI = 2. * PI
 
 !     *** check whether the spectral domain is periodic in ***
 !     *** directional space and if so, modify boundaries   ***
 
    PERCIR = .FALSE.
-   IF ( IDDLOW .EQ. 1 .AND. IDDTOP .EQ. MDC ) THEN
+   IF ( WINDOW%IDDLOW .EQ. 1 .AND. WINDOW%IDDTOP .EQ. MDC ) THEN
 !       *** periodic in theta -> spectrum can be folded    ***
 !       *** (can only be present in presence of a current) ***
       IDCLOW = 1
@@ -1203,34 +1182,34 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
    ENDIF
 
 !     Only low-frequency rows are read without first being assigned.
-!     SFNL and DSNL are assigned before use; the interaction and diagonal
+!     DIA_WORKSPACE%SFNL and DIA_WORKSPACE%DSNL are assigned before use; the interaction and diagonal
 !     arrays are assigned over ISCLW:ISCHG below.
 
    DO IDDUM = IDLOW - IIID, IDHGH + IIID
       DO IS = MSC4MI, 0
-         UE(IS,IDDUM) = 0.
+         DIA_WORKSPACE%UE(IS,IDDUM) = 0.
       ENDDO
    ENDDO
    DO ID = IDLOW, IDHGH
       DO IS = MSC4MI, 0
-         SA1(IS,ID)  = 0.
-         SA2(IS,ID)  = 0.
-         DA1C(IS,ID) = 0.
-         DA1P(IS,ID) = 0.
-         DA1M(IS,ID) = 0.
-         DA2C(IS,ID) = 0.
-         DA2P(IS,ID) = 0.
-         DA2M(IS,ID) = 0.
+         DIA_WORKSPACE%SA1(IS,ID)  = 0.
+         DIA_WORKSPACE%SA2(IS,ID)  = 0.
+         DIA_WORKSPACE%DA1C(IS,ID) = 0.
+         DIA_WORKSPACE%DA1P(IS,ID) = 0.
+         DIA_WORKSPACE%DA1M(IS,ID) = 0.
+         DIA_WORKSPACE%DA2C(IS,ID) = 0.
+         DIA_WORKSPACE%DA2P(IS,ID) = 0.
+         DIA_WORKSPACE%DA2M(IS,ID) = 0.
       ENDDO
    ENDDO
 
 !     *** Prepare auxiliary spectrum               ***
-!     *** set action original spectrum in array UE ***
+!     *** set action original spectrum in array DIA_WORKSPACE%UE ***
 
    DO IDDUM = IDLOW - IIID, IDHGH + IIID
       ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
       DO IS = 1, MSC
-         UE(IS,IDDUM) = AC2(ID,IS,IGP) * SPCSIG(IS) * JACOBI
+         DIA_WORKSPACE%UE(IS,IDDUM) = AC2(ID,IS,IGP) * SPCSIG(IS) * JACOBI
       ENDDO
    ENDDO
 
@@ -1238,7 +1217,7 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 
    DO ID = IDLOW - IIID , IDHGH + IIID
       DO IS = MSC+1, ISHGH
-         UE (IS,ID) = UE(IS-1,ID) * FACHFR
+         DIA_WORKSPACE%UE (IS,ID) = DIA_WORKSPACE%UE(IS-1,ID) * FACHFR
       ENDDO
    ENDDO
 
@@ -1247,52 +1226,52 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 
    DO IS = ISCLW, ISCHG
       DO ID = IDCLOW, IDCHGH
-         E00    =        UE(IS      ,ID      )
-         EP1    = AWG1 * UE(IS+ISP1,ID+IDP1) +&
-         &AWG2 * UE(IS+ISP1,ID+IDP ) +&
-         &AWG3 * UE(IS+ISP ,ID+IDP1) +&
-         &AWG4 * UE(IS+ISP ,ID+IDP )
-         EM1    = AWG5 * UE(IS+ISM1,ID-IDM1) +&
-         &AWG6 * UE(IS+ISM1,ID-IDM ) +&
-         &AWG7 * UE(IS+ISM ,ID-IDM1) +&
-         &AWG8 * UE(IS+ISM ,ID-IDM )
+         E00    =        DIA_WORKSPACE%UE(IS      ,ID      )
+         EP1    = AWG1 * DIA_WORKSPACE%UE(IS+ISP1,ID+IDP1) +&
+         &AWG2 * DIA_WORKSPACE%UE(IS+ISP1,ID+IDP ) +&
+         &AWG3 * DIA_WORKSPACE%UE(IS+ISP ,ID+IDP1) +&
+         &AWG4 * DIA_WORKSPACE%UE(IS+ISP ,ID+IDP )
+         EM1    = AWG5 * DIA_WORKSPACE%UE(IS+ISM1,ID-IDM1) +&
+         &AWG6 * DIA_WORKSPACE%UE(IS+ISM1,ID-IDM ) +&
+         &AWG7 * DIA_WORKSPACE%UE(IS+ISM ,ID-IDM1) +&
+         &AWG8 * DIA_WORKSPACE%UE(IS+ISM ,ID-IDM )
 
-         EP2    = AWG1 * UE(IS+ISP1,ID-IDP1) +&
-         &AWG2 * UE(IS+ISP1,ID-IDP ) +&
-         &AWG3 * UE(IS+ISP ,ID-IDP1) +&
-         &AWG4 * UE(IS+ISP ,ID-IDP )
-         EM2    = AWG5 * UE(IS+ISM1,ID+IDM1) +&
-         &AWG6 * UE(IS+ISM1,ID+IDM ) +&
-         &AWG7 * UE(IS+ISM ,ID+IDM1) +&
-         &AWG8 * UE(IS+ISM ,ID+IDM )
+         EP2    = AWG1 * DIA_WORKSPACE%UE(IS+ISP1,ID-IDP1) +&
+         &AWG2 * DIA_WORKSPACE%UE(IS+ISP1,ID-IDP ) +&
+         &AWG3 * DIA_WORKSPACE%UE(IS+ISP ,ID-IDP1) +&
+         &AWG4 * DIA_WORKSPACE%UE(IS+ISP ,ID-IDP )
+         EM2    = AWG5 * DIA_WORKSPACE%UE(IS+ISM1,ID+IDM1) +&
+         &AWG6 * DIA_WORKSPACE%UE(IS+ISM1,ID+IDM ) +&
+         &AWG7 * DIA_WORKSPACE%UE(IS+ISM ,ID+IDM1) +&
+         &AWG8 * DIA_WORKSPACE%UE(IS+ISM ,ID+IDM )
 
 !         *** Contribution to interactions                          ***
 !         *** CONS is the shallow water factor for the NL interact. ***
 
          FACTOR = CONS * AF11(IS) * E00
 
-         SA1A   = E00 * ( EP1*DAL1 + EM1*DAL2 ) * PQUAD(2)
-         SA1B   = SA1A - EP1*EM1*DAL3 * PQUAD(2)
-         SA2A   = E00 * ( EP2*DAL1 + EM2*DAL2 ) * PQUAD(2)
-         SA2B   = SA2A - EP2*EM2*DAL3 * PQUAD(2)
+         SA1A   = E00 * ( EP1*DIA_WORKSPACE%DAL1 + EM1*DIA_WORKSPACE%DAL2 ) * PQUAD(2)
+         SA1B   = SA1A - EP1*EM1*DIA_WORKSPACE%DAL3 * PQUAD(2)
+         SA2A   = E00 * ( EP2*DIA_WORKSPACE%DAL1 + EM2*DIA_WORKSPACE%DAL2 ) * PQUAD(2)
+         SA2B   = SA2A - EP2*EM2*DIA_WORKSPACE%DAL3 * PQUAD(2)
 
-         SA1 (IS,ID) = FACTOR * SA1B
-         SA2 (IS,ID) = FACTOR * SA2B
+         DIA_WORKSPACE%SA1 (IS,ID) = FACTOR * SA1B
+         DIA_WORKSPACE%SA2 (IS,ID) = FACTOR * SA2B
 
          IF (LTSTFL) THEN
             WRITE(PRINTF,"(' E00 EP1 EM1 EP2 EM2 :',5E11.4)") E00,EP1,EM1,EP2,EM2
             WRITE(PRINTF,"(' SA1A SA1B SA2A SA2B :',4E11.4)") SA1A,SA1B,SA2A,SA2B
-            WRITE(PRINTF,"(' IS ID SA1() SA2() :',2I4,2E12.4)") IS,ID,SA1(IS,ID),SA2(IS,ID)
+            WRITE(PRINTF,"(' IS ID DIA_WORKSPACE%SA1() DIA_WORKSPACE%SA2() :',2I4,2E12.4)") IS,ID,DIA_WORKSPACE%SA1(IS,ID),DIA_WORKSPACE%SA2(IS,ID)
             WRITE(PRINTF,"(' FACTOR : ',E12.4)") FACTOR
          END IF
 
-         DA1C(IS,ID) = CONS * AF11(IS) * ( SA1A + SA1B )
-         DA1P(IS,ID) = FACTOR * ( DAL1*E00 - DAL3*EM1 ) * PQUAD(2)
-         DA1M(IS,ID) = FACTOR * ( DAL2*E00 - DAL3*EP1 ) * PQUAD(2)
+         DIA_WORKSPACE%DA1C(IS,ID) = CONS * AF11(IS) * ( SA1A + SA1B )
+         DIA_WORKSPACE%DA1P(IS,ID) = FACTOR * ( DIA_WORKSPACE%DAL1*E00 - DIA_WORKSPACE%DAL3*EM1 ) * PQUAD(2)
+         DIA_WORKSPACE%DA1M(IS,ID) = FACTOR * ( DIA_WORKSPACE%DAL2*E00 - DIA_WORKSPACE%DAL3*EP1 ) * PQUAD(2)
 
-         DA2C(IS,ID) = CONS * AF11(IS) * ( SA2A + SA2B )
-         DA2P(IS,ID) = FACTOR * ( DAL1*E00 - DAL3*EM2 ) * PQUAD(2)
-         DA2M(IS,ID) = FACTOR * ( DAL2*E00 - DAL3*EP2 ) * PQUAD(2)
+         DIA_WORKSPACE%DA2C(IS,ID) = CONS * AF11(IS) * ( SA2A + SA2B )
+         DIA_WORKSPACE%DA2P(IS,ID) = FACTOR * ( DIA_WORKSPACE%DAL1*E00 - DIA_WORKSPACE%DAL3*EM2 ) * PQUAD(2)
+         DIA_WORKSPACE%DA2M(IS,ID) = FACTOR * ( DIA_WORKSPACE%DAL2*E00 - DIA_WORKSPACE%DAL3*EP2 ) * PQUAD(2)
       ENDDO
    ENDDO
 
@@ -1303,23 +1282,23 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
       DO ID = 1, IDHGH - MDC
          ID0   = 1 - ID
          DO IS = ISCLW, ISCHG
-            SA1 (IS,MDC+ID) = SA1 (IS,  ID   )
-            SA2 (IS,MDC+ID) = SA2 (IS,  ID   )
-            DA1C(IS,MDC+ID) = DA1C(IS,  ID   )
-            DA1P(IS,MDC+ID) = DA1P(IS,  ID   )
-            DA1M(IS,MDC+ID) = DA1M(IS,  ID   )
-            DA2C(IS,MDC+ID) = DA2C(IS,  ID   )
-            DA2P(IS,MDC+ID) = DA2P(IS,  ID   )
-            DA2M(IS,MDC+ID) = DA2M(IS,  ID   )
+            DIA_WORKSPACE%SA1 (IS,MDC+ID) = DIA_WORKSPACE%SA1 (IS,  ID   )
+            DIA_WORKSPACE%SA2 (IS,MDC+ID) = DIA_WORKSPACE%SA2 (IS,  ID   )
+            DIA_WORKSPACE%DA1C(IS,MDC+ID) = DIA_WORKSPACE%DA1C(IS,  ID   )
+            DIA_WORKSPACE%DA1P(IS,MDC+ID) = DIA_WORKSPACE%DA1P(IS,  ID   )
+            DIA_WORKSPACE%DA1M(IS,MDC+ID) = DIA_WORKSPACE%DA1M(IS,  ID   )
+            DIA_WORKSPACE%DA2C(IS,MDC+ID) = DIA_WORKSPACE%DA2C(IS,  ID   )
+            DIA_WORKSPACE%DA2P(IS,MDC+ID) = DIA_WORKSPACE%DA2P(IS,  ID   )
+            DIA_WORKSPACE%DA2M(IS,MDC+ID) = DIA_WORKSPACE%DA2M(IS,  ID   )
 
-            SA1 (IS,  ID0 ) = SA1 (IS, MDC+ID0)
-            SA2 (IS,  ID0 ) = SA2 (IS, MDC+ID0)
-            DA1C(IS,  ID0 ) = DA1C(IS, MDC+ID0)
-            DA1P(IS,  ID0 ) = DA1P(IS, MDC+ID0)
-            DA1M(IS,  ID0 ) = DA1M(IS, MDC+ID0)
-            DA2C(IS,  ID0 ) = DA2C(IS, MDC+ID0)
-            DA2P(IS,  ID0 ) = DA2P(IS, MDC+ID0)
-            DA2M(IS,  ID0 ) = DA2M(IS, MDC+ID0)
+            DIA_WORKSPACE%SA1 (IS,  ID0 ) = DIA_WORKSPACE%SA1 (IS, MDC+ID0)
+            DIA_WORKSPACE%SA2 (IS,  ID0 ) = DIA_WORKSPACE%SA2 (IS, MDC+ID0)
+            DIA_WORKSPACE%DA1C(IS,  ID0 ) = DIA_WORKSPACE%DA1C(IS, MDC+ID0)
+            DIA_WORKSPACE%DA1P(IS,  ID0 ) = DIA_WORKSPACE%DA1P(IS, MDC+ID0)
+            DIA_WORKSPACE%DA1M(IS,  ID0 ) = DIA_WORKSPACE%DA1M(IS, MDC+ID0)
+            DIA_WORKSPACE%DA2C(IS,  ID0 ) = DIA_WORKSPACE%DA2C(IS, MDC+ID0)
+            DIA_WORKSPACE%DA2P(IS,  ID0 ) = DIA_WORKSPACE%DA2P(IS, MDC+ID0)
+            DIA_WORKSPACE%DA2M(IS,  ID0 ) = DIA_WORKSPACE%DA2M(IS, MDC+ID0)
          ENDDO
       ENDDO
    ENDIF
@@ -1328,44 +1307,44 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
 !     *** is used)                                              ***
 
    PI3   = (2. * PI)**3
-   DO I = 1, ISSTOP
+   DO I = 1, WINDOW%ISSTOP
       SIGPI = SPCSIG(I) * JACOBI
-      DO J = IDCMIN(I), IDCMAX(I)
+      DO J = WINDOW%IDCMIN(I), WINDOW%IDCMAX(I)
          ID = MOD ( J - 1 + MDC , MDC ) + 1
-         SFNL(I,ID) =   - 2. * ( SA1(I,J) + SA2(I,J) )&
-         &+ AWG1 * ( SA1(I-ISP1,J-IDP1) + SA2(I-ISP1,J+IDP1) )&
-         &+ AWG2 * ( SA1(I-ISP1,J-IDP ) + SA2(I-ISP1,J+IDP ) )&
-         &+ AWG3 * ( SA1(I-ISP ,J-IDP1) + SA2(I-ISP ,J+IDP1) )&
-         &+ AWG4 * ( SA1(I-ISP ,J-IDP ) + SA2(I-ISP ,J+IDP ) )&
-         &+ AWG5 * ( SA1(I-ISM1,J+IDM1) + SA2(I-ISM1,J-IDM1) )&
-         &+ AWG6 * ( SA1(I-ISM1,J+IDM ) + SA2(I-ISM1,J-IDM ) )&
-         &+ AWG7 * ( SA1(I-ISM ,J+IDM1) + SA2(I-ISM ,J-IDM1) )&
-         &+ AWG8 * ( SA1(I-ISM ,J+IDM ) + SA2(I-ISM ,J-IDM ) )
+         DIA_WORKSPACE%SFNL(I,ID) =   - 2. * ( DIA_WORKSPACE%SA1(I,J) + DIA_WORKSPACE%SA2(I,J) )&
+         &+ AWG1 * ( DIA_WORKSPACE%SA1(I-ISP1,J-IDP1) + DIA_WORKSPACE%SA2(I-ISP1,J+IDP1) )&
+         &+ AWG2 * ( DIA_WORKSPACE%SA1(I-ISP1,J-IDP ) + DIA_WORKSPACE%SA2(I-ISP1,J+IDP ) )&
+         &+ AWG3 * ( DIA_WORKSPACE%SA1(I-ISP ,J-IDP1) + DIA_WORKSPACE%SA2(I-ISP ,J+IDP1) )&
+         &+ AWG4 * ( DIA_WORKSPACE%SA1(I-ISP ,J-IDP ) + DIA_WORKSPACE%SA2(I-ISP ,J+IDP ) )&
+         &+ AWG5 * ( DIA_WORKSPACE%SA1(I-ISM1,J+IDM1) + DIA_WORKSPACE%SA2(I-ISM1,J-IDM1) )&
+         &+ AWG6 * ( DIA_WORKSPACE%SA1(I-ISM1,J+IDM ) + DIA_WORKSPACE%SA2(I-ISM1,J-IDM ) )&
+         &+ AWG7 * ( DIA_WORKSPACE%SA1(I-ISM ,J+IDM1) + DIA_WORKSPACE%SA2(I-ISM ,J-IDM1) )&
+         &+ AWG8 * ( DIA_WORKSPACE%SA1(I-ISM ,J+IDM ) + DIA_WORKSPACE%SA2(I-ISM ,J-IDM ) )
 
-         DSNL(I,ID) =   - 2. * ( DA1C(I,J) + DA2C(I,J) )&
-         &+ SWG1 * ( DA1P(I-ISP1,J-IDP1) + DA2P(I-ISP1,J+IDP1) )&
-         &+ SWG2 * ( DA1P(I-ISP1,J-IDP ) + DA2P(I-ISP1,J+IDP ) )&
-         &+ SWG3 * ( DA1P(I-ISP ,J-IDP1) + DA2P(I-ISP ,J+IDP1) )&
-         &+ SWG4 * ( DA1P(I-ISP ,J-IDP ) + DA2P(I-ISP ,J+IDP ) )&
-         &+ SWG5 * ( DA1M(I-ISM1,J+IDM1) + DA2M(I-ISM1,J-IDM1) )&
-         &+ SWG6 * ( DA1M(I-ISM1,J+IDM ) + DA2M(I-ISM1,J-IDM ) )&
-         &+ SWG7 * ( DA1M(I-ISM ,J+IDM1) + DA2M(I-ISM ,J-IDM1) )&
-         &+ SWG8 * ( DA1M(I-ISM ,J+IDM ) + DA2M(I-ISM ,J-IDM ) )
+         DIA_WORKSPACE%DSNL(I,ID) =   - 2. * ( DIA_WORKSPACE%DA1C(I,J) + DIA_WORKSPACE%DA2C(I,J) )&
+         &+ SWG1 * ( DIA_WORKSPACE%DA1P(I-ISP1,J-IDP1) + DIA_WORKSPACE%DA2P(I-ISP1,J+IDP1) )&
+         &+ SWG2 * ( DIA_WORKSPACE%DA1P(I-ISP1,J-IDP ) + DIA_WORKSPACE%DA2P(I-ISP1,J+IDP ) )&
+         &+ SWG3 * ( DIA_WORKSPACE%DA1P(I-ISP ,J-IDP1) + DIA_WORKSPACE%DA2P(I-ISP ,J+IDP1) )&
+         &+ SWG4 * ( DIA_WORKSPACE%DA1P(I-ISP ,J-IDP ) + DIA_WORKSPACE%DA2P(I-ISP ,J+IDP ) )&
+         &+ SWG5 * ( DIA_WORKSPACE%DA1M(I-ISM1,J+IDM1) + DIA_WORKSPACE%DA2M(I-ISM1,J-IDM1) )&
+         &+ SWG6 * ( DIA_WORKSPACE%DA1M(I-ISM1,J+IDM ) + DIA_WORKSPACE%DA2M(I-ISM1,J-IDM ) )&
+         &+ SWG7 * ( DIA_WORKSPACE%DA1M(I-ISM ,J+IDM1) + DIA_WORKSPACE%DA2M(I-ISM ,J-IDM1) )&
+         &+ SWG8 * ( DIA_WORKSPACE%DA1M(I-ISM ,J+IDM ) + DIA_WORKSPACE%DA2M(I-ISM ,J-IDM ) )
 
 !         *** store results in IMATDA and IMATRA ***
 
          IF(TESTFL) THEN
-            PLNL4S(ID,I,IPTST) = SFNL(I,ID) / SIGPI
-            PLNL4D(ID,I,IPTST) = DSNL(I,ID) / PI3
+            PLNL4S(ID,I,IPTST) = DIA_WORKSPACE%SFNL(I,ID) / SIGPI
+            PLNL4D(ID,I,IPTST) = DIA_WORKSPACE%DSNL(I,ID) / PI3
          END IF
-         REDC0(ID,I,1) = REDC0(ID,I,1) + SFNL(I,ID) / SIGPI
-         REDC1(ID,I,1) = REDC1(ID,I,1) + DSNL(I,ID) / PI3
+         REDC0(ID,I,1) = REDC0(ID,I,1) + DIA_WORKSPACE%SFNL(I,ID) / SIGPI
+         REDC1(ID,I,1) = REDC1(ID,I,1) + DIA_WORKSPACE%DSNL(I,ID) / PI3
 
-         IMATRA(ID,I) = IMATRA(ID,I) + SFNL(I,ID) / SIGPI
-         IMATDA(ID,I) = IMATDA(ID,I) - DSNL(I,ID) / PI3
+         IMATRA(ID,I) = IMATRA(ID,I) + DIA_WORKSPACE%SFNL(I,ID) / SIGPI
+         IMATDA(ID,I) = IMATDA(ID,I) - DIA_WORKSPACE%DSNL(I,ID) / PI3
 
          IF(ITEST.GE.90 .AND. TESTFL) THEN
-            WRITE(PRINTF,"(' IS ID SFNL DSNL SPCSIG:',2I4,3E12.4)") I,J,SFNL(I,ID),DSNL(I,ID),&
+            WRITE(PRINTF,"(' IS ID DIA_WORKSPACE%SFNL DIA_WORKSPACE%DSNL SPCSIG:',2I4,3E12.4)") I,J,DIA_WORKSPACE%SFNL(I,ID),DIA_WORKSPACE%DSNL(I,ID),&
             &SPCSIG(I)
          END IF
 
@@ -1380,11 +1359,11 @@ SUBROUTINE SWSNL1 (WWINT   ,WWAWG   ,WWSWG   ,&
       WRITE(PRINTF,"(' IDP IDP1 IDM IDM1 :',4I5)") IDP, IDP1, IDM, IDM1
       WRITE (PRINTF,"(' ISP ISP1 ISM ISM1 :',4I5)") ISP, ISP1, ISM, ISM1
       WRITE (PRINTF,"(' ISLOW ISHGH IDLOW IDHG:',4I5)") ISLOW, ISHGH, IDLOW,IDHGH
-      WRITE(PRINTF,"(' ICLW ICHG IDDLOW IDDTO:',2I5)") ISCLW, ISCHG, IDDLOW, IDDTOP
+      WRITE(PRINTF,"(' ICLW ICHG IDDLOW IDDTO:',2I5)") ISCLW, ISCHG, WINDOW%IDDLOW, WINDOW%IDDTOP
       WRITE (PRINTF,"(' AWG1 AWG2 AWG3 AWG4 :',4E12.4)") AWG1, AWG2, AWG3, AWG4
       WRITE (PRINTF,"(' AWG5 AWG6 AWG7 AWG8 :',4E12.4)") AWG5, AWG6, AWG7, AWG8
       WRITE (PRINTF,"(' S4MI S4MA D4MI D4MA :',4I6)") MSC4MI, MSC4MA, MDC4MI, MDC4MA
-      WRITE(PRINTF,"(' SNLC1 X X2 CONS :',4E12.4)") SNLC1,X,X2,CONS
+      WRITE(PRINTF,"(' DIA_WORKSPACE%SNLC1 X X2 CONS :',4E12.4)") DIA_WORKSPACE%SNLC1,X,X2,CONS
       WRITE(PRINTF,"(' DEPTH KMESPC FACHFR PI:',4E12.4)") DEP2(IGP),KMESPC, FACHFR, PI
       WRITE(PRINTF,"(' JACOBI :',E12.4)") JACOBI
       WRITE(PRINTF,*)
@@ -1396,12 +1375,7 @@ end subroutine SWSNL1
 
 !*******************************************************************
 
-SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
-&WWAWG   ,UE      ,SA1     ,ISSTOP  ,&
-&SA2     ,SPCSIG  ,SNLC1   ,DAL1    ,DAL2    ,&
-&DAL3    ,SFNL    ,DEP2    ,AC2     ,KMESPC  ,&
-&REDC0   ,REDC1   ,IMATDA  ,IMATRA  ,&
-&FACHFR  ,PLNL4S  ,         IDCMIN  ,IDCMAX, AF11 ,IGP)
+SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2, DAL3, SFNL, DEP2, AC2, KMESPC, REDC0, REDC1, IMATDA, IMATRA, FACHFR, PLNL4S, AF11, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !*******************************************************************
@@ -1413,6 +1387,8 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
+
+   TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
 
@@ -1552,10 +1528,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 !*******************************************************************
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER   IS, ID, ID0, I, J, IDDUM, IIID, ISLOW, ISHGH, &
-   &ISSTOP ,ISP    ,ISP1   ,IDP    ,IDP1   ,ISM    ,ISM1   ,&
-   &IDM    ,IDM1   ,ISCLW  ,ISCHG  ,&
-   &IDLOW  ,IDHGH  ,IDDLOW ,IDDTOP ,IDCLOW ,IDCHGH
+   INTEGER :: IS, ID, ID0, I, J, IDDUM, IIID, ISLOW, ISHGH, ISP, ISP1, IDP, IDP1, ISM, ISM1, IDM, IDM1, ISCLW, ISCHG, IDLOW, IDHGH, IDCLOW, IDCHGH
 
    REAL      X      ,X2     ,CONS   ,FACTOR ,SNLCS1 ,SNLCS2 ,SNLCS3 ,&
    &E00    ,EP1    ,EM1    ,EP2    ,EM2    ,SA1A   ,SA1B   ,&
@@ -1576,9 +1549,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
    REAL :: REDC0 (MDC,MSC,MREDS)
    REAL :: REDC1 (MDC,MSC,MREDS)
 
-   INTEGER   WWINT(*)         ,&
-   &IDCMIN(MSC)      ,&
-   &IDCMAX(MSC)
+   INTEGER :: WWINT(*)
 
    LOGICAL   PERCIR
 
@@ -1631,7 +1602,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 !     *** direction space and if so modify boundaries      ***
 
    PERCIR = .FALSE.
-   IF ( IDDLOW .EQ. 1 .AND. IDDTOP .EQ. MDC ) THEN
+   IF ( WINDOW%IDDLOW .EQ. 1 .AND. WINDOW%IDDTOP .EQ. MDC ) THEN
 !       *** periodic in theta -> spectrum can be folded  ***
 !       *** (can only occur in presence of a current)    ***
       IDCLOW = 1
@@ -1656,11 +1627,11 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
       IF (IDCLOW-MAX(IDP1,IDM1).LT.IDLOW-IIID .OR.&
       &IDCHGH+MAX(IDP1,IDM1).GT.IDHGH+IIID) &
       &ERROR STOP 'SWSNL2 interaction direction hull is uninitialized'
-      IF (ISSTOP.GT.0) THEN
-         IF (1-ISP1.LT.MSC4MI .OR. ISSTOP-ISM1.GT.ISCHG) &
+      IF (WINDOW%ISSTOP.GT.0) THEN
+         IF (1-ISP1.LT.MSC4MI .OR. WINDOW%ISSTOP-ISM1.GT.ISCHG) &
          &ERROR STOP 'SWSNL2 source stencil frequency range is invalid'
-         IF (MINVAL(IDCMIN(1:ISSTOP))-MAX(IDP1,IDM1).LT.MDC4MI .OR.&
-         &MAXVAL(IDCMAX(1:ISSTOP))+MAX(IDP1,IDM1).GT.MDC4MA) &
+         IF (MINVAL(WINDOW%IDCMIN(1:WINDOW%ISSTOP))-MAX(IDP1,IDM1).LT.MDC4MI .OR.&
+         &MAXVAL(WINDOW%IDCMAX(1:WINDOW%ISSTOP))+MAX(IDP1,IDM1).GT.MDC4MA) &
          &ERROR STOP 'SWSNL2 source stencil direction range is invalid'
       END IF
    END IF
@@ -1798,8 +1769,8 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 !     *** separate from the sign-dependent Patankar update below ***
 !     *** so the compiler can optimize both loops independently.  ***
 
-   DO I = 1, ISSTOP
-      DO J = IDCMIN(I), IDCMAX(I)
+   DO I = 1, WINDOW%ISSTOP
+      DO J = WINDOW%IDCMIN(I), WINDOW%IDCMAX(I)
          ID = MOD ( J - 1 + MDC , MDC ) + 1
          SFNL(I,ID) =   - 2. * ( SA1(I,J) + SA2(I,J) )&
          &+ AWG1 * ( SA1(I-ISP1,J-IDP1) + SA2(I-ISP1,J+IDP1) )&
@@ -1816,9 +1787,9 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
 !     *** Store results in rhs and main diagonal according to ***
 !     *** Patankar rules.                                      ***
 
-   DO I = 1, ISSTOP
+   DO I = 1, WINDOW%ISSTOP
       SIGPI = SPCSIG(I) * JACOBI
-      DO J = IDCMIN(I), IDCMAX(I)
+      DO J = WINDOW%IDCMIN(I), WINDOW%IDCMAX(I)
          ID = MOD ( J - 1 + MDC , MDC ) + 1
          IF(TESTFL) PLNL4S(ID,I,IPTST) =  SFNL(I,ID) / SIGPI
          IF (SFNL(I,ID).GT.0.) THEN
@@ -1839,7 +1810,7 @@ SUBROUTINE SWSNL2 (IDDLOW  ,IDDTOP  ,WWINT   ,&
       WRITE(PRINTF,*) ' SWSNL2 subroutine '
       WRITE(PRINTF,"(' IDP IDP1 IDM IDM1 :',4I5)") IDP, IDP1, IDM, IDM1
       WRITE (PRINTF,"(' ISP ISP1 ISM ISM1 :',4I5)") ISP, ISP1, ISM, ISM1
-      WRITE (PRINTF,"(' ISHG IDDLOW IDDTOP :',3I5)") ISHGH, IDDLOW, IDDTOP
+      WRITE (PRINTF,"(' ISHG IDDLOW IDDTOP :',3I5)") ISHGH, WINDOW%IDDLOW, WINDOW%IDDTOP
       WRITE(PRINTF,"(' ICLW ICHG IDLOW IDHGH :',4I5)") ISCLW, ISCHG, IDLOW, IDHGH
       WRITE (PRINTF,"(' AWG1 AWG2 AWG3 AWG4 :',4E12.4)") AWG1, AWG2, AWG3, AWG4
       WRITE (PRINTF,"(' AWG5 AWG6 AWG7 AWG8 :',4E12.4)") AWG5, AWG6, AWG7, AWG8
@@ -2939,8 +2910,7 @@ end subroutine SWSNL8
 
 !*******************************************************************
 
-SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
-&MEMNL4  ,PLNL4S  ,ISSTOP  ,REDC0   ,REDC1   ,IGP)
+SUBROUTINE FILNL3 (WINDOW, IMATRA, IMATDA, AC2, MEMNL4, PLNL4S, REDC0, REDC1, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !*******************************************************************
@@ -3026,9 +2996,11 @@ SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
 !
 !*******************************************************************
 
+   TYPE(spectral_window_t) :: WINDOW
+
    INTEGER, INTENT(IN) :: IGP
    INTEGER, SAVE :: IENT = 0
-   INTEGER   IS, ID, IDDUM, ISSTOP
+   INTEGER :: IS, ID, IDDUM
 
    REAL      IMATRA(MDC,MSC)           ,&
    &IMATDA(MDC,MSC)           ,&
@@ -3036,15 +3008,13 @@ SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
    &PLNL4S(MDC,MSC,NPTST)     ,&
    &MEMNL4(MDC,MSC,MCGRD)
 
-   INTEGER   IDCMIN(MSC)         ,&
-   &IDCMAX(MSC)
    REAL ::   REDC0 (MDC,MSC,MREDS)
    REAL ::   REDC1 (MDC,MSC,MREDS)
 
    IF (LTRACE) CALL STRACE (IENT,'FILNL3')
 
-   do IS=1, ISSTOP
-      do IDDUM = IDCMIN(IS), IDCMAX(IS)
+   do IS=1, WINDOW%ISSTOP
+      do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
          IF(TESTFL) PLNL4S(ID,IS,IPTST) = MEMNL4(ID,IS,IGP)
          IF (MEMNL4(ID,IS,IGP).GT.0.) THEN
@@ -3060,10 +3030,10 @@ SUBROUTINE FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
    end do
 
    IF ( TESTFL .AND. ITEST.GE.50 ) THEN
-      WRITE(PRINTF,"(' FILNL3: ID_MIN ID_MAX MSC ISTOP :',4I6)") IDCMIN(1),IDCMAX(1),MSC,ISSTOP
+      WRITE(PRINTF,"(' FILNL3: ID_MIN ID_MAX MSC ISTOP :',4I6)") WINDOW%IDCMIN(1),WINDOW%IDCMAX(1),MSC,WINDOW%ISSTOP
       IF ( ITEST .GE. 100 ) THEN
-         DO IS=1, ISSTOP
-            DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IS=1, WINDOW%ISSTOP
+            DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
                ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
                WRITE(PRINTF,"(' FILNL3: IS ID MEMNL() :',2I6,E12.4)") IS,ID,MEMNL4(ID,IS,IGP)
             ENDDO
@@ -3823,10 +3793,7 @@ end subroutine FAC3WW
 
 !****************************************************************
 
-SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
-&IMATRA, IMATDA, REDC0 , REDC1 ,&
-&IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
-&SMEBRK, PLTRI , URSELL, BIPHAS, QTL2, TRIADS ,IGP)
+SUBROUTINE SWLTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, SMEBRK, PLTRI, URSELL, BIPHAS, QTL2, TRIADS, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -3842,6 +3809,8 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
    USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    TYPE(triad_state_t), INTENT(IN) :: TRIADS
 
@@ -3976,8 +3945,6 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !     SPCSIG      relative frequencies in computational domain in sigma-space
 !     URSELL      Ursell number
 
-   INTEGER IDDLOW, IDDTOP, ISSTOP
-   INTEGER IDCMIN(MSC), IDCMAX(MSC)
 
    REAL :: SMEBRK
    REAL :: AC2(MDC,MSC,MCGRD)
@@ -4109,7 +4076,7 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
          ED(:) = SUM(AC2(:,:,IGP),DIM=1) * 2.*PI*SPCSIG(:) *DDIR
       ENDIF
 
-      DO II = IDDLOW, IDDTOP
+      DO II = WINDOW%IDDLOW, WINDOW%IDDTOP
          ID = MOD ( II - 1 + MDC , MDC ) + 1
 
 !           --- initialize array with E(f) for the direction theta considered
@@ -4201,10 +4168,10 @@ SUBROUTINE SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 
 !         ---  put source term together
 
-      DO IS = 1, ISSTOP
+      DO IS = 1, WINDOW%ISSTOP
          SIGPI = SPCSIG(IS) * 2. * PI
          IF (ITRIAD.NE.11) CG = CGO(IS,1)
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
 !              --- self interaction
@@ -4252,11 +4219,7 @@ end subroutine SWLTA
 
 !****************************************************************
 
-SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
-&IMATRA, IMATDA, REDC0 , REDC1 ,&
-&IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
-&SIGM  , PLTRI , URSELL, BIPHAS,&
-&QTL1  , QTL2  ,IGP)
+SUBROUTINE SWDCTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, SIGM, PLTRI, URSELL, BIPHAS, QTL1, QTL2, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -4270,6 +4233,8 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
    USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
 
 
 !   --|-----------------------------------------------------------|--
@@ -4365,8 +4330,6 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !     URSELL      Ursell number
 
    INTEGER, INTENT(IN) :: IGP
-   INTEGER IDDLOW, IDDTOP, ISSTOP
-   INTEGER IDCMIN(MSC), IDCMAX(MSC)
 
    REAL :: SIGM
    REAL :: AC2(MDC,MSC,MCGRD)
@@ -4448,7 +4411,7 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
       FT2  = FT * FT
       BETA = PTRIAD(1) / FT2 * SINBPH * KM**(2.-P)
 
-      DO IDDUM = IDDLOW, IDDTOP
+      DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
 !          --- compute E(sigma) for each direction
@@ -4510,9 +4473,9 @@ SUBROUTINE SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
 !       --- store results in rhs and main diagonal according
 !           to Patankar-rules
 
-      DO IS = 1, ISSTOP
+      DO IS = 1, WINDOW%ISSTOP
          CG = CGO(IS,1)
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
             STRI = BETA * CG * ( SAP(ID,IS) - SAN(ID,IS) )
@@ -4537,11 +4500,7 @@ end subroutine SWDCTA
 
 !******************************************************************
 
-SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
-&KWAVE , IMATRA, IMATDA, REDC0 , REDC1 ,&
-&IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
-&ETOT  , SIGM  , PLTRI , URSELL, BIPHAS,&
-&QTL1  , QTL2  ,IGP)
+SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0, REDC1, WINDOW, ETOT, SIGM, PLTRI, URSELL, BIPHAS, QTL1, QTL2, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !******************************************************************
@@ -4556,6 +4515,8 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
    USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
 
 
 !   --|-----------------------------------------------------------|--
@@ -4659,8 +4620,6 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
 !     URSELL      Ursell number
 
    INTEGER, INTENT(IN) :: IGP
-   INTEGER IDDLOW, IDDTOP, ISSTOP
-   INTEGER IDCMIN(MSC), IDCMAX(MSC)
 
    REAL :: ETOT, SIGM
    REAL :: AC2(MDC,MSC,MCGRD)
@@ -4781,7 +4740,7 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
       FT2  = FT * FT
       BETA = PTRIAD(1) / FT2 * SINBPH * KM**(2.-P)
 
-      DO IDDUM = IDDLOW, IDDTOP
+      DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
          ID1 = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
          J = 0
@@ -4919,9 +4878,9 @@ SUBROUTINE SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
 !       --- store results in rhs and main diagonal according
 !           to Patankar-rules
 
-      DO IS = 1, ISSTOP
+      DO IS = 1, WINDOW%ISSTOP
          CG = CGO(IS,1)
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
             STRI = BETA * CG * ( SAP(ID,IS) - SAN(ID,IS) )
@@ -5064,11 +5023,7 @@ end subroutine SWDNCTA
 
 !****************************************************************
 
-SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
-&IMATRA, IMATDA, REDC0 , REDC1 ,&
-&IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
-&PLTRI , URSELL, BIPHAS,&
-&QTL1  , QTL2  ,IGP)
+SUBROUTINE SWFTIM (AC2, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, PLTRI, URSELL, BIPHAS, QTL1, QTL2, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -5081,6 +5036,8 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
    USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
 
 
 !   --|-----------------------------------------------------------|--
@@ -5166,8 +5123,6 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 !     URSELL      Ursell number
 
    INTEGER, INTENT(IN) :: IGP
-   INTEGER IDDLOW, IDDTOP, ISSTOP
-   INTEGER IDCMIN(MSC), IDCMAX(MSC)
 
    REAL :: AC2(MDC,MSC,MCGRD)
    REAL :: IMATDA(MDC,MSC), IMATRA(MDC,MSC)
@@ -5269,7 +5224,7 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
          ED(:) = SUM(AC2(:,:,IGP),DIM=1) * 2.*PI*SPCSIG(:) *DDIR
       ENDIF
 
-      DO II = IDDLOW, IDDTOP
+      DO II = WINDOW%IDDLOW, WINDOW%IDDTOP
          ID = MOD ( II - 1 + MDC , MDC ) + 1
 
 !           --- initialize array with E(f) for the direction theta considered
@@ -5419,9 +5374,9 @@ SUBROUTINE SWFTIM ( AC2   , SPCSIG,&
 
 !        --- put source term together
 
-      DO IS = 1, ISSTOP
+      DO IS = 1, WINDOW%ISSTOP
          SIGPI = SPCSIG(IS) * 2. * PI
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
             STRI = 2.*CSUM(ID,IS) - 4.*CDIF(ID,IS)

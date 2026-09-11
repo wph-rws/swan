@@ -105,11 +105,15 @@ mask and does not claim whole-field mask identity across decomposition modes.
   `doc/moderniseringsplan.md` (missing `vu(2)` edge, fixed
   unconditionally) does not touch the structured operational suite, which
   is bit-exact before and after.
-- Strict-poort (WP2.4 + WP3a/WP3b/WP5b-tranches + WP4-hersteltranches, schone
-  bouw met `--require-baseline`, GNU 13.3.0): **1.324 waarschuwingen in 488
-  fingerprints**, `within budget`, `no new warnings` — herhaald op de
-  werkboom van 10 september 2026 (1.358/502 na WP3a-`RI`; 1.360/503 op
-  "Isoleer de tests en sluit de geheugenlevensduur af"; 1.361/504 op kandidaat tranche 25 van 7 september). Attributie: `function-elimination` 163→85 door zuivere `pvalid`;
+- Strict-poort (schone bouw met `--require-baseline`, GNU 13.3.0):
+  **1.317 waarschuwingen** tegen een budget van **1.318**, `within budget`,
+  `no new warnings` — gemeten 11 september 2026 (1.324/488 na
+  de fysicabenoeming, 10 september; 1.358/502 na de `RI`-contractseed; 1.360/503 na
+  de laatste geheugenvrijgave; 1.361/504 op de kandidaat van 7 september). De daling van
+  zes zit volledig in `unused-dummy-argument` (67→61) door de
+  argumentbundeling; de zevende waarschuwing die wegvalt is de
+  `maybe-uninitialized` op `vu[0]` uit het determinismeherstel, waarvoor het
+  budget bewust op 135 blijft staan. Attributie: `function-elimination` 163→85 door zuivere `pvalid`;
   `implicit-interface` 2→0 door `swan_metis_interface`/BIND(C);
   `unused-function` 4→0 plus één `compare-reals` in dood `SWSOR` door
   verwijderde dode procedures; −5 `unused-parameter` buiten gevenderde code;

@@ -4,7 +4,7 @@ module swan_gse_corr
    public :: SwanGSECorr
 contains
 
-subroutine SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, trac0, igp, icmax )
+subroutine SwanGSECorr (rhs, ac2, cgo, spcdir, WINDOW, isslow, trac0, igp, icmax)
    USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
@@ -61,15 +61,14 @@ subroutine SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, 
 
     implicit none(type, external)
 
+   TYPE(spectral_window_t) :: WINDOW
+
 !   Argument variables
 
     integer, intent(in)                         :: isslow ! minimum frequency that is propagated within a sweep
-    integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
     integer, intent(in)                         :: igp    ! grid address of the point being computed
     integer, intent(in)                         :: icmax  ! number of active stencil points
 
-    integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
-    integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
 
     real, dimension(MDC,MSC,nverts), intent(in) :: ac2    ! action density at current time level
     real, dimension(MSC,ICMAX), intent(in)      :: cgo    ! group velocity
@@ -140,13 +139,13 @@ subroutine SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, 
 
     cslat = cos(DEGRAD*(vert(ivert)%attr(VERTY) + YOFFS))
 
-    do is = isslow, isstop
+    do is = isslow, WINDOW%ISSTOP
 
        ! calculate waveage-dependent diffusion coefficients in polar coordinates
 
        if ( is == 1 ) then
           dcg = abs(cgo(is+1,1)-cgo(is,1))
-       elseif ( is == isstop ) then
+       elseif ( is == WINDOW%ISSTOP ) then
           dcg = abs(cgo(is,1)-cgo(is-1,1))
        else
           dcg = 0.5 * abs(cgo(is+1,1)-cgo(is-1,1))
@@ -155,7 +154,7 @@ subroutine SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, 
        dss = dcg**2*WAVAGE/12.
        dnn = (cgo(is,1)*DDIR)**2 * WAVAGE/12.
 
-       do iddum = idcmin(is), idcmax(is)
+       do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
           id = mod ( iddum - 1 + MDC , MDC ) + 1
 
           ! calculate diffusion coefficients in Cartesian coordinates

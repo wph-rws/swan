@@ -8,6 +8,7 @@ module SwanQCM
    USE swan_point_interpolation, ONLY: SwanInterpolatePoint
 
     use swan_fftw_compat, only: cfft2b, cfft2f
+    use swan_source_workspaces, only: fft_workspace_t, source_budget_t
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1183,15 +1184,7 @@ subroutine SWQCUFT ( uxft, uyft, dep2, ux2, uy2, cft, rft, sft, wft, wsave, &
 
 end subroutine SWQCUFT
 
-subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
-                      swpdir, ix    , iy    , rdx   , rdy   , kwave , cgo   , &
-                      sigft , cgft  , uxft  , uyft  , memqcm, memqcb, plqcs , &
-                      plwbrk, dissc0, dissc1, genc0 , genc1 , redc0 , redc1 , &
-                      spcsig, spcdir, idcmin, idcmax, isstop, ecos  , esin  , &
-                      etot  , hm    , qb    , smebrk, kteta , kmespc, cft   , &
-                      rft   , sft   , wft   , wsave , cfd   , wfd   , wsavd , &
-                      sigm_wam                                               &
-                                                                            ,IGP, qc_kc)
+subroutine QCSOURCE (imatra, imatda, iter, ac2, dep2, ux2, uy2, swpdir, ix, iy, rdx, rdy, kwave, cgo, fft_workspace, memqcm, memqcb, plqcs, plwbrk, SOURCE_BUDGET, spcsig, spcdir, WINDOW, ecos, esin, etot, hm, qb, smebrk, kteta, kmespc, sigm_wam, IGP, qc_kc)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1254,18 +1247,20 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
     implicit none(type, external)
 
+   TYPE(source_budget_t) :: SOURCE_BUDGET
+
+   TYPE(spectral_window_t) :: WINDOW
+
 !   Argument variables
 
    INTEGER, INTENT(IN) :: IGP
-    integer                                  , intent(in   ) :: isstop ! maximum frequency that is propagated within a sweep
+   TYPE(fft_workspace_t), INTENT(INOUT) :: FFT_WORKSPACE
     integer                                  , intent(in   ) :: iter   ! iteration counter
     integer                                  , intent(in   ) :: ix     ! counter of grid points in x-direction
     integer, dimension(MICMAX)               , intent(in   ) :: qc_kc  ! stencil addresses for the Wigner 5-point kernel
     integer                                  , intent(in   ) :: iy     ! counter of grid points in y-direction
     integer                                  , intent(in   ) :: swpdir ! sweep counter
 
-    integer        , dimension(MSC)          , intent(in   ) :: idcmax ! maximum frequency-dependent counter in directional space
-    integer        , dimension(MSC)          , intent(in   ) :: idcmin ! minimum frequency-dependent counter in directional space
 
     real                                     , intent(in   ) :: etot   ! total wave energy density
     real                                     , intent(in   ) :: hm     ! maximum wave height
@@ -1276,17 +1271,10 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
     real                                     , intent(in   ) :: sigm_wam ! mean frequency according to WAM
 
     real           , dimension(MDC,MSC,MCGRD), intent(in   ) :: ac2    ! action density at current time level
-    complex(kind=8), dimension(myd,mxd)      , intent(inout) :: cfd    ! Fourier coefficients (FFT) for surf breaking
-    complex(kind=8), dimension(ncoz,ncoz)    , intent(inout) :: cft    ! Fourier coefficients (FFT) for scattering
-    real           , dimension(ncoz,ncoz,MSC), intent(inout) :: cgft   ! Fourier-transformed modulation of group velocity
     real           , dimension(MSC,MICMAX)   , intent(in   ) :: cgo    ! group velocity
     real           , dimension(MCGRD)        , intent(in)    :: dep2   ! water depth at current time level
-    real           , dimension(MDC,MSC,MDISP), intent(out  ) :: dissc0 ! explicit part of dissipation in present geographical point for output purposes
-    real           , dimension(MDC,MSC,MDISP), intent(out  ) :: dissc1 ! implicit part of dissipation in present geographical point for output purposes
     real           , dimension(MDC)          , intent(in   ) :: ecos   ! help array containing cosine of spectral directions
     real           , dimension(MDC)          , intent(in   ) :: esin   ! help array containing sine of spectral directions
-    real           , dimension(MDC,MSC,MGENR), intent(out  ) :: genc0  ! explicit part of generation in present geographical point for output purposes
-    real           , dimension(MDC,MSC,MGENR), intent(out  ) :: genc1  ! implicit part of generation in present geographical point for output purposes
     real           , dimension(MSC,MICMAX)   , intent(in   ) :: kwave  ! wave number
     real           , dimension(MDC,MSC)      , intent(out  ) :: imatra ! coefficients of right hand side
     real           , dimension(MDC,MSC)      , intent(out  ) :: imatda ! coefficients of main diagonal of matrix
@@ -1296,26 +1284,15 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
     real           , dimension(MDC,MSC,NPTST), intent(out  ) :: plwbrk ! array containing the surf breaking source term for test output
     real           , dimension(2)            , intent(in   ) :: rdx    ! first component of contravariant base vector rdx(b) = a^(b)_1
     real           , dimension(2)            , intent(in   ) :: rdy    ! second component of contravariant base vector rdy(b) = a^(b)_2
-    real           , dimension(MDC,MSC,MREDS), intent(out  ) :: redc0  ! explicit part of redistribution in present geographical point for output purposes
-    real           , dimension(MDC,MSC,MREDS), intent(out  ) :: redc1  ! implicit part of redistribution in present geographical point for output purposes
-    real   (kind=8), dimension(ncoz,ncoz)    , intent(inout) :: rft    ! input data (FFT)
-    real           , dimension(ncoz,ncoz,MSC), intent(inout) :: sigft  ! Fourier-transformed modulation of intrinsic frequency
     real           , dimension(MDC,6)        , intent(in   ) :: spcdir ! (*,1): spectral direction bins (radians)
                                                                        ! (*,2): cosine of spectral directions
                                                                        ! (*,3): sine of spectral directions
                                                                        ! (*,4): cosine^2 of spectral directions
                                                                        ! (*,5): cosine*sine of spectral directions
                                                                        ! (*,6): sine^2 of spectral directions
-    real   (kind=8), dimension(ncoz,ncoz)    , intent(inout) :: sft    ! input data (FFT)
     real           , dimension(MSC)          , intent(in   ) :: spcsig ! relative frequency bins
     real           , dimension(MCGRD)        , intent(in   ) :: ux2    ! ambient velocity in x-direction at current time level
-    complex        , dimension(ncoz,ncoz)    , intent(inout) :: uxft   ! u-component of Fourier-transformed modulation of ambient current
     real           , dimension(MCGRD)        , intent(in   ) :: uy2    ! ambient velocity in y-direction at current time level
-    complex        , dimension(ncoz,ncoz)    , intent(inout) :: uyft   ! v-component of Fourier-transformed modulation of ambient current
-    real   (kind=8), dimension(lenwfd)       , intent(inout) :: wfd    ! work array (FFT) for surf breaking
-    real   (kind=8), dimension(lenwft)       , intent(inout) :: wft    ! work array (FFT) for scattering
-    real   (kind=8), dimension(lensvd)       , intent(inout) :: wsavd  ! work array (FFT) for surf breaking
-    real   (kind=8), dimension(lensav)       , intent(inout) :: wsave  ! work array (FFT) for scattering
 
 !   Local variables
 
@@ -1346,18 +1323,18 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
     ! set all dissipation coeff to 0
 
-    dissc0(1:MDC,1:MSC,1:MDISP) = 0.
-    dissc1(1:MDC,1:MSC,1:MDISP) = 0.
+    SOURCE_BUDGET%dissc0(1:MDC,1:MSC,1:MDISP) = 0.
+    SOURCE_BUDGET%dissc1(1:MDC,1:MSC,1:MDISP) = 0.
 
     ! set all generation coeff to 0
 
-    genc0(1:MDC,1:MSC,1:MGENR) = 0.
-    genc1(1:MDC,1:MSC,1:MGENR) = 0.
+    SOURCE_BUDGET%genc0(1:MDC,1:MSC,1:MGENR) = 0.
+    SOURCE_BUDGET%genc1(1:MDC,1:MSC,1:MGENR) = 0.
 
     ! set all redistribution coeff to 0
 
-    redc0(1:MDC,1:MSC,1:MREDS) = 0.
-    redc1(1:MDC,1:MSC,1:MREDS) = 0.
+    SOURCE_BUDGET%redc0(1:MDC,1:MSC,1:MREDS) = 0.
+    SOURCE_BUDGET%redc1(1:MDC,1:MSC,1:MREDS) = 0.
 
     ! compute surf breaking
 
@@ -1367,9 +1344,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
        ! calculate the quasi-homogeneous surf breaking in every sweep for the
        ! first iteration and also compute the bulk dissipation
 
-       call SSURF ( etot  , hm    , qb    , smebrk, kteta , kmespc, spcsig, ac2   ,  &
-                    imatra, imatda, idcmin, idcmax, plwbrk,                          &
-                    isstop, dissc0, dissc1, disbk , iter  , sigm_wam , IGP)
+       call SSURF (etot, hm, qb, smebrk, kteta, kmespc, spcsig, ac2, imatra, imatda, WINDOW, plwbrk, SOURCE_BUDGET%dissc0, SOURCE_BUDGET%dissc1, disbk, iter, sigm_wam, IGP)
 
        ! calculate the QC surf breaking for all sweeps together from the
        ! second iteration onwards
@@ -1388,7 +1363,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
           if ( iter > 1 ) then
 
-             call SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, spcsig , IGP, &
+             call SWQCSURF ( memqcb, ac2, dep2, fft_workspace%cfd, fft_workspace%wfd, fft_workspace%wsavd, kwave, cgo, spcdir, spcsig , IGP, &
                              IGP, ix, iy)
 
           endif
@@ -1414,9 +1389,9 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
           ! first, perform discrete Fourier transforms of the modulations ...
 
-          if ( IQCM == 1 ) call SWQCDFT ( sigft, cgft, dep2, kwave(1,1), cgo(1,1), cft, rft, sft, wft, wsave, &
+          if ( IQCM == 1 ) call SWQCDFT ( fft_workspace%sigft, fft_workspace%cgft, dep2, kwave(1,1), cgo(1,1), fft_workspace%cft, fft_workspace%rft, fft_workspace%sft, fft_workspace%wft, fft_workspace%wsave, &
                                          IGP, ix, iy )
-          if ( ICUR == 1 ) call SWQCUFT ( uxft , uyft, dep2, ux2       , uy2     , cft, rft, sft, wft, wsave, &
+          if ( ICUR == 1 ) call SWQCUFT ( fft_workspace%uxft , fft_workspace%uyft, dep2, ux2       , uy2     , fft_workspace%cft, fft_workspace%rft, fft_workspace%sft, fft_workspace%wft, fft_workspace%wsave, &
                                          IGP, ix, iy )
           if ( stpnow() ) return
 
@@ -1432,7 +1407,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
           ! ... and finally, compute the scatterer
 
-          call SWQCSCAT ( memqcm, W(1,1,1), dwdx, dwdy, sigft, cgft, uxft, uyft, dep2, kwave, cgo, spcdir, spcsig , IGP)
+          call SWQCSCAT ( memqcm, W(1,1,1), dwdx, dwdy, fft_workspace%sigft, fft_workspace%cgft, fft_workspace%uxft, fft_workspace%uyft, dep2, kwave, cgo, spcdir, spcsig , IGP)
 
        endif
 
@@ -1441,7 +1416,7 @@ subroutine QCSOURCE ( imatra, imatda, iter  , ac2   , dep2  , ux2   , uy2   , &
 
     ! get source term values for the bin that fall within a sweep and store in right hand vector
 
-    call FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbrk, redc0, dissc0 , IGP)
+    call FILQCM (imatra, WINDOW, memqcm, memqcb, plqcs, plwbrk, SOURCE_BUDGET%redc0, SOURCE_BUDGET%dissc0, IGP)
 
 end subroutine QCSOURCE
 
@@ -3244,7 +3219,7 @@ subroutine SWQCSURF ( memqcb, ac2, dep2, cfd, wfd, wsavd, kwave, cgo, spcdir, sp
 
 end subroutine SWQCSURF
 
-subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbrk, redc0, dissc0 ,IGP)
+subroutine FILQCM (imatra, WINDOW, memqcm, memqcb, plqcs, plwbrk, redc0, dissc0, IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -3298,13 +3273,12 @@ subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbr
 
     implicit none(type, external)
 
+   TYPE(spectral_window_t) :: WINDOW
+
 !   Argument variables
 
    INTEGER, INTENT(IN) :: IGP
-    integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
 
-    integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
-    integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
 
     real, dimension(MDC,MSC,MDISP), intent(out) :: dissc0 ! dissipation coefficient as explicit part (meant for output)
     real, dimension(MDC,MSC)      , intent(out) :: imatra ! coefficients of right hand side of action balance equation
@@ -3333,9 +3307,9 @@ subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbr
 
     if ( IQCM > 0 ) then
 
-       do is = 1, isstop
+       do is = 1, WINDOW%ISSTOP
 
-          do iddum = idcmin(is), idcmax(is)
+          do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
              id = mod ( iddum - 1 + MDC , MDC ) + 1
 
              ! store the results in the array IMATRA
@@ -3350,10 +3324,10 @@ subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbr
        enddo
 
        if ( TESTFL .and. ITEST > 50 ) then
-          write (PRTEST,"(' FILQCM: ID_MIN ID_MAX MSC ISTOP :',4i6)") idcmin(1), idcmax(1), MSC, isstop
+          write (PRTEST,"(' FILQCM: ID_MIN ID_MAX MSC ISTOP :',4i6)") WINDOW%IDCMIN(1), WINDOW%IDCMAX(1), MSC, WINDOW%ISSTOP
           if ( ITEST > 100 ) then
-             do is = 1, isstop
-                do iddum = idcmin(is), idcmax(is)
+             do is = 1, WINDOW%ISSTOP
+                do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
                    id = mod ( iddum - 1 + MDC , MDC ) + 1
                    write (PRTEST,"(' FILQCM: IS ID MEMQCM() :',2i6,e12.4)") is, id, memqcm(id,is,IGP)
                 enddo
@@ -3367,9 +3341,9 @@ subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbr
 
     if ( ISURF > 0 .and. IGEN == 4 ) then
 
-       do is = 1, isstop
+       do is = 1, WINDOW%ISSTOP
 
-          do iddum = idcmin(is), idcmax(is)
+          do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
              id = mod ( iddum - 1 + MDC , MDC ) + 1
 
              ! store the results in the array IMATRA
@@ -3384,10 +3358,10 @@ subroutine FILQCM ( imatra, idcmin, idcmax, isstop, memqcm, memqcb, plqcs, plwbr
        enddo
 
        if ( TESTFL .and. ITEST > 50 ) then
-          write (PRTEST,"(' FILQCM: ID_MIN ID_MAX MSC ISTOP :',4i6)") idcmin(1), idcmax(1), MSC, isstop
+          write (PRTEST,"(' FILQCM: ID_MIN ID_MAX MSC ISTOP :',4i6)") WINDOW%IDCMIN(1), WINDOW%IDCMAX(1), MSC, WINDOW%ISSTOP
           if ( ITEST > 100 ) then
-             do is = 1, isstop
-                do iddum = idcmin(is), idcmax(is)
+             do is = 1, WINDOW%ISSTOP
+                do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
                    id = mod ( iddum - 1 + MDC , MDC ) + 1
                    write (PRTEST,"(' FILQCM: IS ID MEMQCB() :',2i6,e12.4)") is, id, memqcb(id,is,IGP)
                 enddo

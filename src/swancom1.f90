@@ -63,7 +63,9 @@ module swan_computation
    use swan_triad_state, only: triad_state_t
    use swan_snl4_tables, only: snl4_tables_t
    use swan_spectral_powers, only: spectral_powers_t
-   use swan_source_workspaces, only: thread_workspaces_t, wcap_workspace_t
+   use swan_source_workspaces, only: thread_workspaces_t, wcap_workspace_t, &
+      dia_workspace_t, fft_workspace_t, point_integrals_t, test_output_t, &
+      source_budget_t, iteration_cache_t, system_matrix_t
    use swan_time, only: CHTIME
    use swan_output_settings, only: ERRPTS
    implicit none(type, external)
@@ -896,7 +898,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    INTEGER :: INOCNV
    INTEGER :: INOCNT
 
-   REAL ::  DDX   ,DDY   ,ACCUR ,XIS   ,SNLC1 ,DAL1  ,DAL2  ,DAL3
+   REAL ::  DDX   ,DDY   ,ACCUR ,XIS
 
    LOGICAL :: PRECOR, SETUP_CONVERGED
 
@@ -928,11 +930,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    &AC1(MDC,MSC,MCGRD)     ,&
    &COMPDA(MCGRD,MCMVAR)
 
-   REAL WWAWG(8), WWSWG(8)
-
-   INTEGER, DIMENSION(:), ALLOCATABLE :: IDCMIN, IDCMAX,&
+   INTEGER, DIMENSION(:), ALLOCATABLE, TARGET :: IDCMIN, IDCMAX,&
    &ISCMIN, ISCMAX
-   INTEGER WWINT(24)
+   TYPE(spectral_window_t) :: SPECTRAL_WINDOW
+   TYPE(iteration_cache_t) :: ITERATION_CACHE
 
    REAL, DIMENSION(:,:,:), ALLOCATABLE :: CAX,CAY,CAX1,CAY1,&
    &CAS,CAD
@@ -941,17 +942,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
    REAL, DIMENSION(:,:), ALLOCATABLE :: ALIMW
 
-   REAL, DIMENSION(:,:), ALLOCATABLE :: UE,SA1,SA2,SFNL
-
-   REAL, DIMENSION(:,:), ALLOCATABLE :: DA1C,DA1P,DA1M,&
-   &DA2C,DA2P,DA2M,DSNL
-
-   REAL, DIMENSION(:,:,:), ALLOCATABLE :: MEMNL4
-   REAL, DIMENSION(:,:,:), ALLOCATABLE :: MEMBRG
-   REAL, DIMENSION(:,:,:), ALLOCATABLE :: MEMQCM
-   REAL, DIMENSION(:,:,:), ALLOCATABLE :: MEMQCB
-   REAL, DIMENSION(:,:,:), ALLOCATABLE :: MEMSINA
-   REAL, DIMENSION(:,:,:), ALLOCATABLE :: MEMSINB
+   REAL, DIMENSION(:,:,:), ALLOCATABLE, TARGET :: MEMNL4
+   REAL, DIMENSION(:,:,:), ALLOCATABLE, TARGET :: MEMBRG
+   REAL, DIMENSION(:,:,:), ALLOCATABLE, TARGET :: MEMQCM
+   REAL, DIMENSION(:,:,:), ALLOCATABLE, TARGET :: MEMQCB
+   REAL, DIMENSION(:,:,:), ALLOCATABLE, TARGET :: MEMSINA
+   REAL, DIMENSION(:,:,:), ALLOCATABLE, TARGET :: MEMSINB
 
    REAL, DIMENSION(:,:,:), ALLOCATABLE :: OBREDF
    REAL, DIMENSION(:,:), ALLOCATABLE :: REFLSO
@@ -997,22 +993,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
    INTEGER IERR
 
-!     arrays for QC scattering
-   COMPLEX(KIND=8), DIMENSION(:,:)  , ALLOCATABLE :: CFT
-   REAL   (KIND=8), DIMENSION(:,:)  , ALLOCATABLE :: RFT
-   REAL   (KIND=8), DIMENSION(:,:)  , ALLOCATABLE :: SFT
-   REAL   (KIND=8), DIMENSION(:)    , ALLOCATABLE :: WFT
-   REAL   (KIND=8), DIMENSION(:)    , ALLOCATABLE :: WSAVE
-
-   REAL           , DIMENSION(:,:,:), ALLOCATABLE :: CGFT
-   REAL           , DIMENSION(:,:,:), ALLOCATABLE :: SIGFT
-   COMPLEX        , DIMENSION(:,:)  , ALLOCATABLE :: UXFT
-   COMPLEX        , DIMENSION(:,:)  , ALLOCATABLE :: UYFT
-
-!     arrays for QC surf breaking
-   COMPLEX(KIND=8), DIMENSION(:,:)  , ALLOCATABLE :: CFD
-   REAL   (KIND=8), DIMENSION(:)    , ALLOCATABLE :: WFD
-   REAL   (KIND=8), DIMENSION(:)    , ALLOCATABLE :: WSAVD
+!     The QC-scattering and surf-breaking Fourier arrays live in the
+!     per-thread FFT workspace; SWCOMP only keeps the error status here.
 
 !-----------------------------------------------------------------------
 !                      End of variable definition
@@ -1039,16 +1021,35 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     *** weight factors for nonlinear 4 wave interactions     ***
 !
    IF (timing_enabled) CALL SWTSTA(135)
-   IF ( IQUAD.EQ.4 ) THEN
-!        --- cache the MDIA coefficients once and set the widest
-!            spectral range over all quadruplets
-      CALL SWPRE4W (XIS   ,SNLC1 ,&
-      &DAL1  ,DAL2  ,DAL3  ,SPCSIG,&
-      &WWINT ,WWAWG ,WWSWG, SNL4 )
-   ELSE IF ( IQUAD.GE.1 ) THEN
-      CALL FAC4WW (XIS   ,SNLC1 ,&
-      &DAL1  ,DAL2  ,DAL3  ,SPCSIG,&
-      &WWINT ,WWAWG ,WWSWG, SNL4 )
+   IF ( IQUAD.GE.1 ) THEN
+!        --- cache the DIA coefficients once in every thread workspace.
+!            The tables are read-only inside the parallel region (SOURCE
+!            works on its own WWINTL/WWINT4 copies), so filling all
+!            workspaces sequentially before the region preserves the
+!            single shared calculation bit for bit.
+      DO II = 1, THREAD_COUNT
+         IF ( IQUAD.EQ.4 ) THEN
+!            --- cache the MDIA coefficients once and set the widest
+!                spectral range over all quadruplets
+            CALL SWPRE4W (XIS,&
+            &THREAD_WORKSPACES%STRUCTURED(II)%SOURCE%DIA%SNLC1 ,&
+            &THREAD_WORKSPACES%STRUCTURED(II)%SOURCE%DIA%DAL1  ,&
+            &THREAD_WORKSPACES%STRUCTURED(II)%SOURCE%DIA%DAL2  ,&
+            &THREAD_WORKSPACES%STRUCTURED(II)%SOURCE%DIA%DAL3  ,SPCSIG,&
+            &THREAD_WORKSPACES%STRUCTURED(II)%SOURCE%DIA%WWINT ,&
+            &THREAD_WORKSPACES%STRUCTURED(II)%SOURCE%DIA%WWAWG ,&
+            &THREAD_WORKSPACES%STRUCTURED(II)%SOURCE%DIA%WWSWG, SNL4 )
+         ELSE
+            CALL FAC4WW (XIS,&
+            &THREAD_WORKSPACES%STRUCTURED(II)%SOURCE%DIA%SNLC1 ,&
+            &THREAD_WORKSPACES%STRUCTURED(II)%SOURCE%DIA%DAL1  ,&
+            &THREAD_WORKSPACES%STRUCTURED(II)%SOURCE%DIA%DAL2  ,&
+            &THREAD_WORKSPACES%STRUCTURED(II)%SOURCE%DIA%DAL3  ,SPCSIG,&
+            &THREAD_WORKSPACES%STRUCTURED(II)%SOURCE%DIA%WWINT ,&
+            &THREAD_WORKSPACES%STRUCTURED(II)%SOURCE%DIA%WWAWG ,&
+            &THREAD_WORKSPACES%STRUCTURED(II)%SOURCE%DIA%WWSWG, SNL4 )
+         ENDIF
+      ENDDO
    ENDIF
    IF (timing_enabled) CALL SWTSTO(135)
 !
@@ -1264,11 +1265,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$OMP PARALLEL DEFAULT(SHARED) &
 !$OMP& PRIVATE(ITER, SWPDIR, ISWP, IX, IY, II, IJ, IK, THREAD_INDEX) &
 !$OMP& PRIVATE(CAX, CAY, CAX1, CAY1, CAS, CAD, CGO, KWAVE, DMW) &
-!$OMP& PRIVATE(SIGFT, CGFT, UXFT, UYFT, CFT, RFT, SFT, WFT, WSAVE) &
-!$OMP& PRIVATE(CFD, WFD, WSAVD) &
 !$OMP& PRIVATE(SWMATR, LSWMAT, ALIMW, GROWW, IDCMIN, IDCMAX) &
-!$OMP& PRIVATE(ISCMIN, ISCMAX, UE, SA1, SA2, SFNL) &
-!$OMP& PRIVATE(DA1C, DA1P, DA1M, DA2C, DA2P, DA2M, DSNL) &
+!$OMP& PRIVATE(ISCMIN, ISCMAX, SPECTRAL_WINDOW, ITERATION_CACHE) &
 !$OMP& PRIVATE(ANYWND, OBREDF) &
 !$OMP& PRIVATE(REFLSO, INOCNT, FBD) &
 !$OMP& PRIVATE(IP,IDC,ISC) &
@@ -1292,6 +1290,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
    THREAD_INDEX = 1
 !$ THREAD_INDEX = OMP_GET_THREAD_NUM() + 1
+   ITERATION_CACHE%MEMNL4 => MEMNL4
+   ITERATION_CACHE%MEMBRG => MEMBRG
+   ITERATION_CACHE%MEMQCM => MEMQCM
+   ITERATION_CACHE%MEMQCB => MEMQCB
+   ITERATION_CACHE%MEMSINA => MEMSINA
+   ITERATION_CACHE%MEMSINB => MEMSINB
 !
 !----------------------------------------------------------------------
 !     Begin allocate private arrays.
@@ -1318,44 +1322,48 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    ALLOCATE(IDCMAX(MSC))
    ALLOCATE(ISCMIN(MDC))
    ALLOCATE(ISCMAX(MDC))
+   SPECTRAL_WINDOW%IDCMIN => IDCMIN
+   SPECTRAL_WINDOW%IDCMAX => IDCMAX
+   SPECTRAL_WINDOW%ISCMIN => ISCMIN
+   SPECTRAL_WINDOW%ISCMAX => ISCMAX
 !     *** quadruplets ***
    IF ( IQUAD .GE. 1) THEN
-      ALLOCATE(UE(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
-      ALLOCATE(SA1(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
-      ALLOCATE(SA2(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
-      ALLOCATE(SFNL(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%UE(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%SA1(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%SA2(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%SFNL(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
       IF ( IQUAD .EQ. 1 ) THEN
 !         *** semi-implicit calculation ***
-         ALLOCATE(DA1C(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
-         ALLOCATE(DA1P(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
-         ALLOCATE(DA1M(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
-         ALLOCATE(DA2C(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
-         ALLOCATE(DA2P(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
-         ALLOCATE(DA2M(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
-         ALLOCATE(DSNL(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
+         ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA1C(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
+         ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA1P(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
+         ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA1M(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
+         ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA2C(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
+         ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA2P(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
+         ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA2M(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
+         ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DSNL(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
       ELSE
 !       *** iquad > 1 ***
-         ALLOCATE(DA1C(0,0))
-         ALLOCATE(DA1P(0,0))
-         ALLOCATE(DA1M(0,0))
-         ALLOCATE(DA2C(0,0))
-         ALLOCATE(DA2P(0,0))
-         ALLOCATE(DA2M(0,0))
-         ALLOCATE(DSNL(0,0))
+         ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA1C(0,0))
+         ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA1P(0,0))
+         ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA1M(0,0))
+         ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA2C(0,0))
+         ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA2P(0,0))
+         ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA2M(0,0))
+         ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DSNL(0,0))
       END IF
    ELSE
 !       *** no quadruplets ***
-      ALLOCATE(UE(0,0))
-      ALLOCATE(SA1(0,0))
-      ALLOCATE(SA2(0,0))
-      ALLOCATE(SFNL(0,0))
-      ALLOCATE(DA1C(0,0))
-      ALLOCATE(DA1P(0,0))
-      ALLOCATE(DA1M(0,0))
-      ALLOCATE(DA2C(0,0))
-      ALLOCATE(DA2P(0,0))
-      ALLOCATE(DA2M(0,0))
-      ALLOCATE(DSNL(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%UE(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%SA1(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%SA2(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%SFNL(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA1C(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA1P(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA1M(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA2C(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA2P(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA2M(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DSNL(0,0))
    END IF
 !     *** triads ***
    IF ( ITRIAD.GT.0 ) THEN
@@ -1399,16 +1407,16 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
       ! allocate work arrays for FFT
 
-      ALLOCATE(RFT(NCOZ,NCOZ))
-      ALLOCATE(SFT(NCOZ,NCOZ))
-      ALLOCATE(CFT(NCOZ,NCOZ))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%RFT(NCOZ,NCOZ))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%SFT(NCOZ,NCOZ))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%CFT(NCOZ,NCOZ))
 
-      ALLOCATE(WFT  (LENWFT))
-      ALLOCATE(WSAVE(LENSAV))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%WFT(LENWFT))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%WSAVE(LENSAV))
 
       ! initialization FFT
 
-      CALL CFFT2I ( NCOZ, NCOZ, WSAVE, LENSAV, IERR )
+      CALL CFFT2I ( NCOZ, NCOZ, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%WSAVE, LENSAV, IERR )
       IF ( IERR /= 0 ) THEN
          CHARS(1) = NUMSTR(IERR,RNAN,'(I6)')
          CALL TXPBLA(CHARS(1),IF1,IL1)
@@ -1421,20 +1429,20 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
       ! allocate Fourier-transformed modulations of
       ! relative frequency, group velocity and ambient current
 
-      ALLOCATE(SIGFT(NCOZ,NCOZ,MSC))
-      ALLOCATE(CGFT (NCOZ,NCOZ,MSC))
-      ALLOCATE(UXFT (NCOZ,NCOZ)    )
-      ALLOCATE(UYFT (NCOZ,NCOZ)    )
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%SIGFT(NCOZ,NCOZ,MSC))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%CGFT(NCOZ,NCOZ,MSC))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%UXFT(NCOZ,NCOZ)    )
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%UYFT(NCOZ,NCOZ)    )
    ELSE
-      ALLOCATE(RFT  (0,0))
-      ALLOCATE(SFT  (0,0))
-      ALLOCATE(CFT  (0,0))
-      ALLOCATE(WFT  (0))
-      ALLOCATE(WSAVE(0))
-      ALLOCATE(SIGFT(0,0,0))
-      ALLOCATE(CGFT (0,0,0))
-      ALLOCATE(UXFT (0,0))
-      ALLOCATE(UYFT (0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%RFT(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%SFT(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%CFT(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%WFT(0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%WSAVE(0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%SIGFT(0,0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%CGFT(0,0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%UXFT(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%UYFT(0,0))
    ENDIF
 
 !     *** arrays for QC surf breaking
@@ -1443,14 +1451,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
       ! allocate work arrays for FFT
 
-      ALLOCATE(CFD(MYD,MXD))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%CFD(MYD,MXD))
 
-      ALLOCATE(WFD  (LENWFD))
-      ALLOCATE(WSAVD(LENSVD))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%WFD(LENWFD))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%WSAVD(LENSVD))
 
       ! initialization FFT
 
-      CALL CFFT2I ( MYD, MXD, WSAVD, LENSVD, IERR )
+      CALL CFFT2I ( MYD, MXD, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%WSAVD, LENSVD, IERR )
       IF ( IERR /= 0 ) THEN
          CHARS(1) = NUMSTR(IERR,RNAN,'(I6)')
          CALL TXPBLA(CHARS(1),IF1,IL1)
@@ -1461,9 +1469,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
       ENDIF
 
    ELSE
-      ALLOCATE(CFD  (0,0))
-      ALLOCATE(WFD  (0))
-      ALLOCATE(WSAVD(0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%CFD(0,0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%WFD(0))
+      ALLOCATE(THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%WSAVD(0))
    ENDIF
 
 !----------------------------------------------------------------------
@@ -1486,25 +1494,25 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    SWMATR = 0.
    ALIMW  = 0.
    IF ( IQUAD.GE.1 ) THEN
-      UE   = 0.
-      SA1  = 0.
-      SA2  = 0.
-      SFNL = 0.
+      THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%UE   = 0.
+      THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%SA1  = 0.
+      THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%SA2  = 0.
+      THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%SFNL = 0.
       IF ( IQUAD.EQ.1 ) THEN
-         DA1C = 0.
-         DA1P = 0.
-         DA1M = 0.
-         DA2C = 0.
-         DA2P = 0.
-         DA2M = 0.
-         DSNL = 0.
+         THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA1C = 0.
+         THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA1P = 0.
+         THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA1M = 0.
+         THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA2C = 0.
+         THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA2P = 0.
+         THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DA2M = 0.
+         THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%DSNL = 0.
       END IF
    END IF
    IF ( IQCM.GT.0 ) THEN
-      SIGFT = 0.
-      CGFT  = 0.
-      UXFT  = (0.,0.)
-      UYFT  = (0.,0.)
+      THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%SIGFT = 0.
+      THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%CGFT  = 0.
+      THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%UXFT  = (0.,0.)
+      THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%UYFT  = (0.,0.)
    ENDIF
 !     *** triads ***
    IF (ITRIAD.EQ.1 .OR. ITRIAD.EQ.11) THEN
@@ -1929,9 +1937,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     Execute loop over rows of spatial grid in a
 !     pipelined parallel manner within OpenMP environment
 !----------------------------------------------------------------------
-!$OMP DO SCHEDULE(STATIC,1) &
-!$OMP& FIRSTPRIVATE(WWINT) &
-!$OMP& LASTPRIVATE(WWINT)
+!$OMP DO SCHEDULE(STATIC,1)
+!
+!            The WWINT counter table is read-only here: SOURCE computes on
+!            local WWINTL/WWINT4 copies and each thread owns its workspace
+!            copy, so the former FIRSTPRIVATE/LASTPRIVATE pair was redundant
+!            synchronization.
 !
             DO JDUM = SWEEP_LAYOUT%outer_first, SWEEP_LAYOUT%outer_last, &
                SWEEP_LAYOUT%outer_step
@@ -1971,42 +1982,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$                         END IF
 !
                            IF (timing_enabled) CALL SWTSTA(104)
-                           CALL SWOMPU (SWPDIR,KSX              ,KSY              ,&
-                           &IX               ,IY               ,DDX              ,&
-                           &DDY              ,default_time_context%DT               ,SNLC1            ,&
-                           &DAL1             ,DAL2             ,DAL3             ,&
-                           &XIS              ,SWTSDA           ,INOCNT           ,&
-                           &AC2              ,COMPDA           ,SPCDIR           ,&
-                           &SPCSIG           ,XYTST            ,ITER             ,&
-                           &CGO              ,&
-                           &CAX              ,CAY              ,CAS              ,&
-                           &CAD              ,SWMATR           ,LSWMAT           ,&
-                           &KWAVE            ,DMW              ,&
-                           &ALIMW            ,GROWW                              ,&
-                           &UE               ,SA1              ,SA2              ,&
-                           &DA1C             ,DA1P             ,DA1M             ,&
-                           &DA2C             ,DA2P             ,DA2M             ,&
-                           &SFNL             ,DSNL             ,MEMNL4           ,&
-                           &QTL1             ,QTL2             ,&
-                           &IDCMIN           ,IDCMAX           ,&
-                           &WWINT            ,WWAWG            ,WWSWG            ,&
-                           &ISCMIN           ,ISCMAX           ,&
-                           &ANYWND           ,AC1              ,IT               ,&
-                           &XCGRID           ,YCGRID           ,&
-                           &KGRPNT           ,CROSS            ,&
-                           &OBREDF           ,REFLSO           ,&
-                           &FBD              ,MEMBRG           ,&
-                           &SIGFT            ,CGFT             ,UXFT             ,&
-                           &UYFT             ,CFT              ,RFT              ,&
-                           &SFT              ,WFT              ,WSAVE            ,&
-                           &CFD              ,WFD              ,WSAVD            ,&
-                           &MEMQCM           ,MEMQCB           ,&
-                           &ISLMIN           ,NFLIM            ,NRSCAL           ,&
-                           &MEMSINA          ,MEMSINB          ,&
-                           &CAX1             ,CAY1             ,DIFFR,&
-                           &TRIADS           ,SNL4             ,SPECTRAL_POWERS,&
-                           &THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%WCAP&
-                           &)
+                           CALL SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, default_time_context%DT, XIS, SWTSDA, INOCNT, AC2, COMPDA, SPCDIR, SPCSIG, XYTST, ITER, CGO, CAX, CAY, CAS, CAD, SWMATR, LSWMAT, KWAVE, DMW, ALIMW, GROWW, ITERATION_CACHE, QTL1, QTL2, SPECTRAL_WINDOW, ANYWND, AC1, IT, XCGRID, YCGRID, KGRPNT, CROSS, OBREDF, REFLSO, FBD, ISLMIN, NFLIM, NRSCAL, CAX1, CAY1, DIFFR, TRIADS, SNL4, SPECTRAL_POWERS, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%WCAP, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT)
                            IF (timing_enabled) CALL SWTSTO(104)
                            IF (mpi_backend_enabled) THEN
                               IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
@@ -2300,17 +2276,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   DEALLOCATE(CAX1)
                   DEALLOCATE(CAY1)
                   DEALLOCATE(ALIMW)
-                  DEALLOCATE(UE)
-                  DEALLOCATE(SA1)
-                  DEALLOCATE(SA2)
-                  DEALLOCATE(SFNL)
-                  DEALLOCATE(DA1C)
-                  DEALLOCATE(DA1P)
-                  DEALLOCATE(DA1M)
-                  DEALLOCATE(DA2C)
-                  DEALLOCATE(DA2P)
-                  DEALLOCATE(DA2M)
-                  DEALLOCATE(DSNL)
+                  CALL THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA%RELEASE()
                   DEALLOCATE(QTL1)
                   DEALLOCATE(QTL2)
                   DEALLOCATE(OBREDF)
@@ -2320,18 +2286,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   DEALLOCATE(FBD)
                   DEALLOCATE(SWMATR)
                   DEALLOCATE(LSWMAT)
-                  DEALLOCATE(SIGFT)
-                  DEALLOCATE(CGFT)
-                  DEALLOCATE(UXFT)
-                  DEALLOCATE(UYFT)
-                  DEALLOCATE(CFT)
-                  DEALLOCATE(RFT)
-                  DEALLOCATE(SFT)
-                  DEALLOCATE(WFT)
-                  DEALLOCATE(WSAVE)
-                  DEALLOCATE(CFD)
-                  DEALLOCATE(WFD)
-                  DEALLOCATE(WSAVD)
+                  CALL THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT%RELEASE()
                   IF (timing_enabled) CALL SWTSTO(101)
 !----------------------------------------------------------------------
 !     End deallocate private arrays.
@@ -2409,40 +2364,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !************************************************************************
 
-               SUBROUTINE SWOMPU (SWPDIR   ,KSX      ,KSY      ,&
-               &IX       ,IY       ,DDX      ,&
-               &DDY      ,DT       ,SNLC1    ,&
-               &DAL1     ,DAL2     ,DAL3     ,&
-               &XIS      ,SWTSDA   ,INOCNV   ,&
-               &AC2      ,COMPDA   ,SPCDIR   ,&
-               &SPCSIG   ,XYTST    ,ITER     ,&
-               &CGO      ,&
-               &CAX      ,CAY      ,CAS      ,&
-               &CAD      ,SWMATR   ,LSWMAT   ,&
-               &KWAVE    ,DMW      ,&
-               &ALIMW    ,GROWW              ,&
-               &UE       ,SA1      ,SA2      ,&
-               &DA1C     ,DA1P     ,DA1M     ,&
-               &DA2C     ,DA2P     ,DA2M     ,&
-               &SFNL     ,DSNL     ,MEMNL4   ,&
-               &QTL1     ,QTL2     ,&
-               &IDCMIN   ,IDCMAX   ,&
-               &WWINT    ,WWAWG    ,WWSWG    ,&
-               &ISCMIN   ,ISCMAX   ,&
-               &ANYWND   ,AC1      ,IT       ,&
-               &XCGRID   ,YCGRID   ,&
-               &KGRPNT   ,CROSS    ,&
-               &OBREDF   ,REFLSO   ,&
-               &FBD      ,MEMBRG   ,&
-               &SIGFT    ,CGFT     ,UXFT     ,&
-               &UYFT     ,CFT      ,RFT      ,&
-               &SFT      ,WFT      ,WSAVE    ,&
-               &CFD      ,WFD      ,WSAVD    ,&
-               &MEMQCM   ,MEMQCB   ,&
-               &ISLMIN   ,NFLIM    ,NRSCAL   ,&
-               &MEMSINA  ,MEMSINB  ,&
-               &CAX1,CAY1,DIFFR,TRIADS,SNL4,SPECTRAL_POWERS,WCAP_WORKSPACE&
-               &)
+               SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, AC2, COMPDA, SPCDIR, SPCSIG, XYTST, ITER, CGO, CAX, CAY, CAS, CAD, SWMATR, LSWMAT, KWAVE, DMW, ALIMW, GROWW, ITERATION_CACHE, QTL1, QTL2, WINDOW, ANYWND, AC1, IT, XCGRID, YCGRID, KGRPNT, CROSS, OBREDF, REFLSO, FBD, ISLMIN, NFLIM, NRSCAL, CAX1, CAY1, DIFFR, TRIADS, SNL4, SPECTRAL_POWERS, WCAP_WORKSPACE, DIA_WORKSPACE, FFT_WORKSPACE)
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_services, ONLY: SWTRCF
    USE swan_propagation, ONLY: ADDDIS, DSPHER, SPREDT, SPROSD, SPROXY, SWAPAR, SWGEOM, SWPSEL
@@ -2467,6 +2389,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE M_PARALL
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
+
+                  TYPE(iteration_cache_t) :: ITERATION_CACHE
+                  TYPE(point_integrals_t) :: POINT_INTEGRALS
+                  TYPE(test_output_t) :: TEST_OUTPUT
+                  TYPE(source_budget_t) :: SOURCE_BUDGET
+                  TYPE(system_matrix_t) :: SYSTEM_MATRIX
 !  Thread-local stencil scratch. SWOMPU runs inside the solver's OpenMP
 !  region, so one thread's grid point must never be visible to another
 !  through module storage. Every consumer below receives these explicitly.
@@ -2478,6 +2406,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
     TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
     TYPE(spectral_powers_t), INTENT(IN) :: SPECTRAL_POWERS
     TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
+    TYPE(dia_workspace_t), INTENT(INOUT) :: DIA_WORKSPACE
+    TYPE(fft_workspace_t), INTENT(INOUT) :: FFT_WORKSPACE
 
 
 !   --|-----------------------------------------------------------|--
@@ -2877,31 +2807,27 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   INTEGER  IC    ,IX    ,IY    ,IS    ,SWPDIR,&
                   &KSX   ,KSY   ,&
-                  &IDWMIN,IDWMAX,IDTOT ,ISTOT ,IDDLOW,IDDTOP,&
-                  &ISSTOP,INOCNV
+                  &IDTOT ,ISTOT ,INOCNV
                   INTEGER  LINK(MICMAX)
 
-                  REAL     DDX   ,DDY   ,&
-                  &ETOT  ,AC2TOT,ABRBOT,HM    ,HS    ,QBLOC ,&
-                  &SMESPC,KMESPC,ETOTW ,WIND10,FPM   ,&
-                  &THETAW,SNLC1 ,DAL1  ,DAL2  ,DAL3  ,XIS   ,&
-                  &UFRIC ,SMEBRK,KTETA
+                  REAL :: DDX, DDY, AC2TOT, THETAW, XIS, UFRIC
+                  REAL, TARGET :: ABRBOT, KMESPC, SMESPC, HS, ETOT, QBLOC
+                  REAL, TARGET :: HM, FPM, WIND10, ETOTW, SMEBRK, KTETA
                   REAL(KIND=8) DT
 
                   LOGICAL  INSIDE
                   LOGICAL  LPREDT
 
-                  INTEGER :: XYTST(2*NPTST) ,IDCMIN(MSC)
-                  INTEGER :: IDCMAX(MSC)    ,ISCMIN(MDC)    ,ISCMAX(MDC)
-                  INTEGER :: WWINT(*)
+                  INTEGER :: XYTST(2*NPTST)
                   INTEGER :: KGRPNT(MXC,MYC)
                   INTEGER :: CROSS(2,MCGRD)
+                  TYPE(spectral_window_t) :: WINDOW
 
 !     *** number of arrays for SWAN ***
 
                   REAL  :: AC2(MDC,MSC,MCGRD)
                   REAL  :: AC1(MDC,MSC,MCGRD)
-                  REAL  :: COMPDA(MCGRD,MCMVAR)
+                  REAL, TARGET :: COMPDA(MCGRD,MCMVAR)
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint
                   REAL  :: CGO(MSC,MICMAX)          ,&
                   &CAX(MDC,MSC,MICMAX)      ,&
@@ -2913,33 +2839,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   REAL  :: ALIMW(MDC,MSC)
 !              Since the logical piece of SWMATR was removed, the
 !              dimensions of SWMATR are now MSWMATR not MSWMAT
-                  REAL  :: SWMATR(MDC,MSC,MSWMATR)
+                  REAL, TARGET :: SWMATR(MDC,MSC,MSWMATR)
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint
-                  REAL  :: KWAVE(MSC,MICMAX), DMW(MSC,MICMAX)    ,&
-                  &UE(MSC4MI:MSC4MA , MDC4MI:MDC4MA )    ,&
-                  &SA1(MSC4MI:MSC4MA , MDC4MI:MDC4MA )   ,&
-                  &SA2(MSC4MI:MSC4MA , MDC4MI:MDC4MA )   ,&
-                  &DA1C(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-                  &DA1P(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-                  &DA1M(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-                  &DA2C(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-                  &DA2P(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-                  &DA2M(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-                  &SFNL(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-                  &DSNL(MSC4MI:MSC4MA , MDC4MI:MDC4MA )  ,&
-                  &MEMNL4(MDC,MSC,MCGRD)                 ,&
-                  &MEMBRG(MDC,MSC,MCGRD)                 ,&
-                  &MEMQCM(MDC,MSC,MCGRD)                 ,&
-                  &MEMQCB(MDC,MSC,MCGRD)                 ,&
-                  &MEMSINA(MDC,MSC,MCGRD)                ,&
-                  &MEMSINB(MDC,MSC,MCGRD)                ,&
-                  &SWTSDA(MDC,MSC,NPTSTA,MTSVAR)         ,&
-                  &WWAWG(*)                              ,&
-                  &WWSWG(*)                              ,&
-                  &QTL1(:,:) ,QTL2(:,:)                  ,&
-                  &RDX(MICMAX)   ,RDY(MICMAX)            ,&
-                  &OBREDF(MDC,MSC,2)                     ,&
-                  &REFLSO(MDC,MSC)
+                  REAL :: KWAVE(MSC,MICMAX), DMW(MSC,MICMAX), QTL1(:,:), QTL2(:,:), RDX(MICMAX), RDY(MICMAX), OBREDF(MDC,MSC,2), REFLSO(MDC,MSC)
+                  REAL, TARGET :: SWTSDA(MDC,MSC,NPTSTA,MTSVAR)
                   REAL  :: FBD(MDC,MDC,MSC)
                   REAL  :: URMSTOP(MCGRD)
 
@@ -2948,38 +2851,63 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   INTEGER :: ISLMIN(MCGRD), NFLIM(MCGRD), NRSCAL(MCGRD)
 
-!     *** arrays for QC scattering ***
-!
-!     CGFT : Fourier-transformed modulation of group velocity
-!     SIGFT: Fourier-transformed modulation of intrinsic frequency
-!     UXFT : u-component of Fourier-transformed modulation of ambient current
-!     UYFT : v-component of Fourier-transformed modulation of ambient current
-!
-!     CFT  : Fourier coefficients (FFT)
-!     RFT  : input data (FFT)
-!     SFT  : input data (FFT)
-!     WFT  : work array (FFT)
-!     WSAVE: work array (FFT)
-
-                  REAL            :: CGFT(NCOZ,NCOZ,MSC), SIGFT(NCOZ,NCOZ,MSC)
-                  COMPLEX         :: UXFT(NCOZ,NCOZ), UYFT(NCOZ,NCOZ)
-                  COMPLEX(KIND=8) :: CFT(NCOZ,NCOZ)
-                  REAL   (KIND=8) :: RFT(NCOZ,NCOZ), SFT(NCOZ,NCOZ),&
-                  &WFT(LENWFT), WSAVE(LENSAV)
-
-!     *** arrays for QC surf breaking ***
-!
-!     CFD  : Fourier coefficients (FFT)
-!     WFD  : work array (FFT)
-!     WSAVD: work array (FFT)
-
-                  COMPLEX(KIND=8) :: CFD(MYD,MXD)
-                  REAL   (KIND=8) :: WFD(LENWFD), WSAVD(LENSVD)
+!     The QC-scattering and surf-breaking Fourier arrays arrive as the
+!     per-thread FFT workspace; see swan_source_workspaces.
 
                   INTEGER, SAVE :: IENT = 0
                   INTEGER NLINK, ILINK, II, INDEX, ID, IDC, ISC,&
                   &ID_MIN, ID_MAX, IDDUM
                   REAL SP, TEMP
+
+                  POINT_INTEGRALS%ABRBOT => ABRBOT
+                  POINT_INTEGRALS%KMESPC => KMESPC
+                  POINT_INTEGRALS%SMESPC => SMESPC
+                  POINT_INTEGRALS%HS => HS
+                  POINT_INTEGRALS%ETOT => ETOT
+                  POINT_INTEGRALS%QBLOC => QBLOC
+                  POINT_INTEGRALS%HM => HM
+                  POINT_INTEGRALS%FPM => FPM
+                  POINT_INTEGRALS%WIND10 => WIND10
+                  POINT_INTEGRALS%ETOTW => ETOTW
+                  POINT_INTEGRALS%SMEBRK => SMEBRK
+                  POINT_INTEGRALS%KTETA => KTETA
+                  POINT_INTEGRALS%UBOT => COMPDA(:,JUBOT)
+                  POINT_INTEGRALS%USTAR => COMPDA(:,JUSTAR)
+                  POINT_INTEGRALS%ZELEN => COMPDA(:,JZEL)
+                  POINT_INTEGRALS%URSELL => COMPDA(:,JURSEL)
+                  POINT_INTEGRALS%TAUWV => COMPDA(:,JTAUW)
+                  POINT_INTEGRALS%BIPHAS => COMPDA(:,JBIPH)
+
+                  TEST_OUTPUT%PLWNDS => SWTSDA(:,:,:,JPWNDS)
+                  TEST_OUTPUT%PLWNDD => SWTSDA(:,:,:,JPWNDD)
+                  TEST_OUTPUT%PLWCAP => SWTSDA(:,:,:,JPWCAP)
+                  TEST_OUTPUT%PLBTFR => SWTSDA(:,:,:,JPBTFR)
+                  TEST_OUTPUT%PLSWEL => SWTSDA(:,:,:,JPSWEL)
+                  TEST_OUTPUT%PLWBRK => SWTSDA(:,:,:,JPWBRK)
+                  TEST_OUTPUT%PLNL4S => SWTSDA(:,:,:,JP4S)
+                  TEST_OUTPUT%PLNL4D => SWTSDA(:,:,:,JP4D)
+                  TEST_OUTPUT%PLVEGT => SWTSDA(:,:,:,JPVEGT)
+                  TEST_OUTPUT%PLTURB => SWTSDA(:,:,:,JPTURB)
+                  TEST_OUTPUT%PLMUD => SWTSDA(:,:,:,JPMUD)
+                  TEST_OUTPUT%PLICE => SWTSDA(:,:,:,JPICE)
+                  TEST_OUTPUT%PLBRAG => SWTSDA(:,:,:,JPBRAG)
+                  TEST_OUTPUT%PLTRI => SWTSDA(:,:,:,JPTRI)
+                  TEST_OUTPUT%TESTFL = TESTFL
+                  TEST_OUTPUT%IPTST = IPTST
+
+                  SOURCE_BUDGET%DISSC0 => SWMATR(:,:,JDIS0:JDIS0+MDISP-1)
+                  SOURCE_BUDGET%DISSC1 => SWMATR(:,:,JDIS1:JDIS1+MDISP-1)
+                  SOURCE_BUDGET%GENC0 => SWMATR(:,:,JGEN0:JGEN0+MGENR-1)
+                  SOURCE_BUDGET%GENC1 => SWMATR(:,:,JGEN1:JGEN1+MGENR-1)
+                  SOURCE_BUDGET%REDC0 => SWMATR(:,:,JRED0:JRED0+MREDS-1)
+                  SOURCE_BUDGET%REDC1 => SWMATR(:,:,JRED1:JRED1+MREDS-1)
+
+                  SYSTEM_MATRIX%IMATLA => SWMATR(:,:,JMATL)
+                  SYSTEM_MATRIX%IMATDA => SWMATR(:,:,JMATD)
+                  SYSTEM_MATRIX%IMATUA => SWMATR(:,:,JMATU)
+                  SYSTEM_MATRIX%IMATRA => SWMATR(:,:,JMATR)
+                  SYSTEM_MATRIX%IMAT5L => SWMATR(:,:,JMAT5)
+                  SYSTEM_MATRIX%IMAT6U => SWMATR(:,:,JMAT6)
 
                   IF (LTRACE) CALL STRACE (IENT,'SWOMPU')
 !     *** Get grid point numbers for points in computational stencil ***
@@ -3303,12 +3231,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     *** if a bin lies within the sweep considered       ***
 !
                   IF (timing_enabled) CALL SWTSTA(112)
-                  CALL SWPSEL (SWPDIR                            ,IDCMIN        ,&
-                  &IDCMAX          ,CAX              ,&
+                  CALL SWPSEL (SWPDIR                            ,WINDOW,&
+                  &CAX              ,&
                   &CAY             ,LSWMAT(1,1,JABIN),&
-                  &ISCMIN           ,&
-                  &ISCMAX          ,IDTOT            ,ISTOT         ,&
-                  &IDDLOW          ,IDDTOP           ,ISSTOP        ,&
+                  &IDTOT            ,ISTOT         ,&
                   &COMPDA(1,JDP2)  ,COMPDA(1,JVX2)   ,COMPDA(1,JVY2),&
                   &SPCDIR          ,RDX              ,RDY           ,&
                   &KGRPNT&
@@ -3327,7 +3253,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   &RDX            ,RDY            ,&
                   &CAX            ,CAY            ,&
                   &XCGRID         ,YCGRID         ,&
-                  &IDDLOW         ,IDDTOP         ,DIFFR&
+                  &WINDOW,DIFFR&
                   &,st_kc(1:5),st_ix(1),st_iy(1)&
                   &)
                   IF (timing_enabled) CALL SWTSTO(113)
@@ -3352,7 +3278,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       *** when there is no wind input                         ***
 
                      UFRIC = 1.E-15
-                     FPM   = 1.E-15
+                     POINT_INTEGRALS%fpm   = 1.E-15
                      IF ( IWIND .GE. 1 ) THEN
 
 !         *** compute the wind speed, mean wind direction, the    ***
@@ -3360,14 +3286,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !         *** minimum and maximum counters for active wind input  ***
 !
                         IF (timing_enabled) CALL SWTSTA(115)
-                        CALL WINDP1 (WIND10     ,THETAW     ,&
-                        &IDWMIN     ,IDWMAX     ,&
-                        &FPM        ,UFRIC      ,&
-                        &COMPDA(1,JWX2) ,COMPDA(1,JWY2) ,&
-                        &ANYWND     ,SPCDIR     ,&
-                        &COMPDA(1,JVX2) ,COMPDA(1,JVY2) ,SPCSIG ,AC2&
-                        &,SWMATR(1,1,JGEN0), KWAVE&
-                        &, st_kc(1), st_nm)
+                        CALL WINDP1 (POINT_INTEGRALS%wind10, THETAW, WINDOW, POINT_INTEGRALS%fpm, UFRIC, COMPDA(1,JWX2), COMPDA(1,JWY2), ANYWND, SPCDIR, COMPDA(1,JVX2), COMPDA(1,JVY2), SPCSIG, AC2, SWMATR(1,1,JGEN0), KWAVE, st_kc(1), st_nm)
                         IF (timing_enabled) CALL SWTSTO(115)
                         IF (IWIND.NE.4) COMPDA(st_kc(1),JUSTAR) = UFRIC
                      END IF
@@ -3407,8 +3326,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      prediction_pass: DO
                      IF (.NOT.postpone_prediction .AND. LPREDT) THEN
                         CALL SPREDT (SWPDIR           ,AC2               ,CAX       ,&
-                        &CAY              ,IDCMIN            ,IDCMAX    ,&
-                        &ISSTOP           ,LSWMAT(1,1,JABIN) ,&
+                        &CAY              ,WINDOW   ,&
+                        &LSWMAT(1,1,JABIN) ,&
                         &XCGRID           ,YCGRID            ,&
                         &RDX              ,RDY               ,OBREDF    ,st_kc(1)&
                         &,st_ix(1),st_iy(1),st_ix(2),st_iy(2)&
@@ -3420,23 +3339,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
                      IF (timing_enabled) CALL SWTSTA(116)
                      IF (.NOT.postpone_prediction) THEN
-                     CALL SINTGRL  (SPCDIR  ,KWAVE   ,AC2     ,&
-                     &COMPDA(1,JDP2)   ,QBLOC   ,COMPDA(1,JURSEL),&
-                     &COMPDA(1,JBIPH)  ,RDX     ,RDY     ,&
-                     &AC2TOT  ,ETOT    ,&
-                     &ABRBOT  ,COMPDA(1,JUBOT)  ,HS      ,&
-                     &COMPDA(1,JQB)    ,&
-                     &HM      ,KMESPC  ,SMEBRK  ,KTETA   ,&
-                     &COMPDA(1,JPBOT)  ,&
-                     &COMPDA(1,JBOTLV) ,COMPDA(1,JGAMMA) ,&
-                     &SWPDIR           ,&
-                     &URMSTOP          ,&
-                     &IDDLOW           ,IDDTOP, TRIADS,&
-                     &SPECTRAL_POWERS%value, WCAP_WORKSPACE, st_kc(1),&
-                     &st_kc(2), st_kc(3), st_ix(1), st_iy(1) )
+                     CALL SINTGRL  (SPCDIR, KWAVE, AC2, COMPDA(1,JDP2), POINT_INTEGRALS, RDX, RDY, AC2TOT, COMPDA(1,JQB), COMPDA(1,JPBOT), COMPDA(1,JBOTLV), COMPDA(1,JGAMMA), SWPDIR, URMSTOP, WINDOW, TRIADS, SPECTRAL_POWERS%value, WCAP_WORKSPACE, st_kc(1), st_kc(2), st_kc(3), st_ix(1), st_iy(1))
                      IF (timing_enabled) CALL SWTSTO(116)
 
-                     COMPDA(st_kc(1),JHS) = HS
+                     COMPDA(st_kc(1),JHS) = POINT_INTEGRALS%hs
                      END IF
                      postpone_prediction = .FALSE.
 
@@ -3496,91 +3402,17 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
                      IF (timing_enabled) CALL SWTSTA(117)
                      IF ( IGEN.NE.4 ) THEN
-                        CALL SOURCE (ITER   ,IX                  ,IY                  ,&
-                        &SWPDIR              ,KWAVE               ,SPCSIG              ,&
-                        &SPCDIR(1,2)         ,SPCDIR(1,3)         ,AC2                 ,&
-                        &COMPDA(1,JDP2)      ,SWMATR(1,1,JMATD)   ,SWMATR(1,1,JMATR)   ,&
-                        &ABRBOT              ,KMESPC              ,SMESPC              ,&
-                        &COMPDA(1,JUBOT)     ,UFRIC               ,COMPDA(1,JVX2)      ,&
-                        &COMPDA(1,JVY2)      ,IDCMIN              ,IDCMAX              ,&
-                        &IDDLOW              ,IDDTOP              ,IDWMIN              ,&
-                        &IDWMAX              ,ISSTOP              ,SWTSDA(1,1,1,JPWNDS),&
-                        &SWTSDA(1,1,1,JPWNDD),SWTSDA(1,1,1,JPWCAP),SWTSDA(1,1,1,JPBTFR),&
-                        &SWTSDA(1,1,1,JPSWEL),&
-                        &SWTSDA(1,1,1,JPWBRK),SWTSDA(1,1,1,JP4S)  ,SWTSDA(1,1,1,JP4D)  ,&
-                        &SWTSDA(1,1,1,JPVEGT),SWTSDA(1,1,1,JPTURB),SWTSDA(1,1,1,JPMUD) ,&
-                        &SWTSDA(1,1,1,JPICE) ,SWTSDA(1,1,1,JPBRAG),&
-                        &SWTSDA(1,1,1,JPTRI) ,                     HS                  ,&
-                        &ETOT                ,QBLOC               ,THETAW              ,&
-                        &HM                  ,FPM                 ,WIND10              ,&
-                        &ETOTW               ,GROWW               ,ALIMW               ,&
-                        &SMEBRK              ,KTETA               ,SNLC1               ,&
-                        &DAL1                ,DAL2                ,DAL3                ,&
-                        &UE                  ,SA1                 ,&
-                        &SA2                 ,DA1C                ,DA1P                ,&
-                        &DA1M                ,DA2C                ,DA2P                ,&
-                        &DA2M                ,SFNL                ,DSNL                ,&
-                        &MEMNL4              ,WWINT               ,WWAWG               ,&
-                        &WWSWG               ,CGO                 ,COMPDA(1,JUSTAR)    ,&
-                        &COMPDA(1,JZEL)      ,SPCDIR              ,ANYWND              ,&
-                        &DMW                 ,FBD                 ,MEMBRG              ,&
-                        &CAS                 ,QTL1                ,QTL2                ,&
-                        &MEMSINA             ,MEMSINB             ,&
-                        &SWMATR(1,1,JDIS0)   ,SWMATR(1,1,JDIS1)   ,&
-                        &SWMATR(1,1,JGEN0)   ,SWMATR(1,1,JGEN1)   ,&
-                        &SWMATR(1,1,JRED0)   ,SWMATR(1,1,JRED1)   ,&
-                        &XIS                 ,COMPDA(1,JFRC2)     ,IT                  ,&
-                        &COMPDA(1,JNPLA2)    ,COMPDA(1,JTURB2)    ,COMPDA(1,JMUDL2)    ,&
-                        &COMPDA(1,JAICE2)    ,COMPDA(1,JHICE2)    ,&
-                        &COMPDA(1,JURSEL)    ,LSWMAT(1,1,JABIN)   ,REFLSO              ,&
-                        &COMPDA(1,JTAUW)     ,COMPDA(1,JBIPH)&
-                        &,URMSTOP            ,TRIADS, SNL4, SPECTRAL_POWERS,&
-                        &WCAP_WORKSPACE, st_kc(1), st_kc, st_nm&
-                        &)
+                        CALL SOURCE (ITER, IX, IY, SWPDIR, KWAVE, SPCSIG, SPCDIR(1,2), SPCDIR(1,3), AC2, COMPDA(1,JDP2), SWMATR(1,1,JMATD), SWMATR(1,1,JMATR), POINT_INTEGRALS, UFRIC, COMPDA(1,JVX2), COMPDA(1,JVY2), WINDOW, TEST_OUTPUT, THETAW, GROWW, ALIMW, DIA_WORKSPACE, ITERATION_CACHE%memnl4, CGO, SPCDIR, ANYWND, DMW, FBD, ITERATION_CACHE%membrg, CAS, QTL1, QTL2, ITERATION_CACHE%memsina, ITERATION_CACHE%memsinb, SOURCE_BUDGET, XIS, COMPDA(1,JFRC2), IT, COMPDA(1,JNPLA2), COMPDA(1,JTURB2), COMPDA(1,JMUDL2), COMPDA(1,JAICE2), COMPDA(1,JHICE2), LSWMAT(1,1,JABIN), REFLSO, URMSTOP, TRIADS, SNL4, SPECTRAL_POWERS, WCAP_WORKSPACE, st_kc(1), st_kc, st_nm)
                      ENDIF
                      IF ( IQCM.GT.0 .OR. IGEN.EQ.4 ) THEN
-                        CALL QCSOURCE ( SWMATR(1,1,JMATR)         , SWMATR(1,1,JMATD) ,&
-                        &ITER                , AC2                 , COMPDA(1,JDP2)    ,&
-                        &COMPDA(1,JVX2)      , COMPDA(1,JVY2)      , SWPDIR            ,&
-                        &IX                  , IY                  , RDX               ,&
-                        &RDY                 , KWAVE               , CGO               ,&
-                        &SIGFT               , CGFT                , UXFT              ,&
-                        &UYFT                , MEMQCM              , MEMQCB            ,&
-                        &SWTSDA(1,1,1,JPQCS) , SWTSDA(1,1,1,JPWBRK), SWMATR(1,1,JDIS0) ,&
-                        &SWMATR(1,1,JDIS1)   , SWMATR(1,1,JGEN0)   , SWMATR(1,1,JGEN1) ,&
-                        &SWMATR(1,1,JRED0)   , SWMATR(1,1,JRED1)   , SPCSIG            ,&
-                        &SPCDIR              , IDCMIN              , IDCMAX            ,&
-                        &ISSTOP              , SPCDIR(1,2)         , SPCDIR(1,3)       ,&
-                        &ETOT                , HM                  , QBLOC             ,&
-                        &SMEBRK              , KTETA               , KMESPC            ,&
-                        &CFT                 , RFT                 , SFT               ,&
-                        &WFT                 , WSAVE               , CFD               ,&
-                        &WFD                 , WSAVD               ,&
-                        &WCAP_WORKSPACE%mean_frequency_wam&
-                        &, st_kc(1), st_kc)
+                        CALL QCSOURCE (SWMATR(1,1,JMATR), SWMATR(1,1,JMATD), ITER, AC2, COMPDA(1,JDP2), COMPDA(1,JVX2), COMPDA(1,JVY2), SWPDIR, IX, IY, RDX, RDY, KWAVE, CGO, FFT_WORKSPACE, ITERATION_CACHE%memqcm, ITERATION_CACHE%memqcb, SWTSDA(1,1,1,JPQCS), SWTSDA(1,1,1,JPWBRK), SOURCE_BUDGET, SPCSIG, SPCDIR, WINDOW, SPCDIR(1,2), SPCDIR(1,3), POINT_INTEGRALS%etot, POINT_INTEGRALS%hm, POINT_INTEGRALS%qbloc, POINT_INTEGRALS%smebrk, POINT_INTEGRALS%kteta, POINT_INTEGRALS%kmespc, WCAP_WORKSPACE%mean_frequency_wam, st_kc(1), st_kc)
                      ENDIF
                      IF (timing_enabled) CALL SWTSTO(117)
 !
 !       *** compute transport of action and fill the matrix ***
 !
                      IF (timing_enabled) CALL SWTSTA(118)
-                     CALL ACTION (IDCMIN      ,IDCMAX            ,SPCSIG            ,&
-                     &AC2               ,CAX               ,CAY               ,&
-                     &CAS               ,CAD               ,SWMATR(1,1,JMATL) ,&
-                     &SWMATR(1,1,JMATD) ,SWMATR(1,1,JMATU) ,SWMATR(1,1,JMATR) ,&
-                     &SWMATR(1,1,JMAT5) ,&
-                     &SWMATR(1,1,JMAT6) ,ISCMIN            ,ISCMAX            ,&
-                     &IDDLOW            ,IDDTOP            ,ISSTOP            ,&
-                     &LSWMAT(1,1,JABLK) ,LSWMAT(1,1,JABIN) ,&
-                     &SWMATR(1,1,JLEK1) ,AC1               ,&
-                     &DYNDEP            ,RDX               ,RDY               ,&
-                     &SWPDIR            ,IX                ,IY                ,&
-                     &KSX               ,KSY               ,&
-                     &XCGRID            ,YCGRID            ,&
-                     &ITER              ,KGRPNT            ,OBREDF            ,&
-                     &CAX1              ,CAY1              ,SPCDIR            ,&
-                     &CGO               ,SWMATR(1,1,JTRA0) ,SWMATR(1,1,JTRA1)&
-                     &,st_kc(1),st_kc,st_co,st_nm)
+                     CALL ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, LSWMAT(1,1,JABLK), LSWMAT(1,1,JABIN), SWMATR(1,1,JLEK1), AC1, DYNDEP, RDX, RDY, SWPDIR, IX, IY, KSX, KSY, XCGRID, YCGRID, ITER, KGRPNT, OBREDF, CAX1, CAY1, SPCDIR, CGO, SWMATR(1,1,JTRA0), SWMATR(1,1,JTRA1), st_kc(1), st_kc, st_co, st_nm)
                      IF (timing_enabled) CALL SWTSTO(118)
 !
 !       matrix is computed now; updating action densities starts
@@ -3595,16 +3427,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       preparatory steps before solution of linear system
 !
                      IF (timing_enabled) CALL SWTSTA(119)
-                     CALL SOLPRE(AC2                ,SWMATR(1,1,JAOLD)  ,&
-                     &SWMATR(1,1,JMATR)  ,SWMATR(1,1,JMATL)  ,&
-                     &SWMATR(1,1,JMATD)  ,SWMATR(1,1,JMATU)  ,&
-                     &SWMATR(1,1,JMAT5)  ,SWMATR(1,1,JMAT6)  ,&
-                     &IDCMIN             ,IDCMAX             ,&
-                     &LSWMAT(1,1,JABIN)  ,&
-                     &IDTOT              ,ISTOT              ,&
-                     &IDDLOW             ,IDDTOP             ,&
-                     &ISSTOP             ,&
-                     &SPCSIG             ,st_kc(1))
+                     CALL SOLPRE(AC2, SWMATR(1,1,JAOLD), SYSTEM_MATRIX, WINDOW, LSWMAT(1,1,JABIN), IDTOT, ISTOT, SPCSIG, st_kc(1))
                      IF (timing_enabled) CALL SWTSTO(119)
 
                      IF ( IREFR.EQ.0 .AND. ITFRE.EQ.0 ) THEN
@@ -3614,7 +3437,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
                         IF (timing_enabled) CALL SWTSTA(120)
                         DO IS = 1, MSC
-                           DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+                           DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
                               ID = MOD(IDDUM-1+MDC, MDC) + 1
                               SP = SWMATR(ID,IS,JMATD)
                               IF ( ABS(SP) .LE. 1.E-20 ) THEN
@@ -3644,13 +3467,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !           *** diagonal system with the SIP solver              ***
 !
                            IF (timing_enabled) CALL SWTSTA(120)
-                           CALL SWSIP ( AC2, SWMATR(1,1,JMATD), SWMATR(1,1,JMATR),&
-                           &SWMATR(1,1,JMATL), SWMATR(1,1,JMATU),&
-                           &SWMATR(1,1,JMAT5), SWMATR(1,1,JMAT6),&
-                           &SWMATR(1,1,JAOLD),&
-                           &PNUMS(PNUMS_EPS2), NINT(PNUMS(PNUMS_SIPMAX)), NINT(PNUMS(PNUMS_SIPPRN)),&
-                           &INOCNV, IDDLOW, IDDTOP, ISSTOP, IDCMIN,&
-                           &IDCMAX, st_kc(1), st_ix(1), st_iy(1) )
+                           CALL SWSIP (AC2, SYSTEM_MATRIX, SWMATR(1,1,JAOLD), PNUMS(PNUMS_EPS2), NINT(PNUMS(PNUMS_SIPMAX)), NINT(PNUMS(PNUMS_SIPPRN)), INOCNV, WINDOW, st_kc(1), st_ix(1), st_iy(1))
                            IF (timing_enabled) CALL SWTSTO(120)
 
                         ELSE IF (INT(PNUMS(PNUMS_SCHEMEFR)).EQ.2 .OR. INT(PNUMS(PNUMS_SCHEMEFR)).EQ.3) THEN
@@ -3660,13 +3477,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !           *** on CFL criterion                                    ***
 !
                            IF (timing_enabled) CALL SWTSTA(120)
-                           CALL SOLMT1  (IDCMIN             ,IDCMAX             ,&
-                           &AC2                ,SWMATR(1,1,JMATR)  ,&
-                           &SWMATR(1,1,JMATD)  ,SWMATR(1,1,JMATU)  ,&
-                           &SWMATR(1,1,JMATL)  ,&
-                           &ISSTOP             ,&
-                           &LSWMAT(1,1,JABLK)  ,IDDLOW             ,&
-                           &IDDTOP                                 , st_kc(1))
+                           CALL SOLMT1  (WINDOW, AC2, SYSTEM_MATRIX, LSWMAT(1,1,JABLK), st_kc(1))
                            IF (timing_enabled) CALL SWTSTO(120)
 
                         END IF
@@ -3677,11 +3488,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !         *** Solve the tri-diagonal matrix with Thomas algorithm    ***
 !
                         IF (timing_enabled) CALL SWTSTA(120)
-                        CALL SOLMAT (IDCMIN            ,IDCMAX             ,&
-                        &AC2                ,SWMATR(1,1,JMATR)  ,&
-                        &SWMATR(1,1,JMATD)  ,SWMATR(1,1,JMATU)  ,&
-                        &SWMATR(1,1,JMATL),st_kc(1)&
-                        &)
+                        CALL SOLMAT (WINDOW, AC2, SYSTEM_MATRIX, st_kc(1))
                         IF (timing_enabled) CALL SWTSTO(120)
 
                      END IF
@@ -3692,8 +3499,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         WRITE (PRTEST, *) ' solution vector'
                         WRITE (PRTEST, *) ' IS ID1 ID2     action densities'
                         DO IS = 1, MSC
-                           ID_MIN = IDCMIN(IS)
-                           ID_MAX = IDCMAX(IS)
+                           ID_MIN = WINDOW%IDCMIN(IS)
+                           ID_MAX = WINDOW%IDCMAX(IS)
                            WRITE(PRINTF,"(3I4,600(1X,E12.4))") IS, ID_MIN, ID_MAX,&
                            &(AC2(MOD(IDDUM-1+MDC,MDC)+1, IS, st_kc(1)),&
                            &IDDUM = ID_MIN, ID_MAX)
@@ -3704,7 +3511,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       *** only the sector computed is rescaled !!                ***
 !
                      IF (timing_enabled) CALL SWTSTA(121)
-                     IF (BRESCL) CALL RESCALE(AC2, ISSTOP, IDCMIN, IDCMAX, NRSCAL, st_kc(1))
+                     IF (BRESCL) CALL RESCALE(AC2, WINDOW, NRSCAL, st_kc(1))
                      IF (timing_enabled) CALL SWTSTO(121)
 !
 !       calculate propagation, generation, dissipation, redistribution
@@ -3748,14 +3555,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            &CGO, KWAVE,&
                            &SPCSIG, LSWMAT(1,1,JABIN),&
                            &ISLMIN, NFLIM,&
-                           &QBLOC, st_kc(1))
+                           &POINT_INTEGRALS%qbloc, st_kc(1))
                         ELSE
 !             Hersbach and Janssen (1999) limiter
                            CALL HJLIM (AC2, SWMATR(1,1,JAOLD),&
                            &CGO, KWAVE,&
                            &SPCSIG, LSWMAT(1,1,JABIN),&
                            &ISLMIN, NFLIM,&
-                           &QBLOC, COMPDA(1,JUSTAR), st_kc(1))
+                           &POINT_INTEGRALS%qbloc, COMPDA(1,JUSTAR), st_kc(1))
                         END IF
                      END IF
                      IF (timing_enabled) CALL SWTSTO(122)
@@ -3766,7 +3573,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
                      IF (timing_enabled) CALL SWTSTA(123)
                      IF ( IWIND .EQ. 1 .OR. IWIND .EQ. 2 )&
-                     &CALL WINDP3 (ISSTOP, ALIMW, AC2, GROWW, IDCMIN, IDCMAX , st_kc(1))
+                     &CALL WINDP3 (WINDOW, ALIMW, AC2, GROWW, st_kc(1))
                      IF (timing_enabled) CALL SWTSTO(123)
 !
 !       *** test output ***
@@ -3775,8 +3582,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         WRITE (PRINTF, *) ' action densities after adaptations'
                         WRITE (PRTEST, *) ' IS ID1 ID2     action densities'
                         DO IS = 1, MSC
-                           ID_MIN = IDCMIN(IS)
-                           ID_MAX = IDCMAX(IS)
+                           ID_MIN = WINDOW%IDCMIN(IS)
+                           ID_MAX = WINDOW%IDCMAX(IS)
                            WRITE(PRINTF,"(3I4,600(1X,E12.4))") IS, ID_MIN, ID_MAX,&
                            &(AC2(MOD(IDDUM-1+MDC,MDC)+1, IS, st_kc(1)),&
                            &IDDUM = ID_MIN, ID_MAX)
@@ -4920,23 +4727,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-               SUBROUTINE ACTION (IDCMIN     ,IDCMAX     ,SPCSIG     ,&
-               &AC2        ,CAX        ,CAY        ,&
-               &CAS        ,CAD        ,IMATLA     ,&
-               &IMATDA     ,IMATUA     ,IMATRA     ,&
-               &IMAT5L     ,&
-               &IMAT6U     ,ISCMIN     ,ISCMAX     ,&
-               &IDDLOW     ,IDDTOP     ,ISSTOP     ,&
-               &ANYBLK     ,ANYBIN     ,&
-               &LEAKC1     ,AC1        ,&
-               &DYNDEP     ,RDX        ,RDY        ,&
-               &SWPDIR     ,IX         ,IY         ,&
-               &KSX        ,KSY        ,&
-               &XCGRID     ,YCGRID     ,&
-               &ITER       ,KGRPNT     ,OBREDF     ,&
-               &CAX1       ,CAY1       ,SPCDIR     ,&
-               &CGO        ,TRAC0      ,TRAC1&
-               &,IGP,st_kc,st_cos,st_n)
+               SUBROUTINE ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, ANYBLK, ANYBIN, LEAKC1, AC1, DYNDEP, RDX, RDY, SWPDIR, IX, IY, KSX, KSY, XCGRID, YCGRID, ITER, KGRPNT, OBREDF, CAX1, CAY1, SPCDIR, CGO, TRAC0, TRAC1, IGP, st_kc, st_cos, st_n)
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_propagation, ONLY: SANDL, SORDUP, STRSD, STRSSB, STRSSI, STRSXY, SWFLXD
 
@@ -4952,6 +4743,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE swan_propagation_scheme
                   USE swan_diagnostics_level
                   USE swan_io_units
+
+                  TYPE(system_matrix_t) :: SYSTEM_MATRIX
 
                   INTEGER, INTENT(IN) :: IGP
 !  Stencil context passed explicitly by SWOMPU; forwarded to the STRS kernels.
@@ -5150,13 +4943,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !  13. Source text
 
-                  INTEGER  ID, IDC, IDDLOW, IDDTOP, IDDUM, IS, ISC
-                  INTEGER  ISSTOP, SWPDIR, ITER, IX, IY, KSX, KSY
+                  TYPE(spectral_window_t), INTENT(IN) :: WINDOW
+                  INTEGER  ID, IDC, IDDUM, IS, ISC
+                  INTEGER  SWPDIR, ITER, IX, IY, KSX, KSY
 
                   LOGICAL           DYNDEP
 
-                  INTEGER :: IDCMIN(MSC), IDCMAX(MSC)
-                  INTEGER :: ISCMIN(MDC), ISCMAX(MDC)
                   INTEGER :: KGRPNT(MXC,MYC)
 
                   REAL  :: AC2(MDC,MSC,MCGRD)  ,AC1(MDC,MSC,MCGRD)
@@ -5164,10 +4956,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   REAL  :: CAX1(MDC,MSC,MICMAX) ,CAY1(MDC,MSC,MICMAX)
                   REAL  :: CGO(MSC,MICMAX)
                   REAL  :: CAS(MDC,MSC,MICMAX) ,CAD(MDC,MSC,MICMAX)
-                  REAL  :: IMATLA(MDC,MSC)     ,IMATDA(MDC,MSC)     ,&
-                  &IMATUA(MDC,MSC)     ,IMATRA(MDC,MSC)     ,&
-                  &IMAT5L(MDC,MSC)     ,IMAT6U(MDC,MSC)     ,&
-                  &LEAKC1(MDC,MSC)
+                  REAL :: LEAKC1(MDC,MSC)
                   REAL  :: RDX(MICMAX)         ,RDY(MICMAX)         ,&
                   &OBREDF(MDC,MSC,2)   ,&
                   &SPCDIR(MDC,6)
@@ -5184,10 +4973,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   DO IS = 1, MSC
                      DO ID = 1, MDC
-                        IMATLA(ID,IS) = 0.
-                        IMATUA(ID,IS) = 0.
-                        IMAT5L(ID,IS) = 0.
-                        IMAT6U(ID,IS) = 0.
+                        SYSTEM_MATRIX%imatla(ID,IS) = 0.
+                        SYSTEM_MATRIX%imatua(ID,IS) = 0.
+                        SYSTEM_MATRIX%imat5l(ID,IS) = 0.
+                        SYSTEM_MATRIX%imat6u(ID,IS) = 0.
                      ENDDO
                   ENDDO
 
@@ -5210,17 +4999,17 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !     --- depending on PROPSL, call STRSXY or other scheme
                   IF (PROPSL.EQ.3) THEN    ! use S&L scheme
-                     CALL SANDL(ISSTOP   ,IDCMIN   ,IDCMAX   ,CGO     ,CAX    ,&
-                     &CAY      ,AC2      ,AC1      ,IMATRA  ,IMATDA ,&
+                     CALL SANDL(WINDOW   ,CGO     ,CAX    ,&
+                     &CAY      ,AC2      ,AC1      ,SYSTEM_MATRIX%imatra  ,SYSTEM_MATRIX%imatda ,&
                      &RDX      ,RDY      ,CAX1     ,CAY1    ,SPCDIR ,&
                      &TRAC0    ,TRAC1    ,st_kc    ,st_cos  )
                   ELSE IF (PROPSL.EQ.2) THEN ! use SORDUP scheme
-                     CALL SORDUP(ISSTOP   ,IDCMIN   ,IDCMAX   ,CAX      ,&
-                     &CAY      ,AC2      ,IMATRA   ,IMATDA   ,&
+                     CALL SORDUP(WINDOW   ,CAX      ,&
+                     &CAY      ,AC2      ,SYSTEM_MATRIX%imatra   ,SYSTEM_MATRIX%imatda   ,&
                      &RDX      ,RDY      ,TRAC0    ,TRAC1    ,st_kc,st_cos)
                   ELSE                     ! use BSBT scheme
-                     CALL STRSXY(ISSTOP   ,IDCMIN   ,IDCMAX   ,CAX      ,&
-                     &CAY      ,AC2      ,AC1      ,IMATRA   ,IMATDA   ,&
+                     CALL STRSXY(WINDOW   ,CAX      ,&
+                     &CAY      ,AC2      ,AC1      ,SYSTEM_MATRIX%imatra   ,SYSTEM_MATRIX%imatda   ,&
                      &RDX      ,RDY      ,&
                      &OBREDF   ,TRAC0    ,TRAC1    ,st_kc    ,st_cos  )
 
@@ -5236,12 +5025,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      WRITE(PRINTF,*)
                      WRITE(PRINTF,*)&
                      &'   IS   ID    IMAT5L       IMATDA       IMAT6U    IMATRA    CAS'
-                     DO IDDUM = IDDLOW, IDDTOP
+                     DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
                         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-                        IF (ISCMIN(ID).GT.0) THEN
-                           DO IS = ISCMIN(ID), ISCMAX(ID)
-                              WRITE(PRINTF,"(1X,2I4,4X,4E12.4,E10.2)") IS, ID, IMAT5L(ID,IS),IMATDA(ID,IS),&
-                              &IMAT6U(ID,IS),IMATRA(ID,IS),CAS(ID,IS,1)
+                        IF (WINDOW%ISCMIN(ID).GT.0) THEN
+                           DO IS = WINDOW%ISCMIN(ID), WINDOW%ISCMAX(ID)
+                              WRITE(PRINTF,"(1X,2I4,4X,4E12.4,E10.2)") IS, ID, SYSTEM_MATRIX%imat5l(ID,IS),SYSTEM_MATRIX%imatda(ID,IS),&
+                              &SYSTEM_MATRIX%imat6u(ID,IS),SYSTEM_MATRIX%imatra(ID,IS),CAS(ID,IS,1)
                            ENDDO
                         ENDIF
                      ENDDO
@@ -5258,9 +5047,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !         *** space (no a priori assumptions)                      ***
 
                         CALL STRSSI (SPCSIG  ,&
-                        &CAS     ,IMAT5L  ,IMATDA  ,IMAT6U  ,ANYBIN  ,&
-                        &IMATRA  ,AC2     ,ISCMIN  ,ISCMAX  ,IDDLOW  ,&
-                        &IDDTOP  ,TRAC0   ,TRAC1   ,st_kc(1),st_n    )
+                        &CAS     ,SYSTEM_MATRIX%imat5l  ,SYSTEM_MATRIX%imatda  ,SYSTEM_MATRIX%imat6u  ,ANYBIN  ,&
+                        &SYSTEM_MATRIX%imatra  ,AC2     ,WINDOW  ,&
+                        &TRAC0   ,TRAC1   ,st_kc(1),st_n    )
 
                      ELSE IF ( INT(PNUMS(PNUMS_SCHEMEFR)) .EQ. 2 ) THEN
 
@@ -5269,9 +5058,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !         *** boundaries. Energy is removed from the spectrum ***
 !         *** based on a CFL criterion                        ***
 
-                        CALL STRSSB (IDDLOW  ,IDDTOP  ,&
-                        &IDCMIN  ,IDCMAX  ,ISSTOP  ,CAX     ,CAY     ,&
-                        &CAS     ,AC2     ,SPCSIG  ,IMATRA  ,&
+                        CALL STRSSB (WINDOW  ,CAX     ,CAY     ,&
+                        &CAS     ,AC2     ,SPCSIG  ,SYSTEM_MATRIX%imatra  ,&
                         &ANYBLK  ,RDX     ,RDY     ,TRAC0   ,st_kc(1),st_n)
 
                      END IF
@@ -5283,14 +5071,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   IF (timing_enabled) CALL SWTSTA(142)
                   IF ( IREFR.NE.0 ) THEN
                      IF ( PROPFL.EQ.0 ) THEN
-                        CALL STRSD (DDIR    ,IDCMIN  ,&
-                        &IDCMAX  ,CAD     ,IMATLA  ,IMATDA  ,IMATUA  ,&
-                        &IMATRA  ,AC2     ,ISSTOP  ,&
+                        CALL STRSD (DDIR    ,WINDOW  ,&
+                        &CAD     ,SYSTEM_MATRIX%imatla  ,SYSTEM_MATRIX%imatda  ,SYSTEM_MATRIX%imatua  ,&
+                        &SYSTEM_MATRIX%imatra  ,AC2     ,&
                         &ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1   ,st_kc(1),st_n)
                      ELSE IF ( PROPFL.EQ.1 ) THEN
-                        CALL SWFLXD (CAD, IMATLA, IMATDA, IMATUA, IMATRA,&
-                        &AC2, DDIR, ANYBIN, LEAKC1, IDCMIN,&
-                        &IDCMAX, ISSTOP, st_kc(1), st_n)
+                        CALL SWFLXD (CAD, SYSTEM_MATRIX%imatla, SYSTEM_MATRIX%imatda, SYSTEM_MATRIX%imatua, SYSTEM_MATRIX%imatra,&
+                        &AC2, DDIR, ANYBIN, LEAKC1, WINDOW,&
+                        &st_kc(1), st_n)
                      END IF
                   END IF
                   IF (timing_enabled) CALL SWTSTO(142)
@@ -5300,11 +5088,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   IF ( TESTFL .AND. ITEST .GE. 70 ) THEN
                      WRITE(PRINTF,*) ' *** Values at end of subroutine action ***'
                      WRITE (PRINTF,"(' ACTION: POINT MCGRD MSC MDC : ',4I5)") IGP, MCGRD, MSC, MDC
-                     WRITE (PRINTF,"(' ACTION: IDLW IDTP ISTOP : ',3I4)") IDDLOW, IDDTOP, ISSTOP
+                     WRITE (PRINTF,"(' ACTION: IDLW IDTP ISTOP : ',3I4)") WINDOW%IDDLOW, WINDOW%IDDTOP, WINDOW%ISSTOP
                      WRITE (PRINTF,"(' ACTION:RDX(1) RDX(2) RDY(1) RDY(2) : ',4E12.4)") RDX(1), RDX(2), RDY(1), RDY(2)
                      IF (ITEST.GE.210) THEN
                         DO IS = 1, MSC
-                           WRITE(PRINTF,"(' ACTION: SPCSIG IDCMIN IDCMAX : ',F8.4,2I6)") SPCSIG(IS),IDCMIN(IS),IDCMAX(IS)
+                           WRITE(PRINTF,"(' ACTION: SPCSIG IDCMIN IDCMAX : ',F8.4,2I6)") SPCSIG(IS),WINDOW%IDCMIN(IS),WINDOW%IDCMAX(IS)
                         ENDDO
                         DO IS = 1, MSC
                            WRITE(PRINTF,*) 'IS ',IS
@@ -5321,17 +5109,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                end subroutine ACTION
 !****************************************************************
 
-               SUBROUTINE SINTGRL(SPCDIR  ,KWAVE   ,AC2     ,&
-               &DEP2    ,QB_LOC  ,URSELL  ,BIPHAS  ,&
-               &RDX     ,RDY     ,&
-               &AC2TOT  ,ETOT    ,&
-               &ABRBOT  ,UBOT    ,HS      ,QB      ,&
-               &HM      ,KMESPC  ,SMEBRK  ,KTETA   ,&
-               &TMBOT   ,BOTLV   ,GAMBR   ,&
-&SWPDIR  ,&
-&URMSTOP ,&
-&IDDLOW  ,IDDTOP, TRIADS, SIGPOW, WCAP_WORKSPACE, IGP,&
-&KGRD2, KGRD3, IXCG, IYCG )
+               SUBROUTINE SINTGRL(SPCDIR, KWAVE, AC2, DEP2, POINT_INTEGRALS, RDX, RDY, AC2TOT, QB, TMBOT, BOTLV, GAMBR, SWPDIR, URMSTOP, WINDOW, TRIADS, SIGPOW, WCAP_WORKSPACE, IGP, KGRD2, KGRD3, IXCG, IYCG)
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_nonlinear_interactions, ONLY: PEREXC, SWBIDW
    USE swan_dissipation, ONLY: BRKPAR, FRABRE
@@ -5350,6 +5128,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE swan_test_output
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
+
+                  TYPE(point_integrals_t) :: POINT_INTEGRALS
+
+                  TYPE(spectral_window_t) :: WINDOW
                   INTEGER, INTENT(IN) :: IGP, KGRD2, KGRD3, IXCG, IYCG
                   TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
                   REAL, INTENT(IN) :: SIGPOW(:,:)
@@ -5502,7 +5284,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     URSELL: Ursell number as function of IX and IY
 
                   INTEGER, INTENT(IN)  :: SWPDIR
-                  INTEGER, INTENT(IN)  :: IDDLOW, IDDTOP
 
                   REAL, INTENT(IN)     :: DEP2(MCGRD), BOTLV(MCGRD)
                   REAL, INTENT(INOUT)  :: GAMBR(MCGRD)
@@ -5515,14 +5296,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   REAL, INTENT(IN OUT) :: AC2(MDC,MSC,MCGRD)
                   REAL, INTENT(IN OUT) :: QB(MCGRD)
-                  REAL, INTENT(IN OUT) :: UBOT(MCGRD)
                   REAL, INTENT(IN OUT) :: URMSTOP(MCGRD)
-                  REAL, INTENT(IN OUT) :: URSELL(MCGRD)
-                  REAL, INTENT(IN OUT) :: BIPHAS(MCGRD)
                   REAL, INTENT(IN OUT) :: TMBOT(MCGRD)
 
-                  REAL, INTENT(OUT)    :: ABRBOT, ETOT, HM, HS, QB_LOC
-                  REAL, INTENT(OUT)    :: AC2TOT, KMESPC, SMEBRK, KTETA
+                  REAL, INTENT(OUT) :: AC2TOT
 
 !  6. Local variables
 !
@@ -5615,12 +5392,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   CALL WCAP_WORKSPACE%BEGIN_POINT()
 
-                  HS      = 0.
-                  HM      = 0.1
+                  POINT_INTEGRALS%hs      = 0.
+                  POINT_INTEGRALS%hm      = 0.1
 
                   QB(IGP)   = 0.
-                  ABRBOT         = 0.001
-                  UBOT(IGP) = 0.
+                  POINT_INTEGRALS%abrbot         = 0.001
+                  POINT_INTEGRALS%ubot(IGP) = 0.
                   URMSTOP(IGP) = 0.
                   TMBOT(IGP)= 0.
 
@@ -5629,11 +5406,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   FRINTF_X_DDIR = FRINTF * DDIR
                   ETOT_DSIG(:)  = SUM(AC2(:,:,IGP),DIM=1) * SIGPOW(:,2) *&
                   &FRINTF_X_DDIR
-                  ETOT          = SUM(ETOT_DSIG)
+                  POINT_INTEGRALS%etot          = SUM(ETOT_DSIG)
 
 !     --- add high frequency tail
 
-                  ETOT = ETOT + ETOT_DSIG(MSC) * PWTAIL(6) / FRINTF
+                  POINT_INTEGRALS%etot = POINT_INTEGRALS%etot + ETOT_DSIG(MSC) * PWTAIL(6) / FRINTF
 
 !     --- compute maximum energy based on maximum wave height
 
@@ -5641,20 +5418,20 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !     --- reduce action density if necessary
 
-                  IF (ACUPDA .AND. ETOT .GT. EMAX .AND. ISURF .GE. 1&
+                  IF (ACUPDA .AND. POINT_INTEGRALS%etot .GT. EMAX .AND. ISURF .GE. 1&
                   &.AND. IQCM .EQ. 0) THEN
-                     AC2(:,:,IGP) = MAX(0.,(EMAX/ETOT)*AC2(:,:,IGP))
+                     AC2(:,:,IGP) = MAX(0.,(EMAX/POINT_INTEGRALS%etot)*AC2(:,:,IGP))
 
                      IF (TESTFL.AND.ITEST.GE.80)&
-                     &WRITE (PRTEST,"(' energy is reduced in SINTGRL', 4(1x, e12.4))") DEP2(IGP), EMAX, ETOT
+                     &WRITE (PRTEST,"(' energy is reduced in SINTGRL', 4(1x, e12.4))") DEP2(IGP), EMAX, POINT_INTEGRALS%etot
 
 !        --- correct value for ETOT
 
-                     ETOT = EMAX
+                     POINT_INTEGRALS%etot = EMAX
 
                   ENDIF
 
-                  IF ( ETOT .GT. 0. ) THEN
+                  IF ( POINT_INTEGRALS%etot .GT. 0. ) THEN
 
 !       --- calculate all other integrals
 
@@ -5702,22 +5479,22 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       --- calculate the mean frequencies SIGM01 and SIGM_10,
 !           mean wavenumbers KM_WAM, KM01 and significant waveheight HS
 
-                     IF (ETOT1  .GT. 0.) SIGM01  = ETOT1 / ETOT
-                     IF (EKTOT  .GT. 0.) KM01    = EKTOT / ETOT
-                     IF (ACTOT  .GT. 0.) SIGM_10 = ETOT / ACTOT
+                     IF (ETOT1  .GT. 0.) SIGM01  = ETOT1 / POINT_INTEGRALS%etot
+                     IF (EKTOT  .GT. 0.) KM01    = EKTOT / POINT_INTEGRALS%etot
+                     IF (ACTOT  .GT. 0.) SIGM_10 = POINT_INTEGRALS%etot / ACTOT
                      IF (EDRKTOT .GT. 0. ) THEN
-                        KM_WAM  = ( ETOT / EDRKTOT )**2.
+                        KM_WAM  = ( POINT_INTEGRALS%etot / EDRKTOT )**2.
                         SIGM_WAM = SQRT(GRAV*KM_WAM*TANH(KM_WAM*DEP2(IGP)))
                      ENDIF
-                     IF ( ETOT .GT. 1.E-20 ) THEN
-                        HS       = 4. * SQRT (ETOT)
+                     IF ( POINT_INTEGRALS%etot .GT. 1.E-20 ) THEN
+                        POINT_INTEGRALS%hs       = 4. * SQRT (POINT_INTEGRALS%etot)
                      END IF
 
 !       --- calculate the orbital velocity UBOT, orbital excursion ABRBOT
 !           and near bottom wave period TMBOT
 
-                     IF ( UB2 .GT. 0.) UBOT(IGP) = SQRT ( UB2 )
-                     IF ( AB2 .GT. 0.) ABRBOT = SQRT (2. *  AB2)
+                     IF ( UB2 .GT. 0.) POINT_INTEGRALS%ubot(IGP) = SQRT ( UB2 )
+                     IF ( AB2 .GT. 0.) POINT_INTEGRALS%abrbot = SQRT (2. *  AB2)
                      IF ( UB2 .GT. 0. .AND. AB2 .GT. 0. )&
                      &TMBOT(IGP) = PI2*SQRT(AB2/UB2)
                      IF ( UT2 .GT. 0.) URMSTOP(IGP) = SQRT ( 2. * UT2 )
@@ -5736,24 +5513,24 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &( SWPDIR .EQ. 4 .AND.&
                      &(IXCG.EQ.MXC .AND. IYCG.EQ.1) )) THEN
 !          --- Ursell number
-                        URSELL(IGP) = (GRAV*HS) /&
+                        POINT_INTEGRALS%ursell(IGP) = (GRAV*POINT_INTEGRALS%hs) /&
                         &(2.*SQRT(2.)*SIGM01**2*DEP2(IGP)**2)
 !          --- biphase
                         IF ( IBIPH.EQ.1 ) THEN
 !             Eldeberky (1996)
-                           BIPHAS(IGP) = 0.5*PI *&
-                           &(TANH(PTRIAD(4)/URSELL(IGP))-1.)
+                           POINT_INTEGRALS%biphas(IGP) = 0.5*PI *&
+                           &(TANH(PTRIAD(4)/POINT_INTEGRALS%ursell(IGP))-1.)
                         ELSEIF ( IBIPH.EQ.2 ) THEN
 !             Saprykina et al. (2017)
                            CALL PEREXC ( DELL, DEP2, AC2, SIGPOW(:,1), RDX, RDY,&
                            &BOTLV, IGP, KGRD2, KGRD3 )
-                           BIPHAS(IGP) = 0.5*PI * (MIN(1.,DELL/PTRIAD(9)) - 1.)
+                           POINT_INTEGRALS%biphas(IGP) = 0.5*PI * (MIN(1.,DELL/PTRIAD(9)) - 1.)
                         ELSEIF ( IBIPH.EQ.3 ) THEN
 !             De Wit (2022)
                            CALL SWBIDW ( BIPH, AC2, SIGPOW(:,1), RDX, RDY, BOTLV,&
                            &SPCDIR(1,2), SPCDIR(1,3), IGP, KGRD2, KGRD3 )
 !             --- scale biphase
-                           BIPH = SQRT(TANH(URSELL(IGP))) * BIPH
+                           BIPH = SQRT(TANH(POINT_INTEGRALS%ursell(IGP))) * BIPH
 !             --- in between -90 and 90 deg
                            TRIADS%biphase_unfiltered(IGP) =&
                            &MIN(0.5*PI, MAX(-0.5*PI, BIPH))
@@ -5762,19 +5539,15 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         ENDIF
                      ENDIF
                   ELSE
-                     URSELL(IGP) = 0.
-                     BIPHAS(IGP) = 0.
+                     POINT_INTEGRALS%ursell(IGP) = 0.
+                     POINT_INTEGRALS%biphas(IGP) = 0.
                   END IF
 
 !     --- compute actual maximum wave height based on breaking model
 
                   IF ( ISURF.GT.0 ) THEN
 !        compute some parameters for breaker models
-                     CALL BRKPAR (BRCOEF, SPCDIR(1,2), SPCDIR(1,3), AC2,&
-                     &SIGPOW(:,1), DEP2, BOTLV,&
-                     &RDX, RDY, KWAVE, IDDLOW, IDDTOP, SPCDIR(1,1),&
-                     &KTETA, WCAP_WORKSPACE%mean_wavenumber_wam, IGP,&
-                     &KGRD2, KGRD3 )
+                     CALL BRKPAR (BRCOEF, SPCDIR(1,2), SPCDIR(1,3), AC2, SIGPOW(:,1), DEP2, BOTLV, RDX, RDY, KWAVE, WINDOW, SPCDIR(1,1), POINT_INTEGRALS%kteta, WCAP_WORKSPACE%mean_wavenumber_wam, IGP, KGRD2, KGRD3)
 
                      IF (ISURF.EQ.6) THEN
 !           in case of BKD store breaker index
@@ -5787,7 +5560,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                               GAMBR(IGP) = BRCOEF
                            ENDIF
                         ENDIF
-                        HM = GAMBR(IGP) * DEP2(IGP)
+                        POINT_INTEGRALS%hm = GAMBR(IGP) * DEP2(IGP)
 
                      ELSEIF ( ISURF.EQ.7 ) THEN
 !           compute breaker index based on the asymmetry
@@ -5799,7 +5572,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &(IXCG.EQ.MXC .AND. IYCG.EQ.1) )) THEN
 !              see also routine BRKPAR
                            IF ( BRCOEF.LT.0. ) THEN
-                              BIPH = BIPHAS(IGP)
+                              BIPH = POINT_INTEGRALS%biphas(IGP)
                               IF ( BIPH.LT.0. ) THEN
                                  BRCOEF = PSURF(4) - 0.3 * PSURF(5) * BIPH
                               ELSE
@@ -5809,48 +5582,48 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            ENDIF
                            GAMBR(IGP) = BRCOEF
                         ENDIF
-                        HM = GAMBR(IGP) * DEP2(IGP)
+                        POINT_INTEGRALS%hm = GAMBR(IGP) * DEP2(IGP)
                      ELSE
-                        HM = BRCOEF * DEP2(IGP)
+                        POINT_INTEGRALS%hm = BRCOEF * DEP2(IGP)
                      ENDIF
                   ELSE
 !        breaking disabled, assign very high value to Hmax
-                     HM = 100.
+                     POINT_INTEGRALS%hm = 100.
                   ENDIF
 
 !     --- calculate fraction of breakers
 
-                  IF ( ETOT .GT. 0. ) THEN
+                  IF ( POINT_INTEGRALS%etot .GT. 0. ) THEN
 
 !       --- calculate Qb when BJ78 breaker is activated
 
                      IF ( ISURF.NE.4&
                      &) THEN
-                        CALL FRABRE (HM, ETOT, QB(IGP), KTETA)
+                        CALL FRABRE (POINT_INTEGRALS%hm, POINT_INTEGRALS%etot, QB(IGP), POINT_INTEGRALS%kteta)
 
 !       --- calculate Qb when TG83 breaker is activated
 
                      ELSEIF (ISURF.EQ.4) THEN
-                        WH = (2.*SQRT(2.*ETOT)/HM)**PSURF(5)
+                        WH = (2.*SQRT(2.*POINT_INTEGRALS%etot)/POINT_INTEGRALS%hm)**PSURF(5)
                         WH = MIN(1.,WH)
                         QB(IGP) = WH
                      ENDIF
 
                   ENDIF
 
-                  QB_LOC = QB(IGP)
+                  POINT_INTEGRALS%qbloc = QB(IGP)
 
 !     *** test output ***
 
                   IF (TESTFL .AND. ITEST.GE.60) THEN
-                     WRITE(PRTEST, "(' SINTGRL: ETOT Hs Sigma K Aorb', 5(1X, E11.4))") ETOT, HS, SIGM_10, KM_WAM, ABRBOT
+                     WRITE(PRTEST, "(' SINTGRL: ETOT HS Sigma K Aorb', 5(1X, E11.4))") POINT_INTEGRALS%etot, POINT_INTEGRALS%hs, SIGM_10, KM_WAM, POINT_INTEGRALS%abrbot
                   END IF
 
 !     Set variables used outside the whitecapping scope
 
                   AC2TOT = ACTOT
-                  KMESPC = KM_WAM
-                  SMEBRK = SIGM01
+                  POINT_INTEGRALS%kmespc = KM_WAM
+                  POINT_INTEGRALS%smebrk = SIGM01
 
                   END ASSOCIATE
                   RETURN
@@ -5859,16 +5632,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-               SUBROUTINE SOLPRE (AC2         ,AC2OLD      ,&
-               &IMATRA      ,IMATLA      ,&
-               &IMATDA      ,IMATUA      ,&
-               &IMAT5L      ,IMAT6U      ,&
-               &IDCMIN      ,IDCMAX      ,&
-               &ANYBIN      ,&
-               &IDTOT       ,ISTOT       ,&
-               &IDDLOW      ,IDDTOP      ,&
-               &ISSTOP      ,&
-               &SPCSIG      ,IGP          )
+               SUBROUTINE SOLPRE (AC2, AC2OLD, SYSTEM_MATRIX, WINDOW, ANYBIN, IDTOT, ISTOT, SPCSIG, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -5882,6 +5646,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE swan_diagnostics_level
                   USE swan_io_units
                   USE M_PARALL
+
+                  TYPE(system_matrix_t) :: SYSTEM_MATRIX
+
+                  TYPE(spectral_window_t) :: WINDOW
 
                   INTEGER, INTENT(IN) :: IGP
 
@@ -5954,21 +5722,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                        frequency space (upper diagonal)
 !        SPCSIG    1D    Relative frequencies in sigma-space
 
-                  REAL     AC2(MDC,MSC,MCGRD)           ,&
-                  &IMATRA(MDC,MSC)              ,&
-                  &IMATLA(MDC,MSC)              ,&
-                  &IMATDA(MDC,MSC)              ,&
-                  &IMATUA(MDC,MSC)              ,&
-                  &IMAT5L(MDC,MSC)              ,&
-                  &IMAT6U(MDC,MSC)              ,&
-                  &AC2OLD(MDC,MSC)              ,&
-                  &SPCSIG(MSC)
+                  REAL :: AC2(MDC,MSC,MCGRD), AC2OLD(MDC,MSC), SPCSIG(MSC)
 
 !        IDCMIN    1D    Integer array containing minimum counter
 !        IDCMAX    1D    Integer array containing maximum counter
 
-                  INTEGER  IDCMIN(MSC)                  ,&
-                  &IDCMAX(MSC)
 
 !        ANYBIN    2D    Logical array. if a certain bin is enclosed
 !                        in a sweep then ANYBIN is TRUE . array is
@@ -6003,9 +5761,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !************************************************************************
 
                   INTEGER, SAVE :: IENT = 0
-                  INTEGER  IS, ID, IDDUM, ID_MIN, ID_MAX, &
-                  &IDDLOW  ,&
-                  &IDDTOP  ,IDTOT   ,ISTOT   ,ISSTOP
+                  INTEGER :: IS, ID, IDDUM, ID_MIN, ID_MAX, IDTOT, ISTOT
                   REAL     ALFA
 
                   IF (LTRACE) CALL STRACE (IENT,'SOLPRE')
@@ -6014,11 +5770,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   ALFA = PNUMS(PNUMS_ALFA)
                   IF (ALFA.GT.0. .AND. NSTATC.EQ.0) THEN
-                     DO IS = 1, ISSTOP
-                        DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+                     DO IS = 1, WINDOW%ISSTOP
+                        DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
                            ID = MOD(IDDUM-1 + MDC, MDC) + 1
-                           IMATDA(ID,IS) = IMATDA(ID,IS) + ALFA*SPCSIG(IS)
-                           IMATRA(ID,IS) = IMATRA(ID,IS) + ALFA*SPCSIG(IS)*&
+                           SYSTEM_MATRIX%imatda(ID,IS) = SYSTEM_MATRIX%imatda(ID,IS) + ALFA*SPCSIG(IS)
+                           SYSTEM_MATRIX%imatra(ID,IS) = SYSTEM_MATRIX%imatra(ID,IS) + ALFA*SPCSIG(IS)*&
                            &AC2(ID,IS,IGP)
                         END DO
                      END DO
@@ -6038,12 +5794,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      DO IS = 1, MSC
                         DO ID = 1, MDC
                            IF ( .NOT. ANYBIN(ID,IS) ) THEN
-                              IMATLA(ID,IS) = 0.
-                              IMATDA(ID,IS) = 1.
-                              IMATUA(ID,IS) = 0.
-                              IMATRA(ID,IS) = AC2(ID,IS,IGP)
-                              IMAT5L(ID,IS) = 0.
-                              IMAT6U(ID,IS) = 0.
+                              SYSTEM_MATRIX%imatla(ID,IS) = 0.
+                              SYSTEM_MATRIX%imatda(ID,IS) = 1.
+                              SYSTEM_MATRIX%imatua(ID,IS) = 0.
+                              SYSTEM_MATRIX%imatra(ID,IS) = AC2(ID,IS,IGP)
+                              SYSTEM_MATRIX%imat5l(ID,IS) = 0.
+                              SYSTEM_MATRIX%imat6u(ID,IS) = 0.
                            END IF
                         ENDDO
                      ENDDO
@@ -6063,17 +5819,17 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      WRITE (PRINTF,"(' SOLPRE: Matrix values for grid point:', I8)") IGP
                      WRITE (PRINTF,"(' bin diagonal r.h.s. ID-1 ID+1', ' IS-1 IS+1')")
 
-                     DO IS = 1, ISSTOP
-                        ID_MIN = IDCMIN(IS)
-                        ID_MAX = IDCMAX(IS)
+                     DO IS = 1, WINDOW%ISSTOP
+                        ID_MIN = WINDOW%IDCMIN(IS)
+                        ID_MAX = WINDOW%IDCMAX(IS)
                         DO IDDUM = ID_MIN, ID_MAX
                            ID = MOD(IDDUM-1 + MDC, MDC) + 1
                            IF ( DYNDEP .OR. ICUR .EQ. 1 ) THEN
-                              WRITE(PRINTF,"(2I3,6(1X,E12.4))") ID, IS, IMATDA(ID,IS), IMATRA(ID,IS),&
-                              &IMATLA(ID,IS), IMATUA(ID,IS), IMAT5L(ID,IS), IMAT6U(ID,IS)
+                              WRITE(PRINTF,"(2I3,6(1X,E12.4))") ID, IS, SYSTEM_MATRIX%imatda(ID,IS), SYSTEM_MATRIX%imatra(ID,IS),&
+                              &SYSTEM_MATRIX%imatla(ID,IS), SYSTEM_MATRIX%imatua(ID,IS), SYSTEM_MATRIX%imat5l(ID,IS), SYSTEM_MATRIX%imat6u(ID,IS)
                            ELSE
-                              WRITE(PRINTF,"(2I3,6(1X,E12.4))") ID, IS, IMATDA(ID,IS), IMATRA(ID,IS),&
-                              &IMATLA(ID,IS), IMATUA(ID,IS)
+                              WRITE(PRINTF,"(2I3,6(1X,E12.4))") ID, IS, SYSTEM_MATRIX%imatda(ID,IS), SYSTEM_MATRIX%imatra(ID,IS),&
+                              &SYSTEM_MATRIX%imatla(ID,IS), SYSTEM_MATRIX%imatua(ID,IS)
                            ENDIF
                         ENDDO
                      ENDDO
@@ -6084,11 +5840,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-               SUBROUTINE SOLMAT (IDCMIN     ,IDCMAX     ,&
-               &AC2        ,IMATRA     ,&
-               &IMATDA     ,IMATUA     ,&
-               &IMATLA     ,IGP&
-               &)
+               SUBROUTINE SOLMAT (WINDOW, AC2, SYSTEM_MATRIX, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -6099,6 +5851,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE swan_diagnostics_level
                   USE swan_io_units
                   USE M_PARALL
+
+                  TYPE(system_matrix_t) :: SYSTEM_MATRIX
+
+                  TYPE(spectral_window_t) :: WINDOW
 
                   INTEGER, INTENT(IN) :: IGP
 
@@ -6235,36 +5991,30 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   REAL     SP      ,TEMP
 
-                  REAL     AC2(MDC,MSC,MCGRD)           ,&
-                  &IMATRA(MDC,MSC)              ,&
-                  &IMATLA(MDC,MSC)              ,&
-                  &IMATDA(MDC,MSC)              ,&
-                  &IMATUA(MDC,MSC)
+                  REAL :: AC2(MDC,MSC,MCGRD)
 
-                  INTEGER  IDCMIN(MSC)        ,&
-                  &IDCMAX(MSC)
 
                   IF (LTRACE) CALL STRACE (IENT,'SOLMAT')
 
 !     **** 17/JAN   IN MOD (  , ) ;   + MDC WAS ADDED ****
 
                   do IS = 1, MSC
-                     ID_MIN = IDCMIN(IS)
-                     ID_MAX = IDCMAX(IS)
+                     ID_MIN = WINDOW%IDCMIN(IS)
+                     ID_MAX = WINDOW%IDCMAX(IS)
 
 !       *** elimination of the lower diagonal of the first matrix ***
 
                      do IDDUM = (ID_MIN+1), ID_MAX
                         ID   = MOD(IDDUM-1+MDC, MDC) + 1
                         IDM1 = MOD(IDDUM-2+MDC, MDC) + 1
-                        SP   = IMATDA(IDM1,IS)
+                        SP   = SYSTEM_MATRIX%imatda(IDM1,IS)
                         IF ( ABS(SP) .LE. 1.E-20 ) THEN
-                           TEMP = IMATLA(ID,IS) / SIGN( 1.E-20 , SP)
+                           TEMP = SYSTEM_MATRIX%imatla(ID,IS) / SIGN( 1.E-20 , SP)
                         ELSE
-                           TEMP = IMATLA(ID,IS) / SP
+                           TEMP = SYSTEM_MATRIX%imatla(ID,IS) / SP
                         END IF
-                        IMATDA(ID,IS) = IMATDA(ID,IS) - TEMP * IMATUA(IDM1,IS)
-                        IMATRA(ID,IS) = IMATRA(ID,IS) - TEMP * IMATRA(IDM1,IS)
+                        SYSTEM_MATRIX%imatda(ID,IS) = SYSTEM_MATRIX%imatda(ID,IS) - TEMP * SYSTEM_MATRIX%imatua(IDM1,IS)
+                        SYSTEM_MATRIX%imatra(ID,IS) = SYSTEM_MATRIX%imatra(ID,IS) - TEMP * SYSTEM_MATRIX%imatra(IDM1,IS)
                      end do
 
 !       *** solving of the linear equations for the wave action ***
@@ -6272,7 +6022,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       *** first for ID_MAX, then for the others ***
 
                      ID   = MOD(ID_MAX-1+MDC, MDC) + 1
-                     SP = IMATDA(ID,IS)
+                     SP = SYSTEM_MATRIX%imatda(ID,IS)
                      IF ( ABS(SP) .LE. 1.E-20 ) THEN
                         TEMP = SIGN (1.E-20 , SP)
                      ELSE
@@ -6281,18 +6031,18 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !       *** wave action for ID_MAX ***
 
-                     AC2(ID,IS,IGP) = IMATRA(ID,IS) / TEMP
+                     AC2(ID,IS,IGP) = SYSTEM_MATRIX%imatra(ID,IS) / TEMP
 
                      do J = 1, (ID_MAX-ID_MIN)
                         ID   = MOD(ID_MAX-J-1+MDC, MDC) +1
                         IDP1 = MOD(ID_MAX-J+MDC, MDC) +1
-                        SP = IMATDA(ID,IS)
+                        SP = SYSTEM_MATRIX%imatda(ID,IS)
                         IF ( ABS(SP) .LE. 1.E-20 ) THEN
                            TEMP = SIGN (1.E-20 , SP)
                         ELSE
                            TEMP = SP
                         END IF
-                        AC2(ID,IS,IGP) = ( IMATRA(ID,IS) - IMATUA(ID,IS) *&
+                        AC2(ID,IS,IGP) = ( SYSTEM_MATRIX%imatra(ID,IS) - SYSTEM_MATRIX%imatua(ID,IS) *&
                         &AC2(IDP1,IS,IGP) ) / TEMP
 
                      end do
@@ -6311,8 +6061,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   DO IS = 1, MSC
                      DO ID = 1, MDC
-                        IMATRA(ID,IS) = 0.
-                        IMATDA(ID,IS) = 0.
+                        SYSTEM_MATRIX%imatra(ID,IS) = 0.
+                        SYSTEM_MATRIX%imatda(ID,IS) = 0.
                      ENDDO
                   ENDDO
 
@@ -6328,13 +6078,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-               SUBROUTINE SOLMT1 (IDCMIN     ,IDCMAX     ,&
-               &AC2        ,IMATRA     ,&
-               &IMATDA     ,IMATUA     ,&
-               &IMATLA     ,&
-               &ISSTOP     ,&
-               &ANYBLK     ,IDDLOW     ,&
-               &IDDTOP              ,IGP)
+               SUBROUTINE SOLMT1 (WINDOW, AC2, SYSTEM_MATRIX, ANYBLK, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -6483,22 +6227,19 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !************************************************************************
 
+                  TYPE(system_matrix_t) :: SYSTEM_MATRIX
+
+                  TYPE(spectral_window_t) :: WINDOW
+
                   INTEGER, INTENT(IN) :: IGP
                   INTEGER, SAVE :: IENT = 0
                   INTEGER  IS, ID, J, IDDUM, IIDM, IIDP
-                  INTEGER  ISSTOP, IDDTOP, IDDLOW, IDLOW, IDTOP
+                  INTEGER :: IDLOW, IDTOP
 
                   REAL     SP     ,TEMP   ,CORMAT ,TEMP1
 
-                  REAL     AC2(MDC,MSC,MCGRD)           ,&
-                  &IMATRA(MDC,MSC)              ,&
-                  &IMATLA(MDC,MSC)              ,&
-                  &IMATDA(MDC,MSC)              ,&
-                  &IMATUA(MDC,MSC)              ,&
-                  &ICOLU2(MDC)
+                  REAL :: AC2(MDC,MSC,MCGRD), ICOLU2(MDC)
 
-                  INTEGER  IDCMIN(MSC)                  ,&
-                  &IDCMAX(MSC)
 
                   LOGICAL  ANYBLK(MDC,MSC)
 
@@ -6507,14 +6248,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     *** since explicit scheme is used and when CFL exceeds CFL max ***
 !     *** then bin should not be propagated within the current sweep ***
 
-                  DO IS = 1, ISSTOP
-                     DO IDDUM = IDDLOW, IDDTOP
+                  DO IS = 1, WINDOW%ISSTOP
+                     DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
                         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
                         IF ( ANYBLK(ID,IS) ) THEN
-                           IMATLA(ID,IS) = 0.
-                           IMATDA(ID,IS) = 1.
-                           IMATUA(ID,IS) = 0.
-                           IMATRA(ID,IS) = 0.
+                           SYSTEM_MATRIX%imatla(ID,IS) = 0.
+                           SYSTEM_MATRIX%imatda(ID,IS) = 1.
+                           SYSTEM_MATRIX%imatua(ID,IS) = 0.
+                           SYSTEM_MATRIX%imatra(ID,IS) = 0.
                         END IF
                      ENDDO
                   ENDDO
@@ -6530,9 +6271,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         ICOLU2(ID) = 0.
                      ENDDO
 
-                     IF ( IDCMIN(IS).LE.IDCMAX(IS) ) THEN
-                        IDLOW = IDCMIN(IS)
-                        IDTOP = IDCMAX(IS)
+                     IF ( WINDOW%IDCMIN(IS).LE.WINDOW%IDCMAX(IS) ) THEN
+                        IDLOW = WINDOW%IDCMIN(IS)
+                        IDTOP = WINDOW%IDCMAX(IS)
                      ELSE
                         IDLOW = 1
                         IDTOP = MDC
@@ -6543,8 +6284,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !         *** the matrix is solved for all directions           ***
 
                      IF ( IDLOW .EQ. 1  .AND.  IDTOP .EQ. MDC ) THEN
-                        CORMAT    = IMATUA(MDC,IS)
-                        ICOLU2(1) = IMATLA(1,IS)
+                        CORMAT    = SYSTEM_MATRIX%imatua(MDC,IS)
+                        ICOLU2(1) = SYSTEM_MATRIX%imatla(1,IS)
                      ELSE
                         CORMAT    = 0.
                         ICOLU2(1) = 0.
@@ -6555,31 +6296,31 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      do IDDUM = (IDLOW+1 ), IDTOP
                         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
                         IIDM = MOD ( IDDUM - 2 + MDC , MDC ) + 1
-                        SP = IMATDA(IIDM,IS)
+                        SP = SYSTEM_MATRIX%imatda(IIDM,IS)
                         IF ( ABS(SP) .LE. 1.E-20 ) THEN
-                           TEMP = IMATLA(ID,IS) / SIGN( 1.E-20 , SP)
+                           TEMP = SYSTEM_MATRIX%imatla(ID,IS) / SIGN( 1.E-20 , SP)
                            TEMP1 = CORMAT / SIGN(1.E-20 , SP)
                         ELSE
-                           TEMP = IMATLA(ID,IS) / SP
+                           TEMP = SYSTEM_MATRIX%imatla(ID,IS) / SP
                            TEMP1 = CORMAT / SP
                         END IF
-                        IMATDA(ID,IS)  = IMATDA(ID,IS)  - TEMP * IMATUA(IIDM,IS)
-                        IMATRA(ID,IS)  = IMATRA(ID,IS)  - TEMP * IMATRA(IIDM,IS)
-                        IMATRA(IDTOP,IS) = IMATRA(IDTOP,IS) - TEMP1 *&
-                        &IMATRA(IIDM,IS)
-                        CORMAT = 0. - TEMP1 * IMATUA(IIDM,IS)
+                        SYSTEM_MATRIX%imatda(ID,IS)  = SYSTEM_MATRIX%imatda(ID,IS)  - TEMP * SYSTEM_MATRIX%imatua(IIDM,IS)
+                        SYSTEM_MATRIX%imatra(ID,IS)  = SYSTEM_MATRIX%imatra(ID,IS)  - TEMP * SYSTEM_MATRIX%imatra(IIDM,IS)
+                        SYSTEM_MATRIX%imatra(IDTOP,IS) = SYSTEM_MATRIX%imatra(IDTOP,IS) - TEMP1 *&
+                        &SYSTEM_MATRIX%imatra(IIDM,IS)
+                        CORMAT = 0. - TEMP1 * SYSTEM_MATRIX%imatua(IIDM,IS)
 
                         IF ( IDDUM .LT. (IDTOP-1) ) THEN
                            ICOLU2(ID) =  - TEMP * ICOLU2(IIDM)
                         ELSE
-                           IMATUA(ID,IS) = IMATUA(ID,IS) - TEMP * ICOLU2(IIDM)
+                           SYSTEM_MATRIX%imatua(ID,IS) = SYSTEM_MATRIX%imatua(ID,IS) - TEMP * ICOLU2(IIDM)
                         END IF
                         IF ( IDDUM .LT. IDTOP ) THEN
-                           IMATDA(IDTOP,IS) = IMATDA(IDTOP,IS) - TEMP1 *&
+                           SYSTEM_MATRIX%imatda(IDTOP,IS) = SYSTEM_MATRIX%imatda(IDTOP,IS) - TEMP1 *&
                            &ICOLU2(IIDM)
                         ELSE
-                           IMATDA(IDTOP,IS) = IMATDA(IDTOP,IS) - TEMP1 *&
-                           &IMATUA(IIDM,IS)
+                           SYSTEM_MATRIX%imatda(IDTOP,IS) = SYSTEM_MATRIX%imatda(IDTOP,IS) - TEMP1 *&
+                           &SYSTEM_MATRIX%imatua(IIDM,IS)
                         END IF
 
                      end do
@@ -6588,7 +6329,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !         *** first for IDTOP, then for the others ***
 
-                     SP = IMATDA(IDTOP,IS)
+                     SP = SYSTEM_MATRIX%imatda(IDTOP,IS)
                      IF ( ABS(SP) .LE. 1.E-20 ) THEN
                         TEMP = SIGN (1.E-20 , SP)
                      ELSE
@@ -6597,19 +6338,19 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !         *** wave action for IDCMAX ***
 
-                     AC2(IDTOP,IS,IGP) = IMATRA(IDTOP,IS) / TEMP
+                     AC2(IDTOP,IS,IGP) = SYSTEM_MATRIX%imatra(IDTOP,IS) / TEMP
 
                      do J = 1, (IDTOP-IDLOW)
                         IDDUM = IDTOP - J
                         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
                         IIDP = MOD ( IDDUM + MDC , MDC ) + 1
-                        SP = IMATDA(ID,IS)
+                        SP = SYSTEM_MATRIX%imatda(ID,IS)
                         IF ( ABS(SP) .LE. 1.E-20 ) THEN
                            TEMP = SIGN (1.E-20 , SP)
                         ELSE
                            TEMP = SP
                         END IF
-                        AC2(ID,IS,IGP) = ( IMATRA(ID,IS) - IMATUA(ID,IS) *&
+                        AC2(ID,IS,IGP) = ( SYSTEM_MATRIX%imatra(ID,IS) - SYSTEM_MATRIX%imatua(ID,IS) *&
                         &AC2(IIDP,IS,IGP) - ICOLU2(ID)  *&
                         &AC2(IDTOP,IS,IGP) ) / TEMP
                      end do
@@ -6624,8 +6365,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &'ID IDDUM IMATLA      IMATDA      IMATUA     ICOLU2    IMATRA'
                         do IDDUM = IDLOW, IDTOP
                            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-                           WRITE(PRINTF,"(2I3,5E12.4)") ID, IDDUM,IMATLA(ID,IS),IMATDA(ID,IS),&
-                           &IMATUA(ID,IS),ICOLU2(ID),IMATRA(ID,IS)
+                           WRITE(PRINTF,"(2I3,5E12.4)") ID, IDDUM,SYSTEM_MATRIX%imatla(ID,IS),SYSTEM_MATRIX%imatda(ID,IS),&
+                           &SYSTEM_MATRIX%imatua(ID,IS),ICOLU2(ID),SYSTEM_MATRIX%imatra(ID,IS)
                         end do
                         WRITE(PRINTF,*)
                         do IDDUM = IDLOW, IDTOP
@@ -6640,8 +6381,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   DO IS = 1, MSC
                      DO ID = 1, MDC
-                        IMATRA(ID,IS) = 0.
-                        IMATDA(ID,IS) = 0.
+                        SYSTEM_MATRIX%imatra(ID,IS) = 0.
+                        SYSTEM_MATRIX%imatda(ID,IS) = 0.
                         ICOLU2(ID)    = 0.
                      ENDDO
                   ENDDO
@@ -6653,46 +6394,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !****************************************************************
 
-               SUBROUTINE SOURCE (ITER       ,IX         ,IY         ,&
-               &SWPDIR     ,KWAVE      ,SPCSIG     ,&
-               &ECOS       ,ESIN       ,AC2        ,&
-               &DEP2       ,IMATDA     ,IMATRA     ,&
-               &ABRBOT     ,KMESPC     ,SMESPC     ,&
-               &UBOT       ,UFRIC      ,UX2        ,&
-               &UY2        ,IDCMIN     ,IDCMAX     ,&
-               &IDDLOW     ,IDDTOP     ,IDWMIN     ,&
-               &IDWMAX     ,ISSTOP     ,PLWNDS     ,&
-               &PLWNDD     ,PLWCAP     ,PLBTFR     ,&
-               &PLSWEL     ,&
-               &PLWBRK     ,PLNL4S     ,PLNL4D     ,&
-               &PLVEGT     ,PLTURB     ,PLMUD      ,&
-               &PLICE      ,PLBRAG     ,&
-               &PLTRI      ,            HS         ,&
-               &ETOT       ,QBLOC      ,THETAW     ,&
-               &HM         ,FPM        ,WIND10     ,&
-               &ETOTW      ,GROWW      ,ALIMW      ,&
-               &SMEBRK     ,KTETA      ,SNLC1      ,&
-               &DAL1       ,DAL2       ,DAL3       ,&
-               &UE         ,SA1        ,&
-               &SA2        ,DA1C       ,DA1P       ,&
-               &DA1M       ,DA2C       ,DA2P       ,&
-               &DA2M       ,SFNL       ,DSNL       ,&
-               &MEMNL4     ,WWINT      ,WWAWG      ,&
-               &WWSWG      ,CGO        ,USTAR      ,&
-               &ZELEN      ,SPCDIR     ,ANYWND     ,&
-               &DMW        ,FBD        ,MEMBRG     ,&
-               &CAS        ,QTL1       ,QTL2       ,&
-               &MEMSINA    ,MEMSINB    ,&
-               &DISSC0     ,DISSC1     ,GENC0      ,&
-               &GENC1      ,REDC0      ,REDC1      ,&
-               &XIS        ,FRCOEF     ,IT         ,&
-               &NPLA2      ,TURBV2     ,MUDL2      ,&
-               &AICE2      ,HICE2      ,&
-               &URSELL     ,ANYBIN     ,REFLSO     ,&
-               &TAUWV      ,BIPHAS&
-               &,URMSTOP   ,TRIADS, SNL4, SPECTRAL_POWERS, WCAP_WORKSPACE, IGP&
-               &,st_kc,st_n&
-               &)
+               SUBROUTINE SOURCE (ITER, IX, IY, SWPDIR, KWAVE, SPCSIG, ECOS, ESIN, AC2, DEP2, IMATDA, IMATRA, POINT_INTEGRALS, UFRIC, UX2, UY2, WINDOW, TEST_OUTPUT, THETAW, GROWW, ALIMW, DIA_WORKSPACE, MEMNL4, CGO, SPCDIR, ANYWND, DMW, FBD, MEMBRG, CAS, QTL1, QTL2, MEMSINA, MEMSINB, SOURCE_BUDGET, XIS, FRCOEF, IT, NPLA2, TURBV2, MUDL2, AICE2, HICE2, ANYBIN, REFLSO, URMSTOP, TRIADS, SNL4, SPECTRAL_POWERS, WCAP_WORKSPACE, IGP, st_kc, st_n)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
    USE swan_nonlinear_interactions, ONLY: FILNL3, RANGE4, SWDCTA, SWDNCTA, SWFTIM, SWINTFXNL, SWLTA, SWSNL1, SWSNL2, SWSNL3, SWSNL4, SWSNL8
    USE swan_dissipation, ONLY: SBOT, SICE, SMUD, SSURF, STURBV, SVEG, SWCAP, SWCAP8
@@ -6715,6 +6417,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE SwanBraggScat
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
+
+                  TYPE(point_integrals_t) :: POINT_INTEGRALS
+
+                  TYPE(test_output_t) :: TEST_OUTPUT
+
+                  TYPE(source_budget_t) :: SOURCE_BUDGET
+
+                  TYPE(spectral_window_t) :: WINDOW
                   INTEGER, INTENT(IN) :: IGP
 !  Stencil addresses and width passed explicitly by both solvers.
                   INTEGER, INTENT(IN) :: st_kc(MICMAX), st_n
@@ -6722,6 +6432,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   TYPE(snl4_tables_t), INTENT(IN) :: SNL4
                   TYPE(spectral_powers_t), INTENT(IN) :: SPECTRAL_POWERS
                   TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
+                  TYPE(dia_workspace_t), INTENT(INOUT) :: DIA_WORKSPACE
 
 
 !   --|-----------------------------------------------------------|--
@@ -7011,8 +6722,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     Call SSURF to compute the source term due to wave breaking
 !   ------------------------------------------------------------
 !   IF IWIND =1 OR IWIND =2 THEN
-!     Call WNDPAR (first or second generation mode of source terms
-!                  using the DOLPHIN-B formulations)
+!     Call WNDPAR (WINDOW)
 !
 !   else if IWIND = 3 then
 !     input source term according to Snyder (1981)
@@ -7054,14 +6764,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !************************************************************************
 
-                  INTEGER  ITER    ,IDWMIN  ,IDWMAX  ,SWPDIR  ,ISSTOP  ,&
-                  &IDDTOP  ,IDDLOW  ,IX      ,IY
+                  INTEGER :: ITER, SWPDIR, IX, IY
 
-                  REAL     ABRBOT  ,ETOT    ,HM      ,QBLOC   ,ETOTW   ,&
-                  &FPM     ,WIND10  ,THETAW  ,SMESPC  ,KMESPC  ,&
-                  &SNLC1   ,FACHFR  ,DAL1    ,DAL2    ,DAL3    ,&
-                  &UFRIC   ,SMEBRK  ,HS      ,XIS     ,KTETA   ,&
-                  &AICELOC ,HICELOC ,DISBK
+                  REAL :: THETAW, FACHFR, UFRIC, XIS, AICELOC, HICELOC, DISBK
 
                   REAL  :: AC2(MDC,MSC,MCGRD)
                   REAL  :: DEP2(MCGRD)
@@ -7071,53 +6776,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint
                   REAL  :: KWAVE(MSC,MICMAX)
                   REAL  :: DMW(MSC,MICMAX)
-                  REAL  :: UBOT(MCGRD)
                   REAL  :: UX2(MCGRD)
                   REAL  :: UY2(MCGRD)
-                  REAL  :: UE(MSC4MI:MSC4MA , MDC4MI:MDC4MA )
-                  REAL  :: SA1(MSC4MI:MSC4MA , MDC4MI:MDC4MA )
-                  REAL  :: SA2(MSC4MI:MSC4MA , MDC4MI:MDC4MA )
-                  REAL  :: DA1C(MSC4MI:MSC4MA , MDC4MI:MDC4MA )
-                  REAL  :: DA1P(MSC4MI:MSC4MA , MDC4MI:MDC4MA )
-                  REAL  :: DA1M(MSC4MI:MSC4MA , MDC4MI:MDC4MA )
-                  REAL  :: DA2C(MSC4MI:MSC4MA , MDC4MI:MDC4MA )
-                  REAL  :: DA2P(MSC4MI:MSC4MA , MDC4MI:MDC4MA )
-                  REAL  :: DA2M(MSC4MI:MSC4MA , MDC4MI:MDC4MA )
-                  REAL  :: SFNL(MSC4MI:MSC4MA , MDC4MI:MDC4MA )
-                  REAL  :: DSNL(MSC4MI:MSC4MA , MDC4MI:MDC4MA )
                   REAL  :: MEMNL4(MDC,MSC,MCGRD)
                   REAL  :: MEMBRG(MDC,MSC,MCGRD)
                   REAL  :: MEMSINA(MDC,MSC,MCGRD)
                   REAL  :: MEMSINB(MDC,MSC,MCGRD)
-                  REAL  :: PLWNDS(MDC,MSC,NPTST)
-                  REAL  :: PLWNDD(MDC,MSC,NPTST)
-                  REAL  :: PLWCAP(MDC,MSC,NPTST)
-                  REAL  :: PLBTFR(MDC,MSC,NPTST)
-                  REAL  :: PLWBRK(MDC,MSC,NPTST)
-                  REAL  :: PLNL4S(MDC,MSC,NPTST)
-                  REAL  :: PLNL4D(MDC,MSC,NPTST)
-                  REAL  :: PLVEGT(MDC,MSC,NPTST)
-                  REAL  :: PLTURB(MDC,MSC,NPTST)
-                  REAL  :: PLMUD (MDC,MSC,NPTST)
-                  REAL  :: PLICE (MDC,MSC,NPTST)
-                  REAL  :: PLSWEL(MDC,MSC,NPTST)
-                  REAL  :: PLTRI (MDC,MSC,NPTST)
-                  REAL  :: PLBRAG(MDC,MSC,NPTST)
-                  REAL  :: WWAWG(*)
-                  REAL  :: WWSWG(*)
                   REAL  :: CGO(MSC,MICMAX)
                   REAL  :: CAS(MDC,MSC,MICMAX)
-                  REAL  :: USTAR(MCGRD)
-                  REAL  :: ZELEN(MCGRD)
-                  REAL  :: TAUWV(MCGRD)
-                  REAL  :: DISSC0(1:MDC,1:MSC,1:MDISP)
-                  REAL  :: DISSC1(1:MDC,1:MSC,1:MDISP)
-                  REAL  :: GENC0 (1:MDC,1:MSC,1:MGENR)
-                  REAL  :: GENC1 (1:MDC,1:MSC,1:MGENR)
-                  REAL  :: REDC0 (1:MDC,1:MSC,1:MREDS)
-                  REAL  :: REDC1 (1:MDC,1:MSC,1:MREDS)
-                  REAL  :: URSELL(MCGRD)
-                  REAL  :: BIPHAS(MCGRD)
                   REAL  :: FRCOEF(MCGRD)
                   REAL  :: NPLA2(MCGRD)
                   REAL  :: TURBV2(MCGRD)
@@ -7129,9 +6795,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   REAL  :: FBD(MDC,MDC,MSC)
                   REAL  :: URMSTOP(MCGRD)
 
-                  INTEGER  IDCMIN(MSC)    ,&
-                  &IDCMAX(MSC)    ,&
-                  &WWINT(*)
 
                   LOGICAL  GROWW(MDC,MSC) ,&
                   &ANYBIN(MDC,MSC),&
@@ -7148,18 +6811,18 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !     *** set all dissipation coeff at 0 ***
 
-                  DISSC0(1:MDC,1:MSC,1:MDISP) = 0.
-                  DISSC1(1:MDC,1:MSC,1:MDISP) = 0.
+                  SOURCE_BUDGET%dissc0(1:MDC,1:MSC,1:MDISP) = 0.
+                  SOURCE_BUDGET%dissc1(1:MDC,1:MSC,1:MDISP) = 0.
 
 !     *** set all generation coeff at 0 ***
 
-                  GENC0(1:MDC,1:MSC,1:MGENR) = 0.
-                  GENC1(1:MDC,1:MSC,1:MGENR) = 0.
+                  SOURCE_BUDGET%genc0(1:MDC,1:MSC,1:MGENR) = 0.
+                  SOURCE_BUDGET%genc1(1:MDC,1:MSC,1:MGENR) = 0.
 
 !     *** set all redistribution coeff at 0 ***
 
-                  REDC0(1:MDC,1:MSC,1:MREDS) = 0.
-                  REDC1(1:MDC,1:MSC,1:MREDS) = 0.
+                  SOURCE_BUDGET%redc0(1:MDC,1:MSC,1:MREDS) = 0.
+                  SOURCE_BUDGET%redc1(1:MDC,1:MSC,1:MREDS) = 0.
 
 !     *** set local ice concentration ***
 !     (see Remarks)
@@ -7188,11 +6851,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !       *** wave-bottom interactions ***
 
-                     CALL SBOT (ABRBOT   ,DEP2     ,ECOS     ,ESIN     ,AC2      ,&
-                     &IMATDA   ,KWAVE    ,SPCSIG   ,UBOT     ,UX2      ,&
-                     &UY2      ,IDCMIN   ,IDCMAX   ,IT       ,ITER     ,&
-                     &SWPDIR   ,PLBTFR   ,ISSTOP   ,DISSC1   ,VARFR    ,&
-                     &FRCOEF   ,IGP      ,IX       ,IY)
+                     CALL SBOT (POINT_INTEGRALS%abrbot, DEP2, ECOS, ESIN, AC2, IMATDA, KWAVE, SPCSIG, POINT_INTEGRALS%ubot, UX2, UY2, WINDOW, IT, ITER, SWPDIR, TEST_OUTPUT%plbtfr, SOURCE_BUDGET%dissc1, VARFR, FRCOEF, IGP, IX, IY)
                   END IF
                   IF (timing_enabled) CALL SWTSTO(130)
 !
@@ -7203,10 +6862,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !        *** energy dissipation according to Ng (2000)
 
-                     CALL SMUD ( DEP2   ,IMATDA  ,&
-                     &KWAVE  ,CGO     ,DMW     ,&
-                     &IDCMIN ,IDCMAX  ,ISSTOP  ,&
-                     &DISSC1 ,PLMUD   ,IGP     ,st_n)
+                     CALL SMUD (DEP2, IMATDA, KWAVE, CGO, DMW, WINDOW, SOURCE_BUDGET%dissc1, TEST_OUTPUT%plmud, IGP, st_n)
                   END IF
                   IF (timing_enabled) CALL SWTSTO(138)
 !
@@ -7215,10 +6871,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !     *** wave-vegetation interactions ***
 
-                     CALL SVEG (DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
-                     &KWAVE  ,KMESPC   ,PLVEGT ,&
-                     &IDCMIN ,IDCMAX   ,ISSTOP ,DISSC1    ,&
-                     &NPLA2  , IGP)
+                     CALL SVEG (DEP2, IMATDA, POINT_INTEGRALS%etot, POINT_INTEGRALS%smebrk, KWAVE, POINT_INTEGRALS%kmespc, TEST_OUTPUT%plvegt, WINDOW, SOURCE_BUDGET%dissc1, NPLA2, IGP)
                   END IF
                   IF (timing_enabled) CALL SWTSTO(139)
 !
@@ -7227,9 +6880,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !        *** dissipation due to turbulent viscosity ***
 
-                     CALL STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
-                     &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-                     &KWAVE   ,DISSC1  ,PLTURB, SPECTRAL_POWERS%value, IGP, IX, IY, st_n)
+                     CALL STURBV (TURBV2, DEP2, IMATDA, WINDOW, KWAVE, SOURCE_BUDGET%dissc1, TEST_OUTPUT%plturb, SPECTRAL_POWERS%value, IGP, IX, IY, st_n)
                   END IF
                   IF (timing_enabled) CALL SWTSTO(143)
 !
@@ -7238,10 +6889,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !        *** dissipation by sea ice ***
 
-                     CALL SICE   (IMATDA , IDCMIN  , IDCMAX , ISSTOP&
-                     &, DISSC1 , PLICE   , AICELOC, HICELOC&
-                     &, SPCSIG  , CGO&
-                     &)
+                     CALL SICE   (IMATDA, WINDOW, SOURCE_BUDGET%dissc1, TEST_OUTPUT%plice, AICELOC, HICELOC, SPCSIG, CGO)
 
                   END IF
                   IF (timing_enabled) CALL SWTSTO(144)
@@ -7251,11 +6899,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !         *** calculate surf breaking source term (5 formulations) ***
 
-                     CALL SSURF (ETOT    ,HM      ,QBLOC   ,SMEBRK  ,KTETA   ,&
-                     &KMESPC  ,SPCSIG  ,AC2     ,IMATRA  ,&
-                     &IMATDA  ,IDCMIN  ,IDCMAX  ,PLWBRK  ,&
-                     &ISSTOP  ,DISSC0  ,DISSC1  ,DISBK   ,ITER,&
-                     &WCAP_WORKSPACE%mean_frequency_wam , IGP)
+                     CALL SSURF (POINT_INTEGRALS%etot, POINT_INTEGRALS%hm, POINT_INTEGRALS%qbloc, POINT_INTEGRALS%smebrk, POINT_INTEGRALS%kteta, POINT_INTEGRALS%kmespc, SPCSIG, AC2, IMATRA, IMATDA, WINDOW, TEST_OUTPUT%plwbrk, SOURCE_BUDGET%dissc0, SOURCE_BUDGET%dissc1, DISBK, ITER, WCAP_WORKSPACE%mean_frequency_wam, IGP)
 
                   END IF
                   IF (timing_enabled) CALL SWTSTO(131)
@@ -7269,67 +6913,46 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                      IF (PWIND(31) .GT. 1.E-20) THEN
                         IF ( IWIND.NE.8 ) THEN
-                           CALL SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-                           &SPCSIG  ,THETAW  ,ANYWND  ,&
-                           &UFRIC   ,FPM     ,PLWNDS  ,&
-                           &IMATRA  ,SPCDIR  ,GENC0   ,&
-                           &KWAVE   ,AICELOC , IGP)
+                           CALL SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, POINT_INTEGRALS%fpm, TEST_OUTPUT%plwnds, IMATRA, SPCDIR, SOURCE_BUDGET%genc0, KWAVE, AICELOC, IGP)
                         ELSE
                            IF ( SWPDIR .EQ. 1 .OR.&
                            &(SWPDIR .EQ. 2 .AND. IX .EQ. 1) .OR.&
                            &(SWPDIR .EQ. 3 .AND. IY .EQ. 1) .OR.&
                            &(SWPDIR .EQ. 4 .AND. (IX.EQ.MXC .AND. IY.EQ.1)) )&
                            &CALL SWIND0_NRL (SPCSIG  ,THETAW  ,ANYWND  ,&
-                           &UFRIC   ,FPM     ,MEMSINA ,&
+                           &UFRIC   ,POINT_INTEGRALS%fpm     ,MEMSINA ,&
                            &SPCDIR  ,KWAVE   , IGP)
 
 !       *** get source term value of array MEMSINA for the bin that  ***
 !       *** falls within a sweep and store in right hand side IMATRA ***
 
-                           CALL FILSIN( MEMSINA, IDCMIN, IDCMAX, IMATRA, ANYWND,&
-                           &PLWNDS , ISSTOP, GENC0 , AICELOC , IGP)
+                           CALL FILSIN(MEMSINA, WINDOW, IMATRA, ANYWND, TEST_OUTPUT%plwnds, SOURCE_BUDGET%genc0, AICELOC, IGP)
                         ENDIF
                      ENDIF
                   ENDIF
 
                   IF ( IWIND .EQ. 1 .OR. IWIND .EQ. 2 ) THEN
 
-                     CALL WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
-                     &DEP2  ,WIND10,GENC0,GENC1,&
-                     &THETAW,AC2   ,KWAVE ,IMATRA,IMATDA,&
-                     &SPCSIG,CGO   ,ALIMW ,GROWW ,ETOTW ,&
-                     &PLWNDS,PLWNDD,SPCDIR,ITER,AICELOC    , IGP)
+                     CALL WNDPAR (WINDOW, DEP2, POINT_INTEGRALS%wind10, SOURCE_BUDGET%genc0, SOURCE_BUDGET%genc1, THETAW, AC2, KWAVE, IMATRA, IMATDA, SPCSIG, CGO, ALIMW, GROWW, POINT_INTEGRALS%etotw, TEST_OUTPUT%plwnds, TEST_OUTPUT%plwndd, SPCDIR, ITER, AICELOC, IGP)
 
 
                   ELSE IF ( IWIND .EQ. 3 ) THEN
 
 !       *** Wind input according to Snyder et al (1981) ***
 
-                     CALL SWIND3 (SPCSIG  ,THETAW  ,&
-                     &KWAVE   ,IMATRA  ,GENC0   ,&
-                     &IDCMIN  ,IDCMAX  ,AC2     ,UFRIC   ,&
-                     &FPM     ,PLWNDS  ,ISSTOP  ,SPCDIR  ,&
-                     &ANYWND  ,AICELOC , IGP)
+                     CALL SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, SOURCE_BUDGET%genc0, WINDOW, AC2, UFRIC, POINT_INTEGRALS%fpm, TEST_OUTPUT%plwnds, SPCDIR, ANYWND, AICELOC, IGP)
 
                   ELSE IF ( IWIND .EQ. 4 ) THEN
 
 !       *** Wind input according to Janssen (1989,1991) ***
 
-                     CALL SWIND4  (IDWMIN  ,IDWMAX  ,&
-                     &SPCSIG  ,WIND10  ,THETAW  ,XIS     ,&
-                     &DDIR    ,KWAVE   ,IMATRA  ,GENC0   ,&
-                     &IDCMIN  ,IDCMAX  ,AC2     ,UFRIC   ,&
-                     &PLWNDS  ,ISSTOP  ,ITER    ,USTAR   ,ZELEN   ,&
-                     &SPCDIR  ,ANYWND  ,IT      ,TAUWV   ,AICELOC , IGP)
+                     CALL SWIND4  (WINDOW, SPCSIG, POINT_INTEGRALS%wind10, THETAW, XIS, DDIR, KWAVE, IMATRA, SOURCE_BUDGET%genc0, AC2, UFRIC, TEST_OUTPUT%plwnds, ITER, POINT_INTEGRALS%ustar, POINT_INTEGRALS%zelen, SPCDIR, ANYWND, IT, POINT_INTEGRALS%tauwv, AICELOC, IGP)
 
                   ELSE IF ( IWIND .EQ. 5 ) THEN
 
 !       *** Wind input according to Yan (1989) ***
 
-                     CALL SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
-                     &UFRIC   ,KWAVE   ,IMATRA  ,IDCMIN  ,&
-                     &IDCMAX  ,AC2     ,ANYWND  ,PLWNDS  ,&
-                     &SPCDIR  ,GENC0   ,AICELOC          , IGP)
+                     CALL SWIND5 (SPCSIG, THETAW, WINDOW, UFRIC, KWAVE, IMATRA, AC2, ANYWND, TEST_OUTPUT%plwnds, SPCDIR, SOURCE_BUDGET%genc0, AICELOC, IGP)
 
                   ELSE IF ( IWIND .EQ. 8 ) THEN
 
@@ -7341,14 +6964,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &(SWPDIR .EQ. 3 .AND. IY .EQ. 1) .OR.&
                      &(SWPDIR .EQ. 4 .AND. (IX.EQ.MXC .AND. IY.EQ.1)) )&
                      &CALL SWIND_DBYB (SPCSIG  ,THETAW  ,KWAVE  ,MEMSINA ,&
-                     &MEMSINB ,AC2     ,UFRIC  ,WIND10  ,&
-                     &SPCDIR  ,ANYWND  ,CGO    ,ZELEN   ,IGP, st_n)
+                     &MEMSINB ,AC2     ,UFRIC  ,POINT_INTEGRALS%wind10  ,&
+                     &SPCDIR  ,ANYWND  ,CGO    ,POINT_INTEGRALS%zelen   ,IGP, st_n)
 
 !       *** get source term value of array MEMSINB for the bin that  ***
 !       *** falls within a sweep and store in right hand side IMATRA ***
 
-                     CALL FILSIN( MEMSINB, IDCMIN, IDCMAX, IMATRA, ANYWND,&
-                     &PLWNDS , ISSTOP, GENC0 , AICELOC , IGP)
+                     CALL FILSIN(MEMSINB, WINDOW, IMATRA, ANYWND, TEST_OUTPUT%plwnds, SOURCE_BUDGET%genc0, AICELOC, IGP)
 
                   END IF
                   IF (timing_enabled) CALL SWTSTO(132)
@@ -7357,36 +6979,18 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
                   IF (timing_enabled) CALL SWTSTA(133)
                   IF (IWCAP.GE.1) THEN
-                     IF (IWCAP.LE.7) CALL SWCAP (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
-                     &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-                     &ETOT    ,IMATDA  ,IMATRA  ,PLWCAP  ,&
-                     &CGO     ,UFRIC   ,CAS     ,&
-                     &DEP2    ,DISSC1  ,DISSC0,&
-                     &WCAP_WORKSPACE, IGP)
-                     IF (IWCAP.EQ.8) CALL SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2 ,&
-                     &IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-                     &ETOT    ,IMATDA  ,IMATRA  ,PLWCAP  ,&
-                     &CGO     ,UFRIC   ,&
-                     &DEP2    ,DISSC1  ,DISSC0, WCAP_WORKSPACE, IGP)
+                     IF (IWCAP.LE.7) CALL SWCAP (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, POINT_INTEGRALS%etot, IMATDA, IMATRA, TEST_OUTPUT%plwcap, CGO, UFRIC, CAS, DEP2, SOURCE_BUDGET%dissc1, SOURCE_BUDGET%dissc0, WCAP_WORKSPACE, IGP)
+                     IF (IWCAP.EQ.8) CALL SWCAP8 (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, POINT_INTEGRALS%etot, IMATDA, IMATRA, TEST_OUTPUT%plwcap, CGO, UFRIC, DEP2, SOURCE_BUDGET%dissc1, SOURCE_BUDGET%dissc0, WCAP_WORKSPACE, IGP)
                   END IF
 
 !     For now, we only call SSWELL if Babanin physics are in use
                   IF (IWCAP.EQ.8) THEN
                      IF (ZIEGER) THEN
-                        CALL SSWELL_ZIEGER (SPCSIG, KWAVE, AC2, CGO, ISSTOP&
-                        &,IDCMIN ,IDCMAX, MDC, DISSC1, IMATDA&
-                        &,TESTFL,IPTST,PLSWEL, IGP)
+                        CALL SSWELL_ZIEGER (SPCSIG, KWAVE, AC2, CGO, WINDOW, MDC, SOURCE_BUDGET%dissc1, IMATDA, TEST_OUTPUT%testfl, TEST_OUTPUT%iptst, TEST_OUTPUT%plswel, IGP)
                      ELSE IF (ROGERS) THEN
-                        CALL SSWELL_ROGERS (SPCSIG, KWAVE, IDCMIN, IDCMAX&
-                        &,ISSTOP , DISSC1 ,ETOT    ,IMATDA&
-                        &,URMSTOP(IGP), GRAV , PWIND(9), MDC&
-                        &,TESTFL,IPTST,PLSWEL,CGO,CDSV,FESWELL)
+                        CALL SSWELL_ROGERS (SPCSIG, KWAVE, WINDOW, SOURCE_BUDGET%dissc1, POINT_INTEGRALS%etot, IMATDA, URMSTOP(IGP), GRAV, PWIND(9), MDC, TEST_OUTPUT%testfl, TEST_OUTPUT%iptst, TEST_OUTPUT%plswel, CGO, CDSV, FESWELL)
                      ELSE IF (ARDHUIN) THEN
-                        CALL SSWELL_ARDHUIN (SPCSIG, THETAW, KWAVE, IDCMIN,&
-                        &IDCMAX, ISSTOP, DISSC1, ETOT, IMATDA,&
-                        &SPCDIR, UFRIC ,&
-                        &URMSTOP(IGP), GRAV,PWIND(9),&
-                        &TESTFL,IPTST,PLSWEL,MDC,CGO,CDSV)
+                        CALL SSWELL_ARDHUIN (SPCSIG, THETAW, KWAVE, WINDOW, SOURCE_BUDGET%dissc1, POINT_INTEGRALS%etot, IMATDA, SPCDIR, UFRIC, URMSTOP(IGP), GRAV, PWIND(9), TEST_OUTPUT%testfl, TEST_OUTPUT%iptst, TEST_OUTPUT%plswel, MDC, CGO, CDSV)
                      ELSE
                         CALL MSGERR(4,' Sswell must be defined! ')
 !           note that CGO is for diagnostic purposes only, may be omitted
@@ -7408,31 +7012,16 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                         IF (ITRIAD.EQ.1.OR.ITRIAD.EQ.11) THEN
 !             LTA
-                           CALL SWLTA ( AC2   , DEP2  , CGO   , SPCSIG,&
-                           &IMATRA, IMATDA, REDC0 , REDC1 ,&
-                           &IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
-                           &SMEBRK, PLTRI , URSELL, BIPHAS, QTL2, TRIADS , IGP)
+                           CALL SWLTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, SOURCE_BUDGET%redc0, SOURCE_BUDGET%redc1, WINDOW, POINT_INTEGRALS%smebrk, TEST_OUTPUT%pltri, POINT_INTEGRALS%ursell, POINT_INTEGRALS%biphas, QTL2, TRIADS, IGP)
                         ELSEIF (ITRIAD.EQ.2 .OR. ITRIAD.EQ.3) THEN
 !             SPB or FTIM
-                           CALL SWFTIM ( AC2   , SPCSIG,&
-                           &IMATRA, IMATDA, REDC0 , REDC1 ,&
-                           &IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
-                           &PLTRI , URSELL, BIPHAS,&
-                           &QTL1  , QTL2  , IGP)
+                           CALL SWFTIM (AC2, SPCSIG, IMATRA, IMATDA, SOURCE_BUDGET%redc0, SOURCE_BUDGET%redc1, WINDOW, TEST_OUTPUT%pltri, POINT_INTEGRALS%ursell, POINT_INTEGRALS%biphas, QTL1, QTL2, IGP)
                         ELSEIF (ITRIAD.EQ.5) THEN
 !             DCTA
                            IF ( TRIADS%collinear ) THEN
-                              CALL SWDCTA ( AC2   , DEP2  , CGO   , SPCSIG,&
-                              &IMATRA, IMATDA, REDC0 , REDC1 ,&
-                              &IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
-                              &SMEBRK, PLTRI , URSELL, BIPHAS,&
-                              &QTL1  , QTL2  , IGP)
+                              CALL SWDCTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, SOURCE_BUDGET%redc0, SOURCE_BUDGET%redc1, WINDOW, POINT_INTEGRALS%smebrk, TEST_OUTPUT%pltri, POINT_INTEGRALS%ursell, POINT_INTEGRALS%biphas, QTL1, QTL2, IGP)
                            ELSE
-                              CALL SWDNCTA ( AC2   , DEP2  , CGO   , SPCSIG, SPCDIR,&
-                              &KWAVE , IMATRA, IMATDA, REDC0 , REDC1 ,&
-                              &IDDLOW, IDDTOP, ISSTOP, IDCMIN, IDCMAX,&
-                              &ETOT  , SMEBRK, PLTRI , URSELL, BIPHAS,&
-                              &QTL1  , QTL2  , IGP)
+                              CALL SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, SOURCE_BUDGET%redc0, SOURCE_BUDGET%redc1, WINDOW, POINT_INTEGRALS%etot, POINT_INTEGRALS%smebrk, TEST_OUTPUT%pltri, POINT_INTEGRALS%ursell, POINT_INTEGRALS%biphas, QTL1, QTL2, IGP)
                            ENDIF
                         ENDIF
 
@@ -7444,7 +7033,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     --- compute quadruplet interactions if Ursell number < Urmax
 !
                   IF (timing_enabled) CALL SWTSTA(135)
-                  IF (URSELL(IGP).LT.PTRIAD(3)) THEN
+                  IF (POINT_INTEGRALS%ursell(IGP).LT.PTRIAD(3)) THEN
 
 !       *** compute the counters for the nonlinear four ***
 !       *** wave-wave interactions in spectral space    ***
@@ -7452,11 +7041,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                      IF ( IQUAD .GE. 1 ) THEN
 !          RANGE4 updates elements 13 and 14. Keep those per-gridpoint
-!          values local because WWINT is shared by the unstructured
-!          OpenMP path. IQUAD=4 uses its cached per-quadruplet copy belo
+!          values local in WWINTL so the per-thread workspace coefficient
+!          table stays read-only (see swan_source_workspaces). IQUAD=4
+!          uses its cached per-quadruplet copy below.
                         IF ( IQUAD .NE. 4 ) THEN
-                           WWINTL(1:24) = WWINT(1:24)
-                           CALL RANGE4 (WWINTL, IDDLOW, IDDTOP, IX, IY)
+                           WWINTL(1:24) = DIA_WORKSPACE%WWINT(1:24)
+                           CALL RANGE4 (WWINTL, WINDOW, IX, IY)
                         ENDIF
                         FACHFR = 1. / XIS ** PWTAIL(1)
                      ENDIF
@@ -7467,26 +7057,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       *** semi-implicit calculation for all the bins that fall ***
 !       *** within a sweep. No additional array is required      ***
 
-                        CALL SWSNL1 (                  WWINTL  ,WWAWG   ,WWSWG   ,&
-                        &IDCMIN  ,IDCMAX  ,UE      ,SA1     ,&
-                        &SA2     ,DA1C    ,DA1P    ,DA1M    ,DA2C    ,&
-                        &DA2P    ,DA2M    ,SPCSIG  ,SNLC1   ,KMESPC  ,&
-                        &FACHFR  ,ISSTOP  ,DAL1    ,DAL2    ,DAL3    ,&
-                        &SFNL    ,DSNL    ,DEP2    ,AC2     ,IMATDA  ,&
-                        &IMATRA  ,PLNL4S  ,PLNL4D                    ,&
-                        &IDDLOW  ,IDDTOP  ,REDC0   ,REDC1, SNL4%frequency_power_11 , IGP)
+                        CALL SWSNL1 (DIA_WORKSPACE, WINDOW, SPCSIG, POINT_INTEGRALS%kmespc, FACHFR, DEP2, AC2, IMATDA, IMATRA, TEST_OUTPUT%plnl4s, TEST_OUTPUT%plnl4d, SOURCE_BUDGET%redc0, SOURCE_BUDGET%redc1, SNL4%frequency_power_11, IGP)
 
                      ELSE IF ( IQUAD .EQ. 2) THEN
 
 !         *** fully explicit calculation for all the bins that fall ***
 !         *** within a sweep. No additional array is required       ***
 
-                        CALL SWSNL2 (                  IDDLOW  ,IDDTOP  ,WWINTL  ,&
-                        &WWAWG   ,UE      ,SA1     ,ISSTOP  ,&
-                        &SA2     ,SPCSIG  ,SNLC1   ,DAL1    ,DAL2    ,&
-                        &DAL3    ,SFNL    ,DEP2    ,AC2     ,KMESPC  ,&
-                        &REDC0   ,REDC1   ,IMATDA  ,IMATRA  ,&
-                        &FACHFR  ,PLNL4S  ,         IDCMIN  ,IDCMAX, SNL4%frequency_power_11 , IGP)
+                        CALL SWSNL2 (WINDOW, WWINTL, DIA_WORKSPACE%WWAWG, DIA_WORKSPACE%UE, DIA_WORKSPACE%SA1, DIA_WORKSPACE%SA2, SPCSIG, DIA_WORKSPACE%SNLC1, DIA_WORKSPACE%DAL1, DIA_WORKSPACE%DAL2, DIA_WORKSPACE%DAL3, DIA_WORKSPACE%SFNL, DEP2, AC2, POINT_INTEGRALS%kmespc, SOURCE_BUDGET%redc0, SOURCE_BUDGET%redc1, IMATDA, IMATRA, FACHFR, TEST_OUTPUT%plnl4s, SNL4%frequency_power_11, IGP)
 
                      ELSE IF ( IQUAD .EQ. 3) THEN
 
@@ -7501,28 +7079,27 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !           *** point for the first iteration to ensure stable      ***
 !           *** behaviour of the model                              ***
 
-                           CALL SWSNL3 (                  WWINTL  ,WWAWG   ,&
-                           &UE      ,SA1     ,SA2     ,SPCSIG  ,SNLC1   ,&
-                           &DAL1    ,DAL2    ,DAL3    ,SFNL    ,DEP2    ,&
-                           &AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4%frequency_power_11 , IGP)
+                           CALL SWSNL3 (                  WWINTL  ,DIA_WORKSPACE%WWAWG   ,&
+                           &DIA_WORKSPACE%UE      ,DIA_WORKSPACE%SA1     ,DIA_WORKSPACE%SA2     ,SPCSIG  ,DIA_WORKSPACE%SNLC1   ,&
+                           &DIA_WORKSPACE%DAL1    ,DIA_WORKSPACE%DAL2    ,DIA_WORKSPACE%DAL3    ,DIA_WORKSPACE%SFNL    ,DEP2    ,&
+                           &AC2     ,POINT_INTEGRALS%kmespc  ,MEMNL4  ,FACHFR, SNL4%frequency_power_11 , IGP)
 
                         ELSE IF ( ITER .GT. 1 .AND. ( SWPDIR .EQ. 1 .OR.&
                         &( SWPDIR .EQ. 2 .AND. IX .EQ. 1) .OR.&
                         &( SWPDIR .EQ. 3 .AND. IY .EQ. 1) .OR.&
                         &( SWPDIR .EQ. 4 .AND. (IX.EQ.MXC .AND. IY.EQ.1)) )) THEN
 
-                           CALL SWSNL3 (                  WWINTL  ,WWAWG   ,&
-                           &UE      ,SA1     ,SA2     ,SPCSIG  ,SNLC1   ,&
-                           &DAL1    ,DAL2    ,DAL3    ,SFNL    ,DEP2    ,&
-                           &AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4%frequency_power_11 , IGP)
+                           CALL SWSNL3 (                  WWINTL  ,DIA_WORKSPACE%WWAWG   ,&
+                           &DIA_WORKSPACE%UE      ,DIA_WORKSPACE%SA1     ,DIA_WORKSPACE%SA2     ,SPCSIG  ,DIA_WORKSPACE%SNLC1   ,&
+                           &DIA_WORKSPACE%DAL1    ,DIA_WORKSPACE%DAL2    ,DIA_WORKSPACE%DAL3    ,DIA_WORKSPACE%SFNL    ,DEP2    ,&
+                           &AC2     ,POINT_INTEGRALS%kmespc  ,MEMNL4  ,FACHFR, SNL4%frequency_power_11 , IGP)
 
                         ENDIF
 
 !         *** Get source term value of additional array for the bin   ***
 !         *** that fall within a sweep and store in right hand vector ***
 
-                        CALL FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
-                        &MEMNL4  ,PLNL4S  ,ISSTOP  ,REDC0   ,REDC1   , IGP)
+                        CALL FILNL3 (WINDOW, IMATRA, IMATDA, AC2, MEMNL4, TEST_OUTPUT%plnl4s, SOURCE_BUDGET%redc0, SOURCE_BUDGET%redc1, IGP)
 
                      ELSE IF (IQUAD .EQ. 4) THEN
 
@@ -7542,13 +7119,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                               DAL14 = SNL4%cached_dal1(IDIA)
                               DAL24 = SNL4%cached_dal2(IDIA)
                               DAL34 = SNL4%cached_dal3(IDIA)
-                              CALL RANGE4 (WWINT4, IDDLOW, IDDTOP, IX, IY)
+                              CALL RANGE4 (WWINT4, WINDOW, IX, IY)
                               CALL SWSNL4 (WWINT4  ,WWAWG4  ,&
-                              &SPCSIG  ,SNLC1   ,&
+                              &SPCSIG  ,DIA_WORKSPACE%SNLC1   ,&
                               &DAL14   ,DAL24   ,DAL34   ,DEP2    ,&
-                              &AC2     ,KMESPC  ,MEMNL4  ,FACHFR  ,&
-                              &IDIA    ,ITER    ,UE      ,SA1     ,&
-                              &SA2     ,SFNL    ,SNL4%frequency_power_11, SNL4%coefficient_1,&
+                              &AC2     ,POINT_INTEGRALS%kmespc  ,MEMNL4  ,FACHFR  ,&
+                              &IDIA    ,ITER    ,DIA_WORKSPACE%UE      ,DIA_WORKSPACE%SA1     ,&
+                              &DIA_WORKSPACE%SA2     ,DIA_WORKSPACE%SFNL    ,SNL4%frequency_power_11, SNL4%coefficient_1,&
                               &SNL4%coefficient_2, IGP)
                            END DO
                         ENDIF
@@ -7556,8 +7133,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !         Fill the matrix per sweep even though the quadruplets are calculated
 !         only once per iteration
 
-                        CALL FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
-                        &MEMNL4  ,PLNL4S  ,ISSTOP  ,REDC0   ,REDC1   , IGP)
+                        CALL FILNL3 (WINDOW, IMATRA, IMATDA, AC2, MEMNL4, TEST_OUTPUT%plnl4s, SOURCE_BUDGET%redc0, SOURCE_BUDGET%redc1, IGP)
 
                      ELSE IF ( IQUAD .EQ. 8) THEN
 
@@ -7573,26 +7149,25 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !           *** point for the first iteration to ensure stable      ***
 !           *** behaviour of the model                              ***
 
-                           CALL SWSNL8 (WWINTL  ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
-                           &SNLC1   ,DAL1    ,DAL2    ,DAL3    ,SFNL    ,&
-                           &DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4%frequency_power_11 , IGP)
+                           CALL SWSNL8 (WWINTL  ,DIA_WORKSPACE%UE      ,DIA_WORKSPACE%SA1     ,DIA_WORKSPACE%SA2     ,SPCSIG  ,&
+                           &DIA_WORKSPACE%SNLC1   ,DIA_WORKSPACE%DAL1    ,DIA_WORKSPACE%DAL2    ,DIA_WORKSPACE%DAL3    ,DIA_WORKSPACE%SFNL    ,&
+                           &DEP2    ,AC2     ,POINT_INTEGRALS%kmespc  ,MEMNL4  ,FACHFR, SNL4%frequency_power_11 , IGP)
 
                         ELSE IF ( ITER .GT. 1 .AND. ( SWPDIR .EQ. 1 .OR.&
                         &( SWPDIR .EQ. 2 .AND. IX .EQ. 1) .OR.&
                         &( SWPDIR .EQ. 3 .AND. IY .EQ. 1) .OR.&
                         &( SWPDIR .EQ. 4 .AND. (IX.EQ.MXC .AND. IY.EQ.1)) )) THEN
 
-                           CALL SWSNL8 (WWINTL  ,UE      ,SA1     ,SA2     ,SPCSIG  ,&
-                           &SNLC1   ,DAL1    ,DAL2    ,DAL3    ,SFNL    ,&
-                           &DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, SNL4%frequency_power_11 , IGP)
+                           CALL SWSNL8 (WWINTL  ,DIA_WORKSPACE%UE      ,DIA_WORKSPACE%SA1     ,DIA_WORKSPACE%SA2     ,SPCSIG  ,&
+                           &DIA_WORKSPACE%SNLC1   ,DIA_WORKSPACE%DAL1    ,DIA_WORKSPACE%DAL2    ,DIA_WORKSPACE%DAL3    ,DIA_WORKSPACE%SFNL    ,&
+                           &DEP2    ,AC2     ,POINT_INTEGRALS%kmespc  ,MEMNL4  ,FACHFR, SNL4%frequency_power_11 , IGP)
 
                         ENDIF
 
 !         *** get source term value of additional array for the bin   ***
 !         *** that fall within a sweep and store in right hand vector ***
 
-                        CALL FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
-                        &MEMNL4  ,PLNL4S  ,ISSTOP  ,REDC0   ,REDC1   , IGP)
+                        CALL FILNL3 (WINDOW, IMATRA, IMATDA, AC2, MEMNL4, TEST_OUTPUT%plnl4s, SOURCE_BUDGET%redc0, SOURCE_BUDGET%redc1, IGP)
 
                      ELSEIF ((IQUAD.EQ.51).OR.(IQUAD.EQ.52).OR.(IQUAD.EQ.53)) THEN
 
@@ -7622,7 +7197,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            WRITE (PRTEST,*) '+SOURCE: IX, IY, SWPDIR: ',&
                            &IX, IY, SWPDIR
                         ENDIF
-                        IF (TESTFL.AND.ITEST.GE.100) THEN
+                        IF (TEST_OUTPUT%testfl.AND.ITEST.GE.100) THEN
                            DO IS=1, MSC
                               DO ID = 1, MDC
                                  WRITE(PRINTF,"(' SOURCE: IS ID MEMNL(): ',2I6,E12.4)") IS,ID,MEMNL4(ID,IS,IGP)
@@ -7630,8 +7205,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            ENDDO
                         ENDIF
 
-                        CALL FILNL3 (IDCMIN  ,IDCMAX  ,IMATRA  ,IMATDA  ,AC2     ,&
-                        &MEMNL4  ,PLNL4S  ,ISSTOP  ,REDC0   ,REDC1   , IGP)
+                        CALL FILNL3 (WINDOW, IMATRA, IMATDA, AC2, MEMNL4, TEST_OUTPUT%plnl4s, SOURCE_BUDGET%redc0, SOURCE_BUDGET%redc1, IGP)
 
                         IF (ITEST.GE.30) THEN
                            WRITE (PRTEST,*) '+SOURCE: ITER, IQUAD, SWPDIR, IQERR: ',&
@@ -7649,9 +7223,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !
 !        *** Bragg scattering ***
 
-                     CALL SWBRAGG1 ( IMATRA, AC2   , DEP2  , KWAVE , CGO   ,&
-                     &SPCSIG, IDCMIN, IDCMAX, ISSTOP,&
-                     &ECOS  , ESIN  , PLBRAG, REDC0 , IGP)
+                     CALL SWBRAGG1 (IMATRA, AC2, DEP2, KWAVE, CGO, SPCSIG, WINDOW, ECOS, ESIN, TEST_OUTPUT%plbrag, SOURCE_BUDGET%redc0, IGP)
 
                   ELSE IF ( IBRAG.EQ.2 ) THEN
 
@@ -7663,9 +7235,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !        *** Bragg scattering ***
 
-                     CALL SWBRAGG2 ( IMATRA, AC2   , DEP2  , KWAVE , CGO   ,&
-                     &FBD   , SPCSIG, IDCMIN, IDCMAX, ISSTOP,&
-                     &ECOS  , ESIN  , PLBRAG, REDC0 , IGP)
+                     CALL SWBRAGG2 (IMATRA, AC2, DEP2, KWAVE, CGO, FBD, SPCSIG, WINDOW, ECOS, ESIN, TEST_OUTPUT%plbrag, SOURCE_BUDGET%redc0, IGP)
 
                   ELSE IF ( IBRAG.EQ.3 ) THEN
 
@@ -7690,8 +7260,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !        *** get source term value for the bin that fall within ***
 !        *** a sweep and store in right hand vector             ***
 
-                     CALL FILBRG ( IMATRA, IDCMIN, IDCMAX, ISSTOP,&
-                     &MEMBRG, PLBRAG, REDC0 , IGP)
+                     CALL FILBRG (IMATRA, WINDOW, MEMBRG, TEST_OUTPUT%plbrag, SOURCE_BUDGET%redc0, IGP)
 
                   ELSE IF ( IBRAG.EQ.4 ) THEN
 
@@ -8033,7 +7602,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                end subroutine HJLIM
 !****************************************************************
 
-               SUBROUTINE RESCALE (AC2, ISSTOP, IDCMIN, IDCMAX, NRSCAL, IGP)
+               SUBROUTINE RESCALE (AC2, WINDOW, NRSCAL, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -8046,6 +7615,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE M_PARALL
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
+
+                  TYPE(spectral_window_t) :: WINDOW
                   INTEGER, INTENT(IN) :: IGP
 
 
@@ -8107,13 +7678,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !     ISSTOP      maximum frequency counter in this sweep
 
-                  INTEGER     ISSTOP
 
 !     IDCMIN      Integer array containing minimum counter of directions
 !     IDCMAX      Integer array containing maximum counter
 !     NRSCAL      Number of frequency use of rescaling
 
-                  INTEGER     IDCMIN(MSC), IDCMAX(MSC)
                   INTEGER     NRSCAL(MCGRD)
 
 !  7. Common blocks used
@@ -8177,12 +7746,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     *** if negative action density occur rescale with a factor ***
 !     *** only the sector computed is rescaled !!                ***
 
-                  do IS = 1 , ISSTOP
+                  do IS = 1 , WINDOW%ISSTOP
                      ATOT   = 0.
                      ATOTP  = 0.
                      FACTOR = 0.
                      NEGVAL = .FALSE.
-                     do IDDUM = IDCMIN(IS), IDCMAX(IS)
+                     do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
                         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
                         ATOT = ATOT + AC2(ID,IS,IGP)
                         IF ( AC2(ID,IS,IGP) .LT. 0. ) THEN
@@ -8198,7 +7767,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !         *** rescale ***
 
-                        do IDDUM = IDCMIN(IS), IDCMAX(IS)
+                        do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
                            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
                            IF ( AC2(ID,IS,IGP) .LT. 0.) THEN
                               AC2(ID,IS,IGP) = 0.
@@ -8217,10 +7786,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                end subroutine RESCALE
 !****************************************************************
 
-               SUBROUTINE SWSIP ( AC2   , IMATDA, IMATRA, IMATLA, IMATUA,&
-               &IMAT5L, IMAT6U, AC2OLD, REPS  , MAXIT ,&
-               &IAMOUT, INOCNV, IDDLOW, IDDTOP, ISSTOP,&
-               &IDCMIN, IDCMAX, IGP, st_ix1, st_iy1 )
+               SUBROUTINE SWSIP (AC2, SYSTEM_MATRIX, AC2OLD, REPS, MAXIT, IAMOUT, INOCNV, WINDOW, IGP, st_ix1, st_iy1)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -8233,6 +7799,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   USE M_PARALL
 
                   IMPLICIT NONE(TYPE, EXTERNAL)
+
+                  TYPE(system_matrix_t) :: SYSTEM_MATRIX
+
+                  TYPE(spectral_window_t) :: WINDOW
                   INTEGER, INTENT(IN) :: IGP
                   INTEGER, INTENT(IN) :: st_ix1, st_iy1
 
@@ -8315,14 +7885,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !                 ||b-Ax || < reps*||b||
 !                       k
 
-                  INTEGER IAMOUT, INOCNV, IDDLOW, IDDTOP, ISSTOP, MAXIT
-                  INTEGER IDCMIN(MSC), IDCMAX(MSC)
+                  INTEGER :: IAMOUT, INOCNV, MAXIT
                   REAL    REPS
-                  REAL    AC2(MDC,MSC,MCGRD),&
-                  &IMATDA(MDC,MSC), IMATRA(MDC,MSC),&
-                  &IMAT5L(MDC,MSC), IMAT6U(MDC,MSC),&
-                  &IMATLA(MDC,MSC), IMATUA(MDC,MSC),&
-                  &AC2OLD(MDC,MSC)
+                  REAL :: AC2(MDC,MSC,MCGRD), AC2OLD(MDC,MSC)
 
 !  5. Parameter variables
 !
@@ -8432,10 +7997,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !         of matrix coefficients corresponding to left bottom and
 !         right top
 
-                  DO IS = 1, ISSTOP
-                     IF ( IDCMIN(IS).EQ.1 .AND. IDCMAX(IS).EQ.MDC ) THEN
-                        UPPERI(IS) = IMATLA(  1,IS)
-                        LOPERI(IS) = IMATUA(MDC,IS)
+                  DO IS = 1, WINDOW%ISSTOP
+                     IF ( WINDOW%IDCMIN(IS).EQ.1 .AND. WINDOW%IDCMAX(IS).EQ.MDC ) THEN
+                        UPPERI(IS) = SYSTEM_MATRIX%imatla(  1,IS)
+                        LOPERI(IS) = SYSTEM_MATRIX%imatua(MDC,IS)
                      END IF
                   END DO
 
@@ -8444,10 +8009,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !         has clear the rows in the matrix that do not belong
 !         to the sweep)
 
-                  DO IS = 1, ISSTOP
-                     IF ( IDCMIN(IS).LE.IDCMAX(IS) ) THEN
-                        IDMIN(IS) = IDCMIN(IS)
-                        IDMAX(IS) = IDCMAX(IS)
+                  DO IS = 1, WINDOW%ISSTOP
+                     IF ( WINDOW%IDCMIN(IS).LE.WINDOW%IDCMAX(IS) ) THEN
+                        IDMIN(IS) = WINDOW%IDCMIN(IS)
+                        IDMAX(IS) = WINDOW%IDCMAX(IS)
                      ELSE
                         IDMIN(IS) = 1
                         IDMAX(IS) = MDC
@@ -8465,48 +8030,48 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   IDDUM = IDMIN(IS)
                   ID    = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
-                  CMAT5L(ID,IS) = IMAT5L(ID,IS)
-                  CMATLA(ID,IS) = IMATLA(ID,IS)
-                  CMATDA(ID,IS) = 1./(IMATDA(ID,IS)+SMALL)
-                  CMAT6U(ID,IS) = IMAT6U(ID,IS)*CMATDA(ID,IS)
-                  CMATUA(ID,IS) = IMATUA(ID,IS)*CMATDA(ID,IS)
-                  BNORM = BNORM + IMATRA(ID,IS)*IMATRA(ID,IS)
+                  CMAT5L(ID,IS) = SYSTEM_MATRIX%imat5l(ID,IS)
+                  CMATLA(ID,IS) = SYSTEM_MATRIX%imatla(ID,IS)
+                  CMATDA(ID,IS) = 1./(SYSTEM_MATRIX%imatda(ID,IS)+SMALL)
+                  CMAT6U(ID,IS) = SYSTEM_MATRIX%imat6u(ID,IS)*CMATDA(ID,IS)
+                  CMATUA(ID,IS) = SYSTEM_MATRIX%imatua(ID,IS)*CMATDA(ID,IS)
+                  BNORM = BNORM + SYSTEM_MATRIX%imatra(ID,IS)*SYSTEM_MATRIX%imatra(ID,IS)
 
                   DO IDDUM = IDMIN(IS)+1, IDMAX(IS)
                      ID  = MOD ( IDDUM - 1 + MDC , MDC ) + 1
                      IDM = MOD ( IDDUM - 2 + MDC , MDC ) + 1
 
                      P2 = ALFA*CMAT6U(IDM,IS)
-                     CMAT5L(ID,IS) = IMAT5L(ID,IS)
-                     CMATLA(ID,IS) = IMATLA(ID,IS)/(1.+P2)
+                     CMAT5L(ID,IS) = SYSTEM_MATRIX%imat5l(ID,IS)
+                     CMATLA(ID,IS) = SYSTEM_MATRIX%imatla(ID,IS)/(1.+P2)
 
                      P2 = P2*CMATLA(ID,IS)
-                     P3 = IMATDA(ID,IS) + P2&
+                     P3 = SYSTEM_MATRIX%imatda(ID,IS) + P2&
                      &-CMATLA(ID,IS)*CMATUA(IDM,IS )&
                      &+SMALL
                      CMATDA(ID,IS) = 1./P3
-                     CMAT6U(ID,IS) = (IMAT6U(ID,IS)-P2)*CMATDA(ID,IS)
-                     CMATUA(ID,IS) =      IMATUA(ID,IS)*CMATDA(ID,IS)
-                     BNORM = BNORM + IMATRA(ID,IS)*IMATRA(ID,IS)
+                     CMAT6U(ID,IS) = (SYSTEM_MATRIX%imat6u(ID,IS)-P2)*CMATDA(ID,IS)
+                     CMATUA(ID,IS) =      SYSTEM_MATRIX%imatua(ID,IS)*CMATDA(ID,IS)
+                     BNORM = BNORM + SYSTEM_MATRIX%imatra(ID,IS)*SYSTEM_MATRIX%imatra(ID,IS)
                   END DO
 
-                  DO IS = 2, ISSTOP
+                  DO IS = 2, WINDOW%ISSTOP
                      ISM = IS - 1
 
                      IDDUM = IDMIN(IS)
                      ID  = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
                      P1 = ALFA*CMATUA(ID,ISM)
-                     CMAT5L(ID,IS) = IMAT5L(ID,IS)/(1.+P1)
-                     CMATLA(ID,IS) = IMATLA(ID,IS)
+                     CMAT5L(ID,IS) = SYSTEM_MATRIX%imat5l(ID,IS)/(1.+P1)
+                     CMATLA(ID,IS) = SYSTEM_MATRIX%imatla(ID,IS)
                      P1 = P1*CMAT5L(ID,IS)
-                     P3 = IMATDA(ID,IS) + P1&
+                     P3 = SYSTEM_MATRIX%imatda(ID,IS) + P1&
                      &-CMAT5L(ID,IS)*CMAT6U(ID,ISM)&
                      &+SMALL
                      CMATDA(ID,IS) = 1./P3
-                     CMAT6U(ID,IS) =      IMAT6U(ID,IS)*CMATDA(ID,IS)
-                     CMATUA(ID,IS) = (IMATUA(ID,IS)-P1)*CMATDA(ID,IS)
-                     BNORM = BNORM + IMATRA(ID,IS)*IMATRA(ID,IS)
+                     CMAT6U(ID,IS) =      SYSTEM_MATRIX%imat6u(ID,IS)*CMATDA(ID,IS)
+                     CMATUA(ID,IS) = (SYSTEM_MATRIX%imatua(ID,IS)-P1)*CMATDA(ID,IS)
+                     BNORM = BNORM + SYSTEM_MATRIX%imatra(ID,IS)*SYSTEM_MATRIX%imatra(ID,IS)
 
                      DO IDDUM = IDMIN(IS)+1, IDMAX(IS)
                         ID  = MOD ( IDDUM - 1 + MDC , MDC ) + 1
@@ -8514,18 +8079,18 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                         P1 = ALFA*CMATUA(ID ,ISM)
                         P2 = ALFA*CMAT6U(IDM,IS )
-                        CMAT5L(ID,IS) = IMAT5L(ID,IS)/(1.+P1)
-                        CMATLA(ID,IS) = IMATLA(ID,IS)/(1.+P2)
+                        CMAT5L(ID,IS) = SYSTEM_MATRIX%imat5l(ID,IS)/(1.+P1)
+                        CMATLA(ID,IS) = SYSTEM_MATRIX%imatla(ID,IS)/(1.+P2)
                         P1 = P1*CMAT5L(ID,IS)
                         P2 = P2*CMATLA(ID,IS)
-                        P3 = IMATDA(ID,IS) + P1 + P2&
+                        P3 = SYSTEM_MATRIX%imatda(ID,IS) + P1 + P2&
                         &-CMAT5L(ID,IS)*CMAT6U(ID ,ISM)&
                         &-CMATLA(ID,IS)*CMATUA(IDM,IS )&
                         &+SMALL
                         CMATDA(ID,IS) = 1./P3
-                        CMAT6U(ID,IS) = (IMAT6U(ID,IS)-P2)*CMATDA(ID,IS)
-                        CMATUA(ID,IS) = (IMATUA(ID,IS)-P1)*CMATDA(ID,IS)
-                        BNORM = BNORM + IMATRA(ID,IS)*IMATRA(ID,IS)
+                        CMAT6U(ID,IS) = (SYSTEM_MATRIX%imat6u(ID,IS)-P2)*CMATDA(ID,IS)
+                        CMATUA(ID,IS) = (SYSTEM_MATRIX%imatua(ID,IS)-P1)*CMATDA(ID,IS)
+                        BNORM = BNORM + SYSTEM_MATRIX%imatra(ID,IS)*SYSTEM_MATRIX%imatra(ID,IS)
                      END DO
                   END DO
                   BNORM = SQRT(BNORM)
@@ -8561,10 +8126,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      IDP   = MOD ( IDDUM     + MDC , MDC ) + 1
                      IDDT  = MOD ( IDMAX(IS) - 1 + MDC , MDC ) + 1
 
-                     RES(ID,IS) = IMATRA(ID,IS)&
-                     &-IMATDA(ID,IS)*AC2(ID ,IS ,IGP)&
-                     &-IMAT6U(ID,IS)*AC2(ID ,ISP,IGP)&
-                     &-IMATUA(ID,IS)*AC2(IDP,IS ,IGP)&
+                     RES(ID,IS) = SYSTEM_MATRIX%imatra(ID,IS)&
+                     &-SYSTEM_MATRIX%imatda(ID,IS)*AC2(ID ,IS ,IGP)&
+                     &-SYSTEM_MATRIX%imat6u(ID,IS)*AC2(ID ,ISP,IGP)&
+                     &-SYSTEM_MATRIX%imatua(ID,IS)*AC2(IDP,IS ,IGP)&
                      &-UPPERI(IS)*AC2(IDDT,IS,IGP)
                      RNORM = RNORM + RES(ID,IS)*RES(ID,IS)
                      RES(ID,IS) = RES(ID,IS)*CMATDA(ID,IS)
@@ -8574,11 +8139,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         IDM = MOD ( IDDUM - 2 + MDC , MDC ) + 1
                         IDP = MOD ( IDDUM     + MDC , MDC ) + 1
 
-                        RES(ID,IS) = IMATRA(ID,IS)&
-                        &-IMATDA(ID,IS)*AC2(ID ,IS ,IGP)&
-                        &-IMAT6U(ID,IS)*AC2(ID ,ISP,IGP)&
-                        &-IMATLA(ID,IS)*AC2(IDM,IS ,IGP)&
-                        &-IMATUA(ID,IS)*AC2(IDP,IS ,IGP)
+                        RES(ID,IS) = SYSTEM_MATRIX%imatra(ID,IS)&
+                        &-SYSTEM_MATRIX%imatda(ID,IS)*AC2(ID ,IS ,IGP)&
+                        &-SYSTEM_MATRIX%imat6u(ID,IS)*AC2(ID ,ISP,IGP)&
+                        &-SYSTEM_MATRIX%imatla(ID,IS)*AC2(IDM,IS ,IGP)&
+                        &-SYSTEM_MATRIX%imatua(ID,IS)*AC2(IDP,IS ,IGP)
                         RNORM = RNORM + RES(ID,IS)*RES(ID,IS)
                         RES(ID,IS) = (RES(ID,IS) - CMATLA(ID,IS)*RES(IDM,IS))*&
                         &CMATDA(ID,IS)
@@ -8589,16 +8154,16 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      IDM   = MOD ( IDDUM - 2 + MDC , MDC ) + 1
                      IDDL  = MOD ( IDMIN(IS) - 1 + MDC , MDC ) + 1
 
-                     RES(ID,IS) = IMATRA(ID,IS)&
-                     &-IMATDA(ID,IS)*AC2(ID ,IS ,IGP)&
-                     &-IMAT6U(ID,IS)*AC2(ID ,ISP,IGP)&
-                     &-IMATLA(ID,IS)*AC2(IDM,IS ,IGP)&
+                     RES(ID,IS) = SYSTEM_MATRIX%imatra(ID,IS)&
+                     &-SYSTEM_MATRIX%imatda(ID,IS)*AC2(ID ,IS ,IGP)&
+                     &-SYSTEM_MATRIX%imat6u(ID,IS)*AC2(ID ,ISP,IGP)&
+                     &-SYSTEM_MATRIX%imatla(ID,IS)*AC2(IDM,IS ,IGP)&
                      &-LOPERI(IS)*AC2(IDDL,IS,IGP)
                      RNORM = RNORM + RES(ID,IS)*RES(ID,IS)
                      RES(ID,IS) = (RES(ID,IS) - CMATLA(ID,IS)*RES(IDM,IS))*&
                      &CMATDA(ID,IS)
 
-                     DO IS = 2, ISSTOP-1
+                     DO IS = 2, WINDOW%ISSTOP-1
                         ISM = IS - 1
                         ISP = IS + 1
 
@@ -8607,11 +8172,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         IDP   = MOD ( IDDUM     + MDC , MDC ) + 1
                         IDDT  = MOD ( IDMAX(IS) - 1 + MDC , MDC ) + 1
 
-                        RES(ID,IS) = IMATRA(ID,IS)&
-                        &-IMATDA(ID,IS)*AC2(ID ,IS ,IGP)&
-                        &-IMAT5L(ID,IS)*AC2(ID ,ISM,IGP)&
-                        &-IMAT6U(ID,IS)*AC2(ID ,ISP,IGP)&
-                        &-IMATUA(ID,IS)*AC2(IDP,IS ,IGP)&
+                        RES(ID,IS) = SYSTEM_MATRIX%imatra(ID,IS)&
+                        &-SYSTEM_MATRIX%imatda(ID,IS)*AC2(ID ,IS ,IGP)&
+                        &-SYSTEM_MATRIX%imat5l(ID,IS)*AC2(ID ,ISM,IGP)&
+                        &-SYSTEM_MATRIX%imat6u(ID,IS)*AC2(ID ,ISP,IGP)&
+                        &-SYSTEM_MATRIX%imatua(ID,IS)*AC2(IDP,IS ,IGP)&
                         &-UPPERI(IS)*AC2(IDDT,IS,IGP)
                         RNORM = RNORM + RES(ID,IS)*RES(ID,IS)
                         RES(ID,IS) = (RES(ID,IS) - CMAT5L(ID,IS)*RES(ID,ISM))*&
@@ -8622,12 +8187,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            IDM = MOD ( IDDUM - 2 + MDC , MDC ) + 1
                            IDP = MOD ( IDDUM     + MDC , MDC ) + 1
 
-                           RES(ID,IS) = IMATRA(ID,IS)&
-                           &-IMATDA(ID,IS)*AC2(ID ,IS ,IGP)&
-                           &-IMAT5L(ID,IS)*AC2(ID ,ISM,IGP)&
-                           &-IMAT6U(ID,IS)*AC2(ID ,ISP,IGP)&
-                           &-IMATLA(ID,IS)*AC2(IDM,IS ,IGP)&
-                           &-IMATUA(ID,IS)*AC2(IDP,IS ,IGP)
+                           RES(ID,IS) = SYSTEM_MATRIX%imatra(ID,IS)&
+                           &-SYSTEM_MATRIX%imatda(ID,IS)*AC2(ID ,IS ,IGP)&
+                           &-SYSTEM_MATRIX%imat5l(ID,IS)*AC2(ID ,ISM,IGP)&
+                           &-SYSTEM_MATRIX%imat6u(ID,IS)*AC2(ID ,ISP,IGP)&
+                           &-SYSTEM_MATRIX%imatla(ID,IS)*AC2(IDM,IS ,IGP)&
+                           &-SYSTEM_MATRIX%imatua(ID,IS)*AC2(IDP,IS ,IGP)
                            RNORM = RNORM + RES(ID,IS)*RES(ID,IS)
                            RES(ID,IS) = (RES(ID,IS) - CMAT5L(ID,IS)*RES(ID ,ISM)&
                            &- CMATLA(ID,IS)*RES(IDM,IS ))*&
@@ -8639,11 +8204,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         IDM   = MOD ( IDDUM - 2 + MDC , MDC ) + 1
                         IDDL  = MOD ( IDMIN(IS) - 1 + MDC , MDC ) + 1
 
-                        RES(ID,IS) = IMATRA(ID,IS)&
-                        &-IMATDA(ID,IS)*AC2(ID ,IS ,IGP)&
-                        &-IMAT5L(ID,IS)*AC2(ID ,ISM,IGP)&
-                        &-IMAT6U(ID,IS)*AC2(ID ,ISP,IGP)&
-                        &-IMATLA(ID,IS)*AC2(IDM,IS ,IGP)&
+                        RES(ID,IS) = SYSTEM_MATRIX%imatra(ID,IS)&
+                        &-SYSTEM_MATRIX%imatda(ID,IS)*AC2(ID ,IS ,IGP)&
+                        &-SYSTEM_MATRIX%imat5l(ID,IS)*AC2(ID ,ISM,IGP)&
+                        &-SYSTEM_MATRIX%imat6u(ID,IS)*AC2(ID ,ISP,IGP)&
+                        &-SYSTEM_MATRIX%imatla(ID,IS)*AC2(IDM,IS ,IGP)&
                         &-LOPERI(IS)*AC2(IDDL,IS,IGP)
                         RNORM = RNORM + RES(ID,IS)*RES(ID,IS)
                         RES(ID,IS) = (RES(ID,IS) - CMAT5L(ID,IS)*RES(ID ,ISM)&
@@ -8652,7 +8217,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                      END DO
 
-                     IS  = ISSTOP
+                     IS  = WINDOW%ISSTOP
                      ISM = IS - 1
 
                      IDDUM = IDMIN(IS)
@@ -8660,10 +8225,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      IDP   = MOD ( IDDUM     + MDC , MDC ) + 1
                      IDDT  = MOD ( IDMAX(IS) - 1 + MDC , MDC ) + 1
 
-                     RES(ID,IS) = IMATRA(ID,IS)&
-                     &-IMATDA(ID,IS)*AC2(ID ,IS ,IGP)&
-                     &-IMAT5L(ID,IS)*AC2(ID ,ISM,IGP)&
-                     &-IMATUA(ID,IS)*AC2(IDP,IS ,IGP)&
+                     RES(ID,IS) = SYSTEM_MATRIX%imatra(ID,IS)&
+                     &-SYSTEM_MATRIX%imatda(ID,IS)*AC2(ID ,IS ,IGP)&
+                     &-SYSTEM_MATRIX%imat5l(ID,IS)*AC2(ID ,ISM,IGP)&
+                     &-SYSTEM_MATRIX%imatua(ID,IS)*AC2(IDP,IS ,IGP)&
                      &-UPPERI(IS)*AC2(IDDT,IS,IGP)
                      RNORM = RNORM + RES(ID,IS)*RES(ID,IS)
                      RES(ID,IS) = (RES(ID,IS) - CMAT5L(ID,IS)*RES(ID,ISM))*&
@@ -8674,11 +8239,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         IDM = MOD ( IDDUM - 2 + MDC , MDC ) + 1
                         IDP = MOD ( IDDUM     + MDC , MDC ) + 1
 
-                        RES(ID,IS) = IMATRA(ID,IS)&
-                        &-IMATDA(ID,IS)*AC2(ID ,IS ,IGP)&
-                        &-IMAT5L(ID,IS)*AC2(ID ,ISM,IGP)&
-                        &-IMATLA(ID,IS)*AC2(IDM,IS ,IGP)&
-                        &-IMATUA(ID,IS)*AC2(IDP,IS ,IGP)
+                        RES(ID,IS) = SYSTEM_MATRIX%imatra(ID,IS)&
+                        &-SYSTEM_MATRIX%imatda(ID,IS)*AC2(ID ,IS ,IGP)&
+                        &-SYSTEM_MATRIX%imat5l(ID,IS)*AC2(ID ,ISM,IGP)&
+                        &-SYSTEM_MATRIX%imatla(ID,IS)*AC2(IDM,IS ,IGP)&
+                        &-SYSTEM_MATRIX%imatua(ID,IS)*AC2(IDP,IS ,IGP)
                         RNORM = RNORM + RES(ID,IS)*RES(ID,IS)
                         RES(ID,IS) = (RES(ID,IS) - CMAT5L(ID,IS)*RES(ID ,ISM)&
                         &- CMATLA(ID,IS)*RES(IDM,IS ))*&
@@ -8690,10 +8255,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      IDM   = MOD ( IDDUM - 2 + MDC , MDC ) + 1
                      IDDL  = MOD ( IDMIN(IS) - 1 + MDC , MDC ) + 1
 
-                     RES(ID,IS) = IMATRA(ID,IS)&
-                     &-IMATDA(ID,IS)*AC2(ID ,IS ,IGP)&
-                     &-IMAT5L(ID,IS)*AC2(ID ,ISM,IGP)&
-                     &-IMATLA(ID,IS)*AC2(IDM,IS ,IGP)&
+                     RES(ID,IS) = SYSTEM_MATRIX%imatra(ID,IS)&
+                     &-SYSTEM_MATRIX%imatda(ID,IS)*AC2(ID ,IS ,IGP)&
+                     &-SYSTEM_MATRIX%imat5l(ID,IS)*AC2(ID ,ISM,IGP)&
+                     &-SYSTEM_MATRIX%imatla(ID,IS)*AC2(IDM,IS ,IGP)&
                      &-LOPERI(IS)*AC2(IDDL,IS,IGP)
                      RNORM = RNORM + RES(ID,IS)*RES(ID,IS)
                      RES(ID,IS) = (RES(ID,IS) - CMAT5L(ID,IS)*RES(ID ,ISM)&
@@ -8713,7 +8278,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &' ++ SWSIP: iter = ',IT,'    res = ',RNORM
                      END IF
 
-                     IS    = ISSTOP
+                     IS    = WINDOW%ISSTOP
                      IDDUM = IDMAX(IS)
                      ID    = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
@@ -8727,7 +8292,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         AC2(ID,IS,IGP) = AC2(ID,IS,IGP) + RES(ID,IS)
                      END DO
 
-                     DO IS = ISSTOP-1, 1, -1
+                     DO IS = WINDOW%ISSTOP-1, 1, -1
                         ISP = IS + 1
 
                         IDDUM = IDMAX(IS)
@@ -8784,7 +8349,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      WRITE(PRTEST,*) '  Subroutine SWSIP'
                      WRITE(PRTEST,*)
                      WRITE(PRTEST,"(' SWSIP : POINT MDC MSC :',3I5)") IGP, MDC, MSC
-                     WRITE(PRTEST,"(' SWSIP : IDDLOW IDDTOP ISSTOP :',3I4)") IDDLOW, IDDTOP, ISSTOP
+                     WRITE(PRTEST,"(' SWSIP : IDDLOW IDDTOP ISSTOP :',3I4)") WINDOW%IDDLOW, WINDOW%IDDTOP, WINDOW%ISSTOP
                      WRITE(PRTEST,*)
                      WRITE(PRTEST,*) ' coefficients of matrix and rhs  '
                      WRITE(PRTEST,*)
@@ -8792,22 +8357,22 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &' IS ID         IMATLA         IMATDA'//&
                      &'         IMATUA         IMATRA         IMAT5L'//&
                      &'         IMAT6U            AC2'
-                     DO IDDUM = IDDLOW, IDDTOP
+                     DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
                         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
-                        DO IS = 1, ISSTOP
+                        DO IS = 1, WINDOW%ISSTOP
                            WRITE(PRTEST,"(2I3,7E15.7)") IS, ID,&
-                           &IMATLA(ID,IS), IMATDA(ID,IS),&
-                           &IMATUA(ID,IS), IMATRA(ID,IS),&
-                           &IMAT5L(ID,IS), IMAT6U(ID,IS),&
+                           &SYSTEM_MATRIX%imatla(ID,IS), SYSTEM_MATRIX%imatda(ID,IS),&
+                           &SYSTEM_MATRIX%imatua(ID,IS), SYSTEM_MATRIX%imatra(ID,IS),&
+                           &SYSTEM_MATRIX%imat5l(ID,IS), SYSTEM_MATRIX%imat6u(ID,IS),&
                            &AC2(ID,IS,IGP)
                         END DO
                      END DO
                      WRITE(PRTEST,*)
                      WRITE(PRTEST,*)'IS ID      LPER          UPER '
-                     DO IDDUM = IDDLOW, IDDTOP
+                     DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
                         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
                         IF ( ID.EQ.1 .OR. ID.EQ.MDC ) THEN
-                           DO IS = 1, ISSTOP
+                           DO IS = 1, WINDOW%ISSTOP
                               WRITE(PRTEST,"(2I3,2E15.7)") IS, ID, LOPERI(IS), UPPERI(IS)
                            END DO
                         END IF
@@ -8816,8 +8381,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !     --- set matrix coefficients to zero
 
-                  IMATDA = 0.
-                  IMATRA = 0.
+                  SYSTEM_MATRIX%imatda = 0.
+                  SYSTEM_MATRIX%imatra = 0.
 
                   RETURN
                end subroutine SWSIP

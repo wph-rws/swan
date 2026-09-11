@@ -33,11 +33,7 @@ module swan_wind_source
    public :: WNDPAR, WINDP1, WINDP3, SWIND0, SWIND3, SWIND4, SWIND5
 contains
 
-SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
-&DEP2  ,WIND10,GENC0 ,GENC1 ,&
-&THETAW,AC2   ,KWAVE ,IMATRA,IMATDA,&
-&SPCSIG,CGO   ,ALIMW ,GROWW ,ETOTW ,&
-&PLWNDS,PLWNDD,SPCDIR,ITER,AICELOC    ,IGP)
+SUBROUTINE WNDPAR (WINDOW, DEP2, WIND10, GENC0, GENC1, THETAW, AC2, KWAVE, IMATRA, IMATDA, SPCSIG, CGO, ALIMW, GROWW, ETOTW, PLWNDS, PLWNDD, SPCDIR, ITER, AICELOC, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -53,6 +49,8 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
 
 
 !   --|-----------------------------------------------------------|--
@@ -332,8 +330,7 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 !
 !************************************************************************
 
-   INTEGER  IS    ,ID    ,ITER  ,&
-   &IDWMIN,IDWMAX,IDDUM ,ISSTOP
+   INTEGER :: IS, ID, ITER, IDDUM
 
    REAL     WIND10,THETA ,THETAW,EDML  ,ARG1  ,ARG2  ,&
    &ALPM  ,ALPMD ,TEMP1 ,TEMP2 ,FACTA ,FACTB ,&
@@ -357,8 +354,6 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
    REAL  :: CGO(MSC,MICMAX)
    REAL  :: FACTOR_ON_SIN ! See remarks.
 
-   INTEGER  IDCMIN(MSC)           ,&
-   &IDCMAX(MSC)
 
    LOGICAL  GROWW(MDC,MSC)
 
@@ -401,9 +396,7 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 !       *** of the total energy in the wind sea part of the spectrum  ***
 !       *** output of subroutine (WINDP2) is ETOTW                    ***
 
-      CALL WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
-      &ETOTW   ,&
-      &AC2     ,SPCSIG  ,         WIND10               , IGP)
+      CALL WINDP2 (WINDOW, SIGPKD, FPM, ETOTW, AC2, SPCSIG, WIND10, IGP)
 
       EDML = MIN ( PWIND(10) , (GRAV**2 * ETOTW) / WIND10**4 )
       EDML = MAX ( 1.E-25 , EDML )
@@ -424,12 +417,12 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 !     *** direction). For conversion of f^-5 --> k^-3 and coefficients ***
 !     *** see Kitaigorodskii et al. 1975                               ***
 
-   DO IS = 1, ISSTOP
+   DO IS = 1, WINDOW%ISSTOP
       TEMP1  = ALPM / ( 2. * KWAVE(IS,1)**3 * CGO(IS,1) )
       ARG2   = MIN ( 2. , SIGPKD / SPCSIG(IS) )
       TEMP2  = EXP ( (-5./4.) * ARG2**4 )
       ALIM1D = TEMP1 * TEMP2 / SPCSIG(IS)
-      DO IDDUM = IDWMIN, IDWMAX
+      DO IDDUM = WINDOW%IDWMIN, WINDOW%IDWMAX
          ID     = MOD ( IDDUM - 1 + MDC, MDC ) + 1
          THETA  = SPCDIR(ID,1)
          COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
@@ -466,12 +459,12 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 
    FACTA = PWIND(1) * PI * PWIND(9)**2 * PWIND(11)**2 / GRAV**2
 
-   DO IS = 1, ISSTOP
+   DO IS = 1, WINDOW%ISSTOP
       SIGMA   = SPCSIG(IS)
       SIGTPI  = SIGMA * TWOPI
       CINV    = KWAVE(IS,1) / SIGMA
       FACTB = PWIND(2) * PWIND(9) * SIGMA / TWOPI
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID     = MOD ( IDDUM - 1 + MDC, MDC ) + 1
          DTHETA = SPCDIR(ID,1) - THETAW
          COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
@@ -540,7 +533,7 @@ SUBROUTINE WNDPAR (ISSTOP,IDWMIN,IDWMAX,IDCMIN,IDCMAX,&
 !     Value of ITEST changed from 10 to 60 to reduce test output
    IF ( TESTFL .AND. ITEST .GE. 60 ) THEN
       WRITE(PRINTF,*)
-      WRITE(PRINTF,"(' WNDPAR : IDWMIN IDWMAX :',2I5)") IDWMIN, IDWMAX
+      WRITE(PRINTF,"(' WNDPAR : IDWMIN IDWMAX :',2I5)") WINDOW%IDWMIN, WINDOW%IDWMAX
       WRITE(PRINTF,"(' WNDPAR : Tw U10 Spk Spk,d :',4E12.4)") THETAW,WIND10,SIGPK,SIGPKD
       WRITE(PRINTF,"(' WNDPAR: ETOW EDML ALPM ALPMD:',4E12.4)") ETOTW, EDML, ALPM, ALPMD
    ENDIF
@@ -551,15 +544,7 @@ end subroutine WNDPAR
 
 !****************************************************************
 
-SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
-&IDWMIN     ,IDWMAX     ,&
-&FPM        ,UFRIC      ,&
-&WX2        ,WY2        ,&
-&ANYWND     ,SPCDIR     ,&
-&UX2        ,UY2        ,&
-&SPCSIG     ,AC2&
-&,GENC0      ,KWAVE&
-&,IGP,icmax)
+SUBROUTINE WINDP1 (WIND10, THETAW, WINDOW, FPM, UFRIC, WX2, WY2, ANYWND, SPCDIR, UX2, UY2, SPCSIG, AC2, GENC0, KWAVE, IGP, icmax)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -577,6 +562,8 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
    USE SDSBABANIN
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
 
 
 !   --|-----------------------------------------------------------|--
@@ -761,7 +748,6 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
 !
 !************************************************************************
 
-   INTEGER      IDWMIN ,IDWMAX
    INTEGER, SAVE :: IENT = 0
    INTEGER      ID    ,IDDUM, IS
 
@@ -838,25 +824,25 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
 
    IF ( (THETAW - 0.5 * PI) .LE. SPCDIR(1,1) ) THEN
       IF ( (THETAW + 1.5 * PI) .GE. SPCDIR(MDC,1) ) THEN
-         IDWMIN = 1
+         WINDOW%IDWMIN = 1
       ELSE
-         IDWMIN = NINT ( (THETAW + 1.5*PI - SPCDIR(1,1)) / DDIR ) + 1
+         WINDOW%IDWMIN = NINT ( (THETAW + 1.5*PI - SPCDIR(1,1)) / DDIR ) + 1
       ENDIF
    ELSE
-      IDWMIN = NINT ( (THETAW - 0.5*PI - SPCDIR(1,1)) / DDIR ) + 1
+      WINDOW%IDWMIN = NINT ( (THETAW - 0.5*PI - SPCDIR(1,1)) / DDIR ) + 1
    END IF
 
    IF ( (THETAW + 0.5 * PI) .GE. SPCDIR(MDC,1) ) THEN
       IF ( (THETAW - 1.5 * PI) .LE. SPCDIR(1,1) ) THEN
-         IDWMAX = MDC
+         WINDOW%IDWMAX = MDC
       ELSE
-         IDWMAX = NINT ( (THETAW - 1.5 * PI - SPCDIR(1,1)) / DDIR ) + 1
+         WINDOW%IDWMAX = NINT ( (THETAW - 1.5 * PI - SPCDIR(1,1)) / DDIR ) + 1
       ENDIF
    ELSE
-      IDWMAX = NINT ( (THETAW + 0.5 * PI - SPCDIR(1,1)) / DDIR ) + 1
+      WINDOW%IDWMAX = NINT ( (THETAW + 0.5 * PI - SPCDIR(1,1)) / DDIR ) + 1
    ENDIF
 
-   IF ( IDWMIN .GT. IDWMAX) IDWMAX = MDC + IDWMAX
+   IF ( WINDOW%IDWMIN .GT. WINDOW%IDWMAX) WINDOW%IDWMAX = MDC + WINDOW%IDWMAX
 
 !     *** determine for which bin the wind input is active ***
 !     *** initialize array for active wind input           ***
@@ -866,10 +852,10 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
    ENDDO
 
    IF ( TESTFL .AND. ITEST .GE. 30 ) THEN
-      WRITE(PRINTF,"(' WINDP1: IDWMIN IDWMAX :',2I15)") IDWMIN, IDWMAX
+      WRITE(PRINTF,"(' WINDP1: IDWMIN IDWMAX :',2I15)") WINDOW%IDWMIN, WINDOW%IDWMAX
    ENDIF
 
-   DO IDDUM = IDWMIN , IDWMAX
+   DO IDDUM = WINDOW%IDWMIN , WINDOW%IDWMAX
       ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
       ANYWND(ID) = .TRUE.
 
@@ -1104,7 +1090,7 @@ SUBROUTINE WINDP1 (WIND10     ,THETAW     ,&
       WRITE(PRINTF,"(' WINDP1:INDEX MDC MCGRD IWND:',4I5)") IGP, MDC, MCGRD, IWIND
       WRITE(PRINTF,"(' : THAW WIND10 WDIC U10 :',4E12.4)") THETAW,WIND10,WDIC,U10
       WRITE(PRINTF,"(' : GRAV PI DDIR VARWI :',3E12.4,L6)") GRAV, PI, DDIR, VARWI
-      WRITE(PRINTF,"(' : IDWMIN IDWMAX FPM UFR:',2I4,2E12.4)") IDWMIN,IDWMAX,FPM, UFRIC
+      WRITE(PRINTF,"(' : IDWMIN IDWMAX FPM UFR:',2I4,2E12.4)") WINDOW%IDWMIN,WINDOW%IDWMAX,FPM, UFRIC
       WRITE(PRINTF,*)
    END IF
 
@@ -1114,10 +1100,7 @@ end subroutine WINDP1
 
 !****************************************************************
 
-SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
-&ETOTW   ,&
-&AC2     ,SPCSIG  ,&
-&WIND10                                      ,IGP)
+SUBROUTINE WINDP2 (WINDOW, SIGPKD, FPM, ETOTW, AC2, SPCSIG, WIND10, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -1222,6 +1205,8 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
 !
 !     SPCSIG: Relative frequencies in computational domain in sigma-space
 
+   TYPE(spectral_window_t) :: WINDOW
+
    INTEGER, INTENT(IN) :: IGP
    REAL    SPCSIG(MSC)
 
@@ -1292,8 +1277,7 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
 !************************************************************************
 
 
-   INTEGER  IDWMIN  ,IDWMAX  ,&
-   &IDDUM   ,ID      ,IS      ,ISFPM
+   INTEGER :: IDDUM, ID, IS, ISFPM
 
    REAL     ETOTW, FPM, SIG, ATOTD, FACINT, SIGPKD, WIND10
 
@@ -1324,7 +1308,7 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
    DO IS = ISFPM, MSC
       SIG = SPCSIG(IS)
       ATOTD = 0.
-      DO IDDUM = IDWMIN, IDWMAX
+      DO IDDUM = WINDOW%IDWMIN, WINDOW%IDWMAX
          ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
          ATOTD = ATOTD + AC2(ID,IS,IGP)
       ENDDO
@@ -1341,7 +1325,7 @@ SUBROUTINE WINDP2 (IDWMIN  ,IDWMAX  ,SIGPKD  ,FPM     ,&
 
    IF ( TESTFL .AND. ITEST .GE. 70 ) THEN
       WRITE(PRINTF,*)
-      WRITE(PRINTF,"(' WINDP2: IWND IDWMIN IDWMAX ISFPM ETOTW:',4I6,1X,E12.4)") IWIND,IDWMIN,IDWMAX, ISFPM, ETOTW
+      WRITE(PRINTF,"(' WINDP2: IWND IDWMIN IDWMAX ISFPM ETOTW:',4I6,1X,E12.4)") IWIND,WINDOW%IDWMIN,WINDOW%IDWMAX, ISFPM, ETOTW
    END IF
 
    RETURN
@@ -1350,8 +1334,7 @@ end subroutine WINDP2
 
 !********************************************************************
 
-SUBROUTINE WINDP3 (ISSTOP  ,ALIMW   ,AC2     ,&
-&GROWW   ,IDCMIN  ,IDCMAX  ,IGP)
+SUBROUTINE WINDP3 (WINDOW, ALIMW, AC2, GROWW, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -1478,12 +1461,12 @@ SUBROUTINE WINDP3 (ISSTOP  ,ALIMW   ,AC2     ,&
 !
 !************************************************************************
 
+   TYPE(spectral_window_t) :: WINDOW
+
    INTEGER, INTENT(IN) :: IGP
    INTEGER, SAVE :: IENT = 0
-   INTEGER     IS, ID, ISSTOP, IDDUM
+   INTEGER :: IS, ID, IDDUM
 
-   INTEGER     IDCMIN(MSC)       ,&
-   &IDCMAX(MSC)
 
    REAL        AC2CEN
 
@@ -1496,8 +1479,8 @@ SUBROUTINE WINDP3 (ISSTOP  ,ALIMW   ,AC2     ,&
 
 !     *** limit the action density spectrum ***
 
-   DO IS = 1, ISSTOP
-      DO IDDUM = IDCMIN(IS) , IDCMAX(IS)
+   DO IS = 1, WINDOW%ISSTOP
+      DO IDDUM = WINDOW%IDCMIN(IS) , WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
          AC2CEN = AC2(ID,IS,IGP)
          IF ( GROWW(ID,IS) .AND. AC2CEN .GT. ALIMW(ID,IS) )&
@@ -1515,7 +1498,7 @@ SUBROUTINE WINDP3 (ISSTOP  ,ALIMW   ,AC2     ,&
 !     *** test output ***
 
    IF (TESTFL .AND. ITEST .GE. 50) THEN
-      WRITE(PRINTF,"(' WINDP3 : POINT ISSTOP MSC MDC MCGRD :',5I5)") IGP,ISSTOP,MSC,MDC,MCGRD
+      WRITE(PRINTF,"(' WINDP3 : POINT ISSTOP MSC MDC MCGRD :',5I5)") IGP,WINDOW%ISSTOP,MSC,MDC,MCGRD
    END IF
 
    RETURN
@@ -1524,11 +1507,7 @@ end subroutine WINDP3
 
 !****************************************************************
 
-SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-&SPCSIG  ,THETAW  ,ANYWND  ,&
-&UFRIC   ,FPM     ,PLWNDS  ,&
-&IMATRA  ,SPCDIR  ,GENC0   ,&
-&KWAVE   ,AICELOC ,IGP)
+SUBROUTINE SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, FPM, PLWNDS, IMATRA, SPCDIR, GENC0, KWAVE, AICELOC, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -1543,6 +1522,8 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
 
 
 !   --|-----------------------------------------------------------|--
@@ -1727,7 +1708,7 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 !************************************************************************
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER  IDDUM   ,ID      ,IS      ,ISSTOP
+   INTEGER :: IDDUM, ID, IS
 
    REAL     FPM     ,UFRIC   ,THETA   ,THETAW  ,&
    &SWINEA  ,SIGMA   ,TEMP1   ,TEMP2   ,&
@@ -1742,8 +1723,6 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
    REAL    KWAVE(MSC,MICMAX)
    REAL    FACTOR_ON_SIN ! See remarks.
 
-   INTEGER IDCMIN(MSC)          ,&
-   &IDCMAX(MSC)
 
    LOGICAL ANYWND(MDC)
 
@@ -1759,7 +1738,7 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
       FACTOR_ON_SIN = (1.-AICELOC*(1.-ICEWIND))
       TEMP1 = TEMP1 * FACTOR_ON_SIN
    ENDIF
-   DO IS = 1, ISSTOP
+   DO IS = 1, WINDOW%ISSTOP
       SIGMA  = SPCSIG(IS)
 
 !       ****            ARGU   =  FPM / SIGMA                     ***
@@ -1771,7 +1750,7 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
 !       note that SIGMA below is not in eq A-2 of Ris (1997)
 !       thus, we are calculating "A/sigma" here, not "A"
       TEMP2  = TEMP1 / SIGMA
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
          IF ( ANYWND(ID) .AND. SIGMA .GE. (0.7 * FPM) ) THEN
             THETA  = SPCDIR(ID,1)
@@ -1826,8 +1805,8 @@ SUBROUTINE SWIND0 (IDCMIN  ,IDCMAX  ,ISSTOP  ,&
       WRITE(PRINTF,"(' SWIND0: TEMP1 FPM UFRC :',3E12.4)") TEMP1, FPM, UFRIC
       WRITE(PRINTF,*)
       IF (ITEST.GE. 120.AND.TESTFL) THEN
-         DO IS = 1, ISSTOP
-            DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IS = 1, WINDOW%ISSTOP
+            DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
                ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
                WRITE(PRINTF,"(' IS ID ANYWND : ', 2I5,1X,L2)") IS,ID,ANYWND(ID)
             ENDDO
@@ -1841,11 +1820,7 @@ end subroutine SWIND0
 
 !****************************************************************
 
-SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
-&KWAVE   ,IMATRA  ,GENC0   ,&
-&IDCMIN  ,IDCMAX  ,AC2     ,UFRIC   ,&
-&FPM     ,PLWNDS  ,ISSTOP  ,SPCDIR  ,&
-&ANYWND  ,AICELOC ,IGP)
+SUBROUTINE SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, GENC0, WINDOW, AC2, UFRIC, FPM, PLWNDS, SPCDIR, ANYWND, AICELOC, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -1862,6 +1837,8 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
    USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
 
 
 !   --|-----------------------------------------------------------|--
@@ -2025,7 +2002,7 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
 !************************************************************************
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER  IDDUM ,ID    ,IS    ,ISSTOP
+   INTEGER :: IDDUM, ID, IS
 
    REAL     FPM   ,UFRIC ,THETA ,THETAW,SIGMA ,SWINEB,TEMP1,&
    &CTW   ,STW   ,COSDIF,&
@@ -2038,8 +2015,6 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
    REAL  :: GENC0(MDC,MSC,MGENR)
    REAL  :: FACTOR_ON_SIN ! See remarks.
 
-   INTEGER IDCMIN(MSC)          ,&
-   &IDCMAX(MSC)
 
    LOGICAL  ANYWND(MDC)
 
@@ -2055,11 +2030,11 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
       TEMP1 = TEMP1 * FACTOR_ON_SIN
    ENDIF
    TEMP2 = 28.0 * UFRIC
-   DO IS = 1, ISSTOP
+   DO IS = 1, WINDOW%ISSTOP
       SIGMA = SPCSIG(IS)
       CINV  = KWAVE(IS,1) / SIGMA
       TEMP3 = TEMP2 * CINV
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
          IF ( ANYWND(ID) ) THEN
             THETA  = SPCDIR(ID,1)
@@ -2084,8 +2059,8 @@ SUBROUTINE SWIND3 (SPCSIG  ,THETAW  ,&
       WRITE(PRTEST,"(' SWIND3: POINT THETAW :',I5,E12.4)") IGP, THETAW*180./PI
       WRITE(PRTEST,"(' SWIND3: TEMP1 FPM UFRC :',3E12.4, /, ' IS ID1 ID2 Wind source term')") TEMP1, FPM, UFRIC
       DO IS = 1, MSC
-         WRITE(PRTEST,"(3I4, 600e12.4)") IS, IDCMIN(IS), IDCMAX(IS),&
-         &(PLWNDS(ID,IS,IPTST), ID=IDCMIN(IS), IDCMAX(IS))
+         WRITE(PRTEST,"(3I4, 600e12.4)") IS, WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS),&
+         &(PLWNDS(ID,IS,IPTST), ID=WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS))
       ENDDO
       WRITE(PRTEST,*)
    END IF
@@ -2096,12 +2071,7 @@ end subroutine SWIND3
 
 !****************************************************************
 
-SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
-&SPCSIG  ,WIND10  ,THETAW  ,XIS     ,&
-&DD      ,KWAVE   ,IMATRA  ,GENC0   ,&
-&IDCMIN  ,IDCMAX  ,AC2     ,UFRIC   ,&
-&PLWNDS  ,ISSTOP  ,ITER    ,USTAR   ,ZELEN   ,&
-&SPCDIR  ,ANYWND  ,IT      ,TAUWV   ,AICELOC ,IGP)
+SUBROUTINE SWIND4 (WINDOW, SPCSIG, WIND10, THETAW, XIS, DD, KWAVE, IMATRA, GENC0, AC2, UFRIC, PLWNDS, ITER, USTAR, ZELEN, SPCDIR, ANYWND, IT, TAUWV, AICELOC, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !******************************************************************
@@ -2120,6 +2090,8 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
    USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
 
 
 !   --|-----------------------------------------------------------|--
@@ -2286,7 +2258,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
 !
 !************************************************************************
 
-   INTEGER  IDWMAX  ,IDWMIN  ,IDDUM   ,ID      ,ISSTOP  ,IS
+   INTEGER :: IDDUM, ID, IS
 
    REAL     THETA  ,THETAW ,DD     ,SWINEB ,WIND10 ,&
    &ZO     ,ZE     ,BETA1  ,BETA2  ,UFRIC  ,UFRIC2 ,DS     ,&
@@ -2310,8 +2282,6 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
    REAL, INTENT(IN) :: AICELOC
    REAL    FACTOR_ON_SIN ! See remarks.
 
-   INTEGER IDCMIN(MSC)          ,&
-   &IDCMAX(MSC)
 
    LOGICAL ANYWND(MDC)
 
@@ -2400,7 +2370,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
          ZCN2   = ALOG ( GRAV * ZE / CW2**2 )
          X1     = (UFRIC/CW1 + ZALP)**2
          X2     = (UFRIC/CW2 + ZALP)**2
-         DO IDDUM = IDWMIN, IDWMAX
+         DO IDDUM = WINDOW%IDWMIN, WINDOW%IDWMAX
             ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
             THETA  = SPCDIR(ID,1)
             COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
@@ -2463,7 +2433,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
          SIGHF1 = SIGMAX
          CW1    = GRAV/SIGHF1
          CW2    = GRAV/SIGHF2
-         DO IDDUM = IDWMIN, IDWMAX
+         DO IDDUM = WINDOW%IDWMIN, WINDOW%IDWMAX
             ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
             THETA  = SPCDIR(ID,1)
             COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
@@ -2593,12 +2563,12 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
 
    UFRIC2 = UFRIC * UFRIC
 
-   DO IS = 1, ISSTOP
+   DO IS = 1, WINDOW%ISSTOP
       SIGMA  = SPCSIG(IS)
       WAVEN  = KWAVE(IS,1)
       CW1    = SIGMA / WAVEN
       ZCN    = ALOG ( GRAV * ZE / CW1**2 )
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
          IF ( ANYWND(ID) )  THEN
             THETA  = SPCDIR(ID,1)
@@ -2644,7 +2614,7 @@ SUBROUTINE SWIND4 (IDWMIN  ,IDWMAX  ,&
 !     *** test output ***
 
    IF (ITEST.GE. 20.AND.TESTFL) THEN
-      WRITE(PRINTF,"(' SW4: POINT IDWMIN IDWMAX :',3I5)") IGP, IDWMIN, IDWMAX
+      WRITE(PRINTF,"(' SW4: POINT IDWMIN IDWMAX :',3I5)") IGP, WINDOW%IDWMIN, WINDOW%IDWMAX
       WRITE(PRINTF,"(' SW4: WIND10 UFRIC THETAW :',3E12.4)") WIND10,UFRIC,THETAW*180./PI
       WRITE(PRINTF,"(' SW4: RHOAW RHOA RHOW :',3E12.4)") PWIND(9), PWIND(16), PWIND(17)
       WRITE(PRINTF,"(' SW4: ALPHA XKAPPA ZTEN :',3E12.4)") PWIND(14), PWIND(15), ZTEN
@@ -2657,10 +2627,7 @@ end subroutine SWIND4
 
 !****************************************************************
 
-SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
-&UFRIC   ,KWAVE   ,IMATRA  ,IDCMIN  ,&
-&IDCMAX  ,AC2     ,ANYWND  ,PLWNDS  ,&
-&SPCDIR  ,GENC0   ,AICELOC          ,IGP)
+SUBROUTINE SWIND5 (SPCSIG, THETAW, WINDOW, UFRIC, KWAVE, IMATRA, AC2, ANYWND, PLWNDS, SPCDIR, GENC0, AICELOC, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -2677,6 +2644,8 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
    USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
 
 
 !   --|-----------------------------------------------------------|--
@@ -2821,7 +2790,7 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
 !************************************************************************
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER  IDDUM  ,ID     ,IS     ,ISSTOP
+   INTEGER :: IDDUM, ID, IS
 
    REAL     UFRIC  ,THETA  ,THETAW ,SIGMA  ,SWINEB , TEMP3,&
    &CTW    ,STW    ,COSDIF ,&
@@ -2836,8 +2805,6 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
    REAL, INTENT(IN) :: AICELOC
    REAL    FACTOR_ON_SIN ! See remarks.
 
-   INTEGER IDCMIN(MSC)          ,&
-   &IDCMAX(MSC)
 
    LOGICAL  ANYWND(MDC)
 
@@ -2862,12 +2829,12 @@ SUBROUTINE SWIND5 (SPCSIG  ,THETAW  ,ISSTOP  ,&
    CTW  = COS(THETAW)
    STW  = SIN(THETAW)
    FACTOR_ON_SIN = (1.-AICELOC*(1.-ICEWIND))
-   DO IS = 1, ISSTOP
+   DO IS = 1, WINDOW%ISSTOP
       SIGMA  = SPCSIG(IS)
       USTAC1 = ( UFRIC * KWAVE(IS,1) ) / SIGMA
       USTAC2 = USTAC1 * USTAC1
       TEMP3  = ( COF1 * USTAC2 + COF2 * USTAC1 + COF3)
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
          IF ( ANYWND(ID) ) THEN
             THETA  = SPCDIR(ID,1)

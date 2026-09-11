@@ -4,10 +4,7 @@ module swan_sweep_sel
    public :: SwanSweepSel
 contains
 
-subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
-                          iddlow, iddtop, idtot , isslow, isstop, &
-                          istot , cax   , cay   , rdx   , rdy   , &
-                          spcsig, icmax)
+subroutine SwanSweepSel (WINDOW, anybin, idtot, isslow, istot, cax, cay, rdx, rdy, spcsig, icmax)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !   --|-----------------------------------------------------------|--
@@ -88,20 +85,15 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
 
     implicit none(type, external)
 
+   TYPE(spectral_window_t) :: WINDOW
+
 !   Argument variables
 
-    integer, intent(out)                       :: iddlow ! minimum direction bin that is propagated within a sweep
-    integer, intent(out)                       :: iddtop ! maximum direction bin that is propagated within a sweep
     integer, intent(out)                       :: idtot  ! maximum number of bins in directional space for considered sweep
     integer, intent(out)                       :: isslow ! minimum frequency that is propagated within a sweep
-    integer, intent(out)                       :: isstop ! maximum frequency that is propagated within a sweep
     integer, intent(out)                       :: istot  ! maximum number of bins in frequency space for considered sweep
     integer, intent(in)                        :: icmax  ! number of active stencil points
 
-    integer, dimension(MSC), intent(out)       :: idcmax ! maximum frequency-dependent counter in directional space
-    integer, dimension(MSC), intent(out)       :: idcmin ! minimum frequency-dependent counter in directional space
-    integer, dimension(MDC), intent(out)       :: iscmax ! maximum direction-dependent counter in frequency space
-    integer, dimension(MDC), intent(out)       :: iscmin ! minimum direction-dependent counter in frequency space
 
     real, dimension(MDC,MSC,ICMAX), intent(in) :: cax    ! wave transport velocity in x-direction
     real, dimension(MDC,MSC,ICMAX), intent(in) :: cay    ! wave transport velocity in y-direction
@@ -139,20 +131,20 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
 
     ! initialize parameters and arrays
 
-    iddlow =  9999
-    iddtop = -9999
+    WINDOW%IDDLOW =  9999
+    WINDOW%IDDTOP = -9999
     idtot  =     1
 
     isslow =  9999
-    isstop = -9999
+    WINDOW%ISSTOP = -9999
     istot  =     1
 
-    idcmin = 0
-    idcmax = 0
+    WINDOW%IDCMIN = 0
+    WINDOW%IDCMAX = 0
     anybin = .false.
 
-    iscmin = 1
-    iscmax = 1
+    WINDOW%ISCMIN = 1
+    WINDOW%ISCMAX = 1
 
     ! loop over all frequency bins
 
@@ -174,7 +166,7 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
                 anybin(id,is) = .true.
                 idsum         = idsum + 1
                 isslow        = min(is,isslow)
-                isstop        = max(is,isstop)
+                WINDOW%ISSTOP        = max(is,WINDOW%ISSTOP)
 
              endif
 
@@ -191,7 +183,7 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
 
              if ( anybin(id,1) ) then
                 idsum  = idsum + 1
-                isstop = max(is,isstop)
+                WINDOW%ISSTOP = max(is,WINDOW%ISSTOP)
              endif
 
           enddo
@@ -247,52 +239,52 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
 
        ! set minimum and maximum counters in directional space for considered sweep
 
-       idcmin(is) = 1
-       idcmax(is) = MDC
+       WINDOW%IDCMIN(is) = 1
+       WINDOW%IDCMAX(is) = MDC
 
        if ( idsum == 0 ) then
 
-          idcmin(is) =  9
-          idcmax(is) = -9
+          WINDOW%IDCMIN(is) =  9
+          WINDOW%IDCMAX(is) = -9
 
        elseif ( idsum /= MDC ) then
 
           if ( idclow > idchgh ) idclow = idclow - MDC
-          idcmin(is) = idclow
-          idcmax(is) = idchgh
+          WINDOW%IDCMIN(is) = idclow
+          WINDOW%IDCMAX(is) = idchgh
 
        endif
 
        if ( idsum /= 0 ) then
-          iddlow = min ( iddlow , idcmin(is) )
-          iddtop = max ( iddtop , idcmax(is) )
+          WINDOW%IDDLOW = min ( WINDOW%IDDLOW , WINDOW%IDCMIN(is) )
+          WINDOW%IDDTOP = max ( WINDOW%IDDTOP , WINDOW%IDCMAX(is) )
        endif
 
     enddo
 
     ! compute maximum number of bins in directional space for considered sweep
 
-    if ( iddlow /= 9999 ) then
+    if ( WINDOW%IDDLOW /= 9999 ) then
 
-       if ( iddtop == -9999 ) then
+       if ( WINDOW%IDDTOP == -9999 ) then
           call msgerr ( 4, 'inconsistency found in SwanSweepSel: no maximum direction bin ' )
           return
        endif
 
-       idtot = iddtop - iddlow + 1
+       idtot = WINDOW%IDDTOP - WINDOW%IDDLOW + 1
 
        if ( ICUR > 0 ) then
 
           if ( idtot < 3 ) then
-             iddtop = iddtop + 1
-             if ( idtot == 1 ) iddlow = iddlow - 1
+             WINDOW%IDDTOP = WINDOW%IDDTOP + 1
+             if ( idtot == 1 ) WINDOW%IDDLOW = WINDOW%IDDLOW - 1
              idtot = 3
           endif
 
        endif
     else
 
-       if ( iddtop /= -9999 ) then
+       if ( WINDOW%IDDTOP /= -9999 ) then
           call msgerr ( 4, 'inconsistency found in SwanSweepSel: no minimum direction bin ' )
           return
        endif
@@ -302,8 +294,8 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
     endif
 
     if ( idtot > MDC ) then
-       iddlow = 1
-       iddtop = MDC
+       WINDOW%IDDLOW = 1
+       WINDOW%IDDTOP = MDC
        idtot  = MDC
     endif
 
@@ -311,7 +303,7 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
 
     if ( isslow /= 9999 ) then
 
-       if ( isstop == -9999 ) then
+       if ( WINDOW%ISSTOP == -9999 ) then
           call msgerr ( 4, 'inconsistency found in SwanSweepSel: no maximum frequency bin ' )
           return
        endif
@@ -323,13 +315,13 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
 
        isslow = 1
 
-       if ( ICUR > 0 ) isstop = max(min(4,MSC),isstop)
+       if ( ICUR > 0 ) WINDOW%ISSTOP = max(min(4,MSC),WINDOW%ISSTOP)
 
-       istot = isstop - isslow + 1
+       istot = WINDOW%ISSTOP - isslow + 1
 
     else
 
-       if ( isstop /= -9999 ) then
+       if ( WINDOW%ISSTOP /= -9999 ) then
           call msgerr ( 4, 'inconsistency found in SwanSweepSel: no minimum frequency bin ' )
           return
        endif
@@ -345,7 +337,7 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
 
     ! loop over all direction bins
 
-    do iddum = iddlow, iddtop
+    do iddum = WINDOW%IDDLOW, WINDOW%IDDTOP
        id = mod ( iddum - 1 + MDC , MDC ) + 1
 
        lowbin = .false.
@@ -364,18 +356,18 @@ subroutine SwanSweepSel ( idcmin, idcmax, anybin, iscmin, iscmax, &
 
        if ( lowbin ) then
 
-          if ( isclow < isslow .or. ischgh > isstop ) then
+          if ( isclow < isslow .or. ischgh > WINDOW%ISSTOP ) then
              call msgerr ( 4, 'inconsistency found in SwanSweepSel: minimum and maximum counters of frequencies not correct ' )
              return
           endif
 
-          iscmin(id) = isclow
-          iscmax(id) = ischgh
+          WINDOW%ISCMIN(id) = isclow
+          WINDOW%ISCMAX(id) = ischgh
 
        else                     ! no frequency bins fall within considered sweep
 
-          iscmin(id) = 0
-          iscmax(id) = 0
+          WINDOW%ISCMIN(id) = 0
+          WINDOW%ISCMAX(id) = 0
 
        endif
 

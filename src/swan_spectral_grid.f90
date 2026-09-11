@@ -18,6 +18,25 @@ module swan_spectral_grid
    public :: DDIR, FRINTF, FRINTH
    public :: SPDIR1, SPDIR2, FULCIR, SLOW, SHIG
    public :: MSC4MI, MSC4MA, MDC4MI, MDC4MA
+   public :: spectral_window_t
+
+!     Non-owning view of the active part of the spectrum for one sweep.
+!     The solvers retain ownership of the thread-local arrays and counters;
+!     grouping their aliases here lets propagation and source-term kernels
+!     receive the window as one compiler-checked value.  The four dynamic
+!     bounds remain pointer views; the scalar sweep counters live in the view
+!     itself so they cannot outlive a stack target.
+   type :: spectral_window_t
+      integer, pointer :: idcmin(:) => null()
+      integer, pointer :: idcmax(:) => null()
+      integer, pointer :: iscmin(:) => null()
+      integer, pointer :: iscmax(:) => null()
+      integer :: isstop
+      integer :: iddlow
+      integer :: iddtop
+      integer :: idwmin
+      integer :: idwmax
+   end type spectral_window_t
 
 !     MSC : number of frequencies
 !     MDC : number of directions

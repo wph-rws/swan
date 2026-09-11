@@ -13,7 +13,7 @@ Herhaal per release op dezelfde kandidaat.
 
 | Compiler | Versie/OS/arch | Status | Bewijs |
 |---|---|---|---|
-| GNU 13 (referentie) | 13.3.0 / WSL2-Ubuntu x86-64 | **geslaagd** (serieel/OpenMP/strict/MPI-2rank/runtime) | schone strict-bouw groen (1361/504 op 7-9; 1360/503 op "Isoleer de tests en sluit de geheugenlevensduur af", 8-9; 1358/502 na WP3a-`RI`-herstel; **1324/488** na WP5b-tranche-5/WP3b-C1, 10-9); CTest 58/61/62/63/67 per config; installatieproef + quick_test-regressie groen |
+| GNU 13 (referentie) | 13.3.0 / WSL2-Ubuntu x86-64 | **geslaagd** (serieel/OpenMP/strict/MPI-2rank/runtime) | schone strict-bouw groen (1361/504 op 7-9; 1360/503 op "Isoleer de tests en sluit de geheugenlevensduur af", 8-9; 1358/502 na het `RI`-herstel; 1324/488 na de fysicabenoeming, 10-9; **1317 tegen budget 1318** na argumentbundeling A-D, 11-9); CTest 58/61/62/63/67 per config; installatieproef + quick_test-regressie groen |
 | GNU 15 (nieuwere GNU) | 15.2.0 / WSL2-Ubuntu x86-64 | **geslaagd** (configure + telling 44; volledige suite periodiek) | `ctest -N` 58; volledige groen-meting periodiek vóór release |
 | Intel `ifx` (IntelLLVM, tweede implementatie) | niet geïnstalleerd hier | **niet uitgevoerd** (ontbrekende toolchain) | kandidaat; eerst taalproeven + serieel, daarna OpenMP/MPI/netCDF + operationele regressies; claim "tweede implementatie ondersteund" uitgesloten tot groen |
 | Intel `ifort` (classic) | niet geïnstalleerd | **niet uitgevoerd** (historisch) | historische compatibiliteit, geen nieuwe basis |

@@ -10,8 +10,7 @@ contains
 subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
                           cgo   , cax   , cay   , cad   , cas   , &
                           anybin, rdx   , rdy   , spcsig, spcdir, &
-                          obredf, idcmin, idcmax, iscmin, iscmax, &
-                          iddlow, iddtop, isslow, isstop, anyblk, &
+                          obredf, window, isslow, anyblk, &
                           trac0 , trac1 , kcgrd , coslat, icmax )
    USE swan_service_interfaces, ONLY: STRACE, SWTSTA, SWTSTO
 
@@ -72,17 +71,11 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
 
 !   Argument variables
 
-    integer, intent(in)                         :: iddlow ! minimum direction bin that is propagated within a sweep
-    integer, intent(in)                         :: iddtop ! maximum direction bin that is propagated within a sweep
     integer, intent(in)                         :: isslow ! minimum frequency that is propagated within a sweep
-    integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
     integer, intent(in)                         :: icmax  ! number of active stencil points
     integer, dimension(icmax), intent(in)       :: kcgrd ! grid addresses of the stencil points
 
-    integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
-    integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
-    integer, dimension(MDC), intent(in)         :: iscmax ! maximum direction-dependent counter in frequency space
-    integer, dimension(MDC), intent(in)         :: iscmin ! minimum direction-dependent counter in frequency space
+    type(spectral_window_t), intent(in)          :: window
 
     real, dimension(MDC,MSC,nverts), intent(in) :: ac1    ! action density at previous time level
     real, dimension(MDC,MSC,nverts), intent(in) :: ac2    ! action density at current time level
@@ -143,12 +136,13 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
 
     IF (timing_enabled) CALL SWTSTA(140)
     call SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
-                       rdx    , rdy  , obredf, idcmin, idcmax, isslow, &
-                       isstop , trac0, trac1 , kcgrd , coslat, icmax )
+                       rdx    , rdy  , obredf, window, isslow, &
+                       trac0, trac1 , kcgrd , coslat, icmax )
 
     ! add GSE correction, if appropriate
 
-    if ( WAVAGE > 0. ) call SwanGSECorr ( rhs, ac2, cgo, spcdir, idcmin, idcmax, isslow, isstop, trac0, kcgrd(1), icmax )
+    if ( WAVAGE > 0. ) call SwanGSECorr ( rhs, ac2, cgo, spcdir, window, &
+                                          isslow, trac0, kcgrd(1), icmax )
     IF (timing_enabled) CALL SWTSTO(140)
 
     ! compute transport in theta space
@@ -156,9 +150,9 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
     IF (timing_enabled) CALL SWTSTA(142)
     if ( IREFR /= 0 ) then
 
-       call STRSD ( DDIR       , idcmin     , idcmax     , cad    , &
+       call STRSD ( DDIR       , window     , cad    , &
                     amat(1,1,4), amat(1,1,1), amat(1,1,5), rhs    , &
-                    ac2        , isstop     , anybin     , leakcf , &
+                    ac2        , anybin     , leakcf , &
                     trac0      , trac1      , kcgrd(1)   , icmax  )
 
     endif
@@ -175,15 +169,14 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
 
           call STRSSI ( spcsig     , cas   , amat(1,1,2), amat(1,1,1), &
                         amat(1,1,3), anybin, rhs        , ac2        , &
-                        iscmin     , iscmax, iddlow     , iddtop     , &
+                        window     , &
                         trac0      , trac1 , kcgrd(1)   , icmax      )
 
        elseif ( int(PNUMS(PNUMS_SCHEMEFR)) == 2 ) then
 
           ! explicit scheme
 
-          call STRSSB ( iddlow, iddtop, idcmin, idcmax, isstop, &
-                        cax   , cay   , cas   , ac2   , spcsig, &
+          call STRSSB ( window, cax   , cay   , cas   , ac2   , spcsig, &
                         rhs   , anyblk, rdx   , rdy   , trac0 , &
                         kcgrd(1), icmax )
 

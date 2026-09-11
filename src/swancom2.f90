@@ -33,11 +33,7 @@ module swan_dissipation
    public :: BRKPAR, PLTSRC
 contains
 
-SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
-&IMATDA  ,KWAVE   ,SPCSIG  ,UBOT    ,UX2     ,&
-&UY2     ,IDCMIN  ,IDCMAX  ,IT      ,ITER    ,&
-&SWPDIR  ,PLBTFR  ,ISSTOP  ,DISSC1  ,VARFR   ,&
-&FRCOEF  ,IGP      ,IXCG    ,IYCG)
+SUBROUTINE SBOT (ABRBOT, DEP2, ECOS, ESIN, AC2, IMATDA, KWAVE, SPCSIG, UBOT, UX2, UY2, WINDOW, IT, ITER, SWPDIR, PLBTFR, DISSC1, VARFR, FRCOEF, IGP, IXCG, IYCG)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -54,6 +50,8 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP, IXCG, IYCG
 
 
@@ -310,7 +308,7 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
 ! 13. Source text
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER  ID     ,IDDUM, IS     ,ISSTOP, IT, ITER, J, SWPDIR
+   INTEGER :: ID, IDDUM, IS, IT, ITER, J, SWPDIR
 
    REAL     AKN    ,XDUM   ,KD     ,SBOTEO,FACB  ,&
    &CFW    ,FW     ,CURR   ,UC    ,ABRBOT,&
@@ -335,8 +333,6 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
    &DISSC1(MDC,MSC,1:MDISP)   ,&
    &FRCOEF(MCGRD)
 
-   INTEGER  IDCMIN(MSC)               ,&
-   &IDCMAX(MSC)
 
    IF (LTRACE) CALL STRACE (IENT,'SBOT')
 
@@ -530,12 +526,12 @@ SUBROUTINE SBOT (ABRBOT  ,DEP2    ,ECOS    ,ESIN    ,AC2     ,&
          WRITE (PRTEST, "(' SBOT :IBOT INDX DEP CFBOT:', 2I5, 2E12.4)") IBOT, IGP, DEP2(IGP), CFBOT(1)
       ENDIF
 
-      do IS = 1, ISSTOP
+      do IS = 1, WINDOW%ISSTOP
          KD = KWAVE(IS,1) * DEP2(IGP)
          IF ( KD .LT. 10. ) THEN
             FACB = CFBOT(IS) * (SPCSIG(IS) / SINH(KD)) **2
 
-            do IDDUM = IDCMIN(IS) , IDCMAX(IS)
+            do IDDUM = WINDOW%IDCMIN(IS) , WINDOW%IDCMAX(IS)
                ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
                SBOTEO = FACB
@@ -566,10 +562,7 @@ end subroutine SBOT
 
 !****************************************************************
 
-SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
-&KWAVE  ,KMESPC   ,PLVEGT ,&
-&IDCMIN ,IDCMAX   ,ISSTOP ,DISSC1    ,&
-&NPLA2  ,IGP)
+SUBROUTINE SVEG (DEP2, IMATDA, ETOT, SMEBRK, KWAVE, KMESPC, PLVEGT, WINDOW, DISSC1, NPLA2, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -589,6 +582,8 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
    USE swan_vegetation_layers
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
 
 
 !   --|-----------------------------------------------------------|--
@@ -771,7 +766,6 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 !     SMEBRK      mean frequency according to first order moment
 
    INTEGER, INTENT(IN) :: IGP
-   INTEGER ISSTOP, IDCMIN(MSC), IDCMAX(MSC)
    REAL    DEP2(MCGRD)          ,&
    &IMATDA(MDC,MSC)      ,&
    &KWAVE(MSC,MICMAX)    ,&
@@ -981,7 +975,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 
          MU = 0.
 
-         DO IS = 1, ISSTOP
+         DO IS = 1, WINDOW%ISSTOP
 
             KD = KWAVE(IS,1) * DEP2(IGP)
             KC = KWAVE(IS,1) * ZH
@@ -1022,7 +1016,7 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
 
 !           --- compute frequency-distributed dissipation per integration point
 
-         DO IS = 1, ISSTOP
+         DO IS = 1, WINDOW%ISSTOP
             DCIP(IK,IS) = C * FDD(IS) * SQRT(MU)
          END DO
 
@@ -1041,8 +1035,8 @@ SUBROUTINE SVEG ( DEP2   ,IMATDA   ,ETOT   ,SMEBRK    ,&
       WRITE (PRTEST, "(' SVEG :IVEG INDX DEP VEGFAC:', 2I5, 2E12.4)") IVEG, IGP, DEP2(IGP), SVEGET(1)
    END IF
 
-   DO IS = 1, ISSTOP
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+   DO IS = 1, WINDOW%ISSTOP
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
 !           *** store the results in the array IMATDA ***
@@ -1060,9 +1054,7 @@ end subroutine SVEG
 
 !****************************************************************
 
-SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
-&IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-&KWAVE   ,DISSC1  ,PLTURB, SIGPOW, IGP, IXCG, IYCG, ICMAX)
+SUBROUTINE STURBV (TURBV2, DEP2, IMATDA, WINDOW, KWAVE, DISSC1, PLTURB, SIGPOW, IGP, IXCG, IYCG, ICMAX)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -1076,6 +1068,8 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP, IXCG, IYCG, ICMAX
 
 
@@ -1132,8 +1126,6 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
    REAL             :: PLTURB(MDC,MSC,NPTST)
    REAL, INTENT(IN) :: SIGPOW(:,:)
 
-   INTEGER :: IDCMIN(1:MSC), IDCMAX(1:MSC)
-   INTEGER :: ISSTOP
 
 !  5. Local variables
 
@@ -1184,13 +1176,13 @@ SUBROUTINE STURBV (TURBV2  ,DEP2    ,IMATDA  ,&
       IF (ITURBV.EQ.1) THEN
 
 !         *** Tolman's model ***
-         DO IS = 1, ISSTOP
+         DO IS = 1, WINDOW%ISSTOP
 !           expression: Pt * K * k * sigma^2 / g * (tanh(kd) - kd/(cosh(kd)^2))
             XKD = KWAVE(IS,1) * DEP2(IGP)
             CVISC = PTURBV(1) * VISCLOC * KWAVE(IS,1) *&
             &SIGPOW(IS,2) / GRAV *&
             &(TANH(MIN(30.,XKD)) - XKD/((COSH(MIN(30.,XKD)))**2))
-            DO IDDUM = IDCMIN(IS) , IDCMAX(IS)
+            DO IDDUM = WINDOW%IDCMIN(IS) , WINDOW%IDCMAX(IS)
                ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
 !              *** store the results in the array IMATDA             ***
@@ -1210,10 +1202,7 @@ end subroutine STURBV
 
 !****************************************************************
 
-SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
-&KMUD    ,CGMUD   ,DMW     ,&
-&IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-&DISSC1  ,PLMUD   ,IGP      ,ICMAX)
+SUBROUTINE SMUD (DEP2, IMATDA, KMUD, CGMUD, DMW, WINDOW, DISSC1, PLMUD, IGP, ICMAX)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -1225,6 +1214,8 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
    USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP, ICMAX
 
 
@@ -1297,8 +1288,6 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
    REAL, INTENT(IN) :: DEP2(1:MCGRD)
    REAL             :: PLMUD(MDC,MSC,NPTST)
 
-   INTEGER :: IDCMIN(1:MSC), IDCMAX(1:MSC)
-   INTEGER :: ISSTOP
 
 !  5. Parameter variables
 !
@@ -1352,7 +1341,7 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
 
    IF (LTRACE) CALL STRACE (IENT,'SMUD')
 
-   DO IS = 1, ISSTOP
+   DO IS = 1, WINDOW%ISSTOP
 
       KD = KMUD(IS,1) * DEP2(IGP)
 
@@ -1360,7 +1349,7 @@ SUBROUTINE SMUD ( DEP2    ,IMATDA  ,&
 
          SMUDWD = 2. * DMW(IS,1) * CGMUD(IS,1)
 
-         DO IDDUM = IDCMIN(IS) , IDCMAX(IS)
+         DO IDDUM = WINDOW%IDCMIN(IS) , WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
 !              *** store the results in the array IMATDA             ***
@@ -1381,9 +1370,7 @@ end subroutine SMUD
 
 !****************************************************************
 
-SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  ,&
-&DISSC1  , PLICE   , AICELOC , HICELOC ,&
-&SPCSIG  , CG      )
+SUBROUTINE SICE (IMATDA, WINDOW, DISSC1, PLICE, AICELOC, HICELOC, SPCSIG, CG)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
@@ -1396,6 +1383,8 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  ,&
    USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
 
 
 !   --|-----------------------------------------------------------|--
@@ -1480,7 +1469,6 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  ,&
    REAL, INTENT(IN) :: SPCSIG(MSC)
    REAL, INTENT(IN) :: CG(MSC,MICMAX) ! or just CG(:,:) ! "CGo" in ca
 
-   INTEGER, INTENT(IN) :: ISSTOP, IDCMIN(1:MSC), IDCMAX(1:MSC)
 
 !  5. Parameter variables
 !
@@ -1573,7 +1561,7 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  ,&
 
    if_ice: IF ( AICELOC.GT.0. ) THEN
 
-      ki_calc: DO IS = 1, ISSTOP
+      ki_calc: DO IS = 1, WINDOW%ISSTOP
 
          FREQ = SPCSIG(IS) / PI2
 
@@ -1593,10 +1581,10 @@ SUBROUTINE SICE ( IMATDA  , IDCMIN  , IDCMAX  , ISSTOP  ,&
 
       ENDDO ki_calc
 
-      ki_use: DO IS = 1, ISSTOP
+      ki_use: DO IS = 1, WINDOW%ISSTOP
          SICEWD = 2. * KI(IS) * CG(IS,1) * AICELOC
 
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
 !     *** store the results in the array IMATDA             ***
@@ -1807,10 +1795,7 @@ end subroutine FRABRE
 
 !****************************************************************
 
-SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
-&KMESPC  ,SPCSIG  ,AC2     ,IMATRA  ,&
-&IMATDA  ,IDCMIN  ,IDCMAX  ,PLWBRK  ,&
-&ISSTOP  ,DISSC0  ,DISSC1  ,DISBK   ,ITER, SIGM_WAM,IGP)
+SUBROUTINE SSURF (ETOT, HM, QB, SMEBRK, KTETA, KMESPC, SPCSIG, AC2, IMATRA, IMATDA, WINDOW, PLWBRK, DISSC0, DISSC1, DISBK, ITER, SIGM_WAM, IGP)
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_spectral_integration, ONLY: SwanIntgratSpc
 
@@ -1825,6 +1810,8 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: SIGM_WAM
 
@@ -2043,8 +2030,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
 !     QB      input :   Fraction of breaking waves
 !     SMEBRK  input :   Mean frequency according to first order moment
 
-   INTEGER        ISSTOP,&
-   &IDCMIN(MSC), IDCMAX(MSC), ITER
+   INTEGER :: ITER
 
    REAL     AC2(MDC,MSC,MCGRD)   ,&
    &DISSC0(MDC,MSC,MDISP),&
@@ -2205,7 +2191,7 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
       &ECS, 0., 0., AC2(1,1,IGP), 1 )
       FAC   = ETOT0/EPTOT
       IF ( ETOT0.GT.1.E-8 ) THEN
-         DO IS = 1, ISSTOP
+         DO IS = 1, WINDOW%ISSTOP
             FRFAC(IS) = FAC*SPCSIG(IS)**PP
          END DO
       END IF
@@ -2216,10 +2202,10 @@ SUBROUTINE SSURF (ETOT    ,HM      ,QB      ,SMEBRK  ,KTETA   ,&
       TEMP1 = 0D0
       TEMP2 = 0D0
    ENDIF
-   do IS = 1, ISSTOP
+   do IS = 1, WINDOW%ISSTOP
       SURFA0 = TEMP1*FRFAC(IS)
       SURFA1 = TEMP2*FRFAC(IS)
-      do IDDUM = IDCMIN(IS), IDCMAX(IS)
+      do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
          IMATDA(ID,IS) = IMATDA(ID,IS) + REAL(SURFA1)
          DIS0 = SURFA0 * DBLE(AC2(ID,IS,IGP))
@@ -2244,11 +2230,7 @@ end subroutine SSURF
 
 !****************************************************************
 
-SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
-&IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-&ETOT    ,IMATDA  ,IMATRA  ,PLWCAP  ,&
-&CGO     ,UFRIC   ,CAS     ,&
-&DEP2    ,DISSC1  ,DISSC0, WCAP_WORKSPACE,IGP)
+SUBROUTINE SWCAP  (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLWCAP, CGO, UFRIC, CAS, DEP2, DISSC1, DISSC0, WCAP_WORKSPACE, IGP)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
@@ -2264,6 +2246,8 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
 
@@ -2418,7 +2402,6 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !     SPCSIG: Relative frequencies in computational domain in sigma-space
 !     UFRIC : wind friction velocity
 
-   INTEGER, INTENT(IN) :: ISSTOP, IDCMIN(MSC), IDCMAX(MSC)
 
    REAL, INTENT(IN)    :: AC2(MDC,MSC,MCGRD), DEP2(MCGRD)
    REAL, INTENT(IN)    :: ETOT
@@ -2575,7 +2558,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !       rewrite to prevent underflow
 
       A = -(1./8.) * GRAV**2 / ETOT4
-      DO IS=1, ISSTOP
+      DO IS=1, WINDOW%ISSTOP
 !          C_LH(IS) = PWCAP(5) * SQRT((ETOT * SIG0**4) / GRAV**2) *
 !     &               EXP(A) * SIG0 * (SPCSIG(IS) / SIG0)**2
 !          rewrite to prevent underflow:
@@ -2613,7 +2596,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 
 !  Loop to calculate B(k)
 
-      DO IS = 1, ISSTOP
+      DO IS = 1, WINDOW%ISSTOP
 
 !  Calculate E(f)
 
@@ -2659,7 +2642,7 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 
 ! Calculate the whitecapping source term WCAP(IS)
 
-      DO IS=1, ISSTOP
+      DO IS=1, WINDOW%ISSTOP
          IF ((IWCAP.EQ.1).OR.&
          &(IWCAP.EQ.2).OR.&
          &((IWCAP.EQ.5).AND.(C_BJ.LE.C_K(IS)))) THEN
@@ -2688,11 +2671,11 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 
 ! Fill the diagonal of the matrix and the PLWCAP-array
 
-   DO IS=1, ISSTOP
+   DO IS=1, WINDOW%ISSTOP
 
 !        Only fill the values for the current sweep
 
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD(IDDUM - 1 + MDC, MDC) + 1
          IMATDA(ID,IS)   = IMATDA(ID,IS)   + WCAP(IS)
          DISSC1(ID,IS,1) = DISSC1(ID,IS,1) + WCAP(IS)
@@ -2704,11 +2687,11 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 
    IF ((IWCAP.EQ.4).OR.&
    &(IWCAP.EQ.5)) THEN
-      DO IS=1, ISSTOP
+      DO IS=1, WINDOW%ISSTOP
 
 !       Only fill the values for the current sweep
 
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD(IDDUM - 1 + MDC, MDC) + 1
             IMATRA(ID,IS)   = IMATRA(ID,IS) +&
             &WCIMPL(IS) * AC2(ID,IS,IGP)
@@ -2722,11 +2705,11 @@ SUBROUTINE SWCAP  (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 
    IF ( IWCAP.EQ.7 .AND. IWCCUR.EQ.1 ) THEN
 
-      DO IS=1, ISSTOP
+      DO IS=1, WINDOW%ISSTOP
 
 !           Only fill the values for the current sweep
 
-         DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+         DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
             ID = MOD(IDDUM - 1 + MDC, MDC) + 1
             IMATDA(ID,IS)   = IMATDA(ID,IS)   + WCCUR(ID,IS)
             DISSC1(ID,IS,1) = DISSC1(ID,IS,1) + WCCUR(ID,IS)
@@ -2743,11 +2726,7 @@ end subroutine SWCAP
 
 !****************************************************************
 
-SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
-&IDCMIN  ,IDCMAX  ,ISSTOP  ,&
-&ETOT    ,IMATDA  ,IMATRA  ,PLWCAP  ,&
-&CGO     ,UFRIC   ,&
-&DEP2    ,DISSC1  ,DISSC0, WCAP_WORKSPACE,IGP)
+SUBROUTINE SWCAP8 (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLWCAP, CGO, UFRIC, DEP2, DISSC1, DISSC0, WCAP_WORKSPACE, IGP)
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
 
 !****************************************************************
@@ -2763,6 +2742,8 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
    USE SdsBabanin
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
 
@@ -2814,7 +2795,6 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 !
 !     See WCAP_DELFT
 
-   INTEGER, INTENT(IN) :: ISSTOP, IDCMIN(MSC), IDCMAX(MSC)
 
    REAL, INTENT(IN)    :: AC2(MDC,MSC,MCGRD), DEP2(MCGRD)
    REAL, INTENT(IN)    :: ETOT
@@ -2958,11 +2938,11 @@ SUBROUTINE SWCAP8 (SPCDIR  ,SPCSIG  ,KWAVE   ,AC2     ,&
 ! Fill the diagonal of the matrix and the PLWCAP-array
 
 
-   DO IS=1, ISSTOP
+   DO IS=1, WINDOW%ISSTOP
 
 !         Only fill the values for the current sweep
 
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD(IDDUM - 1 + MDC, MDC) + 1
          IMATDA(ID,IS)   = IMATDA(ID,IS)   + WCAP(IS)
          DISSC1(ID,IS,1) = DISSC1(ID,IS,1) + WCAP(IS)
@@ -2982,10 +2962,7 @@ end subroutine SWCAP8
 
 !****************************************************************
 
-SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
-&SPCSIG  ,DEP2    ,BOTLV   ,&
-&RDX     ,RDY     ,KWAVE   ,&
-&IDDLOW  ,IDDTOP  ,FDIR    ,KTETA, KM_WAM, IGP, KGRD2, KGRD3)
+SUBROUTINE BRKPAR (BRCOEF, ECOS, ESIN, AC2, SPCSIG, DEP2, BOTLV, RDX, RDY, KWAVE, WINDOW, FDIR, KTETA, KM_WAM, IGP, KGRD2, KGRD3)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -3000,6 +2977,8 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
    REAL, INTENT(IN) :: KM_WAM
    INTEGER, INTENT(IN) :: IGP, KGRD2, KGRD3
 
@@ -3116,7 +3095,6 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
    REAL, INTENT(IN)  :: RDX(*), RDY(*)
    REAL, INTENT(IN)  :: KWAVE(MSC,MICMAX)
    REAL, INTENT(IN)  :: FDIR ! represents first spectral direction
-   INTEGER, INTENT(IN) :: IDDLOW, IDDTOP
 
 !        INTEGERS :
 !        ----------
@@ -3198,6 +3176,14 @@ SUBROUTINE BRKPAR (BRCOEF  ,ECOS    ,ESIN    ,AC2     ,&
 
    INTEGER, SAVE :: IENT=0
    IF (LTRACE) CALL STRACE (IENT,'BRKPAR')
+
+!  BRKPAR receives the coherent sweep window because its two former bound
+!  arguments belong to that tuple.  The present breaker formulations do not
+!  inspect either bound; retain that explicit fact without manufacturing a
+!  numerical dependency merely to silence an unused-dummy diagnostic.
+   ASSOCIATE (UNUSED_WINDOW => WINDOW)
+      CONTINUE
+   END ASSOCIATE
 
    IF (ISURF .EQ. 1&
    &) THEN

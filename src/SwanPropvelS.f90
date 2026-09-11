@@ -5,14 +5,7 @@ module swan_propvel_s
    public :: SwanPropvelS
 contains
 
-subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
-                          dep1  , dep2  , cax   , cay   , &
-                          kwave , cgo   , spcsig, iddlow, &
-                          iddtop, ecos  , esin  , coscos, &
-                          sincos, sinsin, rdx   , rdy   , &
-                          dhdx  , dhdy  , dkdx  , dkdy  , &
-                          duxdx , duxdy , duydx , duydy , &
-                          diffr , kcgrd , icmax )
+subroutine SwanPropvelS (cad, cas, ux2, uy2, dep1, dep2, cax, cay, kwave, cgo, spcsig, WINDOW, ecos, esin, coscos, sincos, sinsin, rdx, rdy, dhdx, dhdy, dkdx, dkdy, duxdx, duxdy, duydx, duydy, diffr, kcgrd, icmax)
    USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
@@ -88,10 +81,10 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
 
     implicit none(type, external)
 
+   TYPE(spectral_window_t) :: WINDOW
+
 !   Argument variables
 
-    integer, intent(in)                        :: iddlow ! minimum direction bin that is propagated within a sweep
-    integer, intent(in)                        :: iddtop ! maximum direction bin that is propagated within a sweep
     integer, intent(in)                        :: icmax  ! number of active stencil points
     integer, dimension(icmax), intent(in)      :: kcgrd ! grid addresses of the stencil points
 
@@ -219,7 +212,7 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
           cs( 9) = cs(5) * (duxdy+duydx)
           cs(10) = cs(5) * duydy
 
-          do iddum = iddlow-1, iddtop+1
+          do iddum = WINDOW%IDDLOW-1, WINDOW%IDDTOP+1
              id = mod ( iddum - 1 + MDC , MDC ) + 1
 
              cas(id,is) = cs(6)
@@ -238,7 +231,7 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
 
              fac2 = alpha * FRINTF * spcsig(is)
 
-             do iddum = iddlow-1, iddtop+1
+             do iddum = WINDOW%IDDLOW-1, WINDOW%IDDTOP+1
                 id = mod ( iddum - 1 + MDC , MDC ) + 1
 
                 fac = fac2 * ( abs((rdx(1)+rdx(2))*cax(id,is,1)) + abs((rdy(1)+rdy(2))*cay(id,is,1)) )
@@ -279,7 +272,7 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
 
           endif
 
-          do iddum = iddlow-1, iddtop+1
+          do iddum = WINDOW%IDDLOW-1, WINDOW%IDDTOP+1
              id = mod ( iddum - 1 + MDC , MDC ) + 1
 
              cad(id,is) = esin(id)*cd(2) - ecos(id)*cd(3)
@@ -333,7 +326,7 @@ subroutine SwanPropvelS ( cad   , cas   , ux2   , uy2   , &
 
           do is = 1, MSC
 
-             do iddum = iddlow-1, iddtop+1
+             do iddum = WINDOW%IDDLOW-1, WINDOW%IDDTOP+1
                 id = mod ( iddum - 1 + MDC , MDC ) + 1
 
                 fac = fac2 * ( abs((rdx(1)+rdx(2))*cax(id,is,1)) + abs((rdy(1)+rdy(2))*cay(id,is,1)) )

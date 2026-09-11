@@ -3,6 +3,7 @@
 MODULE SDSBABANIN
    USE swan_service_interfaces, ONLY: STRACE
    use swan_output_variables, only: UST
+   use swan_spectral_grid, only: spectral_window_t
    use swan_time, only: CHTIME
   IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -1560,7 +1561,7 @@ CONTAINS
 !     end of subroutine SWIND0_NRL
       END SUBROUTINE SWIND0_NRL
 
-subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc0, aiceloc ,IGP)
+subroutine filsin (memsin, WINDOW, imatra, anywnd, plwnds, genc0, aiceloc, IGP)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1618,13 +1619,12 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
 
     implicit none(type, external)
 
+   TYPE(spectral_window_t) :: WINDOW
+
 !   Argument variables
 
    INTEGER, INTENT(IN) :: IGP
-    integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
 
-    integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
-    integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
 
     real, intent(in)                            :: aiceloc ! local ice fraction, at current time
 
@@ -1667,8 +1667,8 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
     if (ltrace) call strace (ient,'filsin')
 
     factor_on_Sin = (1.-aiceloc*(1.-icewind))
-    do is = 1, isstop
-       do iddum = idcmin(is), idcmax(is)
+    do is = 1, WINDOW%ISSTOP
+       do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
           id = mod ( iddum - 1 + MDC , MDC ) + 1
           if ( anywnd(id).or.ZIEGER ) then
              memsins = memsin(id,is,IGP)
@@ -1684,10 +1684,10 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
     enddo
 
     if ( TESTFL .and. ITEST > 50 ) then
-       write (PRINTF,"(' FILSIN: ID_MIN ID_MAX MSC ISTOP :',4i6)") idcmin(1), idcmax(1), MSC, isstop
+       write (PRINTF,"(' FILSIN: ID_MIN ID_MAX MSC ISTOP :',4i6)") WINDOW%IDCMIN(1), WINDOW%IDCMAX(1), MSC, WINDOW%ISSTOP
        if ( ITEST > 100 ) then
-          do is = 1, isstop
-             do iddum = idcmin(is), idcmax(is)
+          do is = 1, WINDOW%ISSTOP
+             do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
                 id = mod ( iddum - 1 + MDC , MDC ) + 1
                 memsins = memsin(id,is,IGP)
                 if ( aiceloc > 0. ) then
@@ -1704,8 +1704,7 @@ subroutine filsin ( memsin, idcmin, idcmax, imatra, anywnd, plwnds, isstop, genc
 end subroutine filsin
 
   !****************************************************************
-  SUBROUTINE SSWELL_ROGERS (SPCSIG  ,KWAVE   ,IDCMIN  ,IDCMAX,ISSTOP , DISSC1 ,ETOT &
-                           ,IMATDA,URMSTOP, GRAV   , RHOAW  , MDC,TESTFL,IPTST,PLSWEL,CGO,CDSV,FESWELL)
+  SUBROUTINE SSWELL_ROGERS (SPCSIG, KWAVE, WINDOW, DISSC1, ETOT, IMATDA, URMSTOP, GRAV, RHOAW, MDC, TESTFL, IPTST, PLSWEL, CGO, CDSV, FESWELL)
 
     ! note that CGo is for diagnostic purposes only
     ! excluded : SPCDIR AC2 DEP2 IMATRA
@@ -1716,6 +1715,7 @@ end subroutine filsin
     !****************************************************************
 
     IMPLICIT NONE(TYPE, EXTERNAL)
+     TYPE(spectral_window_t) :: WINDOW
 
 
 !     SWAN (Simulating WAves Nearshore); a third generation wave model
@@ -1736,9 +1736,7 @@ end subroutine filsin
 
 
     LOGICAL, INTENT(IN) :: TESTFL
-    INTEGER, INTENT(IN) :: ISSTOP,MDC,IPTST
-    INTEGER, INTENT(IN) :: IDCMIN(:) ! IDCMIN(MSC)
-    INTEGER, INTENT(IN) :: IDCMAX(:) ! IDCMAX(MSC)
+    INTEGER, INTENT(IN) :: MDC, IPTST
 
     REAL   , INTENT(IN)    :: ETOT
     REAL   , INTENT(IN)    :: KWAVE(:,:) ! KWAVE(MSC,MICMAX)
@@ -1768,7 +1766,7 @@ end subroutine filsin
     INTEGER           :: IDDUM,ID
     REAL              :: AORB,USIGTOP
     REAL              :: RE
-    REAL              :: SWDIS(ISSTOP) ! this is S_SWELL / E(f,theta)
+    REAL              :: SWDIS(WINDOW%ISSTOP) ! this is S_SWELL / E(f,theta)
     REAL              :: KDS_PHILLIPS
 
 ! Q: What should fe be?
@@ -1834,13 +1832,13 @@ end subroutine filsin
     RE=4.0*USIGTOP*AORB/NU_AIR
 
     IF(RE > RE_CRIT)THEN
-       DO IS=1, ISSTOP
+       DO IS=1, WINDOW%ISSTOP
           ! note that "-1" omitted since LHS
           SWDIS(IS) = RHOAW * 16.0 * FESWELL * SPCSIG(IS)**2  &
                       * USIGTOP / GRAV
        END DO
     ELSE
-       DO IS=1, ISSTOP
+       DO IS=1, WINDOW%ISSTOP
           SWDIS(IS) = RHOAW * CDSV * 2.0 * KWAVE(IS,1)  &
                       * SQRT(2.0 * NU_AIR * SPCSIG(IS))
        END DO
@@ -1873,9 +1871,9 @@ end subroutine filsin
 !      SWDIS(IS) = SWDIS(IS) + KDS_PHILLIPS
 !   END DO
 
-    DO IS=1, ISSTOP
+    DO IS=1, WINDOW%ISSTOP
        !         Only fill the values for the current sweep
-       DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+       DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
           ID = MOD(IDDUM - 1 + MDC, MDC) + 1
           IMATDA(ID,IS)   = IMATDA(ID,IS)   + SWDIS(IS)
           DISSC1(ID,IS,4) = DISSC1(ID,IS,4) + SWDIS(IS)
@@ -1886,8 +1884,7 @@ end subroutine filsin
     RETURN
   END SUBROUTINE SSWELL_ROGERS
 
-  SUBROUTINE SSWELL_ARDHUIN (SPCSIG, THETAW, KWAVE, IDCMIN, IDCMAX, ISSTOP, DISSC1, ETOT, IMATDA &
-                            ,SPCDIR, UFRIC, URMSTOP, GRAV   , RHOAW  , TESTFL,IPTST,PLSWEL,MDC,CGO,CDSV)
+  SUBROUTINE SSWELL_ARDHUIN (SPCSIG, THETAW, KWAVE, WINDOW, DISSC1, ETOT, IMATDA, SPCDIR, UFRIC, URMSTOP, GRAV, RHOAW, TESTFL, IPTST, PLSWEL, MDC, CGO, CDSV)
 !---------------------------------------------------------------------------------------------
 !  SUBROUTINE SSWELL_ARDHUIN calculates swell dissipation using equations (8) and (9) in
 !  Ardhuin et al (2010). These equations are the same as Rogers et al 2012 in Subroutine
@@ -1960,10 +1957,10 @@ end subroutine filsin
 
     IMPLICIT NONE(TYPE, EXTERNAL)
 
+     TYPE(spectral_window_t) :: WINDOW
+
     LOGICAL, INTENT(IN) :: TESTFL
-    INTEGER, INTENT(IN) :: ISSTOP,MDC,IPTST
-    INTEGER, INTENT(IN) :: IDCMIN(:) ! IDCMIN(MSC)
-    INTEGER, INTENT(IN) :: IDCMAX(:) ! IDCMAX(MSC)
+    INTEGER, INTENT(IN) :: MDC, IPTST
 
     REAL   , INTENT(IN)    :: ETOT
     REAL   , INTENT(IN)    :: KWAVE(:,:)  ! KWAVE(MSC,MICMAX)
@@ -1995,7 +1992,7 @@ end subroutine filsin
     INTEGER           :: IDDUM,ID
     REAL              :: AORB,USIGTOP
     REAL              :: RE
-    REAL              :: SWDIS(MDC,ISSTOP) ! this is S_SWELL / E(f,theta)
+    REAL              :: SWDIS(MDC,WINDOW%ISSTOP) ! this is S_SWELL / E(f,theta)
     REAL              :: KDS_PHILLIPS
     REAL              :: FESWELL, CTW, STW, COSDIF
     REAL, PARAMETER   :: s1 = 0.8     ! Ardhuin, table A1
@@ -2011,8 +2008,8 @@ end subroutine filsin
     RE=4.0*USIGTOP*AORB/NU_AIR
 
     IF(RE > RE_CRIT)THEN
-       DO IS=1, ISSTOP
-          DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+       DO IS=1, WINDOW%ISSTOP
+          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
              ID = MOD(IDDUM - 1 + MDC, MDC) + 1
              COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
              FESWELL = s1*(feGM + (abs(s3) + s2*COSDIF)*UFRIC/USIGTOP)
@@ -2022,8 +2019,8 @@ end subroutine filsin
           END DO
        END DO
     ELSE
-       DO IS=1, ISSTOP
-          DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+       DO IS=1, WINDOW%ISSTOP
+          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
              ID = MOD(IDDUM - 1 + MDC, MDC) + 1
              SWDIS(ID,IS) = RHOAW * CDSV * 2.0 * KWAVE(IS,1)  &
                             * SQRT(2.0 * NU_AIR * SPCSIG(IS))
@@ -2031,9 +2028,9 @@ end subroutine filsin
        END DO
     ENDIF
 
-    DO IS=1, ISSTOP
+    DO IS=1, WINDOW%ISSTOP
        !         Only fill the values for the current sweep
-       DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+       DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
           ID = MOD(IDDUM - 1 + MDC, MDC) + 1
           IMATDA(ID,IS)   = IMATDA(ID,IS)   + SWDIS(ID,IS)
           DISSC1(ID,IS,4) = DISSC1(ID,IS,4) + SWDIS(ID,IS)
@@ -2044,7 +2041,7 @@ end subroutine filsin
     RETURN
   END SUBROUTINE SSWELL_ARDHUIN
 
-  SUBROUTINE SSWELL_ZIEGER (SPCSIG, KWAVE, AC2, CG, ISSTOP ,IDCMIN  ,IDCMAX, MDC, DISSC1, IMATDA, TESTFL, IPTST, PLSWEL,IGP)
+  SUBROUTINE SSWELL_ZIEGER (SPCSIG, KWAVE, AC2, CG, WINDOW, MDC, DISSC1, IMATDA, TESTFL, IPTST, PLSWEL, IGP)
 
 !---------------------------------------------------------------------------------------------
 !  SUBROUTINE SSWELL_ZIEGER calculates swell dissipation using equations (21) - (23) in
@@ -2105,12 +2102,12 @@ end subroutine filsin
 
     IMPLICIT NONE(TYPE, EXTERNAL)
 
+     TYPE(spectral_window_t) :: WINDOW
+
     ! Subroutine arguments:
      INTEGER, INTENT(IN) :: IGP
     LOGICAL, INTENT(IN)   :: TESTFL
-    INTEGER, INTENT(IN)   :: ISSTOP,MDC,IPTST
-    INTEGER, INTENT(IN)   :: IDCMIN(:) ! IDCMIN(MSC)
-    INTEGER, INTENT(IN)   :: IDCMAX(:) ! IDCMAX(MSC)
+    INTEGER, INTENT(IN)   :: MDC, IPTST
     REAL  , INTENT(IN)    :: SPCSIG(:)  ! SPCSIG(MSC)
     REAL  , INTENT(IN)    :: CG(:,:)    ! CG(MSC,ICMAX)
     REAL  , INTENT(IN)    :: KWAVE(:,:) ! KWAVE(MSC,MICMAX)
@@ -2125,7 +2122,7 @@ end subroutine filsin
     ! Ktheta is like D(theta), except max value at each freq is unity
     REAL                 :: KTHETA(MSC,MDC)
     REAL                 :: ANAR(MSC),SIGDENS(MSC),SQRTBN(MSC),CINV(MSC)
-    REAL                 :: SWDIS(ISSTOP) ! this is S_SWELL / E(f,theta)
+    REAL                 :: SWDIS(WINDOW%ISSTOP) ! this is S_SWELL / E(f,theta)
 
 !   Calculate 1d spectrum E(sigma)
     DO  IS = 1, MSC
@@ -2180,16 +2177,16 @@ end subroutine filsin
 !   This is from WW3v4 and Zieger et al. (2015) eq. 23.
 !   This does *not* include the steepness-dependent B1 that is introduced in
 !   WW3v5 and Zieger et al. (2015) eq. 28.
-    DO IS=1, ISSTOP
+    DO IS=1, WINDOW%ISSTOP
           SWDIS(IS) = 2.0*B1Z*SPCSIG(IS)*SQRTBN(IS)/3.0
     END DO
 
 !   Re: usage of DISCC1(_,_,4): In case of Zieger Sswell,
 !   this should go to tau_wave_to_ocean, not tau_wave_to_atm
 
-    DO IS=1, ISSTOP
+    DO IS=1, WINDOW%ISSTOP
        !         Only fill the values for the current sweep
-       DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+       DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
           ID = MOD(IDDUM - 1 + MDC, MDC) + 1
           IMATDA(ID,IS)   = IMATDA(ID,IS)   + SWDIS(IS)
           DISSC1(ID,IS,4) = DISSC1(ID,IS,4) + SWDIS(IS)

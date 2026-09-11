@@ -2923,7 +2923,7 @@ end subroutine HSOBND
 !                                                                      *
 !****************************************************************
 
-SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX,IGP)
+SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, WINDOW, IGP)
    USE swan_service_interfaces, ONLY: STRACE
 
 !****************************************************************
@@ -2933,6 +2933,8 @@ SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX,IGP)
    USE swan_diagnostics_level
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+
+   TYPE(spectral_window_t) :: WINDOW
 
 
 !   --|-----------------------------------------------------------|--
@@ -2986,7 +2988,6 @@ SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX,IGP)
 !     ISSTOP      maximum frequency counter in this sweep
 
    INTEGER, INTENT(IN) :: IGP
-   INTEGER IDCMIN(MSC), IDCMAX(MSC), ISSTOP
    REAL    AC2(MDC,MSC,MCGRD), AC2OLD(MDC,MSC), ACNRMS(2)
 
 !  6. Local variables
@@ -3021,8 +3022,8 @@ SUBROUTINE SWACC(AC2, AC2OLD, ACNRMS, ISSTOP, IDCMIN, IDCMAX,IGP)
 
    IF (LTRACE) CALL STRACE (IENT,'SWACC')
 
-   DO IS = 1, ISSTOP
-      DO IDDUM = IDCMIN(IS), IDCMAX(IS)
+   DO IS = 1, WINDOW%ISSTOP
+      DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
 
 !           *** determine infinity norms |ac2 - ac2old| and |ac2|

@@ -4,7 +4,7 @@
   "unused-variable": 217,
   "maybe-uninitialized": 135,
   "conversion": 72,
-  "unused-dummy-argument": 67,
+  "unused-dummy-argument": 61,
   "function-elimination": 51,
   "do-subscript": 37,
   "character-truncation": 25,

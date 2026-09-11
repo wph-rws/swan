@@ -4,9 +4,7 @@ module swan_transp_x
    public :: SwanTranspX
 contains
 
-subroutine SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
-                         rdx    , rdy  , obredf, idcmin, idcmax, isslow, &
-                         isstop , trac0, trac1 , kcgrd , coslat, icmax )
+subroutine SwanTranspX (amat, rhs, ac2, ac1, cax, cay, rdx, rdy, obredf, WINDOW, isslow, trac0, trac1, kcgrd, coslat, icmax)
    USE swan_service_interfaces, ONLY: STRACE
 
 !   --|-----------------------------------------------------------|--
@@ -62,15 +60,14 @@ subroutine SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
 
     implicit none(type, external)
 
+   TYPE(spectral_window_t) :: WINDOW
+
 !   Argument variables
 
     integer, intent(in)                         :: isslow ! minimum frequency that is propagated within a sweep
-    integer, intent(in)                         :: isstop ! maximum frequency that is propagated within a sweep
     integer, intent(in)                         :: icmax  ! number of active stencil points
     integer, dimension(icmax), intent(in)       :: kcgrd ! grid addresses of the stencil points
 
-    integer, dimension(MSC), intent(in)         :: idcmax ! maximum frequency-dependent counter in directional space
-    integer, dimension(MSC), intent(in)         :: idcmin ! minimum frequency-dependent counter in directional space
 
     real, dimension(MDC,MSC,nverts), intent(in) :: ac1    ! action density at previous time level
     real, dimension(MDC,MSC,nverts), intent(in) :: ac2    ! action density at current time level
@@ -130,9 +127,9 @@ subroutine SwanTranspX ( amat   , rhs  , ac2   , ac1   , cax   , cay   , &
 
     endif
 
-    do is = isslow, isstop
+    do is = isslow, WINDOW%ISSTOP
 
-       do iddum = idcmin(is), idcmax(is)
+       do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
           id = mod ( iddum - 1 + MDC , MDC ) + 1
 
           ! compute the contributions based on the lowest order upwind scheme
