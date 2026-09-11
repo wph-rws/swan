@@ -274,6 +274,9 @@ subroutine SwanMeshPartition
    use swan_io_units
    use m_parall
    use SwanGriddata
+   use iso_c_binding, only: c_int
+   use swan_metis_interface, only: metis_idx_width, metis_real_width, &
+      metis_set_default_options, metis_part_graph_kway
 
    implicit none(type, external)
    CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
@@ -328,9 +331,7 @@ subroutine SwanMeshPartition
    logical                                         :: found ! true if desired vertex for symmetry check is found
    logical                                         :: symmetric ! true if adjacency vertex matrix is symmetric
 
-   ! function to partition a graph into a number of parts using multilevel k-way partitioning
-   integer(kind=kint), external                    :: METIS_PartGraphKway
-   integer(kind=kint), external                    :: METIS_SetDefaultOptions ! function to set default Metis options
+   integer(c_int)                                  :: metis_status ! C int return code (also with 64-bit indices)
 
 !   Structure
 !
@@ -500,9 +501,20 @@ subroutine SwanMeshPartition
 
    tpwgts = 1./real(np)
 
+   ! ABI check: the argument types follow from metis.h (32/32),
+   ! not from the Fortran kind number. storage_size is in bits.
+   if (storage_size(nv) /= metis_idx_width) &
+      error stop "METIS idx width does not match metis.h"
+   if (storage_size(tpwgts) /= metis_real_width) &
+      error stop "METIS real width does not match metis.h"
+   ! Index range before passing on (linking alone does not prove a matching ABI).
+   if (nv <= 0 .or. nvertsg <= 0 .or. np <= 0) &
+      error stop "METIS partition counts out of range"
+
    ! set the Metis defaults, in particular edge-cut minimization and C-style numbering
 
-   ierr = METIS_SetDefaultOptions (options)
+   metis_status = metis_set_default_options(options)
+   ierr = int(metis_status, kind=kint)
    if ( ierr /= METIS_OK ) then
       if ( ierr == METIS_ERROR_INPUT ) then
          write (msgstr,'(a)') 'function METIS_SetDefaultOptions failed due to erroneous inputs or options'
@@ -519,7 +531,8 @@ subroutine SwanMeshPartition
 
    ! partition the graph and create the ipown array
 
-   ierr = METIS_PartGraphKway (nv, ncon, xadj, adjncy, vwgt, vsize, adjw, np, tpwgts, ubvec, options, edgecut, ipown)
+   metis_status = metis_part_graph_kway(nv, ncon, xadj, adjncy, vwgt, vsize, adjw, np, tpwgts, ubvec, options, edgecut, ipown)
+   ierr = int(metis_status, kind=kint)
 
    if ( ierr /= METIS_OK ) then
       if ( ierr == METIS_ERROR_INPUT ) then

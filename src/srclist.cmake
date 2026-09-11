@@ -70,6 +70,7 @@ ${SRC}/SdsBabanin.f90
 ${SRC}/SwanIEM.f90
 ${SRC}/SwanBraggScat.f90
 ${SRC}/SwanQCM.f90
+${SRC}/swan_metis_interface.f90
 ${SRC}/SwanParallel.f90
 ${SRC}/swanmain.f90
 ${SRC}/swan_library.f90

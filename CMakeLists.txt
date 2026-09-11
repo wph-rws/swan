@@ -269,6 +269,18 @@ if( BUILD_TESTING )
   target_link_libraries( test_swan_library PRIVATE swan${VERSION} )
   add_test( NAME swan_library_contract COMMAND test_swan_library )
 
+  if( METIS )
+    set( SWAN_EXPECTED_METIS_BACKEND 1 )
+  else()
+    set( SWAN_EXPECTED_METIS_BACKEND 0 )
+  endif()
+  add_executable( test_metis_backend tests/test_metis_backend.f90 )
+  target_link_libraries( test_metis_backend PRIVATE swan${VERSION} )
+  add_test(
+    NAME metis_backend
+    COMMAND test_metis_backend ${SWAN_EXPECTED_METIS_BACKEND}
+  )
+
   if( MPI )
     set( SWAN_EXPECTED_MPI_BACKEND 1 )
   else()

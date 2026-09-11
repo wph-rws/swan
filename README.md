@@ -226,8 +226,8 @@ development and validation builds. Leave it disabled for production runs,
 because the checks can alter compiler optimization and reduce performance.
 
 The source is compiled in standard Fortran 2018 mode. Every collector file has
-been split into subsystem modules, so the compiler checks every call except
-the two METIS C calls, which are declared `external`. See
+been split into subsystem modules, so the compiler checks every call; the
+METIS C calls go through an explicit `BIND(C)` interface. See
 [Modern Fortran status](doc/modern-fortran.md) for concrete before/after
 examples and the measured diagnostic improvements.
 

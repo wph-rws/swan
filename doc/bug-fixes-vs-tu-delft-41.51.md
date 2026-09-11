@@ -94,6 +94,7 @@ These items change the code relative to upstream, but no defect was reproduced. 
 
 | ID | Qualification | Defect in the TU Delft base and fix | Evidence |
 |---|---|---|---|
+| BF-06 | **latent/interface** | **The METIS C calls had no explicit interoperable interface and no check on the declared ABI widths.** Upstream declares them as `integer(kind=kint), external :: METIS_PartGraphKway` and relies on `kint` matching `idx_t` from the library. They now go through `ISO_C_BINDING`/`BIND(C)`. When `metis.h` is available at the include location found, CMake checks whether that header declares 32-bit `idx_t` and 32-bit `real_t`; other declared widths stop the configuration. This does not by itself prove that a library found separately was built with exactly that header. | The 32/32 header/library combination actually found, argument passing, index ranges and real partitioning on two ranks have been tested. A 64-bit index library and a deliberately mismatched header/library combination were not available, and are therefore explicitly not qualified. See `src/swan_metis_interface.f90`, `src/SwanParallel.f90` and `tests/test_metis_backend.f90`. |
 
 
 ## Not counted as bug fixes

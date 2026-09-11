@@ -270,6 +270,27 @@ if( NOT TARGET swan${VERSION} )
   if( METIS_FOUND )
     target_include_directories( swan${VERSION} PUBLIC ${Metis_INCLUDE_DIR} )
     target_link_libraries( swan${VERSION} PUBLIC ${Metis_LIBRARIES} )
+    # Check that header and library come from the same installation, and derive
+    # the ABI widths from metis.h, not from the Fortran kind number. Linking
+    # alone does not prove a matching ABI; argument passing and index range are
+    # checked in swan_metis_interface.f90 and SwanParallel.f90.
+    if( EXISTS "${Metis_INCLUDE_DIR}/metis.h" )
+      file( STRINGS "${Metis_INCLUDE_DIR}/metis.h" _metis_idx
+        REGEX "^#define IDXTYPEWIDTH" )
+      file( STRINGS "${Metis_INCLUDE_DIR}/metis.h" _metis_real
+        REGEX "^#define REALTYPEWIDTH" )
+      message( STATUS "METIS header ${Metis_INCLUDE_DIR}/metis.h: ${_metis_idx}; ${_metis_real}" )
+      message( STATUS "METIS library: ${Metis_LIBRARIES}" )
+      if( NOT "${_metis_idx}" MATCHES "32" OR NOT "${_metis_real}" MATCHES "32" )
+        message( FATAL_ERROR
+          "Only 32/32 METIS is currently derived in swan_metis_interface.f90 "
+          "(found: ${_metis_idx}; ${_metis_real}). Derive the interface again for "
+          "64-bit indices and test with both 32-bit and 64-bit libraries; "
+    )
+      endif()
+    else()
+      message( WARNING "metis.h not found under ${Metis_INCLUDE_DIR}; ABI check skipped" )
+    endif()
   endif()
 endif()
 
