@@ -636,6 +636,32 @@ if( BUILD_TESTING )
     )
     set_tests_properties( netcdf_output PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
     add_test(
+      NAME netcdf_mixed_block_output
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/netcdf-mixed
+              --backend netcdf
+              --netcdf-checker $<TARGET_FILE:check_netcdf_output>
+              --expected-center 0.87872
+              --mixed-block
+    )
+    set_tests_properties( netcdf_mixed_block_output PROPERTIES
+      RUN_SERIAL TRUE TIMEOUT 180 )
+    add_test(
+      NAME netcdf_table_output
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/netcdf-table
+              --backend netcdf
+              --netcdf-checker $<TARGET_FILE:check_netcdf_output>
+              --expected-center 0.87872
+              --netcdf-table
+    )
+    set_tests_properties( netcdf_table_output PROPERTIES
+      RUN_SERIAL TRUE TIMEOUT 180 )
+    add_test(
       NAME netcdf_spectrum_output
       COMMAND ${Python3_EXECUTABLE}
               ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py

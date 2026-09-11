@@ -56,6 +56,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME, &
    USE swan_netcdf_output_backend
 
    CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+   CHARACTER(LEN=LENFNM) :: NETCDF_DUMMY
 
 !
 !
@@ -245,7 +246,8 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME, &
       ! reserve free unit number
       IOSTAT = -1
       INQUIRE(FILE=FILENM, EXIST=EXIST)
-      CALL FOR (NREF, TRIM(FILENM)//'.dum', 'UF', IOSTAT)
+      NETCDF_DUMMY = TRIM(FILENM)//'.dum'
+      CALL FOR (NREF, NETCDF_DUMMY, 'UF', IOSTAT)
       IF (STPNOW()) RETURN
       IF (.NOT.EXIST) CLOSE(NREF, STATUS='DELETE')
       OQI(1) = NREF
@@ -1291,6 +1293,7 @@ SUBROUTINE SWTABP_WITH_OQR (RTYPE , OQI  , OQR , IVTYP, PSNAME, MIP, VOQR, &
 !             ='TABC'; NETCDF output
 
    CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+   CHARACTER(LEN=LENFNM) :: NETCDF_DUMMY
    CHARACTER(LEN=4) :: RTYPE
    CHARACTER(LEN=8) :: PSNAME
 
@@ -1399,7 +1402,8 @@ SUBROUTINE SWTABP_WITH_OQR (RTYPE , OQI  , OQR , IVTYP, PSNAME, MIP, VOQR, &
          IOSTAT = -1
          INQUIRE(FILE=FILENM, EXIST=EXIST)
          IF ( RTYPE.EQ.'TABC' ) THEN
-            CALL FOR (NREF, TRIM(FILENM)//'.dum', 'UF', IOSTAT)
+            NETCDF_DUMMY = TRIM(FILENM)//'.dum'
+            CALL FOR (NREF, NETCDF_DUMMY, 'UF', IOSTAT)
          ELSE
             CALL FOR (NREF, FILENM, 'UF', IOSTAT)
          ENDIF
