@@ -2892,8 +2892,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   TEST_OUTPUT%PLICE => SWTSDA(:,:,:,JPICE)
                   TEST_OUTPUT%PLBRAG => SWTSDA(:,:,:,JPBRAG)
                   TEST_OUTPUT%PLTRI => SWTSDA(:,:,:,JPTRI)
-                  TEST_OUTPUT%TESTFL = TESTFL
-                  TEST_OUTPUT%IPTST = IPTST
 
                   SOURCE_BUDGET%DISSC0 => SWMATR(:,:,JDIS0:JDIS0+MDISP-1)
                   SOURCE_BUDGET%DISSC1 => SWMATR(:,:,JDIS1:JDIS1+MDISP-1)
@@ -6986,11 +6984,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !     For now, we only call SSWELL if Babanin physics are in use
                   IF (IWCAP.EQ.8) THEN
                      IF (ZIEGER) THEN
-                        CALL SSWELL_ZIEGER (SPCSIG, KWAVE, AC2, CGO, WINDOW, MDC, SOURCE_BUDGET%dissc1, IMATDA, TEST_OUTPUT%testfl, TEST_OUTPUT%iptst, TEST_OUTPUT%plswel, IGP)
+                        CALL SSWELL_ZIEGER (SPCSIG, KWAVE, AC2, CGO, WINDOW, MDC, SOURCE_BUDGET%dissc1, IMATDA, TESTFL, IPTST, TEST_OUTPUT%plswel, IGP)
                      ELSE IF (ROGERS) THEN
-                        CALL SSWELL_ROGERS (SPCSIG, KWAVE, WINDOW, SOURCE_BUDGET%dissc1, POINT_INTEGRALS%etot, IMATDA, URMSTOP(IGP), GRAV, PWIND(9), MDC, TEST_OUTPUT%testfl, TEST_OUTPUT%iptst, TEST_OUTPUT%plswel, CGO, CDSV, FESWELL)
+                        CALL SSWELL_ROGERS (SPCSIG, KWAVE, WINDOW, SOURCE_BUDGET%dissc1, POINT_INTEGRALS%etot, IMATDA, URMSTOP(IGP), GRAV, PWIND(9), MDC, TESTFL, IPTST, TEST_OUTPUT%plswel, CGO, CDSV, FESWELL)
                      ELSE IF (ARDHUIN) THEN
-                        CALL SSWELL_ARDHUIN (SPCSIG, THETAW, KWAVE, WINDOW, SOURCE_BUDGET%dissc1, POINT_INTEGRALS%etot, IMATDA, SPCDIR, UFRIC, URMSTOP(IGP), GRAV, PWIND(9), TEST_OUTPUT%testfl, TEST_OUTPUT%iptst, TEST_OUTPUT%plswel, MDC, CGO, CDSV)
+                        CALL SSWELL_ARDHUIN (SPCSIG, THETAW, KWAVE, WINDOW, SOURCE_BUDGET%dissc1, POINT_INTEGRALS%etot, IMATDA, SPCDIR, UFRIC, URMSTOP(IGP), GRAV, PWIND(9), TESTFL, IPTST, TEST_OUTPUT%plswel, MDC, CGO, CDSV)
                      ELSE
                         CALL MSGERR(4,' Sswell must be defined! ')
 !           note that CGO is for diagnostic purposes only, may be omitted
@@ -7197,7 +7195,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                            WRITE (PRTEST,*) '+SOURCE: IX, IY, SWPDIR: ',&
                            &IX, IY, SWPDIR
                         ENDIF
-                        IF (TEST_OUTPUT%testfl.AND.ITEST.GE.100) THEN
+                        IF (TESTFL.AND.ITEST.GE.100) THEN
                            DO IS=1, MSC
                               DO ID = 1, MDC
                                  WRITE(PRINTF,"(' SOURCE: IS ID MEMNL(): ',2I6,E12.4)") IS,ID,MEMNL4(ID,IS,IGP)

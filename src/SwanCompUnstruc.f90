@@ -552,8 +552,6 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
     test_output%plice => swtsda(:,:,:,JPICE)
     test_output%plbrag => swtsda(:,:,:,JPBRAG)
     test_output%pltri => swtsda(:,:,:,JPTRI)
-    test_output%testfl = TESTFL
-    test_output%iptst = IPTST
     allocate(  amat(MDC,MSC,5))
     allocate(   rhs(MDC,MSC  ))
     allocate(ac2old(MDC,MSC  ))

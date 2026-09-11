@@ -83,6 +83,14 @@ module swan_source_workspaces
 !  Non-owning views on the source-term test arrays.  They only travel across
 !  the solver-to-SOURCE hop; individual kernels continue to receive exactly
 !  the one output array they used before.
+!
+!  TESTFL and IPTST are deliberately NOT members.  They are upstream
+!  threadprivate state in swan_test_output, updated per point by the solver
+!  after this view is bound, and read directly by every kernel that needs
+!  them.  A copy here would be stale by one point, and eliminating the
+!  globals would mean widening the signature of every leaf kernel that reads
+!  them: they are per point and change inside the loop, while the bundle is
+!  bound once per loop, so a bundled copy would lag behind.
    type :: test_output_t
       real, pointer :: plwnds(:,:,:) => null()
       real, pointer :: plwndd(:,:,:) => null()
@@ -98,8 +106,6 @@ module swan_source_workspaces
       real, pointer :: plice(:,:,:) => null()
       real, pointer :: plbrag(:,:,:) => null()
       real, pointer :: pltri(:,:,:) => null()
-      logical :: testfl
-      integer :: iptst
    end type test_output_t
 
 !  Explicit/implicit source accounting.  SOURCE and QCSOURCE receive the
