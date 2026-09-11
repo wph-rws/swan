@@ -129,7 +129,7 @@ variable, not a field of the context.
 
 In upstream, the eleven values are threadprivate module variables in
 `M_WCAP`. They are written only in `SINTGRL`
-([swancom1.f90:5174-5737](../src/swancom1.f90#L5214-L5736)); only four files
+([swancom1.f90:5174-5737](../src/swancom1.f90#L5214-L5737)); only four files
 import the module, and no scalar is in COPYIN.
 
 | Symbol | Default on entry | Write condition | Cat. | Invariant |
@@ -153,7 +153,7 @@ workspace. `begin_point` sets only the four entry defaults to 10, as
 upstream `SINTGRL` does; the seven category-5 values are deliberately left alone.
 
 **The category-5 finding.** When `ETOT <= 0.`, `SINTGRL` does not write seven
-of the eleven, while [line 5730](../src/swancom1.f90#L5785) executes
+of the eleven, while [line 5730](../src/swancom1.f90#L5786) executes
 `AC2TOT = ACTOT` unconditionally. The thread then carries over the value from
 the previous point it handled. Upstream behaves the same way.
 

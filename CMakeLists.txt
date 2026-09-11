@@ -550,6 +550,13 @@ if( BUILD_TESTING )
             ${CMAKE_SOURCE_DIR}/tests/test_input_validation.py -q
   )
 
+  add_test(
+    NAME breaking_off
+    COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
+            ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_breaking_off.py -q
+  )
+
   # The ADCIRC grid reader (fort.14) is always built; the ADCIRC option does
   # not change that. No other case reads such a grid.
   add_test(
