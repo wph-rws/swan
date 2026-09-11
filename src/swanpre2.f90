@@ -3822,6 +3822,24 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                      '0 or larger than 360 degrees, and no '// &
                      'exception value')
                END IF
+!              The narrowness guard of the POWER branch below, for a spread
+!              given in degrees. SSHAPE samples a beam narrower than half a
+!              directional bin badly. Measured on 15 degree bins, where a wide
+!              beam gives Hs 0.964 on the boundary: with dd=2 the boundary
+!              gets Hs 0.068 when the direction lies between two bins and
+!              1.670 when it lies on a bin centre; from dd=7.5 on both are
+!              within 1%. The guard behaves like the POWER one: a level 2
+!              error, so a run with the default [maxerr] does not start, and
+!              the LSPNAR latch, which gives the message once and, if the
+!              run does go on, switches rescaling off and makes the scheme
+!              in direction first-order upwind (SWANMAIN).
+               IF (.NOT.LSPNAR .AND. DDIR.GT.0. .AND. SPPARM(4).GT.0. &
+                  .AND. DDIR .GT. 2.*SPPARM(4)*DEGRAD) THEN
+                  CALL MSGERR (2, &
+                     'directional spreading too narrow to be represented properly')
+                  WRITE (PRINTF, "(' Advise: choose spreading > ', F8.3, ' degr')") 0.5*DDIR/DEGRAD
+                  LSPNAR = .TRUE.
+               END IF
             ELSE
                CALL INREAL ('DD',  SPPARM(4), 'STA', 2.)
                IF (SPPARM(4).LE. 0.) THEN
@@ -3972,6 +3990,15 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                         CALL MSGERR (2,'Directional spreading is less ' // &
                            'than 0 or larger than 360 '// &
                            'degrees and no exception value')
+                     END IF
+!                    The same narrowness guard as in the CONSTANT branch
+!                    above: same criterion, level and LSPNAR latch.
+                     IF (.NOT.LSPNAR .AND. DDIR.GT.0. .AND. SPPARM(4).GT.0. &
+                        .AND. DDIR .GT. 2.*SPPARM(4)*DEGRAD) THEN
+                        CALL MSGERR (2, &
+                           'directional spreading too narrow to be represented properly')
+                        WRITE (PRINTF, "(' Advise: choose spreading > ', F8.3, ' degr')") 0.5*DDIR/DEGRAD
+                        LSPNAR = .TRUE.
                      END IF
                   ELSE
                      CALL INREAL ('DD',  SPPARM(4), 'STA', 2.)
