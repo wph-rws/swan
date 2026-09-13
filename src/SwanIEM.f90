@@ -743,7 +743,7 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
    use swan_physics_selection, only: PWIND, PSURF
    use swan_physical_settings, only: DEPMIN, GRAV
    use swan_computational_grid, only: DX, MXC, MYC, MCGRD
-   use swan_spectral_grid, only: DDIR, FRINTF, MDC, MSC
+   use swan_spectral_grid, only: DDIR, FRINTF, FULCIR, MDC, MSC
    use swan_math_constants, only: PI
    use swan_math_constants
 
@@ -779,6 +779,8 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
    integer              :: iy ! loop counter in y-direction
    integer              :: j ! loop counter
    integer              :: jdl ! infragravity direction index
+   integer              :: jdu ! next infragravity direction index
+   integer              :: jlast ! last first component of a wave pair
    integer              :: jfl ! infragravity frequency index
    integer              :: k ! loop counter
 
@@ -956,7 +958,11 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
 
    ! compute all bichromatic combinations
 
-   floop: do j = 1, nif - iss(nff)
+   ! without any energetic component iss is empty and there is no pair
+   jlast = 0
+   if ( nff > 0 ) jlast = nif - iss(nff)
+
+   floop: do j = 1, jlast
 
       ! get first short wave component
 
@@ -993,6 +999,14 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
 
                ! first grid point (at west boundary)
                indf = KGRPNT(1,iy)
+
+               ! IEM takes the west boundary as the offshore boundary: the
+               ! reference phase velocities (Snel's law), the boundary
+               ! condition and the alongshore wave number all come from its
+               ! first grid point. A row whose first point is dry or inactive
+               ! has none of these, so it is skipped here and in the two row
+               ! loops below; finite differences only run along the row
+               if ( .not. west_point_is_wet(indf) ) cycle
 
                do ix = 1, MXC
 
@@ -1100,6 +1114,7 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
 
                ! first grid point (at west boundary)
                indf = KGRPNT(1,iy)
+               if ( .not. west_point_is_wet(indf) ) cycle
 
                ! specify boundary conditions meant for energy flux balance (eqs. 17-19)
 
@@ -1203,6 +1218,7 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
 
                ! first grid point (at west boundary)
                indf = KGRPNT(1,iy)
+               if ( .not. west_point_is_wet(indf) ) cycle
 
                ! compute bound infragravity variance (eq. 29)
 
@@ -1213,10 +1229,27 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
 
                   ! find appropriate direction index for storage at each cross-shore location
 
-                  idth = ( thetab(ind) - hdth ) / dth
+                  ! On a full circle the first direction lies half a bin
+                  ! above the grid's x-axis, as the upstream index assumes;
+                  ! keep its arithmetic there, so that the result rounds as
+                  ! in upstream. A sector starts at its own first direction
+                  ! SPCDIR(1,1), so measure the angle from there. Keep the
+                  ! lower neighbour outside a sector outside; only a full
+                  ! circle wraps at either end.
+                  if ( FULCIR ) then
+                     idth = ( thetab(ind) - hdth ) / dth
+                  else
+                     idth = (modulo(thetab(ind)-spcdir(1,1)+hdth, PI2)-hdth) / dth
+                  endif
 
                   jdl = floor(idth) + 1
-                  if ( jdl < 1 ) jdl = jdl + MDC
+                  if ( FULCIR ) jdl = modulo(jdl-1, MDC) + 1
+
+                  ! the upper neighbour wraps around on a full circle; written
+                  ! unwrapped as jdl+1 it fell outside the directional range
+                  ! and landed in the first direction of the next frequency
+                  jdu = jdl + 1
+                  if ( FULCIR .and. jdu > MDC ) jdu = jdu - MDC
 
                   ! compute fraction of actual directional bin to appropriately assign amount of bound energy in directional space
 
@@ -1224,8 +1257,10 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
 
                   if ( ind > 1 .and. deploc > DEPMIN ) then
 
-                     Ebig(jdl  ,jfl,ind) = Ebig(jdl  ,jfl,ind) + max( (1.-fdb) * 0.5 * abs(Z(ind))**2, 0. )
-                     Ebig(jdl+1,jfl,ind) = Ebig(jdl+1,jfl,ind) + max(     fdb  * 0.5 * abs(Z(ind))**2, 0. )
+                     if ( jdl >= 1 .and. jdl <= MDC ) Ebig(jdl,jfl,ind) = Ebig(jdl,jfl, &
+                           ind) + max( (1.-fdb) * 0.5 * abs(Z(ind))**2, 0. )
+                     if ( jdu >= 1 .and. jdu <= MDC ) Ebig(jdu,jfl,ind) = Ebig(jdu,jfl, &
+                           ind) + max(     fdb  * 0.5 * abs(Z(ind))**2, 0. )
 
                   endif
 
@@ -1251,6 +1286,14 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
    deallocate(thetab)
    deallocate(Ut    )
    deallocate(Z     )
+
+contains
+
+logical function west_point_is_wet ( indf )
+   integer, intent(in) :: indf
+   west_point_is_wet = indf > 1
+   if ( west_point_is_wet ) west_point_is_wet = DEP2(indf) > DEPMIN
+end function west_point_is_wet
 
 end subroutine SwanIEMsrfbeat
 

@@ -402,6 +402,10 @@ if( BUILD_TESTING )
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/two_cases )
   file( MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/two_cases )
 
+  add_executable( test_surfbeat_sector tests/test_surfbeat_sector.f90 )
+  target_link_libraries( test_surfbeat_sector PRIVATE swan${VERSION} )
+  add_test( NAME surfbeat_sector COMMAND test_surfbeat_sector )
+
   # Runs SWMAIN three times in one process with alternating physics (GEN3
   # KOMEN, 41.51 default, KOMEN again). Needs a directory of its own because
   # the runs write INPUT, PRINT and the result table in the working directory.
@@ -574,6 +578,13 @@ if( BUILD_TESTING )
     COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
             ${Python3_EXECUTABLE} -m pytest
             ${CMAKE_SOURCE_DIR}/tests/test_adcirc_grid.py -q
+  )
+
+  add_test(
+    NAME surfbeat
+    COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
+            ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_surfbeat.py -q
   )
 
   add_test(
