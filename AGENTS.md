@@ -88,3 +88,27 @@ Dit geldt ook voor een optie die standaard uitstaat: het uitgeschakelde pad moet
 aantoonbaar gratis zijn, en dat is juist multicore niet vanzelfsprekend. Eén
 onvoorwaardelijke atomaire teller in de roosterpuntlus kost serieel weinig en
 multicore een contentiepunt.
+
+## Convergentie: "geconvergeerd" is niet hetzelfde als "stopte met veranderen"
+
+Het stationaire stopcriterium van SWAN meet uitsluitend de *verandering* van Hs
+en Tm tussen iteraties. Onderrelaxatie — de `[alfa]` van false time stepping —
+maakt die verandering kleiner, en dat is precies waar hij voor dient. De test
+kan die twee oorzaken niet uit elkaar houden, en er is geen residu om het aan te
+toetsen. SWAN's enige beveiliging is één iteratie breed: het criterium mag niet
+op de eerste iteratie afgaan.
+
+Dat is hier geen randgeval: het overgrote deel van de decks in deze repo zet
+`ALFA`. Gemeten op `examples/nonlinear_interactions/quad/quad_dia1`: bij
+`ALFA=0.01` convergeert de som in 40 iteraties, bij `ALFA=0.05` en `0.10` stopt
+hij na twee iteraties met de melding "accuracy OK in 100.00 %" terwijl Hs op
+25 km dan 1,278 m is in plaats van de 1,405 m van de geconvergeerde run.
+
+Zolang er geen balansresidu is, is vergelijken de enige betrouwbare controle.
+`so-rp_swan/matrix/convergence_check.py` doet dat per conditie: eerst de eigen
+numeriek van het deck, dan een referentie met zwakkere onderrelaxatie en een
+ruimere iteratielimiet, en daarna een oordeel — `converged`, `premature`,
+`not-converged` of `inconclusive`. Draai hem bij elke wijziging die aan de
+numeriek, de brontermen of de deckinstellingen raakt, en neem `inconclusive`
+serieus: dat betekent dat ook de referentie niet convergeerde en er dus niets
+is om op te steunen.
