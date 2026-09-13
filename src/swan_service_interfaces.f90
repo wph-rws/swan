@@ -616,8 +616,28 @@ PURE LOGICAL FUNCTION EQREAL (REAL1, REAL2 )
 !
 !  3. Method (updated...)
 !
-!     Checks whether ABS(REAL1-REAL2) .LE. TINY(REAL1) or whether this
-!     difference is .LE. then EPS (= EPSILON(REAL1)*ABS(REAL1-REAL2) )
+!     Returns true when ABS(REAL1-REAL2) .LE. TINY(REAL1), that is, on bit
+!     equality and on differences down in the denormal range.
+!
+!     Read the second test literally before changing it: EPS is
+!     EPSILON(REAL1)*ABS(REAL1-REAL2), so "ABS(REAL1-REAL2) .LT. EPS" asks
+!     whether a number is smaller than itself times 1.2E-7. For every
+!     non-zero difference it is false, so the test contributes nothing and
+!     this function is an exact comparison, not a tolerant one.
+!
+!     That is not a defect to be repaired by substituting a relative
+!     tolerance such as EPSILON*MAX(ABS(REAL1),ABS(REAL2)). Of the call
+!     sites, most compare a field value against an exception value
+!     (OVEXCV, excval, excfld) and must match it exactly -- a tolerance
+!     there would classify a legitimate depth next to the sentinel as
+!     missing data. A further group compares against a literal zero, where
+!     a relative tolerance is degenerate in the same way this expression is.
+!     A site that genuinely needs a tolerance -- SwanCrossObstacle divides
+!     by the determinant it tests here -- needs an absolute one chosen for
+!     that geometry, stated at that site.
+!
+!     So the comment is corrected rather than the arithmetic. See
+!     doc/bugfixes-tov-tu-delft-41.51.md.
 !
 !  4. Argument variables
 !

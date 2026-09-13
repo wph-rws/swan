@@ -3244,9 +3244,18 @@ CALL NWLINE
          DO WHILE (MORE)
             CALL INREAL('LAMBDA',RLAMBDA(ILAMBDA+1),'STA',-1.)
             IF (RLAMBDA(ILAMBDA+1).LT.0.) THEN
+!              A negative value is the end-of-list sentinel, not a value.
                MORE = .FALSE.
             ELSE
+               CALL CHECK_QUADRUPLET_LAMBDA (RLAMBDA(ILAMBDA+1))
                ILAMBDA = ILAMBDA + 1
+!              RLAMBDA is a fixed scratch list; stop at its last slot rather
+!              than write past it when a deck offers more values than fit.
+               IF (ILAMBDA.GE.SIZE(RLAMBDA)) THEN
+                  CALL MSGERR (4,&
+                  &'MDIA LAMBDA accepts at most 999 [lambda] values')
+                  MORE = .FALSE.
+               ENDIF
             ENDIF
          ENDDO
          SNL4%quadruplet_count = ILAMBDA
@@ -3389,6 +3398,12 @@ CALL NWLINE
       CALL INREAL ('CSH1', PQUAD(3), 'UNC', 0.0)
       CALL INREAL ('CSH2', PQUAD(4), 'UNC', 0.0)
       CALL INREAL ('CSH3', PQUAD(5), 'UNC', 0.0)
+!     The command takes bare integers, so nothing but this check separates a
+!     formulation from a typo. Without it QUADRUPLET 6 runs to completion with
+!     the quadruplet bookkeeping switched on and no source term computed.
+      IF (ALL(IQUAD_VALUES.NE.IQUAD)) CALL MSGERR (4,&
+      &'QUADRUPLET [iquad] must be 0, 1, 2, 3, 4, 8, 51, 52 or 53')
+      CALL CHECK_QUADRUPLET_LAMBDA (PQUAD(1))
       CYCLE command_loop
    ENDIF
 
@@ -3505,11 +3520,20 @@ CALL NWLINE
          ELSEIF (ITRIAD.EQ.5) THEN
             CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 4.4 )
             CALL INREAL ('P'    , PTRIAD(2), 'STA', 4./3.)
-         ELSEIF (ITRIAD.EQ.11) THEN
+         ELSEIF (ITRIAD.EQ.ITRIAD_LTA_ORIGINAL) THEN
 !            original LTA (before version 41.01)
             CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 0.05)
             CALL INREAL ('CUTFR', PTRIAD(2), 'STA', 2.5)
             PTRIAD(8) = 0.
+         ELSE
+!           No ELSE existed here. TRIAD 4 therefore parsed, printed itself in
+!           the run header and switched on the Ursell and biphase bookkeeping
+!           through the ITRIAD .GT. 0 gate, while the dispatcher in SWCOMP --
+!           which knows only 1, 11, 2, 3 and 5 -- computed no triad source
+!           term at all. A silently ignored formulation is worse than a
+!           rejected one: the run looks like it did what the deck asked.
+            CALL MSGERR (4,&
+            &'TRIAD [itriad] must be 0, 1, 2, 3, 5 or 11')
          ENDIF
          CALL INREAL ('URCRIT', PTRIAD(4) , 'STA', 0.63)
          CALL INREAL ('URSLIM', PTRIAD(5) , 'STA', 0.1 )
@@ -3786,6 +3810,21 @@ CALL NWLINE
    END ASSOCIATE
 
 CONTAINS
+
+!  FAC4WW builds the DIA interaction grid from lambda directly: it divides by
+!  (1-lambda)**4 and takes LOG(1-lambda) to locate the shifted spectral bins.
+!  At lambda = 1 that is a division by zero followed by ACOS of an infinity,
+!  so INT() of a NaN sets the allocation bounds of the interaction arrays;
+!  above 1 the logarithm of a negative number does the same through a NaN.
+!  Neither is diagnosed anywhere downstream, so the check belongs here, where
+!  the value enters the model.
+   SUBROUTINE CHECK_QUADRUPLET_LAMBDA (LAMBDA)
+      REAL, INTENT(IN) :: LAMBDA
+
+      IF (LAMBDA.GT.0. .AND. LAMBDA.LT.1.) RETURN
+      CALL MSGERR (4,&
+      &'quadruplet [lambda] must lie strictly between 0 and 1')
+   END SUBROUTINE CHECK_QUADRUPLET_LAMBDA
 
    LOGICAL FUNCTION bottom_read_failed(status)
       INTEGER, INTENT(IN) :: status
@@ -4533,7 +4572,14 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
          ALOCMP = .TRUE.
       ENDIF
    ELSE
+!     No branch matched, so IGR1 names no field and every IFLxxx(IGR1) below
+!     would index the tables at whatever the uninitialised local happens to
+!     hold -- a read out of bounds, and a write as soon as the deck also
+!     supplies [fac]. WRNKEY already raises the error level past the point
+!     where a computation can start, so the only thing left to do is leave
+!     before using the index.
       CALL  WRNKEY
+      RETURN
    ENDIF
 
 !     read multiplication factor

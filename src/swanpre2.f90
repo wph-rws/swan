@@ -4614,7 +4614,13 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
       ENDIF
       IF (ITEST.GE.60) WRITE (PRTEST,"(I6, ' quantities')") NQUANT
    ELSE
+!     The header was not recognised, so none of the counts and options that
+!     describe the file were read. Continuing would allocate BSPLOC with an
+!     uninitialised NBOUNC and fill BFILED from uninitialised locals, which
+!     the boundary reader later trusts. MSGERR already rules out a
+!     computation; leave before building a descriptor out of nothing.
       CALL MSGERR (3, 'unsupported boundary data file')
+      RETURN
    ENDIF
 
    ALLOCATE(BSPFIL%BSPLOC(NBOUNC))

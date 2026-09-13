@@ -465,6 +465,10 @@ if( BUILD_TESTING )
   target_link_libraries( test_physics_kernels PRIVATE swan${VERSION} )
   add_test( NAME physics_kernels COMMAND test_physics_kernels )
 
+  add_executable( test_breaker_index tests/test_breaker_index.f90 )
+  target_link_libraries( test_breaker_index PRIVATE swan${VERSION} )
+  add_test( NAME breaker_index COMMAND test_breaker_index )
+
   # The context migration is designed around the thread-private state inventory,
   # so an undocumented THREADPRIVATE symbol has to fail a build rather than
   # silently invalidate the ownership design.
@@ -567,6 +571,14 @@ if( BUILD_TESTING )
             ${CMAKE_SOURCE_DIR}/tests/test_lifetime_fault.py -q
   )
   set_tests_properties( lifetime_fault PROPERTIES
+    ENVIRONMENT "SWAN_EXECUTABLE=$<TARGET_FILE:${EXE}>" )
+
+  add_test(
+    NAME input_validation
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_input_validation.py -q
+  )
+  set_tests_properties( input_validation PROPERTIES
     ENVIRONMENT "SWAN_EXECUTABLE=$<TARGET_FILE:${EXE}>" )
 
   add_test(

@@ -5771,11 +5771,27 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN, IGP,&
    JK = MINLOC(POFF, MASK=POFF.GT.0.)
 
 !     --- compute interpolation factors
+!
+!         The bounds are tested inclusively. MINLOC returns 0 for an all-false
+!         mask, so a value sitting exactly on the last table node -- SOFF and
+!         POFF are then nowhere strictly positive -- left IK(1) or JK(1) at
+!         zero and the interpolation below indexed NDSLP(-1) and PLBIP(-1,.).
+!         Exclusive tests let that value through: it is neither strictly
+!         below the first node nor strictly above the last one. The inclusive
+!         form changes no interpolated value, because the clamped weights are
+!         exactly the ones the general expression yields on a node, and it
+!         leaves the ELSE branch with NDSLP(1) < DDDS < NDSLP(IDIM), where the
+!         mask provably has a true element and IK(1) is at least 2.
+!
+!         The lower test is dead as it stands -- DDDS is an absolute value and
+!         NDSLP(1) is zero -- but it is kept symmetric with the upper one
+!         rather than removed, since the table is data and may gain a negative
+!         first node.
 
-   IF ( DDDS.LT.NDSLP(1) ) THEN
+   IF ( DDDS.LE.NDSLP(1) ) THEN
       IK(1) = 2
       WI2   = 0.
-   ELSE IF ( DDDS.GT.NDSLP(IDIM) ) THEN
+   ELSE IF ( DDDS.GE.NDSLP(IDIM) ) THEN
       IK(1) = IDIM
       WI2   = 1.
    ELSE
@@ -5783,10 +5799,10 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN, IGP,&
    ENDIF
    WI1 = 1. - WI2
 
-   IF ( TP.LT.NDPER(1) ) THEN
+   IF ( TP.LE.NDPER(1) ) THEN
       JK(1) = 2
       WJ2   = 0.
-   ELSE IF ( TP.GT.NDPER(JDIM) ) THEN
+   ELSE IF ( TP.GE.NDPER(JDIM) ) THEN
       JK(1) = JDIM
       WJ2   = 1.
    ELSE

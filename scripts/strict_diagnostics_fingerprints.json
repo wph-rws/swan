@@ -1396,12 +1396,6 @@
   [
    "maybe-uninitialized",
    "swanpre1.f90",
-   "‘igr1’ may be used uninitialized",
-   1
-  ],
-  [
-   "maybe-uninitialized",
-   "swanpre1.f90",
    "‘jxmax’ may be used uninitialized",
    1
   ],
@@ -1474,12 +1468,6 @@
   [
    "maybe-uninitialized",
    "swanpre2.f90",
-   "‘istatf’ may be used uninitialized",
-   1
-  ],
-  [
-   "maybe-uninitialized",
-   "swanpre2.f90",
    "‘ix1’ may be used uninitialized",
    1
   ],
@@ -1516,25 +1504,7 @@
   [
    "maybe-uninitialized",
    "swanpre2.f90",
-   "‘nbounc’ may be used uninitialized",
-   1
-  ],
-  [
-   "maybe-uninitialized",
-   "swanpre2.f90",
    "‘nbspss’ may be used uninitialized",
-   1
-  ],
-  [
-   "maybe-uninitialized",
-   "swanpre2.f90",
-   "‘nhedf’ may be used uninitialized",
-   1
-  ],
-  [
-   "maybe-uninitialized",
-   "swanpre2.f90",
-   "‘nhedt’ may be used uninitialized",
    1
   ],
   [

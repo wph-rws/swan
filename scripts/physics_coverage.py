@@ -67,10 +67,25 @@ INVENTORY: dict[str, tuple[Formulation, ...]] = {
         Formulation("IQUAD_DIA_WAM", COVERED, r"^\s*QUAD\w*\s+2\b"),
         Formulation("IQUAD_EXACT", COVERED, r"^\s*QUAD\w*\s+3\b"),
         Formulation("IQUAD_MDIA", COVERED, r"^\s*QUAD\w*\s+4\b"),
+        Formulation("IQUAD_FULL", COVERED, r"^\s*QUAD\w*\s+8\b"),
+        # 51, 52 and 53 are three different transfer routines inside the XNL
+        # suite, not three spellings of one; SWINTFXNL subtracts 50 and
+        # dispatches on the remainder.
+        Formulation("IQUAD_XNL_DEEP", COVERED, r"^\s*QUAD\w*\s+51\b"),
+        Formulation("IQUAD_XNL_DEEP_WAM", COVERED, r"^\s*QUAD\w*\s+52\b"),
+        Formulation("IQUAD_XNL_FINITE", COVERED, r"^\s*QUAD\w*\s+53\b"),
     ),
     "ITRIAD": (
         Formulation("ITRIAD_OFF", DEFAULT, absent=r"^\s*TRIAD"),
-        Formulation("ITRIAD_LTA", COVERED, r"^\s*TRIAD.*\b(LTA|ITRIAD\s*=\s*1?1)\b"),
+        Formulation("ITRIAD_LTA", COVERED, r"^\s*TRIAD.*\bLTA\b"),
+        # ITRIAD = 11 is the pre-41.01 LTA and reaches its own arms of SWLTA
+        # (FT = 0, group velocity from the local spectrum). One pattern for
+        # both spellings reported it as covered while no deck selected it.
+        Formulation(
+            "ITRIAD_LTA_ORIGINAL",
+            COVERED,
+            r"^\s*TRIAD.*\bITRIAD\s*=\s*11\b",
+        ),
         Formulation("ITRIAD_FTIM", COVERED, r"^\s*TRIAD.*\bFTIM\b"),
         Formulation("ITRIAD_DCTA", COVERED, r"^\s*TRIAD.*\bDCTA\b"),
         Formulation(

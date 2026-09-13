@@ -1,8 +1,10 @@
 $ Shallow-water propagation over a submerged bar with LTA triads
 $
-$ LTA is the formulation the operational so-rp suite selects (TRIAD ITRIAD=11),
-$ but before this deck no case under examples/ used it, so the bounds-checked
-$ CI build never reached SWLTA.
+$ This is TRIAD LTA, which the parser maps to ITRIAD = 1. The operational so-rp
+$ suite selects the older generation instead, TRIAD ITRIAD=11; that is a
+$ different formulation, not a different spelling, and it has its own deck in
+$ triad_lta11.swn. Before these two decks no case under examples/ used either,
+$ so the bounds-checked CI build never reached SWLTA.
 PROJECT 'TRIADLTA' '001'
 SET CARTESIAN
 MODE STATIONARY ONEDIMENSIONAL
