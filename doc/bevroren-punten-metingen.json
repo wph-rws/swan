@@ -1,0 +1,216 @@
+{
+  "datum_utc": "2026-09-13",
+  "basis": "be74d94",
+  "vraag": "Waar zit de grootste onbenutte besparing in een stationaire SWAN-run?",
+  "waarneming": {
+    "deck": "examples/voordelta (131x141, 36 richtingen, 25 frequenties, 9072 natte uitvoerpunten)",
+    "convergentie_per_iteratie_pct": [
+      9.3,
+      13.16,
+      32.1,
+      46.38,
+      50.15,
+      62.81,
+      72.76,
+      78.8,
+      86.26,
+      89.56,
+      92.06,
+      93.92,
+      94.82,
+      95.44,
+      95.76,
+      95.99,
+      96.22,
+      96.65,
+      97.22,
+      97.66,
+      98.27,
+      98.92,
+      99.45,
+      99.8
+    ],
+    "gemiddeld_al_geconvergeerd_pct": 78.9,
+    "duiding": "SWAN herberekent brontermen en lokale solve voor elk nat punt, elke sweep, ook als het punt al aan het stopcriterium voldoet."
+  },
+  "profiel_op_deze_basis": {
+    "swsnl2": 34.58,
+    "solmat": 9.97,
+    "source": 9.14,
+    "sordup": 6.8,
+    "sintgrl": 5.84,
+    "strsd": 5.17,
+    "swpsel": 4.67,
+    "setupp": 3.3,
+    "sproxy": 3.21,
+    "sweep_window_covers_active_bins": 2.42,
+    "rescale": 2.21,
+    "philim": 1.96,
+    "opmerking": "gprof, -pg -g; SOURCE daalde van 22,31% naar 9,14% door de sectorgebonden nulstelling (ce4403d)"
+  },
+  "ingreep": "Sla SWOMPU over voor een punt zolang het punt en zijn vier buren minder dan FREEZE_TOL veranderden in de vorige iteratie. De buurvoorwaarde is essentieel: zonder die zou een overgeslagen punt voor altijd bevroren blijven, omdat de convergentietoets dan zijn eigen stilstand meet.",
+  "metingen_standaard_stopcriteria": [
+    {
+      "tol": null,
+      "seconden": 29.77,
+      "versnelling": 1.0,
+      "iteraties": 24,
+      "eind_acc_pct": 99.8
+    },
+    {
+      "tol": 0.0002,
+      "seconden": 29.16,
+      "versnelling": 1.02,
+      "iteraties": 24,
+      "eind_acc_pct": 99.8,
+      "hs_rmse_mm": 2.667,
+      "hs_max_mm": 13.0
+    },
+    {
+      "tol": 0.0005,
+      "seconden": 28.4,
+      "versnelling": 1.05,
+      "iteraties": 24,
+      "eind_acc_pct": 99.8,
+      "hs_rmse_mm": 2.909,
+      "hs_max_mm": 14.0
+    },
+    {
+      "tol": 0.001,
+      "seconden": 24.62,
+      "versnelling": 1.21,
+      "iteraties": 24,
+      "eind_acc_pct": 99.8,
+      "hs_rmse_mm": 3.671,
+      "hs_max_mm": 18.0
+    },
+    {
+      "tol": 0.002,
+      "seconden": 18.12,
+      "versnelling": 1.64,
+      "iteraties": 24,
+      "eind_acc_pct": 99.78,
+      "hs_rmse_mm": 5.718,
+      "hs_max_mm": 33.9
+    },
+    {
+      "tol": 0.005,
+      "seconden": 12.43,
+      "versnelling": 2.4,
+      "iteraties": 24,
+      "hs_rmse_mm": 11.508,
+      "hs_max_mm": 63.2
+    },
+    {
+      "tol": 0.01,
+      "seconden": 10.06,
+      "versnelling": 2.96,
+      "iteraties": 24,
+      "hs_rmse_mm": 25.272,
+      "hs_max_mm": 191.6
+    }
+  ],
+  "metingen_strenge_stopcriteria": {
+    "instelling": "DABS=0.001 DREL=0.005 CURVAT=0.005 NPNTS=99.5 MXITST=120",
+    "basis": {
+      "seconden": 138.54,
+      "iteraties": 119,
+      "acc_pct": 95.56
+    },
+    "tol_0.0005": {
+      "seconden": 131.69,
+      "iteraties": 119,
+      "acc_pct": 98.56
+    },
+    "opmerking": "Geen van beide haalt het criterium binnen 120 iteraties; de bevroren variant komt wel verder (98,56% tegen 95,56%)."
+  },
+  "vergelijking_tegen_beste_referentie_mm": {
+    "referentie": "tt_base, 119 iteraties, zelf nog niet geconvergeerd (95,56%)",
+    "standaard_basis_vs_referentie": {
+      "rmse": 4.71,
+      "max": 36.5
+    },
+    "bevriezen_0.002_vs_referentie": {
+      "rmse": 7.27,
+      "max": 42.3
+    },
+    "bevriezen_0.005_vs_referentie": {
+      "rmse": 13.07,
+      "max": 76.6
+    },
+    "streng_bevriezen_0.0005_vs_streng_basis": {
+      "rmse": 3.64,
+      "max": 24.0
+    }
+  },
+  "conclusie": "Bij tol=0,002 is de run 1,64x sneller en is de afwijking ten opzichte van de best beschikbare referentie (7,27 mm RMSE) van dezelfde orde als de onzekerheid die SWAN bij zijn eigen standaard stopcriterium al accepteert (4,71 mm). De ingreep is uitdrukkelijk niet bit-identiek en is daarom een voorstel, geen geleverde optimalisatie.",
+  "openstaand": [
+    "Alleen op het reguliere Voordelta-demonstratiedeck gemeten; de operationele so-rp-conditie en de ongestructureerde route zijn niet beproefd.",
+    "OpenMP en MPI zijn niet beproefd; het masker is gedeelde toestand en de lockpublicatie blijft staan, maar dat is niet geverifieerd.",
+    "De referentie van 119 iteraties is zelf niet geconvergeerd, dus alle afwijkingen zijn tegen een betere, niet tegen een exacte oplossing.",
+    "Geen poort gedraaid: dit is een proefpatch, niet in de bron."
+  ],
+  "multicore": {
+    "opzet": "examples/voordelta, OpenMP-bouw, OMP_PROC_BIND=close, OMP_PLACES=cores, OMP_WAIT_POLICY=PASSIVE, gepind op kernen 8..8+n-1, beste van twee herhalingen. Een single-threaded proces van een andere sessie draaide elders op de machine.",
+    "bytegelijkheid": "Bij 1, 2, 4 en 8 threads is de uitvoer identiek: uit 5be8866878be656d, aan (tol=0,002) a4c3ce1e5b98e8b1. Beide ook gelijk aan hun seriele tegenhanger. Het determinismecontract over threadaantallen blijft dus intact.",
+    "tijden_seconden": {
+      "1": {
+        "uit": 28.41,
+        "aan": 17.74,
+        "winst": 1.6
+      },
+      "2": {
+        "uit": 15.83,
+        "aan": 9.93,
+        "winst": 1.59
+      },
+      "4": {
+        "uit": 10.38,
+        "aan": 6.77,
+        "winst": 1.53
+      },
+      "8": {
+        "uit": 8.96,
+        "aan": 6.59,
+        "winst": 1.36
+      }
+    },
+    "parallelle_schaling": {
+      "uit_8_threads": 3.17,
+      "aan_8_threads": 2.69
+    },
+    "bevinding": "De winst loopt terug van 1,60x serieel naar 1,36x op acht threads, en de parallelle schaling wordt slechter (2,69x tegen 3,17x). Oorzaak: een overgeslagen punt wacht nog steeds op het lock van zijn bovenstroomse rij en publiceert zijn eigen lock. Het overslaan haalt rekenwerk weg maar niet de wavefront-synchronisatie, dus naarmate meer threads meedoen wordt die synchronisatie bepalend en helpt minder rekenwerk steeds minder.",
+    "gevolg": "Een seriele meting overschat wat een gebruiker overhoudt. SWAN draait vrijwel altijd multicore; de 1,60x uit de seriele tabel is daarom niet de te verwachten winst."
+  },
+  "operationele_case": {
+    "deck": "so-rp_swan/runs/current, curvilinear 248x577, wind 20 m/s uit 310 graden, NAP +3,00 m, met obstakels en LIMITER=0,1",
+    "stock_seriele_run": {
+      "seconden": 445.09,
+      "iteraties": 20,
+      "eind_acc_pct": 67.64,
+      "hash": "a700b21f2528fae8"
+    },
+    "uitgeschakeld_bytegelijk": "ja, hash a700b21f2528fae8 gelijk aan de ongepatchte binary",
+    "waarschuwing": "Deze case convergeert niet: hij loopt tegen MXITST=20 met 67,64% van de punten binnen tolerantie terwijl 98% wordt gevraagd. De bevriezingswinst hangt af van de fractie punten die al stilstaat, en die is hier veel kleiner dan op het Voordelta-deck (dat 99,8% haalt). De operationele case is dus juist de ongunstigste voor deze ingreep; de winst daar is niet gemeten en mag niet uit de Voordelta-getallen worden afgeleid.",
+    "timing_niet_bruikbaar": "Tijdens deze metingen draaide een SWAN-proces van een andere sessie op dezelfde machine. De seriele tijden van de operationele case zijn daarom niet als prestatiemeting bruikbaar."
+  },
+  "ontwerpfout_hersteld": "De eerste versie zette een onvoorwaardelijke atomaire teller in de roosterpuntlus, buiten de guard. Serieel kostte dat weinig, multicore is het een contentiepunt op elk roosterpunt van elke sweep, ook met de optie uit. Verwijderd; het uitgeschakelde pad bevat nu alleen nog een scalaire vergelijking.",
+  "besluit": {
+    "datum": "2026-09-13",
+    "uitkomst": "niet landen, wel bewaren als gemeten voorstel",
+    "grond": [
+      "De winst is multicore aanmerkelijk kleiner dan serieel: 1,60x op een kern wordt 1,36x op acht threads, en de parallelle schaling verslechtert van 3,17x naar 2,69x. Een overgeslagen punt wacht nog steeds op het lock van zijn bovenstroomse rij, dus het overslaan haalt rekenwerk weg maar niet de synchronisatie. SWAN draait vrijwel altijd multicore, dus 1,36x is het eerlijke getal.",
+      "De ingreep is niet bytegelijk. Voor een suite met een verificatiematrix betekent aanzetten dat de hele verificatiebasis opnieuw moet worden vastgelegd; dat is de echte prijs, niet de millimeters.",
+      "De operationele conditie is juist het ongunstigste geval: die stopt op 67,64% van de natte punten, dus er is weinig dat al stilstaat om over te slaan. De gemeten 1,36x komt van een deck dat 99,8% haalt.",
+      "Doorslaggevend: op 2026-09-13 is aangetoond dat SWAN zelf niet betrouwbaar kan zeggen of een run geconvergeerd is. Twee runs van de operationele conditie die beide het 98%-criterium halen verschillen 45,9 mm RMS. Zolang dat zo is, kan van geen enkele niet-bytegelijke versnelling worden aangetoond dat hij dezelfde oplossing oplevert. Een snelheidsoptie landen boven een convergentietest die dat niet kan onderscheiden is bouwen op zand."
+    ],
+    "wat_er_moet_gebeuren_om_dit_alsnog_te_landen": [
+      "Een balansresidu, zodat 'dezelfde oplossing' aantoonbaar wordt in plaats van aannemelijk.",
+      "Meting op de volledige conditiematrix, niet op een demonstratiedeck.",
+      "MPI-verificatie: het masker gebruikt de buren van een punt, en op de subdomeinrand is DELHS halo-afhankelijk; dat is niet uitgewerkt.",
+      "De ongestructureerde route heeft een eigen puntlus die deze ingreep niet raakt. Daar zou de optie stil niets doen, wat erger is dan een foutmelding.",
+      "De drempel als fractie van het bestaande DABS in plaats van een losse omgevingsvariabele, zodat hij meeschaalt met wat de gebruiker al instelt."
+    ],
+    "wat_er_wel_uit_voortkwam": "De diagnose die ertoe deed: gemiddeld 79% van de natte punten is al geconvergeerd wanneer SWAN ze opnieuw uitrekent, en vanaf iteratie 10 is dat 90%+. Dat blijft gelden ongeacht of deze ingreep landt, en het wijst de richting voor elke volgende poging: de winst zit niet in sneller rekenen maar in niet rekenen."
+  }
+}

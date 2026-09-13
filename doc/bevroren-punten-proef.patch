@@ -1,0 +1,131 @@
+diff --git a/src/swancom1.f90 b/src/swancom1.f90
+index ee78b72..3ee0236 100644
+--- a/src/swancom1.f90
++++ b/src/swancom1.f90
+@@ -52,6 +52,14 @@ MODULE M_CONVERGENCE_SHARED
+    INTEGER :: SACCUR_IACCUR = 0
+    INTEGER :: SWSTPC_WETGRD = 0
+    INTEGER :: SWSTPC_IACCUR = 0
++
++!     PROTOTYPE: skip the source terms and the local solve for a grid point
++!     while neither it nor any neighbour still moves. FREEZE_TOL <= 0 disables.
++   PUBLIC :: FREEZE_TOL, FREEZE_MASK, FREEZE_SKIPPED, FREEZE_VISITED
++   REAL                 :: FREEZE_TOL = -1.0
++   LOGICAL, ALLOCATABLE :: FREEZE_MASK(:)
++   INTEGER              :: FREEZE_SKIPPED = 0
++   INTEGER              :: FREEZE_VISITED = 0
+ END MODULE M_CONVERGENCE_SHARED
+ 
+ module swan_computation
+@@ -117,6 +125,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
+       sweep_layout_t
+    USE swan_nonlinear_interactions, ONLY: FAC3WW, FAC4WW, SWBIPM, SWPRE4W
+    USE swan_dissipation, ONLY: PLTSRC
++   USE M_CONVERGENCE_SHARED, ONLY: FREEZE_TOL, FREEZE_MASK, &
++      FREEZE_SKIPPED, FREEZE_VISITED
+    USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, STPNOW
+ 
+ !******************************************************************
+@@ -1002,6 +1012,23 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
+ 
+    IF (LTRACE) CALL STRACE (IENT,'SWCOMP')
+ 
++!     PROTOTYPE: tolerance from the environment, so no parser change is needed.
++!     The first sweep reads the mask before any convergence test has built one,
++!     so it must already exist and be empty.
++   BLOCK
++      CHARACTER(LEN=64) :: FREEZE_TEXT
++      INTEGER           :: FREEZE_LEN, FREEZE_STAT
++      CALL GET_ENVIRONMENT_VARIABLE('SWAN_FREEZE_TOL', FREEZE_TEXT, FREEZE_LEN, FREEZE_STAT)
++      IF ( FREEZE_STAT.EQ.0 .AND. FREEZE_LEN.GT.0 ) THEN
++         READ (FREEZE_TEXT(1:FREEZE_LEN), *, IOSTAT=FREEZE_STAT) FREEZE_TOL
++         IF ( FREEZE_STAT.NE.0 ) FREEZE_TOL = -1.0
++      END IF
++      IF ( FREEZE_TOL.GT.0. ) THEN
++         IF (.NOT.ALLOCATED(FREEZE_MASK)) ALLOCATE(FREEZE_MASK(MCGRD))
++         FREEZE_MASK = .FALSE.
++      END IF
++   END BLOCK
++
+    THREAD_COUNT = 1
+ !$ THREAD_COUNT = OMP_GET_MAX_THREADS()
+    CALL THREAD_WORKSPACES%ENSURE_STRUCTURED(THREAD_COUNT)
+@@ -1982,7 +2009,15 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
+ !$                         END IF
+ !
+                            IF (timing_enabled) CALL SWTSTA(104)
++!                          Everything below the guard must stay inside it: an
++!                          unconditional counter here is an atomic per grid
++!                          point per sweep, which slows the default build even
++!                          though the option is off.
++                           IF ( FREEZE_TOL .GT. 0. ) THEN
++                              IF ( FREEZE_MASK(KGRPNT(IX,IY)) ) GOTO 191
++                           END IF
+                            CALL SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, default_time_context%DT, XIS, SWTSDA, INOCNT, AC2, COMPDA, SPCDIR, SPCSIG, XYTST, ITER, CGO, CAX, CAY, CAS, CAD, SWMATR, LSWMAT, KWAVE, DMW, ALIMW, GROWW, ITERATION_CACHE, QTL1, QTL2, SPECTRAL_WINDOW, ANYWND, AC1, IT, XCGRID, YCGRID, KGRPNT, CROSS, OBREDF, REFLSO, FBD, ISLMIN, NFLIM, NRSCAL, CAX1, CAY1, DIFFR, TRIADS, SNL4, SPECTRAL_POWERS, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%WCAP, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT)
++  191                      CONTINUE
+                            IF (timing_enabled) CALL SWTSTO(104)
+                            IF (mpi_backend_enabled) THEN
+                               IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
+@@ -2188,6 +2223,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
+                   END IF
+                   IF (timing_enabled) CALL SWTSTO(102)
+ !
++!$OMP MASTER
++                  IF ( FREEZE_TOL .GT. 0. ) THEN
++                     CALL BUILD_FREEZE_MASK (COMPDA(1,JDHS), COMPDA(1,JDP2), KGRPNT)
++                  END IF
++!$OMP END MASTER
++!$OMP BARRIER
++!
+ !----------------------------------------------------------------------
+ !     Begin master thread region.
+ !----------------------------------------------------------------------
+@@ -11135,4 +11177,48 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
+                   RETURN
+                end subroutine SETUP2D
+ 
++!  PROTOTYPE: mark grid points whose solution has stopped moving. A point
++!  qualifies only when it AND all four neighbours changed less than FREEZE_TOL
++!  in the last iteration. Without the neighbour condition a skipped point would
++!  stay frozen forever, because the convergence test would then be measuring
++!  its own frozen state; the neighbours are what let information thaw it.
++   SUBROUTINE BUILD_FREEZE_MASK (DELHS, DEP2, KGRPNT)
++      USE swan_computational_grid, ONLY: MXC, MYC, MCGRD
++      USE swan_physical_settings, ONLY: DEPMIN
++      USE M_CONVERGENCE_SHARED, ONLY: FREEZE_TOL, FREEZE_MASK
++
++      REAL, INTENT(IN)    :: DELHS(MCGRD), DEP2(MCGRD)
++      INTEGER, INTENT(IN) :: KGRPNT(MXC,MYC)
++
++      LOGICAL, ALLOCATABLE :: QUIET(:,:)
++      INTEGER :: IX, IY, INDX
++
++      IF (.NOT.ALLOCATED(FREEZE_MASK)) ALLOCATE(FREEZE_MASK(MCGRD))
++      FREEZE_MASK = .FALSE.
++      ALLOCATE(QUIET(MXC,MYC))
++      QUIET = .FALSE.
++
++      DO IY = 1, MYC
++         DO IX = 1, MXC
++            INDX = KGRPNT(IX,IY)
++            IF ( INDX.LE.1 ) CYCLE
++            IF ( DEP2(INDX).LE.DEPMIN ) CYCLE
++            QUIET(IX,IY) = DELHS(INDX) .LE. FREEZE_TOL
++         END DO
++      END DO
++
++      DO IY = 2, MYC-1
++         DO IX = 2, MXC-1
++            IF ( .NOT.QUIET(IX,IY) ) CYCLE
++            IF ( .NOT.QUIET(IX-1,IY) ) CYCLE
++            IF ( .NOT.QUIET(IX+1,IY) ) CYCLE
++            IF ( .NOT.QUIET(IX,IY-1) ) CYCLE
++            IF ( .NOT.QUIET(IX,IY+1) ) CYCLE
++            FREEZE_MASK(KGRPNT(IX,IY)) = .TRUE.
++         END DO
++      END DO
++
++      DEALLOCATE(QUIET)
++   END SUBROUTINE BUILD_FREEZE_MASK
++
+ end module swan_computation
