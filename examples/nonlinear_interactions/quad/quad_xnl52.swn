@@ -1,0 +1,34 @@
+$ Small exact-XNL reference, deep-water transfer with WAM depth scaling (QUADRUPLET 52)
+$
+$ SWINTFXNL maps IQUAD 51, 52 and 53 onto its own iq_quad by subtracting 50,
+$ so the three are separate transfer routines. Only 51 had a deck; 52 and 53
+$ were declared formulations that no input ever selected. They run over 15 m
+$ depth -- the 0.3 factor on the same bathymetry file -- rather than the 50 m
+$ of quad_xnl.swn, because depth scaling and the finite-depth transfer have
+$ nothing to do at deep-water depths.
+PROJECT 'QUADXN52' '001'
+SET CARTESIAN
+MODE STATIONARY ONEDIMENSIONAL
+COORDINATES CARTESIAN
+
+CGRID REGULAR 0.0 0.0 0.0 100000.0 0.0 40 0 &
+      CIRCLE 36 0.04 1.0 34
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 0 100000.0 1.0
+READINP BOTTOM 0.3 'bottom.bot' 1 0 FREE
+
+WIND 15.0 0.0
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 0.05 2.0 0.0 20.0
+
+GEN3 WESTH
+QUADRUPLET 52
+OFF BREAKING
+
+POINTS 'GAUGES' 0.0 0.0 25000.0 0.0 50000.0 0.0 &
+         75000.0 0.0 100000.0 0.0
+TABLE 'GAUGES' HEADER 'quad_xnl52.tbl' XP DEPTH HSIGN TM01 RTP REDTRIAD REDQUAD
+SPECOUT 'GAUGES' SPEC1D ABS 'quad_xnl52.spc'
+TEST 1 0 POINTS XY 50000.0 0.0 S1D 'quad_xnl52_sources.spc'
+
+COMPUTE
+STOP

@@ -1,0 +1,43 @@
+$ Shallow-water propagation over a submerged bar with the original LTA triads
+$
+$ TRIAD ITRIAD=11 is the LTA as it stood before release 41.01, and it is the
+$ formulation the operational so-rp suite selects. It is not a spelling of
+$ TRIAD LTA: ITRIAD = 11 drops the shoaling factor (FT = 0 in SWLTA) and takes
+$ the group velocity from the local spectrum instead of the offshore one, and
+$ the parser gives it different defaults as well (TRFAC 0.05 against 1.0,
+$ CUTFR 2.5 against -1, DINT 0 against 60).
+$
+$ Before this deck no case under examples/ selected it -- triad_lta.swn claimed
+$ to in its header while its command line reads TRIAD LTA, which is ITRIAD = 1,
+$ and the coverage regex accepted either spelling for one formulation. So the
+$ bounds-checked CI build never reached the ITRIAD = 11 arms of SWLTA.
+$
+$ Identical to triad_lta.swn apart from the triad command, so the two decks
+$ isolate the difference between the two LTA generations.
+PROJECT 'TRIADL11' '001'
+SET CARTESIAN
+MODE STATIONARY ONEDIMENSIONAL
+COORDINATES CARTESIAN
+
+CGRID REGULAR 0.0 0.0 0.0 30.0 0.0 300 0 &
+      SECTOR -10.0 10.0 20 0.10 2.0 31
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 30 0 1.0 1.0
+READINP BOTTOM 1.0 'bottom.bot' 1 0 FREE
+
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 0.06 2.0 0.0 2.0
+
+GEN3 WESTH
+OFF WINDGROWTH
+OFF WCAPPING
+OFF QUADRUPLET
+TRIAD ITRIAD=11
+
+POINTS 'GAUGES' 2.0 0.0 10.0 0.0 15.0 0.0 18.0 0.0 &
+         25.0 0.0 30.0 0.0
+TABLE 'GAUGES' HEADER 'triad_lta11.tbl' XP DEPTH HSIGN TM01 RTP REDTRIAD REDQUAD
+SPECOUT 'GAUGES' SPEC1D ABS 'triad_lta11.spc'
+TEST 1 0 POINTS XY 15.0 0.0 S1D 'triad_lta11_sources.spc'
+
+COMPUTE
+STOP
