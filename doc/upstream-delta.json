@@ -1,0 +1,224 @@
+{
+  "upstream": {
+    "remote": "gitlab.tudelft.nl/citg/wavemodels/swan",
+    "branch": "main",
+    "commit": "43e9bbba393f2cf9eaff78bc92eaed118a3a5c8e",
+    "version": "41.51",
+    "toelichting": "De bron waartegen de fork wordt vergeleken. Wijzigt deze pin, dan is de hele inventaris opnieuw te meten."
+  },
+  "gemeten_op": {
+    "fork_commit": "e6f45f1",
+    "toelichting": "De forkstand waarop deze inventaris is gemeten. Latere reparaties kunnen decks verschuiven; dan hoort de meting opnieuw te lopen (--update) en de verschuiving een BF-nummer te krijgen."
+  },
+  "vergelijking": "Serieel gebouwd, dezelfde compiler en vlaggen aan beide kanten. Velden moeten exact gelijk zijn; witruimte in kopregels telt niet mee. Verschillen die alleen onder OpenMP of MPI zichtbaar zijn ziet deze poort dus niet -- die staan onder de opgeslagen referenties van ctest.",
+  "geheugenindeling": "Beide binaries draaien onder setarch -R, met een vaste geheugenindeling. Zonder die pin geeft upstream 41.51 op verscheidene decks twee verschillende antwoorden op dezelfde invoer: gemeten op quad_dia2, quad_mdia en src_nobreak, elk twee uitkomsten in acht runs, terwijl zes runs met pin er steeds een geven. De fork is in dezelfde proef stabiel en geeft het antwoord dat upstream met pin berekent. Draai met --geen-pin om die instabiliteit zelf te zien.",
+  "onverklaard_budget": 6,
+  "decks": [
+    {
+      "deck": "curve_output/curve.swn",
+      "status": "identiek",
+      "gemeten": "2 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "diffraction/diffraction.swn",
+      "status": "identiek",
+      "gemeten": "2 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/combined/combined.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_dia1.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_dia2.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk",
+      "onderzoek": "Beide binaries convergeren, maar op een ander aantal iteraties: gemeten op quad_dia2 42 (fork) tegen 28 (upstream), met Tm01 2,5% uit elkaar. Elk deck in deze groep draait zonder dieptegeinduceerde breking. Nog niet toegewezen; dat vraagt per deck een bisectie over de forkgeschiedenis, zoals bij BF-17 wel gedaan is."
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_dia3.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_full.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk",
+      "onderzoek": "Beide binaries convergeren, maar op een ander aantal iteraties: gemeten op quad_dia2 42 (fork) tegen 28 (upstream), met Tm01 2,5% uit elkaar. Elk deck in deze groep draait zonder dieptegeinduceerde breking. Nog niet toegewezen; dat vraagt per deck een bisectie over de forkgeschiedenis, zoals bij BF-17 wel gedaan is."
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_mdia.swn",
+      "status": "wijkt af",
+      "gemeten": "verschilt in: quad_mdia.spc, quad_mdia.tbl, quad_mdia_sources.spc",
+      "onderzoek": "Verschilt met vaste geheugenindeling stabiel van upstream. Voor de hand liggende kandidaat is de reparatie rond de MDIA-lambdalijst, maar dat is nog niet gemeten en dus niet toegewezen. Zonder die pin geeft upstream op dit deck twee verschillende antwoorden.",
+      "bugfix": null
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_off.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_xnl.swn",
+      "status": "overgeslagen",
+      "reden": "De exacte XNL-route kost circa vier minuten per run; met de instabiliteitscontrole erbij loopt dat op tot een halfuur per deck, te lang voor een poort die bij elke bronwijziging draait. Draai bewust mee met --include-skipped --timeout 3600.",
+      "gemeten": "De exacte XNL-route kost circa vier minuten per run; met de instabiliteitscontrole erbij loopt dat op tot een halfuur per deck, te lang voor een poort die bij elke bronwijziging draait. Draai bewust mee met --include-skipped --timeout 3600."
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_xnl52.swn",
+      "status": "overgeslagen",
+      "reden": "De exacte XNL-route kost circa vier minuten per run; met de instabiliteitscontrole erbij loopt dat op tot een halfuur per deck, te lang voor een poort die bij elke bronwijziging draait. Draai bewust mee met --include-skipped --timeout 3600.",
+      "gemeten": "De exacte XNL-route kost circa vier minuten per run; met de instabiliteitscontrole erbij loopt dat op tot een halfuur per deck, te lang voor een poort die bij elke bronwijziging draait. Draai bewust mee met --include-skipped --timeout 3600."
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_xnl53.swn",
+      "status": "overgeslagen",
+      "reden": "De exacte XNL-route kost circa vier minuten per run; met de instabiliteitscontrole erbij loopt dat op tot een halfuur per deck, te lang voor een poort die bij elke bronwijziging draait. Draai bewust mee met --include-skipped --timeout 3600.",
+      "gemeten": "De exacte XNL-route kost circa vier minuten per run; met de instabiliteitscontrole erbij loopt dat op tot een halfuur per deck, te lang voor een poort die bij elke bronwijziging draait. Draai bewust mee met --include-skipped --timeout 3600."
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_all.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_break_asym.swn",
+      "status": "wijkt af",
+      "bugfix": "BF-17",
+      "gemeten": "verschilt in: src_break_asym.spc, src_break_asym.tbl, src_break_asym_sources.spc",
+      "toelichting": "Gemeten toegewezen: op b89b99f, de commit voor de reparatie, is dit deck nog bit-identiek aan upstream; vanaf 5d062ac wijkt het af. Upstream zet de brekingsindex op nul zodra de biphase niet negatief is, waarna HM = 0 SSURF in zijn verzadigde tak drijft en het golfveld vernietigt."
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_break_bkd.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_break_rue.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_break_tg.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_break_var.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_fric_collins.swn",
+      "status": "wijkt af",
+      "gemeten": "verschilt in: src_fric_collins.spc, src_fric_collins_sources.spc",
+      "onderzoek": "Losse velden verschillen 3e-4 tot 1e-2 relatief, de orde van hercombinatie van uitdrukkingen. Upstream is hier wel stabiel: acht runs met en acht zonder vaste geheugenindeling geven dezelfde uitkomst, dus dit is een echt verschil tussen de twee lijnen. Nog niet toegewezen."
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_fric_jonvar.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_fric_madsen.swn",
+      "status": "wijkt af",
+      "gemeten": "verschilt in: src_fric_madsen.spc, src_fric_madsen_sources.spc",
+      "onderzoek": "Losse velden verschillen 3e-4 tot 1e-2 relatief, de orde van hercombinatie van uitdrukkingen. Upstream is hier wel stabiel: acht runs met en acht zonder vaste geheugenindeling geven dezelfde uitkomst, dus dit is een echt verschil tussen de twee lijnen. Nog niet toegewezen."
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_fric_ripples.swn",
+      "status": "wijkt af",
+      "gemeten": "verschilt in: src_fric_ripples.spc, src_fric_ripples_sources.spc",
+      "onderzoek": "Losse velden verschillen 3e-4 tot 1e-2 relatief, de orde van hercombinatie van uitdrukkingen. Upstream is hier wel stabiel: acht runs met en acht zonder vaste geheugenindeling geven dezelfde uitkomst, dus dit is een echt verschil tussen de twee lijnen. Nog niet toegewezen."
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_nobreak.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk",
+      "onderzoek": "Beide binaries convergeren, maar op een ander aantal iteraties: gemeten op quad_dia2 42 (fork) tegen 28 (upstream), met Tm01 2,5% uit elkaar. Elk deck in deze groep draait zonder dieptegeinduceerde breking. Nog niet toegewezen; dat vraagt per deck een bisectie over de forkgeschiedenis, zoals bij BF-17 wel gedaan is."
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_nofric.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_nowcap.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_nowind.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_dcta.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_ftim.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_lta.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_lta11.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_off.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonstationary/regular/nonstationary_regular.swn",
+      "status": "identiek",
+      "gemeten": "2 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonstationary/unstructured/nonstationary_unstructured.swn",
+      "status": "wijkt af",
+      "gemeten": "verschilt in: nonstationary_unstructured_hs.blk",
+      "onderzoek": "Het blokbestand wijkt maximaal 11% af. BF-18 is als oorzaak uitgesloten door meting: op 5d062ac, de commit voor die reparatie, geeft de fork serieel exact dezelfde uitvoer als erna, dus de OpenMP-frontreparatie raakt de seriele route niet. Nog niet toegewezen."
+    },
+    {
+      "deck": "qcm/qcm.swn",
+      "status": "identiek",
+      "gemeten": "1 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "quick_test/quick_test.swn",
+      "status": "identiek",
+      "gemeten": "2 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "source_terms_st6/st6_testpoints.swn",
+      "status": "wijkt af",
+      "gemeten": "verschilt in: st6_testpoints.tbl, st6_testpoints_sources.spc",
+      "onderzoek": "Losse velden verschillen 3e-4 tot 1e-2 relatief, de orde van hercombinatie van uitdrukkingen. Upstream is hier wel stabiel: acht runs met en acht zonder vaste geheugenindeling geven dezelfde uitkomst, dus dit is een echt verschil tussen de twee lijnen. Nog niet toegewezen."
+    },
+    {
+      "deck": "voordelta/voordelta.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "voordelta_unstructured/voordelta_unstructured.swn",
+      "status": "overgeslagen",
+      "reden": "De upstream-binary heeft voor deze ongestructureerde case meer dan tien minuten per run nodig, te lang voor een poort die bij elke bronwijziging draait. Draai hem bewust mee met --include-skipped --timeout 3600.",
+      "gemeten": "De upstream-binary heeft voor deze ongestructureerde case meer dan tien minuten per run nodig, te lang voor een poort die bij elke bronwijziging draait. Draai hem bewust mee met --include-skipped --timeout 3600."
+    }
+  ]
+}

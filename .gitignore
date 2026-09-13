@@ -41,3 +41,7 @@ __pycache__/
 # De provenance van de 41.31-referentiebuild is de audittrail onder de
 # fysicavergelijking. `build-*/` hierboven vangt die map per ongeluk.
 !/so-rp_swan/comparison/build-info/
+
+# Vastgezette upstream-bron en -bouw voor de delta-poort (hyphenvrij pad:
+# upstream switch.pl loopt vast op een pad met een streepje erin).
+/.upstream/

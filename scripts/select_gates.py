@@ -14,6 +14,10 @@ Regels:
   de MPI-claim blijft staan op de laatste groene commit.
 - strict alleen bij bron-, toolchain- of budgetwijzigingen (alleen die kunnen
   waarschuwingen toevoegen of wegnemen).
+- upstream_delta bij alles wat de uitvoer van een deck kan verschuiven: bron,
+  toolchain, decks en de delta-inventaris zelf. Die poort legt de fork deck
+  voor deck naast de vastgezette TU Delft-bron, zodat een nieuw verschil een
+  BF-verwijzing moet krijgen in plaats van onopgemerkt te blijven.
 - pytest is <1 seconde en loopt altijd mee zodra er iets te toetsen valt.
 - Alleen docs/commentaar: geen enkele poort.
 
@@ -39,6 +43,7 @@ COMMANDS = {
     "mpi": 'cmake --build build-modernization-mpi -j"$(nproc)" && ctest --test-dir build-modernization-mpi --output-on-failure -j"$(nproc)"',
     "strict": "python3 scripts/strict_diagnostics.py --require-baseline",
     "pytest": "python3 -m pytest tests/ -q",
+    "upstream_delta": "SWAN_UPSTREAM_DELTA=1 python3 -m pytest tests/test_upstream_delta.py -q",
 }
 
 MPI_RE = re.compile(r"mpi|parall|metis|\bcoh\b|esmf|adcirc|decomp", re.IGNORECASE)
@@ -49,6 +54,10 @@ def _classify(path: str) -> set[str]:
     p = Path(path)
     name = p.name
     suffix = p.suffix.lower()
+    #  De delta-inventaris en het script eromheen zijn de poort zelf: wie ze
+    #  aanraakt moet hem draaien, ook al staat het manifest onder doc/.
+    if name.startswith("upstream_delta") or name == "upstream-delta.json":
+        return {"pytest", "upstream_delta"}
     if p.parts and p.parts[0] in ("doc", "so-rp_swan"):
         # so-rp_swan is validatiebewijs, geen poortcode; docs hebben geen tests.
         # so-rp-wijzigingen lopen via de validatiematrix, niet via ctest.
@@ -61,16 +70,16 @@ def _classify(path: str) -> set[str]:
     ):
         return {"strict"}
     if MPI_RE.search(str(p)):
-        return {"serial", "openmp", "mpi", "strict", "pytest"}
+        return {"serial", "openmp", "mpi", "strict", "pytest", "upstream_delta"}
     if suffix in (".f90", ".f", ".c", ".h") or name in ("CMakeLists.txt",) or p.parts[:1] == ("cmake",):
-        return {"serial", "openmp", "strict", "pytest"}
+        return {"serial", "openmp", "strict", "pytest", "upstream_delta"}
     if p.parts[:1] == ("scripts",) and suffix == ".py":
         return {"serial", "pytest"}
     if p.parts[:1] == ("tests",):
         return {"serial", "openmp", "pytest"}
     if p.parts[:1] == ("examples",):
-        return {"serial", "openmp", "pytest"}
-    return {"serial", "openmp", "mpi", "strict", "pytest"}
+        return {"serial", "openmp", "pytest", "upstream_delta"}
+    return {"serial", "openmp", "mpi", "strict", "pytest", "upstream_delta"}
 
 
 def select_gates(paths: list[str]) -> dict[str, list[str]]:

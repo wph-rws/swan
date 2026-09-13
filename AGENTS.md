@@ -2,6 +2,17 @@
 
 Gedeelde projectinstructies voor AI-coding-agents (Codex, Claude Code, e.a.) in deze SWAN-repo.
 
+## Taal
+
+Schrijf helder, gewoon Nederlands — in antwoorden, committeksten, commentaar en
+documentatie. Geen Nederlands dat klinkt als een houterige vertaling van Engels
+vakjargon, en geen Engelse termen waar een gewoon woord bestaat: uitvoer, niet
+output; poort, niet gate; tijdslimiet, niet timeout. Namen die echt eigennaam
+zijn blijven staan zoals ze heten: SWAN-commando's, routinenamen, bestandsnamen,
+`ASLR`, `git bisect`. Leg een bevinding eerst uit in gewone woorden — wat er aan
+de hand is, hoe je dat weet, wat het betekent — en pas daarna in termen van de
+code.
+
 ## Repo-inrichting
 
 - `origin` = `wph-rws/swan` (GitHub), `upstream` = TU Delft (`gitlab.tudelft.nl/citg/wavemodels/swan`).
@@ -46,6 +57,7 @@ Niet elke wijziging hoeft de volledige breedte (serieel + OpenMP + MPI + strict)
 
 - MPI alleen bij MPI-rakende paden (bron met mpi/parall/metis/coh/esmf/adcirc in de naam, MPI-tests, toolchain/CMake). Deck- of fysicawijzigingen zonder codeverschil gedragen zich onder MPI identiek aan serieel op dezelfde code.
 - strict alleen bij bron-, toolchain- of budgetwijzigingen. Alleen docs/commentaar: geen poorten.
+- upstream_delta bij alles wat de uitvoer van een deck kan verschuiven (bron, toolchain, decks, de inventaris zelf). Die poort haalt elk deck over de vastgezette TU Delft-binary én over de fork en toetst het resultaat tegen `doc/upstream-delta.json`: elk verschil moet een BF-nummer hebben. De inventaris zelf wordt bij elk commit in de pytest-poort gecontroleerd; de gemeten helft draait onder `SWAN_UPSTREAM_DELTA=1` en vraagt eenmalig een upstream-bouw in `.upstream/` (een pad zonder streepje erin, want upstream `switch.pl` loopt op een streepje vast in een oneindige lus).
 - Onbekende paden kiezen veilig alles; nooit stil niets.
 - Overgeslagen poorten blijven staan op hun laatste groene commit — vermeld die commit bij de wijziging, zodat de releaseclaim herleidbaar blijft.
 

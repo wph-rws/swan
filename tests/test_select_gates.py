@@ -11,7 +11,7 @@ from select_gates import select_gates  # noqa: E402
 
 def test_fysicabron_slaat_mpi_over():
     sel = select_gates(["src/swan_physics_selection.f90"])
-    assert set(sel) == {"serial", "openmp", "strict", "pytest"}
+    assert set(sel) == {"serial", "openmp", "strict", "pytest", "upstream_delta"}
 
 
 def test_mpi_bron_eist_mpi():
@@ -21,12 +21,23 @@ def test_mpi_bron_eist_mpi():
 
 def test_metis_en_cmake_eisen_alles():
     sel = select_gates(["src/swan_metis_interface.f90", "CMakeLists.txt"])
-    assert set(sel) == {"serial", "openmp", "mpi", "strict", "pytest"}
+    assert set(sel) == {"serial", "openmp", "mpi", "strict", "pytest", "upstream_delta"}
 
 
 def test_deckwijziging_slaat_mpi_en_strict_over():
     sel = select_gates(["examples/nonlinear_interactions/sources/src_nobreak.swn"])
-    assert set(sel) == {"serial", "openmp", "pytest"}
+    assert set(sel) == {"serial", "openmp", "pytest", "upstream_delta"}
+
+
+def test_deltamanifest_eist_alleen_de_deltapoort():
+    """Het manifest woont onder doc/, maar is data van een poort, geen proza."""
+    sel = select_gates(["doc/upstream-delta.json"])
+    assert set(sel) == {"pytest", "upstream_delta"}
+
+
+def test_deltascript_eist_de_deltapoort():
+    sel = select_gates(["scripts/upstream_delta.py"])
+    assert set(sel) == {"pytest", "upstream_delta"}
 
 
 def test_docs_alleen_geeft_lege_selectie():
@@ -35,7 +46,7 @@ def test_docs_alleen_geeft_lege_selectie():
 
 def test_onbekend_pad_is_fail_safe():
     sel = select_gates(["volslagen/nieuw/ding.xyz"])
-    assert set(sel) == {"serial", "openmp", "mpi", "strict", "pytest"}
+    assert set(sel) == {"serial", "openmp", "mpi", "strict", "pytest", "upstream_delta"}
 
 
 def test_strict_budget_alles_behalve_strict_niet_nodig():
