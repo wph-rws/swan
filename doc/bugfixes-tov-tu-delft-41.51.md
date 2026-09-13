@@ -167,7 +167,18 @@ tussen de geleverde bugfixes:
   tegen: zonder false time stepping convergeert `QUADRUPL 1` niet, met te veel
   ervan stopt hij te vroeg. Dit raakt niet alleen deze optie — elk deck met een
   forse `ALFA` kan hierdoor een te vroege run als geslaagd rapporteren. Er is geen
-  balansresidu waarmee dat te onderscheiden valt;
+  balansresidu waarmee dat te onderscheiden valt. **Inmiddels ook op de
+  operationele conditie gemeten** (`so-rp_swan/matrix/convergence-check-eerste-meting.json`):
+  twee runs die allebei het 98%-criterium halen — `ALFA=0.01` in 35 iteraties op
+  98,14% en `ALFA=0` in 28 iteraties op 98,84% — verschillen 45,9 mm RMS en
+  72,5 mm maximaal in Hs, ofwel 2,7% van de gemiddelde Hs. Dat verschil is
+  veldbreed en geen staart: de mediaan is 45,4 mm en 109 van de 132 natte punten
+  wijken meer dan 20 mm af, dus het zijn niet de 2% punten die het criterium mag
+  laten liggen. Minstens een van beide runs is dus niet geconvergeerd terwijl
+  beide "accuracy OK" melden, en dit gebeurt bij de operationele `ALFA=0,01`,
+  niet bij een kunstmatig hoge waarde. Bijvangst: de productieconfiguratie
+  (`MXITST=20`) loopt tegen de iteratielimiet op 67,64% en levert een veld dat
+  gemiddeld 0,18 m lager ligt dan de geconvergeerde run, 11,4% RMS;
 - een malafide `POINTS 'x' CURVE`-deck kan in Release incidenteel met
   `SIGABRT` eindigen in plaats van schoon te stoppen; bewezen pre-existing (de
   pre-repair-binary aborteert identiek) en heap-toestandsafhankelijk, zonder

@@ -1,0 +1,70 @@
+{
+  "datum_utc": "2026-09-13",
+  "basis": "0c451c6",
+  "vraag": "Betekent 'accuracy OK' op de operationele so-rp-conditie dat de oplossing er is?",
+  "deck": "so-rp_swan/runs/current (curvilinear 248x577, 20 m/s uit 310 graden, NAP +3,00 m, open kering), 132 natte uitvoerpunten van 135",
+  "criterium": "NUM ACCUR 0.01 0.01 0.01 98 -- 98% van de natte punten",
+  "runs": [
+    {
+      "naam": "productie",
+      "mxitst": 20,
+      "alfa": 0.01,
+      "seconden": 405.9,
+      "iteraties": 20,
+      "acc_pct": 67.64,
+      "stopreden": "iteratielimiet",
+      "gem_hs_m": 1.5086
+    },
+    {
+      "naam": "meer iteraties",
+      "mxitst": 120,
+      "alfa": 0.01,
+      "seconden": 707.3,
+      "iteraties": 35,
+      "acc_pct": 98.14,
+      "stopreden": "criterium gehaald",
+      "gem_hs_m": 1.6453
+    },
+    {
+      "naam": "zonder onderrelaxatie",
+      "mxitst": 120,
+      "alfa": 0.0,
+      "seconden": 556.2,
+      "iteraties": 28,
+      "acc_pct": 98.84,
+      "stopreden": "criterium gehaald",
+      "gem_hs_m": 1.6859
+    }
+  ],
+  "bevinding_1_twee_geconvergeerde_runs_verschillen": {
+    "vergelijking": "ALFA=0.01 (35 it, 98,14%) tegen ALFA=0 (28 it, 98,84%); beide stopten op het criterium",
+    "hs_rms_mm": 45.9,
+    "hs_max_mm": 72.5,
+    "rms_pct_van_gem_hs": 2.72,
+    "verdeling_mm": {
+      "mediaan": 45.4,
+      "p75": 55.3,
+      "p90": 64.4,
+      "p98": 71.4,
+      "max": 72.5
+    },
+    "punten_boven_20mm": "109 van 132",
+    "punten_boven_50mm": "54 van 132",
+    "duiding": "Het verschil is veldbreed en geen staart, dus het is niet de 2% punten die het criterium mag laten liggen. Twee runs die allebei 'accuracy OK' melden staan over het hele domein circa 45 mm uit elkaar; minstens een van beide is dus niet geconvergeerd. Dit is het schijnconvergentie-effect bij de operationele ALFA=0,01, niet bij een kunstmatig hoge waarde."
+  },
+  "bevinding_2_productie_staat_ver_van_de_oplossing": {
+    "vergelijking": "productie (20 iteraties, 67,64%) tegen de ALFA=0-referentie",
+    "hs_rms_mm": 192.7,
+    "hs_max_mm": 327.9,
+    "rms_pct_van_gem_hs": 11.43,
+    "gem_hs_verschil_m": -0.1773,
+    "duiding": "De operationele configuratie loopt tegen MXITST=20 en levert een veld dat gemiddeld 0,18 m lager ligt dan de best geconvergeerde run, met 11,4% RMS. Zij claimt geen convergentie, maar het verschil met een geconvergeerde oplossing was niet eerder gekwantificeerd."
+  },
+  "bevinding_3_onderrelaxatie_hielp_hier_niet": "ALFA=0 convergeerde sneller en verder dan ALFA=0,01: 28 iteraties naar 98,84% tegen 35 naar 98,14%, en in minder tijd (556 s tegen 707 s).",
+  "kanttekeningen": [
+    "False time stepping verandert het iteratiepad maar niet het vaste punt; twee echt geconvergeerde runs horen dus veel dichter bij elkaar te liggen dan 72 mm. Dat is de grond voor de conclusie, niet de aanname dat ALFA=0 de waarheid is.",
+    "Geen van de drie runs is aantoonbaar geconvergeerd: er is geen balansresidu, alleen het veranderingscriterium.",
+    "Een conditie. De overige negen uit de matrix zijn niet gemeten; scripts/convergence_check.py doet dat, maar de volle matrix kost enkele uren.",
+    "Gemeten op een machine waar tijdens de eerste runs een ander SWAN-proces draaide; de tijden zijn indicatief, de velden niet."
+  ]
+}
