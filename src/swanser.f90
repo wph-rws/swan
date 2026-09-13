@@ -3579,7 +3579,7 @@ SUBROUTINE SWPRTI
 !
 !        --- initialise table to zero
 !
-      DO K = 1, 30
+      DO K = 1, 33
          DO J = 1, 2
             TABLE(K,J) = 0D0
          END DO
