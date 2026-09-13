@@ -158,10 +158,10 @@ These issues are in upstream and have been investigated, but not resolved:
  
 - **How complete this list is.** Some defects were found by reading code that
   looks wrong and checking the pattern against `43e9bbb`, the others through
-  runtime checks, Valgrind and the comparison with upstream per deck. All 25
-  example decks have been run against upstream with the same compiler and
-  `-O3`, and each difference was assigned to BF-15 or BF-16, each time proven
-  by reverting the fix and measuring byte-identity. That covers the paths
-  these decks touch, not the branches outside them, and that is exactly where
-  BF-15 was. So there are almost certainly still bugs in upstream that are not
-  listed here.
+  compiler warnings, runtime checks, Valgrind and the comparison with upstream
+  per deck. All 25 example decks have been run against upstream with the same
+  compiler and `-O3`, and each difference was assigned to BF-15 or BF-16, each
+  time proven by reverting the fix and measuring byte-identity. That covers
+  the paths these decks touch, not the branches outside them, and that is
+  exactly where BF-15 was. So there are almost certainly still bugs in
+  upstream that are not listed here.

@@ -517,6 +517,12 @@ if( BUILD_TESTING )
             ${CMAKE_SOURCE_DIR}/tests/test_reference_check.py -q
   )
   add_test(
+    NAME strict_diagnostics_negatives
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_strict_diagnostics.py
+            ${CMAKE_SOURCE_DIR}/tests/test_strict_diagnostics_triage.py -q
+  )
+  add_test(
     NAME build_matrix_negatives
     COMMAND ${Python3_EXECUTABLE} -m pytest
             ${CMAKE_SOURCE_DIR}/tests/test_build_matrix.py -q

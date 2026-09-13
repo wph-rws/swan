@@ -119,6 +119,7 @@ def main() -> int:
         "serial",
         "openmp",
         "runtime",
+        "strict",
         "mpi-2rank",
         *VARIANTS,
         "python-manifest",

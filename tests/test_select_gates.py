@@ -13,15 +13,15 @@ from select_gates import select_gates  # noqa: E402
 
 def test_physics_source_skips_mpi():
     sel = select_gates(["src/swan_physics_selection.f90"])
-    assert set(sel) == {"serial", "openmp", "pytest", "upstream_delta"}
+    assert set(sel) == {"serial", "openmp", "strict", "pytest", "upstream_delta"}
 
 
 def test_mpi_source_requires_mpi():
     sel = select_gates(["src/SwanParallel.f90"])
-    assert "mpi" in sel and "serial" in sel
+    assert "mpi" in sel and "strict" in sel
 
 
-ALL_GATES = {"serial", "openmp", "mpi", "pytest", "upstream_delta"}
+ALL_GATES = {"serial", "openmp", "mpi", "strict", "pytest", "upstream_delta"}
 
 
 def test_metis_requires_everything():
@@ -36,7 +36,7 @@ def test_cmake_requires_everything(path):
     assert set(select_gates([path])) == ALL_GATES
 
 
-def test_deck_change_skips_mpi():
+def test_deck_change_skips_mpi_and_strict():
     sel = select_gates(["examples/nonlinear_interactions/sources/src_nobreak.swn"])
     assert set(sel) == {"serial", "openmp", "pytest", "upstream_delta"}
 
@@ -58,7 +58,13 @@ def test_docs_only_give_an_empty_selection():
 
 def test_unknown_path_is_fail_safe():
     sel = select_gates(["entirely/new/thing.xyz"])
-    assert set(sel) == {"serial", "openmp", "mpi", "pytest", "upstream_delta"}
+    assert set(sel) == {"serial", "openmp", "mpi", "strict", "pytest", "upstream_delta"}
+
+
+def test_strict_register_asks_only_strict_and_pytest():
+    for path in ("scripts/strict_diagnostics_triage.json",
+                 "scripts/strict_diagnostics.py"):
+        assert set(select_gates([path])) == {"strict", "pytest"}
 
 
 def test_mpi_test_requires_mpi():
