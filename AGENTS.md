@@ -48,3 +48,31 @@ Niet elke wijziging hoeft de volledige breedte (serieel + OpenMP + MPI + strict)
 - strict alleen bij bron-, toolchain- of budgetwijzigingen. Alleen docs/commentaar: geen poorten.
 - Onbekende paden kiezen veilig alles; nooit stil niets.
 - Overgeslagen poorten blijven staan op hun laatste groene commit — vermeld die commit bij de wijziging, zodat de releaseclaim herleidbaar blijft.
+
+## Prestatiemetingen: altijd ook multicore
+
+SWAN wordt in de praktijk vrijwel altijd multicore gedraaid. Een snelheidsclaim
+op één kern zegt daarom weinig over de winst die een gebruiker ziet, en kan die
+zelfs verkeerd voorspellen: een ingreep die serieel wint kan multicore verliezen
+zodra hij de belastingverdeling scheeftrekt, een synchronisatiepunt toevoegt, of
+geheugenbandbreedte opsnoept die bij één thread nog ruim was.
+
+Meet daarom elke prestatiewijziging op **minstens één seriële en één multicore
+configuratie**, en vermeld beide. De seriële meting isoleert het rekenwerk, de
+multicore meting laat zien wat de gebruiker overhoudt. Geef het threadaantal,
+de pinning en de gebruikte kernen erbij; zonder die gegevens is een tijd niet
+reproduceerbaar.
+
+Twee dingen die daarbij horen:
+
+- **Bewaak bytegelijkheid over threadaantallen.** De uitvoer hoort onafhankelijk
+  te zijn van het aantal threads. Meet dat expliciet mee bij 1, 2, 4 en meer
+  threads; een prestatiewinst die het determinisme breekt is geen winst.
+- **Meet op een stille machine.** Draait er iets anders op dezelfde node — een
+  tweede agent, een bouw, een andere som — dan is de tijd onbruikbaar. Controleer
+  dat vooraf en vermeld het als het niet lukte.
+
+Dit geldt ook voor een optie die standaard uitstaat: het uitgeschakelde pad moet
+aantoonbaar gratis zijn, en dat is juist multicore niet vanzelfsprekend. Eén
+onvoorwaardelijke atomaire teller in de roosterpuntlus kost serieel weinig en
+multicore een contentiepunt.
