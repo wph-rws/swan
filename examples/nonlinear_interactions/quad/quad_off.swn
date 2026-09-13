@@ -1,4 +1,10 @@
 $ Deep-water wind-wave growth without quadruplet interactions
+$
+$ The stopping criterion needs more than the default 50 iterations here: without
+$ quadruplets the spectrum keeps a few points oscillating in and out of
+$ tolerance and the run only settles around iteration 150. A deck that never
+$ meets its own criterion is a weak regression test, so the cap is raised rather
+$ than left to fail quietly.
 PROJECT 'QUADOFF' '001'
 SET CARTESIAN
 MODE STATIONARY ONEDIMENSIONAL
@@ -22,6 +28,8 @@ POINTS 'GAUGES' 0.0 0.0 25000.0 0.0 50000.0 0.0 &
 TABLE 'GAUGES' HEADER 'quad_off.tbl' XP DEPTH HSIGN TM01 RTP REDTRIAD REDQUAD
 SPECOUT 'GAUGES' SPEC1D ABS 'quad_off.spc'
 TEST 1 0 POINTS XY 50000.0 0.0 S1D 'quad_off_sources.spc'
+
+NUMERIC STOPC STAT MXITST=200
 
 COMPUTE
 STOP

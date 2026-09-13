@@ -5,12 +5,24 @@ $ semi-implicit variant of SWSNL1 against the explicit SWSNL2 of the default.
 $ This is the only deck in the repository that reaches SWSNL1; without it the
 $ bounds-checked CI build has nothing to check that routine against.
 $
-$ The semi-implicit variant does not reach the accuracy criterion on this fetch
-$ case: it stalls near 30-50 % of the wet points and keeps oscillating there,
-$ also at 400 iterations. That behaviour is a property of IQUAD = 1 itself --
-$ it reproduces byte for byte on the build from before the SWSNL1 argument
-$ regression -- so this deck is path coverage, not a converged physics
-$ reference. Do not read its wave heights as validated results.
+$ Without false time stepping the semi-implicit variant does not reach the
+$ accuracy criterion on this fetch case: it stalls near 30-50 % of the wet
+$ points and keeps oscillating there, also at 400 iterations. That behaviour
+$ is a property of IQUAD = 1 itself -- it reproduces byte for byte on the
+$ build from before the SWSNL1 argument regression -- so on its own this deck
+$ is path coverage, not a converged physics reference. The ALFA note below is
+$ what makes it converge; read the two together, and do not read the wave
+$ heights of a run without ALFA as validated results.
+$
+$ ALFA=0.01 is not decoration. Without false time stepping QUADRUPLET 1 never
+$ converges on this deck at all -- it enters a limit cycle and still oscillates
+$ between 17% and 80% of the wet points after 599 iterations, at every wind
+$ speed tried. SWSNL1 puts the raw derivative -DSNL/PI3 on the matrix diagonal,
+$ which has no sign guarantee and can weaken it, where SWSNL2 splits on sign and
+$ can only strengthen it. The SWAN technical documentation names exactly that
+$ failure mode and offers false time stepping as the remedy, and it works: with
+$ ALFA=0.01 the same run converges in 40 iterations. See the open item in
+$ doc/bugfixes-tov-tu-delft-41.51.md.
 PROJECT 'QUADDIA1' '001'
 SET CARTESIAN
 MODE STATIONARY ONEDIMENSIONAL
@@ -34,6 +46,8 @@ POINTS 'GAUGES' 0.0 0.0 25000.0 0.0 50000.0 0.0 &
 TABLE 'GAUGES' HEADER 'quad_dia1.tbl' XP DEPTH HSIGN TM01 RTP REDTRIAD REDQUAD
 SPECOUT 'GAUGES' SPEC1D ABS 'quad_dia1.spc'
 TEST 1 0 POINTS XY 50000.0 0.0 S1D 'quad_dia1_sources.spc'
+
+NUMERIC STOPC STAT MXITST=100 ALFA=0.01
 
 COMPUTE
 STOP
