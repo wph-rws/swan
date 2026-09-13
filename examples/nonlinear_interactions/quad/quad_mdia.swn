@@ -6,10 +6,12 @@ $ coverage: before this deck the repository never selected QUADRUPLET 4, so the
 $ bounds-checked CI build never reached SWSNL4 or the per-quadruplet coefficient
 $ cache in SWPRE4W.
 $
-$ The two lambda/cnl4 pairs are chosen to exercise the multi-quadruplet loop,
-$ not to reproduce a calibrated MDIA parameter set. Like quad_mdia this deck
-$ does not reach the accuracy criterion; read it as path coverage, not as a
-$ verified physics reference.
+$ The three lambda/cnl4 triples exercise the multi-quadruplet loop and are not
+$ a calibrated MDIA parameter set. They were chosen because they converge: a
+$ single quadruplet at the standard DIA values (lambda 0.25, cnl4 3.0E7) stalls
+$ at 9.8% of the wet points and two quadruplets at 29.3%, while this set reaches
+$ 100% in 48 iterations. That stalling is a property of the chosen coefficients,
+$ not of the MDIA code path.
 PROJECT 'QUADMDIA' '001'
 SET CARTESIAN
 MODE STATIONARY ONEDIMENSIONAL
@@ -26,7 +28,7 @@ BOUNDSPEC SIDE WEST CONSTANT PAR 0.05 2.0 0.0 20.0
 
 GEN3 WESTH
 QUADRUPLET 4
-MDIA LAMBDA 0.25 0.16 CNL4 2.0E7 1.0E7
+MDIA LAMBDA 0.061 0.229 0.374 CNL4 1.0E7 1.0E7 1.0E7
 OFF BREAKING
 
 POINTS 'GAUGES' 0.0 0.0 25000.0 0.0 50000.0 0.0 &
