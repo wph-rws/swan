@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import re
 import shutil
 import subprocess
 import sys
@@ -28,12 +29,22 @@ VARIANTS = {
     "quad_dia2": Variant("quad", "quad_dia2", "DIA per sweep"),
     "quad_dia3": Variant("quad", "quad_dia3", "DIA per iteration"),
     "quad_mdia": Variant("quad", "quad_mdia", "multiple DIA (MDIA)"),
+    "quad_full": Variant("quad", "quad_full", "fully explicit, full circle"),
     "quad_xnl": Variant(
-        "quad", "quad_xnl", "exact XNL reference", slow=True
+        "quad", "quad_xnl", "exact XNL reference, deep water", slow=True
+    ),
+    "quad_xnl52": Variant(
+        "quad", "quad_xnl52", "exact XNL, WAM depth scaling", slow=True
+    ),
+    "quad_xnl53": Variant(
+        "quad", "quad_xnl53", "exact XNL, finite depth", slow=True
     ),
     "triad_off": Variant("triad", "triad_off", "triads disabled"),
     "triad_dcta": Variant("triad", "triad_dcta", "DCTA triads"),
-    "triad_lta": Variant("triad", "triad_lta", "LTA triads (the operational choice)"),
+    "triad_lta": Variant("triad", "triad_lta", "LTA triads"),
+    "triad_lta11": Variant(
+        "triad", "triad_lta11", "pre-41.01 LTA triads (the operational choice)"
+    ),
     "triad_ftim": Variant("triad", "triad_ftim", "FTIM triads"),
     "combined": Variant(
         "combined", "combined", "DIA and FTIM from ocean to coast"
@@ -77,8 +88,12 @@ BROKEN_KEYS: tuple[str, ...] = ()
 # Named groups rather than positional slices: a slice silently selects the
 # wrong variants as soon as a group grows, which is how quad_mdia went missing
 # from its own group on the first attempt.
-QUAD_KEYS = ("quad_off", "quad_dia1", "quad_dia2", "quad_dia3", "quad_mdia")
-TRIAD_KEYS = ("triad_off", "triad_dcta", "triad_ftim", "triad_lta")
+QUAD_KEYS = (
+    "quad_off", "quad_dia1", "quad_dia2", "quad_dia3", "quad_mdia", "quad_full",
+)
+# The XNL suite takes about two minutes per deck, so it stays opt-in.
+XNL_KEYS = ("quad_xnl", "quad_xnl52", "quad_xnl53")
+TRIAD_KEYS = ("triad_off", "triad_dcta", "triad_ftim", "triad_lta", "triad_lta11")
 COMBINED_KEYS = ("combined",)
 SOURCE_TOGGLE_KEYS = (
     "src_all",
@@ -114,6 +129,35 @@ class RunResult:
     frequencies: list[float]
     locations: list[tuple[float, float]]
     spectra: list[list[float]]
+    accuracy: float | None
+    required_accuracy: float | None
+
+    @property
+    def converged(self) -> bool:
+        """Whether SWAN's own stopping criterion was met.
+
+        A run that stops on the iteration cap still writes norm_end and exits
+        zero, so nothing downstream notices unless this is read explicitly.
+        """
+        if self.accuracy is None or self.required_accuracy is None:
+            return True
+        return self.accuracy >= self.required_accuracy
+
+
+ACCURACY_PATTERN = re.compile(
+    r"accuracy OK in\s+([0-9.]+)\s*% of wet grid points\s*\(\s*([0-9.]+)\s*% required"
+)
+
+
+def parse_accuracy(print_file: Path) -> tuple[float | None, float | None]:
+    """Last reported accuracy and the accuracy SWAN required, from PRINT."""
+    matches = ACCURACY_PATTERN.findall(
+        print_file.read_text(encoding="utf-8", errors="replace")
+    )
+    if not matches:
+        return None, None
+    reached, required = matches[-1]
+    return float(reached), float(required)
 
 
 def find_executable(example_directory: Path, requested: str | None) -> Path:
@@ -140,13 +184,13 @@ def find_executable(example_directory: Path, requested: str | None) -> Path:
 def select_variants(selection: str) -> tuple[str, ...]:
     groups = {
         "standard": STANDARD_KEYS,
-        "all": (*QUAD_KEYS, "quad_xnl", *STANDARD_KEYS[len(QUAD_KEYS):]),
+        "all": (*QUAD_KEYS, *XNL_KEYS, *STANDARD_KEYS[len(QUAD_KEYS):]),
         "quad": QUAD_KEYS,
         "triad": TRIAD_KEYS,
         "combined": COMBINED_KEYS,
         "sources": SOURCE_TOGGLE_KEYS,
         "formulations": FORMULATION_KEYS + BROKEN_KEYS,
-        "xnl": ("quad_xnl",),
+        "xnl": XNL_KEYS,
     }
     if selection not in groups:
         raise ValueError(f"unknown selection: {selection}")
@@ -299,9 +343,18 @@ def run_variant(
     if not any(value > 0.0 for spectrum in spectra for value in spectrum):
         raise RuntimeError(f"{key} produced only empty spectra")
 
+    accuracy, required = parse_accuracy(print_file)
+
     qualifier = " (slow reference)" if variant.slow else ""
+    if accuracy is not None and required is not None and accuracy < required:
+        qualifier += (
+            f" -- DID NOT CONVERGE: {accuracy:.2f}% of wet points,"
+            f" {required:.2f}% required"
+        )
     print(f"{key}: completed in {elapsed:.2f} s{qualifier}")
-    return RunResult(variant, table, frequencies, locations, spectra)
+    return RunResult(
+        variant, table, frequencies, locations, spectra, accuracy, required
+    )
 
 
 def relative_spectral_difference(first: list[float], second: list[float]) -> float:
@@ -325,10 +378,11 @@ def validate_results(results: dict[str, RunResult]) -> list[str]:
             # Reaching this point already proves the path ran to norm_end
             # without a runtime error, which is all this deck is asked to show.
             continue
-        if key in {"quad_dia1", "quad_dia2", "quad_dia3", "quad_mdia", "quad_xnl", "combined"}:
+        if key in {"quad_dia1", "quad_dia2", "quad_dia3", "quad_mdia",
+                   "quad_full", *XNL_KEYS, "combined"}:
             if max(quad_sources) <= 1.0e-8:
                 raise RuntimeError(f"{key} did not activate quadruplet transfer")
-        if key in {"triad_dcta", "triad_ftim", "triad_lta", "combined"}:
+        if key in {"triad_dcta", "triad_ftim", "triad_lta", "triad_lta11", "combined"}:
             if max(triad_sources) <= 1.0e-8:
                 raise RuntimeError(f"{key} did not activate triad transfer")
 
@@ -338,15 +392,30 @@ def validate_results(results: dict[str, RunResult]) -> list[str]:
         dia2 = results["quad_dia2"].spectra[-1]
         dia3 = results["quad_dia3"].spectra[-1]
         off_difference = relative_spectral_difference(off, dia2)
-        dia1_difference = relative_spectral_difference(dia2, dia1)
         dia_difference = relative_spectral_difference(dia2, dia3)
         if off_difference <= 0.01:
             raise RuntimeError("DIA did not measurably change the down-fetch spectrum")
         messages.append(
             f"QUAD: DIA2 differs {off_difference:.1%} from OFF at 100 km; "
-            f"DIA1 differs {dia1_difference:.1%} and DIA3 differs "
-            f"{dia_difference:.1%} from DIA2."
+            f"DIA3 differs {dia_difference:.1%} from DIA2."
         )
+        # DIA1 is kept out of that sentence on purpose. QUADRUPLET 1 does not
+        # converge on this deck -- it settles into a limit cycle rather than a
+        # solution -- so a spectral difference against the converged DIA2 would
+        # mostly measure where DIA1 happened to stop, not how the formulation
+        # differs. Report it only as what it is.
+        if not results["quad_dia1"].converged:
+            messages.append(
+                f"QUAD: DIA1 did not converge "
+                f"({results['quad_dia1'].accuracy:.2f}% of wet points, "
+                f"{results['quad_dia1'].required_accuracy:.2f}% required); its "
+                f"spectrum is not comparable with the converged runs."
+            )
+        else:
+            dia1_difference = relative_spectral_difference(dia2, dia1)
+            messages.append(
+                f"QUAD: DIA1 differs {dia1_difference:.1%} from DIA2."
+            )
 
     if {"triad_off", "triad_dcta", "triad_ftim"}.issubset(results):
         off = results["triad_off"].spectra[-2]
@@ -359,6 +428,24 @@ def validate_results(results: dict[str, RunResult]) -> list[str]:
         messages.append(
             f"TRIAD: DCTA differs {dcta_difference:.1%} and FTIM differs "
             f"{ftim_difference:.1%} from OFF at x=25 m."
+        )
+
+    if {"triad_lta", "triad_lta11"}.issubset(results):
+        # The two LTA generations must not collapse onto each other. ITRIAD=11
+        # drops the shoaling factor and reads the group velocity locally, so a
+        # measurable difference here is what keeps the pair honest: if it ever
+        # vanishes, one of the two spellings has stopped selecting its own
+        # formulation and the coverage claim is empty again.
+        lta = results["triad_lta"].spectra[-2]
+        lta11 = results["triad_lta11"].spectra[-2]
+        lta_difference = relative_spectral_difference(lta, lta11)
+        if lta_difference <= 0.01:
+            raise RuntimeError(
+                "TRIAD LTA and TRIAD ITRIAD=11 produced the same spectrum; "
+                "one of the two is no longer selecting its own formulation"
+            )
+        messages.append(
+            f"TRIAD: ITRIAD=11 differs {lta_difference:.1%} from LTA at x=25 m."
         )
 
     if {"src_all", *SOURCE_VARIANTS}.issubset(results):
