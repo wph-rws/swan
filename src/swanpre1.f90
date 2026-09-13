@@ -1863,6 +1863,13 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                WRITE (PRINTF,'(A,(F7.4))') &
                   ' Highest discrete frequency (in Hz): FHIGH = ',FRHIG
             END IF
+!     Without a frequency interval there is no spectrum: the resolution above
+!     then divides by zero and every spectral difference reads outside SPCSIG.
+!     MSGERR only stops after reading the input; until then, a valid value.
+            IF (MSS.LT.1) THEN
+               CALL MSGERR(4, '[msc] in CGRID must be at least 1')
+               MSS = 1
+            END IF
             SLOW = 2.*PI*FRLOW
             SHIG = 2.*PI*FRHIG
             MSC  = MSS+1

@@ -42,6 +42,51 @@ def test_compute_stationary_is_valid(tmp_path, compute):
     assert "Illegal keyword" not in report, report[-2000:]
 
 
+def _run_cgrid(tmp_path: Path, spectral: str, extra_command: str = "") -> tuple[int, str]:
+    """Run the smoke deck with a different spectral grid in CGRID."""
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    assert "CIRCLE 24 0.05 1.0 16" in deck, "smoke deck has changed shape"
+    deck = deck.replace("CIRCLE 24 0.05 1.0 16", f"CIRCLE 24 {spectral}", 1)
+    deck = deck.replace("GEN3 KOMEN", f"GEN3 KOMEN\n{extra_command}", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    printfile = work / "PRINT"
+    report = printfile.read_text(encoding="utf-8", errors="replace") if printfile.is_file() else ""
+    return result.returncode, report
+
+
+#  Too few frequencies. Without a frequency interval SWREAD divides by zero;
+#  FAC4WW fixes the DIA bins with SPCSIG(MSC/2-1) and with fewer than four
+#  frequencies reads outside the table. Upstream only tested MSC = 3 and let
+#  the rest compute on silently to a 'normal' end with Hs = 0.
+TOO_FEW_FREQUENCIES = [
+    ("0.05 1.0 0", "[msc] in CGRID must be at least 1"),
+    ("0.05 1.0 -3", "[msc] in CGRID must be at least 1"),
+    ("0.05 0.052", "[msc] in CGRID must be at least 1"),
+    ("0.05 1.0 1", "Quadruplets need at least four frequencies"),
+    ("0.05 1.0 2", "Do not activate quadruplets"),
+]
+
+
+@pytest.mark.parametrize("spectral,expected", TOO_FEW_FREQUENCIES)
+def test_too_few_frequencies_are_rejected(tmp_path, spectral, expected):
+    returncode, report = _run_cgrid(tmp_path, spectral)
+    assert returncode != 0, f"'{spectral}' ran on to a normal end.\n{report[-2000:]}"
+    assert expected in report, report[-2000:]
+
+
+#  Without quadruplets SWAN reports a level 2 error in third-generation mode
+#  with wind ("Quadruplets should be activated ..."). The manual allows such
+#  an error with SET MAXERR, so the test raises it and expects SWAN to compute.
+def test_two_frequencies_without_quadruplets_keep_running(tmp_path):
+    returncode, report = _run_cgrid(tmp_path, "0.05 1.0 1", "OFF QUAD\nSET MAXERR 2")
+    assert returncode == 0, report[-2000:]
+    assert "No start of computation" not in report, report[-2000:]
+
+
 def _run_deck(tmp_path: Path, deck: str, files: dict[str, str] | None = None,
               timeout: float | None = None):
     work = tmp_path / "work"
