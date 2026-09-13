@@ -2,11 +2,12 @@
 
 ## Vergelijkingsbasis
 
-Deze lijst vergelijkt de RWS-fork op bronstand "Benoem de numerieke en fysische keuzes in plaats van indexen" met de op
-11 september 2026 opnieuw opgehaalde `upstream/main` van TU Delft:
+Deze lijst vergelijkt de RWS-fork op bronstand "Herstel de brekingsindex van
+BREAKING ASYM" met de op 13 september 2026 opnieuw opgehaalde `upstream/main`
+van TU Delft:
 
 - repository: [`citg/wavemodels/swan`](https://gitlab.tudelft.nl/citg/wavemodels/swan);
-- upstream-commit: [`43e9bbba393f2cf9eaff78bc92eaed118a3a5c8e`](https://gitlab.tudelft.nl/citg/wavemodels/swan/-/commit/43e9bbba393f2cf9eaff78bc92eaed118a3a5c8e), 13 juli 2026;
+- upstream-commit (ongewijzigd sinds de vorige vergelijking): [`43e9bbba393f2cf9eaff78bc92eaed118a3a5c8e`](https://gitlab.tudelft.nl/citg/wavemodels/swan/-/commit/43e9bbba393f2cf9eaff78bc92eaed118a3a5c8e), 13 juli 2026;
 - laatste bronpatch daarin: `0dabfa4` (`updated src (patch B)`), eveneens
   13 juli 2026;
 - versienummer aan beide kanten: **41.51** (in deze fork de parameter
@@ -64,6 +65,7 @@ wel wie er last van heeft.
 | BF-15 | **latent/interface** | **De METIS-C-aanroepen hadden geen expliciete interoperabele interface of controle op de gedeclareerde ABI-breedtes.** Upstream declareert ze als `integer(kind=kint), external :: METIS_PartGraphKway` en vertrouwt erop dat `kint` met `idx_t` uit de bibliotheek overeenkomt. Ze lopen nu via `ISO_C_BINDING`/`BIND(C)`. CMake controleert, wanneer `metis.h` op de gevonden include-locatie beschikbaar is, of die header 32-bit `idx_t` en 32-bit `real_t` declareert; andere gedeclareerde breedtes stoppen de configuratie. Dit bewijst niet zelfstandig dat een los gevonden bibliotheek met precies die header is gebouwd. | De daadwerkelijk gevonden 32/32-header/bibliotheekcombinatie, argumentdoorgifte, indexbereiken en echte tweeranks partitionering zijn getest. Een 64-bit-indexbibliotheek en een bewust niet-passende header/bibliotheekcombinatie waren niet beschikbaar en zijn daarom uitdrukkelijk niet gekwalificeerd. Zie `src/swan_metis_interface.f90`, `src/SwanParallel.f90` en `tests/test_metis_backend.f90`. Commit "Leg de beoordeelde stand vast en maak de testbewaking eerlijk". |
 | BF-16 | **build** | **De Windows-CMake-route gaf bij GNU Fortran altijd de `CVIS`-schakelaar door** (`if( WIN32 ) set( SWITCHES -dos -cvis )` in `src/CMakeLists.txt`, zonder compilertoets). Die activeert de niet-standaard `SHARED`-specifier in de `OPEN`-statements en maakt een standaardconforme GNU-build onmogelijk, terwijl de GNU-runtime deze voor Windows-bestandsdeling niet nodig heeft. De standaardconforme bestandsbackend is nu de default; de bewaarde DEC-`SHARED`-backend wordt alleen via de expliciete capability-optie `SWAN_DEC_SHARED_IO` gekozen en niet meer automatisch op basis van Windows of “niet-GNU”. | Backendselectie en switchcompatibiliteit zijn statisch getest. Er was geen DEC-capabele Windows-compiler beschikbaar; een werkelijke bouw van de optionele `SHARED`-backend is daarom niet gekwalificeerd. Zie `CMakeLists.txt`, `src/platform/`, `tests/test_switch_compatibility.py` en `doc/switch-manifest.json`. Commit "Breid de voorbeelden uit en repareer de CVIS-schakelaar op Windows", later structureel opgenomen in de backendselectie. |
 | BF-17 | **bewezen** | **`BREAKING ASYM` vernietigde het golfveld over het hele domein.** De asymmetrie-brekingsindex van Saprykina et al. (2017) kent twee regimes: draagt de tweede harmonische meer dan 35% van de energie, dan breken de golven spillend en is de index de constante `PSURF(4)` = 0,6; daaronder plungen ze en *stijgt* de index bóven die constante met de verticale asymmetrie, die de biphase meet. De index is dus van onderen begrensd door 0,6 en wordt nooit klein, laat staan nul. `BRKPAR` geeft voor het tweede regime `BRCOEF = -1` door, waarna `SINTGRL` `BRCOEF = PSURF(4) - 0,3*PSURF(5)*BIPH` berekent — maar alleen achter `IF (BIPH.LT.0.)`. De biphase van zowel Eldeberky als Saprykina is per constructie niet-positief, zodat die uitdrukking bij `BIPH = 0` exact op de spilling-constante 0,6 uitkomt; `.LT.` in plaats van `.LE.` snijdt daar dus een sprong in een continue kromme, precies op het fysisch betekenisvolle eindpunt. Dat eindpunt is niet zeldzaam: `0,5*PI*(TANH(URCRIT/UR)-1)` onderloopt in enkele precisie naar exact nul zodra het Ursell-getal onder ongeveer 0,065 zakt (standaard `URCRIT` = `PTRIAD(4)` = 0,63), dus elk punt zeewaarts van de brandingszone valt erop. De `ELSE`-tak zette vervolgens `BRCOEF = 0` met het commentaar "no surf breaking", terwijl `HM = GAMBR * DEP2` daarmee nul wordt. Dat loopt niet via `FRABRE` — die geeft bij `HM = 0` juist `QB = 0` terug — maar via `SSURF`: `BB = 8*ETOT/(KTETA*HM**2)` wordt oneindig, en de tak voor `BB >= 1` zet `WS = (PSURF(1)/PI)*FMEAN`, de verzadigde dissipatie. Er breken dus juist *alle* golven — het omgekeerde van de bedoeling; de tak die breking echt uitzet gebruikt `HM = 100`. De toets is nu `.LE.` en de resterende tak (alleen bereikbaar via De Wits biphase, die positief kán worden) zet de index op een onbereikbaar hoge waarde in plaats van nul. | Vóór de reparatie viel Hsig op het `src_break_asym`-deck van 0,98 m naar 0,0004 m met beide dissipatiekolommen exact nul (nul omdat er met `E` ≈ 0 niets meer te dissiperen valt, niet omdat de breking uitstond), ook bij uniform 3 m diepte waar de niet-lineariteit sterk is, en voor alle drie de biphase-formuleringen (Eldeberky, Saprykina, De Wit). Erna geeft het deck 0,50 → 1,94 → 2,39 → 0,84 → 0,58 → 0,58 m, vergelijkbaar met `src_all` (0,50 → 1,93 → 2,40 → 0,98 → 0,68 → 0,68) en `src_break_var`. Van de 24 decks in de voorbeeldsuite verandert alleen `src_break_asym` van uitvoer; de overige 23 tabellen zijn bytegelijk. De tak is regel voor regel gelijk aan `upstream/main` op `43e9bbb` (41.51) en aan de 41.45-release, dus het defect zit in de TU Delft-bron en niet in de modernisering. De optie is bovendien niet gedocumenteerd in de SWAN-handleiding en werd door geen enkel deck gekozen, wat verklaart waarom hij onopgemerkt bleef. Zie `src/swancom1.f90`, `examples/nonlinear_interactions/sources/src_break_asym.swn` en `scripts/physics_coverage.py`. Commit "Herstel de brekingsindex van BREAKING ASYM". |
+| BF-18 | **bewezen** | **De wavefronts van de ongestructureerde OpenMP-solver ordenden op slechts een van de twee stencilburen.** In het `!GRAPH`-blok van `SwanVertlist.ftn90` worden beide buren van de vertex berekend (`vu(1)` en `vu(2)`, upstream regels 266-267), maar de niveaubepaling gebruikt er met `m = vu(1)` — commentaar "pick first neighbour vertex", regel 274 — maar een. Het transport leest `ac2` van beide buren en schrijft naar het midden, dus kon een vertex met open waaier (meshrand, kustlijn, obstakelsnede) in hetzelfde front belanden als een buur die hij leest terwijl een andere thread die nog moet bijwerken. Het resultaat hing daarmee af van het threadaantal en de planning. De ontbrekende rand zit er nu in: de lus telt beide buren mee. | Het mechanisme is eerst op een synthetische mesh aangetoond en daarna op de niet-stationaire ongestructureerde case gemeten: 175 van de 1617 waarden in het blokbestand schuiven op, maximaal 11% op een enkel punt, terwijl de tabel van het middelpunt onveranderd blijft. De opgeslagen referentie is in dezelfde commit bewust bijgewerkt, met dat verschil als bewijs van het herstel. `tests/test_front_dependency_completeness.f90` bewaakt de volledigheid van de afhankelijkheden. De FFRO-variant gebruikt de graph-gekleurde frontindeling en is niet geraakt; die referentie staat ongewijzigd. De operationele so-rp-suite is gestructureerd en wordt hier niet door geraakt. Zie `src/parallel/swan_front_scheduling_backend_graph.f90` en `doc/moderniseringsplan.md`. Commit "Kies poorten gericht en herstel het ongestructureerde OpenMP-determinisme". |
 
 ## Niet als bugfix meegeteld
 
@@ -87,6 +89,13 @@ De volgende verschillen met TU Delft zijn bewust niet in de tabel opgenomen:
   gewone CMake-capability bouwbaar gemaakt en met een backendtest afgedekt
   (`src/coupling/`, `tests/test_esmf_coupling_backend.f90`). Dat is
   moderniseringsonderhoud, geen reparatie van upstream;
+- **de sweepgrenzen van `SWSNL1`.** Die routine las de roosterbrede
+  `WWINT`-tabel in plaats van de per-roosterpunt door `RANGE4` bijgewerkte
+  kopie, waardoor `QUADRUPL 1` buiten `UE` schreef en met heapcorruptie
+  afbrak. Dat was geen upstreamdefect maar een regressie van deze fork zelf,
+  ingevoerd bij de argumentbundeling en hersteld in de commit "Geef SWSNL1 de
+  sweepgrenzen van het eigen roosterpunt terug"; de uitvoer is daarna
+  bytegelijk aan de bouw van voor die bundeling;
 - de gewijzigde standaardfysica sinds SWAN 41.45. Dat is een bewuste
   upstreamwijziging. `GEN3 KOMEN DRAG FIT` is een compatibiliteitsinstelling om
   41.31-fysica te benaderen, geen bugfix in 41.51.
@@ -96,19 +105,6 @@ De volgende verschillen met TU Delft zijn bewust niet in de tabel opgenomen:
 Deze bevindingen zijn onderzocht maar nog niet opgelost en staan daarom niet
 tussen de geleverde bugfixes:
 
-- **kandidaat-upstreamdefect:** de niveaugrafiek die de wavefronts van de
-  ongestructureerde OpenMP-solver bepaalt, ordent maar op één van de twee buren
-  waarvan de solver `ac2` leest. De tweede buur (`vu(2)`) wordt wél berekend en
-  nooit gebruikt, waardoor een vertex met open waaier — meshrand, kustlijn,
-  obstakelsnede — in hetzelfde front kan belanden als een buur die hij leest
-  terwijl die geschreven wordt. Dit is upstream-code
-  (`0dabfa4:src/SwanVertlist.ftn90`, `!GRAPH`-blok, ongewijzigd door de
-  modernisering). Het mechanisme is op een synthetische mesh aangetoond en met
-  een test vastgelegd; de telling op de echte mesh, de correlatie met de
-  waargenomen flips en het effect op de oplossing staan nog open, en daarmee ook
-  of dit een reparatie of alleen een melding wordt. De operationele so-rp-suite
-  is gestructureerd en wordt hier niet door geraakt. Zie
-  `doc/moderniseringsplan.md`;
 - een malafide `POINTS 'x' CURVE`-deck kan in Release incidenteel met
   `SIGABRT` eindigen in plaats van schoon te stoppen; bewezen pre-existing (de
   pre-repair-binary aborteert identiek) en heap-toestandsafhankelijk, zonder
