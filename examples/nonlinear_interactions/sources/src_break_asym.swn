@@ -1,0 +1,33 @@
+$ asymmetry-based breaking (allocates its own COMPDA slot)
+$
+$ Identical to src_break_asym apart from the one formulation line below, so the two
+$ decks isolate this formulation. Added for path coverage: before this deck the
+$ repository never selected it, so the bounds-checked CI build never reached it.
+PROJECT 'SRC_BREAK_ASYM' '001'
+SET CARTESIAN
+MODE STATIONARY ONEDIMENSIONAL
+COORDINATES CARTESIAN
+
+CGRID REGULAR 0.0 0.0 0.0 50000.0 0.0 250 0 &
+      CIRCLE 36 0.04 1.0 34
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 50 0 1000.0 1.0
+READINP BOTTOM 1.0 'bottom.bot' 1 0 FREE
+
+WIND 15.0 0.0
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 0.5 5.0 0.0 20.0
+
+GEN3 WESTH
+QUADRUPLET 3
+TRIAD FTIM
+BREAKING ASYM
+FRICTION JONSWAP CONSTANT 0.038
+
+POINTS 'GAUGES' 0.0 0.0 20000.0 0.0 40000.0 0.0 &
+         45000.0 0.0 48000.0 0.0 50000.0 0.0
+TABLE 'GAUGES' HEADER 'src_break_asym.tbl' XP DEPTH HSIGN TM01 GENW DISW DISSU DISB
+SPECOUT 'GAUGES' SPEC1D ABS 'src_break_asym.spc'
+TEST 1 0 POINTS XY 45000.0 0.0 S1D 'src_break_asym_sources.spc'
+
+COMPUTE
+STOP

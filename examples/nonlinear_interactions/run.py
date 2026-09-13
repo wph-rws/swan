@@ -27,11 +27,13 @@ VARIANTS = {
     "quad_dia1": Variant("quad", "quad_dia1", "semi-implicit DIA per sweep"),
     "quad_dia2": Variant("quad", "quad_dia2", "DIA per sweep"),
     "quad_dia3": Variant("quad", "quad_dia3", "DIA per iteration"),
+    "quad_mdia": Variant("quad", "quad_mdia", "multiple DIA (MDIA)"),
     "quad_xnl": Variant(
         "quad", "quad_xnl", "exact XNL reference", slow=True
     ),
     "triad_off": Variant("triad", "triad_off", "triads disabled"),
     "triad_dcta": Variant("triad", "triad_dcta", "DCTA triads"),
+    "triad_lta": Variant("triad", "triad_lta", "LTA triads (the operational choice)"),
     "triad_ftim": Variant("triad", "triad_ftim", "FTIM triads"),
     "combined": Variant(
         "combined", "combined", "DIA and FTIM from ocean to coast"
@@ -41,22 +43,63 @@ VARIANTS = {
     "src_nowcap": Variant("sources", "src_nowcap", "whitecapping disabled"),
     "src_nobreak": Variant("sources", "src_nobreak", "breaking disabled"),
     "src_nofric": Variant("sources", "src_nofric", "bottom friction disabled"),
+    "src_fric_collins": Variant("sources", "src_fric_collins", "Collins friction"),
+    "src_fric_madsen": Variant("sources", "src_fric_madsen", "Madsen friction"),
+    "src_fric_jonvar": Variant("sources", "src_fric_jonvar", "JONSWAP friction, depth-varying"),
+    "src_fric_ripples": Variant("sources", "src_fric_ripples", "Smith ripple friction"),
+    "src_break_var": Variant("sources", "src_break_var", "Nelder variable-gamma breaking"),
+    "src_break_rue": Variant("sources", "src_break_rue", "Ruessink breaking"),
+    "src_break_tg": Variant("sources", "src_break_tg", "Thornton-Guza breaking"),
+    "src_break_bkd": Variant("sources", "src_break_bkd", "beta-kd breaking"),
+    "src_break_asym": Variant("sources", "src_break_asym", "asymmetry breaking (known broken, see below)"),
 }
 
-STANDARD_KEYS = (
-    "quad_off",
-    "quad_dia1",
-    "quad_dia2",
-    "quad_dia3",
-    "triad_off",
-    "triad_dcta",
-    "triad_ftim",
-    "combined",
+# Bottom-friction and depth-induced-breaking formulations that must each stay
+# reachable and active. src_break_asym is deliberately absent: see BROKEN_KEYS.
+FORMULATION_KEYS = (
+    "src_fric_collins",
+    "src_fric_madsen",
+    "src_fric_jonvar",
+    "src_fric_ripples",
+    "src_break_var",
+    "src_break_rue",
+    "src_break_tg",
+    "src_break_bkd",
+)
+
+# BREAKING ASYM annihilates the wave field, and does so identically in stock
+# upstream 41.45, so this is not a defect of this repository. In SINTGRL the
+# branch for a non-negative Eldeberky biphase sets BRCOEF = 0 with the comment
+# "no surf breaking", but HM = GAMBR * DEP2 then becomes zero, which is maximum
+# breaking rather than none -- the disabled-breaking path uses HM = 100 for
+# that. The biphase reaches exactly zero whenever the Ursell number drops below
+# about 0.01, because TANH(URCRIT/UR) saturates at 1.0 in single precision, so
+# any deck with a deep-water section triggers it across the whole domain.
+# The deck is kept so the bounds-checked build still walks the code path; only
+# its physics is left unasserted.
+BROKEN_KEYS = ("src_break_asym",)
+
+# Named groups rather than positional slices: a slice silently selects the
+# wrong variants as soon as a group grows, which is how quad_mdia went missing
+# from its own group on the first attempt.
+QUAD_KEYS = ("quad_off", "quad_dia1", "quad_dia2", "quad_dia3", "quad_mdia")
+TRIAD_KEYS = ("triad_off", "triad_dcta", "triad_ftim", "triad_lta")
+COMBINED_KEYS = ("combined",)
+SOURCE_TOGGLE_KEYS = (
     "src_all",
     "src_nowind",
     "src_nowcap",
     "src_nobreak",
     "src_nofric",
+)
+
+STANDARD_KEYS = (
+    *QUAD_KEYS,
+    *TRIAD_KEYS,
+    *COMBINED_KEYS,
+    *SOURCE_TOGGLE_KEYS,
+    *FORMULATION_KEYS,
+    *BROKEN_KEYS,
 )
 
 # TABLE columns of the sources group: XP DEPTH HSIGN TM01 GENW DISW DISSU DISB.
@@ -100,21 +143,19 @@ def find_executable(example_directory: Path, requested: str | None) -> Path:
 
 
 def select_variants(selection: str) -> tuple[str, ...]:
-    if selection == "standard":
-        return STANDARD_KEYS
-    if selection == "all":
-        return (*STANDARD_KEYS[:4], "quad_xnl", *STANDARD_KEYS[4:])
-    if selection == "quad":
-        return STANDARD_KEYS[:4]
-    if selection == "triad":
-        return STANDARD_KEYS[4:7]
-    if selection == "combined":
-        return ("combined",)
-    if selection == "sources":
-        return ("src_all", "src_nowind", "src_nowcap", "src_nobreak", "src_nofric")
-    if selection == "xnl":
-        return ("quad_xnl",)
-    raise ValueError(f"unknown selection: {selection}")
+    groups = {
+        "standard": STANDARD_KEYS,
+        "all": (*QUAD_KEYS, "quad_xnl", *STANDARD_KEYS[len(QUAD_KEYS):]),
+        "quad": QUAD_KEYS,
+        "triad": TRIAD_KEYS,
+        "combined": COMBINED_KEYS,
+        "sources": SOURCE_TOGGLE_KEYS,
+        "formulations": FORMULATION_KEYS + BROKEN_KEYS,
+        "xnl": ("quad_xnl",),
+    }
+    if selection not in groups:
+        raise ValueError(f"unknown selection: {selection}")
+    return groups[selection]
 
 
 def clean_result_directory(directory: Path) -> None:
@@ -285,10 +326,14 @@ def validate_results(results: dict[str, RunResult]) -> list[str]:
             source_values = quad_sources if key == "quad_off" else triad_sources
             if max(source_values) > 1.0e-12:
                 raise RuntimeError(f"{key} reports a source term that should be disabled")
-        if key in {"quad_dia1", "quad_dia2", "quad_dia3", "quad_xnl", "combined"}:
+        if key in BROKEN_KEYS:
+            # Reaching this point already proves the path ran to norm_end
+            # without a runtime error, which is all this deck is asked to show.
+            continue
+        if key in {"quad_dia1", "quad_dia2", "quad_dia3", "quad_mdia", "quad_xnl", "combined"}:
             if max(quad_sources) <= 1.0e-8:
                 raise RuntimeError(f"{key} did not activate quadruplet transfer")
-        if key in {"triad_dcta", "triad_ftim", "combined"}:
+        if key in {"triad_dcta", "triad_ftim", "triad_lta", "combined"}:
             if max(triad_sources) <= 1.0e-8:
                 raise RuntimeError(f"{key} did not activate triad transfer")
 
@@ -344,6 +389,30 @@ def validate_results(results: dict[str, RunResult]) -> list[str]:
             if difference <= 0.01:
                 raise RuntimeError(f"{key} did not measurably change the x=45 km spectrum")
             messages.append(f"SOURCE: {key} differs {difference:.1%} from ALL at x=45 km.")
+
+    if {"src_all", *FORMULATION_KEYS}.issubset(results):
+        # Each formulation must stay reachable, keep its own process active,
+        # and differ from the JONSWAP/CONSTANT pair that src_all uses. A
+        # formulation that silently degenerates to the default would otherwise
+        # pass unnoticed, which is how QUADRUPLET 1 stayed broken.
+        reference = results["src_all"]
+        for key in FORMULATION_KEYS:
+            process = "friction" if "_fric_" in key else "breaking"
+            column = SOURCE_COLUMNS[process]
+            rows = results[key].table
+            if max(abs(row[column]) for row in rows) <= 1.0e-8:
+                raise RuntimeError(f"{key} reports no {process} dissipation")
+            if not all(row[2] > 0.0 for row in rows[1:]):
+                raise RuntimeError(f"{key} produced a vanishing wave height")
+            difference = relative_spectral_difference(
+                reference.spectra[3], results[key].spectra[3])
+            if difference <= 0.001:
+                raise RuntimeError(
+                    f"{key} is indistinguishable from the src_all formulation")
+        messages.append(
+            f"FORMULATIONS: {len(FORMULATION_KEYS)} friction/breaking "
+            f"formulations active and distinct from src_all."
+        )
 
     messages.append(f"Validated {len(results)} runs and their spectra/source terms.")
     return messages
@@ -449,7 +518,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--case",
-        choices=("standard", "all", "quad", "triad", "combined", "sources", "xnl"),
+        choices=("standard", "all", "quad", "triad", "combined", "sources",
+                 "formulations", "xnl"),
         default="standard",
         help=(
             "case group to run; standard excludes the roughly two-minute XNL "
