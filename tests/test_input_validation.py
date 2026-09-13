@@ -383,3 +383,16 @@ STOP
     rows = [r.split() for r in (tmp_path / "work" / "p.tbl").read_text().splitlines()]
     assert float(rows[0][2]) == pytest.approx(20.0)
     assert float(rows[1][2]) == pytest.approx(-99.0)
+
+
+def test_st6_returns_finite_roughness_at_boundary_points(tmp_path):
+    deck = _quick_deck().replace("GEN3 KOMEN", "GEN3 ST6 4.7E-7 6.6E-6 4 4 UP HWANG VECTAU U10PROXY 28 AGROW")
+    deck = deck.replace("LAYOUT 3 HSIGN", "LAYOUT 3 ZLEN")
+    proc, report = _run_deck(tmp_path, deck)
+    assert proc.returncode == 0, report[-2000:]
+    values = [float(v) for v in (tmp_path / "work" / "quick_test_hs.blk").read_text().split()]
+    assert len(values) == 231
+    assert all(math.isfinite(v) and 0 < v < .01 for v in values)
+    assert values[::21] == pytest.approx([.0001026]*11, rel=.001)
+
+
