@@ -42,6 +42,9 @@ VARIANTS = {
     "triad_off": Variant("triad", "triad_off", "triads disabled"),
     "triad_dcta": Variant("triad", "triad_dcta", "DCTA triads"),
     "triad_lta": Variant("triad", "triad_lta", "LTA triads"),
+    "triad_spb": Variant("triad", "triad_spb", "SPB triads"),
+    "triad_biph_sapr": Variant("triad", "triad_biph_sapr", "DCTA with the Saprykina biphase"),
+    "triad_biph_dewit": Variant("triad", "triad_biph_dewit", "DCTA with the De Wit biphase"),
     "triad_lta11": Variant(
         "triad", "triad_lta11", "pre-41.01 LTA triads (the operational choice)"
     ),
@@ -93,7 +96,16 @@ QUAD_KEYS = (
 )
 # The XNL suite takes about two minutes per deck, so it stays opt-in.
 XNL_KEYS = ("quad_xnl", "quad_xnl52", "quad_xnl53")
-TRIAD_KEYS = ("triad_off", "triad_dcta", "triad_ftim", "triad_lta", "triad_lta11")
+TRIAD_KEYS = (
+    "triad_off",
+    "triad_dcta",
+    "triad_ftim",
+    "triad_lta",
+    "triad_lta11",
+    "triad_spb",
+    "triad_biph_sapr",
+    "triad_biph_dewit",
+)
 COMBINED_KEYS = ("combined",)
 SOURCE_TOGGLE_KEYS = (
     "src_all",

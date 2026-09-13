@@ -88,11 +88,7 @@ INVENTORY: dict[str, tuple[Formulation, ...]] = {
         ),
         Formulation("ITRIAD_FTIM", COVERED, r"^\s*TRIAD.*\bFTIM\b"),
         Formulation("ITRIAD_DCTA", COVERED, r"^\s*TRIAD.*\bDCTA\b"),
-        Formulation(
-            "ITRIAD_SPB",
-            EXEMPT,
-            reason="SPB needs its own nearshore case; no deck selects it yet",
-        ),
+        Formulation("ITRIAD_SPB", COVERED, r"^\s*TRIAD.*\bSPB\b"),
     ),
     "IBOT": (
         Formulation("IBOT_OFF", DEFAULT, absent=r"^\s*FRIC"),
@@ -118,16 +114,8 @@ INVENTORY: dict[str, tuple[Formulation, ...]] = {
             reason="not selectable from a deck; it is the pre-TRIAD default",
         ),
         Formulation("IBIPH_ELDEBERKY", COVERED, r"^\s*TRIAD"),
-        Formulation(
-            "IBIPH_SAPR",
-            EXEMPT,
-            reason="no deck selects BIPHASE SAPR yet",
-        ),
-        Formulation(
-            "IBIPH_DEWIT",
-            EXEMPT,
-            reason="no deck selects BIPHASE DEWIT yet",
-        ),
+        Formulation("IBIPH_SAPR", COVERED, r"^\s*TRIAD.*\bBIPH\w*\s+SAPR\b"),
+        Formulation("IBIPH_DEWIT", COVERED, r"^\s*TRIAD.*\bBIPH\w*\s+(DEWIT|WIT)\b"),
     ),
 }
 

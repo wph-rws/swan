@@ -1,0 +1,38 @@
+$ Shallow-water propagation over a submerged bar with DCTA triads with the Saprykina biphase
+$
+$ Added for path coverage: no deck selected BIPHASE SAPR.
+$
+$ Note what the gauge table shows. SWDCTA scales its transfer with SIN(-BIPH),
+$ and the Saprykina biphase 0.5*PI*(MIN(1.,DELL/PTRIAD(9))-1.) is exactly zero
+$ over the whole regime DELL >= PTRIAD(9). REDTRIAD is therefore 0 at every
+$ gauge here while the spectrum still differs from the triads-off run, because
+$ the change arrives by transport from points further up the profile. That is a
+$ property of the parameterisation, not a bookkeeping error -- the same
+$ saturation that BF-17 describes for the asymmetry breaker index.
+PROJECT 'TRIAD_BIPH_SAPR' '001'
+SET CARTESIAN
+MODE STATIONARY ONEDIMENSIONAL
+COORDINATES CARTESIAN
+
+CGRID REGULAR 0.0 0.0 0.0 30.0 0.0 300 0 &
+      SECTOR -10.0 10.0 20 0.10 2.0 31
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 30 0 1.0 1.0
+READINP BOTTOM 1.0 'bottom.bot' 1 0 FREE
+
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 0.06 2.0 0.0 2.0
+
+GEN3 WESTH
+OFF WINDGROWTH
+OFF WCAPPING
+OFF QUADRUPLET
+TRIAD DCTA BIPHASE SAPR
+
+POINTS 'GAUGES' 2.0 0.0 10.0 0.0 15.0 0.0 18.0 0.0 &
+         25.0 0.0 30.0 0.0
+TABLE 'GAUGES' HEADER 'triad_biph_sapr.tbl' XP DEPTH HSIGN TM01 RTP REDTRIAD REDQUAD
+SPECOUT 'GAUGES' SPEC1D ABS 'triad_biph_sapr.spc'
+TEST 1 0 POINTS XY 15.0 0.0 S1D 'triad_biph_sapr_sources.spc'
+
+COMPUTE
+STOP

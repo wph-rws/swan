@@ -158,6 +158,16 @@
       "gemeten": "3 uitvoerbestand(en) gelijk"
     },
     {
+      "deck": "nonlinear_interactions/triad/triad_biph_dewit.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_biph_sapr.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
       "deck": "nonlinear_interactions/triad/triad_dcta.swn",
       "status": "identiek",
       "gemeten": "3 uitvoerbestand(en) gelijk"
@@ -179,6 +189,11 @@
     },
     {
       "deck": "nonlinear_interactions/triad/triad_off.swn",
+      "status": "identiek",
+      "gemeten": "3 uitvoerbestand(en) gelijk"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_spb.swn",
       "status": "identiek",
       "gemeten": "3 uitvoerbestand(en) gelijk"
     },
