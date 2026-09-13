@@ -2,9 +2,9 @@
 
 ## Vergelijkingsbasis
 
-Deze lijst vergelijkt de RWS-fork op bronstand "Herstel de brekingsindex van
-BREAKING ASYM" met de op 13 september 2026 opnieuw opgehaalde `upstream/main`
-van TU Delft:
+Deze lijst vergelijkt de RWS-fork op bronstand "Wijs af wat geen formulering is
+en dicht de onbestemde indexen" met de op 13 september 2026 opnieuw opgehaalde
+`upstream/main` van TU Delft:
 
 - repository: [`citg/wavemodels/swan`](https://gitlab.tudelft.nl/citg/wavemodels/swan);
 - upstream-commit (ongewijzigd sinds de vorige vergelijking): [`43e9bbba393f2cf9eaff78bc92eaed118a3a5c8e`](https://gitlab.tudelft.nl/citg/wavemodels/swan/-/commit/43e9bbba393f2cf9eaff78bc92eaed118a3a5c8e), 13 juli 2026;
@@ -19,6 +19,17 @@ SWAN-releases. Bestandsnamen verwijzen naar de gemoderniseerde free-formbron in
 deze fork; de TU Delft-bron is nog volledig op de `.ftn`-vorm gebaseerd
 (19 `.ftn` + 57 `.ftn90` onder `src/`, geen enkel `.f90`) en wordt vóór het
 compileren door `switch.pl` voorbewerkt.
+
+Wélke decks daadwerkelijk anders rekenen dan die bronbasis staat niet alleen
+hier in proza, maar ook machineleesbaar in
+[upstream-delta.json](upstream-delta.json): per deck `identiek`, `wijkt af` met
+het BF-nummer erbij, `alleen fork`, of `overgeslagen` met een reden.
+[scripts/upstream_delta.py](../scripts/upstream_delta.py) haalt de decks over de
+vastgezette upstream-binary en over de fork en rekent die bewering na;
+[tests/test_upstream_delta.py](../tests/test_upstream_delta.py) bewaakt de
+inventaris bij elk commit en draait de gemeten helft onder
+`SWAN_UPSTREAM_DELTA=1`. Een deck dat gaat afwijken zonder BF-verwijzing is
+daarmee een rode poort in plaats van een ontdekking achteraf.
 
 De kwalificaties betekenen:
 
@@ -67,7 +78,12 @@ wel wie er last van heeft.
 | BF-17 | **bewezen** | **`BREAKING ASYM` vernietigde het golfveld over het hele domein.** De asymmetrie-brekingsindex van Saprykina et al. (2017) kent twee regimes: draagt de tweede harmonische meer dan 35% van de energie, dan breken de golven spillend en is de index de constante `PSURF(4)` = 0,6; daaronder plungen ze en *stijgt* de index bóven die constante met de verticale asymmetrie, die de biphase meet. De index is dus van onderen begrensd door 0,6 en wordt nooit klein, laat staan nul. `BRKPAR` geeft voor het tweede regime `BRCOEF = -1` door, waarna `SINTGRL` `BRCOEF = PSURF(4) - 0,3*PSURF(5)*BIPH` berekent — maar alleen achter `IF (BIPH.LT.0.)`. De biphase van zowel Eldeberky als Saprykina is per constructie niet-positief, zodat die uitdrukking bij `BIPH = 0` exact op de spilling-constante 0,6 uitkomt; `.LT.` in plaats van `.LE.` snijdt daar dus een sprong in een continue kromme, precies op het fysisch betekenisvolle eindpunt. Dat eindpunt is niet zeldzaam; er lopen drie routes naartoe. Bij Eldeberky onderloopt `0,5*PI*(TANH(URCRIT/UR)-1)` in enkele precisie naar exact nul zodra het Ursell-getal op of onder 0,0699 komt (standaard `URCRIT` = `PTRIAD(4)` = 0,63): `TANH` verzadigt zodra `1 - TANH(x)` onder een halve ulp van 1,0 komt, dus vanaf `x` > 13·ln2 = 9,0109, en 0,63/9,0109 = 0,0699152. Gemeten met gfortran in enkele precisie, stap 1e−4: exact nul tot en met `UR` = 0,0699, −9,362676e−08 bij `UR` = 0,0700; een fijnere aftasting legt de drempel tussen 0,0699152 en 0,0699153, precies waar de afleiding hem voorspelt. De controle hoort in Fortran te gebeuren: de float32-`TANH` van numpy verzadigt later en zou een te laag omslagpunt suggereren. Elk punt zeewaarts van de brandingszone valt daarmee op dat eindpunt, en `UR` = 0 geeft `TANH(Inf)` = 1 en dus meteen nul. Bij Saprykina is `0,5*PI*(MIN(1,DELL/PTRIAD(9))-1)` exact nul over het hele regime `DELL >= PTRIAD(9)` — geen randgeval maar een heel gebied. De `ELSE`-tak zette vervolgens `BRCOEF = 0` met het commentaar "no surf breaking", terwijl `HM = GAMBR * DEP2` daarmee nul wordt. Dat loopt niet via `FRABRE` — die geeft bij `HM = 0` juist `QB = 0` terug — maar via `SSURF`: `BB = 8*ETOT/(KTETA*HM**2)` wordt oneindig, en de tak voor `BB >= 1` zet `WS = (PSURF(1)/PI)*FMEAN`, de verzadigde dissipatie. Er breken dus juist *alle* golven — het omgekeerde van de bedoeling; de tak die breking echt uitzet gebruikt `HM = 100`. De toets is nu `.LE.` en de resterende tak (alleen bereikbaar via De Wits biphase, die positief kán worden) zet de index op een onbereikbaar hoge waarde in plaats van nul. | Vóór de reparatie viel Hsig op het `src_break_asym`-deck van 0,98 m naar 0,0004 m met beide dissipatiekolommen exact nul (nul omdat er met `E` ≈ 0 niets meer te dissiperen valt, niet omdat de breking uitstond), ook bij uniform 3 m diepte waar de niet-lineariteit sterk is, en voor alle drie de biphase-formuleringen (Eldeberky, Saprykina, De Wit). Erna geeft het deck 0,50 → 1,94 → 2,39 → 0,84 → 0,58 → 0,58 m, vergelijkbaar met `src_all` (0,50 → 1,93 → 2,40 → 0,98 → 0,68 → 0,68) en `src_break_var`. Van de 24 decks in de voorbeeldsuite verandert alleen `src_break_asym` van uitvoer; de overige 23 tabellen zijn bytegelijk. De tak is regel voor regel gelijk aan `upstream/main` op `43e9bbb` (41.51) en aan de 41.45-release, dus het defect zit in de TU Delft-bron en niet in de modernisering. De optie is bovendien niet gedocumenteerd in de SWAN-handleiding en werd door geen enkel deck gekozen, wat verklaart waarom hij onopgemerkt bleef. Zie `src/swancom1.f90`, `examples/nonlinear_interactions/sources/src_break_asym.swn` en `scripts/physics_coverage.py`. Commit "Herstel de brekingsindex van BREAKING ASYM". **Naderhand tegen de primaire literatuur gelegd.** Kuznetsov, Saprykina & Volkova (2018), *Dependencies of breaking type, breaking criteria and energy dissipation on amplitude-phase frequency structure of waves*, Coastal Engineering Proceedings (ICCE 2018), artikel 8566, geeft de twee regimes expliciet: voor `E2/E1 > 0,35` stijgt gamma niet en is het bij benadering uniform verdeeld rond het gemiddelde **0,6** — precies de constante die `BRKPAR` in die tak toekent — en voor `E2/E1 < 0,35` geldt `gamma = Hs/hb = 0,6 + 3,5*(E2/E1)^2`. Het artikel noemt bovendien het waargenomen bereik van gamma: **0,4 tot 1,2**. Een brekingsindex van nul komt daar dus nergens in voor, wat de reparatie los van de interne inconsistentie ook extern bevestigt. SWAN vervangt de tweede tak door een lineaire functie van de biphase, `gamma = PSURF(4) - 0,3*PSURF(5)*BIPH`. Beide ankeren op 0,6 en lopen tot vergelijkbare bovengrenzen (artikel 1,029 bij `E2/E1` = 0,35; SWAN 0,977 bij biphase = -pi/2). Als controle is de formule van het artikel tijdelijk in `BRKPAR` gezet in plaats van de biphase-tak — `E1` en `E2` zijn daar al beschikbaar — en op `src_break_asym` gedraaid: Hsig komt uit op 0,5018 / 1,9361 / 2,3864 / 0,8246 / 0,5870 / 0,6188 m tegen 0,5018 / 1,9357 / 2,3860 / 0,8368 / 0,5841 / 0,5786 m voor de biphase-vorm, dus gelijk tot op afrondingsniveau buiten de branding en binnen 1,5% in de branding (1,48%) en op het laatste punt 6,5% (6,50%) — telkens betrokken op de artikelwaarde als noemer, want dat is de relatie die gereproduceerd wordt; met de biphase-vorm als noemer wordt dat laatste punt 6,9%. De biphase-tak reproduceert de relatie uit het artikel daarmee binnen enkele procenten. Kanttekening: de twee regimes zoals het artikel ze opschrijft sluiten niet op elkaar aan (1,03 tegenover 0,6 bij `E2/E1` = 0,35); het gaat om de beschrijving van twee puntenwolken in een figuur, niet om één kromme. Dit is dus een consistentiecontrole tegen de gepubliceerde relatie, geen validatie tegen de meetreeksen zelf. |
 | BF-18 | **bewezen** | **De wavefronts van de ongestructureerde OpenMP-solver ordenden op slechts een van de twee stencilburen.** In het `!GRAPH`-blok van `SwanVertlist.ftn90` worden beide buren van de vertex berekend (`vu(1)` en `vu(2)`, upstream regels 266-267), maar de niveaubepaling gebruikt er met `m = vu(1)` — commentaar "pick first neighbour vertex", regel 274 — maar een. Het transport leest `ac2` van beide buren en schrijft naar het midden, dus kon een vertex met open waaier (meshrand, kustlijn, obstakelsnede) in hetzelfde front belanden als een buur die hij leest terwijl een andere thread die nog moet bijwerken. Het resultaat hing daarmee af van het threadaantal en de planning. De ontbrekende rand zit er nu in: de lus telt beide buren mee. | Het mechanisme is eerst op een synthetische mesh aangetoond en daarna op de niet-stationaire ongestructureerde case gemeten: 175 van de 1617 waarden in het blokbestand schuiven op, maximaal 11% op een enkel punt, terwijl de tabel van het middelpunt onveranderd blijft. De opgeslagen referentie is in dezelfde commit bewust bijgewerkt, met dat verschil als bewijs van het herstel. `tests/test_front_dependency_completeness.f90` bewaakt de volledigheid van de afhankelijkheden. De FFRO-variant gebruikt de graph-gekleurde frontindeling en is niet geraakt; die referentie staat ongewijzigd. De operationele so-rp-suite is gestructureerd en wordt hier niet door geraakt. Zie `src/parallel/swan_front_scheduling_backend_graph.f90` en `doc/moderniseringsplan.md`. Commit "Kies poorten gericht en herstel het ongestructureerde OpenMP-determinisme". |
 | BF-19 | **latent** | **De asymmetrie-brekingsindex las bij een leeg spectrum ongeïnitialiseerde locals.** In de `ISURF = 7`-tak van `BRKPAR` is de sentinel voor "geen piek gevonden" `ISIGM = -1` (`src/swancom2.f90:3323`), maar de afsluitende keuze toetst `IF (ISIGM.EQ.0)` (regel 3352). Die tak vuurt dus nooit; een punt zonder energie valt door naar `ELSEIF (E2.GT.0.35*E1)`, terwijl `E1` en `E2` alleen binnen `IF (ISIGM.GT.0)` worden toegekend en gewone locals zonder `SAVE` zijn — ongedefinieerd Fortran-gedrag. Dat het om een verschrijving gaat en niet om opzet blijkt uit de Ruessink-tak zeventig regels hoger, die dezelfde sentinel wél correct afvangt (`IF (ISIGM.GT.0) ... ELSE KP = 0.`). De sentinel wordt nu niet langer een tweede keer getoetst maar structureel uitgesloten: de harmonischen en de keuze die erop rust staan in hetzelfde `IF (ISIGM.GT.0)`-blok, zodat `E1` en `E2` nergens in beeld zijn zonder toegekende waarde. De bijbehorende `ELSE` geeft de spilling-constante `PSURF(4)` in plaats van nul: nul zou via `HM = 0` opnieuw de verzadigde tak van `SSURF` aanzetten die BF-17 juist dichtzette. `43e9bbb:src/swancom2.ftn` heeft dezelfde sentinel en dezelfde toets, dus het defect zit in de TU Delft-bron. | Het gevolg blijft latent: de tak is alleen bereikbaar waar het spectrum exact nul is, en daar geeft `SSURF` met `BB = 0` hoe dan ook geen bron, zodat beide mogelijke uitkomsten van de vergelijking op rommelwaarden hetzelfde resultaat opleverden. De strikte bouw ziet het defect wel: de fingerprints `swancom2.f90: ‘e1’ may be used uninitialized` en dezelfde voor `‘e2’` verdwijnen met de reparatie uit de basislijn (`scripts/strict_diagnostics_fingerprints.json`, 481 → 479 fingerprints). De negen formulering-decks (`--case formulations`, inclusief `src_break_asym`) leveren voor en na bit-identieke tabellen en spectra; alleen de tijdstempelregel in de `.prt`-bestanden verschilt. Poorten serieel, OpenMP, strict en pytest groen; MPI overgeslagen als niet-MPI-rakend en staat op zijn laatste groene commit `a0f95a6`. Zie `src/swancom2.f90`. Commits "Vang de lege-spectrumsentinel van de asymmetrie-brekingsindex af" en "Sluit de lege-spectrumsentinel in met de harmonischen zelf". |
-
+| BF-20 | **bewezen** | **Een `[itriad]` of `[iquad]` die geen formulering aanduidt werd stil genegeerd in plaats van afgewezen.** De numerieke tak van `TRIAD` kende geen `ELSE`: `TRIAD ITRIAD=4` parseerde, drukte zichzelf af in de runkop en zette via de poort `ITRIAD .GT. 0` de Ursell- en biphase-boekhouding aan, terwijl de dispatcher in `SWCOMP` — die alleen 1, 11, 2, 3 en 5 kent — geen triad-bronterm berekende. `QUADRUPLET` had in het geheel geen controle op `[iquad]`, zodat bijvoorbeeld 6 of 9 dezelfde stille no-op gaf met `IQUAD .GE. 1` als poort. Een genegeerde formulering is erger dan een geweigerde: de som ziet eruit alsof hij deed wat het deck vroeg. Beide commando's toetsen nu tegen de verzamelingen `ITRIAD_VALUES` en `IQUAD_VALUES` in `swan_physics_selection.f90`. | Gemeten vóór de reparatie: `TRIAD ITRIAD=4` liep tot een normaal einde met `REDTRIAD` identiek nul; erna stopt hij met "TRIAD [itriad] must be 0, 1, 2, 3, 5 or 11". Idem `QUADRUPLET 6`. `tests/test_input_validation.py` bewaakt acht afgewezen en acht aanvaarde vormen; de tegenproef hoort erbij, want een controle die alles weigert zou anders ook slagen. **Reikwijdte-correctie:** de kale vorm `TRIAD 4` bereikte de numerieke tak nooit — `INKEYW ('REQ',' ')` weigert daar een getal met "Data field skipped" en foutniveau 2. Alleen de benoemde vorm `TRIAD ITRIAD=4` kwam erdoor; `QUADRUPLET 6` wel kaal, want daar leest `ININTG` rechtstreeks. Upstream identiek (`43e9bbb:src/swanpre1.ftn:3401-3416`, `swancom1.ftn:7546-7554`). Zie `src/swanpre1.f90` en `src/swan_physics_selection.f90`. |
+| BF-21 | **bronmatig bewezen** | **De quadruplet-`[lambda]` werd op geen enkele grens gecontroleerd.** `FAC4WW` bouwt het DIA-interactierooster rechtstreeks uit lambda: het deelt door `(1-lambda)**4` en neemt `LOG(1-lambda)` om de verschoven spectrale bins te lokaliseren. Bij `lambda = 1` is dat een deling door nul gevolgd door `ACOS` van een oneindigheid, waarna `INT()` van een NaN de allocatiegrenzen `MSC4MI`/`MSC4MA` zet; boven 1 doet de logaritme van een negatief getal hetzelfde via een NaN. De `QUAD`-parser weigerde niets, de `MDIA`-parser alleen negatieve waarden — en die zijn daar de eindemarkering van de lijst, geen controle. Beide lopen nu via één controle die `0 < lambda < 1` eist. In dezelfde routine is de vaste kladlijst `RLAMBDA(1000)` begrensd; een deck met meer waarden schreef er voorbij. | De dataflow van lambda naar de allocatiegrenzen is eenduidig; er is geen vóór/na-meting van een concrete crash gemaakt, omdat de uitkomst van `INT(NaN)` niet gedefinieerd is en dus niet reproduceerbaar te rapporteren. De afwijzing zelf is gemeten voor `QUADRUPLET 1 1.0`, `1.5` en `0.0` en voor de `MDIA LAMBDA`-vorm, met `QUADRUPLET 1 0.25` als tegenproef (`tests/test_input_validation.py`). Upstream identiek (`43e9bbb:src/swanpre1.ftn:3295`, `swancom4.ftn:252,275`). Zie `src/swanpre1.f90`. |
+| BF-22 | **latent** | **`SWBIDW` indexeerde zijn interpolatietabel op −1 voor een waarde die exact op de laatste tabelknoop ligt.** De routine zoekt de omhullende knopen met `MINLOC(SOFF, MASK=SOFF.GT.0.)`, en `MINLOC` geeft voor een volledig onware masker 0 terug. De klemmen eromheen toetsten strikt (`.LT.` en `.GT.`), zodat een helling gelijk aan `NDSLP(IDIM)` = 0,5 of een piekperiode gelijk aan `NDPER(JDIM)` = 12 s door geen van beide werd opgevangen en de interpolatie `NDSLP(-1)` en `PLBIP(-1,·)` uitlas. De toetsen zijn inclusief gemaakt; dat verandert geen enkele geïnterpoleerde waarde, want de geklemde gewichten zijn precies wat de algemene uitdrukking op een knoop oplevert, en het laat de `ELSE`-tak achter met een masker dat aantoonbaar een ware component heeft. | **Ernst naar beneden bijgesteld ten opzichte van de eerste melding.** De trigger is exacte drijvendekommagelijkheid met 0,5 respectievelijk 12,0 en is daarmee praktisch onbereikbaar, niet "deterministisch". De veel vakere waarde `DDDS = 0` (vlakke bodem) valt er níét in: `NDSLP(1)` is zelf 0, dus het masker is dan niet leeg en `IK(1)` wordt 2. Bij die gelegenheid bleek de ondergrensklem `DDDS.LT.NDSLP(1)` dode code — `DDDS` is een absolute waarde en `NDSLP(1)` is nul — maar hij is symmetrisch behouden omdat de tabel data is. De tak is alleen bereikbaar via De Wits biphase, die geen deck kiest. Upstream identiek (`43e9bbb:src/swancom4.ftn:5651-5680`). Zie `src/swancom4.f90`. |
+| BF-23 | **bronmatig bewezen** | **`SREDEP` indexeerde zijn parametertabellen met een niet-toegekende index na een onbekende grootheid in `READINP`.** De keten van veldsleutelwoorden eindigt op `ELSE / CALL WRNKEY`, waarna `IGR1` onbestemd blijft; de eerstvolgende regel is `CALL INREAL ('FAC', IFLFAC(IGR1), 'STA', 1.)` en daarna nog elf `IFLxxx(IGR1)`-toegangen. Dat is een lees- en, zodra het deck ook `[fac]` meegeeft, een schrijfactie buiten de tabelgrenzen. `MSGERR` stopt de uitvoering niet zelf — alleen `STPNOW()` bij niveau ≥ 4 doet dat, en `WRNKEY` geeft niveau 2 — dus de routine liep gewoon door. Er wordt nu teruggekeerd zodra geen tak matchte. | De strict-bouw bevestigt het onafhankelijk: de melding `swanpre1.f90: 'igr1' may be used uninitialized` is na de reparatie uit de basislijn verdwenen. Het gevolg treft alleen een deck dat al veroordeeld is (niveau 2 blokkeert de rekenslag); de winst is een nette fout in plaats van geheugen buiten de grenzen. Upstream identiek (`43e9bbb:src/swanpre1.ftn:4425` e.v.). Zie `src/swanpre1.f90`. |
+| BF-24 | **bronmatig bewezen** | **`BCFILE` bouwde een randvoorwaardebeschrijving uit niet-toegekende lokalen na een onbekende bestandskop.** Bij een niet-herkende kop volgt `MSGERR (3, 'unsupported boundary data file')`, waarna de routine onvoorwaardelijk `ALLOCATE(BSPFIL%BSPLOC(NBOUNC))` doet en `BFILED` vult met `ISTATF`, `IOPTT`, `NHEDF`, `NHEDT` en `NHEDS` — stuk voor stuk alleen gezet in de herkende takken. De latere randlezer vertrouwt die beschrijving. Ook hier stopt `MSGERR` niets; er wordt nu teruggekeerd. | Vier van de vijf betrokken lokalen stonden bij naam in de strict-inventaris (`'istatf'`, `'nbounc'`, `'nhedf'`, `'nhedt'` in `swanpre2.f90`) en zijn na de reparatie verdwenen. Samen met BF-23 brengt dat de basislijn van 479 naar 474 fingerprints en 1315 naar 1310 waarschuwingen. Het `maybe-uninitialized`-budget stond met 134 ruim boven de werkelijke telling en is nu op de gemeten 127 vastgezet, zodat de winst van BF-19, BF-23 en BF-24 niet stil kan teruglopen. `tests/test_lifetime_fault.py` blijft groen, dus de vervroegde terugkeer laat geen unit of blok achter. Upstream identiek (`43e9bbb:src/swanpre2.ftn:4331` e.v.). Zie `src/swanpre2.f90`. |
+| BF-25 | **latent/interface, bewust niet in gedrag gerepareerd** | **`EQREAL` is een exacte vergelijking, geen tolerante — al sinds 40.04 (augustus 2000).** De functie rekent `EPS = EPSILON(REAL1)*ABS(REAL1-REAL2)` en toetst vervolgens `ABS(REAL1-REAL2) .LT. EPS`: of een getal kleiner is dan zichzelf maal 1,2·10⁻⁷. Voor elk verschil ongelijk nul is dat onwaar, dus wat overblijft is `ABS(REAL1-REAL2) .LE. TINY`, oftewel bitgelijkheid. De routinekop belooft niettemin een vergelijking "within reasonable bounds". | **De reparatie is de kop, niet de rekenkunde — en dat is een bewuste keuze, geen uitstel.** Van de 123 aanroepen vergelijken er 66 een veldwaarde met een uitzonderingswaarde (`OVEXCV`, `excval`, `excfld`); daar is exacte gelijkheid vereist, en een relatieve tolerantie zou een legitieme diepte naast de sentinel als ontbrekende data bestempelen. Nog eens 15 vergelijken met een literal nul, waar de "bedoelde" relatieve vorm `EPSILON*MAX(|a|,|b|)` even degenereert als de huidige. Het zusje `EQDBLE` in dezelfde module is al gewoon `==`, wat de lezing bevestigt. Eén plaats heeft wél een echte tolerantie nodig — `SwanCrossObstacle` deelt door de determinant die het hier toetst — en die verdient een absolute drempel ter plekke, niet een globale semantiekwijziging over 123 aanroepen. Het lichaam is teken voor teken gelijk aan `43e9bbb:src/ocpmix.ftn:1941` e.v. Zie `src/swan_service_interfaces.f90`. |
 ## Niet als bugfix meegeteld
 
 De volgende verschillen met TU Delft zijn bewust niet in de tabel opgenomen:
@@ -97,6 +113,20 @@ De volgende verschillen met TU Delft zijn bewust niet in de tabel opgenomen:
   ingevoerd bij de argumentbundeling en hersteld in de commit "Geef SWSNL1 de
   sweepgrenzen van het eigen roosterpunt terug"; de uitvoer is daarna
   bytegelijk aan de bouw van voor die bundeling;
+- **het dekkingsgat rond `ITRIAD = 11` en `IQUAD` 8, 51, 52 en 53.** De
+  dekkingspoort accepteerde één patroon voor zowel `TRIAD LTA` als
+  `TRIAD ITRIAD=11` en meldde de tweede daarmee als gedekt terwijl geen deck
+  hem koos; `triad_lta.swn` beweerde in zijn eigen kop zelfs de operationele
+  `ITRIAD=11` te dekken terwijl de commandoregel `TRIAD LTA` leest, wat
+  `ITRIAD = 1` is. Dat zijn verschillende formuleringen: 11 laat de
+  shoalingfactor vallen (`FT = 0`) en neemt de groepssnelheid uit het lokale
+  spectrum. Idem voor de vier `IQUAD`-waarden die wel een dispatcher-arm hebben
+  maar geen benoemde constante en geen deck. Er zijn nu decks voor alle vijf
+  (`triad_lta11.swn`, `quad_full.swn`, `quad_xnl52.swn`, `quad_xnl53.swn`), de
+  regex is gesplitst en `run.py` eist dat de twee LTA-generaties meetbaar
+  verschillen — gemeten 7,7% op het spectrum bij x = 25 m. De dekking gaat van
+  24 naar 28 formuleringen over 38 decks. Dit is een gat in het gereedschap van
+  déze fork, niet een defect van TU Delft, en telt daarom niet mee;
 - de gewijzigde standaardfysica sinds SWAN 41.45. Dat is een bewuste
   upstreamwijziging. `GEN3 KOMEN DRAG FIT` is een compatibiliteitsinstelling om
   41.31-fysica te benaderen, geen bugfix in 41.51.
@@ -106,19 +136,118 @@ De volgende verschillen met TU Delft zijn bewust niet in de tabel opgenomen:
 Deze bevindingen zijn onderzocht maar nog niet opgelost en staan daarom niet
 tussen de geleverde bugfixes:
 
+- **`QUADRUPL 1` convergeert niet zonder false time stepping, en de handleiding
+  zegt dat niet.** De semi-impliciete DIA belandt op het `quad_dia1`-deck in een
+  limietcyclus: na 599 toegestane iteraties schommelt de nauwkeurigheid nog
+  tussen 17% en 80%, terwijl `QUADRUPL 2` dezelfde som in 41 iteraties op 100%
+  brengt. Dat geldt bij elke beproefde windsnelheid (5, 10, 15 en 25 m/s). De
+  oorzaak is te isoleren tot één plek: `SWSNL2` splitst de brontermbijdrage op
+  teken — een bron gaat naar het rechterlid, een put naar de diagonaal als
+  `-SFNL/MAX(1E-18, AC2*SIGPI)`, wat nooit negatief is — terwijl `SWSNL1` de ruwe
+  afgeleide `-DSNL/PI3` op de diagonaal zet, zonder tekengarantie. Een positieve
+  `DSNL` verzwakt daarmee de hoofddiagonaal. De SWAN-technische documentatie
+  beschrijft precies dit faalmechanisme (off-diagonaaltermen die de hoofddiagonaal
+  domineren) en levert er de remedie bij: false time stepping, dat de
+  hoofddiagonaal juist versterkt. Die remedie werkt ook: met `ALFA=0.01`
+  convergeert dezelfde som in 40 iteraties naar 100%. Dit is dus geen codedefect
+  maar een stijve optie zonder waarschuwing; de reparatie is een deckinstelling,
+  niet een bronwijziging. **Niet van deze fork:** `SWSNL1` is statement voor
+  statement numeriek gelijk aan upstream 41.51. Het enige reële verschil — onze
+  versmalde nulstelling van de werkarrays uit commit "Versnel SWSNL1 en SWSNL3 en
+  plan de FFT uitgelijnd" — is beproefd door upstreams volledige nulstelling terug
+  te zetten: bytegelijke uitvoer op `quad_dia1`, `quad_mdia` en `quad_dia2`, dus
+  resultaatneutraal en niet de oorzaak. Meldkandidaat voor TU Delft, samen met
+  BF-17;
+- **Zware false time stepping lokt schijnconvergentie uit.** Bij `ALFA=0.05` en
+  `0.10` stopt diezelfde som na **twee** iteraties met de melding "accuracy OK in
+  100.00 %", terwijl de oplossing er dan nog niet is: de Hs op 25 km staat op
+  1,278 m tegen 1,405 m voor de wél geconvergeerde `ALFA=0.01`. Het stopcriterium
+  meet de *verandering* tussen iteraties, en onder sterke onderrelaxatie is die
+  verandering klein ongeacht het residu. De twee mechanismen werken elkaar dus
+  tegen: zonder false time stepping convergeert `QUADRUPL 1` niet, met te veel
+  ervan stopt hij te vroeg. Dit raakt niet alleen deze optie — elk deck met een
+  forse `ALFA` kan hierdoor een te vroege run als geslaagd rapporteren. Er is geen
+  balansresidu waarmee dat te onderscheiden valt;
 - een malafide `POINTS 'x' CURVE`-deck kan in Release incidenteel met
   `SIGABRT` eindigen in plaats van schoon te stoppen; bewezen pre-existing (de
   pre-repair-binary aborteert identiek) en heap-toestandsafhankelijk, zonder
-  reproductie onder gdb, Valgrind of ASan;
+  reproductie onder gdb, Valgrind of ASan. *Werkhypothese, nog niet beproefd:*
+  de `OPSTMP`/`TMP`/`XP`-allocaties in de `SWREPS`-ketens van `swanpre2.f90`
+  hebben geen `STAT=` en geen bovengrens op het gevraagde puntental, zodat een
+  `INT <groot>` een grensgeval-OOM geeft die de gfortran-runtime als `SIGABRT`
+  afhandelt — heap-afhankelijk, en onder een instrument met een andere
+  allocator dus anders. Een oneindige lus is uitgesloten
+  (`ocpcre.f90:943-945,987`). Eerstvolgende stap is een `STAT=`-vangnet plus
+  een expliciete bovengrens, niet nog een reproductiepoging;
 - de operationele MPI-veldassemblage heeft 174 cellen die MPI droog en serieel
   nat rapporteert; de 132 gevraagde natte uitvoerpunten zijn wel bit-exact
-  gelijk, maar het volledige veldcontract is nog niet afgesloten;
+  gelijk, maar het volledige veldcontract is nog niet afgesloten.
+  *Goedkope discriminator, nog niet uitgevoerd:* `swanparll.f90:4377` vult
+  `VOQ` vooraf met `EXCV` en leest alleen bij de `BLKND`-eigenaar terug
+  (`:4397-4418`), dus een gat in `BLKNDC` laat de cel op `EXCV` staan. De ruwe
+  waarde in `mpi.mat` scheidt de twee hypothesen: is die −9, dan is het deze
+  route; is die NaN, dan ligt het bij de schrijver of de interpolatie
+  (`swan_structured_output_interpolation.f90:228-247`). Dat vraagt een
+  `BLKNDC`-dump en een correlatie, geen zware bouw;
 - de numerieke afwijking van de ongekwalificeerde Debug/`-O0`-route is
-  vernauwd maar niet verklaard;
+  vernauwd maar niet verklaard. *Volgorde voor de volgende poging:* eerst een
+  bisect per routine binnen de aangewezen vertaaleenheid in plaats van per
+  bestand; de kandidaten op volgorde van waarschijnlijkheid zijn `SSHAPE:316`
+  (`SF.LT.FPK`, een hele-bin-omslag op het niet-stationaire pad), dan
+  `SINTRP:700-748` (`NINT`-gelijkspel), en pas daarna de periodieke tak van
+  `CHGBAS` (`swan_spectrum_transform.f90:1054,1060`), die aantoonbaar te klein
+  is voor de waargenomen afwijking. Dat `Tm01` eruit springt past bij het
+  verschil tussen de convergentie- en de uitvoerdefinitie (zonder respectievelijk
+  met staart, rechthoek tegen trapezium);
 - resterende waarschuwingen uit `maybe-uninitialized`, `do-subscript` en
   `character-truncation` gelden als onderzoekskandidaten, niet als bewezen
-  bugfixes; twee ervan (`E1`/`E2` in `BRKPAR`) zijn inmiddels als BF-19
-  afgehandeld.
+  bugfixes. Uit deze categorie zijn inmiddels afgehandeld: `E1`/`E2` in
+  `BRKPAR` (BF-19), `IGR1` in `SREDEP` (BF-23) en vier lokalen in `BCFILE`
+  (BF-24). Het `maybe-uninitialized`-budget stond met 134 ruim boven de
+  werkelijke telling en is op de gemeten 127 vastgezet. De 37 `do-subscript`-meldingen zijn stuk voor stuk nagelopen
+  en alle bewaakt; `character-truncation` (25) is ruis;
+- **upstream 41.51 rekent niet altijd hetzelfde.** Dezelfde invoer, dezelfde
+  binary, acht keer gedraaid: op `quad_dia2`, `quad_mdia` en `src_nobreak`
+  komen er twee verschillende antwoorden uit. Zet de willekeurige
+  geheugenindeling van Linux uit (`setarch -R`), dan is het er nog één — zes
+  runs, één uitkomst. Een resultaat dat van de geheugenindeling afhangt wijst
+  op een variabele die gelezen wordt zonder ooit geschreven te zijn. De fork
+  gaf in dezelfde proef acht van de acht keer hetzelfde antwoord, en dat
+  antwoord is veldgelijk aan wat upstream met vaste indeling berekent. Welke
+  reparatie in deze fork dat verschil maakt, is nog niet toegewezen; de
+  delta-poort draait daarom beide kanten met vaste indeling, en `--geen-pin`
+  laat de instabiliteit juist zien;
+- **zes voorbeelddecks wijken stabiel van upstream af zonder toegewezen
+  oorzaak.** De delta-poort meet 38 decks op forkstand `e6f45f1`: 27 identiek
+  aan TU Delft 41.51, vier overgeslagen om hun looptijd, één toegewezen
+  (`src_break_asym`, BF-17, gemeten: op `b89b99f` nog bit-identiek, vanaf
+  `5d062ac` afwijkend) en zes zonder verklaring. Vier daarvan verschillen op
+  losse velden in de orde van hercombinatie van uitdrukkingen
+  (`src_fric_collins`, `src_fric_madsen`, `src_fric_ripples`,
+  `st6_testpoints`), één op maximaal 11% (`nonstationary_unstructured`, waarbij
+  BF-18 door meting is uitgesloten: die reparatie raakt de seriële route niet)
+  en één op de MDIA-route (`quad_mdia`). Het aantal staat als
+  `onverklaard_budget` in [upstream-delta.json](upstream-delta.json) en mag
+  alleen omlaag;
+- **toewijzen met `git bisect` vraagt per stap een verse configuratie.** Een
+  eerste poging hergebruikte dezelfde bouwmap over alle stappen heen, zodat de
+  gemeten binary niet altijd bij de beproefde commit hoorde; de uitkomst
+  (`cc71817` voor `src_fric_collins`) bleek onjuist toen dezelfde vraag
+  rechtstreeks werd nagemeten: `6b36cff` en `cc71817` geven op dat deck
+  bytegelijke uitvoer;
+- **de omgekeerde vraag is nog niet beantwoord.** BF-01 tot en met BF-25 zijn
+  gevonden door code te lezen die verkeerd oogt en het patroon daarna tegen
+  `43e9bbb` te leggen. Die methode kan per constructie alleen *bewaarde*
+  upstreamdefecten vinden: een door deze fork geïntroduceerd defect oogt even
+  verkeerd maar heeft geen upstream-tegenhanger om tegen te leggen en valt dus
+  buiten het net. Dat er geen fork-regressies in de lijst staan is daarom geen
+  schoon rapport maar een eigenschap van de vraagstelling; de twee bekende
+  tegenvoorbeelden (de `SWSNL1`-sweepgrenzen en de brontermbudget-nulling)
+  bewijzen dat het risico niet nul is. Die vraag vergt een andere zoekopdracht:
+  een semantische diff per gemoderniseerde routine tussen `43e9bbb` en `HEAD`,
+  met de bytegelijkheid van de referentiesuite als vangnet — een vangnet dat
+  juist de donkere takken niet dekt, wat precies de plaats is waar BF-17 en
+  BF-18 zaten.
 
 Zie `doc/eindverantwoording.md` voor de actuele afbakening: wat wel en
 niet geclaimd wordt.
