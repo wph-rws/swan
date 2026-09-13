@@ -2774,6 +2774,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 
    REAL      CRDP, CRDM, SOMX, SOMY
    REAL      XP,YP,XC,YC,RR,DIRSI,COSDIR,SINDIR,DIRSID,DIRREF
+   LOGICAL   SIDE_KNOWN
    REAL      RLEN1,RDIST,RLEN2,XC1,YC1,XC2,YC2,W1
    REAL      DET, DXLOC, DYLOC, X1, Y1, X2, Y2, X3, Y3
 
@@ -3527,6 +3528,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          CALL IGNORE ('SIDE')
 !         *** specification of side for which boundary   ***
 !         *** condition is given                         ***
+         SIDE_KNOWN = .TRUE.
          IF (OPTG.NE.5) THEN
             CALL INKEYW ('REQ',' ')
             IF (KEYWIS ('NW')) THEN
@@ -3546,7 +3548,11 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             ELSE IF (KEYWIS ('E')) THEN
                DIRSI = -90.
             ELSE
+!              unknown side: there is no sensible default, so DIRSI
+!              stays unset and this boundary condition is dropped (with SET MAXERR 3
+!              the run would otherwise compute on with an arbitrary direction)
                CALL WRNKEY
+               SIDE_KNOWN = .FALSE.
             ENDIF
          ELSE
             CALL ININTG ('K', VM, 'REQ', 0)
@@ -3567,7 +3573,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          IF ( OPTG.NE.5 ) THEN
             CRDM   = -1.E10
             ISIDM  = 0
-            IF (ONED) THEN
+            IF (.NOT.SIDE_KNOWN) THEN
+!              the error has already been reported; do not look for a side
+            ELSE IF (ONED) THEN
                COSDIR = COS(PI*(DNORTH+DIRSI)/180.)
                SINDIR = SIN(PI*(DNORTH+DIRSI)/180.)
                DO ISIDE = 1, 4
@@ -3676,7 +3684,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                ENDDO
             ENDIF
             IF (ISIDM.EQ.0) THEN
-               CALL MSGERR (2, 'No open boundary found')
+               IF (SIDE_KNOWN) CALL MSGERR (2, 'No open boundary found')
 !              without an open boundary IX1..IY2 are not set; add nothing
             ELSE
 

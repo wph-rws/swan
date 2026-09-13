@@ -292,6 +292,29 @@ def test_vector_fields_with_heading_lines_from_one_file(tmp_path, current):
     assert combined == separate
 
 
+#  BOUNDSPEC SIDE with an unknown side: WRNKEY reports the error, but SWBOUN
+#  then looked for a side in the unset direction DIRSI. With SET MAXERR 3
+#  the run computes on; the boundary condition should then be dropped instead
+#  of ending up on an arbitrary side.
+def test_unknown_side_drops_the_boundary(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    assert "BOUNDSPEC SIDE WEST" in deck, "smoke deck has changed shape"
+    deck = deck.replace("BOUNDSPEC SIDE WEST", "BOUNDSPEC SIDE XYZ", 1)
+    deck = deck.replace("SET NAUTICAL", "SET NAUTICAL\nSET MAXERR 3", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert "Illegal keyword: XYZ" in report, report[-2000:]
+    assert "No open boundary found" not in report, report[-2000:]
+    rows = [r.split() for r in (work / "quick_test_center.tbl").read_text().splitlines()
+            if r.strip() and not r.startswith("%")]
+    assert float(rows[0][3]) == pytest.approx(0.17013, abs=0.00002)
+
+
 #  BF-23: a boundary file whose first line is not a header that BCFILE knows.
 #  Nothing of the file is read then, so there is no boundary spectrum. As a
 #  severe error (level 3) this still let a deck with SET MAXERR 3 compute:
