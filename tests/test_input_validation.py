@@ -6,6 +6,7 @@ valid physics cases that also have reference output.
 """
 from __future__ import annotations
 
+import math
 import shutil
 import subprocess
 from pathlib import Path
@@ -133,6 +134,69 @@ def test_several_quantities_from_one_file(tmp_path, name):
     assert code == 0, report[-2000:]
     assert "** Error" not in report, report[-2000:]
     assert combined == separate
+
+
+#  QCM (GEN4) determines the bounds of the wavenumber grid for a sector from
+#  the first direction, normalised to [0, 2pi). The chain started at
+#  'dir1 > 0.', so that a sector starting exactly at Cartesian 0 degrees
+#  (nautical: ending at 270) got no bounds and crashed. On a rotated
+#  grid SSFILL does not shift that direction, so it can be reached there.
+QCM = REPO / "examples" / "qcm"
+
+
+def _run_qcm_sector(tmp_path: Path, last_direction: str,
+                    spectral: str | None = None) -> tuple[int, str]:
+    work = tmp_path / (spectral or last_direction).replace(" ", "_")
+    work.mkdir(parents=True)
+    shutil.copy2(QCM / "bottom.bot", work / "bottom.bot")
+    deck = (QCM / "qcm.swn").read_text(encoding="utf-8")
+    spectral = spectral or f"SECTOR 180.0 {last_direction} 12"
+    replacements = {
+        "CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 4 2 CIRCLE 12 0.05 1.0 8":
+            f"CGRID REGULAR 0.0 0.0 10.0 2000.0 1000.0 4 2 {spectral} 0.05 1.0 8",
+        "INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0":
+            "INPGRID BOTTOM REGULAR -1000.0 -1000.0 0.0 1 1 4000.0 3000.0",
+    }
+    for old, new in replacements.items():
+        assert old in deck, "QCM deck has changed shape"
+        deck = deck.replace(old, new, 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    table = work / "qcm_center.tbl"
+    return result.returncode, table.read_text() if table.is_file() else ""
+
+
+def test_qcm_sector_from_cartesian_zero(tmp_path):
+    code, exact = _run_qcm_sector(tmp_path, "270.0")
+    assert code == 0, "QCM sector from 0 degrees did not run to the end"
+    code, shifted = _run_qcm_sector(tmp_path, "269.999")
+    assert code == 0
+    hs = [float(t.strip().splitlines()[-1].split()[3]) for t in (exact, shifted)]
+    assert abs(hs[0] - hs[1]) < 1e-3 * hs[1], hs
+
+
+#  A sector that starts in the second or third quadrant and runs across
+#  Cartesian 0 (nautical 240 to 70 is Cartesian 200 to 30). The old
+#  quadrant analysis compared the reduced end direction with thresholds that
+#  were not meant for it; the wavenumber grid then did not enclose the sector,
+#  and both upstream and the fork ended with a segmentation fault. The
+#  sector contains the incoming direction, so Hs must lie close to the full
+#  circle (measured 0.721 against 0.742 m).
+def test_qcm_sector_across_cartesian_zero(tmp_path):
+    code, sector = _run_qcm_sector(tmp_path, "", "SECTOR 240.0 70.0 19")
+    assert code == 0, "QCM sector across 0 degrees did not run to the end"
+    code, circle = _run_qcm_sector(tmp_path, "", "CIRCLE 36")
+    assert code == 0
+    hs = [float(t.strip().splitlines()[-1].split()[3]) for t in (sector, circle)]
+    assert abs(hs[0] - hs[1]) < 0.1 * hs[1], hs
+
+
+@pytest.mark.parametrize("sector", ["SECTOR 280 330 10", "SECTOR 315 45 18"])
+def test_qcm_breaking_grid_covers_negative_wave_numbers(tmp_path, sector):
+    code, table = _run_qcm_sector(tmp_path, "", sector)
+    assert code == 0, sector
+    values = [float(v) for v in table.strip().splitlines()[-1].split()]
+    assert len(values) == 6 and all(math.isfinite(v) for v in values)
 
 
 #  After an input error, input processing went on with variables that were
