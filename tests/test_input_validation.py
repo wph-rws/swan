@@ -135,6 +135,9 @@ def test_several_quantities_from_one_file(tmp_path, name):
     assert combined == separate
 
 
+#  After an input error, input processing went on with variables that were
+#  never set on that error path. A message should stop the run or let it
+#  continue, not make it crash or print garbage.
 def _run_deck(tmp_path: Path, deck: str, files: dict[str, str] | None = None,
               timeout: float | None = None):
     work = tmp_path / "work"
@@ -147,6 +150,39 @@ def _run_deck(tmp_path: Path, deck: str, files: dict[str, str] | None = None,
                             timeout=timeout)
     report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
     return result, report
+
+
+def _quick_deck() -> str:
+    return (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+
+
+def test_side_without_open_boundary_does_not_crash(tmp_path):
+    # Whole boundary as exception value: SWBOUN finds no open side and
+    # then used the unset corner indices of that side.
+    rows = [" ".join("-99.0" if i in (0, 20) or j in (0, 10) else "20.0"
+                     for i in range(21)) for j in range(11)]
+    deck = _quick_deck().replace(
+        "INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0",
+        "INPGRID BOTTOM REGULAR 0.0 0.0 0.0 20 10 100.0 100.0 EXC -99.0", 1)
+    deck = deck.replace("'bottom.bot'", "'ring.bot'", 1)
+    result, report = _run_deck(tmp_path, deck, {"ring.bot": "\n".join(rows) + "\n"})
+    assert result.returncode in (0, 1), result.stderr[-2000:]
+    assert "No open boundary found" in report
+
+
+def test_init_hotstart_with_unknown_keyword(tmp_path):
+    deck = _quick_deck().replace("GEN3 KOMEN", "GEN3 KOMEN\nINIT HOTSTART XYZ 'none.hot'", 1)
+    result, report = _run_deck(tmp_path, deck)
+    assert "Fortran runtime error" not in result.stderr, result.stderr[-2000:]
+    assert "Illegal keyword: XYZ" in report
+
+
+def test_test_point_outside_grid_shows_the_indices(tmp_path):
+    deck = _quick_deck().replace("\nCOMPUTE\n", "\nTEST 1 0 POINTS IJ 100 5\nCOMPUTE\n", 1)
+    result, report = _run_deck(tmp_path, deck)
+    lines = report.splitlines()
+    at = next(i for i, line in enumerate(lines) if "test point is not active" in line)
+    assert lines[at + 1].split() == ["100", "5"], lines[at + 1]
 
 
 #  BF-26 for vector fields: wind and current with a heading line before each

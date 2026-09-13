@@ -5872,7 +5872,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
    USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
    USE swan_file_opening, ONLY: FOR
    USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
-   USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, EQCSTR
+   USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, EQCSTR, WRNKEY
    USE swan_input_parser, ONLY: default_command_reader
    USE swan_diagnostics_level
    USE swan_io_units
@@ -6128,6 +6128,12 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
          JXMAX = MXC
          JYMAX = MYC
          CALL IGNORE ('MULT')
+      ELSE
+!        unknown keyword: report it and continue as the default MULTIPLE
+         CALL WRNKEY
+         SINGLEHOT = .FALSE.
+         JXMAX = MXC
+         JYMAX = MYC
       END IF
       NPTOT = JXMAX*JYMAX
       IF (OPTG.EQ.5) NPTOT = nverts

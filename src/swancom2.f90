@@ -3411,8 +3411,13 @@ SUBROUTINE BRKPAR (BRCOEF, ECOS, ESIN, AC2, SPCSIG, DEP2, BOTLV, RDX, RDY, KWAVE
 !     *** test output ***
 
    IF ( TESTFL .AND. ITEST .GE. 40 ) THEN
-      WRITE(PRINTF,"(' BRKPAR: point nr, dir, depth, slope, br.coeff:', I4,4(1X,E12.4))") IGP, ATAN2(SINDIR,COSDIR)*180./PI, &
-         DEP2(IGP), DDDS, BRCOEF
+!     direction and slope only exist for Nelson (ISURF = 2)
+      IF ( ISURF.EQ.2 ) THEN
+         WRITE(PRINTF,"(' BRKPAR: point nr, dir, depth, slope, br.coeff:', I4,4(1X,E12.4))") IGP, ATAN2(SINDIR,COSDIR)*180./PI, &
+            DEP2(IGP), DDDS, BRCOEF
+      ELSE
+         WRITE(PRINTF,"(' BRKPAR: point nr, depth, br.coeff:', I4,2(1X,E12.4))") IGP, DEP2(IGP), BRCOEF
+      END IF
    END IF
 
    RETURN
