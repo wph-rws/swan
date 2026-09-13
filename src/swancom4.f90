@@ -900,7 +900,7 @@ end subroutine SWPRE4W
 
 !********************************************************************
 
-SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, SPCSIG, KMESPC, FACHFR, DEP2, AC2, IMATDA, IMATRA, PLNL4S, PLNL4D, REDC0, REDC1, AF11, IGP)
+SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, AC2, IMATDA, IMATRA, PLNL4S, PLNL4D, REDC0, REDC1, AF11, IGP)
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_source_workspaces, ONLY: dia_workspace_t
 
@@ -1092,6 +1092,14 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, SPCSIG, KMESPC, FACHFR, DEP2, AC2, IMA
    INTEGER, SAVE :: IENT = 0
    INTEGER :: IS, ID, ID0, I, J, IDDUM, IIID, ISLOW, ISHGH, IDLOW, ISP, ISP1, IDP, IDP1, ISM, ISM1, IDHGH, IDM, IDM1, ISCLW, ISCHG, IDCLOW, IDCHGH
 
+!     The counters that RANGE4 recomputes for this grid point and this sweep.
+!     They must come from the caller's own copy: DIA_WORKSPACE%WWINT holds the
+!     grid-wide table that SWPRE4W filled and that RANGE4 never touches, and its
+!     elements 13 and 14 are exactly MDC4MI and MDC4MA -- the allocation bounds
+!     of UE and the SA/DA arrays.  Reading them here would make the loops below
+!     run from IDLOW - IIID to IDHGH + IIID and write outside those arrays.
+   INTEGER :: WWINT(*)
+
    REAL      X      ,X2     ,CONS   ,FACTOR ,SNLCS1 ,SNLCS2 ,SNLCS3,&
    &E00    ,EP1    ,EM1    ,EP2    ,EM2    ,SA1A   ,SA1B  ,&
    &SA2A   ,SA2B   ,KMESPC ,FACHFR ,AWG1   ,AWG2   ,AWG3  ,&
@@ -1118,20 +1126,20 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, SPCSIG, KMESPC, FACHFR, DEP2, AC2, IMA
 !     only tests this single flag
    LTSTFL = ITEST.GE.100 .AND. TESTFL
 
-   IDP    = DIA_WORKSPACE%WWINT(1)
-   IDP1   = DIA_WORKSPACE%WWINT(2)
-   IDM    = DIA_WORKSPACE%WWINT(3)
-   IDM1   = DIA_WORKSPACE%WWINT(4)
-   ISP    = DIA_WORKSPACE%WWINT(5)
-   ISP1   = DIA_WORKSPACE%WWINT(6)
-   ISM    = DIA_WORKSPACE%WWINT(7)
-   ISM1   = DIA_WORKSPACE%WWINT(8)
-   ISLOW  = DIA_WORKSPACE%WWINT(9)
-   ISHGH  = DIA_WORKSPACE%WWINT(10)
-   ISCLW  = DIA_WORKSPACE%WWINT(11)
-   ISCHG  = DIA_WORKSPACE%WWINT(12)
-   IDLOW  = DIA_WORKSPACE%WWINT(13)
-   IDHGH  = DIA_WORKSPACE%WWINT(14)
+   IDP    = WWINT(1)
+   IDP1   = WWINT(2)
+   IDM    = WWINT(3)
+   IDM1   = WWINT(4)
+   ISP    = WWINT(5)
+   ISP1   = WWINT(6)
+   ISM    = WWINT(7)
+   ISM1   = WWINT(8)
+   ISLOW  = WWINT(9)
+   ISHGH  = WWINT(10)
+   ISCLW  = WWINT(11)
+   ISCHG  = WWINT(12)
+   IDLOW  = WWINT(13)
+   IDHGH  = WWINT(14)
 
    AWG1 = DIA_WORKSPACE%WWAWG(1)
    AWG2 = DIA_WORKSPACE%WWAWG(2)

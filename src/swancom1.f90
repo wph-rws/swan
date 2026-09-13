@@ -7092,7 +7092,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       *** semi-implicit calculation for all the bins that fall ***
 !       *** within a sweep. No additional array is required      ***
 
-                        CALL SWSNL1 (DIA_WORKSPACE, WINDOW, SPCSIG, POINT_INTEGRALS%kmespc, FACHFR, DEP2, AC2, IMATDA, IMATRA, TEST_OUTPUT%plnl4s, TEST_OUTPUT%plnl4d, SOURCE_BUDGET%redc0, SOURCE_BUDGET%redc1, SNL4%frequency_power_11, IGP)
+                        CALL SWSNL1 (DIA_WORKSPACE, WINDOW, WWINTL, SPCSIG, POINT_INTEGRALS%kmespc, FACHFR, DEP2, AC2, IMATDA, IMATRA, TEST_OUTPUT%plnl4s, TEST_OUTPUT%plnl4d, SOURCE_BUDGET%redc0, SOURCE_BUDGET%redc1, SNL4%frequency_power_11, IGP)
 
                      ELSE IF ( IQUAD .EQ. 2) THEN
 

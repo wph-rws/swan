@@ -24,6 +24,7 @@ class Variant:
 
 VARIANTS = {
     "quad_off": Variant("quad", "quad_off", "quadruplets disabled"),
+    "quad_dia1": Variant("quad", "quad_dia1", "semi-implicit DIA per sweep"),
     "quad_dia2": Variant("quad", "quad_dia2", "DIA per sweep"),
     "quad_dia3": Variant("quad", "quad_dia3", "DIA per iteration"),
     "quad_xnl": Variant(
@@ -44,6 +45,7 @@ VARIANTS = {
 
 STANDARD_KEYS = (
     "quad_off",
+    "quad_dia1",
     "quad_dia2",
     "quad_dia3",
     "triad_off",
@@ -101,11 +103,11 @@ def select_variants(selection: str) -> tuple[str, ...]:
     if selection == "standard":
         return STANDARD_KEYS
     if selection == "all":
-        return (*STANDARD_KEYS[:3], "quad_xnl", *STANDARD_KEYS[3:])
+        return (*STANDARD_KEYS[:4], "quad_xnl", *STANDARD_KEYS[4:])
     if selection == "quad":
-        return STANDARD_KEYS[:3]
+        return STANDARD_KEYS[:4]
     if selection == "triad":
-        return STANDARD_KEYS[3:6]
+        return STANDARD_KEYS[4:7]
     if selection == "combined":
         return ("combined",)
     if selection == "sources":
@@ -283,24 +285,27 @@ def validate_results(results: dict[str, RunResult]) -> list[str]:
             source_values = quad_sources if key == "quad_off" else triad_sources
             if max(source_values) > 1.0e-12:
                 raise RuntimeError(f"{key} reports a source term that should be disabled")
-        if key in {"quad_dia2", "quad_dia3", "quad_xnl", "combined"}:
+        if key in {"quad_dia1", "quad_dia2", "quad_dia3", "quad_xnl", "combined"}:
             if max(quad_sources) <= 1.0e-8:
                 raise RuntimeError(f"{key} did not activate quadruplet transfer")
         if key in {"triad_dcta", "triad_ftim", "combined"}:
             if max(triad_sources) <= 1.0e-8:
                 raise RuntimeError(f"{key} did not activate triad transfer")
 
-    if {"quad_off", "quad_dia2", "quad_dia3"}.issubset(results):
+    if {"quad_off", "quad_dia1", "quad_dia2", "quad_dia3"}.issubset(results):
         off = results["quad_off"].spectra[-1]
+        dia1 = results["quad_dia1"].spectra[-1]
         dia2 = results["quad_dia2"].spectra[-1]
         dia3 = results["quad_dia3"].spectra[-1]
         off_difference = relative_spectral_difference(off, dia2)
+        dia1_difference = relative_spectral_difference(dia2, dia1)
         dia_difference = relative_spectral_difference(dia2, dia3)
         if off_difference <= 0.01:
             raise RuntimeError("DIA did not measurably change the down-fetch spectrum")
         messages.append(
             f"QUAD: DIA2 differs {off_difference:.1%} from OFF at 100 km; "
-            f"DIA3 differs {dia_difference:.1%} from DIA2."
+            f"DIA1 differs {dia1_difference:.1%} and DIA3 differs "
+            f"{dia_difference:.1%} from DIA2."
         )
 
     if {"triad_off", "triad_dcta", "triad_ftim"}.issubset(results):
