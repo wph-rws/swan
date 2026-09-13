@@ -149,6 +149,12 @@ def main() -> int:
     )
     parser.add_argument("--netcdf-table", action="store_true")
     parser.add_argument("--netcdf-spectrum", action="store_true")
+    parser.add_argument(
+        "--long-name",
+        action="store_true",
+        help="use an output file name of more than 80 characters, which the "
+        "netCDF writer used to cut off",
+    )
     arguments = parser.parse_args()
 
     try:
@@ -175,6 +181,8 @@ def main() -> int:
             output_name = "quick_test_spectrum.nc"
         else:
             output_name = f"quick_test.{extension}"
+        if arguments.long_name:
+            output_name = "quick_test_" + "long_name_" * 9 + output_name.removeprefix("quick_test")
         block = (
             "BLOCK 'COMPGRID' NOHEADER 'quick_test_hs.blk' LAYOUT 3 HSIGN"
         )

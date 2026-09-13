@@ -691,6 +691,20 @@ if( BUILD_TESTING )
               --netcdf-checker $<TARGET_FILE:check_netcdf_output>
               --expected-center 0.87872
     )
+    # Upstream cuts off a file name of more than 80 characters on its way
+    # to the netCDF writer, which then creates a file with the wrong name
+    # (BF-32).
+    add_test(
+      NAME netcdf_long_name
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/netcdf-long-name
+              --backend netcdf
+              --netcdf-checker $<TARGET_FILE:check_netcdf_output>
+              --expected-center 0.87872
+              --long-name
+    )
     set_tests_properties( netcdf_output PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
     add_test(
       NAME netcdf_mixed_block_output
@@ -797,6 +811,23 @@ if( BUILD_TESTING )
                 --expected-center ${QUICK_TEST_MPI_CENTER}
       )
       set_tests_properties( netcdf_output_mpi PROPERTIES
+        RUN_SERIAL TRUE TIMEOUT 180 )
+      add_test(
+        NAME netcdf_long_name_mpi
+        COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+                --swan-executable $<TARGET_FILE:${EXE}>
+                --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/netcdf-long-name-mpi
+                --backend netcdf
+                --netcdf-checker $<TARGET_FILE:check_netcdf_output>
+                --mpi-exec ${MPIEXEC_EXECUTABLE}
+                --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
+                --mpi-processes 2
+                --reference ${QUICK_TEST_MPI_REFERENCE}
+                --expected-center ${QUICK_TEST_MPI_CENTER}
+                --long-name
+      )
+      set_tests_properties( netcdf_long_name_mpi PROPERTIES
         RUN_SERIAL TRUE TIMEOUT 180 )
       add_test(
         NAME netcdf_spectrum_output_mpi
