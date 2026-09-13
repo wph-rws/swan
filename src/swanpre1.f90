@@ -3259,12 +3259,18 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                   ENDIF
                ENDDO
                SNL4%quadruplet_count = ILAMBDA
+!        An empty lambda list silently removes all MDIA interactions upstream.
+!        It also leaves the cached spectral range without a value here.
+               IF (SNL4%quadruplet_count.LT.1) CALL MSGERR (4, &
+                  'MDIA LAMBDA requires at least one non-negative [lambda] value')
                ALLOCATE (SNL4%lambda(SNL4%quadruplet_count))
                SNL4%lambda(1:SNL4%quadruplet_count) = &
                   RLAMBDA(1:SNL4%quadruplet_count)
                DEALLOCATE (RLAMBDA)
             ELSE
-               CALL WRNKEY
+               CALL MSGERR (4, 'MDIA requires LAMBDA followed by at least one value')
+               DEALLOCATE (RLAMBDA)
+               RETURN
             END IF
             CALL INKEYW ('STA', '   ')
             ALLOCATE (SNL4%coefficient_1(SNL4%quadruplet_count), &
@@ -3280,7 +3286,7 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                END DO
                SNL4%coefficient_2 = SNL4%coefficient_1
             ELSE
-               CALL WRNKEY
+               CALL MSGERR (4, 'MDIA requires CNL4 or CNL4_12 coefficients')
             END IF
             SNL4%coefficient_1 = SNL4%coefficient_1 * power9(2.*PI)
             SNL4%coefficient_2 = SNL4%coefficient_2 * power9(2.*PI)
