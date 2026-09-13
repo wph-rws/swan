@@ -51,11 +51,11 @@ VARIANTS = {
     "src_break_rue": Variant("sources", "src_break_rue", "Ruessink breaking"),
     "src_break_tg": Variant("sources", "src_break_tg", "Thornton-Guza breaking"),
     "src_break_bkd": Variant("sources", "src_break_bkd", "beta-kd breaking"),
-    "src_break_asym": Variant("sources", "src_break_asym", "asymmetry breaking (known broken, see below)"),
+    "src_break_asym": Variant("sources", "src_break_asym", "asymmetry breaking"),
 }
 
 # Bottom-friction and depth-induced-breaking formulations that must each stay
-# reachable and active. src_break_asym is deliberately absent: see BROKEN_KEYS.
+# reachable and active.
 FORMULATION_KEYS = (
     "src_fric_collins",
     "src_fric_madsen",
@@ -65,19 +65,14 @@ FORMULATION_KEYS = (
     "src_break_rue",
     "src_break_tg",
     "src_break_bkd",
+    "src_break_asym",
 )
 
-# BREAKING ASYM annihilates the wave field, and does so identically in stock
-# upstream 41.45, so this is not a defect of this repository. In SINTGRL the
-# branch for a non-negative Eldeberky biphase sets BRCOEF = 0 with the comment
-# "no surf breaking", but HM = GAMBR * DEP2 then becomes zero, which is maximum
-# breaking rather than none -- the disabled-breaking path uses HM = 100 for
-# that. The biphase reaches exactly zero whenever the Ursell number drops below
-# about 0.01, because TANH(URCRIT/UR) saturates at 1.0 in single precision, so
-# any deck with a deep-water section triggers it across the whole domain.
-# The deck is kept so the bounds-checked build still walks the code path; only
-# its physics is left unasserted.
-BROKEN_KEYS = ("src_break_asym",)
+# No formulation is quarantined at the moment. BREAKING ASYM was, until the
+# discontinuity at a zero biphase was repaired in SINTGRL; see
+# doc/bugfixes-tov-tu-delft-41.51.md. Keep the mechanism: a formulation that
+# is reachable but known broken belongs here rather than silently asserted.
+BROKEN_KEYS: tuple[str, ...] = ()
 
 # Named groups rather than positional slices: a slice silently selects the
 # wrong variants as soon as a group grows, which is how quad_mdia went missing

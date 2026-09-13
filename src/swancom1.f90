@@ -5306,6 +5306,15 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
                   INTEGER, SAVE :: IENT = 0
 
+!     Breaker index that switches surf breaking off for one point. HM = BRCOEF
+!     * DEP2 then exceeds any attainable wave height, which is the same intent
+!     as the HM = 100 of the branch below that disables breaking altogether.
+!     Encoding "no breaking" as BRCOEF = 0 gives HM = 0 instead, which does the
+!     exact opposite. Not through FRABRE -- that returns QB = 0 for HM = 0 --
+!     but through SSURF: BB = 8*ETOT/(KTETA*HM**2) becomes infinite, and its
+!     BB >= 1 branch sets WS = (PSURF(1)/PI)*FMEAN, the saturated dissipation.
+                  REAL, PARAMETER :: SURF_OFF_BREAKER_INDEX = 100.
+
 !     AB2                : Sum of E_DSHKD2_DS_DD
 !     ACTOT_DSIG         : Integration term for calculating ACTOT
 !     ARR                : auxiliary array
@@ -5568,14 +5577,40 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                         &( SWPDIR .EQ. 3 .AND. IYCG .EQ. 1) .OR.&
                         &( SWPDIR .EQ. 4 .AND.&
                         &(IXCG.EQ.MXC .AND. IYCG.EQ.1) )) THEN
-!              see also routine BRKPAR
+!              see also routine BRKPAR, which passes BRCOEF = -1 here when
+!              the second harmonic carries less than 35% of the energy.
+!
+!              Saprykina et al. (2017) give the breaker index in two regimes.
+!              Above that 35% share the waves spill, are nearly symmetric
+!              about the vertical, and the index is the constant PSURF(4) =
+!              0.6, which BRKPAR assigns directly. Below it the waves plunge
+!              and the index RISES above that constant with the vertical
+!              asymmetry, which the biphase measures. The index is therefore
+!              bounded below by PSURF(4) over the whole model; it is never
+!              small and never zero.
+!
+!              The biphase of both Eldeberky and Saprykina is non-positive by
+!              construction, so this expression yields BRCOEF >= PSURF(4) and
+!              reaches exactly PSURF(4), the spilling constant, at BIPH = 0.
+!              Testing BIPH .LT. 0. rather than .LE. therefore cuts a
+!              discontinuity into a continuous curve at its physically
+!              meaningful endpoint. That endpoint is not a rare case: 0.5*PI*
+!              (TANH(URCRIT/UR)-1) underflows to exactly zero in single
+!              precision once the Ursell number drops below about 0.065 for the
+!              default URCRIT = PTRIAD(4) = 0.63, so every point seaward of the
+!              shoaling zone lands on it.
                            IF ( BRCOEF.LT.0. ) THEN
                               BIPH = POINT_INTEGRALS%biphas(IGP)
-                              IF ( BIPH.LT.0. ) THEN
+                              IF ( BIPH.LE.0. ) THEN
                                  BRCOEF = PSURF(4) - 0.3 * PSURF(5) * BIPH
                               ELSE
-!                    local bed slope negative, no surf breaking
-                                 BRCOEF = 0.
+!                    A positive biphase is outside the parameterisation --
+!                    only De Wit's formulation produces one -- so switch surf
+!                    breaking off for this point rather than extrapolate.
+!                    Encoding that as BRCOEF = 0 would set HM = 0, which drives
+!                    BB in SSURF to infinity and hence into its saturated
+!                    branch: every wave breaks, the opposite of the intent.
+                                 BRCOEF = SURF_OFF_BREAKER_INDEX
                               ENDIF
                            ENDIF
                            GAMBR(IGP) = BRCOEF

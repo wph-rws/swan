@@ -1,5 +1,9 @@
 $ asymmetry-based breaking (allocates its own COMPDA slot)
 $
+$ Until the SINTGRL repair this deck annihilated the wave field: the breaker
+$ index dropped to zero wherever the biphase underflowed to zero, which is
+$ everywhere seaward of the shoaling zone. See doc/bugfixes-tov-tu-delft-41.51.md.
+$
 $ Identical to src_break_asym apart from the one formulation line below, so the two
 $ decks isolate this formulation. Added for path coverage: before this deck the
 $ repository never selected it, so the bounds-checked CI build never reached it.
