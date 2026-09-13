@@ -6664,6 +6664,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   INTEGER, SAVE :: IENT = 0
                   INTEGER           :: ID, IDIA, IDC, IERR, IS, ISC, IT
                   INTEGER           :: N2, LMAX
+                  INTEGER           :: IZS, IZDLO, IZDHI
+                  LOGICAL           :: BUDGET_WINDOW_COVERS
 
                   REAL              :: DQ, DQ2, DT2
 
@@ -6807,20 +6809,55 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      IMATDA = 0.
                   ENDIF
 
-!     *** set all dissipation coeff at 0 ***
+!     *** set all dissipation, generation and redistribution coeff at 0 ***
+!
+!     Every source routine accumulates over exactly IS = 1, ISSTOP and
+!     IDDUM = IDCMIN(IS), IDCMAX(IS), while ADDDIS reads every bin with ANYBIN
+!     set.  Clearing just the sector is therefore sound only when the sector
+!     contains all active bins.  That does not hold everywhere: SWPSEL widens
+!     IDCMIN/IDCMAX to the full circle as soon as it counts more than one
+!     sector, but SwanSweepSel keeps only the last pair of boundaries, so on an
+!     unstructured grid with a current ANYBIN can hold bins outside the window.
+!     Such a bin is read by ADDDIS and written by no source routine, so it has
+!     to be zero.  Verify the containment against ANYBIN itself -- not against
+!     an assumption about the sweep selector -- and clear everything when it
+!     does not hold.
 
-                  SOURCE_BUDGET%dissc0(1:MDC,1:MSC,1:MDISP) = 0.
-                  SOURCE_BUDGET%dissc1(1:MDC,1:MSC,1:MDISP) = 0.
+                  BUDGET_WINDOW_COVERS = SWEEP_WINDOW_COVERS_ACTIVE_BINS(WINDOW, ANYBIN)
 
-!     *** set all generation coeff at 0 ***
+                  IF (.NOT. BUDGET_WINDOW_COVERS) THEN
 
-                  SOURCE_BUDGET%genc0(1:MDC,1:MSC,1:MGENR) = 0.
-                  SOURCE_BUDGET%genc1(1:MDC,1:MSC,1:MGENR) = 0.
+                     SOURCE_BUDGET%dissc0(1:MDC,1:MSC,1:MDISP) = 0.
+                     SOURCE_BUDGET%dissc1(1:MDC,1:MSC,1:MDISP) = 0.
+                     SOURCE_BUDGET%genc0 (1:MDC,1:MSC,1:MGENR) = 0.
+                     SOURCE_BUDGET%genc1 (1:MDC,1:MSC,1:MGENR) = 0.
+                     SOURCE_BUDGET%redc0 (1:MDC,1:MSC,1:MREDS) = 0.
+                     SOURCE_BUDGET%redc1 (1:MDC,1:MSC,1:MREDS) = 0.
 
-!     *** set all redistribution coeff at 0 ***
+                  ELSE
 
-                  SOURCE_BUDGET%redc0(1:MDC,1:MSC,1:MREDS) = 0.
-                  SOURCE_BUDGET%redc1(1:MDC,1:MSC,1:MREDS) = 0.
+                  DO IZS = 1, WINDOW%ISSTOP
+                     IZDLO = WINDOW%IDCMIN(IZS)
+                     IZDHI = WINDOW%IDCMAX(IZS)
+                     IF (IZDHI .LT. IZDLO) CYCLE
+                     IF (IZDLO .LT. 1) THEN
+                        SOURCE_BUDGET%dissc0(IZDLO+MDC:MDC,IZS,1:MDISP) = 0.
+                        SOURCE_BUDGET%dissc1(IZDLO+MDC:MDC,IZS,1:MDISP) = 0.
+                        SOURCE_BUDGET%genc0 (IZDLO+MDC:MDC,IZS,1:MGENR) = 0.
+                        SOURCE_BUDGET%genc1 (IZDLO+MDC:MDC,IZS,1:MGENR) = 0.
+                        SOURCE_BUDGET%redc0 (IZDLO+MDC:MDC,IZS,1:MREDS) = 0.
+                        SOURCE_BUDGET%redc1 (IZDLO+MDC:MDC,IZS,1:MREDS) = 0.
+                        IZDLO = 1
+                     END IF
+                     SOURCE_BUDGET%dissc0(IZDLO:IZDHI,IZS,1:MDISP) = 0.
+                     SOURCE_BUDGET%dissc1(IZDLO:IZDHI,IZS,1:MDISP) = 0.
+                     SOURCE_BUDGET%genc0 (IZDLO:IZDHI,IZS,1:MGENR) = 0.
+                     SOURCE_BUDGET%genc1 (IZDLO:IZDHI,IZS,1:MGENR) = 0.
+                     SOURCE_BUDGET%redc0 (IZDLO:IZDHI,IZS,1:MREDS) = 0.
+                     SOURCE_BUDGET%redc1 (IZDLO:IZDHI,IZS,1:MREDS) = 0.
+                  END DO
+
+                  END IF
 
 !     *** set local ice concentration ***
 !     (see Remarks)

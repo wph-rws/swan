@@ -19,6 +19,7 @@ module swan_spectral_grid
    public :: SPDIR1, SPDIR2, FULCIR, SLOW, SHIG
    public :: MSC4MI, MSC4MA, MDC4MI, MDC4MA
    public :: spectral_window_t
+   public :: sweep_window_covers_active_bins
 
 !     Non-owning view of the active part of the spectrum for one sweep.
 !     The solvers retain ownership of the thread-local arrays and counters;
@@ -62,4 +63,44 @@ module swan_spectral_grid
 !     routines work on: the interactions reach outside the computed grid, so
 !     their arrays run from MSC4MI to MSC4MA rather than from 1 to MSC.
    integer :: MSC4MI, MSC4MA, MDC4MI, MDC4MA
+
+contains
+
+!  Whether every active bin of the sweep lies inside IDCMIN..IDCMAX.
+!
+!  Source-term kernels accumulate over IS = 1, ISSTOP and the directional
+!  sector IDCMIN(IS)..IDCMAX(IS), while ADDDIS reads every bin for which
+!  ANYBIN is set.  The two sets are not the same everywhere: SWPSEL widens the
+!  sector to the full circle as soon as it counts more than one, but
+!  SwanSweepSel keeps only the last pair of boundaries, so with a current an
+!  unstructured sweep can leave active bins outside the sector.  Any consumer
+!  that wants to touch only the sector -- clearing the source-term budgets, for
+!  one -- must ask this first and fall back to the full spectrum when it is
+!  false.  The test is made against ANYBIN itself, so it stays valid whatever a
+!  sweep selector does.
+   logical function sweep_window_covers_active_bins(WINDOW, ANYBIN) result(covers)
+      type(spectral_window_t), intent(in) :: WINDOW
+      logical, intent(in) :: ANYBIN(MDC,MSC)
+
+      integer :: id, is, lo, hi
+
+      covers = .false.
+      do is = 1, MSC
+         if ( is > WINDOW%isstop ) then
+!           the sector loop does not reach this frequency at all
+            if ( any(ANYBIN(1:MDC,is)) ) return
+            cycle
+         end if
+         lo = WINDOW%idcmin(is)
+         hi = WINDOW%idcmax(is)
+         do id = 1, MDC
+            if ( .not.ANYBIN(id,is) ) cycle
+            if ( id     >= lo .and. id     <= hi ) cycle
+            if ( id-MDC >= lo .and. id-MDC <= hi ) cycle
+            return
+         end do
+      end do
+      covers = .true.
+   end function sweep_window_covers_active_bins
+
 end module swan_spectral_grid

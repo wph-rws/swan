@@ -369,6 +369,10 @@ if( BUILD_TESTING )
   target_link_libraries( test_boundary_state PRIVATE swan${VERSION} )
   add_test( NAME boundary_state COMMAND test_boundary_state )
 
+  add_executable( test_sweep_sector_budget tests/test_sweep_sector_budget.f90 )
+  target_link_libraries( test_sweep_sector_budget PRIVATE swan${VERSION} )
+  add_test( NAME sweep_sector_budget COMMAND test_sweep_sector_budget )
+
   add_executable( test_output_state tests/test_output_state.f90 )
   target_link_libraries( test_output_state PRIVATE swan${VERSION} )
   add_test( NAME output_state COMMAND test_output_state )
