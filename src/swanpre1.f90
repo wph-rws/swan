@@ -490,6 +490,7 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 ! 13. Source text
 
    LOGICAL :: FOUND
+   LOGICAL :: STATKW ! COMPUTE is followed by STATionary
 
 !     *** The logical variable LOGCOM has a record about which    ***
 !     *** commands have been given to know if all the information ***
@@ -942,7 +943,11 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
             COMPUT = 'COMP'
             RUNMADE = .TRUE.
             CALL INKEYW ('STA','  ')
-            IF (NSTATM.LE.0 .OR. KEYWIS('STAT')) THEN
+!     Call KEYWIS separately: inside the .OR. the compiler may skip it
+!     when NSTATM.LE.0 is already true, and then STAT is left unused and
+!     the next command reports 'Illegal keyword' (gfortran does, Intel does not)
+            STATKW = KEYWIS('STAT')
+            IF (NSTATM.LE.0 .OR. STATKW) THEN
                IF (NSTATM.EQ.-1) NSTATM = 0
                IF (NSTATM.GT.0) CALL INCTIM (ITMOPT,'TIME',default_time_context%TINIC,'REQ',0D0)
                IF (default_time_context%TINIC .LT. default_time_context%TIMCO) THEN

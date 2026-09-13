@@ -22,6 +22,26 @@ def _swan() -> str:
     return swan_executable()
 
 
+#  `COMPUTE STATionary` is the documented form for a stationary run.
+#  SWREAD tested `NSTATM.LE.0 .OR. KEYWIS('STAT')`; in a stationary run
+#  the left-hand side is already true, and gfortran then skips the right. STAT
+#  was therefore left unused and the next command reported
+#  'Illegal keyword'. An Intel build evaluates both sides and reported nothing.
+@pytest.mark.parametrize("compute", ["COMPUTE STAT", "COMPUTE STATIONARY"])
+def test_compute_stationary_is_valid(tmp_path, compute):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    assert "\nCOMPUTE\n" in deck, "smoke deck has changed shape"
+    (work / "INPUT").write_text(deck.replace("\nCOMPUTE\n", f"\n{compute}\n"),
+                                encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert result.returncode == 0
+    assert "Illegal keyword" not in report, report[-2000:]
+
+
 def _run_deck(tmp_path: Path, deck: str, files: dict[str, str] | None = None,
               timeout: float | None = None):
     work = tmp_path / "work"
