@@ -4537,7 +4537,14 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
          ALOCMP = .TRUE.
       ENDIF
    ELSE
+!     No branch matched, so IGR1 names no field and every IFLxxx(IGR1) below
+!     would index the tables at whatever the uninitialised local happens to
+!     hold -- a read out of bounds, and a write as soon as the deck also
+!     supplies [fac]. WRNKEY raises the error level to 2, which blocks the
+!     computation only at the default [maxerr] of 1, and reading goes on
+!     regardless, so leave before using the index.
       CALL  WRNKEY
+      RETURN
    ENDIF
 
 !     read multiplication factor
