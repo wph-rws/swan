@@ -4619,7 +4619,16 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
       ENDIF
       IF (ITEST.GE.60) WRITE (PRTEST,"(I6, ' quantities')") NQUANT
    ELSE
-      CALL MSGERR (3, 'unsupported boundary data file')
+!     The header was not recognised, so none of the counts and options that
+!     describe the file were read. Continuing would allocate BSPLOC with an
+!     uninitialised NBOUNC and fill BFILED from uninitialised locals, which
+!     the boundary reader later trusts. This is a terminating error, like
+!     the other unreadable boundary files in this routine: at level 3 a deck
+!     with SET MAXERR 3 would compute on, and the caller would then give the
+!     boundary points a spectrum that was never made.
+      CLOSE (NDSD)
+      CALL MSGERR (4, 'unsupported boundary data file '//TRIM(FBCNAM))
+      RETURN
    ENDIF
 
    ALLOCATE(BSPFIL%BSPLOC(NBOUNC))

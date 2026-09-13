@@ -36,6 +36,42 @@ def _run_deck(tmp_path: Path, deck: str, files: dict[str, str] | None = None,
     return result, report
 
 
+#  BF-23: a boundary file whose first line is not a header that BCFILE knows.
+#  Nothing of the file is read then, so there is no boundary spectrum. As a
+#  severe error (level 3) this still let a deck with SET MAXERR 3 compute:
+#  the boundary points pointed to a spectrum that did not exist, SWAN read
+#  whatever lay behind the empty table of boundary spectra, and the run ended
+#  normally with exit code 0 and Hs = 0 at every point despite the wind
+#  (upstream: 0.23 m, a segmentation fault or a failed allocation, depending
+#  on the deck). It must stop the run whatever [maxerr] is, and write no
+#  output.
+@pytest.mark.parametrize("maxerr", [None, 3])
+@pytest.mark.parametrize("boundary", [
+    "BOUNDSPEC SIDE WEST CONSTANT FILE 'junk.bnd'",
+    "BOUNDSPEC SEGMENT IJ 0 0 0 10 VARIABLE FILE 0. 'junk.bnd' 1",
+    "BOUNDNEST1 NEST 'junk.bnd' CLOSED",
+], ids=["side", "segment", "nest"])
+def test_boundary_file_with_unknown_header_stops_the_run(tmp_path, boundary, maxerr):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    (work / "junk.bnd").write_text("JUNK header line\n1 2 3\n4 5 6\n", encoding="utf-8")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    old = "BOUNDSPEC SIDE WEST CONSTANT PAR 1.0 6.0 270.0 20.0"
+    assert old in deck, "smoke deck has changed shape"
+    deck = deck.replace(old, boundary, 1)
+    if maxerr is not None:
+        deck = deck.replace("SET NAUTICAL", f"SET NAUTICAL\nSET MAXERR {maxerr}", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True,
+                            timeout=60)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert result.returncode == 1, (result.returncode, report[-2000:])
+    assert "Terminating error: unsupported boundary data file junk.bnd" in report, report[-2000:]
+    assert not (work / "quick_test_center.tbl").exists(), "SWAN computed without a boundary"
+    assert not (work / "norm_end").exists()
+
+
 #  CVMESH looks for an output point in a curvilinear grid and then checks in
 #  KGRPNT whether that point is active. For a point outside the grid
 #  (XC = -99) that check must be skipped, or KGRPNT is read at index -97.
