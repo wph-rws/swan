@@ -87,6 +87,54 @@ def test_two_frequencies_without_quadruplets_keep_running(tmp_path):
     assert "No start of computation" not in report, report[-2000:]
 
 
+#  "If the variables are in one file, then the READINP commands should be
+#  given in the same sequence as the sequence in which the variables appear
+#  in the file" (manual, READINP). REPARM did recognise the file, but
+#  did not pass the unit and format on to the next quantity: upstream silently
+#  did not read the current, the fork stopped on 'Error while reading file stderr'.
+#  Moreover, REPARM kept only 36 characters of the name, so that a longer
+#  name never counted as the same file ('File is already opened').
+def _run_fields(tmp_path: Path, files: dict[str, str], readinp: str) -> tuple[int, str, str]:
+    work = tmp_path / "work"
+    work.mkdir(parents=True)
+    for name, content in files.items():
+        (work / name).write_text(content, encoding="utf-8")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    old = "READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE"
+    assert old in deck, "smoke deck has changed shape"
+    deck = deck.replace(old, readinp, 1)
+    deck = deck.replace("XP YP DEPTH HSIGN TM01 DIR", "XP YP DEPTH HSIGN TM01 DIR VEL", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    table = work / "quick_test_center.tbl"
+    return result.returncode, report, table.read_text() if table.is_file() else ""
+
+
+BOTTOM = "20.0 20.0\n20.0 20.0\n"
+CURRENT = "0.8 0.8\n0.8 0.8\n0.0 0.0\n0.0 0.0\n"
+CURRENT_GRID = "INPGRID CURRENT REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0"
+
+
+@pytest.mark.parametrize("name", ["fields.dat",
+                                  "input_fields_bottom_and_current_voordelta.dat"])
+def test_several_quantities_from_one_file(tmp_path, name):
+    code, report, separate = _run_fields(
+        tmp_path / "separate", {"bottom.dat": BOTTOM, "current.dat": CURRENT},
+        f"READINP BOTTOM 1.0 'bottom.dat' 3 0 FREE\n{CURRENT_GRID}\n"
+        "READINP CURRENT 1.0 'current.dat' 3 0 FREE")
+    assert code == 0, report[-2000:]
+    assert "0.800000" in separate, "counter-test does not read the current"
+
+    code, report, combined = _run_fields(
+        tmp_path / "combined", {name: BOTTOM + CURRENT},
+        f"READINP BOTTOM 1.0 '{name}' 3 0 FREE\n{CURRENT_GRID}\n"
+        f"READINP CURRENT 1.0 '{name}'")
+    assert code == 0, report[-2000:]
+    assert "** Error" not in report, report[-2000:]
+    assert combined == separate
+
+
 def _run_deck(tmp_path: Path, deck: str, files: dict[str, str] | None = None,
               timeout: float | None = None):
     work = tmp_path / "work"
@@ -99,6 +147,49 @@ def _run_deck(tmp_path: Path, deck: str, files: dict[str, str] | None = None,
                             timeout=timeout)
     report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
     return result, report
+
+
+#  BF-26 for vector fields: wind and current with a heading line before each
+#  component ([nhedvec] = 1) in one file. For a file that was already open,
+#  REPARM read nothing of the command, so also not the number of heading lines
+#  per component; repeated settings were left unread. Without a value, the
+#  values last given for the file now apply; with a value, the new ones.
+WIND_WITH_HEADERS = "wind x\n1.0 1.0\n1.0 1.0\nwind y\n0.0 0.0\n0.0 0.0\n"
+CURRENT_WITH_HEADERS = "current x\n0.8 0.8\n0.8 0.8\ncurrent y\n0.0 0.0\n0.0 0.0\n"
+
+
+def _run_vector_fields(tmp_path: Path, files: dict[str, str], wind: str, current: str):
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    for old in ("WIND 8.0 270.0\n", "XP YP DEPTH HSIGN TM01 DIR"):
+        assert old in deck, "smoke deck has changed shape"
+    deck = deck.replace("WIND 8.0 270.0\n", "", 1)
+    deck = deck.replace("XP YP DEPTH HSIGN TM01 DIR", "XP YP DEPTH HSIGN TM01 DIR VEL", 1)
+    deck = deck.replace(
+        "READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE",
+        "READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE\n"
+        "INPGRID WIND REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0\n" + wind + "\n"
+        + CURRENT_GRID + "\n" + current, 1)
+    result, report = _run_deck(tmp_path, deck, files)
+    table = tmp_path / "work" / "quick_test_center.tbl"
+    return result.returncode, report, table.read_text() if table.is_file() else ""
+
+
+@pytest.mark.parametrize("current", ["READINP CURRENT 1.0 'vec.dat'",
+                                     "READINP CURRENT 1.0 'vec.dat' 3 0 1 FREE"])
+def test_vector_fields_with_heading_lines_from_one_file(tmp_path, current):
+    code, report, separate = _run_vector_fields(
+        tmp_path / "separate",
+        {"wind.dat": WIND_WITH_HEADERS, "current.dat": CURRENT_WITH_HEADERS},
+        "READINP WIND 1.0 'wind.dat' 3 0 1 FREE",
+        "READINP CURRENT 1.0 'current.dat' 3 0 1 FREE")
+    assert code == 0 and "** Error" not in report, report[-2000:]
+    assert "0.800000" in separate, "counter-test does not read the current"
+
+    code, report, combined = _run_vector_fields(
+        tmp_path / "combined", {"vec.dat": WIND_WITH_HEADERS + CURRENT_WITH_HEADERS},
+        "READINP WIND 1.0 'vec.dat' 3 0 1 FREE", current)
+    assert code == 0 and "** Error" not in report, report[-2000:]
+    assert combined == separate
 
 
 #  BF-23: a boundary file whose first line is not a header that BCFILE knows.

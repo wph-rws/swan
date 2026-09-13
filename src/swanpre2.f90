@@ -4908,7 +4908,7 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
 !     open file with list of names
    CALL FOR (NDSL, FBCNAM,'OF',IOSTAT)
    IF (STPNOW()) RETURN
-   READ (NDSL,'(A36)') FBCNAM
+   READ (NDSL,'(A)') FBCNAM
    CALL INKEYW ('REQ', ' ')
    IF (KEYWIS('FRE')) THEN
       BTYPE = 'WAMF'
