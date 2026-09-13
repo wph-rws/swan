@@ -1192,18 +1192,6 @@
   [
    "maybe-uninitialized",
    "swancom2.f90",
-   "‘e1’ may be used uninitialized",
-   1
-  ],
-  [
-   "maybe-uninitialized",
-   "swancom2.f90",
-   "‘e2’ may be used uninitialized",
-   1
-  ],
-  [
-   "maybe-uninitialized",
-   "swancom2.f90",
    "‘hrms’ may be used uninitialized",
    1
   ],

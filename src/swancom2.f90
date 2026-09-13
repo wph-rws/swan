@@ -3349,8 +3349,16 @@ SUBROUTINE BRKPAR (BRCOEF, ECOS, ESIN, AC2, SPCSIG, DEP2, BOTLV, RDX, RDY, KWAVE
 !            35% then breaker index is constant, otherwise
 !            the breaker index is related to the asymmetry of
 !            breaking waves and, in turn, the biphase;
-      IF ( ISIGM.EQ.0 ) THEN
-         BRCOEF = 0.
+!
+!            note: the "no peak found" sentinel is ISIGM = -1, so testing
+!            ISIGM .EQ. 0 never fires and leaves E1 and E2 unassigned for a
+!            spectrum without energy; the Ruessink branch above guards the
+!            same sentinel with ISIGM .GT. 0. Falling back on the spilling
+!            constant keeps the index finite: encoding "nothing to break" as
+!            BRCOEF = 0 would set HM = 0, which drives BB in SSURF to
+!            infinity and hence into its saturated branch (see SINTGRL).
+      IF ( ISIGM.LE.0 ) THEN
+         BRCOEF = PSURF(4)
       ELSEIF ( E2.GT.0.35*E1 ) THEN
          BRCOEF = PSURF(4)
       ELSE
