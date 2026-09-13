@@ -1,0 +1,322 @@
+--- a/src/swancom1.f90
++++ b/src/swancom1.f90
+@@ -6421,6 +6421,7 @@
+                   TYPE(test_output_t) :: TEST_OUTPUT
+ 
+                   TYPE(source_budget_t) :: SOURCE_BUDGET
++                  LOGICAL :: RECORD_SOURCE_BUDGET
+ 
+                   TYPE(spectral_window_t) :: WINDOW
+                   INTEGER, INTENT(IN) :: IGP
+@@ -6809,6 +6810,17 @@
+ 
+ !     *** set all dissipation coeff at 0 ***
+ 
++                  ! Bounded experiment: preserve all other physics routes.
++                  ! Standalone kernels retain their original accounting default.
++                  RECORD_SOURCE_BUDGET = .TRUE.
++                  IF (IWIND.EQ.3 .AND. IWCAP.EQ.1 .AND. IBOT.EQ.1 .AND. &
++                     ISURF.EQ.1 .AND. IQUAD.EQ.2 .AND. ITRIAD.EQ.0 .AND. &
++                     IMUD.EQ.0 .AND. IVEG.EQ.0 .AND. ITURBV.EQ.0 .AND. &
++                     IICE.EQ.0 .AND. IBRAG.EQ.0 .AND. IQCM.EQ.0 .AND. &
++                     ICUR.EQ.0 .AND. ITEST.LT.40) THEN
++                     RECORD_SOURCE_BUDGET = LADDS .OR. TESTFL
++                  END IF
++                  IF (RECORD_SOURCE_BUDGET) THEN
+                   SOURCE_BUDGET%dissc0(1:MDC,1:MSC,1:MDISP) = 0.
+                   SOURCE_BUDGET%dissc1(1:MDC,1:MSC,1:MDISP) = 0.
+ 
+@@ -6821,6 +6833,7 @@
+ 
+                   SOURCE_BUDGET%redc0(1:MDC,1:MSC,1:MREDS) = 0.
+                   SOURCE_BUDGET%redc1(1:MDC,1:MSC,1:MREDS) = 0.
++                  END IF
+ 
+ !     *** set local ice concentration ***
+ !     (see Remarks)
+@@ -6849,7 +6862,7 @@
+ 
+ !       *** wave-bottom interactions ***
+ 
+-                     CALL SBOT (POINT_INTEGRALS%abrbot, DEP2, ECOS, ESIN, AC2, IMATDA, KWAVE, SPCSIG, POINT_INTEGRALS%ubot, UX2, UY2, WINDOW, IT, ITER, SWPDIR, TEST_OUTPUT%plbtfr, SOURCE_BUDGET%dissc1, VARFR, FRCOEF, IGP, IX, IY)
++                     CALL SBOT (POINT_INTEGRALS%abrbot, DEP2, ECOS, ESIN, AC2, IMATDA, KWAVE, SPCSIG, POINT_INTEGRALS%ubot, UX2, UY2, WINDOW, IT, ITER, SWPDIR, TEST_OUTPUT%plbtfr, SOURCE_BUDGET%dissc1, VARFR, FRCOEF, IGP, IX, IY, RECORD_BUDGET=RECORD_SOURCE_BUDGET)
+                   END IF
+                   IF (timing_enabled) CALL SWTSTO(130)
+ !
+@@ -6897,8 +6910,7 @@
+ 
+ !         *** calculate surf breaking source term (5 formulations) ***
+ 
+-                     CALL SSURF (POINT_INTEGRALS%etot, POINT_INTEGRALS%hm, POINT_INTEGRALS%qbloc, POINT_INTEGRALS%smebrk, POINT_INTEGRALS%kteta, POINT_INTEGRALS%kmespc, SPCSIG, AC2, IMATRA, IMATDA, WINDOW, TEST_OUTPUT%plwbrk, SOURCE_BUDGET%dissc0, SOURCE_BUDGET%dissc1, DISBK, ITER, WCAP_WORKSPACE%mean_frequency_wam, IGP)
+-
++                     CALL SSURF (POINT_INTEGRALS%etot, POINT_INTEGRALS%hm, POINT_INTEGRALS%qbloc, POINT_INTEGRALS%smebrk, POINT_INTEGRALS%kteta, POINT_INTEGRALS%kmespc, SPCSIG, AC2, IMATRA, IMATDA, WINDOW, TEST_OUTPUT%plwbrk, SOURCE_BUDGET%dissc0, SOURCE_BUDGET%dissc1, DISBK, ITER, WCAP_WORKSPACE%mean_frequency_wam, IGP, RECORD_BUDGET=RECORD_SOURCE_BUDGET)
+                   END IF
+                   IF (timing_enabled) CALL SWTSTO(131)
+ !
+@@ -6911,7 +6923,7 @@
+ 
+                      IF (PWIND(31) .GT. 1.E-20) THEN
+                         IF ( IWIND.NE.8 ) THEN
+-                           CALL SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, POINT_INTEGRALS%fpm, TEST_OUTPUT%plwnds, IMATRA, SPCDIR, SOURCE_BUDGET%genc0, KWAVE, AICELOC, IGP)
++                           CALL SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, POINT_INTEGRALS%fpm, TEST_OUTPUT%plwnds, IMATRA, SPCDIR, SOURCE_BUDGET%genc0, KWAVE, AICELOC, IGP, RECORD_BUDGET=RECORD_SOURCE_BUDGET)
+                         ELSE
+                            IF ( SWPDIR .EQ. 1 .OR.&
+                            &(SWPDIR .EQ. 2 .AND. IX .EQ. 1) .OR.&
+@@ -6938,8 +6950,7 @@
+ 
+ !       *** Wind input according to Snyder et al (1981) ***
+ 
+-                     CALL SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, SOURCE_BUDGET%genc0, WINDOW, AC2, UFRIC, POINT_INTEGRALS%fpm, TEST_OUTPUT%plwnds, SPCDIR, ANYWND, AICELOC, IGP)
+-
++                     CALL SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, SOURCE_BUDGET%genc0, WINDOW, AC2, UFRIC, POINT_INTEGRALS%fpm, TEST_OUTPUT%plwnds, SPCDIR, ANYWND, AICELOC, IGP, RECORD_BUDGET=RECORD_SOURCE_BUDGET)
+                   ELSE IF ( IWIND .EQ. 4 ) THEN
+ 
+ !       *** Wind input according to Janssen (1989,1991) ***
+@@ -6977,7 +6988,7 @@
+ !
+                   IF (timing_enabled) CALL SWTSTA(133)
+                   IF (IWCAP.GE.1) THEN
+-                     IF (IWCAP.LE.7) CALL SWCAP (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, POINT_INTEGRALS%etot, IMATDA, IMATRA, TEST_OUTPUT%plwcap, CGO, UFRIC, CAS, DEP2, SOURCE_BUDGET%dissc1, SOURCE_BUDGET%dissc0, WCAP_WORKSPACE, IGP)
++                     IF (IWCAP.LE.7) CALL SWCAP (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, POINT_INTEGRALS%etot, IMATDA, IMATRA, TEST_OUTPUT%plwcap, CGO, UFRIC, CAS, DEP2, SOURCE_BUDGET%dissc1, SOURCE_BUDGET%dissc0, WCAP_WORKSPACE, IGP, RECORD_BUDGET=RECORD_SOURCE_BUDGET)
+                      IF (IWCAP.EQ.8) CALL SWCAP8 (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, POINT_INTEGRALS%etot, IMATDA, IMATRA, TEST_OUTPUT%plwcap, CGO, UFRIC, DEP2, SOURCE_BUDGET%dissc1, SOURCE_BUDGET%dissc0, WCAP_WORKSPACE, IGP)
+                   END IF
+ 
+@@ -7062,8 +7073,7 @@
+ !         *** fully explicit calculation for all the bins that fall ***
+ !         *** within a sweep. No additional array is required       ***
+ 
+-                        CALL SWSNL2 (WINDOW, WWINTL, DIA_WORKSPACE%WWAWG, DIA_WORKSPACE%UE, DIA_WORKSPACE%SA1, DIA_WORKSPACE%SA2, SPCSIG, DIA_WORKSPACE%SNLC1, DIA_WORKSPACE%DAL1, DIA_WORKSPACE%DAL2, DIA_WORKSPACE%DAL3, DIA_WORKSPACE%SFNL, DEP2, AC2, POINT_INTEGRALS%kmespc, SOURCE_BUDGET%redc0, SOURCE_BUDGET%redc1, IMATDA, IMATRA, FACHFR, TEST_OUTPUT%plnl4s, SNL4%frequency_power_11, IGP)
+-
++                        CALL SWSNL2 (WINDOW, WWINTL, DIA_WORKSPACE%WWAWG, DIA_WORKSPACE%UE, DIA_WORKSPACE%SA1, DIA_WORKSPACE%SA2, SPCSIG, DIA_WORKSPACE%SNLC1, DIA_WORKSPACE%DAL1, DIA_WORKSPACE%DAL2, DIA_WORKSPACE%DAL3, DIA_WORKSPACE%SFNL, DEP2, AC2, POINT_INTEGRALS%kmespc, SOURCE_BUDGET%redc0, SOURCE_BUDGET%redc1, IMATDA, IMATRA, FACHFR, TEST_OUTPUT%plnl4s, SNL4%frequency_power_11, IGP, RECORD_BUDGET=RECORD_SOURCE_BUDGET)
+                      ELSE IF ( IQUAD .EQ. 3) THEN
+ 
+ !         *** fully explicit calculation of the 4 wave-wave inter-  ***
+--- a/src/swancom2.f90
++++ b/src/swancom2.f90
+@@ -33,7 +33,7 @@
+    public :: BRKPAR, PLTSRC
+ contains
+ 
+-SUBROUTINE SBOT (ABRBOT, DEP2, ECOS, ESIN, AC2, IMATDA, KWAVE, SPCSIG, UBOT, UX2, UY2, WINDOW, IT, ITER, SWPDIR, PLBTFR, DISSC1, VARFR, FRCOEF, IGP, IXCG, IYCG)
++SUBROUTINE SBOT (ABRBOT, DEP2, ECOS, ESIN, AC2, IMATDA, KWAVE, SPCSIG, UBOT, UX2, UY2, WINDOW, IT, ITER, SWPDIR, PLBTFR, DISSC1, VARFR, FRCOEF, IGP, IXCG, IYCG, RECORD_BUDGET)
+    USE swan_service_interfaces, ONLY: STRACE
+ 
+ !****************************************************************
+@@ -332,6 +332,12 @@
+    &UY2(MCGRD)                ,&
+    &DISSC1(MDC,MSC,1:MDISP)   ,&
+    &FRCOEF(MCGRD)
++
++   LOGICAL, OPTIONAL, INTENT(IN) :: RECORD_BUDGET
++   LOGICAL :: DO_BUDGET
++
++   DO_BUDGET = .TRUE.
++   IF (PRESENT(RECORD_BUDGET)) DO_BUDGET = RECORD_BUDGET
+ 
+ 
+    IF (LTRACE) CALL STRACE (IENT,'SBOT')
+@@ -549,7 +555,9 @@
+ 
+                IMATDA(ID,IS) = IMATDA(ID,IS) + SBOTEO
+                IF (TESTFL) PLBTFR(ID,IS,IPTST) = -1.* SBOTEO
++               IF (DO_BUDGET) THEN
+                DISSC1(ID,IS,3) = DISSC1(ID,IS,3) + SBOTEO
++               END IF
+             end do
+          ENDIF
+       end do
+@@ -1795,7 +1803,7 @@
+ 
+ !****************************************************************
+ 
+-SUBROUTINE SSURF (ETOT, HM, QB, SMEBRK, KTETA, KMESPC, SPCSIG, AC2, IMATRA, IMATDA, WINDOW, PLWBRK, DISSC0, DISSC1, DISBK, ITER, SIGM_WAM, IGP)
++SUBROUTINE SSURF (ETOT, HM, QB, SMEBRK, KTETA, KMESPC, SPCSIG, AC2, IMATRA, IMATDA, WINDOW, PLWBRK, DISSC0, DISSC1, DISBK, ITER, SIGM_WAM, IGP, RECORD_BUDGET)
+    USE swan_service_interfaces, ONLY: STRACE
+    USE swan_spectral_integration, ONLY: SwanIntgratSpc
+ 
+@@ -2106,6 +2114,12 @@
+ !     -------------------------------------------------------------
+ !
+ ! 13. Source text
++
++   LOGICAL, OPTIONAL, INTENT(IN) :: RECORD_BUDGET
++   LOGICAL :: DO_BUDGET
++
++   DO_BUDGET = .TRUE.
++   IF (PRESENT(RECORD_BUDGET)) DO_BUDGET = RECORD_BUDGET
+ 
+    IF (LTRACE) CALL STRACE (IENT,'SSURF')
+ 
+@@ -2211,8 +2225,12 @@
+          DIS0 = SURFA0 * DBLE(AC2(ID,IS,IGP))
+          IMATRA(ID,IS) = IMATRA(ID,IS) + REAL(DIS0)
+          IF (TESTFL) PLWBRK(ID,IS,IPTST) = REAL(SURFA0-SURFA1)
++         IF (DO_BUDGET) THEN
+          DISSC0(ID,IS,2) = DISSC0(ID,IS,2) - REAL(DIS0)
++         END IF
++         IF (DO_BUDGET) THEN
+          DISSC1(ID,IS,2) = DISSC1(ID,IS,2) + REAL(SURFA1)
++         END IF
+       end do
+    end do
+ 
+@@ -2230,7 +2248,7 @@
+ 
+ !****************************************************************
+ 
+-SUBROUTINE SWCAP  (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLWCAP, CGO, UFRIC, CAS, DEP2, DISSC1, DISSC0, WCAP_WORKSPACE, IGP)
++SUBROUTINE SWCAP  (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLWCAP, CGO, UFRIC, CAS, DEP2, DISSC1, DISSC0, WCAP_WORKSPACE, IGP, RECORD_BUDGET)
+    USE swan_service_interfaces, ONLY: MSGERR, STRACE
+ 
+ !****************************************************************
+@@ -2485,6 +2503,12 @@
+ !
+ ! 13. Source text
+ 
++   LOGICAL, OPTIONAL, INTENT(IN) :: RECORD_BUDGET
++   LOGICAL :: DO_BUDGET
++
++   DO_BUDGET = .TRUE.
++   IF (PRESENT(RECORD_BUDGET)) DO_BUDGET = RECORD_BUDGET
++
+    ASSOCIATE(ACTOT => WCAP_WORKSPACE%total_action,&
+    &EDRKTOT => WCAP_WORKSPACE%energy_over_root_wavenumber,&
+    &EKTOT => WCAP_WORKSPACE%energy_times_wavenumber,&
+@@ -2678,7 +2702,9 @@
+       DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
+          ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+          IMATDA(ID,IS)   = IMATDA(ID,IS)   + WCAP(IS)
++         IF (DO_BUDGET) THEN
+          DISSC1(ID,IS,1) = DISSC1(ID,IS,1) + WCAP(IS)
++         END IF
+          IF (TESTFL) PLWCAP(ID,IS,IPTST) = -1.*(WCAP(IS)-WCIMPL(IS))
+       END DO
+    END DO
+@@ -2695,8 +2721,10 @@
+             ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+             IMATRA(ID,IS)   = IMATRA(ID,IS) +&
+             &WCIMPL(IS) * AC2(ID,IS,IGP)
++            IF (DO_BUDGET) THEN
+             DISSC0(ID,IS,1) = DISSC0(ID,IS,1) +&
+             &WCIMPL(IS) * AC2(ID,IS,IGP)
++            END IF
+          END DO
+       END DO
+    END IF
+@@ -2712,7 +2740,9 @@
+          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
+             ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+             IMATDA(ID,IS)   = IMATDA(ID,IS)   + WCCUR(ID,IS)
++            IF (DO_BUDGET) THEN
+             DISSC1(ID,IS,1) = DISSC1(ID,IS,1) + WCCUR(ID,IS)
++            END IF
+             IF (TESTFL) PLWCAP(ID,IS,IPTST) = PLWCAP(ID,IS,IPTST) -&
+             &WCCUR(ID,IS)
+          END DO
+--- a/src/swancom3.f90
++++ b/src/swancom3.f90
+@@ -1507,7 +1507,7 @@
+ 
+ !****************************************************************
+ 
+-SUBROUTINE SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, FPM, PLWNDS, IMATRA, SPCDIR, GENC0, KWAVE, AICELOC, IGP)
++SUBROUTINE SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, FPM, PLWNDS, IMATRA, SPCDIR, GENC0, KWAVE, AICELOC, IGP, RECORD_BUDGET)
+    USE swan_service_interfaces, ONLY: STRACE
+ 
+ !****************************************************************
+@@ -1725,6 +1725,12 @@
+ 
+ 
+    LOGICAL ANYWND(MDC)
++
++   LOGICAL, OPTIONAL, INTENT(IN) :: RECORD_BUDGET
++   LOGICAL :: DO_BUDGET
++
++   DO_BUDGET = .TRUE.
++   IF (PRESENT(RECORD_BUDGET)) DO_BUDGET = RECORD_BUDGET
+ 
+    IF (LTRACE) CALL STRACE (IENT,'SWIND0')
+ 
+@@ -1767,7 +1773,9 @@
+             SWINEA = REDUC * SWINEA
+             IMATRA(ID,IS) = IMATRA(ID,IS) + SWINEA
+             IF(TESTFL) PLWNDS(ID,IS,IPTST) = SWINEA
++            IF (DO_BUDGET) THEN
+             GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEA
++            END IF
+ 
+ !           *** test output ***
+ 
+@@ -1820,7 +1828,7 @@
+ 
+ !****************************************************************
+ 
+-SUBROUTINE SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, GENC0, WINDOW, AC2, UFRIC, FPM, PLWNDS, SPCDIR, ANYWND, AICELOC, IGP)
++SUBROUTINE SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, GENC0, WINDOW, AC2, UFRIC, FPM, PLWNDS, SPCDIR, ANYWND, AICELOC, IGP, RECORD_BUDGET)
+    USE swan_service_interfaces, ONLY: STRACE
+ 
+ !****************************************************************
+@@ -2019,6 +2027,12 @@
+    LOGICAL  ANYWND(MDC)
+ 
+ !/T      LOGICAL  IMP_EXP
++
++   LOGICAL, OPTIONAL, INTENT(IN) :: RECORD_BUDGET
++   LOGICAL :: DO_BUDGET
++
++   DO_BUDGET = .TRUE.
++   IF (PRESENT(RECORD_BUDGET)) DO_BUDGET = RECORD_BUDGET
+ 
+    IF (LTRACE) CALL STRACE (IENT,'SWIND3')
+ 
+@@ -2045,7 +2059,9 @@
+             IMATRA(ID,IS) = IMATRA(ID,IS) + SWINEB * AC2(ID,IS,IGP)
+             IF (TESTFL) PLWNDS(ID,IS,IPTST) = PLWNDS(ID,IS,IPTST) +&
+             &SWINEB*AC2(ID,IS,IGP)
++            IF (DO_BUDGET) THEN
+             GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEB*AC2(ID,IS,IGP)
++            END IF
+             CALL accumulate_exponential_wind_input(ID, IS, IGP, &
+                SWINEB*AC2(ID,IS,IGP))
+ 
+--- a/src/swancom4.f90
++++ b/src/swancom4.f90
+@@ -1375,7 +1375,7 @@
+ 
+ !*******************************************************************
+ 
+-SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2, DAL3, SFNL, DEP2, AC2, KMESPC, REDC0, REDC1, IMATDA, IMATRA, FACHFR, PLNL4S, AF11, IGP)
++SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2, DAL3, SFNL, DEP2, AC2, KMESPC, REDC0, REDC1, IMATDA, IMATRA, FACHFR, PLNL4S, AF11, IGP, RECORD_BUDGET)
+    USE swan_service_interfaces, ONLY: STRACE
+ 
+ !*******************************************************************
+@@ -1554,6 +1554,12 @@
+    LOGICAL   PERCIR
+ 
+    LOGICAL   LTSTFL
++
++   LOGICAL, OPTIONAL, INTENT(IN) :: RECORD_BUDGET
++   LOGICAL :: DO_BUDGET
++
++   DO_BUDGET = .TRUE.
++   IF (PRESENT(RECORD_BUDGET)) DO_BUDGET = RECORD_BUDGET
+ 
+    IF (LTRACE) CALL STRACE (IENT,'SWSNL2')
+ 
+@@ -1794,12 +1800,16 @@
+          IF(TESTFL) PLNL4S(ID,I,IPTST) =  SFNL(I,ID) / SIGPI
+          IF (SFNL(I,ID).GT.0.) THEN
+             IMATRA(ID,I) = IMATRA(ID,I) + SFNL(I,ID) / SIGPI
++            IF (DO_BUDGET) THEN
+             REDC0(ID,I,1)= REDC0(ID,I,1)+ SFNL(I,ID) / SIGPI
++            END IF
+          ELSE
+             IMATDA(ID,I) = IMATDA(ID,I) - SFNL(I,ID) /&
+             &MAX(1.E-18,AC2(ID,I,IGP)*SIGPI)
++            IF (DO_BUDGET) THEN
+             REDC1(ID,I,1)= REDC1(ID,I,1)+ SFNL(I,ID) /&
+             &MAX(1.E-18,AC2(ID,I,IGP)*SIGPI)
++            END IF
+          END IF
+       ENDDO
+    ENDDO
