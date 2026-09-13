@@ -364,6 +364,13 @@ subroutine SwanMeshPartition
    if ( istat == 0 .and. .not.allocated(nfacev) ) allocate(nfacev(  nv), stat = istat)
    if ( istat == 0 .and. .not.allocated(vneigh) ) allocate(vneigh(  nv), stat = istat)
 
+   ! check before nfacev is used below, not only after the second group
+   if ( istat /= 0 ) then
+      write (msgstr, '(a,i6)') 'allocation problem: mesh partitioning data and return code is ',istat
+      call msgerr ( 4, trim(msgstr) )
+      return
+   endif
+
    ne     = 0
    nfacev = 0
 
@@ -766,7 +773,15 @@ subroutine SwanCommAdmin
          currcl => currcl%nextcl
       enddo
    enddo
-   deallocate(tmpcl)
+   ! free the whole chain behind the head node; deallocating only the
+   ! last node leaked the others (and failed on an empty list)
+   currcl => frstcl%nextcl
+   do while ( associated(currcl) )
+      tmpcl => currcl%nextcl
+      deallocate(currcl)
+      currcl => tmpcl
+   enddo
+   nullify(frstcl%nextcl)
 
    ncells = ncellp(INODE)
 
@@ -823,7 +838,15 @@ subroutine SwanCommAdmin
          currvl => currvl%nextvl
       enddo
    enddo
-   deallocate(tmpvl)
+   ! free the whole chain behind the head node; deallocating only the
+   ! last node leaked the others (and failed on an empty list)
+   currvl => frstvl%nextvl
+   do while ( associated(currvl) )
+      tmpvl => currvl%nextvl
+      deallocate(currvl)
+      currvl => tmpvl
+   enddo
+   nullify(frstvl%nextvl)
 
    nverts = nvertp(INODE)
 
@@ -916,7 +939,15 @@ subroutine SwanCommAdmin
          currrl => currrl%nextrl
       enddo
    enddo
-   deallocate(tmprl)
+   ! free the whole chain behind the head node; deallocating only the
+   ! last node leaked the others (and failed on an empty list)
+   currrl => frstrl%nextrl
+   do while ( associated(currrl) )
+      tmprl => currrl%nextrl
+      deallocate(currrl)
+      currrl => tmprl
+   enddo
+   nullify(frstrl%nextrl)
 
    ! create vertex-based send list
 
@@ -953,7 +984,15 @@ subroutine SwanCommAdmin
          currsl => currsl%nextsl
       enddo
    enddo
-   deallocate(tmpsl)
+   ! free the whole chain behind the head node; deallocating only the
+   ! last node leaked the others (and failed on an empty list)
+   currsl => frstsl%nextsl
+   do while ( associated(currsl) )
+      tmpsl => currsl%nextsl
+      deallocate(currsl)
+      currsl => tmpsl
+   enddo
+   nullify(frstsl%nextsl)
 
    ! reconstruct connectivity table for current subdomain
 
