@@ -22,6 +22,177 @@ def _swan() -> str:
     return swan_executable()
 
 
+#  `COMPUTE STATionary` is the documented form for a stationary run.
+#  SWREAD tested `NSTATM.LE.0 .OR. KEYWIS('STAT')`; in a stationary run
+#  the left-hand side is already true, and gfortran then skips the right. STAT
+#  was therefore left unused and the next command reported
+#  'Illegal keyword'. An Intel build evaluates both sides and reported nothing.
+@pytest.mark.parametrize("compute", ["COMPUTE STAT", "COMPUTE STATIONARY"])
+def test_compute_stationary_is_valid(tmp_path, compute):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    assert "\nCOMPUTE\n" in deck, "smoke deck has changed shape"
+    (work / "INPUT").write_text(deck.replace("\nCOMPUTE\n", f"\n{compute}\n"),
+                                encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert result.returncode == 0
+    assert "Illegal keyword" not in report, report[-2000:]
+
+
+def _run_cgrid(tmp_path: Path, spectral: str, extra_command: str = "") -> tuple[int, str]:
+    """Run the smoke deck with a different spectral grid in CGRID."""
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    assert "CIRCLE 24 0.05 1.0 16" in deck, "smoke deck has changed shape"
+    deck = deck.replace("CIRCLE 24 0.05 1.0 16", f"CIRCLE 24 {spectral}", 1)
+    deck = deck.replace("GEN3 KOMEN", f"GEN3 KOMEN\n{extra_command}", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    printfile = work / "PRINT"
+    report = printfile.read_text(encoding="utf-8", errors="replace") if printfile.is_file() else ""
+    return result.returncode, report
+
+
+#  Too few frequencies. Without a frequency interval SWREAD divides by zero;
+#  FAC4WW fixes the DIA bins with SPCSIG(MSC/2-1) and with fewer than four
+#  frequencies reads outside the table. Upstream only tested MSC = 3 and let
+#  the rest compute on silently to a 'normal' end with Hs = 0.
+TOO_FEW_FREQUENCIES = [
+    ("0.05 1.0 0", "[msc] in CGRID must be at least 1"),
+    ("0.05 1.0 -3", "[msc] in CGRID must be at least 1"),
+    ("0.05 0.052", "[msc] in CGRID must be at least 1"),
+    ("0.05 1.0 1", "Quadruplets need at least four frequencies"),
+    ("0.05 1.0 2", "Do not activate quadruplets"),
+]
+
+
+@pytest.mark.parametrize("spectral,expected", TOO_FEW_FREQUENCIES)
+def test_too_few_frequencies_are_rejected(tmp_path, spectral, expected):
+    returncode, report = _run_cgrid(tmp_path, spectral)
+    assert returncode != 0, f"'{spectral}' ran on to a normal end.\n{report[-2000:]}"
+    assert expected in report, report[-2000:]
+
+
+#  Without quadruplets SWAN reports a level 2 error in third-generation mode
+#  with wind ("Quadruplets should be activated ..."). The manual allows such
+#  an error with SET MAXERR, so the test raises it and expects SWAN to compute.
+def test_two_frequencies_without_quadruplets_keep_running(tmp_path):
+    returncode, report = _run_cgrid(tmp_path, "0.05 1.0 1", "OFF QUAD\nSET MAXERR 2")
+    assert returncode == 0, report[-2000:]
+    assert "No start of computation" not in report, report[-2000:]
+
+
+#  "If the variables are in one file, then the READINP commands should be
+#  given in the same sequence as the sequence in which the variables appear
+#  in the file" (manual, READINP). REPARM did recognise the file, but
+#  did not pass the unit and format on to the next quantity: upstream silently
+#  did not read the current, the fork stopped on 'Error while reading file stderr'.
+#  Moreover, REPARM kept only 36 characters of the name, so that a longer
+#  name never counted as the same file ('File is already opened').
+def _run_fields(tmp_path: Path, files: dict[str, str], readinp: str) -> tuple[int, str, str]:
+    work = tmp_path / "work"
+    work.mkdir(parents=True)
+    for name, content in files.items():
+        (work / name).write_text(content, encoding="utf-8")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    old = "READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE"
+    assert old in deck, "smoke deck has changed shape"
+    deck = deck.replace(old, readinp, 1)
+    deck = deck.replace("XP YP DEPTH HSIGN TM01 DIR", "XP YP DEPTH HSIGN TM01 DIR VEL", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    table = work / "quick_test_center.tbl"
+    return result.returncode, report, table.read_text() if table.is_file() else ""
+
+
+BOTTOM = "20.0 20.0\n20.0 20.0\n"
+CURRENT = "0.8 0.8\n0.8 0.8\n0.0 0.0\n0.0 0.0\n"
+CURRENT_GRID = "INPGRID CURRENT REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0"
+
+
+@pytest.mark.parametrize("name", ["fields.dat",
+                                  "input_fields_bottom_and_current_voordelta.dat"])
+def test_several_quantities_from_one_file(tmp_path, name):
+    code, report, separate = _run_fields(
+        tmp_path / "separate", {"bottom.dat": BOTTOM, "current.dat": CURRENT},
+        f"READINP BOTTOM 1.0 'bottom.dat' 3 0 FREE\n{CURRENT_GRID}\n"
+        "READINP CURRENT 1.0 'current.dat' 3 0 FREE")
+    assert code == 0, report[-2000:]
+    assert "0.800000" in separate, "counter-test does not read the current"
+
+    code, report, combined = _run_fields(
+        tmp_path / "combined", {name: BOTTOM + CURRENT},
+        f"READINP BOTTOM 1.0 '{name}' 3 0 FREE\n{CURRENT_GRID}\n"
+        f"READINP CURRENT 1.0 '{name}'")
+    assert code == 0, report[-2000:]
+    assert "** Error" not in report, report[-2000:]
+    assert combined == separate
+
+
+#  QCM (GEN4) determines the bounds of the wavenumber grid for a sector from
+#  the first direction, normalised to [0, 2pi). The chain started at
+#  'dir1 > 0.', so that a sector starting exactly at Cartesian 0 degrees
+#  (nautical: ending at 270) got no bounds and crashed. On a rotated
+#  grid SSFILL does not shift that direction, so it can be reached there.
+QCM = REPO / "examples" / "qcm"
+
+
+def _run_qcm_sector(tmp_path: Path, last_direction: str,
+                    spectral: str | None = None) -> tuple[int, str]:
+    work = tmp_path / (spectral or last_direction).replace(" ", "_")
+    work.mkdir(parents=True)
+    shutil.copy2(QCM / "bottom.bot", work / "bottom.bot")
+    deck = (QCM / "qcm.swn").read_text(encoding="utf-8")
+    spectral = spectral or f"SECTOR 180.0 {last_direction} 12"
+    replacements = {
+        "CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 4 2 CIRCLE 12 0.05 1.0 8":
+            f"CGRID REGULAR 0.0 0.0 10.0 2000.0 1000.0 4 2 {spectral} 0.05 1.0 8",
+        "INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0":
+            "INPGRID BOTTOM REGULAR -1000.0 -1000.0 0.0 1 1 4000.0 3000.0",
+    }
+    for old, new in replacements.items():
+        assert old in deck, "QCM deck has changed shape"
+        deck = deck.replace(old, new, 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    table = work / "qcm_center.tbl"
+    return result.returncode, table.read_text() if table.is_file() else ""
+
+
+def test_qcm_sector_from_cartesian_zero(tmp_path):
+    code, exact = _run_qcm_sector(tmp_path, "270.0")
+    assert code == 0, "QCM sector from 0 degrees did not run to the end"
+    code, shifted = _run_qcm_sector(tmp_path, "269.999")
+    assert code == 0
+    hs = [float(t.strip().splitlines()[-1].split()[3]) for t in (exact, shifted)]
+    assert abs(hs[0] - hs[1]) < 1e-3 * hs[1], hs
+
+
+#  A sector that starts in the second or third quadrant and runs across
+#  Cartesian 0 (nautical 240 to 70 is Cartesian 200 to 30). The old
+#  quadrant analysis compared the reduced end direction with thresholds that
+#  were not meant for it; the wavenumber grid then did not enclose the sector,
+#  and both upstream and the fork ended with a segmentation fault. The
+#  sector contains the incoming direction, so Hs must lie close to the full
+#  circle (measured 0.721 against 0.742 m).
+def test_qcm_sector_across_cartesian_zero(tmp_path):
+    code, sector = _run_qcm_sector(tmp_path, "", "SECTOR 240.0 70.0 19")
+    assert code == 0, "QCM sector across 0 degrees did not run to the end"
+    code, circle = _run_qcm_sector(tmp_path, "", "CIRCLE 36")
+    assert code == 0
+    hs = [float(t.strip().splitlines()[-1].split()[3]) for t in (sector, circle)]
+    assert abs(hs[0] - hs[1]) < 0.1 * hs[1], hs
+
+
+#  After an input error, input processing went on with variables that were
+#  never set on that error path. A message should stop the run or let it
+#  continue, not make it crash or print garbage.
 def _run_deck(tmp_path: Path, deck: str, files: dict[str, str] | None = None,
               timeout: float | None = None):
     work = tmp_path / "work"
@@ -34,6 +205,102 @@ def _run_deck(tmp_path: Path, deck: str, files: dict[str, str] | None = None,
                             timeout=timeout)
     report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
     return result, report
+
+
+def _quick_deck() -> str:
+    return (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+
+
+def test_side_without_open_boundary_does_not_crash(tmp_path):
+    # Whole boundary as exception value: SWBOUN finds no open side and
+    # then used the unset corner indices of that side.
+    rows = [" ".join("-99.0" if i in (0, 20) or j in (0, 10) else "20.0"
+                     for i in range(21)) for j in range(11)]
+    deck = _quick_deck().replace(
+        "INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0",
+        "INPGRID BOTTOM REGULAR 0.0 0.0 0.0 20 10 100.0 100.0 EXC -99.0", 1)
+    deck = deck.replace("'bottom.bot'", "'ring.bot'", 1)
+    result, report = _run_deck(tmp_path, deck, {"ring.bot": "\n".join(rows) + "\n"})
+    assert result.returncode in (0, 1), result.stderr[-2000:]
+    assert "No open boundary found" in report
+
+
+def test_init_hotstart_with_unknown_keyword(tmp_path):
+    deck = _quick_deck().replace("GEN3 KOMEN", "GEN3 KOMEN\nINIT HOTSTART XYZ 'none.hot'", 1)
+    result, report = _run_deck(tmp_path, deck)
+    assert "Fortran runtime error" not in result.stderr, result.stderr[-2000:]
+    assert "Illegal keyword: XYZ" in report
+
+
+def test_test_point_outside_grid_shows_the_indices(tmp_path):
+    deck = _quick_deck().replace("\nCOMPUTE\n", "\nTEST 1 0 POINTS IJ 100 5\nCOMPUTE\n", 1)
+    result, report = _run_deck(tmp_path, deck)
+    lines = report.splitlines()
+    at = next(i for i, line in enumerate(lines) if "test point is not active" in line)
+    assert lines[at + 1].split() == ["100", "5"], lines[at + 1]
+
+
+#  BF-26 for vector fields: wind and current with a heading line before each
+#  component ([nhedvec] = 1) in one file. For a file that was already open,
+#  REPARM read nothing of the command, so also not the number of heading lines
+#  per component; repeated settings were left unread. Without a value, the
+#  values last given for the file now apply; with a value, the new ones.
+WIND_WITH_HEADERS = "wind x\n1.0 1.0\n1.0 1.0\nwind y\n0.0 0.0\n0.0 0.0\n"
+CURRENT_WITH_HEADERS = "current x\n0.8 0.8\n0.8 0.8\ncurrent y\n0.0 0.0\n0.0 0.0\n"
+
+
+def _run_vector_fields(tmp_path: Path, files: dict[str, str], wind: str, current: str):
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    for old in ("WIND 8.0 270.0\n", "XP YP DEPTH HSIGN TM01 DIR"):
+        assert old in deck, "smoke deck has changed shape"
+    deck = deck.replace("WIND 8.0 270.0\n", "", 1)
+    deck = deck.replace("XP YP DEPTH HSIGN TM01 DIR", "XP YP DEPTH HSIGN TM01 DIR VEL", 1)
+    deck = deck.replace(
+        "READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE",
+        "READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE\n"
+        "INPGRID WIND REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0\n" + wind + "\n"
+        + CURRENT_GRID + "\n" + current, 1)
+    result, report = _run_deck(tmp_path, deck, files)
+    table = tmp_path / "work" / "quick_test_center.tbl"
+    return result.returncode, report, table.read_text() if table.is_file() else ""
+
+
+@pytest.mark.parametrize("current", ["READINP CURRENT 1.0 'vec.dat'",
+                                     "READINP CURRENT 1.0 'vec.dat' 3 0 1 FREE"])
+def test_vector_fields_with_heading_lines_from_one_file(tmp_path, current):
+    code, report, separate = _run_vector_fields(
+        tmp_path / "separate",
+        {"wind.dat": WIND_WITH_HEADERS, "current.dat": CURRENT_WITH_HEADERS},
+        "READINP WIND 1.0 'wind.dat' 3 0 1 FREE",
+        "READINP CURRENT 1.0 'current.dat' 3 0 1 FREE")
+    assert code == 0 and "** Error" not in report, report[-2000:]
+    assert "0.800000" in separate, "counter-test does not read the current"
+
+    code, report, combined = _run_vector_fields(
+        tmp_path / "combined", {"vec.dat": WIND_WITH_HEADERS + CURRENT_WITH_HEADERS},
+        "READINP WIND 1.0 'vec.dat' 3 0 1 FREE", current)
+    assert code == 0 and "** Error" not in report, report[-2000:]
+    assert combined == separate
+
+
+#  BOUNDSPEC SIDE with an unknown side: WRNKEY reports the error, but SWBOUN
+#  then looked for a side in the unset direction DIRSI. With SET MAXERR 3
+#  the run computes on; the boundary condition should then be dropped instead
+#  of ending up on an arbitrary side.
+def test_unknown_side_drops_the_boundary(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    assert "BOUNDSPEC SIDE WEST" in deck, "smoke deck has changed shape"
+    deck = deck.replace("BOUNDSPEC SIDE WEST", "BOUNDSPEC SIDE XYZ", 1)
+    deck = deck.replace("SET NAUTICAL", "SET NAUTICAL\nSET MAXERR 3", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert "Illegal keyword: XYZ" in report, report[-2000:]
+    assert "No open boundary found" not in report, report[-2000:]
 
 
 #  CVMESH looks for an output point in a curvilinear grid and then checks in

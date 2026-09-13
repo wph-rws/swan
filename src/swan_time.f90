@@ -831,6 +831,8 @@ SUBROUTINE DTTIST (IOPT, TIMSTR, DTTIME)
       LTS = 10
    ELSE
       CALL MSGERR (2, 'wrong time coding option in subroutine DTTIST')
+!     LTS is not set in that case
+      RETURN
    ENDIF
 
    do IC = 1, LTS

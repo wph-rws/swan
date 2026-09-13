@@ -2781,6 +2781,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 
    REAL      CRDP, CRDM, SOMX, SOMY
    REAL      XP,YP,XC,YC,RR,DIRSI,COSDIR,SINDIR,DIRSID,DIRREF
+   LOGICAL   SIDE_KNOWN
    REAL      RLEN1,RDIST,RLEN2,XC1,YC1,XC2,YC2,W1
    REAL      DET, DXLOC, DYLOC, X1, Y1, X2, Y2, X3, Y3
 
@@ -3276,6 +3277,8 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             LOCGRI = .FALSE.
          ELSE
             CALL WRNKEY
+!           the default XY, so that the points after this are still read
+            LOCGRI = .TRUE.
          ENDIF
          IX1 = 1
          IY1 = 1
@@ -3533,6 +3536,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          CALL IGNORE ('SIDE')
 !         *** specification of side for which boundary   ***
 !         *** condition is given                         ***
+         SIDE_KNOWN = .TRUE.
          IF (OPTG.NE.5) THEN
             CALL INKEYW ('REQ',' ')
             IF (KEYWIS ('NW')) THEN
@@ -3552,7 +3556,11 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             ELSE IF (KEYWIS ('E')) THEN
                DIRSI = -90.
             ELSE
+!              unknown side: there is no sensible default, so DIRSI
+!              stays unset and this boundary condition is dropped (with SET MAXERR 3
+!              the run would otherwise compute on with an arbitrary direction)
                CALL WRNKEY
+               SIDE_KNOWN = .FALSE.
             ENDIF
          ELSE
             CALL ININTG ('K', VM, 'REQ', 0)
@@ -3573,7 +3581,9 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
          IF ( OPTG.NE.5 ) THEN
             CRDM   = -1.E10
             ISIDM  = 0
-            IF (ONED) THEN
+            IF (.NOT.SIDE_KNOWN) THEN
+!              the error has already been reported; do not look for a side
+            ELSE IF (ONED) THEN
                COSDIR = COS(PI*(DNORTH+DIRSI)/180.)
                SINDIR = SIN(PI*(DNORTH+DIRSI)/180.)
                DO ISIDE = 1, 4
@@ -3673,67 +3683,72 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                         CRDM = CRDP
                         ISIDM = ISIDE
                      ENDIF
+!                    directions only exist for a side with wet points
+                     IF (ITEST.GE.60) WRITE (PRTEST, "(' side ', 2I4, 2(1X,E11.4), 2(1X,F5.0), 2X, F6.3, 2X, L1)") ISIDE, NUMP,&
+                     &SOMX, SOMY, DIRSID*180/PI, DIRREF*180/PI, CRDP, CVLEFT
+                  ELSE
+                     IF (ITEST.GE.60) WRITE (PRTEST, "(' side ', 2I4, '  no wet points')") ISIDE, NUMP
                   ENDIF
-                  IF (ITEST.GE.60) WRITE (PRTEST, "(' side ', 2I4, 2(1X,E11.4), 2(1X,F5.0), 2X, F6.3, 2X, L1)") ISIDE, NUMP,&
-                  &SOMX, SOMY, DIRSID*180/PI, DIRREF*180/PI, CRDP, CVLEFT
                ENDDO
             ENDIF
             IF (ISIDM.EQ.0) THEN
-               CALL MSGERR (2, 'No open boundary found')
-            ENDIF
+               IF (SIDE_KNOWN) CALL MSGERR (2, 'No open boundary found')
+!              without an open boundary IX1..IY2 are not set; add nothing
+            ELSE
 
-IF (ISIDM.EQ.1) THEN
-               IX1 = 1
-               IY1 = 1
-               IX2 = MXC
-               IY2 = 1
-            ELSE IF (ISIDM.EQ.2) THEN
-               IX1 = MXC
-               IY1 = 1
-               IX2 = MXC
-               IY2 = MYC
-            ELSE IF (ISIDM.EQ.3) THEN
-               IX1 = MXC
-               IY1 = MYC
-               IX2 = 1
-               IY2 = MYC
-            ELSE IF (ISIDM.EQ.4) THEN
-               IX1 = 1
-               IY1 = MYC
-               IX2 = 1
-               IY2 = 1
-            ENDIF
-            IF (.NOT.CCW .EQV. CVLEFT) THEN
-!              swap end points
-               IX3 = IX1
-               IY3 = IY1
-               IX1 = IX2
-               IY1 = IY2
-               IX2 = IX3
-               IY2 = IY3
-            ENDIF
-            IF (ITEST.GE.50) WRITE (PRINTF, "(' Selected side:', I2, ' from ', 2I4, 2F9.0, ' to ', 2I4, 2F9.0)") ISIDM,&
-            &IX1-1, IY1-1, XCGRID(IX1,IY1)+XOFFS, YCGRID(IX1,IY1)+YOFFS,&
-            &IX2-1, IY2-1, XCGRID(IX2,IY2)+XOFFS, YCGRID(IX2,IY2)+YOFFS
-            MP = MAX(ABS(IX2-IX1),ABS(IY2-IY1))
-            DO IP = 0, MP
-               IF (MP.EQ.0) THEN
-                  RR = 0.
-               ELSE
-                  RR = REAL(IP) / REAL(MP)
+               IF (ISIDM.EQ.1) THEN
+                  IX1 = 1
+                  IY1 = 1
+                  IX2 = MXC
+                  IY2 = 1
+               ELSE IF (ISIDM.EQ.2) THEN
+                  IX1 = MXC
+                  IY1 = 1
+                  IX2 = MXC
+                  IY2 = MYC
+               ELSE IF (ISIDM.EQ.3) THEN
+                  IX1 = MXC
+                  IY1 = MYC
+                  IX2 = 1
+                  IY2 = MYC
+               ELSE IF (ISIDM.EQ.4) THEN
+                  IX1 = 1
+                  IY1 = MYC
+                  IX2 = 1
+                  IY2 = 1
                ENDIF
-               IX = IX1 + NINT(RR*REAL(IX2-IX1))
-               IY = IY1 + NINT(RR*REAL(IY2-IY1))
-               IF (KGRPNT(IX,IY) .GT. 1) THEN
-                  KOUNTR = KOUNTR + 1
-                  ALLOCATE(TMP)
-                  TMP%JX = IX
-                  TMP%JY = IY
-                  NULLIFY(TMP%NEXTXY)
-                  CURR%NEXTXY => TMP
-                  CURR => TMP
+               IF (.NOT.CCW .EQV. CVLEFT) THEN
+   !              swap end points
+                  IX3 = IX1
+                  IY3 = IY1
+                  IX1 = IX2
+                  IY1 = IY2
+                  IX2 = IX3
+                  IY2 = IY3
                ENDIF
-            ENDDO
+               IF (ITEST.GE.50) WRITE (PRINTF, "(' Selected side:', I2, ' from ', 2I4, 2F9.0, ' to ', 2I4, 2F9.0)") ISIDM,&
+               &IX1-1, IY1-1, XCGRID(IX1,IY1)+XOFFS, YCGRID(IX1,IY1)+YOFFS,&
+               &IX2-1, IY2-1, XCGRID(IX2,IY2)+XOFFS, YCGRID(IX2,IY2)+YOFFS
+               MP = MAX(ABS(IX2-IX1),ABS(IY2-IY1))
+               DO IP = 0, MP
+                  IF (MP.EQ.0) THEN
+                     RR = 0.
+                  ELSE
+                     RR = REAL(IP) / REAL(MP)
+                  ENDIF
+                  IX = IX1 + NINT(RR*REAL(IX2-IX1))
+                  IY = IY1 + NINT(RR*REAL(IY2-IY1))
+                  IF (KGRPNT(IX,IY) .GT. 1) THEN
+                     KOUNTR = KOUNTR + 1
+                     ALLOCATE(TMP)
+                     TMP%JX = IX
+                     TMP%JY = IY
+                     NULLIFY(TMP%NEXTXY)
+                     CURR%NEXTXY => TMP
+                     CURR => TMP
+                  ENDIF
+               ENDDO
+            ENDIF
          ELSE
             ! unstructured grid
 
@@ -3952,6 +3967,10 @@ IF (ISIDM.EQ.1) THEN
             BPARF = .TRUE.
          ELSE IF (KEYWIS('FILE')) THEN
             BPARF = .FALSE.
+         ELSE
+!           unknown keyword: report it and continue as the default PAR
+            CALL WRNKEY
+            BPARF = .TRUE.
          ENDIF
          RLEN1 = -1.E20
          IKO = 1
@@ -4614,7 +4633,13 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
       ENDIF
       IF (ITEST.GE.60) WRITE (PRTEST,"(I6, ' quantities')") NQUANT
    ELSE
+!     The header was not recognised, so none of the counts and options that
+!     describe the file were read. Continuing would allocate BSPLOC with an
+!     uninitialised NBOUNC and fill BFILED from uninitialised locals, which
+!     the boundary reader later trusts. MSGERR already rules out a
+!     computation; leave before building a descriptor out of nothing.
       CALL MSGERR (3, 'unsupported boundary data file')
+      RETURN
    ENDIF
 
    ALLOCATE(BSPFIL%BSPLOC(NBOUNC))
@@ -4899,7 +4924,7 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL,&
 !     open file with list of names
    CALL FOR (NDSL, FBCNAM,'OF',IOSTAT)
    IF (STPNOW()) RETURN
-   READ (NDSL,'(A36)') FBCNAM
+   READ (NDSL,'(A)') FBCNAM
    CALL INKEYW ('REQ', ' ')
    IF (KEYWIS('FRE')) THEN
       BTYPE = 'WAMF'
@@ -6455,6 +6480,7 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
    INTEGER, SAVE :: IENT = 0
    INTEGER   ID, IERR, ILPOS, IS, K
    REAL      XC, XP, YC, YP
+   INTEGER   ITST, JTST   ! test point as entered in IJ form
       LOGICAL :: LOCGRI
    TYPE(OPSDAT), POINTER :: OPSTMP
    CALL STRACE (IENT, 'RETSTP')
@@ -6472,10 +6498,12 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
          LOCGRI = .FALSE.
       ELSE
          CALL WRNKEY
+         LOCGRI = .FALSE.
       ENDIF
    ELSE
       CALL MSGERR(3,&
       &'command READ BOT or READ UNSTRUC must precede command TEST')
+      LOCGRI = .FALSE.
    ENDIF
 
    test_point_loop: DO
@@ -6522,6 +6550,8 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
       CALL ININTG ('I' , LXDMP, 'REP', -1)
       IF (LXDMP .LT. 0) EXIT test_point_loop
       IF (OPTG.NE.5) CALL ININTG ('J' , LYDMP, 'REQ',  0)
+      ITST = LXDMP
+      JTST = LYDMP
    ENDIF
 
    IF (OPTG.NE.5) THEN
@@ -6551,7 +6581,14 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID,&
 
    END BLOCK point_input
    CALL MSGERR (1, 'test point is not active')
-   WRITE (PRINTF, *) XP+XOFFS, YP+YOFFS
+!  in IJ form XP and YP were never read; then show the entered indices
+   IF (LOCGRI) THEN
+      WRITE (PRINTF, *) XP+XOFFS, YP+YOFFS
+   ELSE IF (OPTG.NE.5) THEN
+      WRITE (PRINTF, *) ITST, JTST
+   ELSE
+      WRITE (PRINTF, *) ITST
+   ENDIF
    END DO test_point_loop
 
 !     generate output point set 'TESTPNTS'

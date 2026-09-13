@@ -68,6 +68,7 @@ module swn_outnc
     use swan_computational_grid, only: ALPC, MCGRD, MXC, MYC
     use swan_spectral_grid, only: MDC, MSC
     use swan_math_constants, only: PI2
+    use swan_io_limits, only: LENFNM
     use swan_time, only: default_time_context
     use swan_spherical_geometry, only: KSPHER
 
@@ -316,7 +317,7 @@ contains
                                              i, tmip, binnr, irq, &
                                              tip, ips(MIP), iproc, nref, ilpos
       integer, save                       :: IENT=0
-      CHARACTER(LEN=80)                        :: binfile, ncfile, basefile
+      CHARACTER(LEN=LENFNM)                    :: binfile, ncfile, basefile
       CHARACTER(LEN=256)                       :: errmsg
       type(spcaux_type)                   :: spcaux, lspcaux
       real                                :: xref, yref
@@ -572,7 +573,6 @@ contains
                                                         pnr, ri, i, tmip, irq, ips(MIP), iproc, &
                                                         binnr, xi, yi, npnts, kgrpnt1d(MXC*MYC)
       integer, save                                  :: IENT=0
-      CHARACTER(LEN=80)                                   :: outfile
       CHARACTER(LEN=256)                                  :: errmsg
 !  8. Subroutines used
 !
@@ -730,7 +730,7 @@ contains
         write(OQI(1), IOSTAT=ierr) xpctime, tmip
         if (ierr /= 0) then
           write(errmsg, '(A, "-> IOSTAT=", I3, " time=", I10, " TMIP=", I4, " OQI(1)=", I3)') &
-                  trim(outfile), ierr, xpctime, tmip, oqi(1)
+                  trim(OUTP_FILES(irq)), ierr, xpctime, tmip, oqi(1)
           call MSGERR(4, errmsg)
           return
         end if
@@ -1070,7 +1070,7 @@ contains
 !
 ! 1) input arguments
 
-        CHARACTER(LEN=80),                  intent(   in) :: ncfile
+        character(len=*),                   intent(   in) :: ncfile
         type(spcaux_type), target,     intent(   in) :: spcaux
         integer,                       intent(   in) :: oqi(4)
         REAL(KIND=KIND(0.0D0)),                        intent(   in) :: oqr(2)
@@ -1445,7 +1445,7 @@ contains
 
     subroutine swn_outnc_openblockfile(ncfile, myk, mxk, ovlnam, xgrdgl,   &
                                        ygrdgl, oqi, oqr, ivtyp ,  irq  )
-        CHARACTER(LEN=80),           intent(   in) :: ncfile
+        character(len=*),            intent(   in) :: ncfile
         integer,                intent(   in) :: myk, mxk, irq
         integer, dimension(:),  intent(   in) :: oqi, ivtyp
         REAL(KIND=KIND(0.0D0)),  dimension(:),  intent(   in) :: oqr

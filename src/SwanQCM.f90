@@ -193,6 +193,9 @@ subroutine SWQCINIT ( BGRIDP, COMPDA )
     real                            :: clen                ! coherent length
     real                            :: dir1                ! first direction in directional sector
     real                            :: dir2                ! second direction in directional sector
+    real                            :: width               ! width of directional sector
+    real                            :: axis                ! axis direction
+    integer                         :: iaxis               ! loop counter over axis directions
     real                            :: dkx                 ! resolution of wave number space in x-direction
     real                            :: dky                 ! resolution of wave number space in y-direction
     real                            :: dp                  ! local depth
@@ -420,111 +423,37 @@ subroutine SWQCINIT ( BGRIDP, COMPDA )
 
        else
 
-          dir1 = spcdir(  1,1)
-          dir2 = spcdir(MDC,1)
+          ! bounding box of the sector of radius kmax from dir1 to dir2,
+          ! counterclockwise, origin included: the end points of the arc and
+          ! every axis direction the sector passes. The former case analysis
+          ! compared dir2 after reducing it to [0,2pi), so a sector across
+          ! Cartesian 0 lost the part beyond it, and three of its branches
+          ! could not be reached
 
-          ! normalizes spectral directions to [0,2pi]
+          dir1  = spcdir(  1,1) - ( floor( spcdir(1,1) / pi2 ) * pi2 )
+          width = spcdir(MDC,1) - spcdir(1,1)
+          width = width - ( floor( width / pi2 ) * pi2 )
+          dir2  = dir1 + width
 
-          dir1 = dir1 - ( floor( dir1 / pi2 ) * pi2 )
-          dir2 = dir2 - ( floor( dir2 / pi2 ) * pi2 )
+          kxmin = min( 0., kmax * cos(dir1), kmax * cos(dir2) )
+          kxmax = max( 0., kmax * cos(dir1), kmax * cos(dir2) )
+          kymin = min( 0., kmax * sin(dir1), kmax * sin(dir2) )
+          kymax = max( 0., kmax * sin(dir1), kmax * sin(dir2) )
 
-          if ( dir1 > 0. .and. .not. dir1 > 0.5*pi ) then
-
-             kxmax = kmax * cos( dir1 )
-             kymax = kmax
-
-             if ( dir2 < pi ) then
-
-                kxmin = -kmax * cos( pi - dir2 )
-                kymin = 0.
-
-             elseif ( dir2 < 1.5*pi ) then
-
-                kxmin = -kmax
-                kymin = -kmax * cos( 1.5*pi - dir2 )
-
-             else
-
-                kxmax = max( kxmax, kmax * cos( dir2 ) )
-
-                kxmin = -kmax
-                kymin = -kmax
-
-             endif
-
-          elseif ( dir1 > 0.5*pi .and. .not. dir1 > pi ) then
-
-             kxmin = -kmax
-             kymax =  kmax * cos( 0.5*pi - dir1 )
-
-             if ( dir2 < 1.5*pi ) then
-
-                kxmax = 0.
-                kymin = -kmax * cos( 1.5*pi - dir2 )
-
-             elseif ( dir2 < pi2 ) then
-
-                kxmax =  kmax * cos( dir2 )
-                kymin = -kmax
-
-             else
-
-                kymax = max( kymax, kmax * sin( dir2 ) )
-
+          do iaxis = 0, 7
+             axis = real(iaxis) * 0.5*pi
+             if ( axis < dir1 .or. axis > dir2 ) cycle
+             select case ( mod(iaxis,4) )
+             case (0)
                 kxmax =  kmax
-                kymin = -kmax
-
-             endif
-
-          elseif ( dir1 > pi .and. .not. dir1 > 1.5*pi ) then
-
-             kxmin = -kmax * cos( pi - dir1 )
-             kymin = -kmax
-
-             if ( dir2 < pi2 ) then
-
-                kxmax = kmax * cos( dir2 )
-                kymax = 0.
-
-             elseif ( dir2 < 0.5*pi ) then
-
-                kxmax = kmax
-                kymax = kmax * sin( dir2 )
-
-             else
-
-                kxmin = min( kxmin, -kmax * cos( pi - dir2 ) )
-
-                kxmax = kmax
-                kymax = kmax
-
-             endif
-
-          elseif ( dir1 > 1.5*pi .and. .not. dir1 > pi2 ) then
-
-             kxmax =  kmax
-             kymin = -kmax * cos( 1.5*pi - dir1 )
-
-             if ( dir2 < 0.5*pi ) then
-
-                kxmin = 0.
-                kymax = kmax * sin( dir2 )
-
-             elseif ( dir2 < pi ) then
-
-                kxmin = -kmax * cos( pi - dir2 )
+             case (1)
                 kymax =  kmax
-
-             else
-
-                kymin = min( kymin, -kmax * cos( 1.5*pi - dir2 ) )
-
+             case (2)
                 kxmin = -kmax
-                kymax =  kmax
-
-             endif
-
-          endif
+             case (3)
+                kymin = -kmax
+             end select
+          enddo
 
        endif
 

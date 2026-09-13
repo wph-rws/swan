@@ -159,12 +159,14 @@ With GNU Fortran's `-Wall -Wextra -Wimplicit-interface -Wsurprising
 
 | Diagnostic inventory | Upstream 41.51 | Fork | Reduction |
 |---|---:|---:|---:|
-| All warnings | 19,022 | 1,324 | 93% |
+| All warnings | 19,022 | 1,278 | 93% |
 | Implicit-interface warnings | 3,573 | 0 | 100% |
 
 Both counts are measured with gfortran 16.2 and the same flags; for upstream
 that means replacing the `-w` its own CMake sets, which silences every
-warning.
+warning. See
+[strict-warnings.md](strict-warnings.md) for the breakdown by kind and the
+review of each warning that can hide a defect.
 
 Explicit interfaces also make some warnings appear. `-Wconversion-extra` and
 the argument diagnostics can only fire at a call site once the compiler knows
@@ -177,13 +179,18 @@ explicit `ISO_C_BINDING`/`BIND(C)` binding in
 derives the `idx_t`/`real_t` widths from the installed `metis.h` (32/32 here)
 and stops with a clear error on a different installation; `SwanParallel`
 checks how arguments are passed and the index range.
+`scripts/strict_diagnostics.py` guards that the strict build has no
+`implicit-interface` warnings. Measure with a *clean* build: an incremental
+one only reports the files it recompiled.
 
 ### Where not to start on the remaining warnings
 
-Two lessons for `-Wmaybe-uninitialized`: prefer reports about *named locals*
-over array descriptor temporaries (`*.dim[0].ubound`, `*.offset`), which are
-artefacts of optimised descriptors; and do not silence a report with an
-initialiser, which hides the next real defect instead of surfacing it.
+The review of each warning that can hide a defect, and the order for further
+work, are in [strict-warnings.md](strict-warnings.md). Two lessons for
+`-Wmaybe-uninitialized`: prefer reports about *named locals* over array
+descriptor temporaries (`*.dim[0].ubound`, `*.offset`), which are artefacts of
+optimised descriptors; and do not silence a report with an initialiser, which
+hides the next real defect instead of surfacing it.
 
 `-Wunused-variable` looks like the easier target and is not:
 
@@ -213,8 +220,8 @@ variant, which is why every one of them has a registered test.
 
 ## Guarding the result
 
-The stored references keep this from eroding. That check has been tested in
-both directions: a check that cannot fail is worse than no check.
+Two mechanisms keep this from eroding. Both have been checked in each
+direction: a check that cannot fail is worse than no check.
 
 - **The results themselves are pinned.** The quick test and both nonstationary
   cases compare their table and block output against stored references,
@@ -225,6 +232,15 @@ both directions: a check that cannot fail is worse than no check.
   NaN and infinity parse as floats but fail the comparison outright: they carry
   nothing a tolerance can act on, and NaN would otherwise pass by comparing
   unequal to everything. See `examples/reference_check.py`.
+- **No warning that can hide a defect goes unreviewed.**
+  `scripts/strict_diagnostics.py` does a clean build with the strict flags.
+  Every warning of the kinds that can point to a real defect (unset values,
+  index bounds, skipped calls, truncated text, loss of precision, and warnings
+  without a `[-W…]` flag) needs a verdict in the review register, identified
+  by category, file, routine and message, without line number. A new one, or
+  one that moves to another routine, fails the check until it is reviewed. The
+  check also refuses a build whose compile commands lack the strict flags.
+  See [strict-warnings.md](strict-warnings.md).
 
 ### Why the numeric comparison is not bit-exact
 

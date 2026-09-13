@@ -42,18 +42,33 @@ module swan_input_helpers
 
    ! REPARM reuses an already-open data file when consecutive READINP
    ! commands name the same file. The remembered name belongs to one run.
-   character(len=36), save :: old_input_file = ' '
+   character(len=LENFNM), save :: old_input_file = ' '
+   ! Unit and format of that file. According to the user manual, several
+   ! quantities may follow one another in one file; the next
+   ! quantity did not open the file itself and gets them from here.
+   integer, save :: old_list_unit = 0, old_data_unit = 0, old_idla = 1, &
+                    old_idfm = 0, old_nhedf = 0, old_nhedt = 0, old_nhedc = 0
+   character(len=40), save :: old_rform = ' '
 contains
 
 SUBROUTINE reset_input_file_tracking
    old_input_file = ' '
+   old_list_unit = 0
+   old_data_unit = 0
+   old_idla = 1
+   old_idfm = 0
+   old_nhedf = 0
+   old_nhedt = 0
+   old_nhedc = 0
+   old_rform = ' '
 END SUBROUTINE reset_input_file_tracking
 
 SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
 &NHEDF, IDYN, NHEDT, LOGC, NHEDC)
    USE swan_file_opening, ONLY: FOR
    USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
-   USE swan_input_parser, ONLY: INCSTR, ININTG, INKEYW, KEYWIS, WRNKEY
+   USE swan_input_parser, ONLY: INCSTR, ININTG, INKEYW, KEYWIS, WRNKEY,&
+   &default_command_reader
 !                                                                *
 !*****************************************************************
 
@@ -134,6 +149,7 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
 !                       or vector component
 
    INTEGER   IDFM, IDLA,  NDSL, NDSD, NHEDF, NHEDT, NHEDC, IDYN
+   INTEGER   NHEDF_AGAIN   ! [nhedf] repeated for a file that is already open
 
 !     LOGC   : input    if True more than one component is read from file
 
@@ -186,7 +202,7 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
 !       open namelist file and read first datafile name
       CALL FOR (NDSL, FILENM, 'OF', IOSTAT)
       IF (STPNOW()) RETURN
-      READ(NDSL, '(A36)') FILENM
+      READ(NDSL, '(A)') FILENM
    ELSE
       CALL INCSTR ('FNAME', FILENM, 'REQ', ' ')
    ENDIF
@@ -199,52 +215,86 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
       RFORM = ' '
       NHEDF = 0
       old_input_file = FILENM
+      old_nhedc = 0
    ELSE
       BNEW = .FALSE.
+      NDSL  = old_list_unit
+      NDSD  = old_data_unit
+      IDLA  = old_idla
+      IDFM  = old_idfm
+      RFORM = old_rform
+      NHEDF = old_nhedf
+      NHEDT = old_nhedt
    ENDIF
 
+!     Layout of this quantity. If the file is already open (several
+!     quantities one after another in one file), the values last given for
+!     this file apply when none are given. [nhedf] refers to the header of
+!     the file; that has already been read.
    CALL INKEYW ('STA', ' ')
-   IF (BNEW) THEN
 !       read lay-out indicator
-      CALL ININTG ('IDLA', IDLA, 'UNC', 1)
+   CALL ININTG ('IDLA', IDLA, 'UNC', 1)
 !       names changed and order changed, ver 30.20 (Swan)
+   IF (BNEW) THEN
       CALL ININTG ('NHEDF', NHEDF, 'UNC', 0)
       NHEDT = 0
-      IF (IDYN.GT.0) THEN
-         CALL ININTG ('NHEDT', NHEDT, 'UNC', 0)
-      ENDIF
-      NHEDC = 0
-      IF (LOGC) THEN
-         CALL ININTG ('NHEDVEC', NHEDC, 'UNC', 0)
-      ENDIF
+   ELSE
+      NHEDF_AGAIN = 0
+      CALL ININTG ('NHEDF', NHEDF_AGAIN, 'UNC', 0)
+      IF (NHEDF_AGAIN.GT.0) CALL MSGERR (1,&
+      &'[nhedf] ignored: file is already open and positioned')
+   ENDIF
+   IF (IDYN.GT.0) THEN
+      CALL ININTG ('NHEDT', NHEDT, 'UNC', 0)
+   ENDIF
+   NHEDC = 0
+   IF (LOGC) THEN
+      IF (.NOT.BNEW) NHEDC = old_nhedc
+      CALL ININTG ('NHEDVEC', NHEDC, 'UNC', 0)
+   ENDIF
+   IF (BNEW) THEN
       CALL INKEYW ('STA', 'FREE')
-      IDFM = 2
-      IF (KEYWIS('FRE')) THEN
-         IDFM = 0
-      ELSE IF (KEYWIS('UNF')) THEN
-         IDFM = -1
-      ELSE IF (KEYWIS('FOR')) THEN
+   ELSE
+      CALL INKEYW ('STA', ' ')
+   ENDIF
+   IF (.NOT.BNEW .AND. default_command_reader%KEYWRD.EQ.' ') THEN
+!       no format given: use that of the open file
+      CONTINUE
+   ELSE IF (KEYWIS('FRE')) THEN
+      IDFM = 0
+   ELSE IF (KEYWIS('UNF')) THEN
+      IDFM = -1
+   ELSE IF (KEYWIS('FOR')) THEN
 !         formatted read
-         CALL ININTG ('IDFM', IDFM, 'NSKP', 2)
-         SELECT CASE(IDFM)
-          CASE(1)
-            RFORM = '(10X,12F5.0)'
-          CASE(2)
-            CALL INCSTR ('FORM', RFORM, 'REQ', ' ')
-          CASE(5)
-            RFORM = '(16F5.0)'
-          CASE(6)
-            RFORM = '(12F6.0)'
-          CASE(8)
-            RFORM = '(10F8.0)'
-          CASE DEFAULT
-            CALL MSGERR (2, 'illegal format number')
-            WRITE (PRINTF, "(' -> ', I6)") IDFM
-         END SELECT
-      ELSE
-         CALL WRNKEY
-         IDFM = 0
+      CALL ININTG ('IDFM', IDFM, 'NSKP', 2)
+      SELECT CASE(IDFM)
+       CASE(1)
+         RFORM = '(10X,12F5.0)'
+       CASE(2)
+         CALL INCSTR ('FORM', RFORM, 'REQ', ' ')
+       CASE(5)
+         RFORM = '(16F5.0)'
+       CASE(6)
+         RFORM = '(12F6.0)'
+       CASE(8)
+         RFORM = '(10F8.0)'
+       CASE DEFAULT
+         CALL MSGERR (2, 'illegal format number')
+         WRITE (PRINTF, "(' -> ', I6)") IDFM
+      END SELECT
+   ELSE
+      CALL WRNKEY
+      IDFM = 0
+   ENDIF
+   IF (.NOT.BNEW) THEN
+      IF ((IDFM.EQ.-1) .NEQV. (old_idfm.EQ.-1)) THEN
+         CALL MSGERR (2,&
+         &'formatted and unformatted reading mixed in one file')
+         IDFM = old_idfm
       ENDIF
+   ENDIF
+
+   IF (BNEW) THEN
 !       --------------------------------------------------------
 !                          open the file
 !       --------------------------------------------------------
@@ -268,7 +318,15 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
             READ (NDSD)
          ENDDO
       ENDIF
+      old_list_unit = NDSL
+      old_data_unit = NDSD
+      old_nhedf = NHEDF
    ENDIF
+   old_idla  = IDLA
+   old_idfm  = IDFM
+   old_rform = RFORM
+   old_nhedt = NHEDT
+   IF (LOGC) old_nhedc = NHEDC
    RETURN
 end subroutine REPARM
 !*****************************************************************

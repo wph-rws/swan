@@ -5,7 +5,9 @@
 > SWAN 41.51. The reference is TU Delft
 > [`gitlab.tudelft.nl/citg/wavemodels/swan`](https://gitlab.tudelft.nl/citg/wavemodels/swan)
 > (upstream, stable 41.51). The features described below (CMake build options,
-> choice of back ends, Fortran 2018 modules, CTest regression tests) describe **this fork**, not the unchanged
+> choice of back ends, Fortran 2018 modules, CTest regression tests, a strict
+> build in which every warning that can hide a defect has a verdict) describe
+> **this fork**, not the unchanged
 > upstream code. The individual fixes on top of the
 > current TU Delft source are listed in
 > [`doc/bug-fixes-vs-tu-delft-41.51.md`](doc/bug-fixes-vs-tu-delft-41.51.md).
@@ -83,7 +85,7 @@ Because the source code uses standard Fortran 2018, SWAN can be ported to
 various architectures (e.g., Windows, Linux, macOS and Unix-like systems).
 Qualified in this fork is GNU Fortran: the reference compiler is gfortran
 16.2, for every build including MPI and netCDF (the stored test references
-were made with it). The build also recognises Intel `ifx`/`ifort`, Flang, IBM XL
+and the verdicts of the strict build were made with it). The build also recognises Intel `ifx`/`ifort`, Flang, IBM XL
 and Fujitsu, but those routes are not qualified; Lahey and PGI/NVFortran are
 outside scope.
 

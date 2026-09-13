@@ -500,6 +500,56 @@ if( BUILD_TESTING )
   )
 
   add_test(
+    NAME switch_manifest_self_test
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/check_switch_manifest.py
+            --switch ${CMAKE_SOURCE_DIR}/switch.py
+            --self-test
+  )
+  add_test(
+    NAME switch_compatibility
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/test_switch_compatibility.py
+  )
+  add_test(
+    NAME reference_check_negatives
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_reference_check.py -q
+  )
+  add_test(
+    NAME strict_diagnostics_negatives
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_strict_diagnostics.py
+            ${CMAKE_SOURCE_DIR}/tests/test_strict_diagnostics_triage.py -q
+  )
+  add_test(
+    NAME build_matrix_negatives
+    COMMAND ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_build_matrix.py -q
+  )
+  add_test(
+    NAME ci_gate_self_test
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/ci_gate.py --self-test
+  )
+  add_test(
+    NAME mpi_field_mask_self_test
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/check_mpi_field_mask.py --self-test
+  )
+  # Tests that run SWAN get the built target in the command itself, not as a
+  # test property: the OpenMP block below once replaced that property, and a
+  # test without an executable skips -- which ctest counts as passed.
+  set( SWAN_PYTEST_ENVIRONMENT
+    SWAN_EXECUTABLE=$<TARGET_FILE:${EXE}> SWAN_EXECUTABLE_REQUIRED=1 )
+  add_test(
+    NAME lifetime_fault
+    COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
+            ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_lifetime_fault.py -q
+  )
+
+  add_test(
     NAME input_validation
     COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
             ${Python3_EXECUTABLE} -m pytest
@@ -520,6 +570,13 @@ if( BUILD_TESTING )
     COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
             ${Python3_EXECUTABLE} -m pytest
             ${CMAKE_SOURCE_DIR}/tests/test_adcirc_grid.py -q
+  )
+
+  add_test(
+    NAME surfbeat
+    COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
+            ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_surfbeat.py -q
   )
 
   add_test(
@@ -625,6 +682,20 @@ if( BUILD_TESTING )
               --backend netcdf
               --netcdf-checker $<TARGET_FILE:check_netcdf_output>
               --expected-center 0.87872
+    )
+    # Upstream cuts off a file name of more than 80 characters on its way
+    # to the netCDF writer, which then creates a file with the wrong name
+    # (BF-32).
+    add_test(
+      NAME netcdf_long_name
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/netcdf-long-name
+              --backend netcdf
+              --netcdf-checker $<TARGET_FILE:check_netcdf_output>
+              --expected-center 0.87872
+              --long-name
     )
     set_tests_properties( netcdf_output PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
     add_test(
@@ -732,6 +803,23 @@ if( BUILD_TESTING )
                 --expected-center ${QUICK_TEST_MPI_CENTER}
       )
       set_tests_properties( netcdf_output_mpi PROPERTIES
+        RUN_SERIAL TRUE TIMEOUT 180 )
+      add_test(
+        NAME netcdf_long_name_mpi
+        COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_SOURCE_DIR}/examples/output_backends/run.py
+                --swan-executable $<TARGET_FILE:${EXE}>
+                --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/netcdf-long-name-mpi
+                --backend netcdf
+                --netcdf-checker $<TARGET_FILE:check_netcdf_output>
+                --mpi-exec ${MPIEXEC_EXECUTABLE}
+                --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
+                --mpi-processes 2
+                --reference ${QUICK_TEST_MPI_REFERENCE}
+                --expected-center ${QUICK_TEST_MPI_CENTER}
+                --long-name
+      )
+      set_tests_properties( netcdf_long_name_mpi PROPERTIES
         RUN_SERIAL TRUE TIMEOUT 180 )
       add_test(
         NAME netcdf_spectrum_output_mpi

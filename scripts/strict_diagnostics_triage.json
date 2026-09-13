@@ -1,0 +1,1395 @@
+{
+ "note": "Verdicts on the strict-build warnings that can hide a defect; see scripts/strict_diagnostics.py. Verdicts: defect (with the BF number), suspected-defect (still open), harmless, deliberate.",
+ "verdicts": [
+  {
+   "category": "character-truncation",
+   "file": "swanmain.f90",
+   "routine": "swinit",
+   "message": "CHARACTER expression will be truncated in assignment (40/41) at (1)",
+   "count": 1,
+   "verdict": "deliberate",
+   "reason": "See (40/49): long name in output header, truncated as upstream."
+  },
+  {
+   "category": "character-truncation",
+   "file": "swanmain.f90",
+   "routine": "swinit",
+   "message": "CHARACTER expression will be truncated in assignment (40/49) at (1)",
+   "count": 1,
+   "verdict": "deliberate",
+   "reason": "OVLNAM is CHARACTER*40, as upstream; the long name appears truncated in output headers, just as at TU Delft. Lengthening it changes output text and belongs with a possible output change of our own, not with this cleanup."
+  },
+  {
+   "category": "character-truncation",
+   "file": "swanmain.f90",
+   "routine": "swinit",
+   "message": "CHARACTER expression will be truncated in assignment (8/9) at (1)",
+   "count": 9,
+   "verdict": "deliberate",
+   "reason": "OVKEYW is CHARACTER*8, as upstream (swmod1.ftn); 'PT0nWFRAC' becomes 'PT0nWFRA'. KEYWIS compares on those 8 characters, so 'PT0nWFRAC' in a deck is still recognised and the names stay distinct from each other. Only the column header in the output is truncated, the same as upstream."
+  },
+  {
+   "category": "character-truncation",
+   "file": "swanout2.f90",
+   "routine": "swtabp_with_oqr",
+   "message": "CHARACTER expression will be truncated in assignment (15/40) at (1)",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "FLT_TABLE is only set as '(Enn.d)' (swanpre1, OUTPUT OPTIONS) and is at most 7 characters; FSTR of 15 characters loses nothing."
+  },
+  {
+   "category": "character-truncation",
+   "file": "swanparll.f90",
+   "routine": "wrexcv",
+   "message": "CHARACTER expression will be truncated in assignment (18/40) at (1)",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "FLT_TABLE is at most 7 characters ('(Enn.d)'); FSTR of 18 characters loses nothing."
+  },
+  {
+   "category": "character-truncation",
+   "file": "swanpre2.f90",
+   "routine": "swreoq",
+   "message": "CHARACTER expression will be truncated in assignment (8/16) at (1)",
+   "count": 4,
+   "verdict": "harmless",
+   "reason": "The name was read by SWNMPS, which rejects names longer than 8 characters with 'SNAME is too long'; so SWREOQ never gets more than 8 meaningful characters."
+  },
+  {
+   "category": "character-truncation",
+   "file": "swanpre2.f90",
+   "routine": "swreps",
+   "message": "CHARACTER expression will be truncated in assignment (8/16) at (1)",
+   "count": 7,
+   "verdict": "harmless",
+   "reason": "Just before each assignment is IF (LENCST.GT.8) CALL MSGERR (2,'SNAME is too long'); a longer name stops the run before the computation."
+  },
+  {
+   "category": "conversion",
+   "file": "SwanBraggScat.f90",
+   "routine": "swbrbot",
+   "message": "Conversion from REAL(8) to default-kind COMPLEX(4) at (1) might lose precision, consider using the KIND argument",
+   "count": 2,
+   "verdict": "harmless",
+   "reason": "Intermediate results in double precision that are assigned to REAL or COMPLEX; the result is meant to be in single precision."
+  },
+  {
+   "category": "conversion",
+   "file": "SwanBraggScat.f90",
+   "routine": "swbrbot",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 8,
+   "verdict": "harmless",
+   "reason": "Intermediate results in double precision that are assigned to REAL or COMPLEX; the result is meant to be in single precision."
+  },
+  {
+   "category": "conversion",
+   "file": "SwanCompUnstruc.f90",
+   "routine": "swancompunstruc",
+   "message": "Possible change of value in conversion from REAL(4) to INTEGER(4) at (1)",
+   "count": 3,
+   "verdict": "harmless",
+   "reason": "usrset stores the physics choices as REAL with integer values; converting back to IWIND/IWCAP/IQUAD loses nothing."
+  },
+  {
+   "category": "conversion",
+   "file": "SwanPropvelS.f90",
+   "routine": "swanpropvels",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Intermediate result in double precision that goes to a REAL variable; intended rounding to single precision, no loss of value that matters."
+  },
+  {
+   "category": "conversion",
+   "file": "SwanQCM.f90",
+   "routine": "swqcdft",
+   "message": "Conversion from REAL(8) to default-kind COMPLEX(4) at (1) might lose precision, consider using the KIND argument",
+   "count": 2,
+   "verdict": "harmless",
+   "reason": "Fourier coefficients and intermediate results in double precision that go to the REAL/COMPLEX result; intended rounding to single precision."
+  },
+  {
+   "category": "conversion",
+   "file": "SwanQCM.f90",
+   "routine": "swqcdft",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 2,
+   "verdict": "harmless",
+   "reason": "Fourier coefficients and intermediate results in double precision that go to the REAL/COMPLEX result; intended rounding to single precision."
+  },
+  {
+   "category": "conversion",
+   "file": "SwanQCM.f90",
+   "routine": "swqcsurf",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Fourier coefficients and intermediate results in double precision that go to the REAL/COMPLEX result; intended rounding to single precision."
+  },
+  {
+   "category": "conversion",
+   "file": "SwanQCM.f90",
+   "routine": "swqcuft",
+   "message": "Conversion from REAL(8) to default-kind COMPLEX(4) at (1) might lose precision, consider using the KIND argument",
+   "count": 2,
+   "verdict": "harmless",
+   "reason": "Fourier coefficients and intermediate results in double precision that go to the REAL/COMPLEX result; intended rounding to single precision."
+  },
+  {
+   "category": "conversion",
+   "file": "SwanQCM.f90",
+   "routine": "swqcuft",
+   "message": "Possible change of value in conversion from COMPLEX(8) to COMPLEX(4) at (1)",
+   "count": 2,
+   "verdict": "harmless",
+   "reason": "Fourier coefficients and intermediate results in double precision that go to the REAL/COMPLEX result; intended rounding to single precision."
+  },
+  {
+   "category": "conversion",
+   "file": "SwanTranspX.f90",
+   "routine": "swantranspx",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 4,
+   "verdict": "harmless",
+   "reason": "Intermediate result in double precision that goes to a REAL variable; intended rounding to single precision, no loss of value that matters."
+  },
+  {
+   "category": "conversion",
+   "file": "mod_xnl4v5.f90",
+   "routine": "q_allocate",
+   "message": "Possible change of value in conversion from REAL(4) to INTEGER(4) at (1)",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Inherited XNL code (Van Vledder). Deliberate truncation to an integer (ncirc, mlocus with margin) or an expression that is integral (t_ia: integer indices plus 2.*iaref), and REAL(8) intermediate results that go to the REAL result. No loss of value that matters."
+  },
+  {
+   "category": "conversion",
+   "file": "mod_xnl4v5.f90",
+   "routine": "q_getlocus",
+   "message": "Possible change of value in conversion from REAL(4) to INTEGER(4) at (1)",
+   "count": 6,
+   "verdict": "harmless",
+   "reason": "Inherited XNL code (Van Vledder). Deliberate truncation to an integer (ncirc, mlocus with margin) or an expression that is integral (t_ia: integer indices plus 2.*iaref), and REAL(8) intermediate results that go to the REAL result. No loss of value that matters."
+  },
+  {
+   "category": "conversion",
+   "file": "mod_xnl4v5.f90",
+   "routine": "q_init",
+   "message": "Possible change of value in conversion from REAL(4) to INTEGER(4) at (1)",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Inherited XNL code (Van Vledder). Deliberate truncation to an integer (ncirc, mlocus with margin) or an expression that is integral (t_ia: integer indices plus 2.*iaref), and REAL(8) intermediate results that go to the REAL result. No loss of value that matters."
+  },
+  {
+   "category": "conversion",
+   "file": "mod_xnl4v5.f90",
+   "routine": "x_flocus",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 2,
+   "verdict": "harmless",
+   "reason": "Inherited XNL code (Van Vledder). Deliberate truncation to an integer (ncirc, mlocus with margin) or an expression that is integral (t_ia: integer indices plus 2.*iaref), and REAL(8) intermediate results that go to the REAL result. No loss of value that matters."
+  },
+  {
+   "category": "conversion",
+   "file": "mod_xnl4v5.f90",
+   "routine": "xc_webb",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 10,
+   "verdict": "harmless",
+   "reason": "Inherited XNL code (Van Vledder). Deliberate truncation to an integer (ncirc, mlocus with margin) or an expression that is integral (t_ia: integer indices plus 2.*iaref), and REAL(8) intermediate results that go to the REAL result. No loss of value that matters."
+  },
+  {
+   "category": "conversion",
+   "file": "swan_spectrum_transform.f90",
+   "routine": "gammln",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Intermediate result in double precision that goes to a REAL variable; intended rounding to single precision, no loss of value that matters."
+  },
+  {
+   "category": "conversion",
+   "file": "swan_structured_output_interpolation.f90",
+   "routine": "swipol",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Intermediate result in double precision that goes to a REAL variable; intended rounding to single precision, no loss of value that matters."
+  },
+  {
+   "category": "conversion",
+   "file": "swancom1.f90",
+   "routine": "hjlim",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Intermediate result in double precision that goes to a REAL variable; intended rounding to single precision, no loss of value that matters."
+  },
+  {
+   "category": "conversion",
+   "file": "swancom5.f90",
+   "routine": "sandl",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 5,
+   "verdict": "harmless",
+   "reason": "Intermediate results in double precision (radiation stress, wave setup) that go to REAL; intended rounding."
+  },
+  {
+   "category": "conversion",
+   "file": "swancom5.f90",
+   "routine": "sprosd",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Intermediate results in double precision (radiation stress, wave setup) that go to REAL; intended rounding."
+  },
+  {
+   "category": "conversion",
+   "file": "swancom5.f90",
+   "routine": "strsxy",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 4,
+   "verdict": "harmless",
+   "reason": "Intermediate results in double precision (radiation stress, wave setup) that go to REAL; intended rounding."
+  },
+  {
+   "category": "conversion",
+   "file": "swanparll.f90",
+   "routine": "swstrip_wfr",
+   "message": "Possible change of value in conversion from INTEGER(8) to INTEGER(4) at (1)",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Partition numbers from an INTEGER(8) work array; they are smaller than the number of processes."
+  },
+  {
+   "category": "conversion",
+   "file": "swanpre2.f90",
+   "routine": "bcwamn",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 9,
+   "verdict": "harmless",
+   "reason": "Coordinates of WAM and WW3 boundary points are converted in double precision and then stored as REAL, like the rest of SWAN; intended rounding."
+  },
+  {
+   "category": "conversion",
+   "file": "swanpre2.f90",
+   "routine": "bcww3n",
+   "message": "Possible change of value in conversion from REAL(8) to REAL(4) at (1)",
+   "count": 2,
+   "verdict": "harmless",
+   "reason": "Coordinates of WAM and WW3 boundary points are converted in double precision and then stored as REAL, like the rest of SWAN; intended rounding."
+  },
+  {
+   "category": "do-subscript",
+   "file": "SwanSweepSel.f90",
+   "routine": "swansweepsel",
+   "message": "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Index X-1 (or X+1) in a loop from 1, but the first (or last) pass sits in a separate branch (IF (X.EQ.1) ... ELSE, or X.GT.1 in the condition); gfortran judges the loop without those conditions. So the reported index never falls outside the table. Apart from that, the boundary branches read index 2 and need at least two points: for SPCSIG this has been enforced since BF-25."
+  },
+  {
+   "category": "do-subscript",
+   "file": "swan_spectrum_transform.f90",
+   "routine": "chgbas",
+   "message": "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   "count": 3,
+   "verdict": "harmless",
+   "reason": "Index X-1 (or X+1) in a loop from 1, but the first (or last) pass sits in a separate branch (IF (X.EQ.1) ... ELSE, or X.GT.1 in the condition); gfortran judges the loop without those conditions. So the reported index never falls outside the table. Apart from that, the boundary branches read index 2 and need at least two points: for SPCSIG this has been enforced since BF-25; for the axes of a boundary spectrum from a file (CHGBAS) this has not been examined, see the open points in doc/strict-warnings.md."
+  },
+  {
+   "category": "do-subscript",
+   "file": "swancom1.f90",
+   "routine": "setupp",
+   "message": "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Index X-1 (or X+1) in a loop from 1, but the first (or last) pass sits in a separate branch (IF (X.EQ.1) ... ELSE, or X.GT.1 in the condition); gfortran judges the loop without those conditions. So the reported index never falls outside the table. Apart from that, the boundary branches read index 2 and need at least two points: for SPCSIG this has been enforced since BF-25."
+  },
+  {
+   "category": "do-subscript",
+   "file": "swancom5.f90",
+   "routine": "strssb",
+   "message": "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   "count": 2,
+   "verdict": "harmless",
+   "reason": "Index X-1 (or X+1) in a loop from 1, but the first (or last) pass sits in a separate branch (IF (X.EQ.1) ... ELSE, or X.GT.1 in the condition); gfortran judges the loop without those conditions. So the reported index never falls outside the table. Apart from that, the boundary branches read index 2 and need at least two points: for SPCSIG this has been enforced since BF-25."
+  },
+  {
+   "category": "do-subscript",
+   "file": "swancom5.f90",
+   "routine": "swpsel",
+   "message": "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Index X-1 (or X+1) in a loop from 1, but the first (or last) pass sits in a separate branch (IF (X.EQ.1) ... ELSE, or X.GT.1 in the condition); gfortran judges the loop without those conditions. So the reported index never falls outside the table. Apart from that, the boundary branches read index 2 and need at least two points: for SPCSIG this has been enforced since BF-25."
+  },
+  {
+   "category": "do-subscript",
+   "file": "swanout1.f90",
+   "routine": "swoexa",
+   "message": "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   "count": 2,
+   "verdict": "harmless",
+   "reason": "Index X-1 (or X+1) in a loop from 1, but the first (or last) pass sits in a separate branch (IF (X.EQ.1) ... ELSE, or X.GT.1 in the condition); gfortran judges the loop without those conditions. So the reported index never falls outside the table. Apart from that, the boundary branches read index 2 and need at least two points: for SPCSIG this has been enforced since BF-25."
+  },
+  {
+   "category": "do-subscript",
+   "file": "swanout1.f90",
+   "routine": "swoexd",
+   "message": "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   "count": 3,
+   "verdict": "harmless",
+   "reason": "Index X-1 (or X+1) in a loop from 1, but the first (or last) pass sits in a separate branch (IF (X.EQ.1) ... ELSE, or X.GT.1 in the condition); gfortran judges the loop without those conditions. So the reported index never falls outside the table. Apart from that, the boundary branches read index 2 and need at least two points: for SPCSIG this has been enforced since BF-25."
+  },
+  {
+   "category": "do-subscript",
+   "file": "swanpre2.f90",
+   "routine": "swboun",
+   "message": "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   "count": 8,
+   "verdict": "harmless",
+   "reason": "Index X-1 (or X+1) in a loop from 1, but the first (or last) pass sits in a separate branch (IF (X.EQ.1) ... ELSE, or X.GT.1 in the condition); gfortran judges the loop without those conditions. So the reported index never falls outside the table. Apart from that, the boundary branches read index 2 and need at least two points: for SPCSIG this has been enforced since BF-25."
+  },
+  {
+   "category": "do-subscript",
+   "file": "swanser.f90",
+   "routine": "swobst",
+   "message": "Array reference at (1) out of bounds (0 < 1) in loop beginning at (2)",
+   "count": 3,
+   "verdict": "harmless",
+   "reason": "Index X-1 (or X+1) in a loop from 1, but the first (or last) pass sits in a separate branch (IF (X.EQ.1) ... ELSE, or X.GT.1 in the condition); gfortran judges the loop without those conditions. So the reported index never falls outside the table. Apart from that, the boundary branches read index 2 and need at least two points: for SPCSIG this has been enforced since BF-25."
+  },
+  {
+   "category": "function-elimination",
+   "file": "swanpre1.f90",
+   "routine": "backup",
+   "message": "Impure function ‘keywis_default’ at (1) might not be evaluated",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Synonyms KEYWIS('A') .OR. KEYWIS('B'); see swread."
+  },
+  {
+   "category": "function-elimination",
+   "file": "swanpre1.f90",
+   "routine": "cgboun",
+   "message": "Impure function ‘validbp’ at (1) might not be evaluated",
+   "count": 9,
+   "verdict": "harmless",
+   "reason": "VALIDBP returns the number of wet neighbours through WNP. WNP is only read in the THEN branch of an .AND. of which VALIDBP is an operand; that branch can only be reached if VALIDBP was executed. Where VALIDBP can be skipped, WNP is not read afterwards but set again first. Otherwise only the STRACE counter."
+  },
+  {
+   "category": "function-elimination",
+   "file": "swanpre1.f90",
+   "routine": "initva",
+   "message": "Impure function ‘keywis_default’ at (1) might not be evaluated",
+   "count": 2,
+   "verdict": "harmless",
+   "reason": "Synonyms KEYWIS('A') .OR. KEYWIS('B'); see swread."
+  },
+  {
+   "category": "function-elimination",
+   "file": "swanpre1.f90",
+   "routine": "sredep",
+   "message": "Impure function ‘keywis_default’ at (1) might not be evaluated",
+   "count": 3,
+   "verdict": "harmless",
+   "reason": "Synonyms KEYWIS('A') .OR. KEYWIS('B'); see swread."
+  },
+  {
+   "category": "function-elimination",
+   "file": "swanpre1.f90",
+   "routine": "swread",
+   "message": "Impure function ‘keywis_default’ at (1) might not be evaluated",
+   "count": 23,
+   "verdict": "harmless",
+   "reason": "Every place has the form KEYWIS('A') .OR. KEYWIS('B') with synonyms. On a match KEYWIS marks the keyword as USED; if B is skipped because A already matched, B would have given .FALSE. straight away anyway. Only the STRACE counter is lost. The one place with a different left-hand side (NSTATM.LE.0 .OR. KEYWIS('STAT')) was a real defect and has been repaired (BF-24)."
+  },
+  {
+   "category": "function-elimination",
+   "file": "swanpre2.f90",
+   "routine": "sprout",
+   "message": "Impure function ‘keywis_default’ at (1) might not be evaluated",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Synonyms KEYWIS('A') .OR. KEYWIS('B'); see swread."
+  },
+  {
+   "category": "function-elimination",
+   "file": "swanpre2.f90",
+   "routine": "swboun",
+   "message": "Impure function ‘keywis_default’ at (1) might not be evaluated",
+   "count": 6,
+   "verdict": "harmless",
+   "reason": "Synonyms KEYWIS('A') .OR. KEYWIS('B') (also three synonyms on the UNIF/CON/PAR line); see swread."
+  },
+  {
+   "category": "function-elimination",
+   "file": "swanpre2.f90",
+   "routine": "swreoq",
+   "message": "Impure function ‘keywis_default’ at (1) might not be evaluated",
+   "count": 3,
+   "verdict": "harmless",
+   "reason": "Synonyms KEYWIS('A') .OR. KEYWIS('B'); see swread."
+  },
+  {
+   "category": "function-elimination",
+   "file": "swanpre2.f90",
+   "routine": "swreps",
+   "message": "Impure function ‘keywis_default’ at (1) might not be evaluated",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Synonyms KEYWIS('A') .OR. KEYWIS('B'); see swread."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanBraggScat.f90",
+   "routine": "swbrbot",
+   "message": "‘r.dim[0].ubound’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Descriptor of r, which is allocated unconditionally just before; artefact of optimised array descriptors."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanBraggScat.f90",
+   "routine": "swbrbot",
+   "message": "‘r.dim[1].stride’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Descriptor of r, which is allocated unconditionally just before; artefact of optimised array descriptors."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanBraggScat.f90",
+   "routine": "swbrbot",
+   "message": "‘r.offset’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Descriptor of r, which is allocated unconditionally just before; artefact of optimised array descriptors."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanCompUnstruc.f90",
+   "routine": "swancompunstruc",
+   "message": "‘acnrmo’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "The block is under PNUMS(PNUMS_STOPTY) == 2, which is fixed during the run; iteration 1 always passes through this block and sets acnrmo before iteration 2 reads it."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanCompUnstruc.f90",
+   "routine": "swancompunstruc",
+   "message": "‘th1’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "The cell comes from the vertex's own cell list; the search loop over the three vertices therefore always finds it and sets th1/th2 (same pattern as SwanGridCell)."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanCompUnstruc.f90",
+   "routine": "swancompunstruc",
+   "message": "‘th2’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See th1: the search loop finds the vertex by construction."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanCompUnstruc.f90",
+   "routine": "swancompunstruc",
+   "message": "‘vu[0]’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See th1: the search loop for the vertex in its own cell always succeeds, so vu is set."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanCompUnstruc.f90",
+   "routine": "swancompunstruc",
+   "message": "‘vu[1]’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See vu[0] in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanGridCell.f90",
+   "routine": "swangridcell",
+   "message": "‘vn’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Judged earlier (doc/modern-fortran.md): by construction the cell belongs to the vertex, so the search loop always finds it."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanGridCell.f90",
+   "routine": "swangridcell",
+   "message": "‘vp’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See vn in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanIEM.f90",
+   "routine": "swaniemsrfbeat",
+   "message": "‘ci1’ may be used uninitialized",
+   "count": 1,
+   "verdict": "defect",
+   "reason": "Confirmed and repaired (BF-29): a row with a dry or inactive west point is now skipped, because the reference phase, boundary condition and alongshore wavenumber are missing there. The compiler cannot see through the skip, so the warning remains.",
+   "reference": "BF-29"
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanIEM.f90",
+   "routine": "swaniemsrfbeat",
+   "message": "‘ci2’ may be used uninitialized",
+   "count": 1,
+   "verdict": "defect",
+   "reason": "Confirmed and repaired (BF-29): a row with a dry or inactive west point is now skipped, because the reference phase, boundary condition and alongshore wavenumber are missing there. The compiler cannot see through the skip, so the warning remains.",
+   "reference": "BF-29"
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanIEM.f90",
+   "routine": "swaniemsrfbeat",
+   "message": "‘kbly’ may be used uninitialized",
+   "count": 1,
+   "verdict": "defect",
+   "reason": "Confirmed and repaired (BF-29): a row with a dry or inactive west point is now skipped, because the reference phase, boundary condition and alongshore wavenumber are missing there. The compiler cannot see through the skip, so the warning remains.",
+   "reference": "BF-29"
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanInterpolateAc.f90",
+   "routine": "swaninterpolateac",
+   "message": "‘th1’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "The cell comes from the vertex's cell list; the search loop for that vertex always succeeds."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanInterpolateAc.f90",
+   "routine": "swaninterpolateac",
+   "message": "‘th2’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See th1 in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanInterpolateOutput.f90",
+   "routine": "swaninterpolateoutput",
+   "message": "‘th1’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Same search loop as SwanInterpolateAc: by construction the vertex lies in the cell."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanInterpolateOutput.f90",
+   "routine": "swaninterpolateoutput",
+   "message": "‘th2’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See th1 in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanInterpolatePoint.f90",
+   "routine": "swaninterpolatepoint",
+   "message": "‘th1’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Same search loop as SwanInterpolateAc: by construction the vertex lies in the cell."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "SwanInterpolatePoint.f90",
+   "routine": "swaninterpolatepoint",
+   "message": "‘th2’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See th1 in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "mod_xnl4v5.f90",
+   "routine": "q_addtail",
+   "message": "‘isig_tail’ may be used uninitialized",
+   "count": 5,
+   "verdict": "harmless",
+   "reason": "Inherited code; the warnings concern the places of use after that one assignment. isig_tail is set as soon as q_sig(isig) < ff_tail*q_sig(nsig); for every valid tail factor this already holds for the lowest frequency."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "mod_xnl4v5.f90",
+   "routine": "q_cmplocus",
+   "message": "‘__result_x_cple’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Inherited code. x_cple covers iq_cple 1-4 and otherwise sets 0; iq_cple is checked when it is set (line 1532)."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "mod_xnl4v5.f90",
+   "routine": "q_cmplocus",
+   "message": "‘dsp’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Inherited code. dsp is set in every pass of the locus loop and read after the loop; that loop always runs (nlocus1 > 0)."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "mod_xnl4v5.f90",
+   "routine": "q_polar2",
+   "message": "‘dke’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Inherited code. dke is set when dsnew > 0, and dsnew = sqrt(|arg|) is only 0 when two consecutive locus points coincide."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "mod_xnl4v5.f90",
+   "routine": "x_cosk",
+   "message": "‘__result_x_cosk’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Inherited code. Chain over iq_disp 1/2; iq_disp is checked when it is set (line 1573)."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "mod_xnl4v5.f90",
+   "routine": "x_cple",
+   "message": "‘__result_x_cple’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Inherited code; see q_cmplocus."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swan_input_point_validation.f90",
+   "routine": "sincmp",
+   "message": "‘__result_sincmp’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "SINCMP sets the result for OPTG 1, 3 and 5; OPTG starts at 1 (SWINIT) and only takes those values."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swan_spectrum_output.f90",
+   "routine": "swcmsp",
+   "message": "‘udir’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set when ICUR > 0 and OTYPE < 0, used when ICUR /= 0 and OTYPE <= 0; OTYPE is always +-1 or +-2 (swanout2), so both conditions coincide."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swan_spectrum_transform.f90",
+   "routine": "sshape",
+   "message": "‘as2’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Last value from the frequency loop, used for the tail; the loop always runs (MSC >= 2 since BF-25)."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swan_spectrum_transform.f90",
+   "routine": "sshape",
+   "message": "‘as3’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See as2 in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swan_spectrum_transform.f90",
+   "routine": "sshape",
+   "message": "‘aux1’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set and used under LSHAPE = 4."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swan_spectrum_transform.f90",
+   "routine": "sshape",
+   "message": "‘aux3’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See aux1 in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swan_spectrum_transform.f90",
+   "routine": "sshape",
+   "message": "‘isp’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Under LSHAPE = 3 DIFPER starts at 1e10; the first frequency already sets ISP (except for a NaN period)."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom1.f90",
+   "routine": "setup2d",
+   "message": "‘ii’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "XOM starts at 1; the branch that increments II can only be reached after the same line that sets XOM to XOMEG also sets II = -10. RESMI is set at II = 0, before II > 0."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom1.f90",
+   "routine": "setup2d",
+   "message": "‘resmi’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See ii in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom1.f90",
+   "routine": "swompu",
+   "message": "‘nlink’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set for PROPSL = 2 and 3 and only used under PROPSL > 1; PROPSL is 0 to 3 inclusive."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom2.f90",
+   "routine": "brkpar",
+   "message": "‘cosdir’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Only read in the test print. That also printed direction and slope outside the Nelson branch, where they are not set (NaN and garbage at TEST 40; repaired under BF-27). Now only under ISURF = 2, where COSDIR/SINDIR and DDDS are set on every path; the compiler does not link the two ISURF tests."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom2.f90",
+   "routine": "brkpar",
+   "message": "‘sindir’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Only read in the test print. That also printed direction and slope outside the Nelson branch, where they are not set (NaN and garbage at TEST 40; repaired under BF-27). Now only under ISURF = 2, where COSDIR/SINDIR and DDDS are set on every path; the compiler does not link the two ISURF tests."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom2.f90",
+   "routine": "sice",
+   "message": "‘c0’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom2.f90",
+   "routine": "sice",
+   "message": "‘c1’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom2.f90",
+   "routine": "sice",
+   "message": "‘c2’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom2.f90",
+   "routine": "sice",
+   "message": "‘c3’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom2.f90",
+   "routine": "sice",
+   "message": "‘c4’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom2.f90",
+   "routine": "sice",
+   "message": "‘c5’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom2.f90",
+   "routine": "sice",
+   "message": "‘c6’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom2.f90",
+   "routine": "sice",
+   "message": "‘chf’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom2.f90",
+   "routine": "sice",
+   "message": "‘npf’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom2.f90",
+   "routine": "sice",
+   "message": "‘nph’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom2.f90",
+   "routine": "swcap",
+   "message": "‘c_bj’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set and used under IWCAP 4 or 5."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom2.f90",
+   "routine": "swcap",
+   "message": "‘hrms’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See c_bj in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom3.f90",
+   "routine": "windp1",
+   "message": "‘cdrag’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "IDRAG 1-3 covered; for IWIND /= 8 swanmain resets an IDRAG > 3 to FIT."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom3.f90",
+   "routine": "windp1",
+   "message": "‘dspr’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set and used under IDRAG = 3."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom3.f90",
+   "routine": "windp2",
+   "message": "‘atotd’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Last value from the loop IS = ISFPM, MSC; ISFPM starts at MSC and only gets smaller, so the loop always runs."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom4.f90",
+   "routine": "swftim",
+   "message": "‘sinbph’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "SWFTIM is only called for ITRIAD 2 or 3 (swancom1), and use falls within the same Ursell condition."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom4.f90",
+   "routine": "swpre4w",
+   "message": "‘ma4d’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Repaired earlier as a defect: an empty MDIA list is now rejected in input processing, so the loop over IDIA always runs."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom4.f90",
+   "routine": "swpre4w",
+   "message": "‘ma4s’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See ma4d in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom4.f90",
+   "routine": "swpre4w",
+   "message": "‘mi4d’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See ma4d in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom4.f90",
+   "routine": "swpre4w",
+   "message": "‘mi4s’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See ma4d in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom5.f90",
+   "routine": "sprosd",
+   "message": "‘cad_tmp’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "PNUMS(PNUMS_GRADK) is only 0 or 1 (swanmain, swanpre1); both covered."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom5.f90",
+   "routine": "sprosd",
+   "message": "‘uxloc4’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set and used under ICUR = 1."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom5.f90",
+   "routine": "sprosd",
+   "message": "‘uxloc5’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See uxloc4 in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom5.f90",
+   "routine": "sprosd",
+   "message": "‘uyloc4’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See uxloc4 in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom5.f90",
+   "routine": "sprosd",
+   "message": "‘uyloc5’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See uxloc4 in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom5.f90",
+   "routine": "swgeom",
+   "message": "‘dx2’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "SWPDIR is always 1-4; all branches covered."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swancom5.f90",
+   "routine": "swgeom",
+   "message": "‘dy2’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See dx2 in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanout1.f90",
+   "routine": "swoexa",
+   "message": "‘ebloc.dim[1].stride’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "FLOC/FLUX are allocated under OQPROC(15).OR.OQPROC(19) and used under the same condition, EBLOC under OQPROC(81); artefact of array descriptors."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanout1.f90",
+   "routine": "swoexa",
+   "message": "‘ebloc.offset’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "FLOC/FLUX are allocated under OQPROC(15).OR.OQPROC(19) and used under the same condition, EBLOC under OQPROC(81); artefact of array descriptors."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanout1.f90",
+   "routine": "swoexa",
+   "message": "‘etot’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set and used under ICUR = 1."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanout1.f90",
+   "routine": "swoexa",
+   "message": "‘floc.dim[1].stride’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "FLOC/FLUX are allocated under OQPROC(15).OR.OQPROC(19) and used under the same condition, EBLOC under OQPROC(81); artefact of array descriptors."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanout1.f90",
+   "routine": "swoexa",
+   "message": "‘floc.offset’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "FLOC/FLUX are allocated under OQPROC(15).OR.OQPROC(19) and used under the same condition, EBLOC under OQPROC(81); artefact of array descriptors."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanout1.f90",
+   "routine": "swoexa",
+   "message": "‘flux.dim[0].ubound’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "FLOC/FLUX are allocated under OQPROC(15).OR.OQPROC(19) and used under the same condition, EBLOC under OQPROC(81); artefact of array descriptors."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanout1.f90",
+   "routine": "swoexa",
+   "message": "‘flux.dim[1].stride’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "FLOC/FLUX are allocated under OQPROC(15).OR.OQPROC(19) and used under the same condition, EBLOC under OQPROC(81); artefact of array descriptors."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanout1.f90",
+   "routine": "swoexa",
+   "message": "‘flux.dim[1].ubound’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "FLOC/FLUX are allocated under OQPROC(15).OR.OQPROC(19) and used under the same condition, EBLOC under OQPROC(81); artefact of array descriptors."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanout1.f90",
+   "routine": "swoexa",
+   "message": "‘flux.dim[2].stride’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "FLOC/FLUX are allocated under OQPROC(15).OR.OQPROC(19) and used under the same condition, EBLOC under OQPROC(81); artefact of array descriptors."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanout1.f90",
+   "routine": "swoexa",
+   "message": "‘flux.offset’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "FLOC/FLUX are allocated under OQPROC(15).OR.OQPROC(19) and used under the same condition, EBLOC under OQPROC(81); artefact of array descriptors."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanout1.f90",
+   "routine": "swoexa",
+   "message": "‘sig2p’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Last value from a frequency loop that always runs, used for the tail."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanout2.f90",
+   "routine": "swblkv",
+   "message": "‘ilpos2’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set and used under PARLL."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanout2.f90",
+   "routine": "swblok",
+   "message": "‘fmax’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "OVSVTY 1-3 covered; the only other value (5, AAAA/EEEE) has OVHEXP = 100 and takes the first branch, where FMAX is not needed."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanparll.f90",
+   "routine": "swcolblk",
+   "message": "‘fmax’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Same chain as SWBLOK in swanout2: OVSVTY 1-3 covered, and the only other value (5) takes the first branch, where FMAX is not needed."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanparll.f90",
+   "routine": "swstrip_jac",
+   "message": "‘incx’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set for IDIR = 1 and IDIR = 2; the caller only passes those values (fixed, or MOD(IDIR,2)+1)."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanparll.f90",
+   "routine": "swstrip_jac",
+   "message": "‘incy’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set for IDIR = 1 and IDIR = 2; the caller only passes those values (fixed, or MOD(IDIR,2)+1)."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanparll.f90",
+   "routine": "swstrip_jac",
+   "message": "‘myci’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set for IDIR = 1 and IDIR = 2; the caller only passes those values (fixed, or MOD(IDIR,2)+1)."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanparll.f90",
+   "routine": "swstrip_wfr",
+   "message": "‘incx’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set for IDIR = 1 and IDIR = 2; the caller only passes those values (fixed, or MOD(IDIR,2)+1)."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanparll.f90",
+   "routine": "swstrip_wfr",
+   "message": "‘incy’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set for IDIR = 1 and IDIR = 2; the caller only passes those values (fixed, or MOD(IDIR,2)+1)."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanparll.f90",
+   "routine": "swstrip_wfr",
+   "message": "‘myci’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set for IDIR = 1 and IDIR = 2; the caller only passes those values (fixed, or MOD(IDIR,2)+1)."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanpre1.f90",
+   "routine": "cginit",
+   "message": "‘iarr.dim[0].ubound’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "IARR is allocated just before; artefact of array descriptors."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanpre2.f90",
+   "routine": "bcfile",
+   "message": "‘dorder’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set at IANG = 1, read from IANG = 2 on."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanpre2.f90",
+   "routine": "siray",
+   "message": "‘jdminmax’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "DIFDEP starts at 1e10; the first pass already sets JDMINMAX (except for a NaN depth)."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanpre2.f90",
+   "routine": "swboun",
+   "message": "‘dirsi’ may be used uninitialized",
+   "count": 1,
+   "verdict": "defect",
+   "reason": "Confirmed and repaired (BF-30): after an unknown side the boundary condition is dropped and DIRSI is no longer used. The compiler does not see that, so the warning remains.",
+   "reference": "BF-30"
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanpre2.f90",
+   "routine": "swboun",
+   "message": "‘ibspc2’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set in both the PAR and the FILE branch (BPARF always set since BF-27)."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanpre2.f90",
+   "routine": "swboun",
+   "message": "‘ix1’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Since BF-27 only used when ISIDM is 1-4, and then set in every branch; ISIDM cannot have another value."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanpre2.f90",
+   "routine": "swboun",
+   "message": "‘iy1’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See ix1 in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanpre2.f90",
+   "routine": "swboun",
+   "message": "‘nbspss’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "The first FILE line requires a file name ('REQ'), so NBSPSS is set before it is read."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanpre2.f90",
+   "routine": "swreps",
+   "message": "‘dxn’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "OPTG 1, 3 and 5 covered; OPTG starts at 1 and only takes those values."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanpre2.f90",
+   "routine": "swreps",
+   "message": "‘dyn’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See dxn in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanser.f90",
+   "routine": "cvmesh",
+   "message": "‘ix1m’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set together with ONBND = .TRUE. in the loop over the grid outline and only used inside IF (ONBND); ONBND starts at .FALSE."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanser.f90",
+   "routine": "cvmesh",
+   "message": "‘ix2m’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set together with ONBND = .TRUE. in the loop over the grid outline and only used inside IF (ONBND); ONBND starts at .FALSE."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanser.f90",
+   "routine": "cvmesh",
+   "message": "‘ixmin’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "The branch only runs when INMESH is true, so with a known grid outline and active points; the loop then finds a nearest point."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanser.f90",
+   "routine": "cvmesh",
+   "message": "‘iy1m’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set together with ONBND = .TRUE. in the loop over the grid outline and only used inside IF (ONBND); ONBND starts at .FALSE."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanser.f90",
+   "routine": "cvmesh",
+   "message": "‘iy2m’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set together with ONBND = .TRUE. in the loop over the grid outline and only used inside IF (ONBND); ONBND starts at .FALSE."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanser.f90",
+   "routine": "cvmesh",
+   "message": "‘iymin’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See ixmin in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanser.f90",
+   "routine": "cvmesh",
+   "message": "‘rellcm’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Set together with ONBND = .TRUE. in the loop over the grid outline and only used inside IF (ONBND); ONBND starts at .FALSE."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanser.f90",
+   "routine": "cvmesh",
+   "message": "‘xp1’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Only read when IX1 > 0, and that can only happen after a pass that has set XP2."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanser.f90",
+   "routine": "cvmesh",
+   "message": "‘yp1’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "See xp1 in the same routine; the same reasoning applies here."
+  },
+  {
+   "category": "maybe-uninitialized",
+   "file": "swanser.f90",
+   "routine": "reflect",
+   "message": "‘beta’ may be used uninitialized",
+   "count": 1,
+   "verdict": "harmless",
+   "reason": "Unset only after 'obstacle is a zero-dimensional point'; such a segment crosses no grid link, and a trial with a duplicate obstacle point did not call REFLECT for it (output byte-identical to a single segment)."
+  },
+  {
+   "category": "untagged",
+   "file": "fftw_compat.f90",
+   "routine": "ensure_plans",
+   "message": "Same actual argument associated with INTENT(OUT) argument ‘in’ and INTENT(OUT) argument ‘out’ at (1)",
+   "count": 4,
+   "verdict": "deliberate",
+   "reason": "In-place FFTW plan: the same scratch array as input and output is how FFTW recognises an in-place transform (FFTW manual, 'in-place'). The INTENT(OUT) on both arguments comes from FFTW's own fftw3.f03 interface. The scratch is released after planning and never read."
+  }
+ ]
+}

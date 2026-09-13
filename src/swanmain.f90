@@ -5714,6 +5714,14 @@ SUBROUTINE ERRCHK
          CALL MSGERR(2,'in combination with zero wind conditions.'    )
       END IF
 
+!     FAC4WW fixes the DIA bins with SPCSIG(MSC/2-1) and so needs at least
+!     four frequencies; with fewer it read outside SPCSIG and the
+!     computation silently carried on
+      IF (MSC .LT. 3 ) THEN
+         CALL MSGERR(4,'Quadruplets need at least four frequencies')
+         CALL MSGERR(4,'([msc] of at least 3 in CGRID)           ')
+         RETURN
+      END IF
       IF (MSC .EQ. 3 ) THEN
          CALL MSGERR(4,'Do not activate quadruplets for boundary ')
          CALL MSGERR(4,'option BIN -> use other option           ')

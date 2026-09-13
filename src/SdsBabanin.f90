@@ -1037,6 +1037,21 @@ CONTAINS
        DO IS=NF_OLD+1,NF_NEW
           LFACTOR_L(IS)=0.0
        END DO
+! ZE is INTENT(OUT) and SWIND_DBYB stores it in ZELEN, but this return left it
+! unset. Without reduction the relation below holds with the LFACTOR just set;
+! without any stress there is no wave-supported part and ZE equals Z0.
+       Z0 = AFA * UFRIC**2 / GRAV
+       IF (TAU_TOTAL < 1E-10) THEN
+          ZE = Z0
+       ELSE
+          S_IN1D_L=SUM(S_IN_L,1)*DDIR_RAD
+          TAU_wav=0.0
+          DO IS=1,NF_NEW
+             TAU_wav=TAU_wav+RHOW*GRAV*S_IN1D_L(IS)*LFACTOR_L(IS)   &
+                          *CINV_L(IS)*DF(IS)
+          END DO
+          ZE = Z0/SQRT(1-TAU_wav/TAU_TOTAL)
+       END IF
 ! Deallocate and return
        DEALLOCATE(S_IN_L)
        DEALLOCATE(S_IN1D_L)

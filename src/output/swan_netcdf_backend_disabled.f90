@@ -84,7 +84,7 @@ contains
 
    subroutine swn_outnc_openblockfile(ncfile, myk, mxk, ovlnam, xgrdgl, &
       ygrdgl, oqi, oqr, ivtyp, irq)
-      character(len=80), intent(in) :: ncfile
+      character(len=*), intent(in) :: ncfile
       integer, intent(in) :: myk, mxk, irq
       integer, intent(in) :: oqi(:), ivtyp(:)
       real(kind=kind(0.0d0)), intent(in) :: oqr(:)

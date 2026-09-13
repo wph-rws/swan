@@ -483,6 +483,7 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 ! 13. Source text
 
    LOGICAL :: FOUND
+   LOGICAL :: STATKW   ! COMPUTE is followed by STATionary
 
 !     *** The logical variable LOGCOM has a record about which    ***
 !     *** commands have been given to know if all the information ***
@@ -935,7 +936,11 @@ CALL NWLINE
       COMPUT = 'COMP'
       RUNMADE = .TRUE.
       CALL INKEYW ('STA','  ')
-      IF (NSTATM.LE.0 .OR. KEYWIS('STAT')) THEN
+!     Call KEYWIS separately: inside the .OR. the compiler may skip it
+!     when NSTATM.LE.0 is already true, and then STAT is left unused and
+!     the next command reports 'Illegal keyword' (gfortran does, Intel does not)
+      STATKW = KEYWIS('STAT')
+      IF (NSTATM.LE.0 .OR. STATKW) THEN
          IF (NSTATM.EQ.-1) NSTATM = 0
          IF (NSTATM.GT.0) CALL INCTIM (ITMOPT,'TIME',default_time_context%TINIC,'REQ',0D0)
          IF (default_time_context%TINIC .LT. default_time_context%TIMCO) THEN
@@ -1849,6 +1854,13 @@ CALL NWLINE
          FRHIG = FRLOW*EXP(ALOG(1.1)*REAL(MSS))
          WRITE (PRINTF,'(A,(F7.4))')&
          &' Highest discrete frequency (in Hz): FHIGH = ',FRHIG
+      END IF
+!     Without a frequency interval there is no spectrum: the resolution above
+!     then divides by zero and every spectral difference reads outside SPCSIG.
+!     MSGERR only stops after reading the input; until then, a valid value.
+      IF (MSS.LT.1) THEN
+         CALL MSGERR(4, '[msc] in CGRID must be at least 1')
+         MSS = 1
       END IF
       SLOW = 2.*PI*FRLOW
       SHIG = 2.*PI*FRHIG
@@ -3251,6 +3263,13 @@ CALL NWLINE
             ENDIF
          ENDDO
          SNL4%quadruplet_count = ILAMBDA
+!        Reject an empty lambda list. With MDIA = 0 the loop over the
+!        quadruplets in SWPRE4W does not execute, so MSC4MI/MSC4MA and
+!        MDC4MI/MDC4MA would be assigned from uninitialised locals and the
+!        derived spectral range MSCMAX/MDCMAX would be meaningless. This is
+!        the only path that can set MDIA below one.
+         IF (SNL4%quadruplet_count.LT.1) CALL MSGERR (4,&
+         &'MDIA LAMBDA requires at least one non-negative [lambda] value')
          ALLOCATE (SNL4%lambda(SNL4%quadruplet_count))
          SNL4%lambda(1:SNL4%quadruplet_count) =&
          &RLAMBDA(1:SNL4%quadruplet_count)
@@ -4527,7 +4546,14 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
          ALOCMP = .TRUE.
       ENDIF
    ELSE
+!     No branch matched, so IGR1 names no field and every IFLxxx(IGR1) below
+!     would index the tables at whatever the uninitialised local happens to
+!     hold -- a read out of bounds, and a write as soon as the deck also
+!     supplies [fac]. WRNKEY raises the error level to 2, which blocks the
+!     computation only at the default [maxerr] of 1, and reading goes on
+!     regardless, so leave before using the index.
       CALL  WRNKEY
+      RETURN
    ENDIF
 
 !     read multiplication factor
@@ -5843,7 +5869,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
    USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
    USE swan_file_opening, ONLY: FOR
    USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
-   USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, EQCSTR
+   USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, EQCSTR, WRNKEY
 !                                                                  *
 !*******************************************************************
 
@@ -6104,6 +6130,12 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
          JXMAX = MXC
          JYMAX = MYC
          CALL IGNORE ('MULT')
+      ELSE
+!        unknown keyword: report it and continue as the default MULTIPLE
+         CALL WRNKEY
+         SINGLEHOT = .FALSE.
+         JXMAX = MXC
+         JYMAX = MYC
       END IF
       NPTOT = JXMAX*JYMAX
       IF (OPTG.EQ.5) NPTOT = nverts

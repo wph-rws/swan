@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Targeted gate selection: which test configurations a change must pass.
 
-Full breadth (serial + OpenMP + MPI) for every change mostly costs
+Full breadth (serial + OpenMP + MPI + strict) for every change mostly costs
 wall time in (re)building, not in running the tests (ctest takes ~2 minutes).
 This selector works out from the changed paths which gates a change
 can break; only those need to go green again. Unknown paths safely choose
@@ -13,6 +13,8 @@ Rules:
   or cmake/. A deck or physics change without a code difference behaves under
   MPI exactly as in serial on the same code; the MPI claim stays at the last
   green commit.
+- strict only for source, toolchain or baseline changes (only those can
+  add or remove warnings).
 - upstream_delta for anything that can shift the output of a deck: source,
   toolchain, decks and the delta inventory itself. That gate compares the fork
   deck by deck with the pinned TU Delft source, so that a new difference must
@@ -40,6 +42,7 @@ COMMANDS = {
     "serial": 'cmake --build build -j"$(nproc)" && ctest --test-dir build --output-on-failure -j"$(nproc)"',
     "openmp": 'cmake --build build-modernization-openmp -j"$(nproc)" && ctest --test-dir build-modernization-openmp --output-on-failure -j"$(nproc)"',
     "mpi": 'cmake --build build-modernization-mpi -j"$(nproc)" && ctest --test-dir build-modernization-mpi --output-on-failure -j"$(nproc)"',
+    "strict": "python3 scripts/strict_diagnostics.py",
     "pytest": "python3 -m pytest tests/ so-rp_swan/comparison -q",
     "upstream_delta": "SWAN_UPSTREAM_DELTA=1 python3 -m pytest tests/test_upstream_delta.py -q",
 }
@@ -69,18 +72,22 @@ def _classify(path: str) -> set[str]:
         return set()
     if suffix == ".md" or name == "AGENTS.md":
         return set()
+    if name.startswith("strict_diagnostics"):
+        #  Script and triage register are also checked by pytest
+        #  (tests/test_strict_diagnostics*.py).
+        return {"strict", "pytest"}
     #  Build set-up and toolchain affect every variant, MPI included (AGENTS.md).
     if MPI_RE.search(str(p)) or name == "CMakeLists.txt" or p.parts[:1] == ("cmake",):
-        return {"serial", "openmp", "mpi", "pytest", "upstream_delta"}
+        return {"serial", "openmp", "mpi", "strict", "pytest", "upstream_delta"}
     if suffix in (".f90", ".f", ".c", ".h"):
-        return {"serial", "openmp", "pytest", "upstream_delta"}
+        return {"serial", "openmp", "strict", "pytest", "upstream_delta"}
     if p.parts[:1] == ("scripts",) and suffix == ".py":
         return {"serial", "pytest"}
     if p.parts[:1] == ("tests",):
         return {"serial", "openmp", "pytest"}
     if p.parts[:1] == ("examples",):
         return {"serial", "openmp", "pytest", "upstream_delta"}
-    return {"serial", "openmp", "mpi", "pytest", "upstream_delta"}
+    return {"serial", "openmp", "mpi", "strict", "pytest", "upstream_delta"}
 
 
 def select_gates(paths: list[str]) -> dict[str, list[str]]:

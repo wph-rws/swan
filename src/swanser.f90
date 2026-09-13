@@ -924,6 +924,8 @@ LOGICAL FUNCTION INMESH (XP, YP, XCGRID ,YCGRID, KGRBND)
 
    IF (NGRBND.LE.0) THEN
       CALL MSGERR (3, 'grid outline not yet determined')
+!     without an outline it cannot be established that the point lies inside
+      INMESH = .FALSE.
       RETURN
    ENDIF
 
@@ -3588,7 +3590,7 @@ SUBROUTINE SWPRTI
 !
 !        --- initialise table to zero
 !
-      DO K = 1, 30
+      DO K = 1, 33
          DO J = 1, 2
             TABLE(K,J) = 0D0
          END DO

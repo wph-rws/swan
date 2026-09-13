@@ -8,8 +8,8 @@ building them all catches that, and doing it by hand invites doing it
 partially.
 
 Each configuration is a separate build directory so that repeated runs are
-incremental. Pass --clean to force a fresh configure, which is what a release
-check should do.
+incremental. Pass --clean to force a fresh configure, which is what the
+strict gate needs and what a release check should do.
 
 Reporting: passed, failed and not run are reported separately; a skipped
 optional compiler does not count as "OK". A required release compiler may
@@ -38,6 +38,7 @@ import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from strict_diagnostics import STRICT_FLAGS
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -85,6 +86,10 @@ MATRIX: dict[str, list[str]] = {
     # Research route: -O0 with runtime checks. This combination does not
     # qualify the route.
     "debug": ["-DCMAKE_BUILD_TYPE=Debug", "-DSWAN_RUNTIME_CHECKS=ON"],
+    # The strict gate owns the strict flags; this entry only proves that a
+    # strict build still compiles and passes its tests. Without the flags it
+    # would be an exact copy of the default configuration and test nothing.
+    "strict": [f"-DCMAKE_Fortran_FLAGS={STRICT_FLAGS}"],
 }
 
 # Configurations that need a toolchain that may not be installed. They are

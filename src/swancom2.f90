@@ -3329,7 +3329,18 @@ SUBROUTINE BRKPAR (BRCOEF, ECOS, ESIN, AC2, SPCSIG, DEP2, BOTLV, RDX, RDY, KWAVE
          ENDIF
       ENDDO
 
-!        --- then obtain first and second harmonics
+!        --- then obtain first and second harmonics and, from their ratio,
+!            the breaker index: if the relative energy of the second harmonic
+!            is more than 35% the breaker index is constant, otherwise the
+!            breaker index is related to the asymmetry of breaking waves and,
+!            in turn, the biphase
+!
+!            the harmonics exist only where a peak was found, so the sentinel
+!            ISIGM = -1 of a spectrum without energy is handled by the same
+!            guard: E1 and E2 are never in scope without a value behind them.
+!            That case falls back on the spilling constant; encoding "nothing
+!            to break" as BRCOEF = 0 would set HM = 0, which drives BB in
+!            SSURF to infinity and hence into its saturated branch.
       IF ( ISIGM.GT.0 ) THEN
 !           first harmonic
          E1 = ED(ISIGM)
@@ -3343,20 +3354,15 @@ SUBROUTINE BRKPAR (BRCOEF, ECOS, ESIN, AC2, SPCSIG, DEP2, BOTLV, RDX, RDY, KWAVE
          ELSE
             E2 = 0.
          ENDIF
-      ENDIF
 
-!        --- finally, compute the breaker index, as follows:
-!            if relative energy of the second harmonic is more than
-!            35% then breaker index is constant, otherwise
-!            the breaker index is related to the asymmetry of
-!            breaking waves and, in turn, the biphase;
-      IF ( ISIGM.EQ.0 ) THEN
-         BRCOEF = 0.
-      ELSEIF ( E2.GT.0.35*E1 ) THEN
-         BRCOEF = PSURF(4)
+         IF ( E2.GT.0.35*E1 ) THEN
+            BRCOEF = PSURF(4)
+         ELSE
+!              note: the actual breaker index is computed in routine SINTGRL
+            BRCOEF = -1.
+         ENDIF
       ELSE
-!           note: the actual breaker index is computed in routine SINTGRL
-         BRCOEF = -1.
+         BRCOEF = PSURF(4)
       ENDIF
 
    ENDIF
@@ -3399,8 +3405,13 @@ SUBROUTINE BRKPAR (BRCOEF, ECOS, ESIN, AC2, SPCSIG, DEP2, BOTLV, RDX, RDY, KWAVE
 !     *** test output ***
 
    IF ( TESTFL .AND. ITEST .GE. 40 ) THEN
-      WRITE(PRINTF,"(' BRKPAR: point nr, dir, depth, slope, br.coeff:', I4,4(1X,E12.4))") IGP, ATAN2(SINDIR,COSDIR)*180./PI,&
-      &DEP2(IGP), DDDS, BRCOEF
+!     direction and slope only exist for Nelson (ISURF = 2)
+      IF ( ISURF.EQ.2 ) THEN
+         WRITE(PRINTF,"(' BRKPAR: point nr, dir, depth, slope, br.coeff:', I4,4(1X,E12.4))") IGP, ATAN2(SINDIR,COSDIR)*180./PI,&
+         &DEP2(IGP), DDDS, BRCOEF
+      ELSE
+         WRITE(PRINTF,"(' BRKPAR: point nr, depth, br.coeff:', I4,2(1X,E12.4))") IGP, DEP2(IGP), BRCOEF
+      END IF
    END IF
 
    RETURN
