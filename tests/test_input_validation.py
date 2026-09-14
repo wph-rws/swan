@@ -23,6 +23,147 @@ def _swan() -> str:
     return swan_executable()
 
 
+def _run(tmp_path: Path, extra_command: str) -> tuple[int, str]:
+    """Run the smoke deck with one extra command in it."""
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    assert "GEN3 KOMEN" in deck, "smoke deck has changed shape"
+    deck = deck.replace("GEN3 KOMEN", f"GEN3 KOMEN\n{extra_command}", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    printfile = work / "PRINT"
+    report = printfile.read_text(encoding="utf-8", errors="replace") if printfile.is_file() else ""
+    return result.returncode, report
+
+
+#  Numbers that name no formulation. Upstream accepts them: the run prints the
+#  chosen formulation in its header, switches on the matching bookkeeping
+#  through the `ITRIAD .GT. 0` and `IQUAD .GE. 1` gates (Ursell, biphase,
+#  MEMNL4, the limiter) and computes no source term. TRIAD reaches its numeric
+#  branch only through the named parameter: `TRIAD 4` already fails in INKEYW,
+#  `TRIAD ITRIAD=4` does not.
+REJECTED = [
+    ("TRIAD ITRIAD=4", "TRIAD [itriad]"),
+    ("TRIAD ITRIAD=6", "TRIAD [itriad]"),
+    ("QUADRUPLET 6", "QUADRUPLET [iquad]"),
+    ("QUADRUPLET 9", "QUADRUPLET [iquad]"),
+]
+
+
+@pytest.mark.parametrize("command,expected", REJECTED)
+def test_unknown_formulation_is_rejected(tmp_path, command, expected):
+    returncode, report = _run(tmp_path, command)
+    assert returncode != 0, (
+        f"'{command}' ran on to a normal end; a number that does not name a "
+        f"formulation should stop the run.\n{report[-2000:]}"
+    )
+    assert expected in report, (
+        f"'{command}' stopped, but without the message that says why.\n"
+        f"{report[-2000:]}"
+    )
+
+
+#  The counter-test. Without it, a check that rejects everything would also pass.
+ACCEPTED = [
+    "BRAGG 0",
+    "TRIAD ITRIAD=0",
+    "TRIAD ITRIAD=11",
+    "TRIAD ITRIAD=1",
+    "TRIAD LTA",
+    "TRIAD DCTA",
+    "QUADRUPLET 2",
+    "QUADRUPLET 8",
+]
+
+
+@pytest.mark.parametrize("command", ACCEPTED)
+def test_valid_formulation_keeps_running(tmp_path, command):
+    returncode, report = _run(tmp_path, command)
+    assert returncode == 0, (
+        f"'{command}' is valid but was refused.\n{report[-2000:]}"
+    )
+
+
+#  BRAGG needs a bottom grid much finer than the computational grid: SWBRBOT
+#  takes the mean depth and the bed elevation spectrum over a square of
+#  [nreg] x [nreg] bottom points around each computational point, and SWAN
+#  refuses an [nreg] above half the number of bottom points. The smoke deck
+#  has a 2 x 2 bottom, so it can only test BRAGG 0. This deck has a 2 m bottom
+#  grid with a patch of sinusoidal bars of 14 m wavelength, half the length
+#  of the 5 s waves in 4 m of water, so that they reflect part of the incoming
+#  energy (Bragg resonance); [nreg] = 32 covers 64 m, about four bars.
+#
+#  Upstream also has a formulation 4 ("implicit integration according to
+#  Ardhuin and Herbers (2002)"), but its branch in SOURCE is empty, and other
+#  numbers are not checked at all. With BRAGG 4, -1 or 5 upstream computes to
+#  a normal end with the smoothed depth of the Bragg option and no scattering
+#  at all: on this deck no reflection, and Hs up to 4% above BRAGG 1.
+def _bragg_deck(work: Path, command: str) -> None:
+    dx = 2.0
+    bottom = "\n".join(
+        " ".join(f"{4.0 + (0.4 * math.sin(2 * math.pi * i * dx / 14.0) if 50 <= i * dx <= 350 else 0.0):.4f}"
+                 for i in range(201))
+        for _ in range(51))
+    (work / "bottom.bot").write_text(bottom + "\n", encoding="utf-8")
+    (work / "INPUT").write_text(f"""PROJECT 'BRAGG' '001'
+SET NAUTICAL
+MODE STATIONARY TWODIMENSIONAL
+CGRID REGULAR 0. 0. 0. 400. 100. 40 10 CIRCLE 36 0.1 1.0 24
+INPGRID BOTTOM REGULAR 0. 0. 0. 200 50 {dx} {dx}
+READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 0.5 5.0 270.0 10.0
+OFF QUAD
+{command}
+NUMERIC STOPC 0.00 0.01 0.001 99.5 STAT 30 0.01
+POINTS 'P' 25. 50. 375. 50.
+TABLE 'P' NOHEADER 'p.tbl' XP YP DEPTH HSIGN
+COMPUTE
+STOP
+""", encoding="utf-8")
+
+
+def _run_bragg(work: Path, command: str):
+    work.mkdir(parents=True)
+    _bragg_deck(work, command)
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True,
+                            timeout=120)
+    printfile = work / "PRINT"
+    report = printfile.read_text(encoding="utf-8", errors="replace") if printfile.is_file() else ""
+    table = work / "p.tbl"
+    hs = [float(line.split()[3]) for line in table.read_text().splitlines()] if table.is_file() else []
+    return result.returncode, report, hs, (work / "norm_end").is_file()
+
+
+@pytest.fixture(scope="module")
+def bragg_off(tmp_path_factory):
+    returncode, report, hs, norm_end = _run_bragg(tmp_path_factory.mktemp("bragg0") / "work",
+                                                  "BRAGG 0")
+    assert returncode == 0 and norm_end, report[-2000:]
+    return hs
+
+
+@pytest.mark.parametrize("command", ["BRAGG 1 32", "BRAGG 2 32", "BRAGG 3 32"])
+def test_bragg_formulation_computes(tmp_path, bragg_off, command):
+    returncode, report, hs, norm_end = _run_bragg(tmp_path / "work", command)
+    assert returncode == 0 and norm_end, (
+        f"'{command}' is valid but was refused.\n{report[-2000:]}")
+    #  The bars reflect energy: Hs in front of them rises by about 1 cm.
+    assert hs[0] > bragg_off[0] + 0.005, (command, hs, bragg_off)
+
+
+@pytest.mark.parametrize("command", ["BRAGG 4 32", "BRAGG 4", "BRAGG -1 32",
+                                     "BRAGG 5 32", "BRAGG 9"])
+def test_bragg_formulation_without_source_is_rejected(tmp_path, command):
+    returncode, report, hs, norm_end = _run_bragg(tmp_path / "work", command)
+    assert returncode != 0 and not norm_end, (
+        f"'{command}' ran on to a normal end.\n{report[-2000:]}")
+    assert "BRAGG [ibrag] must be 0, 1, 2 or 3" in report, report[-2000:]
+
+
 #  `COMPUTE STATionary` is the documented form for a stationary run.
 #  SWREAD tested `NSTATM.LE.0 .OR. KEYWIS('STAT')`; in a stationary run
 #  the left-hand side is already true, and gfortran then skips the right. STAT

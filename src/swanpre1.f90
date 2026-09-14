@@ -3408,6 +3408,11 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
             CALL INREAL ('CSH1', PQUAD(3), 'UNC', 0.0)
             CALL INREAL ('CSH2', PQUAD(4), 'UNC', 0.0)
             CALL INREAL ('CSH3', PQUAD(5), 'UNC', 0.0)
+!     The command takes bare integers, so nothing but this check separates a
+!     formulation from a typo. Without it QUADRUPLET 6 runs to completion with
+!     the quadruplet bookkeeping switched on and no source term computed.
+            IF (ALL(IQUAD_VALUES.NE.IQUAD)) CALL MSGERR (4, &
+               'QUADRUPLET [iquad] must be 0, 1, 2, 3, 4, 8, 51, 52 or 53')
             CYCLE command_loop
          ENDIF
 
@@ -3508,6 +3513,8 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                ! ============================================================
 
                CALL ININTG ('ITRIAD', ITRIAD, 'STA', 5)
+               IF (ALL(ITRIAD_VALUES.NE.ITRIAD)) CALL MSGERR (4, &
+                  'TRIAD [itriad] must be 0, 1, 2, 3, 5 or 11')
                IF (ITRIAD.EQ.1) THEN
                   CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 1.0)
                   CALL INREAL ('CUTFR', PTRIAD(2), 'STA', -1.)
@@ -3523,7 +3530,7 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                ELSEIF (ITRIAD.EQ.5) THEN
                   CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 4.4 )
                   CALL INREAL ('P'    , PTRIAD(2), 'STA', 4./3.)
-               ELSEIF (ITRIAD.EQ.11) THEN
+               ELSEIF (ITRIAD.EQ.ITRIAD_LTA_ORIGINAL) THEN
 !            original LTA (before version 41.01)
                   CALL INREAL ('TRFAC', PTRIAD(1), 'STA', 0.05)
                   CALL INREAL ('CUTFR', PTRIAD(2), 'STA', 2.5)
@@ -3598,6 +3605,8 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 
          IF (KEYWIS ('BRAG')) THEN
             CALL ININTG ('IBRAG' , IBRAG   , 'STA', 1 )
+            IF (IBRAG.LT.0 .OR. IBRAG.GT.3) CALL MSGERR (4, &
+               'BRAGG [ibrag] must be 0, 1, 2 or 3; formulation 4 is not implemented')
             CALL ININTG ('NREG'  , NREGB   , 'UNC', 0 )
             IF (NREGB.LT.1) NREGB = 1
             PBRAG(1) = REAL(NREGB)
