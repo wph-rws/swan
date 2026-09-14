@@ -1,0 +1,320 @@
+{
+  "reference_alfa": 0.0,
+  "reference_mxitst": 200,
+  "tolerance_m": 0.01,
+  "physics": "default",
+  "results": [
+    {
+      "condition": "u20_d310_lp300_open",
+      "verdict": "premature",
+      "explanation": "the run claimed convergence but differs from the reference by 0.0725 m in Hs, above the 0.0100 m tolerance; the stopping test was satisfied by small changes, not by a small residual",
+      "operational": {
+        "label": "operational",
+        "seconds": 730.6057980970072,
+        "iterations": 35,
+        "accuracy": 98.14,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 50
+      },
+      "reference": {
+        "label": "reference",
+        "seconds": 573.7741064639995,
+        "iterations": 28,
+        "accuracy": 98.84,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 200
+      },
+      "hs_max_abs_m": 0.07249000000000017,
+      "hs_rms_m": 0.04585095816222318,
+      "wet_points": 132
+    },
+    {
+      "condition": "u02_d090_l0000_open",
+      "verdict": "inconclusive",
+      "explanation": "the reference run did not converge either, so there is nothing trustworthy to compare against; this condition needs a residual or a slower reference",
+      "operational": {
+        "label": "operational",
+        "seconds": 116.5060594480019,
+        "iterations": 4,
+        "accuracy": 98.09,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 50
+      },
+      "reference": {
+        "label": "reference",
+        "seconds": 4635.256520805007,
+        "iterations": 200,
+        "accuracy": 57.98,
+        "required": 98.0,
+        "met_criterion": false,
+        "hit_cap": true,
+        "max_iterations": 200
+      },
+      "hs_max_abs_m": 0.19528,
+      "hs_rms_m": 0.14330777027738237,
+      "wet_points": 128
+    },
+    {
+      "condition": "u20_d300_lm200_open",
+      "verdict": "premature",
+      "explanation": "the run claimed convergence but differs from the reference by 0.1010 m in Hs, above the 0.0100 m tolerance; the stopping test was satisfied by small changes, not by a small residual",
+      "operational": {
+        "label": "operational",
+        "seconds": 540.9232955710031,
+        "iterations": 37,
+        "accuracy": 98.04,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 50
+      },
+      "reference": {
+        "label": "reference",
+        "seconds": 463.41402979101986,
+        "iterations": 32,
+        "accuracy": 98.18,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 200
+      },
+      "hs_max_abs_m": 0.10104000000000002,
+      "hs_rms_m": 0.026918150931663783,
+      "wet_points": 119
+    },
+    {
+      "condition": "u20_d300_lp650_open",
+      "verdict": "premature",
+      "explanation": "the run claimed convergence but differs from the reference by 0.1080 m in Hs, above the 0.0100 m tolerance; the stopping test was satisfied by small changes, not by a small residual",
+      "operational": {
+        "label": "operational",
+        "seconds": 685.1913210669882,
+        "iterations": 40,
+        "accuracy": 98.53,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 50
+      },
+      "reference": {
+        "label": "reference",
+        "seconds": 481.7934339909989,
+        "iterations": 28,
+        "accuracy": 98.37,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 200
+      },
+      "hs_max_abs_m": 0.10798000000000019,
+      "hs_rms_m": 0.0549737533655008,
+      "wet_points": 132
+    },
+    {
+      "condition": "u20_d310_lp300_closed",
+      "verdict": "premature",
+      "explanation": "the run claimed convergence but differs from the reference by 0.0714 m in Hs, above the 0.0100 m tolerance; the stopping test was satisfied by small changes, not by a small residual",
+      "operational": {
+        "label": "operational",
+        "seconds": 703.2576626999944,
+        "iterations": 35,
+        "accuracy": 98.05,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 50
+      },
+      "reference": {
+        "label": "reference",
+        "seconds": 557.2347467570216,
+        "iterations": 28,
+        "accuracy": 98.78,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 200
+      },
+      "hs_max_abs_m": 0.07138,
+      "hs_rms_m": 0.0448791588264497,
+      "wet_points": 132
+    },
+    {
+      "condition": "u20_d120_lp300_open",
+      "verdict": "premature",
+      "explanation": "the run claimed convergence but differs from the reference by 0.1726 m in Hs, above the 0.0100 m tolerance; the stopping test was satisfied by small changes, not by a small residual",
+      "operational": {
+        "label": "operational",
+        "seconds": 747.2194050170074,
+        "iterations": 37,
+        "accuracy": 98.67,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 50
+      },
+      "reference": {
+        "label": "reference",
+        "seconds": 522.1510961150052,
+        "iterations": 26,
+        "accuracy": 98.22,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 200
+      },
+      "hs_max_abs_m": 0.17257999999999996,
+      "hs_rms_m": 0.03123710124098256,
+      "wet_points": 132
+    },
+    {
+      "condition": "u40_d300_lp300_open",
+      "verdict": "premature",
+      "explanation": "the run claimed convergence but differs from the reference by 0.0564 m in Hs, above the 0.0100 m tolerance; the stopping test was satisfied by small changes, not by a small residual",
+      "operational": {
+        "label": "operational",
+        "seconds": 667.2244645070168,
+        "iterations": 34,
+        "accuracy": 98.47,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 50
+      },
+      "reference": {
+        "label": "reference",
+        "seconds": 619.7182900879998,
+        "iterations": 32,
+        "accuracy": 98.33,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 200
+      },
+      "hs_max_abs_m": 0.05636000000000019,
+      "hs_rms_m": 0.016371188175350253,
+      "wet_points": 132
+    },
+    {
+      "condition": "u20_d315_lp300_open",
+      "verdict": "premature",
+      "explanation": "the run claimed convergence but differs from the reference by 0.0663 m in Hs, above the 0.0100 m tolerance; the stopping test was satisfied by small changes, not by a small residual",
+      "operational": {
+        "label": "operational",
+        "seconds": 707.1799604929984,
+        "iterations": 36,
+        "accuracy": 98.4,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 50
+      },
+      "reference": {
+        "label": "reference",
+        "seconds": 545.4610911630152,
+        "iterations": 28,
+        "accuracy": 98.66,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 200
+      },
+      "hs_max_abs_m": 0.06628999999999996,
+      "hs_rms_m": 0.04054373584055977,
+      "wet_points": 132
+    },
+    {
+      "condition": "u20_d316_lp300_open",
+      "verdict": "premature",
+      "explanation": "the run claimed convergence but differs from the reference by 0.0683 m in Hs, above the 0.0100 m tolerance; the stopping test was satisfied by small changes, not by a small residual",
+      "operational": {
+        "label": "operational",
+        "seconds": 708.0911735580012,
+        "iterations": 36,
+        "accuracy": 98.36,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 50
+      },
+      "reference": {
+        "label": "reference",
+        "seconds": 544.1404095469916,
+        "iterations": 28,
+        "accuracy": 98.71,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 200
+      },
+      "hs_max_abs_m": 0.06833999999999985,
+      "hs_rms_m": 0.041066728671612984,
+      "wet_points": 132
+    },
+    {
+      "condition": "u20_d346_lp300_open",
+      "verdict": "premature",
+      "explanation": "the run claimed convergence but differs from the reference by 0.0926 m in Hs, above the 0.0100 m tolerance; the stopping test was satisfied by small changes, not by a small residual",
+      "operational": {
+        "label": "operational",
+        "seconds": 677.5036360700033,
+        "iterations": 35,
+        "accuracy": 98.16,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 50
+      },
+      "reference": {
+        "label": "reference",
+        "seconds": 510.33617123399745,
+        "iterations": 27,
+        "accuracy": 98.53,
+        "required": 98.0,
+        "met_criterion": true,
+        "hit_cap": false,
+        "max_iterations": 200
+      },
+      "hs_max_abs_m": 0.09262999999999999,
+      "hs_rms_m": 0.03804536426983243,
+      "wet_points": 132
+    }
+  ],
+  "_samenvatting": {
+    "gemeten_op": "2026-09-13/14, stille machine, gepind op kernen 0-3, fork-binary op commit 702d00b",
+    "opzet": "Per conditie twee runs: de eigen numeriek van het deck (NUM ACCUR 0.01 0.01 0.01 98 STAT MXITST=50 ALFA=0.01 LIMITER=0.1) en een referentie met ALFA=0 en MXITST=200. Tolerantie 0,01 m in Hs op de natte uitvoerpunten.",
+    "uitkomst": "9 van 10 condities premature, 1 inconclusive. Geen enkele conditie komt uit op converged.",
+    "premature_spreiding": {
+      "hs_rms_mm": [
+        16.4,
+        55.0
+      ],
+      "hs_max_mm": [
+        56.4,
+        172.6
+      ]
+    },
+    "systematische_richting": {
+      "bias_mm_gemiddeld": -38.8,
+      "negatief_in": "9 van 10 condities",
+      "typisch_pct": "-1,6 tot -2,5%",
+      "duiding": "De operationele opzet ligt vrijwel overal lager dan de referentie. Dat is fysisch te verwachten: in een stationair groeiprobleem bouwt de iteratie energie op naar de balans, dus vroeg stoppen eindigt te laag. Voor een model dat ontwerpcondities levert is dat de onveilige richting."
+    },
+    "inconclusive_geval": {
+      "conditie": "u02_d090_l0000_open",
+      "waarneming": "De operationele run meldt 98,09% na 4 iteraties; dezelfde som zonder onderrelaxatie haalt na 200 iteraties maar 57,98%. Verschil 195 mm. Omdat de referentie zelf niet convergeert is er geen oordeel mogelijk -- maar dit is tegelijk de scherpste illustratie van het mechanisme: met onderrelaxatie is het criterium in 4 iteraties tevreden, zonder is het na 200 iteraties nog niet gehaald.",
+      "windsnelheid_ms": 2
+    },
+    "kanttekeningen": [
+      "De referentie is niet bewezen geconvergeerd, alleen ook aan het criterium. De uitspraak is dus 'twee runs die beide convergentie claimen verschillen X', niet 'de operationele run zit X fout'.",
+      "False time stepping verandert het iteratiepad maar niet het vaste punt. Dat is de grond waarop de verschillen als niet-convergentie worden gelezen en niet als een legitiem formuleringsverschil.",
+      "Er is geen balansresidu; zie doc/balansresidu-ontwerp.md. Met een residu is deze A/B niet meer nodig.",
+      "Rekentijd: 105 minuten voor de tien operationele runs, 158 minuten voor de tien referentieruns."
+    ]
+  }
+}

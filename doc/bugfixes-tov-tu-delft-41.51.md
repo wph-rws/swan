@@ -178,7 +178,24 @@ tussen de geleverde bugfixes:
   beide "accuracy OK" melden, en dit gebeurt bij de operationele `ALFA=0,01`,
   niet bij een kunstmatig hoge waarde. Bijvangst: de productieconfiguratie
   (`MXITST=20`) loopt tegen de iteratielimiet op 67,64% en levert een veld dat
-  gemiddeld 0,18 m lager ligt dan de geconvergeerde run, 11,4% RMS;
+  gemiddeld 0,18 m lager ligt dan de geconvergeerde run, 11,4% RMS.
+  **De volledige conditiematrix is inmiddels doorgemeten**
+  (`so-rp_swan/matrix/convergence-check-matrix.json`): van de tien condities
+  komen er **negen uit op `premature`** en één op `inconclusive`; geen enkele
+  op `converged`. Alle negen melden 98,04 tot 98,67% en verschillen 16,4 tot
+  55,0 mm RMS en 56,4 tot 172,6 mm maximaal van hun referentie. Het verschil
+  heeft bovendien een richting: de operationele opzet ligt in negen van de
+  tien lager, typisch 1,6 tot 2,5%, gemiddeld 38,8 mm. Dat is fysisch te
+  verwachten — een stationair groeiprobleem bouwt energie op naar de balans,
+  dus vroeg stoppen eindigt te laag — en het is voor een model dat
+  ontwerpcondities levert de onveilige richting. De scherpste illustratie is
+  het `inconclusive`-geval `u02_d090_l0000_open`: met onderrelaxatie is het
+  criterium na 4 iteraties tevreden, zonder is het na 200 iteraties nog niet
+  gehaald (57,98%). Kanttekening bij alles: de referentie is niet bewezen
+  geconvergeerd, alleen ook aan het criterium, dus de uitspraak is dat twee
+  runs die beide convergentie claimen uiteenlopen — niet dat de operationele
+  run zoveel fout zit. Daarvoor is het residu nodig uit
+  `doc/balansresidu-ontwerp.md`;
 - een malafide `POINTS 'x' CURVE`-deck kan in Release incidenteel met
   `SIGABRT` eindigen in plaats van schoon te stoppen; bewezen pre-existing (de
   pre-repair-binary aborteert identiek) en heap-toestandsafhankelijk, zonder
