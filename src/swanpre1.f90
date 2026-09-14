@@ -3265,9 +3265,18 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                DO WHILE (MORE)
                   CALL INREAL('LAMBDA',RLAMBDA(ILAMBDA+1),'STA',-1.)
                   IF (RLAMBDA(ILAMBDA+1).LT.0.) THEN
+!              A negative value is the end-of-list sentinel, not a value.
                      MORE = .FALSE.
                   ELSE
+                     CALL CHECK_QUADRUPLET_LAMBDA (RLAMBDA(ILAMBDA+1))
                      ILAMBDA = ILAMBDA + 1
+!              RLAMBDA is a fixed scratch list; stop at its last slot rather
+!              than write past it when a deck offers more values than fit.
+                     IF (ILAMBDA.GE.SIZE(RLAMBDA)) THEN
+                        CALL MSGERR (4, &
+                           'MDIA LAMBDA accepts at most 999 [lambda] values')
+                        MORE = .FALSE.
+                     ENDIF
                   ENDIF
                ENDDO
                SNL4%quadruplet_count = ILAMBDA
@@ -3413,6 +3422,7 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 !     the quadruplet bookkeeping switched on and no source term computed.
             IF (ALL(IQUAD_VALUES.NE.IQUAD)) CALL MSGERR (4, &
                'QUADRUPLET [iquad] must be 0, 1, 2, 3, 4, 8, 51, 52 or 53')
+            IF (IQUAD.GT.0 .AND. IQUAD.NE.4) CALL CHECK_QUADRUPLET_LAMBDA (PQUAD(1))
             CYCLE command_loop
          ENDIF
 
@@ -3813,6 +3823,21 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
    END ASSOCIATE
 
 CONTAINS
+
+!  FAC4WW builds the DIA interaction grid from lambda directly: it divides by
+!  (1-lambda)**4 and takes LOG(1-lambda) to locate the shifted spectral bins.
+!  At lambda = 1 that is a division by zero followed by ACOS of an infinity,
+!  so INT() of a NaN sets the allocation bounds of the interaction arrays;
+!  above 1 the logarithm of a negative number does the same through a NaN.
+!  Neither is diagnosed anywhere downstream, so the check belongs here, where
+!  the value enters the model.
+SUBROUTINE CHECK_QUADRUPLET_LAMBDA (LAMBDA)
+   REAL, INTENT(IN) :: LAMBDA
+
+   IF (LAMBDA.GE.0. .AND. LAMBDA.LT.1.) RETURN
+   CALL MSGERR (4, &
+      'quadruplet [lambda] must satisfy 0 <= [lambda] < 1')
+END SUBROUTINE CHECK_QUADRUPLET_LAMBDA
 
 LOGICAL FUNCTION bottom_read_failed(status)
    INTEGER, INTENT(IN) :: status

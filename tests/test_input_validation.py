@@ -44,12 +44,22 @@ def _run(tmp_path: Path, extra_command: str) -> tuple[int, str]:
 #  through the `ITRIAD .GT. 0` and `IQUAD .GE. 1` gates (Ursell, biphase,
 #  MEMNL4, the limiter) and computes no source term. TRIAD reaches its numeric
 #  branch only through the named parameter: `TRIAD 4` already fails in INKEYW,
-#  `TRIAD ITRIAD=4` does not.
+#  `TRIAD ITRIAD=4` does not. For [lambda], FAC4WW divides by (1-lambda)**4 and
+#  takes LOG(1-lambda), so lambda = 1 divides by zero and lambda > 1 takes the
+#  logarithm of a negative number; both end in INT() of a NaN as an allocation
+#  bound.
 REJECTED = [
     ("TRIAD ITRIAD=4", "TRIAD [itriad]"),
     ("TRIAD ITRIAD=6", "TRIAD [itriad]"),
     ("QUADRUPLET 6", "QUADRUPLET [iquad]"),
     ("QUADRUPLET 9", "QUADRUPLET [iquad]"),
+    ("QUADRUPLET 4\nMDIA CNL4 1.0", "MDIA requires LAMBDA"),
+    ("QUADRUPLET 1 1.0", "[lambda]"),
+    ("QUADRUPLET 1 1.5", "[lambda]"),
+    ("QUADRUPLET 3 1.0", "[lambda]"),
+    ("QUADRUPLET 4\nMDIA LAMBDA CNL4", "requires at least one"),
+    ("QUADRUPLET 4\nMDIA LAMBDA .25", "requires CNL4 or CNL4_12"),
+    ("QUADRUPLET MDIA LAMBDA 1.0 CNL4 3.0E7", "[lambda]"),
 ]
 
 
@@ -70,12 +80,16 @@ def test_unknown_formulation_is_rejected(tmp_path, command, expected):
 ACCEPTED = [
     "BRAGG 0",
     "TRIAD ITRIAD=0",
+    "SET MAXERR 2\nQUADRUPLET 0 0.0",
+    "QUADRUPLET 1 0.0",
     "TRIAD ITRIAD=11",
     "TRIAD ITRIAD=1",
     "TRIAD LTA",
     "TRIAD DCTA",
     "QUADRUPLET 2",
     "QUADRUPLET 8",
+    "QUADRUPLET 1 0.25",
+    "QUADRUPLET MDIA LAMBDA 0.25 CNL4 3.0E7",
 ]
 
 
