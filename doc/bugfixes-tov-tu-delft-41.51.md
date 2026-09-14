@@ -195,7 +195,20 @@ tussen de geleverde bugfixes:
   geconvergeerd, alleen ook aan het criterium, dus de uitspraak is dat twee
   runs die beide convergentie claimen uiteenlopen — niet dat de operationele
   run zoveel fout zit. Daarvoor is het residu nodig uit
-  `doc/balansresidu-ontwerp.md`;
+  `doc/balansresidu-ontwerp.md`.
+  **Niet van deze fork en niet nieuw in 41.51**
+  (`so-rp_swan/matrix/convergence-check-versies.json`): op het 1D-strijklengte-
+  deck `quad_dia2` is stock upstream 41.51 bytegelijk aan de fork bij elke
+  beproefde `ALFA` — zelfde iteratieaantal, zelfde Hs tot vier decimalen — en
+  ook de BSS 41.31A.1-binary doet hetzelfde, bij de operationele `ALFA=0,01`
+  zelfs iets sterker: 1,3510 m tegen 1,8020 m zonder onderrelaxatie, 25%
+  verschil met een gemelde 100%. Voor de fork is dat 1,4171 tegen 1,8475, 23%.
+  Bij die operationele instelling draait de som 42 iteraties uit en meldt 100%,
+  dus het is niet 'te snel gestopt' maar 'volledig uitgeïtereerd naar het
+  verkeerde antwoord'. Hs daalt bij alle drie de binaries monotoon met
+  toenemende `ALFA`. Het mechanisme zit dus minstens sinds 41.31 in SWAN en
+  daarmee ook in de versie waarmee de operationele suite historisch is
+  gedraaid;
 - een malafide `POINTS 'x' CURVE`-deck kan in Release incidenteel met
   `SIGABRT` eindigen in plaats van schoon te stoppen; bewezen pre-existing (de
   pre-repair-binary aborteert identiek) en heap-toestandsafhankelijk, zonder

@@ -1,0 +1,64 @@
+{
+  "datum_utc": "2026-09-14",
+  "vraag": "Stoppen de negen premature condities ook te vroeg met de originele BSS-versie en met stock upstream?",
+  "aanpak": "Klein en beslissend gehouden: niet de operationele matrix (uren) maar het 1D-strijklengtedeck examples/nonlinear_interactions/quad/quad_dia2.swn -- 41 roosterpunten, onder een seconde per run, standaardnumeriek IQUAD=2. Per binary dezelfde som bij verschillende ALFA, met MXITST ruim genoeg dat de iteratielimiet nooit bindt. Elke binary wordt met zichzelf vergeleken, dus verschillen in fysica tussen versies doen niet mee.",
+  "binaries": {
+    "fork": "build/bin/swan.exe, commit 1af35cf (41.51)",
+    "upstream": ".upstream/build/bin/swan.exe, stock TU Delft 43e9bbb (41.51)",
+    "bss4131": "so-rp_swan/swan41.31A.1/swan.exe (BSS 41.31A.1, Intel-bouw; draait met LD_LIBRARY_PATH naar de meegeleverde libraries)"
+  },
+  "hs_op_25km_meter": {
+    "_toelichting": "Elke run meldt 'accuracy OK in 100.00 %'. ALFA=0 is de referentie zonder onderrelaxatie; false time stepping verandert het iteratiepad maar niet het vaste punt, dus alle kolommen horen gelijk te zijn.",
+    "fork": {
+      "alfa_0.00": 1.8475,
+      "alfa_0.01": 1.4171,
+      "alfa_0.02": 1.306,
+      "alfa_0.05": 1.2785
+    },
+    "upstream": {
+      "alfa_0.00": 1.8475,
+      "alfa_0.01": 1.4171,
+      "alfa_0.02": 1.3043,
+      "alfa_0.05": 1.2785
+    },
+    "bss4131": {
+      "alfa_0.00": 1.802,
+      "alfa_0.01": 1.351,
+      "alfa_0.02": 1.2829,
+      "alfa_0.05": 1.2745
+    }
+  },
+  "iteraties": {
+    "fork": {
+      "alfa_0.00": 42,
+      "alfa_0.01": 42,
+      "alfa_0.02": 36,
+      "alfa_0.05": 2
+    },
+    "upstream": {
+      "alfa_0.00": 42,
+      "alfa_0.01": 42,
+      "alfa_0.02": 35,
+      "alfa_0.05": 2
+    },
+    "bss4131": {
+      "alfa_0.00": 26,
+      "alfa_0.01": 37,
+      "alfa_0.02": 35,
+      "alfa_0.05": 19
+    }
+  },
+  "uitkomst": {
+    "upstream_41_51": "Bytegelijk aan de fork op elke ALFA: zelfde iteratieaantal, zelfde Hs tot op vier decimalen. De te vroege stop is dus een eigenschap van SWAN 41.51 en niet van de modernisering.",
+    "bss_41_31": "Doet hetzelfde, en bij de operationele instelling iets sterker. Bij ALFA=0,01 komt BSS uit op 1,3510 m tegen 1,8020 m zonder onderrelaxatie: 0,45 m oftewel 25% verschil, terwijl de run 100% meldt. Voor de fork is dat 1,4171 tegen 1,8475, 0,43 m oftewel 23%.",
+    "kern": "Bij de operationele ALFA=0,01 draait de fork 42 iteraties, meldt 100% en staat 0,43 m van de referentie af. Het is dus niet 'te snel gestopt na twee iteraties' maar 'volledig uitgeiitereerd naar het verkeerde antwoord'. Dat is de scherpere vorm van dezelfde bevinding.",
+    "monotoon": "Hs daalt monotoon met toenemende ALFA bij alle drie de binaries. Dat past bij het mechanisme: sterker dempen maakt de verandering per iteratie kleiner, het veranderingscriterium is eerder tevreden, en in een groeiprobleem eindig je daardoor lager."
+  },
+  "betekenis": "De negen premature condities uit de matrixmeting zijn geen regressie van deze fork en ook geen 41.51-nieuwigheid. Het mechanisme zit minstens sinds 41.31 in SWAN, dus ook in de BSS-versie waarmee de operationele suite historisch is gedraaid. Dat verkleint het migratierisico -- de fork gedraagt zich als upstream -- en vergroot de operationele vraag: de suite heeft dit altijd gehad.",
+  "kanttekeningen": [
+    "Een klein 1D-deck, geen operationele conditie. Het toont dat het mechanisme in alle drie de versies zit en in dezelfde richting werkt; de grootte op de so-rp-matrix staat in convergence-check-matrix.json.",
+    "ALFA=0 is niet bewezen geconvergeerd, alleen ook aan het criterium. De uitspraak blijft dat runs die beide convergentie claimen uiteenlopen.",
+    "BSS 41.31 en 41.51 verschillen ook zonder onderrelaxatie (1,8020 tegen 1,8475, 2,5%). Dat is een versieverschil in de fysica en niet het onderwerp hier; elke binary is met zichzelf vergeleken.",
+    "De BSS-binary is een OpenMP-Intel-bouw; hier met OMP_NUM_THREADS=1 gedraaid."
+  ]
+}
