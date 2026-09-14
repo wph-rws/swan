@@ -3,8 +3,8 @@ $
 $ This is TRIAD LTA, which the parser maps to ITRIAD = 1, the same formulation
 $ the operational so-rp deck selects (TRIAD ITRIAD=1 TRFAC=0.8 CUTFR=2.5). The
 $ older generation, ITRIAD = 11, is a different formulation, not a different
-$ spelling. Without this deck the bounds-checked CI build would never reach
-$ SWLTA.
+$ spelling, and it has its own deck in triad_lta11.swn. Without these two decks
+$ the bounds-checked CI build would never reach SWLTA.
 PROJECT 'TRIADLTA' '001'
 SET CARTESIAN
 MODE STATIONARY ONEDIMENSIONAL

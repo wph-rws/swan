@@ -3,19 +3,22 @@
 This suite makes the nonlinear spectral source terms visible and exercises the
 alternative algorithms in SWAN 41.51. It has three focused one-dimensional
 cases and a `sources/` group (wind, whitecapping, breaking and friction
-switched on and off):
+switched on and off, and every bottom friction and depth-induced breaking
+formulation):
 
 - `quad` is a 100 km, 50 m deep fetch with a 15 m/s following wind. Runs with
   quadruplets disabled, the semi-implicit DIA per sweep (`IQUAD=1`, `quad_dia1`),
   the explicit DIA per sweep (`IQUAD=2`, `quad_dia2`), DIA per iteration
-  (`IQUAD=3`) show how four-wave interactions reshape a developing directional
-  wind-sea spectrum. An exact XNL run (`IQUAD=51`) is included as a slow
-  reference.
+  (`IQUAD=3`), the multiple DIA (`IQUAD=4`, `quad_mdia`) and the fully explicit
+  full-circle variant (`IQUAD=8`, `quad_full`) show how four-wave interactions
+  reshape a developing directional wind-sea spectrum. Three exact XNL runs
+  (`IQUAD=51`, `52`, `53`) are included as slow references.
 - `triad` propagates a small incident spectrum over a synthetic submerged bar.
   Runs with triads disabled, DCTA, LTA (`TRIAD LTA`, which is `ITRIAD=1` and
-  the formulation the operational so-rp deck selects) and the new FTIM method
-  isolate the transfer to superharmonics in shallow water. Wind input,
-  whitecapping and quadruplets are disabled in all triad variants.
+  the formulation the operational so-rp deck selects, and the older
+  `ITRIAD=11`), SPB, DCTA with the Saprykina and De Wit biphase, and the new
+  FTIM method isolate the transfer to superharmonics in shallow water. Wind
+  input, whitecapping and quadruplets are disabled in all triad variants.
 - `combined` follows wind-wave growth over a 40 km deep section and subsequent
   transformation down a slope to 2 m water depth. DIA per iteration and FTIM
   are active together, along with breaking and bottom friction.
@@ -38,13 +41,13 @@ cmake --build build --parallel
 python3 examples/nonlinear_interactions/run.py
 ```
 
-The default `standard` selection runs 14 fast variants and takes about ten
+The default `standard` selection runs 29 fast variants and takes about ten
 seconds. Run an individual group with `--case quad`, `--case triad`,
-`--case combined` or `--case sources`.
+`--case combined`, `--case sources` or `--case formulations`.
 
 The exact XNL calculation evaluates the nonlinear Boltzmann integral and is
-intentionally excluded from the default. On the development machine the
-XNL deck takes about two minutes, compared with less than a second
+intentionally excluded from the default. On the development machine each of
+the three XNL decks takes about two minutes, compared with less than a second
 for DIA, and temporarily creates a lookup file of tens of megabytes. Run it
 separately or include it in the whole suite:
 
@@ -74,7 +77,8 @@ file. It then verifies that:
 - DCTA and FTIM measurably change the spectrum behind the submerged bar;
 - both nonlinear source terms are active in the combined case;
 - each switched-off source term (wind, whitecapping, breaking, friction)
-  reports zero in its own column.
+  reports zero in its own column, and each friction and breaking formulation
+  is reachable, active and measurably different from the reference run.
 
 **These results are not converged wave heights.** SWAN's stopping criterion
 measures how much Hs and the period still change from one iteration to the
