@@ -28,12 +28,26 @@ VARIANTS = {
     "quad_dia1": Variant("quad", "quad_dia1", "semi-implicit DIA per sweep"),
     "quad_dia2": Variant("quad", "quad_dia2", "DIA per sweep"),
     "quad_dia3": Variant("quad", "quad_dia3", "DIA per iteration"),
+    "quad_mdia": Variant("quad", "quad_mdia", "multiple DIA (MDIA)"),
+    "quad_full": Variant("quad", "quad_full", "fully explicit, full circle"),
     "quad_xnl": Variant(
         "quad", "quad_xnl", "exact XNL reference, deep water", slow=True
+    ),
+    "quad_xnl52": Variant(
+        "quad", "quad_xnl52", "exact XNL, WAM depth scaling", slow=True
+    ),
+    "quad_xnl53": Variant(
+        "quad", "quad_xnl53", "exact XNL, finite depth", slow=True
     ),
     "triad_off": Variant("triad", "triad_off", "triads disabled"),
     "triad_dcta": Variant("triad", "triad_dcta", "DCTA triads"),
     "triad_lta": Variant("triad", "triad_lta", "LTA triads"),
+    "triad_spb": Variant("triad", "triad_spb", "SPB triads"),
+    "triad_biph_sapr": Variant("triad", "triad_biph_sapr", "DCTA with the Saprykina biphase"),
+    "triad_biph_dewit": Variant("triad", "triad_biph_dewit", "DCTA with the De Wit biphase"),
+    "triad_lta11": Variant(
+        "triad", "triad_lta11", "pre-41.01 LTA triads (the operational choice)"
+    ),
     "triad_ftim": Variant("triad", "triad_ftim", "FTIM triads"),
     "combined": Variant(
         "combined", "combined", "DIA and FTIM from ocean to coast"
@@ -43,20 +57,47 @@ VARIANTS = {
     "src_nowcap": Variant("sources", "src_nowcap", "whitecapping disabled"),
     "src_nobreak": Variant("sources", "src_nobreak", "breaking disabled"),
     "src_nofric": Variant("sources", "src_nofric", "bottom friction disabled"),
+    "src_fric_collins": Variant("sources", "src_fric_collins", "Collins friction"),
+    "src_fric_madsen": Variant("sources", "src_fric_madsen", "Madsen friction"),
+    "src_fric_jonvar": Variant("sources", "src_fric_jonvar", "JONSWAP friction, depth-varying"),
+    "src_fric_ripples": Variant("sources", "src_fric_ripples", "Smith ripple friction"),
+    "src_break_var": Variant("sources", "src_break_var", "Nelder variable-gamma breaking"),
+    "src_break_rue": Variant("sources", "src_break_rue", "Ruessink breaking"),
+    "src_break_tg": Variant("sources", "src_break_tg", "Thornton-Guza breaking"),
+    "src_break_bkd": Variant("sources", "src_break_bkd", "beta-kd breaking"),
+    "src_break_asym": Variant("sources", "src_break_asym", "asymmetry breaking"),
 }
+
+# Bottom-friction and depth-induced-breaking formulations that must each stay
+# reachable and active.
+FORMULATION_KEYS = (
+    "src_fric_collins",
+    "src_fric_madsen",
+    "src_fric_jonvar",
+    "src_fric_ripples",
+    "src_break_var",
+    "src_break_rue",
+    "src_break_tg",
+    "src_break_bkd",
+    "src_break_asym",
+)
 
 # Named groups rather than positional slices: a slice silently selects the
 # wrong variants as soon as a group grows.
 QUAD_KEYS = (
-    "quad_off", "quad_dia1", "quad_dia2", "quad_dia3",
+    "quad_off", "quad_dia1", "quad_dia2", "quad_dia3", "quad_mdia", "quad_full",
 )
 # The XNL suite takes about two minutes per deck, so it stays opt-in.
-XNL_KEYS = ("quad_xnl",)
+XNL_KEYS = ("quad_xnl", "quad_xnl52", "quad_xnl53")
 TRIAD_KEYS = (
     "triad_off",
     "triad_dcta",
     "triad_ftim",
     "triad_lta",
+    "triad_lta11",
+    "triad_spb",
+    "triad_biph_sapr",
+    "triad_biph_dewit",
 )
 COMBINED_KEYS = ("combined",)
 SOURCE_TOGGLE_KEYS = (
@@ -72,6 +113,7 @@ STANDARD_KEYS = (
     *TRIAD_KEYS,
     *COMBINED_KEYS,
     *SOURCE_TOGGLE_KEYS,
+    *FORMULATION_KEYS,
 )
 
 # TABLE columns of the sources group: XP DEPTH HSIGN TM01 GENW DISW DISSU DISB.
@@ -167,6 +209,7 @@ def select_variants(selection: str) -> tuple[str, ...]:
         "triad": TRIAD_KEYS,
         "combined": COMBINED_KEYS,
         "sources": SOURCE_TOGGLE_KEYS,
+        "formulations": FORMULATION_KEYS,
         "xnl": XNL_KEYS,
     }
     if selection not in groups:
@@ -351,10 +394,11 @@ def validate_results(results: dict[str, RunResult]) -> list[str]:
             source_values = quad_sources if key == "quad_off" else triad_sources
             if max(source_values) > 1.0e-12:
                 raise RuntimeError(f"{key} reports a source term that should be disabled")
-        if key in {"quad_dia1", "quad_dia2", "quad_dia3", *XNL_KEYS, "combined"}:
+        if key in {"quad_dia1", "quad_dia2", "quad_dia3", "quad_mdia",
+                   "quad_full", *XNL_KEYS, "combined"}:
             if max(quad_sources) <= 1.0e-8:
                 raise RuntimeError(f"{key} did not activate quadruplet transfer")
-        if key in {"triad_dcta", "triad_ftim", "triad_lta", "combined"}:
+        if key in {"triad_dcta", "triad_ftim", "triad_lta", "triad_lta11", "combined"}:
             if max(triad_sources) <= 1.0e-8:
                 raise RuntimeError(f"{key} did not activate triad transfer")
 
@@ -401,6 +445,24 @@ def validate_results(results: dict[str, RunResult]) -> list[str]:
             f"{ftim_difference:.1%} from OFF at x=25 m."
         )
 
+    if {"triad_lta", "triad_lta11"}.issubset(results):
+        # The two LTA generations must not collapse onto each other. ITRIAD=11
+        # drops the shoaling factor and reads the group velocity locally, so a
+        # measurable difference here is what keeps the pair honest: if it ever
+        # vanishes, one of the two spellings has stopped selecting its own
+        # formulation and the coverage claim is empty again.
+        lta = results["triad_lta"].spectra[-2]
+        lta11 = results["triad_lta11"].spectra[-2]
+        lta_difference = relative_spectral_difference(lta, lta11)
+        if lta_difference <= 0.01:
+            raise RuntimeError(
+                "TRIAD LTA and TRIAD ITRIAD=11 produced the same spectrum; "
+                "one of the two is no longer selecting its own formulation"
+            )
+        messages.append(
+            f"TRIAD: ITRIAD=11 differs {lta_difference:.1%} from LTA at x=25 m."
+        )
+
     if {"src_all", *SOURCE_VARIANTS}.issubset(results):
         # Wind, whitecapping, breaking and bottom friction each report their
         # own source column in the gauges table. Every OFF toggle must zero
@@ -424,6 +486,30 @@ def validate_results(results: dict[str, RunResult]) -> list[str]:
             if difference <= 0.01:
                 raise RuntimeError(f"{key} did not measurably change the x=45 km spectrum")
             messages.append(f"SOURCE: {key} differs {difference:.1%} from ALL at x=45 km.")
+
+    if {"src_all", *FORMULATION_KEYS}.issubset(results):
+        # Each formulation must stay reachable, keep its own process active,
+        # and differ from the JONSWAP/CONSTANT pair that src_all uses. A
+        # formulation that silently degenerates to the default would otherwise
+        # pass unnoticed.
+        reference = results["src_all"]
+        for key in FORMULATION_KEYS:
+            process = "friction" if "_fric_" in key else "breaking"
+            column = SOURCE_COLUMNS[process]
+            rows = results[key].table
+            if max(abs(row[column]) for row in rows) <= 1.0e-8:
+                raise RuntimeError(f"{key} reports no {process} dissipation")
+            if not all(row[2] > 0.0 for row in rows[1:]):
+                raise RuntimeError(f"{key} produced a vanishing wave height")
+            difference = relative_spectral_difference(
+                reference.spectra[3], results[key].spectra[3])
+            if difference <= 0.001:
+                raise RuntimeError(
+                    f"{key} is indistinguishable from the src_all formulation")
+        messages.append(
+            f"FORMULATIONS: {len(FORMULATION_KEYS)} friction/breaking "
+            f"formulations active and distinct from src_all."
+        )
 
     messages.append(f"Validated {len(results)} runs and their spectra/source terms.")
     return messages
@@ -530,7 +616,7 @@ def main() -> int:
     parser.add_argument(
         "--case",
         choices=("standard", "all", "quad", "triad", "combined", "sources",
-                 "xnl"),
+                 "formulations", "xnl"),
         default="standard",
         help=(
             "case group to run; standard excludes the roughly two-minute XNL "

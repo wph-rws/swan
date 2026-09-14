@@ -557,8 +557,10 @@ SUBROUTINE SWMAIN
 
 !           --- initialize quasi-coherent modelling framework
 !               note: data of incident spectrum is required
+!               GEN4 also needs it without scattering (SCAT 0): its surf
+!               breaking uses the grids made here
 
-            IF ( IQCM.NE.0 .AND. IT.EQ.IT0 )&
+            IF ( (IQCM.NE.0 .OR. IGEN.EQ.4) .AND. IT.EQ.IT0 )&
             &CALL SWQCINIT ( BGRIDP, COMPDA )
             IF (STPNOW()) RETURN
 

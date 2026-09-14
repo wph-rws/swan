@@ -3340,7 +3340,8 @@ SUBROUTINE BRKPAR (BRCOEF, ECOS, ESIN, AC2, SPCSIG, DEP2, BOTLV, RDX, RDY, KWAVE
 !            guard: E1 and E2 are never in scope without a value behind them.
 !            That case falls back on the spilling constant; encoding "nothing
 !            to break" as BRCOEF = 0 would set HM = 0, which drives BB in
-!            SSURF to infinity and hence into its saturated branch.
+!            SSURF to infinity and hence into its saturated branch, the very
+!            mechanism repaired in SINTGRL.
       IF ( ISIGM.GT.0 ) THEN
 !           first harmonic
          E1 = ED(ISIGM)

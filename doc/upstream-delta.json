@@ -7,7 +7,7 @@
     "note": "The source the fork is compared against. If this pin changes, the whole inventory has to be measured again."
   },
   "comparison": "Built serially, with the same compiler and the same optimisation level (-O3) on both sides: the gate reads the compiler from the CMake cache of the fork build, builds upstream with it in .upstream/build_O3_gfortran<version>, and refuses to compare binaries whose .comment section names a different or mixed compiler version. Both the optimisation level and the compiler version change the outcome of some of the decks. Fields must be exactly equal; white space in header lines does not count. Differences that only show under OpenMP or MPI are therefore not seen by this gate -- those are covered by the stored ctest references.",
-  "memory_layout": "Both binaries run under setarch -R, with a fixed memory layout. Without that pin, upstream 41.51 gave two answers from run to run on quad_dia2 and src_nobreak: in decks without breaking, FRABRE reads an unset KTETA (valgrind, BF-16). The fork sets that value and does not depend on the memory layout; the pin stays to keep upstream reproducible. Run with --no-pin to see the instability of upstream for yourself.",
+  "memory_layout": "Both binaries run under setarch -R, with a fixed memory layout. Without that pin, upstream 41.51 gave two answers from run to run on quad_dia2, quad_mdia and src_nobreak: in decks without breaking, FRABRE reads an unset KTETA (valgrind, BF-16). The fork sets that value and does not depend on the memory layout; the pin stays to keep upstream reproducible. Run with --no-pin to see the instability of upstream for yourself.",
   "unexplained_budget": 0,
   "decks": [
     {
@@ -47,6 +47,20 @@
       "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged."
     },
     {
+      "deck": "nonlinear_interactions/quad/quad_full.swn",
+      "status": "differs",
+      "bugfix": "BF-16",
+      "measured": "differs in: quad_full.spc, quad_full.tbl, quad_full_sources.spc",
+      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged."
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_mdia.swn",
+      "status": "differs",
+      "bugfix": "BF-16",
+      "measured": "differs in: quad_mdia.spc, quad_mdia.tbl, quad_mdia_sources.spc",
+      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged."
+    },
+    {
       "deck": "nonlinear_interactions/quad/quad_off.swn",
       "status": "identical",
       "measured": "3 output file(s) equal"
@@ -59,7 +73,68 @@
       "bugfix": "BF-16"
     },
     {
+      "deck": "nonlinear_interactions/quad/quad_xnl52.swn",
+      "status": "skipped",
+      "reason": "The exact XNL route takes about four minutes per run; with the instability check added that grows to half an hour per deck, too long for a gate that runs at every source change. Include it deliberately with --include-skipped --timeout 3600.",
+      "measured": "With --include-skipped: differs from upstream; byte-identical with the KTETA repair reverted. Deck without breaking.",
+      "bugfix": "BF-16"
+    },
+    {
+      "deck": "nonlinear_interactions/quad/quad_xnl53.swn",
+      "status": "skipped",
+      "reason": "The exact XNL route takes about four minutes per run; with the instability check added that grows to half an hour per deck, too long for a gate that runs at every source change. Include it deliberately with --include-skipped --timeout 3600.",
+      "measured": "With --include-skipped: differs from upstream; byte-identical with the KTETA repair reverted. Deck without breaking.",
+      "bugfix": "BF-16"
+    },
+    {
       "deck": "nonlinear_interactions/sources/src_all.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_break_asym.swn",
+      "status": "differs",
+      "bugfix": "BF-34",
+      "measured": "differs in: src_break_asym.spc, src_break_asym.tbl, src_break_asym_sources.spc",
+      "note": "Attributed by measurement: with the repair reverted, this deck is bit-identical to upstream; with it, the deck differs. Upstream sets the breaking index to zero as soon as the biphase is not negative, after which HM = 0 drives SSURF into its saturated branch and destroys the wave field."
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_break_bkd.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_break_rue.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_break_tg.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_break_var.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_fric_collins.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_fric_jonvar.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_fric_madsen.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/sources/src_fric_ripples.swn",
       "status": "identical",
       "measured": "3 output file(s) equal"
     },
@@ -86,6 +161,16 @@
       "measured": "3 output file(s) equal"
     },
     {
+      "deck": "nonlinear_interactions/triad/triad_biph_dewit.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_biph_sapr.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
       "deck": "nonlinear_interactions/triad/triad_dcta.swn",
       "status": "identical",
       "measured": "3 output file(s) equal"
@@ -101,7 +186,17 @@
       "measured": "3 output file(s) equal"
     },
     {
+      "deck": "nonlinear_interactions/triad/triad_lta11.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
       "deck": "nonlinear_interactions/triad/triad_off.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_spb.swn",
       "status": "identical",
       "measured": "3 output file(s) equal"
     },

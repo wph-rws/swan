@@ -45,7 +45,7 @@ def test_pinned_upstream_matches_the_bugfix_table():
     """The inventory and the bug-fix table must refer to the same upstream.
 
     Otherwise the gate compares against another source than the document that
-    lists the repairs, and "differs -- BF-15" no longer means anything.
+    lists the repairs, and "differs -- BF-34" no longer means anything.
     """
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     commit = manifest["upstream"]["commit"]

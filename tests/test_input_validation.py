@@ -22,6 +22,77 @@ def _swan() -> str:
     return swan_executable()
 
 
+def _run(tmp_path: Path, extra_command: str) -> tuple[int, str]:
+    """Run the smoke deck with one extra command in it."""
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    assert "GEN3 KOMEN" in deck, "smoke deck has changed shape"
+    deck = deck.replace("GEN3 KOMEN", f"GEN3 KOMEN\n{extra_command}", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    printfile = work / "PRINT"
+    report = printfile.read_text(encoding="utf-8", errors="replace") if printfile.is_file() else ""
+    return result.returncode, report
+
+
+#  Numbers that name no formulation. Upstream accepts them: the run prints the
+#  chosen formulation in its header, switches on the matching bookkeeping
+#  through the `ITRIAD .GT. 0` and `IQUAD .GE. 1` gates (Ursell, biphase,
+#  MEMNL4, the limiter) and computes no source term. TRIAD reaches its numeric
+#  branch only through the named parameter: `TRIAD 4` already fails in INKEYW,
+#  `TRIAD ITRIAD=4` does not. For [lambda], FAC4WW divides by (1-lambda)**4 and
+#  takes LOG(1-lambda), so lambda = 1 divides by zero and lambda > 1 takes the
+#  logarithm of a negative number; both end in INT() of a NaN as an allocation
+#  bound.
+REJECTED = [
+    ("TRIAD ITRIAD=4", "TRIAD [itriad]"),
+    ("TRIAD ITRIAD=6", "TRIAD [itriad]"),
+    ("QUADRUPLET 6", "QUADRUPLET [iquad]"),
+    ("QUADRUPLET 9", "QUADRUPLET [iquad]"),
+    ("QUADRUPLET 1 1.0", "[lambda]"),
+    ("QUADRUPLET 1 1.5", "[lambda]"),
+    ("QUADRUPLET 1 0.0", "[lambda]"),
+    ("QUADRUPLET MDIA LAMBDA 1.0 CNL4 3.0E7", "[lambda]"),
+]
+
+
+@pytest.mark.parametrize("command,expected", REJECTED)
+def test_unknown_formulation_is_rejected(tmp_path, command, expected):
+    returncode, report = _run(tmp_path, command)
+    assert returncode != 0, (
+        f"'{command}' ran on to a normal end; a number that does not name a "
+        f"formulation should stop the run.\n{report[-2000:]}"
+    )
+    assert expected in report, (
+        f"'{command}' stopped, but without the message that says why.\n"
+        f"{report[-2000:]}"
+    )
+
+
+#  The counter-test. Without it, a check that rejects everything would also pass.
+ACCEPTED = [
+    "TRIAD ITRIAD=11",
+    "TRIAD ITRIAD=1",
+    "TRIAD LTA",
+    "TRIAD DCTA",
+    "QUADRUPLET 2",
+    "QUADRUPLET 8",
+    "QUADRUPLET 1 0.25",
+    "QUADRUPLET MDIA LAMBDA 0.25 CNL4 3.0E7",
+]
+
+
+@pytest.mark.parametrize("command", ACCEPTED)
+def test_valid_formulation_keeps_running(tmp_path, command):
+    returncode, report = _run(tmp_path, command)
+    assert returncode == 0, (
+        f"'{command}' is valid but was refused.\n{report[-2000:]}"
+    )
+
+
 #  `COMPUTE STATionary` is the documented form for a stationary run.
 #  SWREAD tested `NSTATM.LE.0 .OR. KEYWIS('STAT')`; in a stationary run
 #  the left-hand side is already true, and gfortran then skips the right. STAT
@@ -188,6 +259,26 @@ def test_qcm_sector_across_cartesian_zero(tmp_path):
     assert code == 0
     hs = [float(t.strip().splitlines()[-1].split()[3]) for t in (sector, circle)]
     assert abs(hs[0] - hs[1]) < 0.1 * hs[1], hs
+
+
+#  GEN4 computes surf breaking through the QC framework, and SCAT 0 then
+#  switches the scattering off. The grids for that surf breaking are made in
+#  SWQCINIT, which only ran with scattering on. The fork then ended with a
+#  segmentation fault, and upstream stopped without output and without
+#  norm_end. The run must end normally.
+def test_gen4_without_scattering(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QCM / "bottom.bot", work / "bottom.bot")
+    deck = (QCM / "qcm.swn").read_text(encoding="utf-8")
+    assert "\nGEN4\n" in deck, "QCM deck has changed shape"
+    deck = deck.replace("\nGEN4\n", "\nGEN4\nSCAT 0\n", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert (work / "norm_end").is_file(), "run did not end normally"
+    table = (work / "qcm_center.tbl").read_text()
+    assert float(table.strip().splitlines()[-1].split()[3]) > 0
 
 
 #  After an input error, input processing went on with variables that were

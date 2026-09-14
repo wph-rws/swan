@@ -43,8 +43,9 @@ module swan_physics_selection
    public :: IDRAG_HWANG, IDRAG_FAN, IDRAG_ECMWF
    public :: IQUAD_OFF, IQUAD_DIA, IQUAD_DIA_WAM, IQUAD_EXACT, IQUAD_MDIA
    public :: IQUAD_FULL, IQUAD_XNL_DEEP, IQUAD_XNL_DEEP_WAM, IQUAD_XNL_FINITE
+   public :: IQUAD_VALUES
    public :: ITRIAD_OFF, ITRIAD_LTA, ITRIAD_SPB, ITRIAD_FTIM, ITRIAD_DCTA
-   public :: ITRIAD_LTA_ORIGINAL
+   public :: ITRIAD_LTA_ORIGINAL, ITRIAD_VALUES
    public :: IBIPH_OFF, IBIPH_ELDEBERKY, IBIPH_SAPR, IBIPH_DEWIT
    public :: IBOT_OFF, IBOT_JONSWAP, IBOT_COLLINS, IBOT_MADSEN
    public :: IBOT_JONSWAP_VAR, IBOT_RIPPLES
@@ -121,6 +122,15 @@ module swan_physics_selection
    integer, parameter :: IQUAD_XNL_DEEP_WAM = 52 ! deep water, WAM depth scaling
    integer, parameter :: IQUAD_XNL_FINITE = 53   ! finite depth transfer
 
+!     Every value the source-term dispatcher in SWCOMP actually handles. The
+!     QUAD command takes a bare integer, so an unlisted one is neither a
+!     formulation nor an error unless the parser says so: IQUAD .GE. 1 still
+!     opens the quadruplet bookkeeping (MEMNL4, the limiter, the convergence
+!     bookkeeping) while no branch computes a source term, and the run reports
+!     a quadruplet formulation it never applied.
+   integer, parameter :: IQUAD_VALUES(*) = &
+      [IQUAD_OFF, IQUAD_DIA, IQUAD_DIA_WAM, IQUAD_EXACT, IQUAD_MDIA, &
+       IQUAD_FULL, IQUAD_XNL_DEEP, IQUAD_XNL_DEEP_WAM, IQUAD_XNL_FINITE]
 
 !     Triad interactions (TRIAD command).
    integer, parameter :: ITRIAD_OFF = 0
@@ -135,6 +145,11 @@ module swan_physics_selection
 !     and not a spelling variant of ITRIAD_LTA.
    integer, parameter :: ITRIAD_LTA_ORIGINAL = 11
 
+!     Every value the triad dispatcher handles; see IQUAD_VALUES above for why
+!     an unlisted one has to be rejected rather than ignored.
+   integer, parameter :: ITRIAD_VALUES(*) = &
+      [ITRIAD_OFF, ITRIAD_LTA, ITRIAD_SPB, ITRIAD_FTIM, ITRIAD_DCTA, &
+       ITRIAD_LTA_ORIGINAL]
 
 !     Biphase formulation (BIPHASE suffix of TRIAD).
    integer, parameter :: IBIPH_OFF = 0
