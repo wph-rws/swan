@@ -141,8 +141,8 @@ class RunResult:
     frequencies: list[float]
     locations: list[tuple[float, float]]
     spectra: list[list[float]]
-    accuracy: float | None
-    required_accuracy: float | None
+    accuracy: float
+    required_accuracy: float
 
     @property
     def converged(self) -> bool:
@@ -151,25 +151,41 @@ class RunResult:
         A run that stops on the iteration cap still writes norm_end and exits
         zero, so nothing downstream notices unless this is read explicitly.
         """
-        if self.accuracy is None or self.required_accuracy is None:
-            return True
         return self.accuracy >= self.required_accuracy
 
 
 ACCURACY_PATTERN = re.compile(
     r"accuracy OK in\s+([0-9.]+)\s*% of wet grid points\s*\(\s*([0-9.]+)\s*% required"
 )
+ACCURACY_MARKER = "accuracy OK in"
 
 
-def parse_accuracy(print_file: Path) -> tuple[float | None, float | None]:
-    """Last reported accuracy and the accuracy SWAN required, from PRINT."""
-    matches = ACCURACY_PATTERN.findall(
-        print_file.read_text(encoding="utf-8", errors="replace")
+def parse_accuracy(print_file: Path) -> tuple[float, float]:
+    """Last reported accuracy and the accuracy SWAN required, from PRINT.
+
+    Every deck in this suite is stationary, so SWAN writes this line once per
+    iteration and a run without one is not a run whose convergence is merely
+    unknown -- it is a broken assumption. Returning "converged" on a missing
+    line would reinstate exactly the blindness this check exists to remove, so
+    it is an error. The two ways to get here need different answers, hence the
+    two messages.
+    """
+    text = print_file.read_text(encoding="utf-8", errors="replace")
+    matches = ACCURACY_PATTERN.findall(text)
+    if matches:
+        reached, required = matches[-1]
+        return float(reached), float(required)
+    if ACCURACY_MARKER in text:
+        raise RuntimeError(
+            f"{print_file}: SWAN reported its accuracy but the numbers are not "
+            f"readable. The F6.2 field holds NaN or Inf when the wave field "
+            f"blew up, so suspect the run before you suspect this parser."
+        )
+    raise RuntimeError(
+        f"{print_file}: no accuracy line at all. Every deck here is stationary, "
+        f"so SWAN should write one per iteration -- either the run never got "
+        f"that far, or SWAN's wording changed and this parser needs updating."
     )
-    if not matches:
-        return None, None
-    reached, required = matches[-1]
-    return float(reached), float(required)
 
 
 def find_executable(example_directory: Path, requested: str | None) -> Path:
@@ -358,7 +374,7 @@ def run_variant(
     accuracy, required = parse_accuracy(print_file)
 
     qualifier = " (slow reference)" if variant.slow else ""
-    if accuracy is not None and required is not None and accuracy < required:
+    if accuracy < required:
         qualifier += (
             f" -- DID NOT CONVERGE: {accuracy:.2f}% of wet points,"
             f" {required:.2f}% required"
