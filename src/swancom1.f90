@@ -5594,11 +5594,16 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !              reaches exactly PSURF(4), the spilling constant, at BIPH = 0.
 !              Testing BIPH .LT. 0. rather than .LE. therefore cuts a
 !              discontinuity into a continuous curve at its physically
-!              meaningful endpoint. That endpoint is not a rare case: 0.5*PI*
+!              meaningful endpoint. Three routes reach it. Eldeberky: 0.5*PI*
 !              (TANH(URCRIT/UR)-1) underflows to exactly zero in single
-!              precision once the Ursell number drops below about 0.065 for the
-!              default URCRIT = PTRIAD(4) = 0.63, so every point seaward of the
-!              shoaling zone lands on it.
+!              precision once the Ursell number reaches 0.06992 or less for
+!              the default URCRIT = PTRIAD(4) = 0.63 -- TANH saturates once
+!              1 - TANH(x) falls under half an ulp of 1.0, i.e. once
+!              x > 13*ln(2) = 9.0109, so UR <= 0.63/9.0109 = 0.0699152 --
+!              so every point seaward of the shoaling zone lands on it, and
+!              UR = 0 gives TANH(Inf) = 1 outright.
+!              Saprykina: 0.5*PI*(MIN(1.,DELL/PTRIAD(9))-1.) is exactly zero
+!              over the entire regime DELL >= PTRIAD(9), not merely at an edge.
                            IF ( BRCOEF.LT.0. ) THEN
                               BIPH = POINT_INTEGRALS%biphas(IGP)
                               IF ( BIPH.LE.0. ) THEN
