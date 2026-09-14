@@ -354,6 +354,26 @@ def test_qcm_breaking_grid_covers_negative_wave_numbers(tmp_path, sector):
     assert len(values) == 6 and all(math.isfinite(v) for v in values)
 
 
+#  GEN4 computes surf breaking through the QC framework, and SCAT 0 then
+#  switches the scattering off. The grids for that surf breaking are made in
+#  SWQCINIT, which only ran with scattering on. The fork then ended with a
+#  segmentation fault, and upstream stopped without output and without
+#  norm_end. The run must end normally.
+def test_gen4_without_scattering(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QCM / "bottom.bot", work / "bottom.bot")
+    deck = (QCM / "qcm.swn").read_text(encoding="utf-8")
+    assert "\nGEN4\n" in deck, "QCM deck has changed shape"
+    deck = deck.replace("\nGEN4\n", "\nGEN4\nSCAT 0\n", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert (work / "norm_end").is_file(), "run did not end normally"
+    table = (work / "qcm_center.tbl").read_text()
+    assert float(table.strip().splitlines()[-1].split()[3]) > 0
+
+
 #  After an input error, input processing went on with variables that were
 #  never set on that error path. A message should stop the run or let it
 #  continue, not make it crash or print garbage.
