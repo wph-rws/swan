@@ -65,6 +65,7 @@ VARIANTS = {
     "src_break_rue": Variant("sources", "src_break_rue", "Ruessink breaking"),
     "src_break_tg": Variant("sources", "src_break_tg", "Thornton-Guza breaking"),
     "src_break_bkd": Variant("sources", "src_break_bkd", "beta-kd breaking"),
+    "src_break_asym": Variant("sources", "src_break_asym", "asymmetry breaking"),
 }
 
 # Bottom-friction and depth-induced-breaking formulations that must each stay
@@ -78,6 +79,7 @@ FORMULATION_KEYS = (
     "src_break_rue",
     "src_break_tg",
     "src_break_bkd",
+    "src_break_asym",
 )
 
 # Named groups rather than positional slices: a slice silently selects the

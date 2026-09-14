@@ -92,6 +92,13 @@
       "measured": "3 output file(s) equal"
     },
     {
+      "deck": "nonlinear_interactions/sources/src_break_asym.swn",
+      "status": "differs",
+      "bugfix": "BF-34",
+      "measured": "differs in: src_break_asym.spc, src_break_asym.tbl, src_break_asym_sources.spc",
+      "note": "Attributed by measurement: with the repair reverted, this deck is bit-identical to upstream; with it, the deck differs. Upstream sets the breaking index to zero as soon as the biphase is not negative, after which HM = 0 drives SSURF into its saturated branch and destroys the wave field."
+    },
+    {
       "deck": "nonlinear_interactions/sources/src_break_bkd.swn",
       "status": "identical",
       "measured": "3 output file(s) equal"
