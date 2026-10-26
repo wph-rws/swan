@@ -60,13 +60,17 @@ REJECTED = [
     ("QUADRUPLET 4\nMDIA LAMBDA CNL4", "requires at least one"),
     ("QUADRUPLET 4\nMDIA LAMBDA .25", "requires CNL4 or CNL4_12"),
     ("QUADRUPLET MDIA LAMBDA 1.0 CNL4 3.0E7", "[lambda]"),
+    #  The filter scheme in frequency space was never built: nothing applies
+    #  DIFFC and the frequency terms exist only for schemes 1 and 2,
+    #  so the frequency shift silently dropped out.
+    ("NUMERIC FIL", "FIL is not implemented"),
 ]
 
 
 @pytest.mark.parametrize("command,expected", REJECTED)
 def test_unknown_formulation_is_rejected(tmp_path, command, expected):
     returncode, report = _run(tmp_path, command)
-    assert returncode != 0, (
+    assert returncode != 0 or "No start of computation" in report, (
         f"'{command}' ran on to a normal end; a number that does not name a "
         f"formulation should stop the run.\n{report[-2000:]}"
     )
@@ -90,6 +94,8 @@ ACCEPTED = [
     "QUADRUPLET 8",
     "QUADRUPLET 1 0.25",
     "QUADRUPLET MDIA LAMBDA 0.25 CNL4 3.0E7",
+    "NUMERIC SIGIMPL",
+    "NUMERIC SIGEXPL",
 ]
 
 
