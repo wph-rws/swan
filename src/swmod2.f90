@@ -1396,4 +1396,19 @@ CONTAINS
       PARALLEL_STORAGE_IS_CLEAR = .NOT.ALLOCATED(IBLKAD)
    END FUNCTION PARALLEL_STORAGE_IS_CLEAR
 
+!  Which subdomain writes an output point on a structured grid?
+!  The subdomain whose own area (without halo) contains the grid node
+!  that this function returns. C is the 0-based computational grid
+!  coordinate of the point, the result a 1-based node
+!  index. It is the same node that SWIPOL takes as the lower-left corner of
+!  the interpolation; a point exactly on a node thus belongs to the
+!  subdomain that computes that node itself. The writer (SWOEXD) and the
+!  collectors in swanparll.f90 must share this one rule, otherwise
+!  the process files get out of step.
+   ELEMENTAL INTEGER FUNCTION SWOWNNODE ( C )
+      REAL, INTENT(IN) :: C
+      SWOWNNODE = INT(C+3.001) - 2
+      IF (SWOWNNODE.EQ.0) SWOWNNODE = 1
+   END FUNCTION SWOWNNODE
+
 end module M_PARALL

@@ -1644,7 +1644,6 @@ SUBROUTINE SWOEXD (RTYPE, OQPROC, MIP, XC, YC, VOQR, VOQ, COMPDA ,&
    &KK, IXB, IXE, IYB, IYE, IX, IY, IHLX, IHLY
    INTEGER ILPOS
    REAL UXLOC,UYLOC,RDIST,RDX,RDY,RR,UBLOC,F1,RTMP,XP1,YP1
-   REAL RVAL1, RVAL2
 
    INTEGER IVTYPE ! temporary counter for NMOVAR, used in VOQR,
    ! OQPROC, OVKEYW, etc.
@@ -2918,14 +2917,14 @@ IF (OQPROC(9)) THEN
       IYE = MYC-IHLY
       IF ( LMYL ) IYE = MYC
       DO IP = 1, MIP
-         IX = INT(XC(IP))
-         IY = INT(YC(IP))
-         RVAL1 = FLOAT(IX)
-         RVAL2 = FLOAT(IY)
-         IF ( .NOT.EQREAL(XC(IP),RVAL1) .OR. EQREAL(XC(IP),0.) .OR.&
-         &RTYPE.EQ.'BLKV' ) IX = IX + 1
-         IF ( .NOT.EQREAL(YC(IP),RVAL2) .OR. EQREAL(YC(IP),0.) .OR.&
-         &RTYPE.EQ.'BLKV' ) IY = IY + 1
+         IF (RTYPE.EQ.'BLKV') THEN
+            IX = INT(XC(IP)) + 1
+            IY = INT(YC(IP)) + 1
+         ELSE
+!           same rule as the collectors in swanparll.f90
+            IX = SWOWNNODE(XC(IP))
+            IY = SWOWNNODE(YC(IP))
+         ENDIF
          IF ( IX.GE.IXB .AND. IX.LE.IXE .AND.&
          &IY.GE.IYB .AND. IY.LE.IYE ) IONOD(IP) = INODE
       END DO

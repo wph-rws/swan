@@ -2133,8 +2133,12 @@ CALL NWLINE
 
       ELSE IF (KEYWIS ('FIL')) THEN
 !         *** 3) explicit scheme -> filter the spectrum  ***
-         PNUMS(PNUMS_SCHEMEFR) = 3.
+!         Never implemented: no routine applies DIFFC, and the frequency
+!         terms are only built for schemes 1 and 2, so the frequency shift
+!         by currents or a varying depth was silently left out. Reject it;
+!         the scheme stays at its default.
          CALL INREAL ('DIFFC'  , PNUMS(PNUMS_CEXPL), 'UNC', 0.)
+         CALL MSGERR (2, 'NUMERIC ... FIL is not implemented; use SIGIMPL or SIGEXPL')
 
       END IF
 

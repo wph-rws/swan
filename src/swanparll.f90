@@ -3316,7 +3316,7 @@ end subroutine SWCOLOUT
 
 SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
 &XC   , YC , XP   , YP )
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, EQREAL
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
 
 !****************************************************************
 
@@ -3400,7 +3400,6 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
 
 !  6. Local variables
 !
-!     EQREAL:     logical comparing two reals
 !     EXIST :     logical whether a file exist or not
 !     FSTR  :     an auxiliary string
 !     I     :     integer
@@ -3424,14 +3423,11 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
 !     NVAR  :     number of output variables
 !     OPENED:     logical whether a file is open or not
 !     OUTLIN:     output line
-!     RVAL1 :     a value
-!     RVAL2 :     another value
 
    INTEGER, SAVE :: IENT = 0
    INTEGER       I, IF, IL, ILPOS, IP, IPROC, IUNIT,&
    &IUT, IVTYPE, IXK, IYK, JVAR, LFIELD, NLINES,&
    &NREF, NUMDEC, NVAR
-   REAL          RVAL1, RVAL2
       LOGICAL :: EXIST, OPENED
    CHARACTER(LEN=80)  MSGSTR
    CHARACTER(LEN=18)  FSTR
@@ -3569,18 +3565,13 @@ SUBROUTINE SWCOLTAB ( RTYPE, OQI, IVTYP, MIP, IRQ, BLKND,&
          END DO
       END IF
       IPLOOP : DO IP = 1, MIP
-         IXK = INT(XC(IP))
-         IYK = INT(YC(IP))
          IF (OPTG.NE.5) THEN
-            RVAL1 = FLOAT(IXK)
-            RVAL2 = FLOAT(IYK)
-            IF ( .NOT.EQREAL(XC(IP),RVAL1) .OR.&
-            &EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
-            IF ( .NOT.EQREAL(YC(IP),RVAL2) .OR.&
-            &EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
+            ! same rule as the writer in SWOEXD
+            IXK = SWOWNNODE(XC(IP))
+            IYK = SWOWNNODE(YC(IP))
          ELSE
-            IXK = IXK + 1
-            IYK = IYK + 1
+            IXK = INT(XC(IP)) + 1
+            IYK = INT(YC(IP)) + 1
          ENDIF
          IF ( IXK.LT.1 .OR. IYK.LT.1 .OR. IXK.GT.MXCGL .OR.&
          &IYK.GT.MYCGL ) THEN
@@ -3664,7 +3655,7 @@ end subroutine SWCOLTAB
 !****************************************************************
 
 SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, EQREAL
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
 
 !****************************************************************
 
@@ -3753,7 +3744,6 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 !  6. Local variables
 !
 !     EMPTY :     logical whether a line is empty or not
-!     EQREAL:     logical comparing two reals
 !     EXIST :     logical whether a file exist or not
 !     I     :     integer
 !     IBLKN :     integer giving node number per subdomain
@@ -3775,13 +3765,10 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
 !     OPENED:     logical whether a file is open or not
 !     OTYPE :     integer indicating dimension of spectrum
 !     OUTLIN:     output line
-!     RVAL1 :     a value
-!     RVAL2 :     another value
 
    INTEGER, SAVE :: IENT = 0
    INTEGER       I, IBLKN, IF, IL, ILPOS, IP, IPROC, IS,&
    &IUNIT, IUT, IXK, IYK, NLINES, NREF, OTYPE
-   REAL          RVAL1, RVAL2
       LOGICAL :: EMPTY, EXIST, OPENED
    LOGICAL, SAVE :: NCF = .FALSE.
    CHARACTER(LEN=80)  MSGSTR
@@ -3910,18 +3897,13 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
                &YC(IP).GT.REAL(MYCGL-1)+0.01 ) THEN
                   IBLKN = NPROC+1
                ELSE
-                  IXK = INT(XC(IP))
-                  IYK = INT(YC(IP))
                   IF (OPTG.NE.5) THEN
-                     RVAL1 = FLOAT(IXK)
-                     RVAL2 = FLOAT(IYK)
-                     IF ( .NOT.EQREAL(XC(IP),RVAL1) .OR.&
-                     &EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
-                     IF ( .NOT.EQREAL(YC(IP),RVAL2) .OR.&
-                     &EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
+                     ! same rule as the writer in SWOEXD
+                     IXK = SWOWNNODE(XC(IP))
+                     IYK = SWOWNNODE(YC(IP))
                   ELSE
-                     IXK = IXK + 1
-                     IYK = IYK + 1
+                     IXK = INT(XC(IP)) + 1
+                     IYK = INT(YC(IP)) + 1
                   ENDIF
                   IBLKN = NINT(BLKND(IXK,IYK))
                END IF
@@ -3993,18 +3975,13 @@ SUBROUTINE SWCOLSPC ( RTYPE, OQI, OQR, MIP, IRQ, BLKND, XC, YC )
    END IF
 
    IPLOOP : DO IP = 1, MIP
-      IXK = INT(XC(IP))
-      IYK = INT(YC(IP))
       IF (OPTG.NE.5) THEN
-         RVAL1 = FLOAT(IXK)
-         RVAL2 = FLOAT(IYK)
-         IF ( .NOT.EQREAL(XC(IP),RVAL1) .OR.&
-         &EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
-         IF ( .NOT.EQREAL(YC(IP),RVAL2) .OR.&
-         &EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
+         ! same rule as the writer in SWOEXD
+         IXK = SWOWNNODE(XC(IP))
+         IYK = SWOWNNODE(YC(IP))
       ELSE
-         IXK = IXK + 1
-         IYK = IYK + 1
+         IXK = INT(XC(IP)) + 1
+         IYK = INT(YC(IP)) + 1
       ENDIF
       IF ( IXK.LT.1 .OR. IYK.LT.1 .OR. IXK.GT.MXCGL .OR.&
       &IYK.GT.MYCGL ) THEN
@@ -4057,7 +4034,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
 &XC    , YC )
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_output_writers, ONLY: SBLKPT, SRAWPT, SWRMAT
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, EQREAL, TABHED
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, TABHED
 
 !****************************************************************
 
@@ -4155,7 +4132,6 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
 !
 !     CTIM  :     string representing date of computation
 !     DFAC  :     multiplication factor of block output
-!     EQREAL:     logical comparing two reals
 !     EXIST :     logical whether a file exist or not
 !     FMAX  :     auxiliary real
 !     FTIP  :     auxiliary real
@@ -4185,8 +4161,6 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
 !     NREF  :     unit reference number
 !     NVAR  :     number of output variables
 !     OPENED:     logical whether a file is open or not
-!     RVAL1 :     a value
-!     RVAL2 :     another value
 !     VOQ   :     collected output variables
 
    INTEGER, SAVE :: IENT = 0
@@ -4194,7 +4168,6 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
    &IPROC, IUNIT, IUT, IXK, IYK, IVTYPE, J, JVAR, NREF,&
    &NVAR
    REAL         DFAC, FMAX, FTIP, FTIP1, FTIP2
-   REAL         RVAL1, RVAL2
       LOGICAL :: EXIST, OPENED
    INTEGER, SAVE :: IREC(MAX_OUTP_REQ)=0
    LOGICAL, SAVE :: MATLAB=.FALSE.
@@ -4381,18 +4354,13 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
       ENDIF
 
       DO IP = 1, MXK*MYK
-         IXK = INT(XC(IP))
-         IYK = INT(YC(IP))
          IF (OPTG.NE.5) THEN
-            RVAL1 = FLOAT(IXK)
-            RVAL2 = FLOAT(IYK)
-            IF ( .NOT.EQREAL(XC(IP),RVAL1) .OR.&
-            &EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
-            IF ( .NOT.EQREAL(YC(IP),RVAL2) .OR.&
-            &EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
+            ! same rule as the writer in SWOEXD
+            IXK = SWOWNNODE(XC(IP))
+            IYK = SWOWNNODE(YC(IP))
          ELSE
-            IXK = IXK + 1
-            IYK = IYK + 1
+            IXK = INT(XC(IP)) + 1
+            IYK = INT(YC(IP)) + 1
          ENDIF
          IF ( IXK.LT.1 .OR. IYK.LT.1 .OR. IXK.GT.MXCGL .OR.&
          &IYK.GT.MYCGL ) THEN
@@ -4421,18 +4389,13 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  ,&
       IF ( OVSVTY(IVTYPE).GE.3 ) THEN
 
          DO IP = 1, MXK*MYK
-            IXK = INT(XC(IP))
-            IYK = INT(YC(IP))
             IF (OPTG.NE.5) THEN
-               RVAL1 = FLOAT(IXK)
-               RVAL2 = FLOAT(IYK)
-               IF ( .NOT.EQREAL(XC(IP),RVAL1) .OR.&
-               &EQREAL(XC(IP),0.   ) ) IXK = IXK + 1
-               IF ( .NOT.EQREAL(YC(IP),RVAL2) .OR.&
-               &EQREAL(YC(IP),0.   ) ) IYK = IYK + 1
+               ! same rule as the writer in SWOEXD
+               IXK = SWOWNNODE(XC(IP))
+               IYK = SWOWNNODE(YC(IP))
             ELSE
-               IXK = IXK + 1
-               IYK = IYK + 1
+               IXK = INT(XC(IP)) + 1
+               IYK = INT(YC(IP)) + 1
             ENDIF
             IF ( IXK.LT.1 .OR. IYK.LT.1 .OR. IXK.GT.MXCGL .OR.&
             &IYK.GT.MYCGL ) THEN

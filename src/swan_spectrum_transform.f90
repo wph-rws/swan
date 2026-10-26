@@ -972,6 +972,14 @@ SUBROUTINE CHGBAS (X1, X2, PERIOD, Y1, Y2, N1, N2,&
    DO I2 = 1, N2
       Y2(I2) = 0.
    ENDDO
+!  The cell boundaries below are taken halfway to the neighbouring value, so
+!  an axis with a single value has no cell width; X1(2) or X2(2) would then be
+!  read beyond the array, e.g. for a boundary spectrum file with one
+!  frequency or one direction.
+   IF (N1.LT.2 .OR. N2.LT.2) THEN
+      CALL MSGERR (4, 'subr. CHGBAS: a spectral axis needs at least two values')
+      RETURN
+   ENDIF
    DO I2 = 2, N2
       IF (X2(I2).LE.X2(I2-1))&
       &CALL MSGERR (2, 'subr. CHGBAS: values of X2 not increasing')
