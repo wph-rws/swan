@@ -496,6 +496,52 @@ def test_unknown_side_drops_the_boundary(tmp_path):
     assert float(rows[0][3]) == pytest.approx(0.17013, abs=0.00002)
 
 
+#  CHGBAS distributes a boundary spectrum over SWAN's bins with cells that end
+#  halfway to the neighbouring value. With one direction (or frequency) in the
+#  boundary file there is no neighbour: CHGBAS read X1(2) outside the array and
+#  the run silently went on without boundary energy.
+ONE_DIRECTION_SPECTRUM = """SWAN   1
+$ boundary spectrum with a single direction
+LOCATIONS
+     1
+      0.0      500.0
+AFREQ
+     3
+    0.10
+    0.15
+    0.20
+NDIR
+     1
+  270.0
+QUANT
+     1
+VaDens
+m2/Hz/degr
+   -99.0
+FACTOR
+  1.0
+  0.5
+  1.0
+  0.5
+"""
+
+
+def test_boundary_spectrum_with_one_direction_is_refused(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    (work / "boundary.sp2").write_text(ONE_DIRECTION_SPECTRUM, encoding="utf-8")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    old = "BOUNDSPEC SIDE WEST CONSTANT PAR 1.0 6.0 270.0 20.0"
+    assert old in deck, "smoke deck has changed shape"
+    deck = deck.replace(old, "BOUNDSPEC SIDE WEST CONSTANT FILE 'boundary.sp2'", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert result.returncode != 0, report[-2000:]
+    assert "a spectral axis needs at least two values" in report, report[-2000:]
+
+
 #  BF-23: a boundary file whose first line is not a header that BCFILE knows.
 #  Nothing of the file is read then, so there is no boundary spectrum. As a
 #  severe error (level 3) this still let a deck with SET MAXERR 3 compute:
