@@ -780,6 +780,21 @@ if( BUILD_TESTING )
     )
     set_tests_properties( quick_test_mpi PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
 
+    # The Jacobi exchange gives values that depend on how the grid is split,
+    # so this comparison of one and several processes holds only for the
+    # wavefront exchange.
+    if( NOT JAC )
+      add_test(
+        NAME mpi_output_ownership
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_mpi_output_ownership.py
+                --swan-executable $<TARGET_FILE:${EXE}>
+                --mpi-exec ${MPIEXEC_EXECUTABLE}
+                --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
+                --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/mpi-output-ownership
+      )
+      set_tests_properties( mpi_output_ownership PROPERTIES RUN_SERIAL TRUE TIMEOUT 300 )
+    endif()
+
     add_test(
       NAME matlab_output_mpi
       COMMAND ${Python3_EXECUTABLE}
