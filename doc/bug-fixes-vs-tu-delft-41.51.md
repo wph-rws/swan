@@ -165,21 +165,24 @@ are:
 
 These issues are in upstream and have been investigated, but not resolved:
 
-- **A stop message does not prove convergence.** SWAN stops a stationary run
-  when Hs and Tm hardly change any more between two iterations.
+- **A stop message does not prove convergence.** SWAN stops a stationary
+  run when Hs and Tm hardly change any more between two iterations.
   Under-relaxation (`ALFA`) makes that change small, even when the solution
   has not been reached yet, and the criterion cannot tell those two apart. On
   `quad_dia1` the run stops at `ALFA=0.10` after two iterations and at
-  `ALFA=0.05` after ten with "accuracy OK in 100.00 %" at Hs 1.278 m at 25 km,
-  and at `ALFA=0.01` after 40 iterations at 1.403 m. Computed on for about
-  1500 iterations, the same run arrives at 1.923 m. This is not a property of
-  the fork: on `quad_dia2` upstream 41.51 and RWS 41.31A.1 behave the same
-  way. At `ALFA=0.01` all three report 100%, while Hs at 25 km is a quarter
-  below the run without under-relaxation (`doc/early-stop-by-version.json`).
-  The mechanism has therefore been in SWAN since at least 41.31. Because a
-  stationary growth problem builds up energy towards the balance, stopping too
-  early ends too low; for design conditions that is the unsafe direction.
- 
+  `ALFA=0.05` after ten with "accuracy OK in 100.00 %" at Hs 1.278 m at
+  25 km, and at `ALFA=0.01` after 40 iterations at 1.403 m. Computed on until
+  the balance residual is at machine precision (about 1500 iterations), the
+  same run arrives at 1.923 m. This is not a property of the fork: on
+  `quad_dia2` upstream 41.51 and RWS 41.31A.1 behave the same way. At
+  `ALFA=0.01` all three report 100%, while Hs at 25 km is a quarter below the
+  run without under-relaxation (`doc/early-stop-by-version.json`). The
+  mechanism has therefore been in SWAN since at least 41.31. Because a
+  stationary growth problem builds up energy towards the balance, stopping
+  too early ends too low; for design conditions that is the unsafe direction.
+  The fork has an optional balance residual that does make the distinction
+  (`NUMERIC ... RESIDUAL`, off by default; see
+  [balance-residual-design.md](balance-residual-design.md)).
 - **MPI does not fully fill in land outside the active area.** After BF-40,
   the wet field of the MPI assembly is equal to serial, but on land outside
   the active area not entirely: quantities that SWAN also fills in at

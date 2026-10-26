@@ -106,10 +106,21 @@ for. The test cannot tell those two causes apart. The extra curvature check of
 applied on the first iteration.
 
 This is not an edge case here: most decks in this repository set `ALFA`.
-Measured on `examples/nonlinear_interactions/quad/quad_dia1`: with `ALFA=0.10`
-the run stops after two iterations and with `ALFA=0.05` after ten, with the
-message "accuracy OK in 100.00 %", while Hs at 25 km is then 1.278 m.
-`ALFA=0.01` also stops too early: after 40 iterations it reports 100% at 1.403
-m, while the same run carried on for about 1500 iterations ends at 1.923 m,
-27% higher.
+Measured on `examples/nonlinear_interactions/quad/quad_dia1`: with `ALFA=0.10` the run stops after two iterations and with
+`ALFA=0.05` after ten, with the message "accuracy OK in 100.00 %", while Hs at
+25 km is then 1.278 m. `ALFA=0.01` also stops too early: after 40 iterations
+it reports 100% at 1.403 m, while the same run carried on until the balance
+residual reaches rounding level (about 1500 iterations) ends at 1.923 m, 27%
+higher.
 
+The fork has an optional balance residual
+(`balance residual energy rms ...` in PRINT; see
+[doc/balance-residual-design.md](doc/balance-residual-design.md)). The
+computation is off by default. `NUMERIC ... RESIDUAL 0` only switches the
+measurement on; a positive threshold also requires a small energy residual
+before stopping. This is an extension of the fork, not upstream input. A small
+mean residual does not guarantee convergence of all points or of the whole
+spectrum. Operational decks get no general residual threshold.
+
+The residual does not replace the comparison everywhere: its floor depends on
+the deck, so only a second run tells how much Hs still shifts.

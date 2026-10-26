@@ -565,6 +565,13 @@ if( BUILD_TESTING )
   )
 
   add_test(
+    NAME hotstart_continuation
+    COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
+            ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_hotstart_continuation.py -q
+  )
+
+  add_test(
     NAME breaking_off
     COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
             ${Python3_EXECUTABLE} -m pytest
@@ -585,6 +592,13 @@ if( BUILD_TESTING )
     COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
             ${Python3_EXECUTABLE} -m pytest
             ${CMAKE_SOURCE_DIR}/tests/test_surfbeat.py -q
+  )
+
+  add_test(
+    NAME balance_residual
+    COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
+            ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_balance_residual.py -q
   )
 
   add_test(
