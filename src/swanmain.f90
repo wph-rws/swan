@@ -1355,6 +1355,10 @@ SUBROUTINE SWINIT (INERR, SNL4)
 
    PNUMS(PNUMS_BKDACC) = 95.
 
+!     --- balance-residual threshold; none unless NUMERIC RESIDUAL sets one
+
+   PNUMS(PNUMS_RESTOL) = -1.
+
 !     *** (1) and (2): Komen et al. (1984) formulation ***
 
    PWCAP(1)  = 2.36E-5

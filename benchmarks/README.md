@@ -3,6 +3,8 @@
 - `benchmark_parallel.py` runs the fork and upstream alternately, reports
   median wall-clock time and scaling, and checks that the generated fields
   and site tables agree.
+- `residual_cost.py` measures the balance residual switched on against
+  switched off.
 - `benchmark_fft.f90` times the FFT kernels behind QCM and Bragg scattering.
   The FFTW plans are made with `FFTW_ESTIMATE`. With `FFTW_MEASURE`, FFTW
   chose a different plan in almost every run at 63 × 63 and 125 × 125

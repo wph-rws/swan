@@ -23,6 +23,7 @@ module swan_mpi_backend
    public :: mpi_backend_reduce_integer_array
    public :: mpi_backend_reduce_integer_scalar
    public :: mpi_backend_reduce_real_array, mpi_backend_reduce_real_scalar
+   public :: mpi_backend_reduce_double_array
    public :: mpi_backend_send_real_matrix, mpi_backend_send_real_vector
    public :: mpi_backend_abort, mpi_backend_barrier
    public :: mpi_backend_communication_constants
@@ -125,6 +126,15 @@ contains
       call MPI_ALLREDUCE(MPI_IN_PLACE, value, count, datatype, operation, &
          MPI_COMM_WORLD, ierr)
    end subroutine mpi_backend_reduce_real_scalar
+
+   subroutine mpi_backend_reduce_double_array(values, count, operation, ierr)
+      real(kind=8), intent(inout) :: values(:)
+      integer, intent(in) :: count, operation
+      integer, intent(out) :: ierr
+
+      call MPI_ALLREDUCE(MPI_IN_PLACE, values, count, MPI_DOUBLE_PRECISION, &
+         operation, MPI_COMM_WORLD, ierr)
+   end subroutine mpi_backend_reduce_double_array
 
    subroutine mpi_backend_reduce_real_array(values, count, datatype, &
       operation, ierr)

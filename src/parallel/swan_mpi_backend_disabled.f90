@@ -22,6 +22,7 @@ module swan_mpi_backend
    public :: mpi_backend_reduce_integer_array
    public :: mpi_backend_reduce_integer_scalar
    public :: mpi_backend_reduce_real_array, mpi_backend_reduce_real_scalar
+   public :: mpi_backend_reduce_double_array
    public :: mpi_backend_send_real_matrix, mpi_backend_send_real_vector
    public :: mpi_backend_abort, mpi_backend_barrier
    public :: mpi_backend_communication_constants
@@ -129,6 +130,16 @@ contains
       ierr = swan_mpi_success
       if (mpi_backend_enabled) value = real(count + datatype + operation)
    end subroutine mpi_backend_reduce_real_scalar
+
+   subroutine mpi_backend_reduce_double_array(values, count, operation, ierr)
+      real(kind=8), intent(inout) :: values(:)
+      integer, intent(in) :: count, operation
+      integer, intent(out) :: ierr
+
+      ierr = swan_mpi_success
+      if (mpi_backend_enabled .and. size(values) > 0) &
+         values(1) = real(count + operation, kind=8)
+   end subroutine mpi_backend_reduce_double_array
 
    subroutine mpi_backend_reduce_real_array(values, count, datatype, &
       operation, ierr)

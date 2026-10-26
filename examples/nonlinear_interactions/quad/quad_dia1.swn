@@ -7,8 +7,9 @@ $ bounds-checked CI build has nothing to check that routine against.
 $
 $ ALFA=0.01 keeps the deck in the regime where the change-based criterion
 $ stops too early: it reports convergence after 40 iterations, while the
-$ same run carried on for about 1500 iterations puts Hs at 25 km at
-$ 1.923 m instead of the 1.403 m it reports. The reference output of this deck therefore pins
+$ balance residual still stands at 0.15 and, carried on to rounding level
+$ (about 1500 iterations), the same run puts Hs at 25 km at 1.923 m instead
+$ of the 1.403 m it reports. The reference output of this deck therefore pins
 $ the code path, not a converged wave height.
 $
 $ Without ALFA the run converges in 28 iterations. Upstream 41.51 shows a limit

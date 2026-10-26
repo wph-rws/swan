@@ -7,6 +7,10 @@ module swan_comp_unstruc
       test_output_t, source_budget_t, system_matrix_t
    use swan_conv_accur, only: SwanConvAccur
    use swan_conv_stopc, only: SwanConvStopc
+   use swan_balance_residual, only: balance_residual_t, &
+      balance_residual_summary_t, accumulate_balance_defect, &
+      summarize_balance_residual, write_balance_residual, &
+      balance_residual_reached, balance_defect_system, DEFECT_NONE
    use swan_diff_par, only: SwanDiffPar
    use swan_disp_parm, only: SwanDispParm
    use swan_grad_depthor_k, only: SwanGradDepthorK
@@ -313,6 +317,12 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
     logical                               :: lpredt    ! indicate whether action density in first iteration need to be estimated or not
     logical                               :: initial_prediction_pass
 
+    type(balance_residual_t)              :: balance_residual  ! defect of the action balance per vertex, this iteration
+    type(balance_residual_summary_t)      :: residual_summary  ! its reduction over the active vertices
+    logical, dimension(:), allocatable    :: residual_counted  ! vertices that take part in the reduction
+    logical                               :: residual_supported ! whether the solver path has a defect to report
+    logical                               :: residual_reached  ! whether the residual lets the iteration stop
+
     logical, dimension(:,:), allocatable  :: anybin    ! true if bin is active in considered sweep
     logical, dimension(:,:), allocatable  :: anyblk    ! true if bin is blocked by a counter current based on a CFL criterion
     logical, dimension(:), allocatable    :: anywnd    ! true if wind input is active in considered bin
@@ -441,6 +451,20 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
     else
        allocate(memsina(0,0,0))
        allocate(memsinb(0,0,0))
+    endif
+
+    ! a residual threshold the solver cannot honour must stop the run:
+    ! an ignored stopping criterion looks exactly like a satisfied one
+
+    residual_supported = balance_defect_system() /= DEFECT_NONE
+    if ( PNUMS(PNUMS_RESTOL) > 0. .and. .not.residual_supported ) then
+       call msgerr ( 4, 'NUMERIC RESIDUAL is not available with a current or time-varying depth and a scheme in frequency space' )
+       return
+    endif
+    residual_reached = .true.
+    if ( PNUMS(PNUMS_RESTOL) >= 0. ) then
+       call balance_residual%start(nverts)
+       allocate(residual_counted(nverts))
     endif
 
     IF (timing_enabled) CALL SWTSTO(101)
@@ -1254,6 +1278,11 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
 
                          if ( ACUPDA ) then
 
+                            ! defect of the balance at the current spectrum, before relaxation
+                            ! and limiting can make it look smaller
+
+                            if ( balance_residual%enabled ) call accumulate_balance_defect(balance_residual, st_kc(1), spectral_window, ac2(1,1,st_kc(1)), spcsig, amat(1,1,4), amat(1,1,1), amat(1,1,5), rhs, amat(1,1,2), amat(1,1,3), anyblk)
+
                             ! preparatory steps before solving system of equations
 
                             IF (timing_enabled) CALL SWTSTA(119)
@@ -1517,6 +1546,20 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
           if ( PARLL ) call metis_exchange_real(disbk0)
        endif
 
+       ! defect of the action balance over the active vertices, counted
+       ! as the accuracy check counts them; the single's barrier makes
+       ! residual_reached visible to every thread before the exit tests
+
+       if ( balance_residual%enabled ) then
+       !$omp single
+       do ivert = 1, nverts
+          residual_counted(ivert) = vert(ivert)%active
+       enddo
+       call summarize_balance_residual(balance_residual, residual_counted, residual_supported, residual_summary)
+       residual_reached = balance_residual_reached(residual_summary, PNUMS(PNUMS_RESTOL))
+       !$omp end single
+       endif
+
        ! info regarding the iteration process and the accuracy
 
        if ( PNUMS(PNUMS_STOPTY) <= 1. ) then
@@ -1545,6 +1588,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
              write (PRINTF,"(' accuracy OK in ',f6.2,' % of wet grid points (',f6.2,' % required)',/ )") accur, PNUMS(PNUMS_NPNTS)
              if ( NSTATC == 0 .and. IAMMASTER ) write (SCREEN,"(' accuracy OK in ',f6.2,' % of wet grid points (',f6.2,' % required)',/ )") accur, PNUMS(PNUMS_NPNTS)
           endif
+          if ( balance_residual%enabled ) call write_balance_residual(PRINTF, residual_summary, PNUMS(PNUMS_RESTOL))
+          if ( balance_residual%enabled .and. NSTATC == 0 .and. IAMMASTER ) call write_balance_residual(SCREEN, residual_summary, PNUMS(PNUMS_RESTOL))
           !$omp end master
           IF (timing_enabled) CALL SWTSTO(102)
           ! every thread must see accur as the master leaves it before deciding
@@ -1552,7 +1597,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
 
           ! if accuracy has been reached then terminates iteration process
 
-          if ( accur >= PNUMS(PNUMS_NPNTS) ) exit iterloop
+          if ( accur >= PNUMS(PNUMS_NPNTS) .and. residual_reached ) exit iterloop
 
        elseif ( PNUMS(PNUMS_STOPTY) == 2. ) then
 
@@ -1576,6 +1621,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
              endif
           endif
           acnrmo = acnrms(1)
+          if ( balance_residual%enabled ) call write_balance_residual(PRINTF, residual_summary, PNUMS(PNUMS_RESTOL))
+          if ( balance_residual%enabled .and. NSTATC == 0 .and. IAMMASTER ) call write_balance_residual(SCREEN, residual_summary, PNUMS(PNUMS_RESTOL))
           IF (timing_enabled) CALL SWTSTO(102)
           !$omp end master
           ! every thread must see stopcr as the master leaves it before deciding
@@ -1583,7 +1630,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
           !
           ! if accuracy has been reached then terminates iteration process
 
-          if ( acnrms(1) < stopcr ) exit iterloop
+          if ( acnrms(1) < stopcr .and. residual_reached ) exit iterloop
 
        endif
 
@@ -1675,6 +1722,9 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
     deallocate(tmcurr)
     deallocate(tmprev)
     deallocate(tmdifc)
+
+    call balance_residual%finish()
+    if ( allocated(residual_counted) ) deallocate(residual_counted)
     deallocate(temp  )
 
     deallocate(swtsda)

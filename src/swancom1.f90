@@ -118,6 +118,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    USE swan_nonlinear_interactions, ONLY: FAC3WW, FAC4WW, SWBIPM, SWPRE4W
    USE swan_dissipation, ONLY: PLTSRC
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, STPNOW
+   USE swan_balance_residual, ONLY: balance_residual_t, &
+      balance_residual_summary_t, summarize_balance_residual, &
+      balance_defect_system, DEFECT_NONE, write_balance_residual, &
+      balance_residual_reached
 
 !******************************************************************
 
@@ -980,6 +984,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
    INTEGER, ALLOCATABLE :: ISLMIN(:), NFLIM(:), NRSCAL(:)
 
    REAL, ALLOCATABLE :: AC2LOC(:)
+
+!     Defect of the action balance, accumulated per grid point during the
+!     sweeps and reduced once per iteration; see swan_balance_residual.
+   TYPE(balance_residual_t) :: BALANCE_RESIDUAL
+   TYPE(balance_residual_summary_t) :: RESIDUAL_SUMMARY
+   LOGICAL, ALLOCATABLE :: RESIDUAL_COUNTED(:)
+   LOGICAL :: RESIDUAL_SUPPORTED, RESIDUAL_REACHED
+   INTEGER :: RX1, RX2, RY1, RY2
 !
 !     Add variables for OMP thread parameters.
 !$ INTEGER, EXTERNAL :: OMP_GET_NUM_THREADS, OMP_GET_THREAD_NUM
@@ -1204,6 +1216,20 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$ ALLOCATE(LLOCK(MXC,MYC))
 !
    IF (mpi_backend_enabled) ALLOCATE(AC2LOC(MCGRD))
+
+!     A residual threshold the solver cannot honour must stop the run: an
+!     ignored stopping criterion looks exactly like a satisfied one.
+   RESIDUAL_SUPPORTED = balance_defect_system().NE.DEFECT_NONE
+   IF (PNUMS(PNUMS_RESTOL).GT.0. .AND. .NOT.RESIDUAL_SUPPORTED) THEN
+      CALL MSGERR ( 4, 'NUMERIC RESIDUAL is not available with a current '//&
+      &'or time-varying depth and a scheme in frequency space' )
+      RETURN
+   END IF
+   RESIDUAL_REACHED = .TRUE.
+   IF (PNUMS(PNUMS_RESTOL).GE.0.) THEN
+      CALL BALANCE_RESIDUAL%start(MCGRD)
+      ALLOCATE(RESIDUAL_COUNTED(MCGRD))
+   END IF
 
    ALLOCATE(SWTSDA(MDC,MSC,NPTSTA,MTSVAR))
    SWTSDA = 0.
@@ -1982,7 +2008,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !$                         END IF
 !
                            IF (timing_enabled) CALL SWTSTA(104)
-                           CALL SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, default_time_context%DT, XIS, SWTSDA, INOCNT, AC2, COMPDA, SPCDIR, SPCSIG, XYTST, ITER, CGO, CAX, CAY, CAS, CAD, SWMATR, LSWMAT, KWAVE, DMW, ALIMW, GROWW, ITERATION_CACHE, QTL1, QTL2, SPECTRAL_WINDOW, ANYWND, AC1, IT, XCGRID, YCGRID, KGRPNT, CROSS, OBREDF, REFLSO, FBD, ISLMIN, NFLIM, NRSCAL, CAX1, CAY1, DIFFR, TRIADS, SNL4, SPECTRAL_POWERS, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%WCAP, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT)
+                           CALL SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, default_time_context%DT, XIS, SWTSDA, INOCNT, AC2, COMPDA, SPCDIR, SPCSIG, XYTST, ITER, CGO, CAX, CAY, CAS, CAD, SWMATR, LSWMAT, KWAVE, DMW, ALIMW, GROWW, ITERATION_CACHE, QTL1, QTL2, SPECTRAL_WINDOW, ANYWND, AC1, IT, XCGRID, YCGRID, KGRPNT, CROSS, OBREDF, REFLSO, FBD, ISLMIN, NFLIM, NRSCAL, CAX1, CAY1, DIFFR, TRIADS, SNL4, SPECTRAL_POWERS, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%WCAP, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT, BALANCE_RESIDUAL)
                            IF (timing_enabled) CALL SWTSTO(104)
                            IF (mpi_backend_enabled) THEN
                               IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
@@ -2204,6 +2230,35 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      &WRITE(SCREEN,"(' accuracy OK in ',F6.2, ' % of wet grid points (',F6.2,' % required)',/ )") ACCUR,PNUMS(PNUMS_NPNTS)
                   END IF
 
+!       *** defect of the action balance over the wet points this ***
+!       *** process owns; the halo belongs to a neighbour           ***
+
+                  IF (BALANCE_RESIDUAL%enabled) THEN
+                     RX1 = 1
+                     IF (.NOT.LMXF) RX1 = 1+IHALOX
+                     RX2 = MXC
+                     IF (.NOT.LMXL) RX2 = MXC-IHALOX
+                     RY1 = 1
+                     IF (.NOT.LMYF) RY1 = 1+IHALOY
+                     RY2 = MYC
+                     IF (.NOT.LMYL) RY2 = MYC-IHALOY
+                     RESIDUAL_COUNTED = .FALSE.
+                     DO IY = RY1, RY2
+                        DO IX = RX1, RX2
+                           IP = KGRPNT(IX,IY)
+                           IF (IP.GT.1) RESIDUAL_COUNTED(IP) = COMPDA(IP,JDP2).GT.DEPMIN
+                        END DO
+                     END DO
+                     CALL summarize_balance_residual(BALANCE_RESIDUAL, RESIDUAL_COUNTED, RESIDUAL_SUPPORTED, RESIDUAL_SUMMARY)
+                     IF (mpi_backend_enabled) THEN
+                        IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
+                     END IF
+                     CALL write_balance_residual(PRINTF, RESIDUAL_SUMMARY, PNUMS(PNUMS_RESTOL))
+                     IF (NSTATC.EQ.0.AND.IAMMASTER)&
+                     &CALL write_balance_residual(SCREEN, RESIDUAL_SUMMARY, PNUMS(PNUMS_RESTOL))
+                     RESIDUAL_REACHED = balance_residual_reached(RESIDUAL_SUMMARY, PNUMS(PNUMS_RESTOL))
+                  END IF
+
 !       *** number of points in which the penta-diagonal solver ***
 !       *** did not converged                                   ***
 
@@ -2253,7 +2308,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 !       *** can be terminated ---> EXIT iteration_loop      ***
 
                   IF ( (ITER.NE.1 .OR. PNUMS(PNUMS_STOPTY).EQ.0.) .AND.&
-                  &ACCUR.GE.PNUMS(PNUMS_NPNTS) ) EXIT iteration_loop
+                  &ACCUR.GE.PNUMS(PNUMS_NPNTS) .AND. RESIDUAL_REACHED ) EXIT iteration_loop
 
    end do iteration_loop
                   IF (timing_enabled) CALL SWTSTO(103)
@@ -2342,6 +2397,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                   DEALLOCATE(HSDIFC)
                   DEALLOCATE(SACC0)
                   DEALLOCATE(TMDIFC)
+                  CALL BALANCE_RESIDUAL%finish()
+                  IF (ALLOCATED(RESIDUAL_COUNTED)) DEALLOCATE(RESIDUAL_COUNTED)
                   DEALLOCATE(ISLMIN)
                   DEALLOCATE(NFLIM)
                   DEALLOCATE(NRSCAL)
@@ -2364,9 +2421,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
 
 !************************************************************************
 
-               SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, AC2, COMPDA, SPCDIR, SPCSIG, XYTST, ITER, CGO, CAX, CAY, CAS, CAD, SWMATR, LSWMAT, KWAVE, DMW, ALIMW, GROWW, ITERATION_CACHE, QTL1, QTL2, WINDOW, ANYWND, AC1, IT, XCGRID, YCGRID, KGRPNT, CROSS, OBREDF, REFLSO, FBD, ISLMIN, NFLIM, NRSCAL, CAX1, CAY1, DIFFR, TRIADS, SNL4, SPECTRAL_POWERS, WCAP_WORKSPACE, DIA_WORKSPACE, FFT_WORKSPACE)
+               SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, AC2, COMPDA, SPCDIR, SPCSIG, XYTST, ITER, CGO, CAX, CAY, CAS, CAD, SWMATR, LSWMAT, KWAVE, DMW, ALIMW, GROWW, ITERATION_CACHE, QTL1, QTL2, WINDOW, ANYWND, AC1, IT, XCGRID, YCGRID, KGRPNT, CROSS, OBREDF, REFLSO, FBD, ISLMIN, NFLIM, NRSCAL, CAX1, CAY1, DIFFR, TRIADS, SNL4, SPECTRAL_POWERS, WCAP_WORKSPACE, DIA_WORKSPACE, FFT_WORKSPACE, BALANCE_RESIDUAL)
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_services, ONLY: SWTRCF
+   USE swan_balance_residual, ONLY: balance_residual_t, accumulate_balance_defect
    USE swan_propagation, ONLY: ADDDIS, DSPHER, SPREDT, SPROSD, SPROXY, SWAPAR, SWGEOM, SWPSEL
    USE swan_wind_source, ONLY: WINDP1, WINDP3
 
@@ -2408,6 +2466,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
     TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
     TYPE(dia_workspace_t), INTENT(INOUT) :: DIA_WORKSPACE
     TYPE(fft_workspace_t), INTENT(INOUT) :: FFT_WORKSPACE
+    TYPE(balance_residual_t), INTENT(INOUT) :: BALANCE_RESIDUAL
 
 
 !   --|-----------------------------------------------------------|--
@@ -3421,6 +3480,11 @@ SUBROUTINE SWCOMP (AC1        ,AC2        ,&
                      ENDIF
 
                      IF (ACUPDA) THEN
+
+!       defect of the balance at the current spectrum, before relaxation
+!       and limiting can make it look smaller
+!
+                     IF (BALANCE_RESIDUAL%enabled) CALL accumulate_balance_defect(BALANCE_RESIDUAL, st_kc(1), WINDOW, AC2(1,1,st_kc(1)), SPCSIG, SWMATR(1,1,JMATL), SWMATR(1,1,JMATD), SWMATR(1,1,JMATU), SWMATR(1,1,JMATR), SWMATR(1,1,JMAT5), SWMATR(1,1,JMAT6), LSWMAT(1,1,JABLK))
 
 !       preparatory steps before solution of linear system
 !

@@ -345,6 +345,19 @@ how the iterations progress; `STOPC` also takes the curvature into account.
 Small changes do not guarantee that the final solution has been reached.
 Raising `MXITST` alone does not prevent an early stop.
 
+On request the fork can print an additional balance measure. Without
+`RESIDUAL` it is not computed. `RESIDUAL 0` only switches the measurement on;
+a positive value adds a stopping threshold, for example:
+
+```
+NUMERIC STOPC STAT MXITST=100 ALFA=0.01 RESIDUAL 0
+```
+
+This keyword is an extension of the fork, not an upstream setting. The
+measure has a floor that depends on the deck, and guarantees no accuracy in
+Hs, period or direction. For now, use it as a research aid. Background:
+[balance-residual-design.md](doc/balance-residual-design.md).
+
 #### quick smoke test
 
 A small stationary example is available in [`examples/quick_test`](examples/quick_test).

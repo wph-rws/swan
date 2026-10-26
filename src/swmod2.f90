@@ -859,6 +859,7 @@ MODULE M_PARALL
       mpi_backend_gatherv_real, mpi_backend_receive_real_matrix, &
       mpi_backend_receive_real_vector, mpi_backend_reduce_integer_array, &
       mpi_backend_reduce_integer_scalar, mpi_backend_reduce_real_array, &
+      mpi_backend_reduce_double_array, &
       mpi_backend_reduce_real_scalar, mpi_backend_send_real_matrix, &
       mpi_backend_send_real_vector, swan_mpi_error_count, swan_mpi_success
    USE swan_service_interfaces, ONLY: MSGERR
@@ -934,6 +935,7 @@ MODULE M_PARALL
    PRIVATE :: mpi_backend_reduce_integer_array
    PRIVATE :: mpi_backend_reduce_integer_scalar
    PRIVATE :: mpi_backend_reduce_real_array, mpi_backend_reduce_real_scalar
+   PRIVATE :: mpi_backend_reduce_double_array
    PRIVATE :: mpi_backend_send_real_matrix, mpi_backend_send_real_vector
    PRIVATE :: swan_mpi_error_count, swan_mpi_success
 
@@ -943,7 +945,7 @@ MODULE M_PARALL
 !     datatype of the actual argument.
    INTERFACE SWREDUCE
       MODULE PROCEDURE SWREDUCE_I0, SWREDUCE_I1
-      MODULE PROCEDURE SWREDUCE_R0, SWREDUCE_R1
+      MODULE PROCEDURE SWREDUCE_R0, SWREDUCE_R1, SWREDUCE_D1
    end interface SWREDUCE
 
    INTERFACE SWBROADC
@@ -1137,6 +1139,16 @@ CONTAINS
       CALL mpi_backend_reduce_real_array(VALUES, ILEN, SWREAL, ITYPRD, IERR)
       CALL SWMPI_CHECK(IERR, 'MPI_ALLREDUCE')
    end subroutine SWREDUCE_R1
+
+   SUBROUTINE SWREDUCE_D1 ( VALUES, ILEN, ITYPRD )
+      REAL(KIND=8), INTENT(INOUT) :: VALUES(:)
+      INTEGER, INTENT(IN) :: ILEN, ITYPRD
+      INTEGER             :: IERR
+      IF (.NOT.PARLL) RETURN
+      IF (.NOT.SWVALID_COUNT(ILEN, SIZE(VALUES), 'SWREDUCE')) RETURN
+      CALL mpi_backend_reduce_double_array(VALUES, ILEN, ITYPRD, IERR)
+      CALL SWMPI_CHECK(IERR, 'MPI_ALLREDUCE')
+   end subroutine SWREDUCE_D1
 
    SUBROUTINE SWBROADC_I0 ( VALUE, ILEN )
       INTEGER, INTENT(INOUT) :: VALUE

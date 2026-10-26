@@ -60,7 +60,8 @@ module swan_numerics
        PNUMS_LCSAL    = 34, &  ! Csigma Courant limit: alpha
        PNUMS_LCTCON   = 35, &  ! Ctheta Courant limit on/off
        PNUMS_LCTAL    = 36, &  ! Ctheta Courant limit: alpha
-       PNUMS_BKDACC   = 37     ! BKD: accuraatheidsgrens waarboven MODGAM uit gaat
+       PNUMS_BKDACC   = 37, &  ! BKD: accuracy bound above which MODGAM is switched off
+       PNUMS_RESTOL   = 38     ! balance residual: <0 off, 0 measure only, >0 stopping threshold
 
    public :: PNUMS, NSTATC, NSTATM
    public :: ITERMX, MXITST, MXITNS
@@ -79,7 +80,7 @@ module swan_numerics
    public :: PNUMS_LCTPP, PNUMS_QBCOEF, PNUMS_LCTON, PNUMS_ALFA
    public :: PNUMS_GRADK
    public :: PNUMS_LCSON, PNUMS_LCSAL, PNUMS_LCTCON, PNUMS_LCTAL
-   public :: PNUMS_BKDACC
+   public :: PNUMS_BKDACC, PNUMS_RESTOL
 
 !     NSTATC : whether the computation itself is nonstationary
 !     NSTATM : whether the run has a time frame at all

@@ -85,9 +85,10 @@ measures how much Hs and the period still change from one iteration to the
 next, and under-relaxation (`ALFA`) makes that change small even when the
 solution is still far away. With `ALFA=0.01`, `quad_dia1` reports "accuracy OK
 in 100.00 %" after 40 iterations with Hs = 1.403 m at 25 km, while the same run
-carried on for about 1500 iterations ends at 1.923 m.
+carried on until the balance residual reaches rounding level ends at 1.923 m.
 The stored references therefore pin the code path, not the physical answer.
-See the convergence section of [AGENTS.md](../../AGENTS.md).
+See the convergence section of [AGENTS.md](../../AGENTS.md) and the
+[balance residual design](../../doc/balance-residual-design.md).
 
 Generated files are stored below `results/<variant>/`. The most useful summary
 products are:

@@ -2074,6 +2074,17 @@ CALL NWLINE
          CALL INREAL ('LIMITER', PNUMS(PNUMS_LIMGRW), 'UNC', 0.)
       END IF
 
+!       *** the iteration stops only once the defect of the action ***
+!       *** balance is below [rtol] as well (see                   ***
+!       *** swan_balance_residual)                                 ***
+
+      CALL INKEYW ('STA','  ')
+      IF (KEYWIS ('RESID')) THEN
+         CALL INREAL ('RTOL', PNUMS(PNUMS_RESTOL), 'REQ', 0.)
+         IF (PNUMS(PNUMS_RESTOL).LT.0.) CALL MSGERR (4,&
+         &'[rtol] of NUMERIC RESIDUAL must be non-negative')
+      ENDIF
+
 !       *** numerical scheme in directional space (standard  ***
 !       *** option implicit scheme)                          ***
 
