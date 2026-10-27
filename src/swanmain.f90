@@ -7055,7 +7055,8 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC, &
 !                 skip reading of values
                            CYCLE BP_LOOP
                         ELSE IF (HEDLIN(1:6).EQ.'FACTOR') THEN
-                           READ (NDSD, *) RFAC
+                           READ (NDSD, *, IOSTAT=IOSTATUS) RFAC
+                           IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
                            UFAC = UFAC * RFAC
 !                 multiply factor read from file by UFAC (factor following from
 !                 type of file)
@@ -7086,7 +7087,8 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC, &
                      CALL LSPLIT (HEDLIN, DATITM, 5)
                      CALL DTRETI (DATITM(1), BFILED(6), TIMF2)
                      DO II = 1, 4
-                        READ (DATITM(II+1), '(G12.0)') SPPARM(II)
+                        READ (DATITM(II+1), '(G12.0)', IOSTAT=IOSTATUS) SPPARM(II)
+                        IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
                      ENDDO
                      IF (ITEST.GE.60) WRITE (PRTEST, *) ' TPAR boundary ', &
                         TIMF2, (SPPARM(JJ), JJ=1,4)

@@ -6111,7 +6111,7 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
    CHARACTER(LEN=20) :: RVERTXT, RCHTIME
    INTEGER IID, IUNITAC
    INTEGER, SAVE :: IENT = 0
-   INTEGER :: ID, IINDX, IIOPT, ILPOS, INDX, IOPTG, IOSTAT
+   INTEGER :: ID, IINDX, IIOPT, ILPOS, INDX, IOPTG, IOSTAT, IOS
    INTEGER :: IP, IS, ISTAT, IX, IX1, IX2, IY, IY1, IY2
    INTEGER :: J, JX, JY, K, NQUA, NREF, NUMDIR, NUMFRE, NUMPTS
    REAL    ACTMP(MDC), DIRTMP(MDC), ACLOC(MDC,MSC)
@@ -6274,11 +6274,15 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
       IF (KEYWIS ('UNF') .OR. KEYWIS('BIN')) THEN
          CALL FOR (NREF, FILENM, 'OU', IOSTAT)
          IF (STPNOW()) RETURN
-         READ (NREF) RVERTXT
-         READ (NREF) RPROJID, RPROJNR
-         READ (NREF) ISTAT
+         READ (NREF, IOSTAT=IOS) RVERTXT
+         IF (read_failed()) RETURN
+         READ (NREF, IOSTAT=IOS) RPROJID, RPROJNR
+         IF (read_failed()) RETURN
+         READ (NREF, IOSTAT=IOS) ISTAT
+         IF (read_failed()) RETURN
          IF (ISTAT.EQ.1) THEN
-            READ (NREF) IIOPT
+            READ (NREF, IOSTAT=IOS) IIOPT
+            IF (read_failed()) RETURN
             IF (ITEST.GE.50) WRITE (PRTEST, "(' time coding option:', I2)") IIOPT
 !          in stationary mode, warning
             IF (NSTATM.EQ.0) CALL MSGERR (1, &
@@ -6288,13 +6292,15 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
             IF (NSTATM.EQ.1) CALL MSGERR (1, &
                'No time info in hotfile')
          ENDIF
-         READ (NREF) IOPTG
+         READ (NREF, IOSTAT=IOS) IOPTG
+         IF (read_failed()) RETURN
          IF (IOPTG.NE.OPTG) THEN
             CALL MSGERR (2, &
                'grid on hotstart file differs from one in CGRID command')
             WRITE (PRINTF, "(1X, 'gridtype = ',I1, ' gridtype on file = ',I1)") OPTG, IOPTG
          ENDIF
-         READ (NREF) NUMPTS
+         READ (NREF, IOSTAT=IOS) NUMPTS
+         IF (read_failed()) RETURN
          IF (NUMPTS.NE.NPTOT) THEN
             CALL MSGERR (2, &
                'grid on hotstart file differs from one in CGRID command')
@@ -6302,21 +6308,32 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
          ENDIF
          IF (ITEST.GE.50) WRITE (PRTEST, "(1X, I8, '  output locations')") NUMPTS
          DO IP = 1, NUMPTS
-            READ (NREF) XX, YY
+            READ (NREF, IOSTAT=IOS) XX, YY
+            IF (read_failed()) RETURN
          ENDDO
-         READ (NREF) NUMFRE
+         READ (NREF, IOSTAT=IOS) NUMFRE
+         IF (read_failed()) RETURN
          IF (NUMFRE.NE.MSC) CALL MSGERR (2, &
             'grid on hotstart file differs from one in CGRID command')
          IF (ITEST.GE.50) WRITE (PRTEST, "(1X, I6, '  frequencies')") NUMFRE
          DO IP = 1, NUMFRE
-            READ (NREF) FF
+            READ (NREF, IOSTAT=IOS) FF
+            IF (read_failed()) RETURN
          ENDDO
-         READ (NREF) NUMDIR
+         READ (NREF, IOSTAT=IOS) NUMDIR
+         IF (read_failed()) RETURN
          IF (NUMDIR.NE.MDC) CALL MSGERR (2, &
             'grid on hotstart file differs from one in CGRID command')
+!        the directions are read into DIRTMP(MDC); more would write past it
+         IF (NUMDIR.GT.MDC) THEN
+            CALL MSGERR (4, 'hotstart file '//TRIM(FILENM)// &
+               ' has more directions than the computational grid')
+            RETURN
+         ENDIF
          IF (ITEST.GE.50) WRITE (PRTEST, "(1X, I6, '  directions')") NUMDIR
          DO IP = 1, NUMDIR
-            READ (NREF) DIRTMP(IP)
+            READ (NREF, IOSTAT=IOS) DIRTMP(IP)
+            IF (read_failed()) RETURN
          ENDDO
          IF (ABS(DIRTMP(1)*PI/180.-SPCDIR(1,1)).GT.0.5*DDIR) &
             IID = NINT(REAL(MDC)*(DIRTMP(1)-ALPC)/360.)
@@ -6324,7 +6341,8 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
 !        reading of heading is completed, read time if nonstationary
 
          IF (IIOPT.GE.0) THEN
-            READ (NREF) RCHTIME
+            READ (NREF, IOSTAT=IOS) RCHTIME
+            IF (read_failed()) RETURN
             CALL DTRETI (RCHTIME, IIOPT, default_time_context%TIMCO)
             WRITE (PRINTF, "(' initial condition read for time: ', A)") RCHTIME
          ENDIF
@@ -6354,7 +6372,8 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
                      IF (IAMMASTER) READ (NREF) IINDX
                      CALL SWBROADC (IINDX,1)
                   ELSE
-                     READ (NREF) IINDX
+                     READ (NREF, IOSTAT=IOS) IINDX
+                     IF (read_failed()) RETURN
                   ENDIF
                   INDX = KGRPNT(IX,IY)
                   IF (INDX.EQ.1 .AND. PTNSUBGRD) THEN
@@ -6379,7 +6398,8 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
                            CALL SWBROADC (ACLOC,MDC*MSC)
                            IF (PTNSUBGRD) AC2(:,:,INDX) = ACLOC(:,:)
                         ELSE
-                           READ (NREF) AC2(:,:,INDX)
+                           READ (NREF, IOSTAT=IOS) AC2(:,:,INDX)
+                           IF (read_failed()) RETURN
                         ENDIF
                      ENDIF
                   ENDIF
@@ -6390,24 +6410,29 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
 !        --- unstructured grids
 
             DO K = 1, nverts
-               READ (NREF) AC2(:,:,K)
+               READ (NREF, IOSTAT=IOS) AC2(:,:,K)
+               IF (read_failed()) RETURN
             ENDDO
          ENDIF
       ELSE
          CALL IGNORE ('FREE')
          CALL FOR (NREF, FILENM, 'OF', IOSTAT)
          IF (STPNOW()) RETURN
-         READ (NREF, "(A)") RLINE
+         READ (NREF, "(A)", IOSTAT=IOS) RLINE
+         IF (read_failed()) RETURN
          IF (RLINE(1:4).NE.'SWAN') CALL MSGERR (3, FILENM// &
             ' is not a correct hotstart file')
          DO
-            READ (NREF, "(A)") RLINE
+            READ (NREF, "(A)", IOSTAT=IOS) RLINE
+            IF (read_failed()) RETURN
             IF (RLINE(1:1).NE.default_command_reader%COMID .AND. RLINE(1:1).NE.'!') EXIT
          END DO
          IF (EQCSTR(RLINE,'TIME')) THEN
-            READ (NREF, *) IIOPT
+            READ (NREF, *, IOSTAT=IOS) IIOPT
+            IF (read_failed()) RETURN
             IF (ITEST.GE.50) WRITE (PRTEST, "(' time coding option:', I2)") IIOPT
-            READ (NREF, "(A)") RLINE
+            READ (NREF, "(A)", IOSTAT=IOS) RLINE
+            IF (read_failed()) RETURN
 !          in stationary mode, warning
             IF (NSTATM.EQ.0) CALL MSGERR (1, &
                'Time info in hotfile ignored')
@@ -6417,7 +6442,8 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
                'No time info in hotfile')
          ENDIF
          IF (EQCSTR(RLINE,'LOCA') .OR. EQCSTR(RLINE,'LONLAT')) THEN
-            READ (NREF, *) NUMPTS
+            READ (NREF, *, IOSTAT=IOS) NUMPTS
+            IF (read_failed()) RETURN
             IF (NUMPTS.NE.NPTOT) THEN
                CALL MSGERR (2, &
                   'grid on hotstart file differs from one in CGRID command')
@@ -6425,44 +6451,63 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
             ENDIF
             IF (ITEST.GE.50) WRITE (PRTEST, "(1X, I8, '  output locations')") NUMPTS
             DO IP = 1, NUMPTS
-               READ (NREF, *)
+               READ (NREF, *, IOSTAT=IOS)
+               IF (read_failed()) RETURN
             ENDDO
-            READ (NREF, "(A)") RLINE
+            READ (NREF, "(A)", IOSTAT=IOS) RLINE
+            IF (read_failed()) RETURN
          ENDIF
          IF (EQCSTR(RLINE(2:5),'FREQ')) THEN
-            READ (NREF, *) NUMFRE
+            READ (NREF, *, IOSTAT=IOS) NUMFRE
+            IF (read_failed()) RETURN
             IF (NUMFRE.NE.MSC) CALL MSGERR (2, &
                'grid on hotstart file differs from one in CGRID command')
             IF (ITEST.GE.50) WRITE (PRTEST, "(1X, I6, '  frequencies')") NUMFRE
             DO IP = 1, NUMFRE
-               READ (NREF, *)
+               READ (NREF, *, IOSTAT=IOS)
+               IF (read_failed()) RETURN
             ENDDO
-            READ (NREF, "(A)") RLINE
+            READ (NREF, "(A)", IOSTAT=IOS) RLINE
+            IF (read_failed()) RETURN
          ENDIF
          IF (EQCSTR(RLINE(2:4),'DIR')) THEN
-            READ (NREF, *) NUMDIR
+            READ (NREF, *, IOSTAT=IOS) NUMDIR
+            IF (read_failed()) RETURN
             IF (NUMDIR.NE.MDC) CALL MSGERR (2, &
                'grid on hotstart file differs from one in CGRID command')
+!           the directions are read into DIRTMP(MDC); more would write past it
+            IF (NUMDIR.GT.MDC) THEN
+               CALL MSGERR (4, 'hotstart file '//TRIM(FILENM)// &
+                  ' has more directions than the computational grid')
+               RETURN
+            ENDIF
             IF (ITEST.GE.50) WRITE (PRTEST, "(1X, I6, '  directions')") NUMDIR
             DO IP = 1, NUMDIR
-               READ (NREF, *) DIRTMP(IP)
+               READ (NREF, *, IOSTAT=IOS) DIRTMP(IP)
+               IF (read_failed()) RETURN
             ENDDO
             IF (ABS(DIRTMP(1)*PI/180.-SPCDIR(1,1)).GT.0.5*DDIR) &
                IID = NINT(REAL(MDC)*(DIRTMP(1)-ALPC)/360.)
-            READ (NREF, "(A)") RLINE
+            READ (NREF, "(A)", IOSTAT=IOS) RLINE
+            IF (read_failed()) RETURN
          ENDIF
-         READ (NREF, *) NQUA
+         READ (NREF, *, IOSTAT=IOS) NQUA
+         IF (read_failed()) RETURN
          IF (NQUA.NE.1) CALL MSGERR(2,'NQUA>1: incorrect hotstart file')
-         READ (NREF, "(A)") RLINE
+         READ (NREF, "(A)", IOSTAT=IOS) RLINE
+         IF (read_failed()) RETURN
          IF (ITEST.GE.50) WRITE (PRTEST, "(1X, 'quantity: ', A)") RLINE
-         READ (NREF, "(A)") RLINE
+         READ (NREF, "(A)", IOSTAT=IOS) RLINE
+         IF (read_failed()) RETURN
          IF (EQCSTR(RLINE(3:3),'S')) IUNITAC = 1
-         READ (NREF, "(A)") RLINE
+         READ (NREF, "(A)", IOSTAT=IOS) RLINE
+         IF (read_failed()) RETURN
 
 !        reading of heading is completed, read time if nonstationary
 
          IF (IIOPT.GE.0) THEN
-            READ (NREF, "(A)") RLINE
+            READ (NREF, "(A)", IOSTAT=IOS) RLINE
+            IF (read_failed()) RETURN
             CALL DTRETI (RLINE(1:18), IIOPT, default_time_context%TIMCO)
             WRITE (PRINTF, "(' initial condition read for time: ', A)") RLINE(1:18)
          ENDIF
@@ -6488,7 +6533,8 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
                      (MXF.GT.JX .OR. MXL.LT.JX .OR.MYF.GT.JY .OR. MYL.LT.JY)) &
                      PTNSUBGRD = .FALSE.
 
-                  READ (NREF, "(A)") RLINE
+                  READ (NREF, "(A)", IOSTAT=IOS) RLINE
+                  IF (read_failed()) RETURN
                   INDX = KGRPNT(IX,IY)
                   IF (INDX.EQ.1 .AND. PTNSUBGRD) THEN
                      IF (RLINE(1:6).NE.'NODATA') THEN
@@ -6508,14 +6554,16 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
                         ENDIF
                      ELSE
 !                 first determine factor
-                        READ (NREF, *) AFAC
+                        READ (NREF, *, IOSTAT=IOS) AFAC
+                        IF (read_failed()) RETURN
 !                 multiply with factor to account for transition from     40.00
 !                 energy/Hz/degr to energy/(2*pi rad/s)/rad
                         AFAC = AFAC * 90. / (PI**2)
                         DO IS = 1, MSC
                            AFAC1 = AFAC/SPCSIG(IS)
 !                   Read spectral energy densities from file
-                           READ (NREF, *) (ACTMP(ID), ID=1,MDC)
+                           READ (NREF, *, IOSTAT=IOS) (ACTMP(ID), ID=1,MDC)
+                           IF (read_failed()) RETURN
                            IF (.NOT.PTNSUBGRD) CYCLE
                            IF (IUNITAC.EQ.1) THEN
                               DO ID = 1, MDC
@@ -6539,7 +6587,8 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
 !        --- unstructured grids                                           40.80
 
             DO K = 1, nverts
-               READ (NREF, "(A)") RLINE
+               READ (NREF, "(A)", IOSTAT=IOS) RLINE
+               IF (read_failed()) RETURN
                IF (EQCSTR(RLINE,'NODATA') .OR. EQCSTR(RLINE,'ZERO')) THEN
                   DO IS = 1, MSC
                      DO ID = 1, MDC
@@ -6549,14 +6598,16 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
                   IF (ITEST.GE.150) WRITE (PRTEST, "(' zero spectrum or no data for vertex:', I6)") K
                ELSE
 !                first determine factor
-                  READ (NREF, *) AFAC
+                  READ (NREF, *, IOSTAT=IOS) AFAC
+                  IF (read_failed()) RETURN
 !                multiply with factor to account for transition from
 !                energy/Hz/degr to energy/(rad/s)/rad
                   AFAC = AFAC * 90. / (PI**2)
                   DO IS = 1, MSC
                      AFAC1 = AFAC/SPCSIG(IS)
 !                   Read spectral energy densities from file
-                     READ (NREF, *) (ACTMP(ID), ID=1,MDC)
+                     READ (NREF, *, IOSTAT=IOS) (ACTMP(ID), ID=1,MDC)
+                     IF (read_failed()) RETURN
                      IF (IUNITAC.EQ.1) THEN
                         DO ID = 1, MDC
                            J = MOD ( IID - 1 + ID , MDC ) + 1
@@ -6581,6 +6632,17 @@ SUBROUTINE INITVA( AC2, SPCSIG, SPCDIR, KGRPNT )
       ICOND = 1
    ENDIF
    RETURN
+
+CONTAINS
+
+!  An empty, truncated or garbled hotstart file used to stop with a
+!  Fortran runtime error at the first READ that ran out of data
+LOGICAL FUNCTION read_failed()
+   read_failed = IOS.NE.0
+   IF (read_failed) CALL MSGERR (4, 'hotstart file '//TRIM(FILENM)// &
+      ' ends early or contains unreadable data')
+END FUNCTION read_failed
+
 !     end of subr INITVA
 end subroutine INITVA
 !*******************************************************************

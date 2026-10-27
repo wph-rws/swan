@@ -4320,7 +4320,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
 !  6. Local variables
 
    INTEGER :: ISTATF, NDSL, NDSD, IOSTAT, IERR, NBOUNC, NANG, NFRE
-   INTEGER :: IBOUNC, DORDER
+   INTEGER :: IBOUNC, DORDER, IOS
    INTEGER, SAVE :: IENT = 0
    INTEGER :: IOPTT
    INTEGER :: NHEDF, NHEDT, NHEDS, IFRE , IANG
@@ -4409,7 +4409,8 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
    BSPFIL%BFILED = 0
 
 !     start reading from the data file
-   READ (NDSD, '(A)') HEDLIN
+   READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+   IF (read_failed()) RETURN
    IF (EQCSTR(HEDLIN,'TPAR')) THEN
       BTYPE  = 'TPAR'
       ISTATF = 1
@@ -4429,7 +4430,8 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
    ELSE IF (EQCSTR(HEDLIN,'SWAN')) THEN
       NHEDF  = 0
       DO
-         READ (NDSD, '(A)') HEDLIN
+         READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+         IF (read_failed()) RETURN
          IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
 !        skip heading lines starting with comment sign
          IF (HEDLIN(1:1).NE.default_command_reader%COMID .AND. HEDLIN(1:1).NE.'!') EXIT
@@ -4441,8 +4443,10 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
          NSTATM = 1
          ISTATF = 1
          BTYPE = 'SWNT'
-         READ (NDSD, *) IOPTT
-         READ (NDSD, '(A)') HEDLIN
+         READ (NDSD, *, IOSTAT=IOS) IOPTT
+         IF (read_failed()) RETURN
+         READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+         IF (read_failed()) RETURN
          IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
          NHEDF = 2
          NHEDT = 1
@@ -4467,11 +4471,14 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
          CCOORD = .FALSE.
       ENDIF
       IF (CCOORD) THEN
-         READ (NDSD, *) NBOUNC
+         READ (NDSD, *, IOSTAT=IOS) NBOUNC
+         IF (read_failed()) RETURN
 
          DO IBOUNC = 1, NBOUNC
             IERR = 0
             CALL REFIXY (NDSD, XP, YP, IERR)
+            IOS = IERR
+            IF (read_failed()) RETURN
             IF (ITEST.GE.80) THEN
                WRITE (PRTEST, *) ' B. spectrum ', IBOUNC, XP+XOFFS, &
                   YP+YOFFS, IERR
@@ -4504,7 +4511,8 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
 
          NHEDF = NHEDF + 2 + NBOUNC
          IF (ITEST.GE.60) WRITE (PRTEST,"(I6, ' boundary locations')") NBOUNC
-         READ (NDSD, '(A)') HEDLIN
+         READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+         IF (read_failed()) RETURN
          IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
       ELSE
          IF (BCTYPE .EQ. 'NEST') THEN
@@ -4517,30 +4525,44 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
 !
 !       number of spectral frequencies
       IF (EQCSTR(HEDLIN(2:5),'FREQ')) THEN
-         READ (NDSD, *) NFRE
+         READ (NDSD, *, IOSTAT=IOS) NFRE
+         IF (read_failed()) RETURN
+         IF (NFRE.LT.1) THEN
+            CALL MSGERR (4, 'no frequencies in boundary file '//TRIM(FBCNAM))
+            RETURN
+         ENDIF
          ALLOCATE(BSPFIL%BSPFRQ(NFRE))
          DO IFRE = 1, NFRE
 !           read frequency in Hz and convert to radians/sec
-            READ (NDSD, *) FREQHZ
+            READ (NDSD, *, IOSTAT=IOS) FREQHZ
+            IF (read_failed()) RETURN
             BSPFIL%BSPFRQ(IFRE) = PI2 * FREQHZ
          ENDDO
-         READ (NDSD, '(A)') HEDLIN
+         READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+         IF (read_failed()) RETURN
          IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
          NHEDF = NHEDF + 2 + NFRE
       ELSE
-         NFRE = 0
-         IF (BCTYPE.EQ.'NEST') THEN
-            CALL MSGERR (3, 'file is not a true nesting file')
-         ENDIF
+!         without frequencies the spectra on the file cannot be read or
+!         interpolated (BSPFRQ stays unallocated)
+         CALL MSGERR (4, 'no frequencies in boundary file '//TRIM(FBCNAM))
+         RETURN
       ENDIF
       IF (ITEST.GE.60) WRITE (PRTEST,"(I6, ' boundary frequencies')") NFRE
 !       number of spectral directions
       IF (EQCSTR(HEDLIN(2:4),'DIR')) THEN
-         READ (NDSD, *) NANG
+         READ (NDSD, *, IOSTAT=IOS) NANG
+         IF (read_failed()) RETURN
+         IF (NANG.LT.0) THEN
+            CALL MSGERR (4, 'negative number of directions in boundary file '// &
+               TRIM(FBCNAM))
+            RETURN
+         ENDIF
          ALLOCATE(BSPFIL%BSPDIR(NANG))
          DO IANG = 1, NANG
 !           read direction in degr and convert to radians
-            READ (NDSD, *) DIRDEG
+            READ (NDSD, *, IOSTAT=IOS) DIRDEG
+            IF (read_failed()) RETURN
             IF (EQCSTR(HEDLIN,'N')) THEN
                DIRDEG = 180. + DNORTH - DIRDEG
             ENDIF
@@ -4573,7 +4595,8 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
                BSPFIL%BSPDIR(IANG) = DIRRAD
             ENDIF
          ENDDO
-         READ (NDSD, '(A)') HEDLIN
+         READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+         IF (read_failed()) RETURN
          IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
          NHEDF = NHEDF + 2 + NANG
          NHEDS = 1
@@ -4588,14 +4611,16 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
 !       read quantities (name, unit, exc. value)
 
       IF (EQCSTR(HEDLIN,'QUANT')) THEN
-         READ (NDSD, *) NQUANT
+         READ (NDSD, *, IOSTAT=IOS) NQUANT
+         IF (read_failed()) RETURN
          IF (.NOT.((NQUANT.EQ.1 .AND. NANG.GT.0) .OR. &
             (NQUANT.EQ.3 .AND. NANG.EQ.0))) THEN
             CALL MSGERR (2, 'incompatible data on b.c. file')
             WRITE (PRINTF, "(I3, ' quantities; ', I5, ' directions')") NQUANT, NANG
          ENDIF
          DO IQUANT = 1, NQUANT
-            READ (NDSD, '(A)') HEDLIN
+            READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+            IF (read_failed()) RETURN
 !           if first quantity is 'EnDens' divide by Rho*Grav
             IF (IQUANT.EQ.1) THEN
                IF ( EQCSTR(HEDLIN,'ENDENS')) THEN
@@ -4640,7 +4665,8 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
                ENDIF
             ENDIF
 !           check Unit and Exception value
-            READ (NDSD, '(A)') HEDLIN
+            READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+            IF (read_failed()) RETURN
             IF (IQUANT.EQ.3 .AND. EQCSTR(HEDLIN,'DEGR')) THEN
                IF (BSPFIL%BFILED(19).NE.1) THEN
                   CALL MSGERR (2, 'incompatible options in boundary file')
@@ -4648,10 +4674,12 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
                ENDIF
             ENDIF
             IF (IQUANT.EQ.1) THEN
-               READ (NDSD, *) EXCV
+               READ (NDSD, *, IOSTAT=IOS) EXCV
+               IF (read_failed()) RETURN
                BSPFIL%BFILED(11) = NINT(EXCV)
             ELSE
-               READ (NDSD, '(A)') HEDLIN
+               READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+               IF (read_failed()) RETURN
             END IF
          ENDDO
          NHEDF = NHEDF + 2 + 3*NQUANT
@@ -4700,6 +4728,17 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL, &
       (BSPFIL%BFILED(II), II=1,16)
 
    RETURN
+
+CONTAINS
+
+!  An empty, truncated or garbled file used to stop with a Fortran
+!  runtime error at the first READ that ran out of data
+LOGICAL FUNCTION read_failed()
+   read_failed = IOS.NE.0
+   IF (read_failed) CALL MSGERR (4, 'boundary file '//TRIM(FBCNAM)// &
+      ' ends early or contains unreadable data')
+END FUNCTION read_failed
+
 !     end of subroutine BCFILE
 end subroutine BCFILE
 !*********************************************************************

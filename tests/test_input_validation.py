@@ -663,9 +663,21 @@ def test_deck_without_bottom_stops_cleanly(tmp_path, removed, message):
 #  with exit code 0; most did so upstream too. The requirement is that SWAN
 #  stops with a message in PRINT and exit code 1. Where the message is a
 #  stop error, the run uses SET MAXERR 3: then it may not continue either.
+BOUNDARY_SPECTRUM_WITHOUT_FREQUENCIES = "SWAN   1\ngarbage\n1 2 3\n"
+BOUNDARY_SPECTRUM_TEXT_AS_FACTOR = ONE_DIRECTION_SPECTRUM.replace(
+    "NDIR\n     1\n  270.0", "NDIR\n     2\n  180.0\n  270.0").replace(
+    "FACTOR\n  1.0\n  0.5\n  1.0\n  0.5\n",
+    "FACTOR\n  abc\n  0.5 0.5\n  1.0 1.0\n  0.5 0.5\n")
+
+HOTSTART_30_DIRECTIONS = ("SWAN   1\nLOCATIONS\n     1\n   0.0  500.0\n"
+                          "AFREQ\n     3\n  0.1\n  0.2\n  0.3\nNDIR\n     30\n"
+                          + "".join(f"  {12.0 * i:.1f}\n" for i in range(30))
+                          + "QUANT\n     1\nVaDens\nm2/Hz/degr\n   -99.0\n")
+
 CGRID = "CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 20 10 CIRCLE 24 0.05 1.0 16"
 INPGRID = "INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0"
 READINP = "READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE"
+BOUNDARY = "BOUNDSPEC SIDE WEST CONSTANT PAR 1.0 6.0 270.0 20.0"
 BLOCK = "BLOCK 'COMPGRID' NOHEADER 'quick_test_hs.blk' LAYOUT 3 HSIGN"
 
 FAULTY_INPUT = [
@@ -719,6 +731,23 @@ FAULTY_INPUT = [
     pytest.param([(BLOCK, BLOCK.replace("'quick_test_hs.blk'", "'notthere/hs.blk'"))], {},
                  "File open failed, filename: notthere/hs.blk", True,
                  id="BF-49-output-directory-missing"),
+    # BF-50: boundary spectra and hotstart files that are empty, truncated or unreadable
+    pytest.param([(BOUNDARY, "BOUNDSPEC SIDE WEST CONSTANT FILE 'boundary.sp2'")], {"boundary.sp2": ""},
+                 "boundary file boundary.sp2 ends early", True, id="BF-50-empty-boundary-file"),
+    pytest.param([(BOUNDARY, "BOUNDNEST1 NEST 'boundary.sp2' CLOSED")], {"boundary.sp2": ""},
+                 "boundary file boundary.sp2 ends early", True, id="BF-50-empty-nest-file"),
+    pytest.param([(BOUNDARY, "BOUNDSPEC SIDE WEST CONSTANT FILE 'boundary.sp2'")],
+                 {"boundary.sp2": BOUNDARY_SPECTRUM_WITHOUT_FREQUENCIES},
+                 "no frequencies in boundary file boundary.sp2", True, id="BF-50-no-frequencies"),
+    pytest.param([(BOUNDARY, "BOUNDSPEC SIDE WEST CONSTANT FILE 'boundary.sp2'")],
+                 {"boundary.sp2": BOUNDARY_SPECTRUM_TEXT_AS_FACTOR},
+                 "error reading data from boundary file", True, id="BF-50-text-as-factor"),
+    pytest.param([("GEN3 KOMEN", "GEN3 KOMEN\nINITIAL HOTSTART 'empty.hot'")], {"empty.hot": ""},
+                 "hotstart file empty.hot ends early", True, id="BF-50-empty-hotstart"),
+    pytest.param([("GEN3 KOMEN", "GEN3 KOMEN\nINITIAL HOTSTART 'wide.hot'")],
+                 {"wide.hot": HOTSTART_30_DIRECTIONS},
+                 "has more directions than the computational grid", True,
+                 id="BF-50-hotstart-more-directions"),
 ]
 
 
@@ -791,6 +820,19 @@ def test_unknown_readinp_quantity_is_dropped(tmp_path, maxerr):
     assert proc.returncode == (1 if maxerr == 1 else 0)
     if maxerr == 3:
         assert (tmp_path / "work" / "quick_test_center.tbl").exists()
+
+
+@pytest.mark.parametrize("branch", ["CONSTANT", "VARIABLE"])
+@pytest.mark.parametrize("maxerr", [1, 2])
+def test_directional_spread_check_covers_both_parameter_branches(tmp_path, branch, maxerr):
+    deck = _quick_deck().replace("SET NAUTICAL", f"SET MAXERR {maxerr} NAUTICAL")
+    replacement = "BOUNDSPEC SIDE WEST " + ("CONSTANT PAR 1 6 270 5" if branch == "CONSTANT"
+                    else "VARIABLE PAR 0 1 6 270 5 1000 1 6 270 5")
+    deck = deck.replace(BOUNDARY, replacement)
+    proc, report = _run_deck(tmp_path, deck)
+    assert report.count("directional spreading too narrow to be represented properly") == 1
+    assert proc.returncode == (1 if maxerr == 1 else 0)
+    assert (tmp_path / "work" / "quick_test_center.tbl").exists() == (maxerr == 2)
 
 
 def test_st6_returns_finite_roughness_at_boundary_points(tmp_path):
