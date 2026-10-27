@@ -702,6 +702,11 @@ FAULTY_INPUT = [
                   (INPGRID + "\n", ""), (READINP + "\n", "")], {},
                  "read the unstructured grid (READGRID UNSTRUC) before boundary commands",
                  True, id="BF-47-unstructured"),
+    # BF-48: an input grid without meshes or with zero mesh size
+    pytest.param([(INPGRID, INPGRID.replace("1 1 2000.0", "0 1 2000.0"))], {},
+                 "[mxinp] in INPGRID must be at least 1", True, id="BF-48-mxinp"),
+    pytest.param([(INPGRID, INPGRID.replace("2000.0 1000.0", "0.0 1000.0"))], {},
+                 "[dxinp] and [dyinp] in INPGRID must be positive", True, id="BF-48-dxinp"),
 ]
 
 

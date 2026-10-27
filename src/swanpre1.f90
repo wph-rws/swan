@@ -4225,6 +4225,20 @@ SUBROUTINE SINPGR (IGRID1, IGRID2, SNAMEG)
       CALL INREAL ('DXINP',DXG(IGRID1),'RQI',0.)
       CALL INREAL ('DYINP',DYG(IGRID1),'STA',DXG(IGRID1))
 
+!       The interpolation (SVALQI) divides by the mesh sizes and needs two
+!       points in x-direction; otherwise it reads outside the field
+      IF (MXG(IGRID1).LT.2 .OR. MYG(IGRID1).LT.1) THEN
+         CALL MSGERR (4, &
+            '[mxinp] in INPGRID must be at least 1, [myinp] at least 0')
+         RETURN
+      ENDIF
+      IF (.NOT.(DXG(IGRID1).GT.0.) .OR. &
+         (MYG(IGRID1).GT.1 .AND. .NOT.(DYG(IGRID1).GT.0.))) THEN
+         CALL MSGERR (4, &
+            '[dxinp] and [dyinp] in INPGRID must be positive')
+         RETURN
+      ENDIF
+
    ENDIF
 
 !     exception values for input variables                                30.60
