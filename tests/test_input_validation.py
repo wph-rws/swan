@@ -912,6 +912,33 @@ def test_st6_returns_finite_roughness_at_boundary_points(tmp_path):
     assert values[::21] == pytest.approx([.0001026]*11, rel=.001)
 
 
+#  BF-54: after BOUNDSPEC SEGMENT on an unstructured grid SWAN checked whether the
+#  boundary point found has a boundary marker, with `IX2.GT.0 .AND. vert(IX2)...`.
+#  Fortran does not promise that the right-hand side of .AND. is skipped, so
+#  `vert` could be read outside the table for a point outside the grid
+#  (IX2 = -1), for vertex 0 and for a vertex number above the number of
+#  vertices; with runtime checks that did happen, and in a release build
+#  SWAN crashed before anything reached PRINT. Upstream has this too. With
+#  the fix every build must give the message.
+@pytest.mark.parametrize("segment, message", [
+    ("SEGMENT XY -5000.0 500.0 0.0 1000.0", "not part of computational grid"),
+    ("SEGMENT IJ 0 1", "0 is not a valid vertex index"),
+    ("SEGMENT IJ 99 1", "99 is not a valid vertex index"),
+], ids=["xy-outside-grid", "ij-vertex-0", "ij-vertex-too-large"])
+def test_boundary_segment_outside_unstructured_grid(tmp_path, segment, message):
+    deck = (UNSTRUCTURED / "nonstationary_unstructured.swn").read_text()
+    old = "BOUNDSPEC SIDE 1 CONSTANT"
+    assert old in deck, "example deck has changed shape"
+    deck = deck.replace(old, f"BOUNDSPEC {segment} CONSTANT", 1)
+    files = {f"nonstationary_unstructured.{ext}":
+             (UNSTRUCTURED / f"nonstationary_unstructured.{ext}").read_text()
+             for ext in ("node", "ele")}
+    files["wind.wnd"] = (UNSTRUCTURED / "wind.wnd").read_text()
+    result, report = _run_deck(tmp_path, deck, files, timeout=60)
+    assert "Fortran runtime error" not in result.stderr, result.stderr[-2000:]
+    assert message in report, report[-2000:]
+
+
 #  BF-53: the readers of Triangle and ADCIRC grids used the number
 #  on each line as an index into the node and element tables, and nobody
 #  checked whether a triangle pointed to existing, distinct nodes.

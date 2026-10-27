@@ -2943,12 +2943,12 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             DO IPP = 1, K
                DO IP = 1, NB
                   II = blist(IP,IPP)
-                  IF (.NOT.PARLL) THEN
-                     VM = vmark(II)
-                  ELSE
-                     VM = bmark(IP,IPP)
-                  ENDIF
                   IF ( II.GT.0 ) THEN
+                     IF (.NOT.PARLL) THEN
+                        VM = vmark(II)
+                     ELSE
+                        VM = bmark(IP,IPP)
+                     ENDIF
                      KOUNTR = KOUNTR + 1
                      WRITE(PRTEST,'(A,2I7,2F18.9,I7)') &
                         ' I, BLIST(I), X, Y, bound marker ', &
@@ -3361,11 +3361,16 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                         ') not part of computational grid'
                      CALL MSGERR( 2, TRIM(MSGSTR) )
                   ENDIF
-                  IF ( IX2.GT.0 .AND. vert(IX2)%atti(VMARKER) /= 1 ) THEN
-                     WRITE (MSGSTR, '(A,F12.4,A,F12.4,A)') &
-                        ' Vertex (',XP+XOFFS,',',YP+YOFFS, &
-                        ') is not a valid boundary point'
-                     CALL MSGERR( 2, TRIM(MSGSTR) )
+!                 IX2 is -1 for a point outside (this part of) the grid;
+!                 Fortran does not promise that the right-hand side of .AND. is
+!                 skipped
+                  IF ( IX2.GT.0 ) THEN
+                     IF ( vert(IX2)%atti(VMARKER) /= 1 ) THEN
+                        WRITE (MSGSTR, '(A,F12.4,A,F12.4,A)') &
+                           ' Vertex (',XP+XOFFS,',',YP+YOFFS, &
+                           ') is not a valid boundary point'
+                        CALL MSGERR( 2, TRIM(MSGSTR) )
+                     ENDIF
                   ENDIF
                ENDIF
             ELSE
@@ -3390,10 +3395,14 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                   ELSE
                      IX2 = IXG2
                   ENDIF
-                  IF ( IX2.GT.0 .AND. vert(IX2)%atti(VMARKER) /= 1 ) THEN
-                     WRITE (MSGSTR,'(A,I4,A)') ' Vertex with index ',IXG2, &
-                        ' is not a valid boundary point'
-                     CALL MSGERR( 2, TRIM(MSGSTR) )
+!                 IX2 is -1 for a vertex of another subdomain and can
+!                 serially be 0 or larger than nverts (already reported above)
+                  IF ( IX2.GT.0 .AND. IX2.LE.nverts ) THEN
+                     IF ( vert(IX2)%atti(VMARKER) /= 1 ) THEN
+                        WRITE (MSGSTR,'(A,I4,A)') ' Vertex with index ',IXG2, &
+                           ' is not a valid boundary point'
+                        CALL MSGERR( 2, TRIM(MSGSTR) )
+                     ENDIF
                   ENDIF
                ENDIF
             ENDIF
@@ -3445,13 +3454,17 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             ELSE
 !           --- unstructured grid                                         40.80
 
-               IF (LFRST1) THEN
-                  IF ( IX2.GT.0 ) THEN
-                     JBG = vert(IX2)%atti(BPOL)
-                  ELSE
-                     JBG = -1
-                  ENDIF
-                  CALL SWREDUCE( JBG, 1, SWMAX )
+!              a point that was reported above as invalid (outside the
+!              grid or not a boundary point) yields no piece of segment; the
+!              next point starts a new segment
+               JBG = -1
+               IF ( IX2.GT.0 .AND. IX2.LE.nverts ) THEN
+                  JBG = vert(IX2)%atti(BPOL)
+               ENDIF
+               CALL SWREDUCE( JBG, 1, SWMAX )
+               IF ( JBG.LE.0 ) THEN
+                  LFRST1 = .TRUE.
+               ELSE IF (LFRST1) THEN
                   ITMP = MINLOC(ABS(blist(:,JBG)-IXG2))
                   IXB1 = ITMP(1)
                   DET  = 1.
@@ -3520,43 +3533,45 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                      IXB1 = nbpt(JBG)-MOD(nbpt(JBG)+1-IXB1,nbpt(JBG))
                   ENDIF
                ENDIF
-               ITMP = MINLOC(ABS(blist(:,JBG)-IXG2))
-               IXB2 = ITMP(1)
+               IF ( JBG.GT.0 ) THEN
+                  ITMP = MINLOC(ABS(blist(:,JBG)-IXG2))
+                  IXB2 = ITMP(1)
 
 !              determine order of counting
-               IF (IXB1.GT.IXB2 ) THEN
-                  IF (DET.LT.0.) THEN
-                     IXI  = -1
+                  IF (IXB1.GT.IXB2 ) THEN
+                     IF (DET.LT.0.) THEN
+                        IXI  = -1
+                     ELSE
+                        IXI  = 1
+                        IXB2 = IXB2+nbpt(JBG)
+                     ENDIF
                   ELSE
-                     IXI  = 1
-                     IXB2 = IXB2+nbpt(JBG)
+                     IF (DET.GT.0.) THEN
+                        IXI  = 1
+                     ELSE
+                        IXI  = -1
+                        IXB1 = IXB1+nbpt(JBG)
+                     ENDIF
                   ENDIF
-               ELSE
-                  IF (DET.GT.0.) THEN
-                     IXI  = 1
-                  ELSE
-                     IXI  = -1
-                     IXB1 = IXB1+nbpt(JBG)
-                  ENDIF
-               ENDIF
 
-               DO IPP = IXB1, IXB2, IXI
-                  IP = MOD(IPP,nbpt(JBG))
-                  IF (IP.EQ.0) IP = nbpt(JBG)
-                  IXG  = blist(IP,JBG)
-                  ITMP = MINLOC(ABS(bvertg(:,2)-IXG))
-                  K    = ITMP(1)
-                  IF ( bvertg(K,2) == IXG ) THEN
-                     IX = bvertg(K,1)
-                     vert(IX)%atti(VBC) = 1
-                  ENDIF
-                  KOUNTR = KOUNTR + 1
-                  ALLOCATE(TMP)
-                  TMP%JX = IXG
-                  NULLIFY(TMP%NEXTXY)
-                  CURR%NEXTXY => TMP
-                  CURR => TMP
-               ENDDO
+                  DO IPP = IXB1, IXB2, IXI
+                     IP = MOD(IPP,nbpt(JBG))
+                     IF (IP.EQ.0) IP = nbpt(JBG)
+                     IXG  = blist(IP,JBG)
+                     ITMP = MINLOC(ABS(bvertg(:,2)-IXG))
+                     K    = ITMP(1)
+                     IF ( bvertg(K,2) == IXG ) THEN
+                        IX = bvertg(K,1)
+                        vert(IX)%atti(VBC) = 1
+                     ENDIF
+                     KOUNTR = KOUNTR + 1
+                     ALLOCATE(TMP)
+                     TMP%JX = IXG
+                     NULLIFY(TMP%NEXTXY)
+                     CURR%NEXTXY => TMP
+                     CURR => TMP
+                  ENDDO
+               ENDIF
             ENDIF
             IX1  = IX2
             IXG1 = IXG2
