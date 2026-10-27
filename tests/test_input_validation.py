@@ -748,6 +748,11 @@ FAULTY_INPUT = [
                  {"wide.hot": HOTSTART_30_DIRECTIONS},
                  "has more directions than the computational grid", True,
                  id="BF-50-hotstart-more-directions"),
+    # BF-51: clearing a list that was never filled
+    pytest.param([("GEN3 KOMEN", "GEN3 KOMEN\nVEGETATION 1 -1")], {},
+                 "No vegetation parameters found", False, id="BF-51-vegetation"),
+    pytest.param([("GEN3 KOMEN", "GEN3 KOMEN\nOBSTACLE FOO")], {},
+                 "Illegal keyword: FOO", False, id="BF-51-obstacle"),
 ]
 
 

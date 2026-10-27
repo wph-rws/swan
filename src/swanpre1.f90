@@ -1343,11 +1343,13 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 !
 !       *** NUMCOR : Number of corners ***
             NUMCOR = 0
+!     the list is walked below also when LINE is missing; without this
+!     its head pointed nowhere and freeing the list crashed
+            NULLIFY(FRST%NEXTXY)
             CALL INKEYW ('REQ', '  ')
             IF (KEYWIS ('LIN')) THEN
                FRST%X = 0.
                FRST%Y = 0.
-               NULLIFY(FRST%NEXTXY)
                CURR => FRST
                DO
 !           read coordinates of one corner point of the obstacle
@@ -2858,6 +2860,7 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
             FRSTV%N = 0
             FRSTV%C = 0.
             NULLIFY(FRSTV%NEXTV)
+            NULLIFY(TMPV)
             CURRV => FRSTV
             DO
                CALL INREAL ('HEIGHT',HH,'REP',-1.)
@@ -2908,7 +2911,9 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                VEGDRL(JJ) = CURRV%C
                CURRV => CURRV%NEXTV
             END DO
-            DEALLOCATE(TMPV)
+!     TMPV only exists if a layer was read: a first height of -1 (the end
+!     marker) or none at all left it unset, and freeing it crashed
+            IF (ASSOCIATED(TMPV)) DEALLOCATE(TMPV)
             CYCLE command_loop
          END IF
 
