@@ -666,6 +666,7 @@ def test_deck_without_bottom_stops_cleanly(tmp_path, removed, message):
 CGRID = "CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 20 10 CIRCLE 24 0.05 1.0 16"
 INPGRID = "INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0"
 READINP = "READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE"
+BLOCK = "BLOCK 'COMPGRID' NOHEADER 'quick_test_hs.blk' LAYOUT 3 HSIGN"
 
 FAULTY_INPUT = [
     # BF-46: a computational grid or computation period without points, directions,
@@ -707,6 +708,17 @@ FAULTY_INPUT = [
                  "[mxinp] in INPGRID must be at least 1", True, id="BF-48-mxinp"),
     pytest.param([(INPGRID, INPGRID.replace("2000.0 1000.0", "0.0 1000.0"))], {},
                  "[dxinp] and [dyinp] in INPGRID must be positive", True, id="BF-48-dxinp"),
+    # BF-49: input files that are too short or cannot be opened
+    pytest.param([(READINP, READINP.replace("3 0 FREE", "3 5 FREE"))], {},
+                 "has fewer lines than [nhedf] heading lines", True, id="BF-49-heading-lines"),
+    pytest.param([(READINP, "READINP BOTTOM 1.0 SERIES 'list.txt' 3 0 FREE")],
+                 {"list.txt": ""}, "no data file name in series file", True,
+                 id="BF-49-empty-series"),
+    pytest.param([(READINP, READINP.replace("'bottom.bot'", "'.'"))], {},
+                 "File open failed, filename: .", True, id="BF-49-directory-as-file"),
+    pytest.param([(BLOCK, BLOCK.replace("'quick_test_hs.blk'", "'notthere/hs.blk'"))], {},
+                 "File open failed, filename: notthere/hs.blk", True,
+                 id="BF-49-output-directory-missing"),
 ]
 
 
