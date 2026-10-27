@@ -633,6 +633,30 @@ def test_curve_with_absurdly_many_points_stops_cleanly(tmp_path):
     assert "more than 10 million output points on CURVE" in report, report[-2000:]
 
 
+#  A deck without a bottom crashed with a segmentation fault, upstream too. The
+#  table of grid points only exists after READINP BOTTOM, but was still passed
+#  to SWPREP, and the error message about the missing bottom had level
+#  3, so preparation went on until that table was read. Without a bottom
+#  there is nothing to compute, so it is now a stop error, also with SET MAXERR 3.
+@pytest.mark.parametrize("removed, message", [
+    (("INPGRID BOTTOM", "READINP BOTTOM"), "Bottom grid not defined"),
+    (("READINP BOTTOM",), "No bottom levels read"),
+])
+def test_deck_without_bottom_stops_cleanly(tmp_path, removed, message):
+    work = tmp_path / "work"
+    work.mkdir()
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    lines = [r for r in deck.splitlines() if not r.startswith(removed)]
+    assert len(lines) == len(deck.splitlines()) - len(removed), "smoke deck has changed shape"
+    deck = "\n".join(lines).replace("\nCOMPUTE", "\nSET MAXERR 3\nCOMPUTE", 1) + "\n"
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True,
+                            timeout=60)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert result.returncode == 1, result.stderr[-2000:]
+    assert f"Terminating error: {message}" in report, report[-2000:]
+
+
 #  CVMESH looks for an output point in a curvilinear grid and then checks in
 #  KGRPNT whether that point is active. For a point outside the grid
 #  (XC = -99) that check must be skipped, or KGRPNT is read at index -97.

@@ -400,6 +400,11 @@ SUBROUTINE SWMAIN
 
 !       --- do some preparations before computation                       40.31
 !
+!     KGRPNT and KGRBND only exist once the bottom is read; without it SWPREP
+!     stops with an error, but the arrays are still passed, so give them the
+!     empty state
+      IF (.NOT.ALLOCATED(KGRPNT)) ALLOCATE(KGRPNT(0,0))
+      IF (.NOT.ALLOCATED(KGRBND)) ALLOCATE(KGRBND(0))
       IF (timing_enabled) CALL SWTSTA(4)
       CALL SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID, YCGRID, KGRPNT, &
          KGRBND, SPCDIR, SPCSIG, DIFFRACTION, TRIADS )
@@ -3577,7 +3582,7 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
    USE swan_services, ONLY: SWOBST
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_angle_conversions, ONLY: DEGCNV, ANGRAD, ANGDEG
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, STPNOW
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_number_formatting
@@ -3765,8 +3770,11 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
    IF (MCGRD.LE.1 .AND. nverts.LE.0) CALL MSGERR &
       (3, 'no valid comp. grid; check command READ BOT or READ UNSTRU')
 
-   IF (LEDS(1).EQ.0) CALL MSGERR (3,'Bottom grid not defined')
-   IF (LEDS(1).EQ.1) CALL MSGERR (3,'No bottom levels read')
+!     Without a bottom there is no grid to prepare (KGRPNT does not exist),
+!     so this stops the run whatever [maxerr] says
+   IF (LEDS(1).EQ.0) CALL MSGERR (4,'Bottom grid not defined')
+   IF (LEDS(1).EQ.1) CALL MSGERR (4,'No bottom levels read')
+   IF (STPNOW()) RETURN
    IF (IUBOTR.EQ.1 .AND. IBOT.EQ.0) &
       CALL MSGERR (1,'Bottom friction not on, UBOT not computed')
 
