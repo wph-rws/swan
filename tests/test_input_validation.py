@@ -912,3 +912,41 @@ def test_st6_returns_finite_roughness_at_boundary_points(tmp_path):
     assert values[::21] == pytest.approx([.0001026]*11, rel=.001)
 
 
+#  BF-53: the readers of Triangle and ADCIRC grids used the number
+#  on each line as an index into the node and element tables, and nobody
+#  checked whether a triangle pointed to existing, distinct nodes.
+#  A file that starts numbering at 0 (which Triangle allows), a
+#  triangle with a non-existent node or a grid without boundary markers
+#  gave a segmentation fault, a write outside the table or a hang.
+UNSTRUCTURED = REPO / "examples" / "nonstationary" / "unstructured"
+
+
+@pytest.mark.parametrize("change, message", [
+    (("ele", "1 1 2 7", "1 0 2 7"), "element refers to a vertex that does not exist"),
+    (("ele", "1 1 2 7", "1 1 1 7"), "element with a repeated vertex"),
+    (("node", "1 0.0 0.0 1", "0 0.0 0.0 1"), "vertex number out of range in Triangle file"),
+    (("node", None, None), "no boundary vertices in the unstructured grid"),
+], ids=["vertex-0", "repeated-vertex", "numbering-from-0", "no-boundary-markers"])
+def test_broken_unstructured_grid_stops_cleanly(tmp_path, change, message):
+    grid_files = {
+        "node": (UNSTRUCTURED / "nonstationary_unstructured.node").read_text(),
+        "ele": (UNSTRUCTURED / "nonstationary_unstructured.ele").read_text(),
+    }
+    kind, old, new = change
+    if old is None:
+        # all boundary markers set to 0
+        lines = grid_files["node"].splitlines()
+        grid_files["node"] = "\n".join(
+            [lines[0]] + [" ".join(r.split()[:3] + ["0"]) for r in lines[1:]]) + "\n"
+    else:
+        assert old in grid_files[kind], "example grid has changed shape"
+        grid_files[kind] = grid_files[kind].replace(old, new, 1)
+    deck = (UNSTRUCTURED / "nonstationary_unstructured.swn").read_text()
+    deck = deck.replace("SET NAUTICAL", "SET NAUTICAL\nSET MAXERR 3", 1)
+    files = {"grid.node": grid_files["node"], "grid.ele": grid_files["ele"],
+             "wind.wnd": (UNSTRUCTURED / "wind.wnd").read_text()}
+    deck = deck.replace("'nonstationary_unstructured'", "'grid'", 1)
+    result, report = _run_deck(tmp_path, deck, files, timeout=60)
+    assert "Fortran runtime error" not in result.stderr, result.stderr[-2000:]
+    assert result.returncode == 1, (result.returncode, result.stderr[-2000:])
+    assert f"Terminating error: {message}" in report, report[-2000:]

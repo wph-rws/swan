@@ -159,7 +159,7 @@ With GNU Fortran's `-Wall -Wextra -Wimplicit-interface -Wsurprising
 
 | Diagnostic inventory | Upstream 41.51 | Fork | Reduction |
 |---|---:|---:|---:|
-| All warnings | 19,022 | 1,278 | 93% |
+| All warnings | 19,022 | 1,280 | 93% |
 | Implicit-interface warnings | 3,573 | 0 | 100% |
 
 Both counts are measured with gfortran 16.2 and the same flags; for upstream
