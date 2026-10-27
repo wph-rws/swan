@@ -741,9 +741,20 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
             YQ1 = YQ
             CALL READXY ('XP', 'YP', XP, YP, 'REQ', 0., 0.)
             CALL READXY ('XQ', 'YQ', XQ, YQ, 'REQ', 0., 0.)
+!           Bound the number of rays as for CURVE: a typo such as INT
+!           2000000000 allocated nodes until memory ran out.
+            IF (INTD .GT. MAX_OUTPUT_POINTS - MIP) THEN
+               CALL MSGERR (4, 'more than 10 million output points on RAY')
+               EXIT
+            ENDIF
             do JJ=1,INTD
                MIP = MIP+1
-               ALLOCATE(TMP)
+               ALLOCATE(TMP, STAT=IERR)
+               IF (IERR .NE. 0) THEN
+                  CALL MSGERR (4, 'not enough memory for the output points of RAY')
+                  MIP = MIP-1
+                  EXIT
+               ENDIF
                TMP%X  = XP1 + REAL(JJ)*(XP-XP1)/REAL(INTD)
                TMP%Y  = YP1 + REAL(JJ)*(YP-YP1)/REAL(INTD)
                TMP%XQ = XQ1 + REAL(JJ)*(XQ-XQ1)/REAL(INTD)

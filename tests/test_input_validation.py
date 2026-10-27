@@ -633,6 +633,25 @@ def test_curve_with_absurdly_many_points_stops_cleanly(tmp_path):
     assert "more than 10 million output points on CURVE" in report, report[-2000:]
 
 
+#  RAY has the same structure as CURVE, with a number of intervals between
+#  consecutive rays, and the same typing error had the same effect.
+def test_ray_with_absurdly_many_points_stops_cleanly(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    old = "POINTS 'CENTER' 1000.0 500.0"
+    assert old in deck, "smoke deck has changed shape"
+    deck = deck.replace(
+        old, old + "\nRAY 'rays' 0. 500. 0. 600. 2000000000 2000. 500. 2000. 600.", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True,
+                            timeout=60)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert result.returncode != 0
+    assert "more than 10 million output points on RAY" in report, report[-2000:]
+
+
 #  A deck without a bottom crashed with a segmentation fault, upstream too. The
 #  table of grid points only exists after READINP BOTTOM, but was still passed
 #  to SWPREP, and the error message about the missing bottom had level
