@@ -2885,6 +2885,13 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
    face => gridobject%face_grid
 
    IF (.NOT.BNDDONE) THEN
+!     the boundary of an unstructured grid follows from the grid file;
+!     without it the vertex list below does not exist
+      IF (OPTG.EQ.5 .AND. nverts.LE.0) THEN
+         CALL MSGERR (4, 'read the unstructured grid (READGRID UNSTRUC)'// &
+            ' before boundary commands')
+         RETURN
+      ENDIF
       IF (OPTG.EQ.5) THEN
 
 !           in case of unstructured grid, make list of boundary points

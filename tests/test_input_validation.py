@@ -664,6 +664,8 @@ def test_deck_without_bottom_stops_cleanly(tmp_path, removed, message):
 #  stops with a message in PRINT and exit code 1. Where the message is a
 #  stop error, the run uses SET MAXERR 3: then it may not continue either.
 CGRID = "CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 20 10 CIRCLE 24 0.05 1.0 16"
+INPGRID = "INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0"
+READINP = "READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE"
 
 FAULTY_INPUT = [
     # BF-46: a computational grid or computation period without points, directions,
@@ -688,6 +690,18 @@ FAULTY_INPUT = [
                   ("\nCOMPUTE\n",
                    "\nCOMPUTE NONSTAT 20200101.000000 -10 MIN 20200101.010000\n")], {},
                  "time step [deltc] in COMPUTE must be positive", True, id="BF-46-deltc"),
+    # BF-47: commands that are missing, duplicated or in the wrong order
+    pytest.param([(CGRID + "\n", "")], {},
+                 "define computational grid before", True, id="BF-47-no-cgrid"),
+    pytest.param([(CGRID, CGRID + "\nCGRID REGULAR 0 0 0 1000 1000 5 5 CIRCLE 12 0.1 1.0 8")],
+                 {}, "the computational grid can be defined only once", True,
+                 id="BF-47-two-cgrids"),
+    pytest.param([("CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 20 10", "CGRID CURVILINEAR 20 10")],
+                 {}, "read curvilinear coordinates", True, id="BF-47-curvilinear"),
+    pytest.param([("CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 20 10", "CGRID UNSTRUCTURED"),
+                  (INPGRID + "\n", ""), (READINP + "\n", "")], {},
+                 "read the unstructured grid (READGRID UNSTRUC) before boundary commands",
+                 True, id="BF-47-unstructured"),
 ]
 
 
@@ -705,6 +719,16 @@ def test_faulty_input_stops_with_message(tmp_path, pairs, files, message, stop_e
     assert message in report, report[-2000:]
     if stop_error:
         assert "Terminating error" in report, report[-2000:]
+
+
+#  BF-47: a deck with only COMPUTE passed a non-existent grid on to
+#  SWPREP.
+def test_compute_without_grid_stops_cleanly(tmp_path):
+    result, report = _run_deck(tmp_path, "PROJECT 'X' '1'\nCOMPUTE\nSTOP\n", timeout=60)
+    assert "Fortran runtime error" not in result.stderr, result.stderr[-2000:]
+    assert result.returncode == 1
+    assert "Terminating error: no computational grid; give command CGRID" in report, \
+        report[-2000:]
 
 
 #  CVMESH looks for an output point in a curvilinear grid and then checks in

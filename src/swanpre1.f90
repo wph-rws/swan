@@ -1551,9 +1551,12 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 
 !       --- check whether computational grid has been defined             40.80
 
+!       Reading a field interpolates it onto the computational grid
+!       (CGINIT), which does not exist yet, so this stops the run
             IF ( .NOT.LOGCOM(2) ) THEN
-               CALL MSGERR (3, '* define computational grid before      *')
-               CALL MSGERR (3, '* reading coordinates or input grids    *')
+               CALL MSGERR (4, '* define computational grid before      *')
+               CALL MSGERR (4, '* reading coordinates or input grids    *')
+               RETURN
             ENDIF
 
             CALL INKEYW ('REQ',' ')
@@ -1602,10 +1605,13 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                ENDIF
             ELSEIF (OPTG.EQ.3) THEN
 !         cuvilinear grid
+!           without coordinates the curvilinear grid has no points to
+!           interpolate the bottom onto, so this stops the run
                IF (LOGCOM(3) .AND. .NOT. LOGCOM(4)) THEN
-                  CALL MSGERR (3, '** Give CGRID command and               *')
-                  CALL MSGERR (3, '** read curvilinear coordinates         *')
-                  CALL MSGERR (3, '** before reading the bottom grid       *')
+                  CALL MSGERR (4, '** Give CGRID command and               *')
+                  CALL MSGERR (4, '** read curvilinear coordinates         *')
+                  CALL MSGERR (4, '** before reading the bottom grid       *')
+                  RETURN
                ELSE IF (LOGCOM(2) .AND. LOGCOM(3) .AND. &
                   LOGCOM(4) .AND. .NOT. ALLOCATED(AC2)) THEN
                   CALL CGINIT
@@ -1721,6 +1727,13 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 !
 !       ver 30.21: CURVILINEAR                                            30.21
 
+!       The grid arrays are allocated once and the input fields are
+!       interpolated onto the first grid; a second CGRID wrote outside
+!       those arrays or silently kept the old interpolation
+            IF (ALLOCATED(XCGRID)) THEN
+               CALL MSGERR (4, 'the computational grid can be defined only once')
+               RETURN
+            ENDIF
             LOGCOM(2) = .TRUE.
             CALL INKEYW ('STA', 'REG')
             IF (KEYWIS('CURV')) THEN

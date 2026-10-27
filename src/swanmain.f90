@@ -375,6 +375,14 @@ SUBROUTINE SWMAIN
          EXIT main_loop
       ENDIF
 
+!       --- without CGRID there is no grid and no spectral axes; SWPREP
+!           would say so, but only after receiving arrays that do not exist
+
+      IF (.NOT.ALLOCATED(SPCSIG)) THEN
+         CALL MSGERR (4, 'no computational grid; give command CGRID')
+         RETURN
+      ENDIF
+
 !       --- surfbeat: initialize variables and arrays for 2nd COMPUTE     41.85
 
       IF ( ntf.GT.0 ) CALL SwanIEMinitig(SPECTRAL_POWERS)
