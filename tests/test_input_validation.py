@@ -70,7 +70,7 @@ REJECTED = [
 @pytest.mark.parametrize("command,expected", REJECTED)
 def test_unknown_formulation_is_rejected(tmp_path, command, expected):
     returncode, report = _run(tmp_path, command)
-    assert returncode != 0 or "No start of computation" in report, (
+    assert returncode != 0, (
         f"'{command}' ran on to a normal end; a number that does not name a "
         f"formulation should stop the run.\n{report[-2000:]}"
     )
@@ -473,6 +473,41 @@ def test_vector_fields_with_heading_lines_from_one_file(tmp_path, current):
     assert combined == separate
 
 
+#  Above [maxerr] SWMAIN does not start the computation ("No start of computation
+#  because of error level"), but it simply returned and wrote norm_end:
+#  exit code 0. A script that only looks at the exit code then did not see
+#  the error. An unknown keyword gives error level 3.
+def test_error_level_above_maxerr_gives_exit_code(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    assert "\nCOMPUTE\n" in deck, "smoke deck has changed shape"
+    (work / "INPUT").write_text(
+        deck.replace("\nCOMPUTE\n", "\nNUMERIC STOPC UNKNOWNOPTION\nCOMPUTE\n"), encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert "No start of computation" in report, report[-2000:]
+    assert result.returncode != 0
+    assert "error level" in result.stderr, result.stderr[-2000:]
+
+
+#  The counter-test: with [maxerr] above the error level SWAN computes on, as the
+#  manual promises, and the exit code is 0.
+def test_error_level_below_maxerr_keeps_running(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    (work / "INPUT").write_text(
+        deck.replace("\nCOMPUTE\n", "\nSET MAXERR 3\nNUMERIC STOPC UNKNOWNOPTION\nCOMPUTE\n"),
+        encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert "No start of computation" not in report, report[-2000:]
+    assert result.returncode == 0, result.stderr[-2000:]
+
+
 #  BOUNDSPEC SIDE with an unknown side: WRNKEY reports the error, but SWBOUN
 #  then looked for a side in the unset direction DIRSI. With SET MAXERR 3
 #  the run computes on; the boundary condition should then be dropped instead
@@ -610,6 +645,17 @@ STOP
     rows = [r.split() for r in (tmp_path / "work" / "p.tbl").read_text().splitlines()]
     assert float(rows[0][2]) == pytest.approx(20.0)
     assert float(rows[1][2]) == pytest.approx(-99.0)
+
+
+@pytest.mark.parametrize("maxerr", [1, 3])
+def test_unknown_readinp_quantity_is_dropped(tmp_path, maxerr):
+    deck = _quick_deck().replace("SET NAUTICAL", f"SET MAXERR {maxerr} NAUTICAL")
+    deck = deck.replace("GEN3 KOMEN", "GEN3 KOMEN\nREADINP FOO 1 'unused' 3 0 FREE")
+    proc, report = _run_deck(tmp_path, deck)
+    assert "Illegal keyword: FOO" in report
+    assert proc.returncode == (1 if maxerr == 1 else 0)
+    if maxerr == 3:
+        assert (tmp_path / "work" / "quick_test_center.tbl").exists()
 
 
 def test_st6_returns_finite_roughness_at_boundary_points(tmp_path):
