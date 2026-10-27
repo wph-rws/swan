@@ -377,6 +377,14 @@ SUBROUTINE SWMAIN
          EXIT main_loop
       ENDIF
 
+!       --- without CGRID there is no grid and no spectral axes; SWPREP
+!           would say so, but only after receiving arrays that do not exist
+
+      IF (.NOT.ALLOCATED(SPCSIG)) THEN
+         CALL MSGERR (4, 'no computational grid; give command CGRID')
+         RETURN
+      ENDIF
+
 !       --- surfbeat: initialize variables and arrays for 2nd COMPUTE
 
       IF ( ntf.GT.0 ) CALL SwanIEMinitig(SPECTRAL_POWERS)
@@ -402,6 +410,11 @@ SUBROUTINE SWMAIN
 
 !       --- do some preparations before computation
 !
+!     KGRPNT and KGRBND only exist once the bottom is read; without it SWPREP
+!     stops with an error, but the arrays are still passed, so give them the
+!     empty state
+      IF (.NOT.ALLOCATED(KGRPNT)) ALLOCATE(KGRPNT(0,0))
+      IF (.NOT.ALLOCATED(KGRBND)) ALLOCATE(KGRBND(0))
       IF (timing_enabled) CALL SWTSTA(4)
       CALL SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID, YCGRID, KGRPNT,&
       &KGRBND, SPCDIR, SPCSIG, DIFFRACTION, TRIADS )
@@ -3573,7 +3586,7 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
    USE swan_services, ONLY: SWOBST
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_angle_conversions, ONLY: DEGCNV, ANGRAD, ANGDEG
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, STPNOW
 !                                                                      *
 !************************************************************************
 
@@ -3764,8 +3777,11 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID ,&
    IF (MCGRD.LE.1 .AND. nverts.LE.0) CALL MSGERR&
    &(3, 'no valid comp. grid; check command READ BOT or READ UNSTRU')
 
-   IF (LEDS(1).EQ.0) CALL MSGERR (3,'Bottom grid not defined')
-   IF (LEDS(1).EQ.1) CALL MSGERR (3,'No bottom levels read')
+!     Without a bottom there is no grid to prepare (KGRPNT does not exist),
+!     so this stops the run whatever [maxerr] says
+   IF (LEDS(1).EQ.0) CALL MSGERR (4,'Bottom grid not defined')
+   IF (LEDS(1).EQ.1) CALL MSGERR (4,'No bottom levels read')
+   IF (STPNOW()) RETURN
    IF (IUBOTR.EQ.1 .AND. IBOT.EQ.0)&
    &CALL MSGERR (1,'Bottom friction not on, UBOT not computed')
 
@@ -7048,7 +7064,8 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC,&
 !                 skip reading of values
                      CYCLE BP_LOOP
                   ELSE IF (HEDLIN(1:6).EQ.'FACTOR') THEN
-                     READ (NDSD, *) RFAC
+                     READ (NDSD, *, IOSTAT=IOSTATUS) RFAC
+                     IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
                      UFAC = UFAC * RFAC
 !                 multiply factor read from file by UFAC (factor following from
 !                 type of file)
@@ -7079,7 +7096,8 @@ SUBROUTINE RBFILE (SPCSIG, SPCDIR, BFILED, BSPLOC,&
                CALL LSPLIT (HEDLIN, DATITM, 5)
                CALL DTRETI (DATITM(1), BFILED(6), TIMF2)
                DO II = 1, 4
-                  READ (DATITM(II+1), '(G12.0)') SPPARM(II)
+                  READ (DATITM(II+1), '(G12.0)', IOSTAT=IOSTATUS) SPPARM(II)
+                  IF (boundary_data_exhausted(IOSTATUS)) EXIT file_contents
                ENDDO
                IF (ITEST.GE.60) WRITE (PRTEST, *) ' TPAR boundary ',&
                &TIMF2, (SPPARM(JJ), JJ=1,4)

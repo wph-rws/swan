@@ -17,6 +17,7 @@ module swan_library
 ! migrate it per subsystem); two instances existing at once and overlapping
 ! execution have not been proven yet and are explicitly not claimed.
    use swan_service_interfaces, only: stpnow
+   use swan_diagnostics_level, only: LEVERR, MAXERR
    use swan_driver, only: swmain
    use M_OBSTA, only: OBSTACLE_STATE_IS_CLEAR
    use M_BNDSPEC, only: BOUNDARY_STATE_IS_CLEAR
@@ -117,6 +118,16 @@ contains
       state%run_count = state%run_count + 1
       if (stpnow()) then
          res = swan_result_error("SWMAIN ended with the stop flag set (see PRINT/Errfile)")
+         return
+      end if
+      ! Above [maxerr], SWMAIN does not start or resume the computation ("No start of
+      ! computation because of error level"), but simply returns and
+      ! writes norm_end. Without this check, a script that only reads the
+      ! exit code saw such a run as successful.
+      if (LEVERR > MAXERR) then
+         write (res%message, '(A,I0,A,I0,A)') "SWAN did not start or continue the computation: error level ", &
+            LEVERR, " above [maxerr] ", MAXERR, " (see PRINT)"
+         res%code = SWAN_LIBRARY_ERROR
          return
       end if
       state%is_computed = .true.

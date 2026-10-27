@@ -157,6 +157,12 @@ subroutine SwanBpntlist
     ! determine total number of boundary vertices
 
     nbptot = count(mask=vert(:)%atti(VMARKER)==1)
+!   without boundary vertices (all markers 0 in the grid file) the search
+!   below for the first boundary vertex finds nothing and loops forever
+    if ( nbptot == 0 ) then
+       call msgerr ( 4, 'no boundary vertices in the unstructured grid; check the boundary markers' )
+       return
+    endif
 
     allocate(blistot(0:nbptot))
     blistot = 0

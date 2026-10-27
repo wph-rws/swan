@@ -74,6 +74,9 @@ subroutine SwanReadADCGrid
     integer, save           :: ient = 0 ! number of entries in this subroutine
     integer                 :: idum     ! dummy integer
     integer                 :: ii       ! auxiliary integer
+    integer                 :: iv(3)    ! vertices of an element as read
+    real                    :: xx, yy   ! coordinates of a vertex as read
+    real                    :: dd       ! depth of a vertex as read
     integer                 :: iostat   ! I/O status in call FOR
     integer                 :: istat    ! indicate status of allocation
     integer                 :: itype    ! ADCIRC boundary type
@@ -113,6 +116,10 @@ subroutine SwanReadADCGrid
 
     read(ndsd, *, iostat=iostat) ncells, nverts
     if (read_failed(iostat)) return
+    if ( nverts < 3 .or. ncells < 1 ) then
+       call msgerr ( 4, 'grid file fort.14 needs at least three vertices and one element' )
+       return
+    endif
     istat = 0
     if(.not.allocated(xcugrd)) allocate (xcugrd(nverts), stat = istat)
     if ( istat == 0 ) then
@@ -134,9 +141,16 @@ subroutine SwanReadADCGrid
     ! read coordinates of vertices and bottom topography
 
     do j = 1, nverts
-       read(ndsd, *, iostat=iostat) ii, xcugrd(ii), ycugrd(ii), DEPTH(ii)
+       read(ndsd, *, iostat=iostat) ii, xx, yy, dd
        if (read_failed(iostat)) return
+       if ( ii < 1 .or. ii > nverts ) then
+          call msgerr ( 4, 'vertex number out of range in grid file fort.14' )
+          return
+       endif
        if ( ii/=j ) call msgerr ( 1, 'numbering of vertices is not sequential in grid file fort.14 ' )
+       xcugrd(ii) = xx
+       ycugrd(ii) = yy
+       DEPTH(ii)  = dd
     enddo
 
     if(.not.allocated(kvertc)) allocate (kvertc(3,ncells), stat = istat)
@@ -148,9 +162,14 @@ subroutine SwanReadADCGrid
     ! read vertices of triangles
 
     do j = 1, ncells
-       read(ndsd, *, iostat=iostat) ii, idum, kvertc(1,ii), kvertc(2,ii), kvertc(3,ii)
+       read(ndsd, *, iostat=iostat) ii, idum, iv
        if (read_failed(iostat)) return
+       if ( ii < 1 .or. ii > ncells ) then
+          call msgerr ( 4, 'element number out of range in grid file fort.14' )
+          return
+       endif
        if ( ii/=j ) call msgerr ( 1, 'numbering of triangles is not sequential in grid file fort.14 ' )
+       kvertc(:,ii) = iv
     enddo
 
     if(.not.allocated(vmark)) allocate (vmark(nverts), stat = istat)
@@ -173,6 +192,7 @@ subroutine SwanReadADCGrid
        do k = 1, n2
            read(ndsd, *, iostat=iostat) ivert
            if (read_failed(iostat)) return
+           if (vertex_out_of_range(ivert)) return
            vmark(ivert) = vm
        enddo
     enddo
@@ -189,12 +209,15 @@ subroutine SwanReadADCGrid
           do k = 1, n2
              read(ndsd, *, iostat=iostat) ivert
              if (read_failed(iostat)) return
+             if (vertex_out_of_range(ivert)) return
              vmark(ivert) = vm
           enddo
        else
           do k = 1, n2
              read(ndsd, *, iostat=iostat) ivert, ivert1
              if (read_failed(iostat)) return
+             if (vertex_out_of_range(ivert)) return
+             if (vertex_out_of_range(ivert1)) return
              vmark(ivert ) = vm
              vmark(ivert1) = vm
           enddo
@@ -206,6 +229,13 @@ subroutine SwanReadADCGrid
     close(ndsd)
 
 contains
+
+!   a boundary list that names a vertex outside the grid wrote outside VMARK
+    logical function vertex_out_of_range(number)
+       integer, intent(in) :: number
+       vertex_out_of_range = number < 1 .or. number > nverts
+       if (vertex_out_of_range) call msgerr (4, 'vertex number out of range in boundary list of grid file fort.14')
+    end function vertex_out_of_range
 
     logical function read_failed(status)
        integer, intent(in) :: status

@@ -335,6 +335,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
    INTEGER, SAVE :: IENT = 0
    INTEGER   I, II, IK, INTD, INTE, INTV, IOSTAT, ISTAT
    INTEGER   IERR, IX1, IX2, IY1, IY2, JJ, KK, MIP, MIPR
+   INTEGER, PARAMETER :: MAX_OUTPUT_POINTS = 10000000
    INTEGER   MXK, MXN, MYK, MYN, NATTR, NBMARK, NDIM, NDS, NVTX
 !  SIRAY is now a module procedure; the old local INTEGER declaration would
 !  turn the reference back into an external function and break linking.
@@ -379,6 +380,21 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !           ***** program uses the number of points               *****
          CALL ININTG ('MXFR',MXK,'STA',20)
          CALL ININTG ('MYFR',MYK,'STA',20)
+!        A frame without meshes has no output points (the output arrays get
+!        size zero and are still indexed); a huge one overflowed the point
+!        count or exhausted memory
+         IF (MXK.LT.1 .OR. (MYK.LT.1 .AND. .NOT.ONED)) THEN
+            CALL MSGERR (4, '[mxfr] and [myfr] in FRAME must be at least 1')
+            DEALLOCATE(OPSTMP)
+            FOUND = .TRUE.
+            RETURN
+         ENDIF
+         IF (REAL(MXK+1)*REAL(MYK+1) .GT. REAL(MAX_OUTPUT_POINTS)) THEN
+            CALL MSGERR (4, 'more than 10 million output points on FRAME')
+            DEALLOCATE(OPSTMP)
+            FOUND = .TRUE.
+            RETURN
+         ENDIF
          OPSTMP%PSTYPE = 'F'
          OPSTMP%OPI(1) = MXK+1
          OPSTMP%OPI(2) = MYK+1
@@ -432,10 +448,15 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          CALL ININTG ('IY2', IY2, 'REQ', 0)
          IF (IX1 .LT. 0 .OR. IX2 .GT. MXCGL-1 .OR. IX1 .GT. IX2 .OR.&
          &IY1 .LT. 0 .OR. IY2 .GT. MYCGL-1 .OR. IY1 .GT. IY2) THEN
-            CALL MSGERR (3, 'Check corners of GROUP (SUBGRID) command')
-            CALL MSGERR (3, ' .........the values should be.........')
-            CALL MSGERR (3, 'ix1<ix2 and both between 0 and MXC')
-            CALL MSGERR (3, 'iy1<iy2 and both between 0 and MYC')
+!           a subgrid outside the computational grid has no valid output
+!           points; with a raised [maxerr] the output read outside VOQ
+            CALL MSGERR (4, 'Check corners of GROUP (SUBGRID) command')
+            CALL MSGERR (4, ' .........the values should be.........')
+            CALL MSGERR (4, 'ix1<ix2 and both between 0 and MXC')
+            CALL MSGERR (4, 'iy1<iy2 and both between 0 and MYC')
+            DEALLOCATE(OPSTMP)
+            FOUND = .TRUE.
+            RETURN
          ENDIF
 
          IF (OPTG .EQ. 3) THEN
@@ -531,9 +552,21 @@ CALL NWLINE
          IF (ITEST .GE. 200 .OR. INTES .GE. 20) THEN
             WRITE(PRINTF, "('COORDINATES OF OUTPUT POINTS FOR CURVE : ', A)") PSNAME
          ENDIF
+!        Bound the number of points: a typo such as INT 2000000000 allocated
+!        nodes until memory ran out, and the run then aborted depending on
+!        the heap state instead of stopping with a message.
+         IF (INTV .GT. MAX_OUTPUT_POINTS - MIP) THEN
+            CALL MSGERR (4, 'more than 10 million output points on CURVE')
+            EXIT
+         ENDIF
          do JJ=1,INTV
             MIP = MIP+1
-            ALLOCATE(TMP)
+            ALLOCATE(TMP, STAT=IERR)
+            IF (IERR .NE. 0) THEN
+               CALL MSGERR (4, 'not enough memory for the output points of CURVE')
+               MIP = MIP-1
+               EXIT
+            ENDIF
             TMP%X = XP1+REAL(JJ)*(XP-XP1)/REAL(INTV)
             TMP%Y = YP1+REAL(JJ)*(YP-YP1)/REAL(INTV)
             NULLIFY(TMP%NEXTXY)
@@ -712,9 +745,20 @@ CALL NWLINE
             YQ1 = YQ
             CALL READXY ('XP', 'YP', XP, YP, 'REQ', 0., 0.)
             CALL READXY ('XQ', 'YQ', XQ, YQ, 'REQ', 0., 0.)
+!           Bound the number of rays as for CURVE: a typo such as INT
+!           2000000000 allocated nodes until memory ran out.
+            IF (INTD .GT. MAX_OUTPUT_POINTS - MIP) THEN
+               CALL MSGERR (4, 'more than 10 million output points on RAY')
+               EXIT
+            ENDIF
             do JJ=1,INTD
                MIP = MIP+1
-               ALLOCATE(TMP)
+               ALLOCATE(TMP, STAT=IERR)
+               IF (IERR .NE. 0) THEN
+                  CALL MSGERR (4, 'not enough memory for the output points of RAY')
+                  MIP = MIP-1
+                  EXIT
+               ENDIF
                TMP%X  = XP1 + REAL(JJ)*(XP-XP1)/REAL(INTD)
                TMP%Y  = YP1 + REAL(JJ)*(YP-YP1)/REAL(INTD)
                TMP%XQ = XQ1 + REAL(JJ)*(XQ-XQ1)/REAL(INTD)
@@ -1379,6 +1423,9 @@ SUBROUTINE SWREOQ ( FOUND )
          DO
             CALL SVARTP (IVTYPE)
             IF (IVTYPE .EQ. 98 .OR. IVTYPE .EQ. 999) EXIT
+!           unknown quantity: SVARTP has reported it; there is no entry 0
+!           in the quantity tables
+            IF (IVTYPE .EQ. 0) CYCLE
          IF (IVTYPE .NE. 999) THEN
             IF (is_netcdf_filename(FILENM)) THEN
                IF ( IVTYPE.GT.2 ) THEN
@@ -1766,6 +1813,9 @@ SUBROUTINE SWREOQ ( FOUND )
       DO
          CALL SVARTP (IVTYPE)
          IF (IVTYPE .EQ. 98 .OR. IVTYPE .EQ. 999) EXIT
+!        unknown quantity: SVARTP has reported it; there is no entry 0
+!        in the quantity tables
+         IF (IVTYPE .EQ. 0) CYCLE
       IF (IVTYPE .NE. 999) THEN
          IF (is_netcdf_filename(FILENM)) THEN
             IF ( IVTYPE.GT.2.AND.IVTYPE.NE.40 ) THEN
@@ -2880,6 +2930,13 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
    face => gridobject%face_grid
 
    IF (.NOT.BNDDONE) THEN
+!     the boundary of an unstructured grid follows from the grid file;
+!     without it the vertex list below does not exist
+      IF (OPTG.EQ.5 .AND. nverts.LE.0) THEN
+         CALL MSGERR (4, 'read the unstructured grid (READGRID UNSTRUC)'//&
+         &' before boundary commands')
+         RETURN
+      ENDIF
       IF (OPTG.EQ.5) THEN
 
 !           in case of unstructured grid, make list of boundary points
@@ -2905,12 +2962,12 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             DO IPP = 1, K
                DO IP = 1, NB
                   II = blist(IP,IPP)
-                  IF (.NOT.PARLL) THEN
-                     VM = vmark(II)
-                  ELSE
-                     VM = bmark(IP,IPP)
-                  ENDIF
                   IF ( II.GT.0 ) THEN
+                     IF (.NOT.PARLL) THEN
+                        VM = vmark(II)
+                     ELSE
+                        VM = bmark(IP,IPP)
+                     ENDIF
                      KOUNTR = KOUNTR + 1
                      WRITE(PRTEST,'(A,2I7,2F18.9,I7)')&
                      &' I, BLIST(I), X, Y, bound marker ',&
@@ -3323,11 +3380,16 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                      &') not part of computational grid'
                      CALL MSGERR( 2, TRIM(MSGSTR) )
                   ENDIF
-                  IF ( IX2.GT.0 .AND. vert(IX2)%atti(VMARKER) /= 1 ) THEN
-                     WRITE (MSGSTR, '(A,F12.4,A,F12.4,A)')&
-                     &' Vertex (',XP+XOFFS,',',YP+YOFFS,&
-                     &') is not a valid boundary point'
-                     CALL MSGERR( 2, TRIM(MSGSTR) )
+!                 IX2 is -1 for a point outside (this part of) the grid;
+!                 Fortran does not promise that the right-hand side of .AND. is
+!                 skipped
+                  IF ( IX2.GT.0 ) THEN
+                     IF ( vert(IX2)%atti(VMARKER) /= 1 ) THEN
+                        WRITE (MSGSTR, '(A,F12.4,A,F12.4,A)')&
+                        &' Vertex (',XP+XOFFS,',',YP+YOFFS,&
+                        &') is not a valid boundary point'
+                        CALL MSGERR( 2, TRIM(MSGSTR) )
+                     ENDIF
                   ENDIF
                ENDIF
             ELSE
@@ -3352,10 +3414,14 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                   ELSE
                      IX2 = IXG2
                   ENDIF
-                  IF ( IX2.GT.0 .AND. vert(IX2)%atti(VMARKER) /= 1 ) THEN
-                     WRITE (MSGSTR,'(A,I4,A)') ' Vertex with index ',IXG2,&
-                     &' is not a valid boundary point'
-                     CALL MSGERR( 2, TRIM(MSGSTR) )
+!                 IX2 is -1 for a vertex of another subdomain and can
+!                 serially be 0 or larger than nverts (already reported above)
+                  IF ( IX2.GT.0 .AND. IX2.LE.nverts ) THEN
+                     IF ( vert(IX2)%atti(VMARKER) /= 1 ) THEN
+                        WRITE (MSGSTR,'(A,I4,A)') ' Vertex with index ',IXG2,&
+                        &' is not a valid boundary point'
+                        CALL MSGERR( 2, TRIM(MSGSTR) )
+                     ENDIF
                   ENDIF
                ENDIF
             ENDIF
@@ -3407,13 +3473,17 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
             ELSE
 !           --- unstructured grid
 
-               IF (LFRST1) THEN
-                  IF ( IX2.GT.0 ) THEN
-                     JBG = vert(IX2)%atti(BPOL)
-                  ELSE
-                     JBG = -1
-                  ENDIF
-                  CALL SWREDUCE( JBG, 1, SWMAX )
+!              a point that was reported above as invalid (outside the
+!              grid or not a boundary point) yields no piece of segment; the
+!              next point starts a new segment
+               JBG = -1
+               IF ( IX2.GT.0 .AND. IX2.LE.nverts ) THEN
+                  JBG = vert(IX2)%atti(BPOL)
+               ENDIF
+               CALL SWREDUCE( JBG, 1, SWMAX )
+               IF ( JBG.LE.0 ) THEN
+                  LFRST1 = .TRUE.
+               ELSE IF (LFRST1) THEN
                   ITMP = MINLOC(ABS(blist(:,JBG)-IXG2))
                   IXB1 = ITMP(1)
                   DET  = 1.
@@ -3482,43 +3552,45 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                      IXB1 = nbpt(JBG)-MOD(nbpt(JBG)+1-IXB1,nbpt(JBG))
                   ENDIF
                ENDIF
-               ITMP = MINLOC(ABS(blist(:,JBG)-IXG2))
-               IXB2 = ITMP(1)
+               IF ( JBG.GT.0 ) THEN
+                  ITMP = MINLOC(ABS(blist(:,JBG)-IXG2))
+                  IXB2 = ITMP(1)
 
 !              determine order of counting
-               IF (IXB1.GT.IXB2 ) THEN
-                  IF (DET.LT.0.) THEN
-                     IXI  = -1
+                  IF (IXB1.GT.IXB2 ) THEN
+                     IF (DET.LT.0.) THEN
+                        IXI  = -1
+                     ELSE
+                        IXI  = 1
+                        IXB2 = IXB2+nbpt(JBG)
+                     ENDIF
                   ELSE
-                     IXI  = 1
-                     IXB2 = IXB2+nbpt(JBG)
+                     IF (DET.GT.0.) THEN
+                        IXI  = 1
+                     ELSE
+                        IXI  = -1
+                        IXB1 = IXB1+nbpt(JBG)
+                     ENDIF
                   ENDIF
-               ELSE
-                  IF (DET.GT.0.) THEN
-                     IXI  = 1
-                  ELSE
-                     IXI  = -1
-                     IXB1 = IXB1+nbpt(JBG)
-                  ENDIF
-               ENDIF
 
-               DO IPP = IXB1, IXB2, IXI
-                  IP = MOD(IPP,nbpt(JBG))
-                  IF (IP.EQ.0) IP = nbpt(JBG)
-                  IXG  = blist(IP,JBG)
-                  ITMP = MINLOC(ABS(bvertg(:,2)-IXG))
-                  K    = ITMP(1)
-                  IF ( bvertg(K,2) == IXG ) THEN
-                     IX = bvertg(K,1)
-                     vert(IX)%atti(VBC) = 1
-                  ENDIF
-                  KOUNTR = KOUNTR + 1
-                  ALLOCATE(TMP)
-                  TMP%JX = IXG
-                  NULLIFY(TMP%NEXTXY)
-                  CURR%NEXTXY => TMP
-                  CURR => TMP
-               ENDDO
+                  DO IPP = IXB1, IXB2, IXI
+                     IP = MOD(IPP,nbpt(JBG))
+                     IF (IP.EQ.0) IP = nbpt(JBG)
+                     IXG  = blist(IP,JBG)
+                     ITMP = MINLOC(ABS(bvertg(:,2)-IXG))
+                     K    = ITMP(1)
+                     IF ( bvertg(K,2) == IXG ) THEN
+                        IX = bvertg(K,1)
+                        vert(IX)%atti(VBC) = 1
+                     ENDIF
+                     KOUNTR = KOUNTR + 1
+                     ALLOCATE(TMP)
+                     TMP%JX = IXG
+                     NULLIFY(TMP%NEXTXY)
+                     CURR%NEXTXY => TMP
+                     CURR => TMP
+                  ENDDO
+               ENDIF
             ENDIF
             IX1  = IX2
             IXG1 = IXG2
@@ -4294,7 +4366,7 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 !  6. Local variables
 
    INTEGER :: ISTATF, NDSL, NDSD, IOSTAT, IERR, NBOUNC, NANG, NFRE
-   INTEGER :: IBOUNC, DORDER
+   INTEGER :: IBOUNC, DORDER, IOS
    INTEGER, SAVE :: IENT = 0
    INTEGER :: IOPTT
    INTEGER :: NHEDF, NHEDT, NHEDS, IFRE , IANG
@@ -4384,7 +4456,8 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
    BSPFIL%BFILED = 0
 
 !     start reading from the data file
-   READ (NDSD, '(A)') HEDLIN
+   READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+   IF (read_failed()) RETURN
    IF (EQCSTR(HEDLIN,'TPAR')) THEN
       BTYPE  = 'TPAR'
       ISTATF = 1
@@ -4404,7 +4477,8 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
    ELSE IF (EQCSTR(HEDLIN,'SWAN')) THEN
       NHEDF  = 0
       DO
-         READ (NDSD, '(A)') HEDLIN
+         READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+         IF (read_failed()) RETURN
          IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
 !        skip heading lines starting with comment sign
          IF (HEDLIN(1:1).NE.default_command_reader%COMID .AND. HEDLIN(1:1).NE.'!') EXIT
@@ -4416,8 +4490,10 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
          NSTATM = 1
          ISTATF = 1
          BTYPE = 'SWNT'
-         READ (NDSD, *) IOPTT
-         READ (NDSD, '(A)') HEDLIN
+         READ (NDSD, *, IOSTAT=IOS) IOPTT
+         IF (read_failed()) RETURN
+         READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+         IF (read_failed()) RETURN
          IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
          NHEDF = 2
          NHEDT = 1
@@ -4442,11 +4518,14 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
          CCOORD = .FALSE.
       ENDIF
       IF (CCOORD) THEN
-         READ (NDSD, *) NBOUNC
+         READ (NDSD, *, IOSTAT=IOS) NBOUNC
+         IF (read_failed()) RETURN
 
          DO IBOUNC = 1, NBOUNC
             IERR = 0
             CALL REFIXY (NDSD, XP, YP, IERR)
+            IOS = IERR
+            IF (read_failed()) RETURN
             IF (ITEST.GE.80) THEN
                WRITE (PRTEST, *) ' B. spectrum ', IBOUNC, XP+XOFFS,&
                &YP+YOFFS, IERR
@@ -4479,7 +4558,8 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 
          NHEDF = NHEDF + 2 + NBOUNC
          IF (ITEST.GE.60) WRITE (PRTEST,"(I6, ' boundary locations')") NBOUNC
-         READ (NDSD, '(A)') HEDLIN
+         READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+         IF (read_failed()) RETURN
          IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
       ELSE
          IF (BCTYPE .EQ. 'NEST') THEN
@@ -4492,30 +4572,44 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 !
 !       number of spectral frequencies
       IF (EQCSTR(HEDLIN(2:5),'FREQ')) THEN
-         READ (NDSD, *) NFRE
+         READ (NDSD, *, IOSTAT=IOS) NFRE
+         IF (read_failed()) RETURN
+         IF (NFRE.LT.1) THEN
+            CALL MSGERR (4, 'no frequencies in boundary file '//TRIM(FBCNAM))
+            RETURN
+         ENDIF
          ALLOCATE(BSPFIL%BSPFRQ(NFRE))
          DO IFRE = 1, NFRE
 !           read frequency in Hz and convert to radians/sec
-            READ (NDSD, *) FREQHZ
+            READ (NDSD, *, IOSTAT=IOS) FREQHZ
+            IF (read_failed()) RETURN
             BSPFIL%BSPFRQ(IFRE) = PI2 * FREQHZ
          ENDDO
-         READ (NDSD, '(A)') HEDLIN
+         READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+         IF (read_failed()) RETURN
          IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
          NHEDF = NHEDF + 2 + NFRE
       ELSE
-         NFRE = 0
-         IF (BCTYPE.EQ.'NEST') THEN
-            CALL MSGERR (3, 'file is not a true nesting file')
-         ENDIF
+!         without frequencies the spectra on the file cannot be read or
+!         interpolated (BSPFRQ stays unallocated)
+         CALL MSGERR (4, 'no frequencies in boundary file '//TRIM(FBCNAM))
+         RETURN
       ENDIF
       IF (ITEST.GE.60) WRITE (PRTEST,"(I6, ' boundary frequencies')") NFRE
 !       number of spectral directions
       IF (EQCSTR(HEDLIN(2:4),'DIR')) THEN
-         READ (NDSD, *) NANG
+         READ (NDSD, *, IOSTAT=IOS) NANG
+         IF (read_failed()) RETURN
+         IF (NANG.LT.0) THEN
+            CALL MSGERR (4, 'negative number of directions in boundary file '//&
+            &TRIM(FBCNAM))
+            RETURN
+         ENDIF
          ALLOCATE(BSPFIL%BSPDIR(NANG))
          DO IANG = 1, NANG
 !           read direction in degr and convert to radians
-            READ (NDSD, *) DIRDEG
+            READ (NDSD, *, IOSTAT=IOS) DIRDEG
+            IF (read_failed()) RETURN
             IF (EQCSTR(HEDLIN,'N')) THEN
                DIRDEG = 180. + DNORTH - DIRDEG
             ENDIF
@@ -4548,7 +4642,8 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
                BSPFIL%BSPDIR(IANG) = DIRRAD
             ENDIF
          ENDDO
-         READ (NDSD, '(A)') HEDLIN
+         READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+         IF (read_failed()) RETURN
          IF (ITEST.GE.60) WRITE (PRTEST,"(' heading line: ', A)") HEDLIN
          NHEDF = NHEDF + 2 + NANG
          NHEDS = 1
@@ -4563,14 +4658,16 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
 !       read quantities (name, unit, exc. value)
 
       IF (EQCSTR(HEDLIN,'QUANT')) THEN
-         READ (NDSD, *) NQUANT
+         READ (NDSD, *, IOSTAT=IOS) NQUANT
+         IF (read_failed()) RETURN
          IF (.NOT.((NQUANT.EQ.1 .AND. NANG.GT.0) .OR.&
          &(NQUANT.EQ.3 .AND. NANG.EQ.0))) THEN
             CALL MSGERR (2, 'incompatible data on b.c. file')
             WRITE (PRINTF, "(I3, ' quantities; ', I5, ' directions')") NQUANT, NANG
          ENDIF
          DO IQUANT = 1, NQUANT
-            READ (NDSD, '(A)') HEDLIN
+            READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+            IF (read_failed()) RETURN
 !           if first quantity is 'EnDens' divide by Rho*Grav
             IF (IQUANT.EQ.1) THEN
                IF ( EQCSTR(HEDLIN,'ENDENS')) THEN
@@ -4615,7 +4712,8 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
                ENDIF
             ENDIF
 !           check Unit and Exception value
-            READ (NDSD, '(A)') HEDLIN
+            READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+            IF (read_failed()) RETURN
             IF (IQUANT.EQ.3 .AND. EQCSTR(HEDLIN,'DEGR')) THEN
                IF (BSPFIL%BFILED(19).NE.1) THEN
                   CALL MSGERR (2, 'incompatible options in boundary file')
@@ -4623,10 +4721,12 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
                ENDIF
             ENDIF
             IF (IQUANT.EQ.1) THEN
-               READ (NDSD, *) EXCV
+               READ (NDSD, *, IOSTAT=IOS) EXCV
+               IF (read_failed()) RETURN
                BSPFIL%BFILED(11) = NINT(EXCV)
             ELSE
-               READ (NDSD, '(A)') HEDLIN
+               READ (NDSD, '(A)', IOSTAT=IOS) HEDLIN
+               IF (read_failed()) RETURN
             END IF
          ENDDO
          NHEDF = NHEDF + 2 + 3*NQUANT
@@ -4672,6 +4772,17 @@ SUBROUTINE BCFILE (FBCNAM, BCTYPE, BSPFIL,&
    &(BSPFIL%BFILED(II), II=1,16)
 
    RETURN
+
+CONTAINS
+
+!  An empty, truncated or garbled file used to stop with a Fortran
+!  runtime error at the first READ that ran out of data
+   LOGICAL FUNCTION read_failed()
+      read_failed = IOS.NE.0
+      IF (read_failed) CALL MSGERR (4, 'boundary file '//TRIM(FBCNAM)//&
+      &' ends early or contains unreadable data')
+   END FUNCTION read_failed
+
 !     end of subroutine BCFILE
 end subroutine BCFILE
 !*********************************************************************

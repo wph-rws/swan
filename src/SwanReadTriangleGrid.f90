@@ -80,6 +80,9 @@ subroutine SwanReadTriangleGrid ( basenm, lenfnm )
     integer           :: ndsd     ! unit reference number of file
     integer           :: nnodes   ! number of nodes per triangle
     real              :: rdum     ! dummy value
+    real              :: xx, yy   ! coordinates of a vertex as read
+    integer           :: mk       ! boundary marker of a vertex as read
+    integer           :: iv(3)    ! vertices of a triangle as read
     character(80)     :: line     ! auxiliary textline
 
 !   Structure
@@ -102,6 +105,10 @@ subroutine SwanReadTriangleGrid ( basenm, lenfnm )
 
     read(ndsd, *, iostat=iostat) nverts, ndim, nattr, nbmark
     if (read_failed(iostat)) return
+    if ( nverts < 3 ) then
+       call msgerr ( 4, 'fewer than three vertices in Triangle file '//filenm )
+       return
+    endif
     istat = 0
     if(.not.allocated(xcugrd)) allocate (xcugrd(nverts), stat = istat)
     if ( istat == 0 ) then
@@ -126,15 +133,23 @@ subroutine SwanReadTriangleGrid ( basenm, lenfnm )
 
     if ( nattr == 0 ) then
        do j = 1, nverts
-          read(ndsd, *, iostat=iostat) ii, xcugrd(ii), ycugrd(ii), vmark(ii)
+          read(ndsd, *, iostat=iostat) ii, xx, yy, mk
           if (read_failed(iostat)) return
+          if (number_out_of_range(ii, nverts, 'vertex')) return
           if ( ii/=j ) call msgerr ( 1, 'numbering of vertices is not sequential in Triangle file '//filenm )
+          xcugrd(ii) = xx
+          ycugrd(ii) = yy
+          vmark(ii)  = mk
        enddo
     else
        do j = 1, nverts
-          read(ndsd, *, iostat=iostat) ii, xcugrd(ii), ycugrd(ii), rdum, vmark(ii)
+          read(ndsd, *, iostat=iostat) ii, xx, yy, rdum, mk
           if (read_failed(iostat)) return
+          if (number_out_of_range(ii, nverts, 'vertex')) return
           if ( ii/=j ) call msgerr ( 1, 'numbering of vertices is not sequential in Triangle file '//filenm )
+          xcugrd(ii) = xx
+          ycugrd(ii) = yy
+          vmark(ii)  = mk
        enddo
     endif
 
@@ -154,6 +169,10 @@ subroutine SwanReadTriangleGrid ( basenm, lenfnm )
 
     read(ndsd, *, iostat=iostat) ncells, nnodes, nattr
     if (read_failed(iostat)) return
+    if ( ncells < 1 ) then
+       call msgerr ( 4, 'no triangles in Triangle file '//filenm )
+       return
+    endif
     if(.not.allocated(kvertc)) allocate (kvertc(3,ncells), stat = istat)
     if ( istat /= 0 ) then
        call msgerr ( 4, 'Allocation problem in SwanReadTriangleGrid: array kvertc ' )
@@ -164,15 +183,19 @@ subroutine SwanReadTriangleGrid ( basenm, lenfnm )
 
     if ( nnodes == 3 .and. nattr == 0 ) then
        do j = 1, ncells
-          read(ndsd, *, iostat=iostat) ii, kvertc(1,ii), kvertc(2,ii), kvertc(3,ii)
+          read(ndsd, *, iostat=iostat) ii, iv
           if (read_failed(iostat)) return
+          if (number_out_of_range(ii, ncells, 'triangle')) return
           if ( ii/=j ) call msgerr ( 1, 'numbering of triangles is not sequential in Triangle file '//filenm )
+          kvertc(:,ii) = iv
        enddo
     else
        do j = 1, ncells
-          read(ndsd, *, iostat=iostat) ii, kvertc(1,ii), kvertc(2,ii), kvertc(3,ii), line
+          read(ndsd, *, iostat=iostat) ii, iv, line
           if (read_failed(iostat)) return
+          if (number_out_of_range(ii, ncells, 'triangle')) return
           if ( ii/=j ) call msgerr ( 1, 'numbering of triangles is not sequential in Triangle file '//filenm )
+          kvertc(:,ii) = iv
        enddo
     endif
 
@@ -181,6 +204,15 @@ subroutine SwanReadTriangleGrid ( basenm, lenfnm )
     close(ndsd)
 
 contains
+
+!   The number on each line is used as array index. A file numbered from 0
+!   (which Triangle allows) or with a wrong count wrote outside the arrays
+    logical function number_out_of_range(number, count, what)
+       integer, intent(in)          :: number, count
+       character(len=*), intent(in) :: what
+       number_out_of_range = number < 1 .or. number > count
+       if (number_out_of_range) call msgerr (4, what//' number out of range in Triangle file '//filenm)
+    end function number_out_of_range
 
     logical function read_failed(status)
        integer, intent(in) :: status

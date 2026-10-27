@@ -360,8 +360,10 @@ CONTAINS
    LOGICAL FUNCTION open_failed()
       open_failed = IOSTTM.NE.IESUCC
       IF (.NOT.open_failed) RETURN
+!     The caller gets unit -1, and any read or write on it is a runtime
+!     error, so a failed open that is reported also stops the run
       IF (IOSTAT.GT.-2) THEN
-         CALL MSGERR (3, 'File open failed, filename: '//DDNAME_L)
+         CALL MSGERR (4, 'File open failed, filename: '//DDNAME_L)
          WRITE (PRINTF,"(' File -> ', A36, 2X, ' IOSTAT=', I6, 4X, A2)") DDNAME, IOSTTM, SF
       ENDIF
       IUNIT = -1

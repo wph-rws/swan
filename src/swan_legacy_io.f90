@@ -370,7 +370,10 @@ do IY = 1, MYA
       end do
 end do
 
-IF (ITEST.GE.100 .OR. IDLA.LT.0) THEN
+!  After a read error the field is printed to show how far reading got. For
+!  a large field with a short file that wrote gigabytes of mostly zeros (a
+!  tmpfs filled up within seconds), so on error only small fields are shown
+IF (ITEST.GE.100 .OR. (IDLA.LT.0 .AND. REAL(MXA)*REAL(MYA).LE.1.E4)) THEN
       do IY=MYA, 1, -1
          WRITE (PRINTF, "((1X, 10E12.4))") (ARR(IX,IY), IX=1,MXA)
       end do

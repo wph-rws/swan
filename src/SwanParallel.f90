@@ -1492,7 +1492,11 @@ subroutine SwanCollBpntlist
 
           ii = blist(i,j)
 
-          if ( ii > 0 .and. vmark(ii) < excmark ) then
+          ! blist is padded with zeros; Fortran does not promise that the
+          ! right-hand side of .and. is skipped, so vmark(ii) only after
+          ! a check of its own on ii
+          if ( ii <= 0 ) cycle
+          if ( vmark(ii) < excmark ) then
              k = k + 1
              iarr1(k) = ivertg(ii)
              iarr2(k) = vmark (ii)

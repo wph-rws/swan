@@ -66,7 +66,7 @@ REJECTED = [
 @pytest.mark.parametrize("command,expected", REJECTED)
 def test_unknown_formulation_is_rejected(tmp_path, command, expected):
     returncode, report = _run(tmp_path, command)
-    assert returncode != 0 or "No start of computation" in report, (
+    assert returncode != 0, (
         f"'{command}' ran on to a normal end; a number that does not name a "
         f"formulation should stop the run.\n{report[-2000:]}"
     )
@@ -380,6 +380,41 @@ def test_vector_fields_with_heading_lines_from_one_file(tmp_path, current):
     assert combined == separate
 
 
+#  Above [maxerr] SWMAIN does not start the computation ("No start of computation
+#  because of error level"), but it simply returned and wrote norm_end:
+#  exit code 0. A script that only looks at the exit code then did not see
+#  the error. An unknown keyword gives error level 3.
+def test_error_level_above_maxerr_gives_exit_code(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    assert "\nCOMPUTE\n" in deck, "smoke deck has changed shape"
+    (work / "INPUT").write_text(
+        deck.replace("\nCOMPUTE\n", "\nNUMERIC STOPC UNKNOWNOPTION\nCOMPUTE\n"), encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert "No start of computation" in report, report[-2000:]
+    assert result.returncode != 0
+    assert "error level" in result.stderr, result.stderr[-2000:]
+
+
+#  The counter-test: with [maxerr] above the error level SWAN computes on, as the
+#  manual promises, and the exit code is 0.
+def test_error_level_below_maxerr_keeps_running(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    (work / "INPUT").write_text(
+        deck.replace("\nCOMPUTE\n", "\nSET MAXERR 3\nNUMERIC STOPC UNKNOWNOPTION\nCOMPUTE\n"),
+        encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert "No start of computation" not in report, report[-2000:]
+    assert result.returncode == 0, result.stderr[-2000:]
+
+
 #  BOUNDSPEC SIDE with an unknown side: WRNKEY reports the error, but SWBOUN
 #  then looked for a side in the unset direction DIRSI. With SET MAXERR 3
 #  the run computes on; the boundary condition should then be dropped instead
@@ -446,6 +481,210 @@ def test_boundary_spectrum_with_one_direction_is_refused(tmp_path):
     assert "a spectral axis needs at least two values" in report, report[-2000:]
 
 
+#  A typing error in the number of intervals of a CURVE allocated node after
+#  node until memory ran out; the process then broke off in a way that
+#  depended on the heap. Now SWAN stops with a message, within a fraction of a
+#  second.
+def test_curve_with_absurdly_many_points_stops_cleanly(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    old = "POINTS 'CENTER' 1000.0 500.0"
+    assert old in deck, "smoke deck has changed shape"
+    deck = deck.replace(old, old + "\nCURVE 'line' 0. 500. 2000000000 2000. 500.", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True,
+                            timeout=60)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert result.returncode != 0
+    assert "more than 10 million output points on CURVE" in report, report[-2000:]
+
+
+#  RAY has the same structure as CURVE, with a number of intervals between
+#  consecutive rays, and the same typing error had the same effect.
+def test_ray_with_absurdly_many_points_stops_cleanly(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    old = "POINTS 'CENTER' 1000.0 500.0"
+    assert old in deck, "smoke deck has changed shape"
+    deck = deck.replace(
+        old, old + "\nRAY 'rays' 0. 500. 0. 600. 2000000000 2000. 500. 2000. 600.", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True,
+                            timeout=60)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert result.returncode != 0
+    assert "more than 10 million output points on RAY" in report, report[-2000:]
+
+
+#  A deck without a bottom crashed with a segmentation fault, upstream too. The
+#  table of grid points only exists after READINP BOTTOM, but was still passed
+#  to SWPREP, and the error message about the missing bottom had level
+#  3, so preparation went on until that table was read. Without a bottom
+#  there is nothing to compute, so it is now a stop error, also with SET MAXERR 3.
+@pytest.mark.parametrize("removed, message", [
+    (("INPGRID BOTTOM", "READINP BOTTOM"), "Bottom grid not defined"),
+    (("READINP BOTTOM",), "No bottom levels read"),
+])
+def test_deck_without_bottom_stops_cleanly(tmp_path, removed, message):
+    work = tmp_path / "work"
+    work.mkdir()
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    lines = [r for r in deck.splitlines() if not r.startswith(removed)]
+    assert len(lines) == len(deck.splitlines()) - len(removed), "smoke deck has changed shape"
+    deck = "\n".join(lines).replace("\nCOMPUTE", "\nSET MAXERR 3\nCOMPUTE", 1) + "\n"
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True,
+                            timeout=60)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert result.returncode == 1, result.stderr[-2000:]
+    assert f"Terminating error: {message}" in report, report[-2000:]
+
+
+#  Faulty input from a systematic trial on the smoke deck:
+#  omitted commands, nonsensical numbers, wrong order and broken
+#  files. Each of these decks crashed, hung, or ended without computing
+#  with exit code 0; most did so upstream too. The requirement is that SWAN
+#  stops with a message in PRINT and exit code 1. Where the message is a
+#  stop error, the run uses SET MAXERR 3: then it may not continue either.
+BOUNDARY_SPECTRUM_WITHOUT_FREQUENCIES = "SWAN   1\ngarbage\n1 2 3\n"
+BOUNDARY_SPECTRUM_TEXT_AS_FACTOR = ONE_DIRECTION_SPECTRUM.replace(
+    "NDIR\n     1\n  270.0", "NDIR\n     2\n  180.0\n  270.0").replace(
+    "FACTOR\n  1.0\n  0.5\n  1.0\n  0.5\n",
+    "FACTOR\n  abc\n  0.5 0.5\n  1.0 1.0\n  0.5 0.5\n")
+
+HOTSTART_30_DIRECTIONS = ("SWAN   1\nLOCATIONS\n     1\n   0.0  500.0\n"
+                          "AFREQ\n     3\n  0.1\n  0.2\n  0.3\nNDIR\n     30\n"
+                          + "".join(f"  {12.0 * i:.1f}\n" for i in range(30))
+                          + "QUANT\n     1\nVaDens\nm2/Hz/degr\n   -99.0\n")
+
+CGRID = "CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 20 10 CIRCLE 24 0.05 1.0 16"
+INPGRID = "INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0"
+READINP = "READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE"
+BOUNDARY = "BOUNDSPEC SIDE WEST CONSTANT PAR 1.0 6.0 270.0 20.0"
+BLOCK = "BLOCK 'COMPGRID' NOHEADER 'quick_test_hs.blk' LAYOUT 3 HSIGN"
+POINTS = "POINTS 'CENTER' 1000.0 500.0"
+FRAME_BLOCK = "\nBLOCK 'F' NOHEADER 'f.blk' HSIGN"
+
+FAULTY_INPUT = [
+    # BF-46: a computational grid or computation period without points, directions,
+    # frequencies or time steps
+    pytest.param([(CGRID, CGRID.replace("20 10", "0 10"))], {},
+                 "[mxc] in CGRID must be at least 1", True, id="BF-46-mxc"),
+    pytest.param([(CGRID, CGRID.replace("20 10", "20 -1"))], {},
+                 "[myc] in CGRID must be at least 1", True, id="BF-46-myc"),
+    pytest.param([(CGRID, CGRID.replace("CIRCLE 24", "CIRCLE 0"))], {},
+                 "[mdc] in CGRID must be at least 1", True, id="BF-46-mdc"),
+    pytest.param([(CGRID, CGRID.replace("0.05 1.0", "0.0 1.0"))], {},
+                 "[flow] and [fhigh] in CGRID", True, id="BF-46-flow"),
+    pytest.param([(CGRID, CGRID.replace("0.05 1.0", "1.0 0.05"))], {},
+                 "[flow] and [fhigh] in CGRID", True, id="BF-46-fhigh"),
+    pytest.param([(CGRID, CGRID.replace("CIRCLE 24", "SECTOR 200 200 24"))], {},
+                 "[dir1] and [dir2] of SECTOR in CGRID must differ", True, id="BF-46-sector"),
+    pytest.param([("GEN3 KOMEN", "GEN3 KOMEN\nSURFBEAT -1")], {},
+                 "[df] in SURFBEAT must be positive", True, id="BF-46-surfbeat-df"),
+    pytest.param([("GEN3 KOMEN", "GEN3 KOMEN\nSURFBEAT 0.01 -1")], {},
+                 "[nmax] in SURFBEAT must be at least 1", True, id="BF-46-surfbeat-nmax"),
+    pytest.param([("MODE STATIONARY", "MODE NONSTATIONARY"),
+                  ("\nCOMPUTE\n",
+                   "\nCOMPUTE NONSTAT 20200101.000000 -10 MIN 20200101.010000\n")], {},
+                 "time step [deltc] in COMPUTE must be positive", True, id="BF-46-deltc"),
+    # BF-47: commands that are missing, duplicated or in the wrong order
+    pytest.param([(CGRID + "\n", "")], {},
+                 "define computational grid before", True, id="BF-47-no-cgrid"),
+    pytest.param([(CGRID, CGRID + "\nCGRID REGULAR 0 0 0 1000 1000 5 5 CIRCLE 12 0.1 1.0 8")],
+                 {}, "the computational grid can be defined only once", True,
+                 id="BF-47-two-cgrids"),
+    pytest.param([("CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 20 10", "CGRID CURVILINEAR 20 10")],
+                 {}, "read curvilinear coordinates", True, id="BF-47-curvilinear"),
+    pytest.param([("CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 20 10", "CGRID UNSTRUCTURED"),
+                  (INPGRID + "\n", ""), (READINP + "\n", "")], {},
+                 "read the unstructured grid (READGRID UNSTRUC) before boundary commands",
+                 True, id="BF-47-unstructured"),
+    # BF-48: an input grid without meshes or with zero mesh size
+    pytest.param([(INPGRID, INPGRID.replace("1 1 2000.0", "0 1 2000.0"))], {},
+                 "[mxinp] in INPGRID must be at least 1", True, id="BF-48-mxinp"),
+    pytest.param([(INPGRID, INPGRID.replace("2000.0 1000.0", "0.0 1000.0"))], {},
+                 "[dxinp] and [dyinp] in INPGRID must be positive", True, id="BF-48-dxinp"),
+    # BF-49: input files that are too short or cannot be opened
+    pytest.param([(READINP, READINP.replace("3 0 FREE", "3 5 FREE"))], {},
+                 "has fewer lines than [nhedf] heading lines", True, id="BF-49-heading-lines"),
+    pytest.param([(READINP, "READINP BOTTOM 1.0 SERIES 'list.txt' 3 0 FREE")],
+                 {"list.txt": ""}, "no data file name in series file", True,
+                 id="BF-49-empty-series"),
+    pytest.param([(READINP, READINP.replace("'bottom.bot'", "'.'"))], {},
+                 "File open failed, filename: .", True, id="BF-49-directory-as-file"),
+    pytest.param([(BLOCK, BLOCK.replace("'quick_test_hs.blk'", "'notthere/hs.blk'"))], {},
+                 "File open failed, filename: notthere/hs.blk", True,
+                 id="BF-49-output-directory-missing"),
+    # BF-50: boundary spectra and hotstart files that are empty, truncated or unreadable
+    pytest.param([(BOUNDARY, "BOUNDSPEC SIDE WEST CONSTANT FILE 'boundary.sp2'")], {"boundary.sp2": ""},
+                 "boundary file boundary.sp2 ends early", True, id="BF-50-empty-boundary-file"),
+    pytest.param([(BOUNDARY, "BOUNDNEST1 NEST 'boundary.sp2' CLOSED")], {"boundary.sp2": ""},
+                 "boundary file boundary.sp2 ends early", True, id="BF-50-empty-nest-file"),
+    pytest.param([(BOUNDARY, "BOUNDSPEC SIDE WEST CONSTANT FILE 'boundary.sp2'")],
+                 {"boundary.sp2": BOUNDARY_SPECTRUM_WITHOUT_FREQUENCIES},
+                 "no frequencies in boundary file boundary.sp2", True, id="BF-50-no-frequencies"),
+    pytest.param([(BOUNDARY, "BOUNDSPEC SIDE WEST CONSTANT FILE 'boundary.sp2'")],
+                 {"boundary.sp2": BOUNDARY_SPECTRUM_TEXT_AS_FACTOR},
+                 "error reading data from boundary file", True, id="BF-50-text-as-factor"),
+    pytest.param([("GEN3 KOMEN", "GEN3 KOMEN\nINITIAL HOTSTART 'empty.hot'")], {"empty.hot": ""},
+                 "hotstart file empty.hot ends early", True, id="BF-50-empty-hotstart"),
+    pytest.param([("GEN3 KOMEN", "GEN3 KOMEN\nINITIAL HOTSTART 'wide.hot'")],
+                 {"wide.hot": HOTSTART_30_DIRECTIONS},
+                 "has more directions than the computational grid", True,
+                 id="BF-50-hotstart-more-directions"),
+    # BF-51: clearing a list that was never filled
+    pytest.param([("GEN3 KOMEN", "GEN3 KOMEN\nVEGETATION 1 -1")], {},
+                 "No vegetation parameters found", False, id="BF-51-vegetation"),
+    pytest.param([("GEN3 KOMEN", "GEN3 KOMEN\nOBSTACLE FOO")], {},
+                 "Illegal keyword: FOO", False, id="BF-51-obstacle"),
+    # BF-52: output requests with impossible dimensions or format
+    pytest.param([(POINTS, POINTS + "\nFRAME 'F' 0 0 0 2000 1000 0 0" + FRAME_BLOCK)], {},
+                 "[mxfr] and [myfr] in FRAME must be at least 1", True, id="BF-52-frame-empty"),
+    pytest.param([(POINTS, POINTS + "\nFRAME 'F' 0 0 0 2000 1000 100000 100000" + FRAME_BLOCK)],
+                 {}, "more than 10 million output points on FRAME", True, id="BF-52-frame-too-large"),
+    pytest.param([(POINTS, POINTS + "\nGROUP 'G' SUBGRID 0 1000000 0 1000000"
+                   "\nBLOCK 'G' NOHEADER 'g.blk' HSIGN")],
+                 {}, "Check corners of GROUP (SUBGRID) command", True, id="BF-52-group"),
+    pytest.param([(BLOCK, "OUTPUT OPTIONS '%' TABLE 1000\n" + BLOCK)], {},
+                 "[field] is too large", False, id="BF-52-table-width"),
+    pytest.param([(BLOCK, "OUTPUT OPTIONS '%' BLOCK 0 6\n" + BLOCK)], {},
+                 "[ndec] is too small", False, id="BF-52-decimals"),
+    pytest.param([(BLOCK, BLOCK.replace("HSIGN", "FOO HSIGN"))], {},
+                 "Illegal keyword: FOO", False, id="BF-52-unknown-quantity"),
+]
+
+
+@pytest.mark.parametrize("pairs, files, message, stop_error", FAULTY_INPUT)
+def test_faulty_input_stops_with_message(tmp_path, pairs, files, message, stop_error):
+    deck = _quick_deck()
+    for old, new in pairs:
+        assert old in deck, "smoke deck has changed shape"
+        deck = deck.replace(old, new, 1)
+    if stop_error:
+        deck = deck.replace("SET NAUTICAL", "SET NAUTICAL\nSET MAXERR 3", 1)
+    result, report = _run_deck(tmp_path, deck, files, timeout=60)
+    assert "Fortran runtime error" not in result.stderr, result.stderr[-2000:]
+    assert result.returncode == 1, (result.returncode, result.stderr[-2000:])
+    assert message in report, report[-2000:]
+    if stop_error:
+        assert "Terminating error" in report, report[-2000:]
+
+
+#  BF-47: a deck with only COMPUTE passed a non-existent grid on to
+#  SWPREP.
+def test_compute_without_grid_stops_cleanly(tmp_path):
+    result, report = _run_deck(tmp_path, "PROJECT 'X' '1'\nCOMPUTE\nSTOP\n", timeout=60)
+    assert "Fortran runtime error" not in result.stderr, result.stderr[-2000:]
+    assert result.returncode == 1
+    assert "Terminating error: no computational grid; give command CGRID" in report, \
+        report[-2000:]
+
+
 #  CVMESH looks for an output point in a curvilinear grid and then checks in
 #  KGRPNT whether that point is active. For a point outside the grid
 #  (XC = -99) that check must be skipped, or KGRPNT is read at index -97.
@@ -480,3 +719,68 @@ STOP
     assert float(rows[1][2]) == pytest.approx(-99.0)
 
 
+#  BF-54: after BOUNDSPEC SEGMENT on an unstructured grid SWAN checked whether the
+#  boundary point found has a boundary marker, with `IX2.GT.0 .AND. vert(IX2)...`.
+#  Fortran does not promise that the right-hand side of .AND. is skipped, so
+#  `vert` could be read outside the table for a point outside the grid
+#  (IX2 = -1), for vertex 0 and for a vertex number above the number of
+#  vertices; with runtime checks that did happen. Upstream
+#  has this too. Bites only on a build with runtime checks; without
+#  runtime checks the run must simply give the message.
+@pytest.mark.parametrize("segment, message", [
+    ("SEGMENT XY -5000.0 500.0 0.0 1000.0", "not part of computational grid"),
+    ("SEGMENT IJ 0 1", "0 is not a valid vertex index"),
+    ("SEGMENT IJ 99 1", "99 is not a valid vertex index"),
+], ids=["xy-outside-grid", "ij-vertex-0", "ij-vertex-too-large"])
+def test_boundary_segment_outside_unstructured_grid(tmp_path, segment, message):
+    deck = (UNSTRUCTURED / "nonstationary_unstructured.swn").read_text()
+    old = "BOUNDSPEC SIDE 1 CONSTANT"
+    assert old in deck, "example deck has changed shape"
+    deck = deck.replace(old, f"BOUNDSPEC {segment} CONSTANT", 1)
+    files = {f"nonstationary_unstructured.{ext}":
+             (UNSTRUCTURED / f"nonstationary_unstructured.{ext}").read_text()
+             for ext in ("node", "ele")}
+    files["wind.wnd"] = (UNSTRUCTURED / "wind.wnd").read_text()
+    result, report = _run_deck(tmp_path, deck, files, timeout=60)
+    assert "Fortran runtime error" not in result.stderr, result.stderr[-2000:]
+    assert message in report, report[-2000:]
+
+
+#  BF-53: the readers of Triangle and ADCIRC grids used the number
+#  on each line as an index into the node and element tables, and nobody
+#  checked whether a triangle pointed to existing, distinct nodes.
+#  A file that starts numbering at 0 (which Triangle allows), a
+#  triangle with a non-existent node or a grid without boundary markers
+#  gave a segmentation fault, a write outside the table or a hang.
+UNSTRUCTURED = REPO / "examples" / "nonstationary" / "unstructured"
+
+
+@pytest.mark.parametrize("change, message", [
+    (("ele", "1 1 2 7", "1 0 2 7"), "element refers to a vertex that does not exist"),
+    (("ele", "1 1 2 7", "1 1 1 7"), "element with a repeated vertex"),
+    (("node", "1 0.0 0.0 1", "0 0.0 0.0 1"), "vertex number out of range in Triangle file"),
+    (("node", None, None), "no boundary vertices in the unstructured grid"),
+], ids=["vertex-0", "repeated-vertex", "numbering-from-0", "no-boundary-markers"])
+def test_broken_unstructured_grid_stops_cleanly(tmp_path, change, message):
+    grid_files = {
+        "node": (UNSTRUCTURED / "nonstationary_unstructured.node").read_text(),
+        "ele": (UNSTRUCTURED / "nonstationary_unstructured.ele").read_text(),
+    }
+    kind, old, new = change
+    if old is None:
+        # all boundary markers set to 0
+        lines = grid_files["node"].splitlines()
+        grid_files["node"] = "\n".join(
+            [lines[0]] + [" ".join(r.split()[:3] + ["0"]) for r in lines[1:]]) + "\n"
+    else:
+        assert old in grid_files[kind], "example grid has changed shape"
+        grid_files[kind] = grid_files[kind].replace(old, new, 1)
+    deck = (UNSTRUCTURED / "nonstationary_unstructured.swn").read_text()
+    deck = deck.replace("SET NAUTICAL", "SET NAUTICAL\nSET MAXERR 3", 1)
+    files = {"grid.node": grid_files["node"], "grid.ele": grid_files["ele"],
+             "wind.wnd": (UNSTRUCTURED / "wind.wnd").read_text()}
+    deck = deck.replace("'nonstationary_unstructured'", "'grid'", 1)
+    result, report = _run_deck(tmp_path, deck, files, timeout=60)
+    assert "Fortran runtime error" not in result.stderr, result.stderr[-2000:]
+    assert result.returncode == 1, (result.returncode, result.stderr[-2000:])
+    assert f"Terminating error: {message}" in report, report[-2000:]

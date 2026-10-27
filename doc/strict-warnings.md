@@ -3,7 +3,7 @@
 The strict build compiles SWAN with every extra warning gfortran offers:
 `-Wall -Wextra -Wimplicit-interface -Wsurprising -Wconversion-extra
 -Wcharacter-truncation`, Release, the default serial variant, with the
-reference compiler (gfortran 16.2, see `AGENTS.md`). It gives 1278 warnings.
+reference compiler (gfortran 16.2, see `AGENTS.md`). It gives 1280 warnings.
 Most of them say nothing about whether SWAN computes correctly. A few kinds
 do, and those are the ones the strict gate checks.
 
@@ -30,7 +30,7 @@ defect, and cleaning them up would touch a lot of that code for no gain.
 | `character-truncation` | 24 | yes | defects BF-26 and BF-32; the rest harmless or deliberate |
 | `do-subscript` | 24 | yes | harmless; the edge case behind them was defect BF-25 |
 | `untagged` | 4 | yes | deliberate: FFTW transforms in place |
-| `conversion-extra` | 493 | counted only | |
+| `conversion-extra` | 495 | counted only | |
 | `compare-reals` | 225 | counted only | |
 | `unused-variable` | 216 | counted only | |
 | `unused-dummy-argument` | 61 | counted only | |
@@ -76,7 +76,7 @@ version reports somewhat different warnings, even in unchanged code: the
 same case can show up under another routine because the compiler inlines
 differently. After a compiler change, the new checked warnings have to be
 reviewed before the gate is green again; that is a few dozen at most, not a
-recount of all 1278.
+recount of all 1280.
 
 `tests/test_strict_diagnostics.py` tests the gate itself, including that a
 missing verdict and a silenced build both fail.

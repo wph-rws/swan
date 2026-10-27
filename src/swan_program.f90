@@ -13,6 +13,7 @@ PROGRAM SWAN
       swan_initialize, swan_result_t, swan_state_t, swan_write_output, &
       SWAN_LIBRARY_OK
    USE swan_parallel, ONLY: SWINITMPI, SWEXITMPI
+   USE, INTRINSIC :: iso_fortran_env, ONLY: error_unit
 !                                                                      *
 !************************************************************************
 
@@ -107,9 +108,12 @@ PROGRAM SWAN
          type(swan_result_t) :: fin
          fin = swan_finalize(state)
          ! The host decides on termination (the library never stops by itself);
-         ! an error code goes to the OS so that runners/CI see red.
+         ! an error code goes to the OS so that runners/CI see red. To stderr: SWAN
+         ! has already closed unit 6 by then, and * would end up in a file
+         ! fort.6.
          if (res%code /= SWAN_LIBRARY_OK) then
-            write (*, '(A)') "SWAN library route failed: "//trim(res%message)
+            write (error_unit, '(A)') "SWAN library route failed: "//trim(res%message)
+            flush (error_unit)
             error stop 1
          end if
          if (fin%code /= SWAN_LIBRARY_OK) error stop 2

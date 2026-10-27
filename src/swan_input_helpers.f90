@@ -172,7 +172,7 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
 !              output  error indicator
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER   IH, IOSTAT
+   INTEGER   IH, IOSTAT, IOS
 
 !     HEDLIN : Content of a header line
 !     KEYWIS : ??
@@ -202,7 +202,11 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
 !       open namelist file and read first datafile name
       CALL FOR (NDSL, FILENM, 'OF', IOSTAT)
       IF (STPNOW()) RETURN
-      READ(NDSL, '(A)') FILENM
+      READ(NDSL, '(A)', IOSTAT=IOS) FILENM
+      IF (IOS.NE.0) THEN
+         CALL MSGERR (4, 'no data file name in series file '//TRIM(FILENM))
+         RETURN
+      ENDIF
    ELSE
       CALL INCSTR ('FNAME', FILENM, 'REQ', ' ')
    ENDIF
@@ -306,7 +310,12 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
             WRITE (PRINTF, '(A,A,A)') ' **  Heading lines file ',&
             &TRIM(FILENM), ' **'
             DO IH=1, NHEDF
-               READ (NDSD, '(A80)') HEDLIN
+               READ (NDSD, '(A80)', IOSTAT=IOS) HEDLIN
+               IF (IOS.NE.0) THEN
+                  CALL MSGERR (4, 'file '//TRIM(FILENM)//&
+                  &' has fewer lines than [nhedf] heading lines')
+                  RETURN
+               ENDIF
                WRITE (PRINTF, '(A4,A80)') ' -> ', HEDLIN
             ENDDO
          ENDIF
@@ -315,7 +324,12 @@ SUBROUTINE REPARM (NDSL, NDSD, IDLA, IDFM, RFORM,&
          CALL FOR (NDSD, FILENM, 'OU', IOSTAT)
          IF (STPNOW()) RETURN
          DO IH=1, NHEDF
-            READ (NDSD)
+            READ (NDSD, IOSTAT=IOS)
+            IF (IOS.NE.0) THEN
+               CALL MSGERR (4, 'file '//TRIM(FILENM)//&
+               &' has fewer records than [nhedf] heading lines')
+               RETURN
+            ENDIF
          ENDDO
       ENDIF
       old_list_unit = NDSL

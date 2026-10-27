@@ -9,7 +9,7 @@ module swan_read_grid
 contains
 
 subroutine SwanReadGrid ( basenm, lenfnm )
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -71,6 +71,7 @@ subroutine SwanReadGrid ( basenm, lenfnm )
 !   Local variables
 
     integer       :: i        ! loop counter
+    integer       :: j        ! loop counter
     integer, save :: ient = 0 ! number of entries in this subroutine
 
 !   Structure
@@ -105,6 +106,27 @@ subroutine SwanReadGrid ( basenm, lenfnm )
        return
 
     endif
+    if (stpnow()) return
+    if ( nverts < 3 .or. ncells < 1 ) then
+       call msgerr ( 4, 'the grid file needs at least three vertices and one element' )
+       return
+    endif
+!
+!   Every element must consist of three different existing vertices: the
+!   edge construction (SwanCreateEdges) indexes its lists with these numbers
+!   and a repeated vertex gives an element without area
+!
+    do j = 1, ncells
+       if ( any(kvertc(:,j) < 1) .or. any(kvertc(:,j) > nverts) ) then
+          call msgerr ( 4, 'element refers to a vertex that does not exist in the grid file' )
+          return
+       endif
+       if ( kvertc(1,j) == kvertc(2,j) .or. kvertc(2,j) == kvertc(3,j) .or. &
+            kvertc(1,j) == kvertc(3,j) ) then
+          call msgerr ( 4, 'element with a repeated vertex in the grid file' )
+          return
+       endif
+    enddo
 
     ! compute coordinate offsets and reset grid coordinates
 
