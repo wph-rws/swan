@@ -222,13 +222,14 @@ These issues are in upstream and have been investigated, but not resolved:
   upstream `43e9bbb` built with JAC. The test checks only the cases that hold.
 - **How complete this list is.** Some defects were found by reading code that
   looks wrong and checking the pattern against `43e9bbb`, the others through
-  compiler warnings, runtime checks, Valgrind and the comparison with upstream
-  per deck. All 42 example decks have been run against upstream with the same
-  compiler and `-O3`, and each difference was assigned to BF-15, BF-16 or
-  BF-34, each time proven by reverting the fix and measuring byte-identity.
-  That covers the paths these decks touch, not the branches outside them, and
-  that is exactly where BF-15 and BF-34 were. So there are almost certainly
-  still bugs in upstream that are not listed here.
+  compiler warnings, runtime checks, Valgrind, the comparison with upstream
+  per deck and a systematic trial with wrong input. All 42 example decks have
+  been run against upstream with the same compiler and `-O3`, and each
+  difference was assigned to BF-15, BF-16 or BF-34, each time proven by
+  reverting the fix and measuring byte-identity. That covers the paths these
+  decks touch, not the branches outside them, and that is exactly where BF-15
+  and BF-34 were. So there are almost certainly still bugs in upstream that
+  are not listed here.
 
 ## Appendix: BF-34 against the literature
 
