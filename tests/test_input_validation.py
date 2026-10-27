@@ -657,6 +657,56 @@ def test_deck_without_bottom_stops_cleanly(tmp_path, removed, message):
     assert f"Terminating error: {message}" in report, report[-2000:]
 
 
+#  Faulty input from a systematic trial on the smoke deck:
+#  omitted commands, nonsensical numbers, wrong order and broken
+#  files. Each of these decks crashed, hung, or ended without computing
+#  with exit code 0; most did so upstream too. The requirement is that SWAN
+#  stops with a message in PRINT and exit code 1. Where the message is a
+#  stop error, the run uses SET MAXERR 3: then it may not continue either.
+CGRID = "CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 20 10 CIRCLE 24 0.05 1.0 16"
+
+FAULTY_INPUT = [
+    # BF-46: a computational grid or computation period without points, directions,
+    # frequencies or time steps
+    pytest.param([(CGRID, CGRID.replace("20 10", "0 10"))], {},
+                 "[mxc] in CGRID must be at least 1", True, id="BF-46-mxc"),
+    pytest.param([(CGRID, CGRID.replace("20 10", "20 -1"))], {},
+                 "[myc] in CGRID must be at least 1", True, id="BF-46-myc"),
+    pytest.param([(CGRID, CGRID.replace("CIRCLE 24", "CIRCLE 0"))], {},
+                 "[mdc] in CGRID must be at least 1", True, id="BF-46-mdc"),
+    pytest.param([(CGRID, CGRID.replace("0.05 1.0", "0.0 1.0"))], {},
+                 "[flow] and [fhigh] in CGRID", True, id="BF-46-flow"),
+    pytest.param([(CGRID, CGRID.replace("0.05 1.0", "1.0 0.05"))], {},
+                 "[flow] and [fhigh] in CGRID", True, id="BF-46-fhigh"),
+    pytest.param([(CGRID, CGRID.replace("CIRCLE 24", "SECTOR 200 200 24"))], {},
+                 "[dir1] and [dir2] of SECTOR in CGRID must differ", True, id="BF-46-sector"),
+    pytest.param([("GEN3 KOMEN", "GEN3 KOMEN\nSURFBEAT -1")], {},
+                 "[df] in SURFBEAT must be positive", True, id="BF-46-surfbeat-df"),
+    pytest.param([("GEN3 KOMEN", "GEN3 KOMEN\nSURFBEAT 0.01 -1")], {},
+                 "[nmax] in SURFBEAT must be at least 1", True, id="BF-46-surfbeat-nmax"),
+    pytest.param([("MODE STATIONARY", "MODE NONSTATIONARY"),
+                  ("\nCOMPUTE\n",
+                   "\nCOMPUTE NONSTAT 20200101.000000 -10 MIN 20200101.010000\n")], {},
+                 "time step [deltc] in COMPUTE must be positive", True, id="BF-46-deltc"),
+]
+
+
+@pytest.mark.parametrize("pairs, files, message, stop_error", FAULTY_INPUT)
+def test_faulty_input_stops_with_message(tmp_path, pairs, files, message, stop_error):
+    deck = _quick_deck()
+    for old, new in pairs:
+        assert old in deck, "smoke deck has changed shape"
+        deck = deck.replace(old, new, 1)
+    if stop_error:
+        deck = deck.replace("SET NAUTICAL", "SET NAUTICAL\nSET MAXERR 3", 1)
+    result, report = _run_deck(tmp_path, deck, files, timeout=60)
+    assert "Fortran runtime error" not in result.stderr, result.stderr[-2000:]
+    assert result.returncode == 1, (result.returncode, result.stderr[-2000:])
+    assert message in report, report[-2000:]
+    if stop_error:
+        assert "Terminating error" in report, report[-2000:]
+
+
 #  CVMESH looks for an output point in a curvilinear grid and then checks in
 #  KGRPNT whether that point is active. For a point outside the grid
 #  (XC = -99) that check must be skipped, or KGRPNT is read at index -97.

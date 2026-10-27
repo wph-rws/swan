@@ -974,6 +974,12 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                CALL INITVD ('DELTC', default_time_context%DT, 'REQ', 0D0)
                CALL INCTIM (ITMOPT,'TENDC',default_time_context%TFINC,'REQ',0D0)
                NSTATC = 1
+!           a time step that is not positive gives no time steps at all (the
+!           run ended normally without computing) or a division by zero
+               IF (.NOT.(default_time_context%DT .GT. 0D0)) THEN
+                  CALL MSGERR (4, 'time step [deltc] in COMPUTE must be positive')
+                  RETURN
+               ENDIF
 
 !           *** tfinc must be greater than tinic **
                DIFF = default_time_context%TFINC - default_time_context%TINIC
@@ -1793,6 +1799,18 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                   CALL ININTG('MYC',MYS,'RQI',-1)
                ENDIF
 
+!     Without meshes there is no grid: the grid arrays get no points and
+!     the boundary and output routines index outside them. The run stops
+!     after the command; until then a valid value
+               IF (MXS.LT.1) THEN
+                  CALL MSGERR(4, '[mxc] in CGRID must be at least 1')
+                  MXS = 1
+               END IF
+               IF (.NOT.ONED .AND. MYS.LT.1) THEN
+                  CALL MSGERR(4, '[myc] in CGRID must be at least 1')
+                  MYS = 1
+               END IF
+
                IF (KREPTX.EQ.1) THEN
                   MXC = MXS
                ELSE
@@ -1870,6 +1888,20 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                CALL MSGERR(4, '[msc] in CGRID must be at least 1')
                MSS = 1
             END IF
+!     Without a direction there is no spectrum, and a frequency range that
+!     is not positive and increasing gives a frequency axis of NaN or of
+!     decreasing values; the computation then hangs or reads outside its
+!     tables
+            IF (MDC.LT.1) THEN
+               CALL MSGERR(4, '[mdc] in CGRID must be at least 1')
+               MDC = 1
+            END IF
+            IF (.NOT.(FRLOW.GT.0. .AND. FRHIG.GT.FRLOW)) THEN
+               CALL MSGERR(4, &
+                  '[flow] and [fhigh] in CGRID must satisfy 0 < [flow] < [fhigh]')
+               FRLOW = 0.05
+               FRHIG = 1.
+            END IF
             SLOW = 2.*PI*FRLOW
             SHIG = 2.*PI*FRHIG
             MSC  = MSS+1
@@ -1893,6 +1925,12 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                SPDIR1 = SPDIR1 * PI / 180.
                SPDIR2 = SPDIR2 * PI / 180.
                IF (SPDIR2.LT.SPDIR1) SPDIR2 = SPDIR2 + PI2
+!         a sector of zero width has a directional step of zero, by which
+!         the computation divides
+               IF (.NOT.(SPDIR2.GT.SPDIR1)) THEN
+                  CALL MSGERR (4, '[dir1] and [dir2] of SECTOR in CGRID must differ')
+                  RETURN
+               ENDIF
                DDIR = (SPDIR2-SPDIR1) / REAL(MDC)
                MDC = MDC + 1
             ENDIF
@@ -2262,6 +2300,17 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
             CALL INREAL ('DF'  , dfiem , 'STA', 0.01 )
             CALL ININTG ('NMAX', nmax  , 'STA', 50000)
             CALL INREAL ('EMIN', e_trsh, 'STA', 0.05 )
+!     the infragravity frequency axis is built from [df] and [nmax]: a step
+!     that is not positive left it empty (read outside) and a negative
+!     [nmax] made the computation hang
+            IF (.NOT.(dfiem.GT.0.)) THEN
+               CALL MSGERR (4, '[df] in SURFBEAT must be positive')
+               RETURN
+            ENDIF
+            IF (nmax.LT.1) THEN
+               CALL MSGERR (4, '[nmax] in SURFBEAT must be at least 1')
+               RETURN
+            ENDIF
 
             CALL INKEYW ('STA',' ')
             IF (KEYWIS ('UNIF')) sflog = .FALSE.
