@@ -613,6 +613,26 @@ def test_boundary_file_with_unknown_header_stops_the_run(tmp_path, boundary, max
     assert not (work / "norm_end").exists()
 
 
+#  A typing error in the number of intervals of a CURVE allocated node after
+#  node until memory ran out; the process then broke off in a way that
+#  depended on the heap. Now SWAN stops with a message, within a fraction of a
+#  second.
+def test_curve_with_absurdly_many_points_stops_cleanly(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QUICK_TEST / "bottom.bot", work / "bottom.bot")
+    deck = (QUICK_TEST / "quick_test.swn").read_text(encoding="utf-8")
+    old = "POINTS 'CENTER' 1000.0 500.0"
+    assert old in deck, "smoke deck has changed shape"
+    deck = deck.replace(old, old + "\nCURVE 'line' 0. 500. 2000000000 2000. 500.", 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True,
+                            timeout=60)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    assert result.returncode != 0
+    assert "more than 10 million output points on CURVE" in report, report[-2000:]
+
+
 #  CVMESH looks for an output point in a curvilinear grid and then checks in
 #  KGRPNT whether that point is active. For a point outside the grid
 #  (XC = -99) that check must be skipped, or KGRPNT is read at index -97.

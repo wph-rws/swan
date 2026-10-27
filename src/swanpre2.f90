@@ -332,6 +332,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
    INTEGER, SAVE :: IENT = 0
    INTEGER   I, II, IK, INTD, INTE, INTV, IOSTAT, ISTAT
    INTEGER   IERR, IX1, IX2, IY1, IY2, JJ, KK, MIP, MIPR
+   INTEGER, PARAMETER :: MAX_OUTPUT_POINTS = 10000000
    INTEGER   MXK, MXN, MYK, MYN, NATTR, NBMARK, NDIM, NDS, NVTX
 !  SIRAY is now a module procedure; the old local INTEGER declaration would
 !  turn the reference back into an external function and break linking.
@@ -527,9 +528,21 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          IF (ITEST .GE. 200 .OR. INTES .GE. 20) THEN
             WRITE(PRINTF, "('COORDINATES OF OUTPUT POINTS FOR CURVE  : ', A)") PSNAME
          ENDIF
+!        Bound the number of points: a typo such as INT 2000000000 allocated
+!        nodes until memory ran out, and the run then aborted depending on
+!        the heap state instead of stopping with a message.
+         IF (INTV .GT. MAX_OUTPUT_POINTS - MIP) THEN
+            CALL MSGERR (4, 'more than 10 million output points on CURVE')
+            EXIT
+         ENDIF
          do JJ=1,INTV
             MIP = MIP+1
-            ALLOCATE(TMP)
+            ALLOCATE(TMP, STAT=IERR)
+            IF (IERR .NE. 0) THEN
+               CALL MSGERR (4, 'not enough memory for the output points of CURVE')
+               MIP = MIP-1
+               EXIT
+            ENDIF
             TMP%X = XP1+REAL(JJ)*(XP-XP1)/REAL(INTV)
             TMP%Y = YP1+REAL(JJ)*(YP-YP1)/REAL(INTV)
             NULLIFY(TMP%NEXTXY)
