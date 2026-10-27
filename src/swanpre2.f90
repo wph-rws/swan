@@ -377,6 +377,21 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !           ***** program uses the number of points               *****
          CALL ININTG ('MXFR',MXK,'STA',20)
          CALL ININTG ('MYFR',MYK,'STA',20)
+!        Zero meshes give one row, one column or a single point. Negative
+!        counts are invalid. Convert before adding one to avoid integer
+!        overflow in the limit on allocated output points.
+         IF (MXK.LT.0 .OR. MYK.LT.0) THEN
+            CALL MSGERR (4, '[mxfr] and [myfr] in FRAME must be non-negative')
+            DEALLOCATE(OPSTMP)
+            FOUND = .TRUE.
+            RETURN
+         ENDIF
+         IF ((REAL(MXK,KIND=KIND(0D0))+1D0)*(REAL(MYK,KIND=KIND(0D0))+1D0) .GT. REAL(MAX_OUTPUT_POINTS)) THEN
+            CALL MSGERR (4, 'more than 10 million output points on FRAME')
+            DEALLOCATE(OPSTMP)
+            FOUND = .TRUE.
+            RETURN
+         ENDIF
          OPSTMP%PSTYPE = 'F'
          OPSTMP%OPI(1) = MXK+1
          OPSTMP%OPI(2) = MYK+1
@@ -430,10 +445,15 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
          CALL ININTG ('IY2', IY2, 'REQ', 0)
          IF (IX1 .LT. 0 .OR. IX2 .GT. MXCGL-1 .OR. IX1 .GT. IX2 .OR. &
             IY1 .LT. 0 .OR. IY2 .GT. MYCGL-1 .OR. IY1 .GT. IY2) THEN
-            CALL MSGERR (3, 'Check corners of GROUP (SUBGRID) command')
-            CALL MSGERR (3, ' .........the values should be.........')
-            CALL MSGERR (3, 'ix1<ix2 and both between 0 and MXC')
-            CALL MSGERR (3, 'iy1<iy2 and both between 0 and MYC')
+!           a subgrid outside the computational grid has no valid output
+!           points; with a raised [maxerr] the output read outside VOQ
+            CALL MSGERR (4, 'Check corners of GROUP (SUBGRID) command')
+            CALL MSGERR (4, ' .........the values should be.........')
+            CALL MSGERR (4, 'ix1<ix2 and both between 0 and MXC')
+            CALL MSGERR (4, 'iy1<iy2 and both between 0 and MYC')
+            DEALLOCATE(OPSTMP)
+            FOUND = .TRUE.
+            RETURN
          ENDIF
 
          IF (OPTG .EQ. 3) THEN
@@ -1389,6 +1409,9 @@ SUBROUTINE SWREOQ ( FOUND )
          DO
             CALL SVARTP (IVTYPE)
             IF (IVTYPE .EQ. 98 .OR. IVTYPE .EQ. 999) EXIT
+!           unknown quantity: SVARTP has reported it; there is no entry 0
+!           in the quantity tables
+            IF (IVTYPE .EQ. 0) CYCLE
             IF (IVTYPE .NE. 999) THEN
                IF (is_netcdf_filename(FILENM)) THEN
                   IF ( IVTYPE.GT.2 ) THEN
@@ -1776,6 +1799,9 @@ SUBROUTINE SWREOQ ( FOUND )
       DO
          CALL SVARTP (IVTYPE)
          IF (IVTYPE .EQ. 98 .OR. IVTYPE .EQ. 999) EXIT
+!        unknown quantity: SVARTP has reported it; there is no entry 0
+!        in the quantity tables
+         IF (IVTYPE .EQ. 0) CYCLE
          IF (IVTYPE .NE. 999) THEN
             IF (is_netcdf_filename(FILENM)) THEN
                IF ( IVTYPE.GT.2.AND.IVTYPE.NE.40 ) THEN

@@ -746,6 +746,9 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                CALL ININTG ('FIELD', FLD_TABLE, 'STA', 11)
                IF (FLD_TABLE.GT.16) CALL MSGERR (2, '[field] is too large')
                IF (FLD_TABLE.LT.8)  CALL MSGERR (2, '[field] is too small')
+!        a value outside 8..16 gives an invalid format, and the output is
+!        written even when the error stops the computation
+               IF (FLD_TABLE.GT.16 .OR. FLD_TABLE.LT.8) FLD_TABLE = 11
                WRITE (FLT_TABLE, "('(E', I2, '.', I1, ')')") FLD_TABLE, FLD_TABLE-7
                IF (ITEST.GE.30) WRITE (PRINTF, "(' Format floating point table: ', A)") FLT_TABLE
                CALL INKEYW ('STA', ' ')
@@ -753,8 +756,13 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
             IF (KEYWIS('BLO')) THEN
                CALL ININTG ('NDEC', DEC_BLOCK, 'STA', 4)
                IF (DEC_BLOCK.GT.9) CALL MSGERR (2, '[ndec] is too large')
+!        an E edit descriptor without decimals is not a valid format
+               IF (DEC_BLOCK.LT.1) CALL MSGERR (2, '[ndec] is too small')
+               IF (DEC_BLOCK.GT.9 .OR. DEC_BLOCK.LT.1) DEC_BLOCK = 4
                CALL ININTG ('LEN', NLEN, 'STA', 200)
                IF (NLEN.GT.9999) CALL MSGERR (2, '[len] is too large')
+               IF (NLEN.LT.1) CALL MSGERR (2, '[len] is too small')
+               IF (NLEN.GT.9999 .OR. NLEN.LT.1) NLEN = 200
                WRITE (FLT_BLOCK, "('(', I4, '(1X,E', I2, '.', I1, '))')") NLEN, DEC_BLOCK+7, DEC_BLOCK
                IF (ITEST.GE.30) WRITE (PRINTF, "(' Format floating point block: ', A)") FLT_BLOCK
                CALL INKEYW ('STA', ' ')
@@ -762,8 +770,12 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
             IF (KEYWIS('SPEC')) THEN
                CALL ININTG ('NDEC', DEC_SPEC, 'STA', 5)
                IF (DEC_SPEC.GT.9) CALL MSGERR (2, '[ndec] is too large')
+               IF (DEC_SPEC.LT.1) CALL MSGERR (2, '[ndec] is too small')
+               IF (DEC_SPEC.GT.9 .OR. DEC_SPEC.LT.1) DEC_SPEC = 5
                CALL ININTG ('LEN', NLEN, 'STA', 200)
                IF (NLEN.GT.9999) CALL MSGERR (2, '[len] is too large')
+               IF (NLEN.LT.1) CALL MSGERR (2, '[len] is too small')
+               IF (NLEN.GT.9999 .OR. NLEN.LT.1) NLEN = 200
                WRITE (FIX_SPEC, "('(', I4, '(1X,I', I1, '))')") NLEN, DEC_SPEC
                IF (ITEST.GE.30) WRITE (PRINTF, "(' Format spectral output: ', A)") FIX_SPEC
                LENSPO = NLEN*(DEC_SPEC+1)

@@ -679,6 +679,8 @@ INPGRID = "INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0"
 READINP = "READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE"
 BOUNDARY = "BOUNDSPEC SIDE WEST CONSTANT PAR 1.0 6.0 270.0 20.0"
 BLOCK = "BLOCK 'COMPGRID' NOHEADER 'quick_test_hs.blk' LAYOUT 3 HSIGN"
+POINTS = "POINTS 'CENTER' 1000.0 500.0"
+FRAME_BLOCK = "\nBLOCK 'F' NOHEADER 'f.blk' HSIGN"
 
 FAULTY_INPUT = [
     # BF-46: a computational grid or computation period without points, directions,
@@ -753,6 +755,20 @@ FAULTY_INPUT = [
                  "No vegetation parameters found", False, id="BF-51-vegetation"),
     pytest.param([("GEN3 KOMEN", "GEN3 KOMEN\nOBSTACLE FOO")], {},
                  "Illegal keyword: FOO", False, id="BF-51-obstacle"),
+    # BF-52: output requests with impossible dimensions or format
+    pytest.param([(POINTS, POINTS + "\nFRAME 'F' 0 0 0 2000 1000 -1 -1" + FRAME_BLOCK)], {},
+                 "[mxfr] and [myfr] in FRAME must be non-negative", True, id="BF-52-frame-negative"),
+    pytest.param([(POINTS, POINTS + "\nFRAME 'F' 0 0 0 2000 1000 100000 100000" + FRAME_BLOCK)],
+                 {}, "more than 10 million output points on FRAME", True, id="BF-52-frame-too-large"),
+    pytest.param([(POINTS, POINTS + "\nGROUP 'G' SUBGRID 0 1000000 0 1000000"
+                   "\nBLOCK 'G' NOHEADER 'g.blk' HSIGN")],
+                 {}, "Check corners of GROUP (SUBGRID) command", True, id="BF-52-group"),
+    pytest.param([(BLOCK, "OUTPUT OPTIONS '%' TABLE 1000\n" + BLOCK), ("TABLE 'CENTER' HEADER", "TABLE 'CENTER' NOHEADER")], {},
+                 "[field] is too large", False, id="BF-52-table-width"),
+    pytest.param([(BLOCK, "OUTPUT OPTIONS '%' BLOCK 0 6\n" + BLOCK)], {},
+                 "[ndec] is too small", False, id="BF-52-decimals"),
+    pytest.param([(BLOCK, BLOCK.replace("HSIGN", "FOO HSIGN"))], {},
+                 "Illegal keyword: FOO", False, id="BF-52-unknown-quantity"),
 ]
 
 
@@ -814,6 +830,51 @@ STOP
     rows = [r.split() for r in (tmp_path / "work" / "p.tbl").read_text().splitlines()]
     assert float(rows[0][2]) == pytest.approx(20.0)
     assert float(rows[1][2]) == pytest.approx(-99.0)
+
+
+@pytest.mark.parametrize("nx,ny,count", [(5, 0, 6), (0, 5, 6), (0, 0, 1)])
+def test_frame_with_zero_meshes_has_output_points(tmp_path, nx, ny, count):
+    deck = _quick_deck().replace(POINTS, POINTS +
+        f"\nFRAME 'F' 0 0 0 2000 1000 {nx} {ny}" + FRAME_BLOCK)
+    proc, report = _run_deck(tmp_path, deck)
+    assert proc.returncode == 0, report[-2000:]
+    values = [float(v) for v in (tmp_path / "work" / "f.blk").read_text().split()]
+    assert len(values) == count
+    assert all(math.isfinite(v) and v >= 0 for v in values)
+
+
+def test_frame_point_count_cannot_overflow(tmp_path):
+    deck = _quick_deck().replace(POINTS, POINTS +
+        "\nFRAME 'F' 0 0 0 2000 1000 2147483647 20" + FRAME_BLOCK)
+    proc, report = _run_deck(tmp_path, deck)
+    assert proc.returncode == 1
+    assert "more than 10 million output points on FRAME" in report
+
+
+def test_table_format_reset_can_compute_with_maxerr_2(tmp_path):
+    deck = _quick_deck().replace("SET NAUTICAL", "SET MAXERR 2 NAUTICAL")
+    deck = deck.replace("TABLE 'CENTER' HEADER", "OUTPUT OPTIONS '%' TABLE 1000\nTABLE 'CENTER' NOHEADER")
+    proc, report = _run_deck(tmp_path, deck)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    assert "[field] is too large" in report
+    values = (tmp_path / "work" / "quick_test_center.tbl").read_text().split()
+    assert float(values[3]) == pytest.approx(.8787, abs=.0001)
+
+
+def test_surplus_boundary_lengths_do_not_change_the_next_segment(tmp_path):
+    boundary = "BOUNDSPEC SEGMENT IJ 0 0 0 10 VARIABLE PAR 0 1 6 270 20 1200 2 6 270 20{extra}\n" + \
+               "BOUNDSPEC SEGMENT IJ 1 0 20 0 CONSTANT PAR 1.5 6 200 20"
+    found = []
+    for label, extra in (("plain", ""), ("surplus", " 1500 .2 6 270 20")):
+        deck = _quick_deck().replace(BOUNDARY, boundary.format(extra=extra))
+        deck = deck.replace(POINTS, "POINTS 'CENTER' 0 1000 2000 0")
+        proc, report = _run_deck(tmp_path / label, deck)
+        assert proc.returncode == 0, report[-2000:]
+        rows = [l.split() for l in (tmp_path / label / "work" / "quick_test_center.tbl").read_text().splitlines()
+                if l.strip() and not l.startswith('%')]
+        found.append([float(r[3]) for r in rows])
+    assert found[0] == found[1]
+    assert found[0] == pytest.approx([1.872, 1.676], abs=.001)
 
 
 @pytest.mark.parametrize("maxerr", [1, 3])
