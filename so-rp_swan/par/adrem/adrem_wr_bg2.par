@@ -1,0 +1,3 @@
+dat/alg/datumtijd.dat DT 0 dat/alg/datumtijd.dat DT 0 10
+A GET BG2 WN_h_3 2
+print i3 A

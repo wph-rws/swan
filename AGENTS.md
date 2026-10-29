@@ -18,6 +18,7 @@ the user stay in Dutch.
 - `origin` = `wph-rws/swan` (GitHub), `upstream` = TU Delft (`gitlab.tudelft.nl/citg/wavemodels/swan`).
 - Current version: SWAN **41.51** (see `SWAN_VERSION_NUMBER` in `src/swanmain.f90`). The upstream remote in this repository only goes back to **41.41**; 41.31 is not in it.
 - The source has been modernised from fixed-form (`.ftn`/`.f`) to free-form Fortran (`.f90`).
+- Available locally only: `so-rp_swan/` with the operational so-rp/Voordelta case (grid, bottom, the reference binary **RWS 41.31A.1**). In git are the operational deck, the corrected template and the condition matrix in `so-rp_swan/matrix/`.
 
 ## Important physics fact: changed defaults (41.31 → 41.51)
 
@@ -39,7 +40,65 @@ the deck leaves open: `GEN3 KOMEN DRAG FIT`, and on the `TRIAD` line
 `ITRIAD=1` also `DINT=-1` and, after `URSLIM`, `IC=2`). `GEN3 KOMEN` alone is
 not enough: the wind drag still changes. The third harmonic and the
 group-velocity weighting of the `ITRIAD=1` LTA cannot be switched off from a
-deck, so such a deck never matches 41.31 exactly.
+deck, so such a deck never matches 41.31 exactly; on the so-rp deck about 2 cm
+remains (below).
+
+**The operational so-rp deck** (template from the Rijkswaterstaat production environment in
+`so-rp_swan/par/operational/`, provenance in `PROVENANCE.md` there) chooses
+`GEN3 KOMEN`, `WCAP KOMEN DELTA=1`, `TRIAD ITRIAD=1 TRFAC=0.8 CUTFR=2.5`,
+`STOPC` with `MXITST=40` and `CDCAP=0.00275` itself. Of the list above, the
+wind drag and the triad changes remain. Measured on 28 October 2026 with the
+corrected deck (see below), 20 m/s from 310°, NAP +3.00 m, barrier open, mean
+Hsig over the 130 wet output points; every run stopped on its own stopping
+criterion after 35–37 iterations:
+
+| Run | mean Hsig |
+|---|---|
+| RWS 41.31A.1 | 1.602 m |
+| 41.51 | 1.653 m (+3.2%) |
+| 41.51 with `GEN3 KOMEN DRAG FIT` (without URCRIT/URSLIM) | 1.603 m (+0.0%) |
+| 41.51 `legacy-4131`: `DRAG FIT`, `DINT=-1`, `URCRIT=0.2`, `URSLIM=0.01`, `IC=2` | 1.583 m (−1.2%) |
+
+With `DRAG FIT` alone the mean agrees only because the triad changes happen to
+cancel on average: point by point 41.51 still differs from 41.31 by up to 9 cm
+(RMS 3.5 cm). The `legacy-4131` variant of `so-rp_swan/matrix/deck.py` sets
+everything a deck can set. What remains, 2 cm on average and up to 13 cm at
+single points (RMS 4 cm), is the third harmonic and the group-velocity
+weighting of the `ITRIAD=1` LTA. A test build with those two parts written as
+in 41.31 reproduces RWS 41.31A.1 to within 0.1 mm, so on this deck the whole
+difference between the versions lies in the wind drag and the triads. Step by
+step from `legacy-4131` without `DINT` and `IC` (1.542 m): integrating over all
+directions lowers the mean to 1.515 m, the Madsen and Sørensen coefficient
+raises it to 1.583 m, and the last two parts bring it to 1.602 m.
+
+**Grid and boundary of the operational deck are wrong.** `CGRID CURVILINEAR
+249 578` asks for one row and column more than `so-rp.rgf` has (249 × 578
+points). SWAN reports this, but carries on because `MAXERR = 2`, and then 98%
+of the wet grid points lie on average 49 m, and up to 248 m, away from their
+position. The deck's boundary segments lie on that incorrectly read grid,
+40–140 m inside the wet sea boundary of the correct one. The template this
+repository uses, `so-rp_swan/par/so-rp_osk_org.swn`, is the operational deck
+with exactly two corrections: `CGRID CURVILINEAR 248 577` and the boundary on
+the wet sea boundary, `BOUND SEGMENT IJ 218 65 29 65` and `28 66 28 71`. SWAN
+counts these grid indices from 0, and a segment must lie exactly on the edge:
+one cell further inside, SWAN accepts it without a message but overwrites the
+boundary spectrum in the first sweep, so that no waves enter at all
+(`so-rp_swan/matrix/test_deck.py` checks the position against the bottom). At
+the reference condition the two corrections change mean Hsig by less than 1 cm
+(RWS 41.31: 1.608 m in production, 1.602 m corrected), but single points by up
+to 9 cm. This has been put to the maintainer of the operational deck. Compare
+versions with the corrected template. Because production still runs the deck
+as it is, the matrix also has two targets with the production deck itself
+(`rws_4131_production` and `current_4151_production`, only run when named
+with `--target`); `deck.py` accepts that deck only byte for byte. With it, the
+current code gives 1.659 m at the reference condition, against 1.608 m for
+RWS 41.31A.1 (measured 29 October 2026): the same +5 cm as on the corrected
+deck, but up to 13 cm at single points. The operational deck also only
+runs with the RWS/DZL `swaninit`, which sets `#` as the comment character.
+
+> Always average over the wet points: dry points have Hsig = −9 (SWAN
+> exception value `EXCV`), and a domain average that includes the −9 gives
+> artificially low values.
 
 ## Compiler
 
@@ -56,6 +115,54 @@ versions; when in doubt, check `readelf -p .comment` on the binary. The
 Locally, OpenMPI needs
 `OMPI_MCA_pml=ob1 OMPI_MCA_btl=self,sm OMPI_MCA_mtl=^ofi OMPI_MCA_osc=^ucx` to
 avoid crashing at start-up.
+
+## Analysis tools
+
+These tools are installed locally (FORD, gcovr and fortitude in `~/.venv`, the
+rest through apt). Use them before reading large parts of the source by hand.
+Their output goes to `build-*` directories, which git ignores.
+
+- **Who calls what: FORD.** `ford doc/ford.md` (about 30 s) writes a page per
+  routine to `build-ford/`, with its arguments, the modules it uses, and
+  graphs of what it calls and what calls it, for example
+  `build-ford/proc/swcomp.html`. Several modules in `src/` exist in two
+  versions of which only one is built; the project file follows the MPI build
+  with netCDF and says which versions it takes. Look up the callers before
+  changing the arguments or the side effects of a routine.
+- **Where something is defined: ctags.**
+  `ctags -R --languages=Fortran --fields=+nKS --extras=+q -f build-ford/tags src/`
+  takes less than a second. `grep -P '^SWCOMP\t' build-ford/tags` then gives
+  the file, line, module and argument list. Plain `rg` also finds every use.
+- **Which code a deck runs: gcovr.** Build with coverage in a separate
+  directory (`-DCMAKE_Fortran_FLAGS="--coverage -O0"
+  -DCMAKE_EXE_LINKER_FLAGS=--coverage`, here `build-coverage/`), run the
+  deck, then `gcovr --root . --filter src/ --gcov-executable gcov-16
+  --object-directory build-coverage`. Use it to check that a test really
+  reaches the code it claims to test.
+- **Error-prone constructs: fortitude.** `fortitude check src/` uses
+  `fortitude.toml`, which selects only rules that can point at a real error
+  (about 140 findings, mostly known and harmless). The style rules are left
+  out on purpose: the code follows upstream layout.
+- **A second compiler: LLVM flang 22.** It is a check, not a supported route
+  (see [doc/support-matrix.md](doc/support-matrix.md)); references and gates
+  stay on gfortran. Build with
+  `-DCMAKE_Fortran_COMPILER=/usr/bin/flang-22` in `build-flang/`. On
+  29 October 2026 the whole source compiled without a Fortran warning, and
+  `-fsyntax-only -pedantic` found only unused variables and four harmless
+  TARGET arguments. Of the 60 CTest tests, 58 passed. `source_terms_st6` differs
+  only in rounding (Hsig within 0.3 mm), and `BF-49-directory-as-file`
+  fails because the flang runtime opens a directory without an error, where
+  gfortran refuses.
+- **Timing: hyperfine.** `hyperfine -w 1 -r 5 -N --prepare 'cp deck.swn INPUT'
+  swan.exe` gives a mean and spread over repeated runs. The rules under
+  "Performance measurements" still apply. Callgrind (`valgrind --tool=callgrind`)
+  counts instructions and is reproducible, which a wall-clock time is not.
+
+What does not work here: WSL2 gives no hardware performance counters, so
+`perf` only has software events (`task-clock`, `cpu-clock`) and cache misses
+or IPC cannot be measured; `rr`, likwid and most of VTune need those counters
+as well. The processor has performance and efficiency cores, so pin threads
+for multicore timings.
 
 ## Verification: targeted gate selection
 
@@ -122,5 +229,25 @@ before stopping. This is an extension of the fork, not upstream input. A small
 mean residual does not guarantee convergence of all points or of the whole
 spectrum. Operational decks get no general residual threshold.
 
+Whether the operational so-rp deck (`STOPC` with `CURVAT=0.001`, `NPNTS=98`,
+`MXITST=40`, `ALFA=0.01`) stops too early has not been measured yet. At 2 m/s
+wind the deck does not reach its criterion within 40 iterations (87–88%), and
+wherever the boundary waves do not arrive, which is at most output points, the
+peak lies at the highest frequency: the upper limit of 1 Hz is too low there.
+The manual (`swanuse.pdf` p. 23) asks for an
+upper limit of at least 2.5 to 3 times the highest peak frequency.
+
 The residual does not replace the comparison everywhere: its floor depends on
-the deck, so only a second run tells how much Hs still shifts.
+the deck, so only a second run tells how much Hs still shifts. Note that the
+reference of the convergence check must then itself keep iterating (an
+unreachable `NPNTS` or a `RESIDUAL` threshold), or it stops just as early.
+`so-rp_swan/matrix/convergence_check.py` checks this per condition with two
+references from the same initial state: forced N and 2N iterations through
+`NPNTS=101`, by default with `ALFA=0.01`. How much Hs still shifts between
+those references counts per point as uncertainty; a verdict follows only if
+the deviation of the operational run lies clearly above or below the 10 mm
+limit even with that uncertainty (a choice of this fork, not an upstream
+value). The check covers the wet output points, not the whole field or
+spectrum; periods and direction are reported separately. Run it after changes
+to numerics, source terms or deck settings. `inconclusive`, like `premature`
+and `not-converged`, gives a non-zero exit code.

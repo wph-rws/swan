@@ -10,10 +10,24 @@ reports the measure without changing the decision to stop; a positive value
 adds a stopping threshold. A negative value is rejected. This holds for both
 the regular and the unstructured route.
 
-Operational decks get no `RESIDUAL` and no new numerical default.
+The operational so-rp deck gets no `RESIDUAL` and no new numerical default.
 `ACCUR` and `STOPC` are both supported upstream. Existing upstream settings
 are first tested against long references. `MXITST` is only an upper limit:
 raising it does not prevent stopping early.
+
+The check in `so-rp_swan/matrix/convergence_check.py` forces references with
+`NPNTS=101` to run the full N and 2N iterations. The longer one is the
+reference; the amount Hs still shifts between N and 2N counts, per output
+point, as its uncertainty. The operational run stops too early if, at any
+point, it differs by more than the 10 mm limit even after subtracting that
+uncertainty. It is good if it stays within the limit everywhere even with the
+uncertainty added. In between, there is no verdict. A reference that drifts
+away from its own equilibrium (the residual ends well above its lowest value)
+gives no verdict either. The 10 mm limit is the project's own research
+choice, not an upstream value and not a formal operational accuracy
+requirement. Period and direction are reported separately; the verdict does
+not prove convergence of the whole field or spectrum. `inconclusive` is not a
+passed check.
 
 A low average energy measure can hide spectral and local deviations. The
 integrated measure can also be zero while single bins are not, because
@@ -169,6 +183,7 @@ machine precision; without it, a floor remains that differs from deck to deck.
 Because of that floor, the residual does not replace a second run
 everywhere. It shows a false stop like the one above directly, but only a
 second, longer run tells how much Hs still shifts.
+`so-rp_swan/matrix/convergence_check.py` does that comparison.
 
 ### Stopping criterion
 

@@ -26,8 +26,20 @@ __pycache__/
 # Operational so-rp/Voordelta case: local and large (data + binaries), not in git.
 /so-rp_swan/*
 
-# The comparison tooling belongs in git.
+# The verification tooling and the text input it needs do belong in git:
+# without those files the condition matrix cannot be reproduced. The heavy
+# data (grids, executables, run output) stays out.
+!/so-rp_swan/matrix/
 !/so-rp_swan/comparison/
+!/so-rp_swan/par/
+/so-rp_swan/matrix/runs-validation*/
+/so-rp_swan/matrix/runs/
+/so-rp_swan/comparison/bin/
+/so-rp_swan/comparison/source/
+
+# The provenance of the 41.31 reference build is the audit trail behind the
+# physics comparison. `build-*/` above would catch that directory by mistake.
+!/so-rp_swan/comparison/build-info/
 
 # Pinned upstream source and build for the delta gate (a path without hyphens:
 # upstream switch.pl loops forever on a path with a hyphen in it).

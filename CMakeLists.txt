@@ -107,7 +107,7 @@ elseif( CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM" )
       /warn:all /assume:byterecl /traceback /stand:f2018 /nologo
     )
   endif()
-  message( STATUS "IntelLLVM (ifx) recognised: second implementation, qualification required (language probes + serial, then OpenMP/MPI/netCDF)" )
+  message( STATUS "IntelLLVM (ifx) recognised: second implementation, qualification required (language probes + serial, then OpenMP/MPI/netCDF); see doc/support-matrix.md" )
 elseif( CMAKE_Fortran_COMPILER_ID STREQUAL "Intel" )
   # Historical Intel classic (ifort); not a new strategic base.
   if( UNIX )
@@ -124,7 +124,7 @@ elseif( CMAKE_Fortran_COMPILER_ID MATCHES "^(LLVMFlang|Flang|IBMFlang)$" )
   # Extra check on the candidate: recognition + visible flags, but
   # support only after language probes and output evidence for the target.
   target_compile_options( swan_build_options INTERFACE -std=f2018 )
-  message( STATUS "${CMAKE_Fortran_COMPILER_ID} recognised as a candidate: requires language probes (implicit none(type,external), allocatables, C interop, OpenMP thread state) and serial output evidence" )
+  message( STATUS "${CMAKE_Fortran_COMPILER_ID} recognised as a candidate: requires language probes (implicit none(type,external), allocatables, C interop, OpenMP thread state) and serial output evidence; see doc/support-matrix.md" )
 elseif( CMAKE_Fortran_COMPILER_ID MATCHES "PGI" )
   target_compile_options( swan_build_options INTERFACE "$<$<CONFIG:Release>:-fast>" )
   message( STATUS "PGI branch is historical; out of scope: no NVIDIA/NVFortran/PGI support" )
@@ -135,9 +135,9 @@ elseif( CMAKE_Fortran_COMPILER_ID MATCHES "^(XL|IBMFlang)$" )
   target_compile_options( swan_build_options INTERFACE
     -O3 -qstrict -qarch=auto -qtune=auto -qcache=auto -qalign=4k
   )
-  message( STATUS "XL/IBMFlang branch: requires a strict set and a parser per compiler, with its own baseline" )
+  message( STATUS "XL/IBMFlang branch: requires a strict set and a parser per compiler, with its own baseline; see doc/support-matrix.md" )
 else()
-  message( FATAL_ERROR "-- Current Fortran compiler ${CMAKE_Fortran_COMPILER} not supported (ID=${CMAKE_Fortran_COMPILER_ID})" )
+  message( FATAL_ERROR "-- Current Fortran compiler ${CMAKE_Fortran_COMPILER} not supported (ID=${CMAKE_Fortran_COMPILER_ID}); see doc/support-matrix.md" )
 endif()
 
 if( SWAN_RUNTIME_CHECKS )

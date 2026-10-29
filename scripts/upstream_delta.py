@@ -46,6 +46,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import datetime
 import filecmp
 import json
 import os
@@ -581,6 +582,14 @@ def check_inventory(manifest: dict, decks: list[str]) -> list[str]:
     #  from upstream without an explanation: it may shrink, never grow.
     #  So a new unexplained difference is red, while any existing
     #  backlog stays visible instead of making the gate unusable.
+    #  Without a record of when and with what the decks were last measured,
+    #  "identical" cannot be traced back to a state of the code.
+    measurement = manifest.get("last_measurement")
+    if not isinstance(measurement, dict) or not all(
+        measurement.get(key) for key in ("date", "compiler", "decks")
+    ):
+        problems.append("the manifest has no last_measurement with date, compiler and decks")
+
     budget = manifest.get("unexplained_budget")
     if budget is None:
         problems.append("the manifest has no unexplained_budget")
@@ -727,6 +736,19 @@ def main() -> int:
                     entry.setdefault("bugfix", None)
             entry["measured"] = verdict.detail
         manifest["decks"] = sorted(manifest["decks"], key=lambda item: item["deck"])
+        #  Only a run over every deck says something about the whole inventory;
+        #  a run limited with --deck leaves the record of the last full one.
+        if not arguments.deck:
+            versions = compiler_versions(fork_binary) or set()
+            skipped = any(verdict.status == STATUS_SKIPPED for verdict in verdicts)
+            record = {
+                "date": datetime.date.today().isoformat(),
+                "compiler": ", ".join(f"GNU Fortran {version}" for version in sorted(versions)) or "unknown",
+                "decks": "all except the skipped ones" if skipped else "all, including the heavy ones",
+            }
+            decks_list = manifest.pop("decks")
+            manifest["last_measurement"] = record
+            manifest["decks"] = decks_list
         write_manifest(manifest_path, manifest)
         print(f"\nmanifest updated: {manifest_path}")
         problems = check_inventory(manifest, decks)

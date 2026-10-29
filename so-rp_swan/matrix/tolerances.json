@@ -1,0 +1,43 @@
+{
+  "_comment": "Absolute/relative tolerances per quantity, comparison and computational variant, fixed in advance. Bit equality where proven and required (41.51 refactor); the RWS migration has its own documented residuals, not an automatic tolerance.",
+  "fork_4151_vs_upstream_4151": {
+    "_comment": "Measured on 28 October 2026 at u20_d310_lp300_open with eight OpenMP threads, both built with gfortran 16.2 at -O3: same iteration history, table and spectra numerically identical (only white space in one header line differs).",
+    "Hsig_points": {
+      "mode": "bit_equal",
+      "max_abs": 0.0
+    },
+    "Hsig_field": {
+      "mode": "bit_equal",
+      "max_abs": 0.0
+    },
+    "Tm01_points": {
+      "mode": "bit_equal",
+      "max_abs": 0.0
+    },
+    "Dir_points_circular": {
+      "mode": "bit_equal",
+      "max_abs_deg": 0.0
+    },
+    "convergence_history": {
+      "mode": "equal_length_and_residues",
+      "max_abs_pct": 0.0
+    }
+  },
+  "legacy_4131_vs_RWS4131": {
+    "_comment": "Report only. No migration tolerance is fixed in advance; formal sign-off requires a run of the full condition matrix.",
+    "Hsig_points": {
+      "mode": "report_only"
+    },
+    "Tm01_points": {
+      "mode": "report_only"
+    },
+    "Dir_points_circular": {
+      "mode": "report_only",
+      "exclude_below_Hsig_m": 0.05
+    }
+  },
+  "optimization_levels_O0_O2_O3": {
+    "_comment": "A Debug build (-O0) with gfortran 16.2 passes every test against the -O3 references; no tolerance is widened for it.",
+    "status": "passes"
+  }
+}

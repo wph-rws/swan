@@ -41,6 +41,21 @@ def test_manifest_is_complete_and_every_difference_is_attributed():
     )
 
 
+def test_inventory_requires_a_record_of_the_last_measurement(tmp_path):
+    """Without date, compiler and deck set, "identical" cannot be traced back."""
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    del manifest["last_measurement"]
+    stripped = tmp_path / "upstream-delta.json"
+    stripped.write_text(json.dumps(manifest), encoding="utf-8")
+    completed = subprocess.run(
+        [sys.executable, str(SCRIPT), "--inventory-only", "--manifest", str(stripped)],
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode != 0
+    assert "last_measurement" in completed.stdout
+
+
 def test_pinned_upstream_matches_the_bugfix_table():
     """The inventory and the bug-fix table must refer to the same upstream.
 

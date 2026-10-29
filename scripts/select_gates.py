@@ -19,7 +19,9 @@ Rules:
   toolchain, decks and the delta inventory itself. That gate compares the fork
   deck by deck with the pinned TU Delft source, so that a new difference must
   get a BF reference instead of going unnoticed.
-- pytest takes <1 second and always runs as soon as there is anything to test.
+- pytest takes <1 second and always runs as soon as there is anything to test,
+  including every so-rp_swan/ file other than Markdown: the matrix tests
+  check the template, the reference deck and the matrix input.
 - Docs/comments only: no gate at all.
 
 Usage:
@@ -43,7 +45,7 @@ COMMANDS = {
     "openmp": 'cmake --build build-modernization-openmp -j"$(nproc)" && ctest --test-dir build-modernization-openmp --output-on-failure -j"$(nproc)"',
     "mpi": 'cmake --build build-modernization-mpi -j"$(nproc)" && ctest --test-dir build-modernization-mpi --output-on-failure -j"$(nproc)"',
     "strict": "python3 scripts/strict_diagnostics.py",
-    "pytest": "python3 -m pytest tests/ so-rp_swan/comparison -q",
+    "pytest": "python3 -m pytest tests/ so-rp_swan/matrix so-rp_swan/comparison -q",
     "upstream_delta": "SWAN_UPSTREAM_DELTA=1 python3 -m pytest tests/test_upstream_delta.py -q",
 }
 
@@ -66,11 +68,18 @@ def _classify(path: str) -> set[str]:
         if name == "result_stats.py":
             return {"serial", "pytest"}
         return {"pytest"}
+    if p.parts[:1] == ("so-rp_swan",) and suffix != ".md":
+        #  The template, the reference deck and the matrix input are checked
+        #  by the matrix tests (test_deck.py compares the reference deck byte
+        #  for byte and the template against the operational deck). Real
+        #  so-rp runs take too long for a gate; the matrix is for those.
+        return {"pytest"}
     if p.parts and p.parts[0] in ("doc", "so-rp_swan"):
-        # Other so-rp files are validation evidence and input; docs have
-        # no tests. so-rp runs go through the validation matrix, not ctest.
         return set()
     if suffix == ".md" or name == "AGENTS.md":
+        return set()
+    #  Linter configuration: no build, test or gate reads it.
+    if path == "fortitude.toml":
         return set()
     if name.startswith("strict_diagnostics"):
         #  Script and triage register are also checked by pytest

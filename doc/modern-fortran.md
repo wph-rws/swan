@@ -306,7 +306,8 @@ leave the two disagreeing.
 
 Use it on top of an optimizing build type. Integer powers go through
 `src/swan_integer_powers.f90`, so `-O0` evaluates them in the same order as an
-optimized build, and the Debug route passes all tests.
+optimized build, and the Debug route passes all tests (see
+[closing-account.md](closing-account.md)).
 
 ## Remaining migration boundary
 

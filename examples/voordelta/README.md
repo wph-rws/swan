@@ -135,3 +135,5 @@ in [AGENTS.md](../../AGENTS.md).
 
 For a cross-build comparison of both OpenMP and MPI scaling, use
 [`benchmarks/benchmark_parallel.py`](../../benchmarks/benchmark_parallel.py).
+The measured comparison with upstream and the build commands are in
+[`benchmarks/speed-vs-upstream.md`](../../benchmarks/speed-vs-upstream.md).
