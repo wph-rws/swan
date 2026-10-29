@@ -1,0 +1,3 @@
+dat/alg/datumtijd.dat DT 0 dat/alg/datumtijd.dat DT 0 10
+A GET svko SC_h_3 74
+print i4 A

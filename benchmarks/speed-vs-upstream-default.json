@@ -1,0 +1,417 @@
+{
+  "date": "2026-10-28",
+  "revisions": {
+    "current": "main",
+    "upstream": "43e9bbb"
+  },
+  "host": {
+    "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.44",
+    "processor": "",
+    "cpu_model": "Intel(R) Core(TM) Ultra 9 185H",
+    "logical_cpus": 22,
+    "physical_cpu_ids": [
+      0,
+      2,
+      4,
+      6,
+      8,
+      10,
+      12,
+      14,
+      16,
+      18,
+      20
+    ]
+  },
+  "configuration": {
+    "case_directory": "/home/wilbert/swan/examples/voordelta",
+    "workers": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "repetitions": 3,
+    "openmp_affinity": {
+      "taskset": "/usr/bin/taskset",
+      "OMP_PLACES": "cores",
+      "OMP_PROC_BIND": "close",
+      "OMP_DYNAMIC": "FALSE"
+    },
+    "mpi_launcher": "/usr/bin/mpirun.openmpi",
+    "mpi_arguments": [
+      "--bind-to",
+      "core",
+      "--map-by",
+      "core"
+    ],
+    "executables": {
+      "openmp": {
+        "current": "/home/wilbert/swan/.upstream/meting16/b_cur_omp/bin/swan.exe",
+        "upstream": "/home/wilbert/swan/.upstream/meting16/b_up_omp_def/bin/swan.exe"
+      },
+      "mpi": {
+        "current": "/home/wilbert/swan/.upstream/meting16/b_cur_mpi/bin/swan.exe",
+        "upstream": "/home/wilbert/swan/.upstream/meting16/b_up_mpi_def/bin/swan.exe"
+      }
+    },
+    "build_descriptions": {
+      "current": "repository default Release; effective -O3",
+      "upstream": "upstream default; effective -O1"
+    }
+  },
+  "results": {
+    "openmp": {
+      "current": {
+        "1": {
+          "seconds": [
+            24.604653583999607,
+            23.661702949000755,
+            23.281316230990342
+          ],
+          "median_seconds": 23.661702949000755,
+          "scaling_speedup": 1.0,
+          "parallel_efficiency": 1.0,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "87685f971c74e84cae365f3a33dab4a648e1d509e6f9efb8a25334fecde407be"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          },
+          "speedup_vs_upstream": 1.7838367247689177
+        },
+        "2": {
+          "seconds": [
+            12.235314648001804,
+            11.776312070011045,
+            11.645838851996814
+          ],
+          "median_seconds": 11.776312070011045,
+          "scaling_speedup": 2.0092625610063815,
+          "parallel_efficiency": 1.0046312805031907,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "87685f971c74e84cae365f3a33dab4a648e1d509e6f9efb8a25334fecde407be"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          },
+          "speedup_vs_upstream": 1.8329563717120319
+        },
+        "4": {
+          "seconds": [
+            6.910922373004723,
+            7.347855296000489,
+            7.270347230005427
+          ],
+          "median_seconds": 7.270347230005427,
+          "scaling_speedup": 3.254549225839808,
+          "parallel_efficiency": 0.813637306459952,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "87685f971c74e84cae365f3a33dab4a648e1d509e6f9efb8a25334fecde407be"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          },
+          "speedup_vs_upstream": 1.8596795446313663
+        },
+        "8": {
+          "seconds": [
+            11.03659692700603,
+            11.142252236008062,
+            10.660196731012547
+          ],
+          "median_seconds": 11.03659692700603,
+          "scaling_speedup": 2.1439310600445767,
+          "parallel_efficiency": 0.2679913825055721,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "87685f971c74e84cae365f3a33dab4a648e1d509e6f9efb8a25334fecde407be"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          },
+          "speedup_vs_upstream": 1.2341654250027325
+        }
+      },
+      "upstream": {
+        "1": {
+          "seconds": [
+            42.20861469100055,
+            42.55149422599061,
+            42.09463643099298
+          ],
+          "median_seconds": 42.20861469100055,
+          "scaling_speedup": 1.0,
+          "parallel_efficiency": 1.0,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "d7ce2cfce4cdb5d3f2a868dc8d18f5ff54093fe637b8877e44469ebaf4d7c3b3"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          }
+        },
+        "2": {
+          "seconds": [
+            21.90048676999868,
+            21.436972530995263,
+            21.585466243996052
+          ],
+          "median_seconds": 21.585466243996052,
+          "scaling_speedup": 1.9554182529062016,
+          "parallel_efficiency": 0.9777091264531008,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "d7ce2cfce4cdb5d3f2a868dc8d18f5ff54093fe637b8877e44469ebaf4d7c3b3"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          }
+        },
+        "4": {
+          "seconds": [
+            12.557611474010628,
+            13.520516026008409,
+            14.01619697699789
+          ],
+          "median_seconds": 13.520516026008409,
+          "scaling_speedup": 3.121819804052374,
+          "parallel_efficiency": 0.7804549510130935,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "d7ce2cfce4cdb5d3f2a868dc8d18f5ff54093fe637b8877e44469ebaf4d7c3b3"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          }
+        },
+        "8": {
+          "seconds": [
+            13.62098633700225,
+            13.001401742993039,
+            13.925091557000997
+          ],
+          "median_seconds": 13.62098633700225,
+          "scaling_speedup": 3.0987928220982237,
+          "parallel_efficiency": 0.38734910276227796,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "d7ce2cfce4cdb5d3f2a868dc8d18f5ff54093fe637b8877e44469ebaf4d7c3b3"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          }
+        }
+      }
+    },
+    "mpi": {
+      "current": {
+        "1": {
+          "seconds": [
+            25.90667685699009,
+            24.995633761005593,
+            25.744460585003253
+          ],
+          "median_seconds": 25.744460585003253,
+          "scaling_speedup": 1.0,
+          "parallel_efficiency": 1.0,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "87685f971c74e84cae365f3a33dab4a648e1d509e6f9efb8a25334fecde407be"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          },
+          "speedup_vs_upstream": 1.7298627655828642
+        },
+        "2": {
+          "seconds": [
+            15.416599628995755,
+            16.068884377003997,
+            15.61039076000452
+          ],
+          "median_seconds": 15.61039076000452,
+          "scaling_speedup": 1.6491874534597364,
+          "parallel_efficiency": 0.8245937267298682,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "29128b2fff97dc41117e93195d6ffd111142b338a3401e2d2e5be2eb833f8b53"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          },
+          "speedup_vs_upstream": 1.768133512373293
+        },
+        "4": {
+          "seconds": [
+            10.325332020001952,
+            10.79282589200011,
+            10.482200387006742
+          ],
+          "median_seconds": 10.482200387006742,
+          "scaling_speedup": 2.4560168318204365,
+          "parallel_efficiency": 0.6140042079551091,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "29128b2fff97dc41117e93195d6ffd111142b338a3401e2d2e5be2eb833f8b53"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          },
+          "speedup_vs_upstream": 1.7846873128072753
+        },
+        "8": {
+          "seconds": [
+            11.535944278002717,
+            11.31952245499997,
+            12.498130911000771
+          ],
+          "median_seconds": 11.535944278002717,
+          "scaling_speedup": 2.231673451656143,
+          "parallel_efficiency": 0.27895918145701787,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "29128b2fff97dc41117e93195d6ffd111142b338a3401e2d2e5be2eb833f8b53"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          },
+          "speedup_vs_upstream": 1.4890686111204938
+        }
+      },
+      "upstream": {
+        "1": {
+          "seconds": [
+            44.74358393299917,
+            43.88367924900376,
+            44.53438378601277
+          ],
+          "median_seconds": 44.53438378601277,
+          "scaling_speedup": 1.0,
+          "parallel_efficiency": 1.0,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "d7ce2cfce4cdb5d3f2a868dc8d18f5ff54093fe637b8877e44469ebaf4d7c3b3"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          }
+        },
+        "2": {
+          "seconds": [
+            27.601255044006393,
+            27.784518968997872,
+            27.572663405007916
+          ],
+          "median_seconds": 27.601255044006393,
+          "scaling_speedup": 1.6134912602709128,
+          "parallel_efficiency": 0.8067456301354564,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "db3516c763a0ffb4653f4f815669077ed0871a118b4776f854280c7f4ab5f2e2"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          }
+        },
+        "4": {
+          "seconds": [
+            18.707450040994445,
+            17.758714180003153,
+            19.975215361002483
+          ],
+          "median_seconds": 18.707450040994445,
+          "scaling_speedup": 2.3805694356217786,
+          "parallel_efficiency": 0.5951423589054446,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "db3516c763a0ffb4653f4f815669077ed0871a118b4776f854280c7f4ab5f2e2"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          }
+        },
+        "8": {
+          "seconds": [
+            16.43539043200144,
+            17.177812524008914,
+            17.83742113900371
+          ],
+          "median_seconds": 17.177812524008914,
+          "scaling_speedup": 2.5925526736171087,
+          "parallel_efficiency": 0.3240690842021386,
+          "repeat_outputs_byte_identical": true,
+          "repeat_numerical_data_identical": true,
+          "sha256": {
+            "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
+            "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
+            "voordelta_sites.tbl": "db3516c763a0ffb4653f4f815669077ed0871a118b4776f854280c7f4ab5f2e2"
+          },
+          "numerical_data_sha256": {
+            "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
+          }
+        }
+      }
+    }
+  },
+  "validation": {
+    "repeats_byte_identical": true,
+    "repeated_numerical_data_identical": true,
+    "all_configurations_byte_identical": false,
+    "field_outputs_byte_identical": true,
+    "site_table_numerical_data_identical": true,
+    "unique_sha256_per_output": {
+      "voordelta_depth.blk": 1,
+      "voordelta_hs.blk": 1,
+      "voordelta_sites.tbl": 4
+    }
+  }
+}

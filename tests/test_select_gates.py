@@ -56,6 +56,10 @@ def test_docs_only_give_an_empty_selection():
     assert select_gates(["doc/modern-fortran.md", "AGENTS.md"]) == {}
 
 
+def test_linter_configuration_needs_no_gate():
+    assert select_gates(["fortitude.toml"]) == {}
+
+
 def test_unknown_path_is_fail_safe():
     sel = select_gates(["entirely/new/thing.xyz"])
     assert set(sel) == {"serial", "openmp", "mpi", "strict", "pytest", "upstream_delta"}
@@ -77,6 +81,25 @@ def test_so_rp_python_has_a_gate():
     assert set(select_gates(["so-rp_swan/matrix/deck.py"])) == {"pytest"}
     assert set(select_gates(["so-rp_swan/comparison/result_stats.py"])) == {"serial", "pytest"}
     assert select_gates(["so-rp_swan/matrix/README.md"]) == {}
+
+
+@pytest.mark.parametrize("path", [
+    "so-rp_swan/par/so-rp_osk_org.swn",
+    "so-rp_swan/par/operational/so-rp_osk_org.swn",
+    "so-rp_swan/matrix/reference/so-rp_osk_u20_d310_lp300_open.swn",
+    "so-rp_swan/matrix/conditions.json",
+    "so-rp_swan/matrix/tolerances.json",
+    "so-rp_swan/par/uitvoerpunten.par",
+])
+def test_so_rp_input_asks_pytest(path):
+    """The matrix tests check the template and reference deck; a change there
+    must not pass as documentation. Real so-rp runs stay outside the gates."""
+    assert set(select_gates([path])) == {"pytest"}
+
+
+def test_so_rp_markdown_needs_no_gate():
+    assert select_gates(["so-rp_swan/par/operational/PROVENANCE.md",
+                         "so-rp_swan/STANDALONE_RUN.md"]) == {}
 
 
 def test_bad_base_is_an_error_not_a_clean_tree():

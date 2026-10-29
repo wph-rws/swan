@@ -8,7 +8,9 @@
 > choice of back ends, Fortran 2018 modules, CTest regression tests, a strict
 > build in which every warning that can hide a defect has a verdict) describe
 > **this fork**, not the unchanged
-> upstream code. The individual fixes on top of the
+> upstream code. See [`doc/closing-account.md`](doc/closing-account.md) and
+> [`doc/support-matrix.md`](doc/support-matrix.md) for the current state and
+> the supported combinations. The individual fixes on top of the
 > current TU Delft source are listed in
 > [`doc/bug-fixes-vs-tu-delft-41.51.md`](doc/bug-fixes-vs-tu-delft-41.51.md).
 
@@ -87,7 +89,7 @@ Qualified in this fork is GNU Fortran: the reference compiler is gfortran
 16.2, for every build including MPI and netCDF (the stored test references
 and the verdicts of the strict build were made with it). The build also recognises Intel `ifx`/`ifort`, Flang, IBM XL
 and Fujitsu, but those routes are not qualified; Lahey and PGI/NVFortran are
-outside scope.
+outside scope. See [doc/support-matrix.md](doc/support-matrix.md).
 
 #### instructions
 
@@ -357,6 +359,13 @@ This keyword is an extension of the fork, not an upstream setting. The
 measure has a floor that depends on the deck, and guarantees no accuracy in
 Hs, period or direction. For now, use it as a research aid. Background:
 [balance-residual-design.md](doc/balance-residual-design.md).
+
+The [convergence check](so-rp_swan/matrix/convergence_check.py) uses only
+upstream input for its references: `NPNTS=101` forces two runs to iterate N
+and 2N times. Their difference counts per point as uncertainty; the script
+gives a verdict only if the deviation of the operational run lies clearly
+above or below the limit even with that uncertainty. `inconclusive` means
+there is not enough evidence, and gives a non-zero exit code.
 
 #### quick smoke test
 

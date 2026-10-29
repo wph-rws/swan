@@ -1,5 +1,10 @@
 # Benchmarks
 
+- [`speed-vs-upstream.md`](speed-vs-upstream.md): the fork against TU Delft's
+  upstream SWAN 41.51 on the Voordelta example, with OpenMP and with MPI on
+  one to eight workers, both with each project's default build and with
+  upstream at `-O3`, plus the cost of the balance residual. The raw data are
+  in the JSON files next to it.
 - `benchmark_parallel.py` runs the fork and upstream alternately, reports
   median wall-clock time and scaling, and checks that the generated fields
   and site tables agree.

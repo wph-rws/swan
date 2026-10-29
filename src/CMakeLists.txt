@@ -285,7 +285,7 @@ if( NOT TARGET swan${VERSION} )
           "Only 32/32 METIS is currently derived in swan_metis_interface.f90 "
           "(found: ${_metis_idx}; ${_metis_real}). Derive the interface again for "
           "64-bit indices and test with both 32-bit and 64-bit libraries; "
-    )
+          "see doc/support-matrix.md." )
       endif()
     else()
       message( WARNING "metis.h not found under ${Metis_INCLUDE_DIR}; ABI check skipped" )

@@ -17,3 +17,9 @@
 *.dep -text
 *.bot -text
 
+# The operational so-rp input is a verification reference: the recorded
+# results were produced with exactly these bytes, including CRLF.
+# uitvoerpunten.par defines the 135 points over which the wet-point
+# statistics are computed.
+/so-rp_swan/par/uitvoerpunten.par -text
+/so-rp_swan/par/swan2wtz/*.csv -text

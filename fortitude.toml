@@ -1,0 +1,24 @@
+# fortitude (https://fortitude.readthedocs.io), a Fortran linter.
+#
+# Only rules that can point at a real error are selected; the style rules
+# would give tens of thousands of findings on code that follows upstream
+# layout. Run `fortitude check src/` from the repository root. Most findings
+# here are known and harmless (an implicitly saved flag that is meant to
+# keep its value, code after RETURN that upstream also has); read a finding
+# before acting on it.
+
+[check]
+select = [
+  "C001",  # implicit typing
+  "C002",  # interface without implicit none
+  "C003",  # implicit external procedures
+  "C081",  # initialisation in a declaration gives an implicit SAVE
+  "C082",  # pointer initialised in a declaration
+  "C101",  # pointer component without default initialisation
+  "C181",  # allocate or deallocate without checking stat
+  "C182",  # several allocations under one stat
+  "C191",  # unreachable statement
+]
+# The DEC file-opening backend uses the SHARED extension, which the parser
+# does not know.
+extend-exclude = ["src/platform/swan_file_open_backend_dec.f90"]

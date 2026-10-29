@@ -1,0 +1,3 @@
+dat/alg/datumtijd.dat DT 0 dat/alg/datumtijd.dat DT 0 10
+A GET RPBU WT_h_3 1
+print i4 A

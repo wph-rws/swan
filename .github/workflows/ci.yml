@@ -158,7 +158,7 @@ jobs:
           path: ci-results/mpi-2rank.json
 
   # Build variants. Each variant has its own test that reaches its own path
-  #; besides that the whole suite runs, so that a
+  # (see doc/support-matrix.md); besides that the whole suite runs, so that a
   # variant that shifts the ordinary output also turns red. ESMF runs with
   # runtime checks: the ESMF test writes through grid point indices into an
   # array that the coupler supplies.
@@ -232,7 +232,7 @@ jobs:
           python3 scripts/check_ci_dependencies.py
           python3 scripts/ci_gate.py --self-test
           python3 scripts/ci_gate.py --check-workflow .github/workflows/ci.yml
-          python3 -m pytest tests/ so-rp_swan/comparison -q
+          python3 -m pytest tests/ so-rp_swan/matrix so-rp_swan/comparison -q
       - name: Write result
         if: always()
         run: |
