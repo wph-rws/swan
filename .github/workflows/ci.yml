@@ -221,6 +221,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The upstream map is checked against the pinned TU Delft commit,
+          # which is in the history of main; a shallow clone lacks it.
+          fetch-depth: 0
       - name: Install toolchain
         run: sudo apt-get update && sudo apt-get install -y python3 python3-pytest python3-numpy python3-scipy
       - name: Manifest and Python checks

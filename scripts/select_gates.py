@@ -73,6 +73,11 @@ def _classify(path: str) -> set[str]:
         return {"serial", "openmp", "pytest"}
     if p.as_posix() in PYTEST_DATA:
         return {"pytest"}
+    #  The upstream map is data for the pytest gate (tests/test_upstream_map.py)
+    #  and does not change what SWAN builds or computes. Its script also reads
+    #  the switch manifest, but that file is CTest data (above).
+    if name.startswith(("upstream_map", "test_upstream_map")) or name == "upstream-map.json":
+        return {"pytest"}
     if p.parts[:1] == ("so-rp_swan",) and suffix == ".py":
         #  The matrix and comparison scripts have their own pytest tests, and
         #  scripts/check_mpi_field_mask.py (a ctest entry point) imports

@@ -364,6 +364,12 @@ Two styles sit side by side, and the difference carries meaning:
   inherit and gets a descriptive one: `swan_dissipation` covers SBOT, SVEG,
   SSURF, SWCAP and seven others.
 
+The file keeps the upstream name either way: `swan_dissipation` is in
+`swancom2.f90`, as SBOT and the rest are in upstream `swancom2.ftn`. A
+procedure only goes to a file of another name to break a module cycle or for
+a clear reason of content, and [upstream-map.json](upstream-map.json) records
+each such case with its reason (see [upstream-import.md](upstream-import.md)).
+
 ### What remains shared
 
 Long-lived mutable data modules are narrower than in upstream. The contexts

@@ -20,6 +20,20 @@ the user stay in Dutch.
 - The source has been modernised from fixed-form (`.ftn`/`.f`) to free-form Fortran (`.f90`).
 - Available locally only: `so-rp_swan/` with the operational so-rp/Voordelta case (grid, bottom, the reference binary **RWS 41.31A.1**). In git are the operational deck, the corrected template and the condition matrix in `so-rp_swan/matrix/`.
 
+## Upstream code in the fork
+
+A procedure with an upstream name stays, where it can, in the fork file with
+the name of its upstream file (`SWCOMP` from `swancom1.ftn` in
+`swancom1.f90`). Move upstream code to another file only to break a module
+cycle or for a clear reason of content, such as the wave-induced set-up in
+`swan_wave_setup.f90`; do not split a file for its size alone.
+[doc/upstream-map.json](doc/upstream-map.json) records every upstream
+procedure and shared variable that is not where its name says, with the
+reason, and `scripts/upstream_map.py check` (pytest gate) fails on a move
+without an entry. `scripts/upstream_map.py where NAME` finds upstream code in
+the fork; for a new upstream release follow
+[doc/upstream-import.md](doc/upstream-import.md).
+
 ## Important physics fact: changed defaults (41.31 → 41.51)
 
 **Symptom:** a deck that does not choose its source terms itself gives a

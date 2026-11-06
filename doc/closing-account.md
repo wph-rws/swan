@@ -211,7 +211,10 @@ while TU Delft delivers new versions as patches on the `.ftn` files. A new
 upstream release is therefore brought in by hand: work out the difference
 between the old and the new upstream version, carry each change over into the
 corresponding routine of the fork, and then pin the upstream delta gate to the
-new release. That gate shows that every deck gives the same result as
+new release. Where each upstream routine and shared variable lives in the
+fork is recorded in [upstream-map.json](upstream-map.json), and
+`scripts/upstream_map.py` lists for an upstream change which fork routine each
+part belongs to; the whole route is in [upstream-import.md](upstream-import.md). That gate shows that every deck gives the same result as
 upstream, apart from the known BF differences; the regression suite shows that
 nothing else shifted. If either turns red, that is a finding, not a reason to
 adjust the gate or the suite.

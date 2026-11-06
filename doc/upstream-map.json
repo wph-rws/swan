@@ -1,0 +1,1850 @@
+{
+ "upstream": "43e9bbb",
+ "description": "Where upstream code lives in the fork, for everything that is not where its name says. Read by scripts/upstream_map.py; see doc/upstream-import.md.",
+ "reasons": {
+  "dead-code": "Upstream never calls it: no CALL or reference exists anywhere in the pinned source, so the fork removed it.",
+  "unused-state": "Upstream declares it but never reads it (at most it is set once), so the fork removed it.",
+  "cycle-diagnostics": "Moved to break a module cycle. The error and trace routines are used almost everywhere, also by the parallel layer they depend on; as module procedures of swan_service_interfaces, next to the dependency-free swan_parallel_state, they can be checked by the compiler without a cycle (doc/modern-fortran.md, 'Remaining migration boundary').",
+  "cycle-parser": "Moved to break a module cycle between the command reader and the time conversion: the reader converts dates and the date routines used the reader. UPCASE now sits in the leaf module swan_text_utilities and the date routines in swan_time (doc/modern-fortran.md).",
+  "above-parser": "Moved above the command reader: these helpers call the reader, while the reader's own file must not depend on them, so they live in swan_input_helpers (doc/modern-fortran.md).",
+  "cycle-output": "Moved to break a module cycle in the output layer. The interpolation to output points and the spectrum writer are used both by the output orchestration and by the netCDF writer; in a module of their own neither depends on the other (July 2026, 'Give propagation and output each their own module').",
+  "topic-module": "Moved out of a large collection file into a small module for one topic, so that callers import only what they use and the compiler checks every call. Upstream keeps these routines together only because they are services; they share no state with their neighbours.",
+  "program-unit": "The main program. Upstream keeps it in swanmain.ftn next to the driver routines. In the fork swanmain.f90 is part of the SWAN library, so that a test can call the driver twice in one process; a file that also held the program could only be linked into the executable, so the program has a file of its own (src/swan_program.f90).",
+  "fftw": "FFTPACK was replaced by FFTW3. SWAN only calls the three two-dimensional complex transforms; they remain as wrappers with the upstream names and arguments in fftw_compat.f90, and the rest of FFTPACK is gone.",
+  "matlab-v4": "The byte converters belong to the Matlab version 4 output only, which CMake now selects as a whole backend file; the version 5 backend does not need them.",
+  "generic-reader": "The command reader keeps its state in a reader object (command_reader_t), so that a second reader can work next to the first. Each routine is now a generic interface of the same name with two specific procedures: one for the default reader and one that takes a reader. Calls in the rest of the code look exactly as upstream.",
+  "typed-mpi": "The MPI wrappers became generic interfaces in M_PARALL (swmod2.f90) with one specific procedure per data type and rank, so the compiler checks every buffer. Upstream passes untyped buffers. The serial and MPI versions are selected by CMake backends instead of switch lines.",
+  "switch-variants": "Upstream has one routine whose switch lines give different variants per build. The fork has a separate, named routine per variant, selected by CMake or by the caller, because the fork has no switch-prefixed source.",
+  "mud-dispersion": "NG computed the mud-affected wave number for KSCIP2 only. The fork folded it into KSCIP2 in swan_wave_physics, which now returns the mud dissipation as an optional result.",
+  "context-object": "Became a component of an object owned by its subsystem (the command reader, the clock, a source-term workspace or table). The object can be cleared between runs and, where needed, exists once per thread, which a shared module variable could not offer.",
+  "one-user": "Had a single user upstream. In the fork it is a local variable, argument or parameter of that routine instead of shared state.",
+  "stencil-arguments": "The stencil of the grid point being computed is now passed to the kernels as arguments from thread-local solver scratch. Upstream kept it in shared (threadprivate) arrays that every kernel read implicitly (src/swan_stencil.f90).",
+  "convergence-common": "Upstream used a COMMON block so that all OpenMP threads in SACCUR and SWSTPC add to one shared total. The fork keeps that sharing in module variables of M_CONVERGENCE_SHARED (src/swancom1.f90), with the routine name as prefix.",
+  "single-routine-common": "The COMMON block was used by this one routine only, and every call sets the values before it reads them, so an ordinary local variable does the same job.",
+  "split-shared-state": "The upstream shared modules were taken apart: what nobody used was removed, what had one user moved to that user, and the rest went to small modules by topic, each with an owner that clears it between runs (doc/run-state-ownership.md). A variable that sits in exactly one fork module is found automatically.",
+  "separate-computation": "Moved out of swancom1 into a module of its own (November 2026). The set-up is a computation of its own: SWCOMP calls it once the wave field is known, and it shares no data with the rest of swan_computation. The routines are otherwise unchanged."
+ },
+ "modules": {
+  "SWCOMM1": {
+   "reason": "split-shared-state"
+  },
+  "SWCOMM2": {
+   "reason": "split-shared-state"
+  },
+  "SWCOMM3": {
+   "reason": "split-shared-state"
+  },
+  "SWCOMM4": {
+   "reason": "split-shared-state"
+  },
+  "OCPCOMM1": {
+   "reason": "split-shared-state"
+  },
+  "OCPCOMM2": {
+   "reason": "split-shared-state"
+  },
+  "OCPCOMM4": {
+   "reason": "split-shared-state"
+  },
+  "M_GENARR": {
+   "reason": "split-shared-state"
+  },
+  "M_PARALL": {
+   "reason": "split-shared-state"
+  },
+  "OUTP_DATA": {
+   "reason": "split-shared-state"
+  },
+  "SWANCOMPDATA": {
+   "reason": "split-shared-state"
+  }
+ },
+ "procedures": {
+  "ANGDEG": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_angle_conversions.f90"
+   ]
+  },
+  "ANGRAD": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_angle_conversions.f90"
+   ]
+  },
+  "BUGFIX": {
+   "status": "moved",
+   "reason": "cycle-diagnostics",
+   "fork": [
+    "src/swan_service_interfaces.f90"
+   ]
+  },
+  "C1F2KB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "C1F2KF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "C1F3KB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "C1F3KF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "C1F4KB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "C1F4KF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "C1F5KB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "C1F5KF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "C1FGKB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "C1FGKF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "C1FM1B": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "C1FM1F": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CFFT1B": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CFFT1F": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CFFT1I": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CFFT2B": {
+   "status": "moved",
+   "reason": "fftw",
+   "fork": [
+    "src/fftw_compat.f90"
+   ]
+  },
+  "CFFT2F": {
+   "status": "moved",
+   "reason": "fftw",
+   "fork": [
+    "src/fftw_compat.f90"
+   ]
+  },
+  "CFFT2I": {
+   "status": "moved",
+   "reason": "fftw",
+   "fork": [
+    "src/fftw_compat.f90"
+   ]
+  },
+  "CFFTMB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CFFTMF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CFFTMI": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CHGBAS": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_spectrum_transform.f90"
+   ]
+  },
+  "CMF2KB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CMF2KF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CMF3KB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CMF3KF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CMF4KB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CMF4KF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CMF5KB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CMF5KF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CMFGKB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CMFGKF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CMFM1B": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "CMFM1F": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COPYCH": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_legacy_io.f90"
+   ]
+  },
+  "COSQ1B": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COSQ1F": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COSQ1I": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COSQB1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COSQF1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COSQMB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COSQMF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COSQMI": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COST1B": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COST1F": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COST1I": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COSTB1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COSTF1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COSTMB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COSTMF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "COSTMI": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "DEGCNV": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_angle_conversions.f90"
+   ]
+  },
+  "DISTR": {
+   "status": "removed",
+   "reason": "dead-code"
+  },
+  "DTINTI": {
+   "status": "moved",
+   "reason": "cycle-parser",
+   "fork": [
+    "src/swan_time.f90"
+   ]
+  },
+  "DTRETI": {
+   "status": "moved",
+   "reason": "cycle-parser",
+   "fork": [
+    "src/swan_time.f90"
+   ]
+  },
+  "DTSTTI": {
+   "status": "moved",
+   "reason": "cycle-parser",
+   "fork": [
+    "src/swan_time.f90"
+   ]
+  },
+  "DTTIME": {
+   "status": "moved",
+   "reason": "cycle-parser",
+   "fork": [
+    "src/swan_time.f90"
+   ]
+  },
+  "DTTIST": {
+   "status": "moved",
+   "reason": "cycle-parser",
+   "fork": [
+    "src/swan_time.f90"
+   ]
+  },
+  "DTTIWR": {
+   "status": "moved",
+   "reason": "cycle-parser",
+   "fork": [
+    "src/swan_time.f90"
+   ]
+  },
+  "EQDBLE": {
+   "status": "moved",
+   "reason": "cycle-diagnostics",
+   "fork": [
+    "src/swan_service_interfaces.f90"
+   ]
+  },
+  "EQREAL": {
+   "status": "moved",
+   "reason": "cycle-diagnostics",
+   "fork": [
+    "src/swan_service_interfaces.f90"
+   ]
+  },
+  "FLFILE": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_field_file_update.f90"
+   ]
+  },
+  "FOR": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_file_opening.f90"
+   ]
+  },
+  "GAMMAF": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_spectrum_transform.f90"
+   ]
+  },
+  "GAMMLN": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_spectrum_transform.f90"
+   ]
+  },
+  "GETKAR": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "GETKAR_DEFAULT",
+    "GETKAR_CTX"
+   ]
+  },
+  "IGNORE": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "IGNORE_DEFAULT",
+    "IGNORE_CTX"
+   ]
+  },
+  "INAR2D": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_legacy_io.f90"
+   ]
+  },
+  "INCSTR": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "INCSTR_DEFAULT",
+    "INCSTR_CTX"
+   ]
+  },
+  "INCTIM": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "INCTIM_DEFAULT",
+    "INCTIM_CTX"
+   ]
+  },
+  "INDBLE": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "INDBLE_DEFAULT",
+    "INDBLE_CTX"
+   ]
+  },
+  "ININTG": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "ININTG_DEFAULT",
+    "ININTG_CTX"
+   ]
+  },
+  "ININTV": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "ININTV_DEFAULT",
+    "ININTV_CTX"
+   ]
+  },
+  "INITVD": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "INITVD_DEFAULT",
+    "INITVD_CTX"
+   ]
+  },
+  "INKEYW": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "INKEYW_DEFAULT",
+    "INKEYW_CTX"
+   ]
+  },
+  "INREAL": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "INREAL_DEFAULT",
+    "INREAL_CTX"
+   ]
+  },
+  "INTSTR": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_number_formatting.f90"
+   ]
+  },
+  "KEYWIS": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "KEYWIS_DEFAULT",
+    "KEYWIS_CTX"
+   ]
+  },
+  "KSCIP1": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_wave_physics.f90"
+   ]
+  },
+  "KSCIP2": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_wave_physics.f90"
+   ]
+  },
+  "LEESEL": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "LEESEL_DEFAULT",
+    "LEESEL_CTX"
+   ]
+  },
+  "LSPLIT": {
+   "status": "moved",
+   "reason": "above-parser",
+   "fork": [
+    "src/swan_input_helpers.f90"
+   ]
+  },
+  "MCSQB1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MCSQF1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MCSTB1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MCSTF1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MRADB2": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MRADB3": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MRADB4": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MRADB5": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MRADBG": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MRADF2": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MRADF3": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MRADF4": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MRADF5": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MRADFG": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MRFTB1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MRFTF1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MRFTI1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MSGERR": {
+   "status": "moved",
+   "reason": "cycle-diagnostics",
+   "fork": [
+    "src/swan_service_interfaces.f90"
+   ]
+  },
+  "MSNTB1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "MSNTF1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "NG": {
+   "status": "replaced",
+   "reason": "mud-dispersion",
+   "by": [
+    "KSCIP2"
+   ]
+  },
+  "NUMSTR": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_number_formatting.f90"
+   ]
+  },
+  "NWLINE": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "NWLINE_DEFAULT",
+    "NWLINE_CTX"
+   ]
+  },
+  "PUTKAR": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "PUTKAR_DEFAULT",
+    "PUTKAR_CTX"
+   ]
+  },
+  "PVALID": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_grid_point_validation.f90"
+   ]
+  },
+  "R1F2KB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "R1F2KF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "R1F3KB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "R1F3KF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "R1F4KB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "R1F4KF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "R1F5KB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "R1F5KF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "R1FGKB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "R1FGKF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "R2W": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "R8_FACTOR": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "R8_MCFTI1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "R8_TABLES": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "RDINIT": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "RDINIT_DEFAULT",
+    "RDINIT_CTX"
+   ]
+  },
+  "READXY": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_coordinate_input.f90"
+   ]
+  },
+  "REFIXY": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_coordinate_input.f90"
+   ]
+  },
+  "REPARM": {
+   "status": "moved",
+   "reason": "above-parser",
+   "fork": [
+    "src/swan_input_helpers.f90"
+   ]
+  },
+  "RFFT1B": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "RFFT1F": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "RFFT1I": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "RFFT2B": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "RFFT2F": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "RFFT2I": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "RFFTB1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "RFFTF1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "RFFTI1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "RFFTMB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "RFFTMF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "RFFTMI": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SETUP2D": {
+   "status": "moved",
+   "reason": "separate-computation",
+   "fork": [
+    "src/swan_wave_setup.f90"
+   ]
+  },
+  "SETUPP": {
+   "status": "moved",
+   "reason": "separate-computation",
+   "fork": [
+    "src/swan_wave_setup.f90"
+   ]
+  },
+  "SINBTG": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_input_point_validation.f90"
+   ]
+  },
+  "SINCMP": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_input_point_validation.f90"
+   ]
+  },
+  "SINQ1B": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SINQ1F": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SINQ1I": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SINQMB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SINQMF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SINQMI": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SINT1B": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SINT1F": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SINT1I": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SINTB1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SINTF1": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SINTMB": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SINTMF": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SINTMI": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "SINTRP": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_spectrum_transform.f90"
+   ]
+  },
+  "SINUPT": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_input_point_validation.f90"
+   ]
+  },
+  "SSHAPE": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_spectrum_transform.f90"
+   ]
+  },
+  "STPNOW": {
+   "status": "moved",
+   "reason": "cycle-diagnostics",
+   "fork": [
+    "src/swan_service_interfaces.f90"
+   ]
+  },
+  "STRACE": {
+   "status": "moved",
+   "reason": "cycle-diagnostics",
+   "fork": [
+    "src/swan_service_interfaces.f90"
+   ]
+  },
+  "STRSDFV": {
+   "status": "removed",
+   "reason": "dead-code"
+  },
+  "SVALQI": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_input_interpolation.f90"
+   ]
+  },
+  "SWAN": {
+   "status": "moved",
+   "reason": "program-unit",
+   "fork": [
+    "src/swan_program.f90"
+   ]
+  },
+  "SWBROADC": {
+   "status": "replaced",
+   "reason": "typed-mpi",
+   "by": [
+    "SWBROADC_C0",
+    "SWBROADC_CHECK",
+    "SWBROADC_I0",
+    "SWBROADC_I1",
+    "SWBROADC_I2",
+    "SWBROADC_R0",
+    "SWBROADC_R1",
+    "SWBROADC_R2",
+    "SWBROADC_R3",
+    "SWBROADC_R4"
+   ]
+  },
+  "SWCMSP": {
+   "status": "moved",
+   "reason": "cycle-output",
+   "fork": [
+    "src/swan_spectrum_output.f90"
+   ]
+  },
+  "SWCOPI": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_array_copy.f90"
+   ]
+  },
+  "SWCOPR": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_array_copy.f90"
+   ]
+  },
+  "SWEXCHG": {
+   "status": "replaced",
+   "reason": "switch-variants",
+   "by": [
+    "SWEXCHG_JAC",
+    "SWEXCHG_WFR"
+   ]
+  },
+  "SWGATHER": {
+   "status": "replaced",
+   "reason": "typed-mpi",
+   "by": [
+    "SWGATHER_I12",
+    "SWGATHER_I21",
+    "SWGATHER_LAYOUT",
+    "SWGATHER_R11"
+   ]
+  },
+  "SWI2B": {
+   "status": "moved",
+   "reason": "matlab-v4",
+   "fork": [
+    "src/output/swan_matlab_v4_bytes.f90"
+   ]
+  },
+  "SWIPOL": {
+   "status": "moved",
+   "reason": "cycle-output",
+   "fork": [
+    "src/swan_structured_output_interpolation.f90"
+   ]
+  },
+  "SWOINA": {
+   "status": "moved",
+   "reason": "cycle-output",
+   "fork": [
+    "src/swan_structured_output_interpolation.f90"
+   ]
+  },
+  "SWR2B": {
+   "status": "moved",
+   "reason": "matlab-v4",
+   "fork": [
+    "src/output/swan_matlab_v4_bytes.f90"
+   ]
+  },
+  "SWRECVNB": {
+   "status": "replaced",
+   "reason": "typed-mpi",
+   "by": [
+    "SWRECVNB_R1",
+    "SWRECVNB_R2"
+   ]
+  },
+  "SWREDUCE": {
+   "status": "replaced",
+   "reason": "typed-mpi",
+   "by": [
+    "SWREDUCE_D1",
+    "SWREDUCE_I0",
+    "SWREDUCE_I1",
+    "SWREDUCE_R0",
+    "SWREDUCE_R1"
+   ]
+  },
+  "SWREDUCI": {
+   "status": "replaced",
+   "reason": "typed-mpi",
+   "by": [
+    "SWREDUCE_D1",
+    "SWREDUCE_I0",
+    "SWREDUCE_I1",
+    "SWREDUCE_R0",
+    "SWREDUCE_R1"
+   ],
+   "note": "Upstream SWREDUCE chose between these two at run time by data type; the generic SWREDUCE does that at compile time."
+  },
+  "SWREDUCR": {
+   "status": "replaced",
+   "reason": "typed-mpi",
+   "by": [
+    "SWREDUCE_D1",
+    "SWREDUCE_I0",
+    "SWREDUCE_I1",
+    "SWREDUCE_R0",
+    "SWREDUCE_R1"
+   ],
+   "note": "Upstream SWREDUCE chose between these two at run time by data type; the generic SWREDUCE does that at compile time."
+  },
+  "SWSENDNB": {
+   "status": "replaced",
+   "reason": "typed-mpi",
+   "by": [
+    "SWSENDNB_R1",
+    "SWSENDNB_R2"
+   ]
+  },
+  "SWSOR": {
+   "status": "removed",
+   "reason": "dead-code"
+  },
+  "SWSTRIP": {
+   "status": "replaced",
+   "reason": "switch-variants",
+   "by": [
+    "SWSTRIP_JAC",
+    "SWSTRIP_WFR"
+   ]
+  },
+  "SWTABP": {
+   "status": "replaced",
+   "reason": "switch-variants",
+   "by": [
+    "SWTABP_WITH_OQR"
+   ]
+  },
+  "TABHED": {
+   "status": "moved",
+   "reason": "cycle-diagnostics",
+   "fork": [
+    "src/swan_service_interfaces.f90"
+   ]
+  },
+  "TCOEF": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_triads.f90"
+   ]
+  },
+  "TCROSS": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_geometry.f90"
+   ]
+  },
+  "UPCASE": {
+   "status": "moved",
+   "reason": "cycle-parser",
+   "fork": [
+    "src/swan_text_utilities.f90"
+   ]
+  },
+  "VALIDBP": {
+   "status": "moved",
+   "reason": "topic-module",
+   "fork": [
+    "src/swan_grid_point_validation.f90"
+   ]
+  },
+  "W2R": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "WRNKEY": {
+   "status": "replaced",
+   "reason": "generic-reader",
+   "by": [
+    "WRNKEY_DEFAULT",
+    "WRNKEY_CTX"
+   ]
+  },
+  "WRSPEC": {
+   "status": "moved",
+   "reason": "cycle-output",
+   "fork": [
+    "src/swan_spectrum_output.f90"
+   ]
+  },
+  "WRTEST": {
+   "status": "removed",
+   "reason": "dead-code"
+  },
+  "XERCON": {
+   "status": "removed",
+   "reason": "fftw"
+  },
+  "XERFFT": {
+   "status": "removed",
+   "reason": "fftw"
+  }
+ },
+ "state": {
+  "/CONVACCUR/::HSMEAN": {
+   "status": "local",
+   "reason": "single-routine-common"
+  },
+  "/CONVACCUR/::NPACC": {
+   "status": "local",
+   "reason": "single-routine-common"
+  },
+  "/CONVACCUR/::NWETP": {
+   "status": "local",
+   "reason": "single-routine-common"
+  },
+  "/CONVACCUR/::TMMEAN": {
+   "status": "local",
+   "reason": "single-routine-common"
+  },
+  "/CONVSTOPC/::NPACC": {
+   "status": "local",
+   "reason": "single-routine-common"
+  },
+  "/CONVSTOPC/::NWETP": {
+   "status": "local",
+   "reason": "single-routine-common"
+  },
+  "/SACCUR_MT_COM/::HSMN2": {
+   "status": "renamed",
+   "reason": "convergence-common",
+   "by": [
+    "variable M_CONVERGENCE_SHARED::SACCUR_HSMN2"
+   ]
+  },
+  "/SACCUR_MT_COM/::IACCUR": {
+   "status": "renamed",
+   "reason": "convergence-common",
+   "by": [
+    "variable M_CONVERGENCE_SHARED::SACCUR_IACCUR"
+   ]
+  },
+  "/SACCUR_MT_COM/::NINDX": {
+   "status": "renamed",
+   "reason": "convergence-common",
+   "by": [
+    "variable M_CONVERGENCE_SHARED::SACCUR_NINDX"
+   ]
+  },
+  "/SACCUR_MT_COM/::SMN2": {
+   "status": "renamed",
+   "reason": "convergence-common",
+   "by": [
+    "variable M_CONVERGENCE_SHARED::SACCUR_SMN2"
+   ]
+  },
+  "/SACCUR_MT_COM/::WETGRD": {
+   "status": "renamed",
+   "reason": "convergence-common",
+   "by": [
+    "variable M_CONVERGENCE_SHARED::SACCUR_WETGRD"
+   ]
+  },
+  "/SWSTPC_MT_COM/::IACCUR": {
+   "status": "renamed",
+   "reason": "convergence-common",
+   "by": [
+    "variable M_CONVERGENCE_SHARED::SWSTPC_IACCUR"
+   ]
+  },
+  "/SWSTPC_MT_COM/::WETGRD": {
+   "status": "renamed",
+   "reason": "convergence-common",
+   "by": [
+    "variable M_CONVERGENCE_SHARED::SWSTPC_WETGRD"
+   ]
+  },
+  "M_CONSTANTS::D_AIR": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "M_CONSTANTS::D_WATER": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "M_CONSTANTS::EXPMAX": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "M_CONSTANTS::EXPMIN": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "M_CONSTANTS::GSQ": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "M_CONSTANTS::NU": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "M_CONSTANTS::SQRT2": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "M_DIFFR::DIFPARAM": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type diffraction_state_t%param"
+   ]
+  },
+  "M_DIFFR::DIFPARDX": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type diffraction_state_t%dpardx"
+   ]
+  },
+  "M_DIFFR::DIFPARDY": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type diffraction_state_t%dpardy"
+   ]
+  },
+  "M_SNL3::BPHTMP": {
+   "status": "local",
+   "reason": "one-user",
+   "note": "An argument of SWBIPM."
+  },
+  "M_SNL3::ISM": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type triad_state_t%lower_index"
+   ]
+  },
+  "M_SNL3::ISM1": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type triad_state_t%lower_index_next"
+   ]
+  },
+  "M_SNL3::ISP": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type triad_state_t%upper_index"
+   ]
+  },
+  "M_SNL3::ISP1": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type triad_state_t%upper_index_next"
+   ]
+  },
+  "M_SNL3::MSC4D": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type triad_state_t%frequency_dimension"
+   ]
+  },
+  "M_SNL3::QTRI1": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type triad_state_t%interpolation"
+   ]
+  },
+  "M_SNL3::QTRI2": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type triad_state_t%scaling"
+   ]
+  },
+  "M_SNL3::TCOLL": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type triad_state_t%collinear"
+   ]
+  },
+  "M_SNL3::WISM": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type triad_state_t%lower_weight"
+   ]
+  },
+  "M_SNL3::WISM1": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type triad_state_t%lower_weight_next"
+   ]
+  },
+  "M_SNL3::WISP": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type triad_state_t%upper_weight"
+   ]
+  },
+  "M_SNL3::WISP1": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type triad_state_t%upper_weight_next"
+   ]
+  },
+  "M_SNL4::AF11": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type snl4_tables_t%frequency_power_11"
+   ]
+  },
+  "M_SNL4::CNL4_1": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type snl4_tables_t%coefficient_1"
+   ]
+  },
+  "M_SNL4::CNL4_2": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type snl4_tables_t%coefficient_2"
+   ]
+  },
+  "M_SNL4::LAMBDA": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type snl4_tables_t%lambda"
+   ]
+  },
+  "M_SNL4::MDIA": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type snl4_tables_t%quadruplet_count"
+   ]
+  },
+  "M_WCAP::ACTOT": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type wcap_workspace_t%total_action"
+   ]
+  },
+  "M_WCAP::EDRKTOT": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type wcap_workspace_t%energy_over_root_wavenumber"
+   ]
+  },
+  "M_WCAP::EKTOT": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type wcap_workspace_t%energy_times_wavenumber"
+   ]
+  },
+  "M_WCAP::ETOT1": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type wcap_workspace_t%first_energy_moment"
+   ]
+  },
+  "M_WCAP::ETOT2": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type wcap_workspace_t%second_energy_moment"
+   ]
+  },
+  "M_WCAP::ETOT4": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type wcap_workspace_t%fourth_energy_moment"
+   ]
+  },
+  "M_WCAP::KM01": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type wcap_workspace_t%mean_wavenumber_01"
+   ]
+  },
+  "M_WCAP::KM_WAM": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type wcap_workspace_t%mean_wavenumber_wam"
+   ]
+  },
+  "M_WCAP::SIGM01": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type wcap_workspace_t%mean_frequency_01"
+   ]
+  },
+  "M_WCAP::SIGM_10": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type wcap_workspace_t%mean_frequency_10"
+   ]
+  },
+  "M_WCAP::SIGM_WAM": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type wcap_workspace_t%mean_frequency_wam"
+   ]
+  },
+  "M_WCAP::SIGPOW": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type spectral_powers_t%value"
+   ]
+  },
+  "OCPCOMM1::BLANK": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type command_reader_t%blank"
+   ]
+  },
+  "OCPCOMM1::CHGVAL": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type command_reader_t%chgval"
+   ]
+  },
+  "OCPCOMM1::COMID": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type command_reader_t%comid"
+   ]
+  },
+  "OCPCOMM1::ELINT": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type command_reader_t%elint"
+   ]
+  },
+  "OCPCOMM1::ELREAL": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type command_reader_t%elreal"
+   ]
+  },
+  "OCPCOMM1::ELTYPE": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type command_reader_t%eltype"
+   ]
+  },
+  "OCPCOMM1::KAR": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type command_reader_t%kar"
+   ]
+  },
+  "OCPCOMM1::KARNR": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type command_reader_t%karnr"
+   ]
+  },
+  "OCPCOMM1::KEYWRD": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type command_reader_t%keywrd"
+   ]
+  },
+  "OCPCOMM1::LENCST": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type command_reader_t%lencst"
+   ]
+  },
+  "OCPCOMM1::REFDAY": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type time_context_t%reference_day"
+   ]
+  },
+  "OCPCOMM1::TABC": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type command_reader_t%tabc"
+   ]
+  },
+  "OCPCOMM2::FILEA": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "OCPCOMM2::FILEB": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "OCPCOMM2::FILENM": {
+   "status": "local",
+   "reason": "one-user",
+   "note": "Every routine that needs a file name buffer now declares its own FILENM."
+  },
+  "OCPCOMM2::PTITLE": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "OCPCOMM3::DXQ": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "OCPCOMM3::DYQ": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "OCPCOMM3::MXQ": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "OCPCOMM3::MYQ": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "OCPCOMM3::VERNUM": {
+   "status": "replaced",
+   "reason": "one-user",
+   "by": [
+    "variable SWAN_PROJECT_METADATA::VERTXT"
+   ],
+   "note": "Upstream set VERNUM only to write it into VERTXT; the fork sets VERTXT directly."
+  },
+  "OCPCOMM4::EXPORT": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "OCPCOMM4::IMPORT": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "OUTP_DATA::FLT_BLKP": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "SWANCOMPDATA::VS": {
+   "status": "replaced",
+   "reason": "stencil-arguments",
+   "by": [
+    "SWANCOMPUNSTRUC"
+   ],
+   "note": "The vertices of the stencil are st_kc in SwanCompUnstruc."
+  },
+  "SWCOMM1::AKPOWR": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "SWCOMM1::DXK": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM1::DYK": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM1::FBCL": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM1::FBCR": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM1::FNEST": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM1::SPCPOW": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "SWCOMM1::UAP": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM1::UD": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "SWCOMM1::UDI": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM1::UDL": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM1::UET": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM1::UH": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM1::UL": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM1::UV": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM3::ALCP": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM3::COSLAT": {
+   "status": "replaced",
+   "reason": "stencil-arguments",
+   "by": [
+    "module SWAN_STENCIL"
+   ]
+  },
+  "SWCOMM3::CSETUP": {
+   "status": "local",
+   "reason": "one-user",
+   "note": "It is SETUP_CONVERGED in SWCOMP, passed to SETUPP as an argument."
+  },
+  "SWCOMM3::DXRP": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "SWCOMM3::DYRP": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "SWCOMM3::ICMAX": {
+   "status": "replaced",
+   "reason": "stencil-arguments",
+   "by": [
+    "module SWAN_STENCIL"
+   ]
+  },
+  "SWCOMM3::ICOMP": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM3::ICOR": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "SWCOMM3::IDBR": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "SWCOMM3::IDIF": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM3::IINC": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM3::IPRE": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "SWCOMM3::IXCGRD": {
+   "status": "replaced",
+   "reason": "stencil-arguments",
+   "by": [
+    "module SWAN_STENCIL"
+   ]
+  },
+  "SWCOMM3::IYCGRD": {
+   "status": "replaced",
+   "reason": "stencil-arguments",
+   "by": [
+    "module SWAN_STENCIL"
+   ]
+  },
+  "SWCOMM3::JSTP": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM3::KCGRD": {
+   "status": "replaced",
+   "reason": "stencil-arguments",
+   "by": [
+    "module SWAN_STENCIL"
+   ]
+  },
+  "SWCOMM3::MMCGR": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM3::NCOR": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM3::PI": {
+   "status": "moved",
+   "reason": "split-shared-state",
+   "module": "SWAN_MATH_CONSTANTS",
+   "note": "nctablemd has a private PI of its own, as upstream."
+  },
+  "SWCOMM3::WBICETH": {
+   "status": "local",
+   "reason": "one-user"
+  },
+  "SWCOMM4::MAXMES": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "SWCOMM4::NEGMES": {
+   "status": "removed",
+   "reason": "unused-state"
+  },
+  "SWCOMM4::UNDFLW": {
+   "status": "local",
+   "reason": "one-user",
+   "note": "A parameter of SWSIP."
+  },
+  "TIMECOMM::BEGBOU": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type time_context_t%begbou"
+   ]
+  },
+  "TIMECOMM::DT": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type time_context_t%dt"
+   ]
+  },
+  "TIMECOMM::IFACMX": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type time_context_t%ifacmx"
+   ]
+  },
+  "TIMECOMM::IFACMY": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type time_context_t%ifacmy"
+   ]
+  },
+  "TIMECOMM::TFINC": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type time_context_t%tfinc"
+   ]
+  },
+  "TIMECOMM::TIMCO": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type time_context_t%timco"
+   ]
+  },
+  "TIMECOMM::TIMERB": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type time_context_t%timerb"
+   ]
+  },
+  "TIMECOMM::TINIC": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type time_context_t%tinic"
+   ]
+  },
+  "TIMECOMM::TINTBO": {
+   "status": "component",
+   "reason": "context-object",
+   "by": [
+    "type time_context_t%tintbo"
+   ]
+  }
+ }
+}

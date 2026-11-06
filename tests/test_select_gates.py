@@ -52,6 +52,19 @@ def test_delta_script_requires_the_delta_gate():
     assert set(sel) == {"pytest", "upstream_delta"}
 
 
+@pytest.mark.parametrize("path", ["doc/upstream-map.json", "scripts/upstream_map.py",
+                                  "tests/test_upstream_map.py"])
+def test_upstream_map_requires_only_pytest(path):
+    """The map is checked by pytest; it does not change a build or a result."""
+    assert set(select_gates([path])) == {"pytest"}
+
+
+def test_switch_manifest_is_ctest_data():
+    """The switch manifest is also read by the upstream map, but CTest checks
+    the build options against it, so a change needs the builds as well."""
+    assert set(select_gates(["doc/switch-manifest.json"])) == {"serial", "openmp", "pytest"}
+
+
 def test_docs_only_give_an_empty_selection():
     assert select_gates(["doc/modern-fortran.md", "AGENTS.md"]) == {}
 
