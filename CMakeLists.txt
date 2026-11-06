@@ -637,6 +637,18 @@ if( BUILD_TESTING )
             --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/diffraction
   )
 
+  # No other registered case uses SETUP, so none reaches SETUPP or the
+  # Poisson solver SETUP2D. Two decks on a sloping beach: one in 2D, which
+  # solves the Poisson equation, and one in 1D, which integrates along the
+  # profile.
+  add_test(
+    NAME setup
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/examples/setup/run.py
+            --swan-executable $<TARGET_FILE:${EXE}>
+            --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/setup
+  )
+
   # GEN4 activates the quasi-coherent path (SWQCDFT/SWQCUFT/
   # SWQCWIG via QCSOURCE). No other registered case reaches it.
   add_test(
@@ -979,7 +991,7 @@ if( BUILD_TESTING )
   )
   set_tests_properties(
     quick_test nonstationary_examples nonlinear_interactions
-    diffraction qcm_reference source_terms_st6
+    diffraction setup qcm_reference source_terms_st6
     PROPERTIES RUN_SERIAL TRUE TIMEOUT 180
   )
 

@@ -1,0 +1,36 @@
+$ ----------------------------------------------------------------------
+$ Wave-induced set-up on a sloping beach, two-dimensional
+$ Domain: 2 km x 1 km, depth from 10 m in the west to 0.5 m in the east;
+$ waves and wind from the west-south-west.
+$ In a two-dimensional run SETUPP solves a Poisson equation for the
+$ water level in SETUP2D. No other registered case uses SETUP.
+$ ----------------------------------------------------------------------
+
+PROJECT 'SETUP' '2D'
+SET NAUTICAL
+MODE STATIONARY TWODIMENSIONAL
+COORDINATES CARTESIAN
+
+$ Computational grid: 40 x 20 meshes of 50 m.
+$ Spectral grid: 36 directions and 24 frequencies from 0.05 to 1.0 Hz.
+CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 40 20 CIRCLE 36 0.05 1.0 24
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 40 20 50.0 50.0
+READINP BOTTOM 1.0 'slope.bot' 3 0 FREE
+
+WIND 10.0 250.0
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 1.5 8.0 250.0 20.0
+
+$ Keep the physics explicit so changes to defaults do not alter the case.
+GEN3 KOMEN
+BREAKING CONSTANT 1.0 0.73
+FRICTION JONSWAP CONSTANT 0.038
+SETUP
+NUMERIC STOPC 0.001 0.01 0.001 99.5 STAT 30
+
+BLOCK 'COMPGRID' NOHEADER 'setup2d.blk' LAYOUT 3 HSIGN SETUP
+POINTS 'LINE' 1000. 500. 1500. 500. 1800. 500. 1900. 300.
+TABLE 'LINE' HEADER 'setup2d.tbl' XP YP DEPTH HSIGN SETUP TM01 DIR
+
+COMPUTE
+STOP

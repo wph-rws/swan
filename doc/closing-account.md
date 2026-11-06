@@ -20,7 +20,7 @@ The fork compared with that:
 | `COMMON` blocks | 4 | 0 |
 | Modules | — | 165 |
 | Shared state containers | 16 | 0; the run state in `M_GENARR`, `M_PARALL` and `OUTP_DATA` is still at module level, with an owner that clears it ([run-state-ownership.md](run-state-ownership.md)) |
-| Registered tests | 0 | 60 serial, 64 with MPI (28 October 2026) |
+| Registered tests | 0 | 61 serial, 65 with MPI (6 November 2026) |
 | Build | CMake with 6 options, preprocessed by `switch.pl` (Perl) | CMake with 19 options, without Perl |
 | Compiler warnings (strict set) | not measurable | 1280 with gfortran 16.2; the 281 that can hide a defect all have a verdict |
 
