@@ -77,6 +77,7 @@ ${SRC}/swanmain.f90
 ${SRC}/swan_library.f90
 ${SRC}/swanpre1.f90
 ${SRC}/swanpre2.f90
+${SRC}/swan_wave_setup.f90
 ${SRC}/swancom1.f90
 ${SRC}/swancom2.f90
 ${SRC}/swancom3.f90

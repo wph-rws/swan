@@ -15,10 +15,10 @@ The fork compared with that:
 
 | | Upstream 41.51 | Fork |
 |---|---|---|
-| Source files | 76 | 161 (`git ls-files src \| grep -c '\.f90$'`) |
+| Source files | 76 | 162 (`git ls-files src \| grep -c '\.f90$'`) |
 | Fixed-form | 19 | 0 |
 | `COMMON` blocks | 4 | 0 |
-| Modules | — | 164 |
+| Modules | — | 165 |
 | Shared state containers | 16 | 0; the run state in `M_GENARR`, `M_PARALL` and `OUTP_DATA` is still at module level, with an owner that clears it ([run-state-ownership.md](run-state-ownership.md)) |
 | Registered tests | 0 | 60 serial, 64 with MPI (28 October 2026) |
 | Build | CMake with 6 options, preprocessed by `switch.pl` (Perl) | CMake with 19 options, without Perl |

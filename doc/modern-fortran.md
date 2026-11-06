@@ -314,7 +314,7 @@ optimized build, and the Debug route passes all tests (see
 The large collections of upstream external procedures are split into
 subsystem modules: source terms (`swan_wind_source`, `swan_dissipation`,
 `swan_nonlinear_interactions`, `swan_propagation`), computation
-(`swan_computation`), input (`swan_command_reading`, `swan_input_processing`),
+(`swan_computation`, with the wave-induced set-up in `swan_wave_setup`), input (`swan_command_reading`, `swan_input_processing`),
 output (`swan_output_orchestration`, `swan_output_writers`), services
 (`swan_services`), parallel synchronization (`swan_parallel`) and the driver
 (`swan_driver`). Each exports only the entry points its callers use, so a large
