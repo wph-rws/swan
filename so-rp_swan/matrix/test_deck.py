@@ -115,7 +115,9 @@ def test_production_deck_is_the_operational_deck_filled_in_as_the_run_script_doe
     assert "CGRID CURVILINEAR 249 578 " in production
     assert production.count(" CON PAR 3.65 7.41 310 30.0\n") == 18
     segments = re.compile(r"BOUND SEGMENT (?:XY|IJ) [^\n]*\n")
+    assert production.count(" MAXERR = 3 ") == 1 and " MAXERR = 2 " not in production
     fixed = production.replace("CGRID CURVILINEAR 249 578 ", "CGRID CURVILINEAR 248 577 ")
+    fixed = fixed.replace(" MAXERR = 3 ", " MAXERR = 2 ")
     assert segments.sub("", fixed) == segments.sub("", corrected)
 
 

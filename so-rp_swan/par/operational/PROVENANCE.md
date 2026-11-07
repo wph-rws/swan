@@ -27,7 +27,9 @@ RWS 41.31 still ends with exit code 0.
 **The grid is read incorrectly.** `so-rp.rgf` holds 249 × 578 points, so
 248 × 577 cells, but the deck says `CGRID CURVILINEAR 249 578`. SWAN reports
 "Unexpected end of file" and 1558 times "incorrect grid coordinates", but
-carries on because `MAXERR = 2`. As a result 70,745 of the 71,957 wet grid
+carries on because `MAXERR = 2` (RWS 41.31 and upstream; since BF-67 the fork
+treats the incomplete grid as a severe error, and only computes on it with
+`MAXERR = 3`). As a result 70,745 of the 71,957 wet grid
 points (98%) lie on average 49 m, and up to 248 m, away from their position in
 `so-rp.rgf`, while the bottom stays tied to the grid index. With `248 577`
 every coordinate is right to within 4 cm. The bottom has one row and column
@@ -47,15 +49,19 @@ At the reference condition (20 m/s from 310°, NAP +3.00 m, barrier open), grid
 and boundary together change the mean Hsig over the 130 wet output points by
 less than 1 cm (RWS 41.31: 1.608 m as in production, 1.602 m corrected), but
 single points by up to 9 cm.
-With the current code (41.51) the effect is the same: 1.659 m with this
-deck, 1.653 m corrected, up to 9 cm at single points. The current code also
-reports the 1558 grid errors and carries on. Measured on 29 October 2026; on
+With the code of 29 October (41.51) the effect is the same: 1.659 m with this
+deck, 1.653 m corrected, up to 9 cm at single points; that code also
+reported the 1558 grid errors and carried on. Since BF-67 the fork refuses
+to start on this deck with the severe error "READGRID: CGRID asks for 250 x
+579 grid points, and the file holds fewer". Measured on 29 October 2026; on
 this deck the current code is 5.2 cm higher on average than RWS 41.31A.1, and
 up to 13 cm at single points.
 
-The matrix runs this deck unchanged through the targets `rws_4131_production`
-and `current_4151_production` (`template: production`), because production
-still uses it. `matrix/deck.py` accepts it only if its md5 is the one above.
+The matrix runs this deck through the targets `rws_4131_production` and
+`current_4151_production` (`template: production`), because production
+still uses it. `matrix/deck.py` accepts it only if its md5 is the one above,
+and changes only `MAXERR = 2` into `MAXERR = 3`, so that the fork computes on
+the incomplete grid as production does.
 
 `../so-rp_osk_org.swn` is this deck with exactly two corrections:
 `CGRID CURVILINEAR 248 577`, and the boundary

@@ -59,8 +59,12 @@ python3 so-rp_swan/matrix/matrix_runner.py run --condition u20_d310_lp300_open \
   --target rws_4131_production --target current_4151_production --threads 8
 ```
 
-`convergence_check.py` and `stopping_study.py` take `--template production`
-as well.
+Since BF-67 an incomplete grid is a severe error in the current code, which
+the deck's `MAXERR = 2` refuses. `deck.py` therefore gives the production
+deck `MAXERR = 3` and changes nothing else, so that the current code computes
+on the incomplete grid as production does; for RWS 41.31 the change makes no
+difference. `convergence_check.py` and `stopping_study.py` take
+`--template production` as well.
 
 One run in a new directory:
 

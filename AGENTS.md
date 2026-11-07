@@ -87,7 +87,9 @@ raises it to 1.583 m, and the last two parts bring it to 1.602 m.
 
 **Grid and boundary of the operational deck are wrong.** `CGRID CURVILINEAR
 249 578` asks for one row and column more than `so-rp.rgf` has (249 × 578
-points). SWAN reports this, but carries on because `MAXERR = 2`, and then 98%
+points). RWS 41.31 and upstream report this at level 2 only and carry on
+because `MAXERR = 2`; since BF-67 the fork treats it as a severe error
+(level 3), so that the run only computes with `MAXERR = 3`. In 41.31 98%
 of the wet grid points lie on average 49 m, and up to 248 m, away from their
 position. The deck's boundary segments lie on that incorrectly read grid,
 40–140 m inside the wet sea boundary of the correct one. The template this
@@ -104,10 +106,14 @@ to 9 cm. This has been put to the maintainer of the operational deck. Compare
 versions with the corrected template. Because production still runs the deck
 as it is, the matrix also has two targets with the production deck itself
 (`rws_4131_production` and `current_4151_production`, only run when named
-with `--target`); `deck.py` accepts that deck only byte for byte. With it, the
-current code gives 1.659 m at the reference condition, against 1.608 m for
+with `--target`); `deck.py` accepts that deck only byte for byte, and changes
+only `MAXERR = 2` into `MAXERR = 3`, so that the fork computes on the
+incomplete grid as production does (for RWS 41.31 that changes nothing). With
+it, the current code gives 1.659 m at the reference condition, against 1.608 m for
 RWS 41.31A.1 (measured 29 October 2026): the same +5 cm as on the corrected
-deck, but up to 13 cm at single points. The operational deck also only
+deck, but up to 13 cm at single points. The deck "works" because the grid is
+fine and smooth, so points shifted by some 50 m still lie in a plausible
+place; the same shortage in another file can leave points at (0,0). The operational deck also only
 runs with the RWS/DZL `swaninit`, which sets `#` as the comment character.
 
 > Always average over the wet points: dry points have Hsig = −9 (SWAN

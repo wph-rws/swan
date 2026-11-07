@@ -508,6 +508,155 @@ def test_error_level_below_maxerr_keeps_running(tmp_path):
     assert result.returncode == 0, result.stderr[-2000:]
 
 
+#  BF-67: a grid or field file that holds fewer values than asked for. INAR2D
+#  reported this at level 2 only, so with SET MAXERR 2 SWAN computed on with
+#  the missing values as 0 and gave exit code 0; the operational so-rp deck
+#  ran that way on a grid read one row and column too many. SWAN cannot tell
+#  from the file how bad the shortage is, so now every incomplete file is a
+#  severe error (level 3): the run does not start, unless the deck accepts
+#  severe errors with SET MAXERR 3.
+WIND_FROM_FILE = ("INPGRID WIND REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0\n"
+                  "READINP WIND 1.0 'wind.dat' 3 0 FREE")
+
+
+def _short_file_deck(maxerr: int, wind: bool) -> str:
+    deck = _quick_deck()
+    assert "SET NAUTICAL" in deck and "WIND 8.0 270.0" in deck, "smoke deck has changed shape"
+    deck = deck.replace("SET NAUTICAL", f"SET MAXERR={maxerr} NAUTICAL", 1)
+    if wind:
+        deck = deck.replace("WIND 8.0 270.0", WIND_FROM_FILE, 1)
+    return deck
+
+
+@pytest.mark.parametrize("maxerr", [2, 3])
+def test_short_bottom_file_is_a_severe_error(tmp_path, maxerr):
+    """SWAN cannot tell how bad a short file is, so by default the run does
+    not start; a deck that accepts severe errors computes on, as upstream."""
+    result, report = _run_deck(tmp_path / str(maxerr), _short_file_deck(maxerr, wind=False),
+                               {"bottom.bot": "20.0 20.0\n20.0\n"})
+    assert "Unexpected end of file while reading bottom.bot" in report, report[-2000:]
+    assert ("Severe error     : READINP: the input grid asks for 2 x 2 values"
+            in report), report[-2000:]
+    assert "Terminating error" not in report
+    assert ("No start of computation" in report) == (maxerr == 2)
+    assert (result.returncode == 0) == (maxerr == 3), report[-2000:]
+
+
+def test_short_wind_file_blocks_the_computation(tmp_path):
+    result, report = _run_deck(tmp_path, _short_file_deck(2, wind=True),
+                               {"wind.dat": "15. 15. 15.\n"})
+    assert result.returncode != 0, report[-2000:]
+    assert "Severe error     : READINP: the input grid asks for 2 x 2 values" in report, report[-2000:]
+    assert "No start of computation" in report
+    #  The second wind component is no longer read from the closed unit,
+    #  which made the runtime create an empty fort.<unit>.
+    assert not list((tmp_path / "work").glob("fort.*"))
+
+
+def test_short_wind_file_with_maxerr_3_computes_on(tmp_path):
+    result, report = _run_deck(tmp_path, _short_file_deck(3, wind=True),
+                               {"wind.dat": "15. 15. 15.\n"})
+    assert result.returncode == 0, report[-2000:]
+    assert "Severe error" in report
+    assert "No start of computation" not in report
+    assert not list((tmp_path / "work").glob("fort.*"))
+
+
+def test_unreadable_value_in_bottom_file_is_a_severe_error(tmp_path):
+    """A value that cannot be read (IDLA -2) counts like a short file."""
+    result, report = _run_deck(tmp_path, _short_file_deck(2, wind=False),
+                               {"bottom.bot": "20.0 20.0\nxx 20.0\n"})
+    assert "Error while reading file" in report, report[-2000:]
+    assert "Severe error     : READINP: the input grid asks for 2 x 2 values" in report
+    assert result.returncode != 0 and "No start of computation" in report
+
+
+def test_short_second_wind_component_is_a_severe_error(tmp_path):
+    result, report = _run_deck(tmp_path, _short_file_deck(2, wind=True),
+                               {"wind.dat": "15. 15. 15. 15.\n0. 0.\n"})
+    assert "Severe error     : READINP: the input grid asks for 2 x 2 values" in report, report[-2000:]
+    assert result.returncode != 0 and "No start of computation" in report
+    assert not list((tmp_path / "work").glob("fort.*"))
+
+
+def test_ended_file_series_is_a_severe_error(tmp_path):
+    """With SERIES, a data file that ends early and no further file in the
+    list left the field incomplete without telling the caller."""
+    deck = _short_file_deck(2, wind=True).replace(
+        "READINP WIND 1.0 'wind.dat' 3 0 FREE", "READINP WIND 1.0 SERIES 'wind.lst' 3 0 FREE", 1)
+    result, report = _run_deck(tmp_path, deck, {"wind.lst": "wind1.dat\n",
+                                                "wind1.dat": "15. 15. 15.\n"})
+    assert "Series of input files ended" in report, report[-2000:]
+    assert "Severe error     : READINP: the input grid asks for 2 x 2 values" in report
+    assert result.returncode != 0 and "No start of computation" in report
+
+
+NONSTATIONARY = REPO / "examples" / "nonstationary" / "regular"
+
+
+def _nonstationary_table(tmp_path, name, wind):
+    deck = (NONSTATIONARY / "nonstationary_regular.swn").read_text()
+    #  an end of file during the updates is an error of level 2; without
+    #  MAXERR 2 SWAN does not continue after it at all
+    assert "SET NAUTICAL" in deck, "nonstationary deck has changed shape"
+    deck = deck.replace("SET NAUTICAL", "SET MAXERR=2 NAUTICAL", 1)
+    result, report = _run_deck(tmp_path / name, deck, {"wind.wnd": wind}, timeout=120)
+    assert result.returncode == 0, report[-2000:]
+    return (tmp_path / name / "work" / "nonstationary_regular_center.tbl").read_text()
+
+
+def test_short_second_component_ends_the_wind_updates(tmp_path):
+    """A later time level whose second component is short must end the
+    updates, as a short first component does, and not mix a new first
+    component with a partial or old second one."""
+    first = "20260101.000000\n4.0 4.0\n4.0 4.0\n0.0 0.0\n0.0 0.0\n"
+    only_first_level = _nonstationary_table(tmp_path, "one", first)
+    short_second = _nonstationary_table(
+        tmp_path, "short", first + "20260101.003000\n12.0 12.0\n12.0 12.0\n0.0\n")
+    assert short_second == only_first_level
+
+
+CURVILINEAR_DECK = """PROJECT 'CURV' '001'
+SET MAXERR=2 NAUTICAL
+MODE STATIONARY TWODIMENSIONAL
+COORDINATES CARTESIAN
+CGRID CURVILINEAR 3 2 CIRCLE 24 0.05 1.0 16
+READGRID COORDINATES 1. 'grid.dat' 4 0 0 FREE
+INPGRID BOTTOM CURVILINEAR 0 0 3 2
+READINP BOTTOM 1.0 'curv.bot' 4 0 FREE
+WIND 8.0 270.0
+GEN3 KOMEN
+POINTS 'P' 500. 500.
+TABLE 'P' HEADER 'p.tbl' XP YP DEPTH HSIGN
+COMPUTE
+STOP
+"""
+
+
+def _grid_file(rows: int) -> str:
+    xs, ys = [0, 500, 1000, 1500], [0, 500, 1000][:rows]
+    return (" ".join(str(x) for _ in ys for x in xs) + "\n"
+            + " ".join(str(y) for y in ys for _ in xs) + "\n")
+
+
+@pytest.mark.parametrize("rows, maxerr", [(3, 2), (2, 2), (2, 3)])
+def test_curvilinear_grid_file_one_row_short(tmp_path, rows, maxerr):
+    """CGRID asks for 4 x 3 points; a file of 4 x 2 must stop the run, as the
+    so-rp production deck should have, unless the deck sets SET MAXERR 3."""
+    deck = CURVILINEAR_DECK.replace("SET MAXERR=2", f"SET MAXERR={maxerr}", 1)
+    result, report = _run_deck(tmp_path, deck,
+                               {"grid.dat": _grid_file(rows), "curv.bot": "20. " * 12 + "\n"})
+    if rows == 3:
+        assert result.returncode == 0, report[-2000:]
+        assert "READGRID: CGRID asks for" not in report
+        return
+    assert ("Severe error     : READGRID: CGRID asks for 4 x 3 grid points, "
+            "and the file holds fewer") in report, report[-2000:]
+    assert "Unexpected end of file while reading grid.dat" in report
+    assert ("No start of computation" in report) == (maxerr == 2)
+    assert (result.returncode == 0) == (maxerr == 3), report[-2000:]
+
+
 #  BOUNDSPEC SIDE with an unknown side: WRNKEY reports the error, but SWBOUN
 #  then looked for a side in the unset direction DIRSI. With SET MAXERR 3
 #  the run computes on; the boundary condition should then be dropped instead
@@ -878,6 +1027,23 @@ def test_table_format_reset_can_compute_with_maxerr_2(tmp_path):
     assert "[field] is too large" in report
     values = (tmp_path / "work" / "quick_test_center.tbl").read_text().split()
     assert float(values[3]) == pytest.approx(.8787, abs=.0001)
+
+
+@pytest.mark.parametrize("files_in_series", [1, 2])
+def test_series_end_retains_the_input_scale(tmp_path, files_in_series):
+    deck = _quick_deck().replace("SET NAUTICAL", "SET MAXERR 3 NAUTICAL")
+    deck = deck.replace("READINP BOTTOM 1.0 'bottom.bot' 3 0 FREE",
+                        "READINP BOTTOM 2.0 SERIES 'bottom.lst' 3 0 FREE")
+    deck = deck.replace("POINTS 'CENTER' 1000.0 500.0", "POINTS 'CENTER' 0 1000")
+    names = [f"short{i}.bot" for i in range(files_in_series)]
+    files = {"bottom.lst": "\n".join(names)+"\n", names[0]: "10 10\n10\n"}
+    if files_in_series == 2:
+        files[names[1]] = "10\n"
+    proc, report = _run_deck(tmp_path, deck, files)
+    assert proc.returncode == 0, report[-2000:]
+    rows = [l.split() for l in (tmp_path / "work" / "quick_test_center.tbl").read_text().splitlines()
+            if l.strip() and not l.startswith('%')]
+    assert float(rows[0][2]) == 20.
 
 
 def test_surplus_boundary_lengths_do_not_change_the_next_segment(tmp_path):

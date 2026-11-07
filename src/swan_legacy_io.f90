@@ -130,6 +130,7 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM, &
 !     NUMFIL : ??
 
    CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
+   CHARACTER(LEN=LENFNM) :: ENDFNM ! name of the file in which the end was met
    INTEGER, SAVE :: IENT = 0
    INTEGER   IERR, IOERR, IH, IX, IY, NUMFIL
 
@@ -279,6 +280,9 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM, &
                   ((ARR(IX,IY), IY=1,MYA), IX=1,MXA)
             END SELECT
          ENDIF
+!     Restore physical units after each attempt, before any SERIES retry or
+!     error return. Untouched values must not be divided twice on a retry.
+         ARR = ARR * VFAC
       ENDIF
 
       IF (IERR == 0) EXIT input_files
@@ -287,6 +291,9 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM, &
 !     *** unit = NDSD is closed before the next one is opened
 
       IF (IS_IOSTAT_END(IERR)) THEN
+!     remember the name now: after CLOSE, INQUIRE no longer knows it
+         ENDFNM = ' '
+         INQUIRE (UNIT=NDSD, NAME=ENDFNM)
          CLOSE(NDSD)
          NUMFIL = NUMFIL + 1
          IF (NUMFIL < 2 .AND. NDSL > 0) THEN
@@ -295,6 +302,8 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM, &
                FILENM='UNKNOWN_FILE'
                INQUIRE (UNIT=NDSL, NAME=FILENM)
                CALL MSGERR (2, 'Series of input files ended in '//TRIM(FILENM))
+!           the field is not complete either: say so, as at an end of file
+               IDLA = -1
                RETURN
             END IF
             IF (IDFM.NE.-1) THEN
@@ -332,15 +341,11 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM, &
 
 !     error message when end of file is encountered
 !
-!     --- initialize FILENM so that previous value is not used            40.08
-!         in case unit NDSD does not exist
-         FILENM='UNKNOWN_FILE'
-!     ------------------------------------------------------------------
-!     THIS INQUIRE STATEMENT IS PROBLEMATIC, SINCE (AT LEAST              40.08
-!     SOMETIMES) NDSD HAS ALREADY BEEN CLOSED, SO THE INQUIRE             40.08
-!     STATEMENT SHOULD NOT WORK.
-!     ------------------------------------------------------------------
-         INQUIRE (UNIT=NDSD, NAME=FILENM)
+!     The unit has been closed above, so the name comes from ENDFNM,
+!     taken just before the CLOSE (upstream asked the closed unit and
+!     printed UNKNOWN_FILE).
+         FILENM = ENDFNM
+         IF (FILENM == ' ') FILENM = 'UNKNOWN_FILE'
          CALL MSGERR (2, 'Unexpected end of file while reading '// &
             TRIM(FILENM))
          NDSD = 0
@@ -359,14 +364,6 @@ SUBROUTINE INAR2D (ARR, MXA, MYA, NDSL, NDSD, IDFM, RFORM, &
       END IF
       EXIT input_files
    END DO input_files
-
-!     Multiply all values in the array by VFAC
-
-   do IY = 1, MYA
-      do IX = 1, MXA
-         ARR(IX,IY) = ARR(IX,IY) * VFAC
-      end do
-   end do
 
 !  After a read error the field is printed to show how far reading got. For
 !  a large field with a short file that wrote gigabytes of mostly zeros (a

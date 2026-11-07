@@ -11,7 +11,11 @@ as the comment character; `stage_inputs` sets those up.
 
 `template="production"` fills in the operational deck itself instead, with its
 wrong grid and boundary, to measure what production computes. Compare
-versions with the corrected template.
+versions with the corrected template. The production deck reads its grid
+file incompletely, which since BF-67 is a severe error; so that the current
+code computes what production computes, that deck gets `MAXERR = 3`
+instead of `MAXERR = 2`. That is the only change, and it does not change the
+result of a program that runs the deck with `MAXERR = 2`.
 """
 
 from __future__ import annotations
@@ -29,10 +33,15 @@ TEMPLATE = bg2.ROOT / "par" / "so-rp_osk_org.swn"
 # The deck as it runs in production, byte for byte (see PROVENANCE.md there):
 # CGRID 249 578 for a grid of 248 by 577 meshes, and 18 XY boundary segments
 # that lie on the grid as SWAN then wrongly reads it. SWAN reports the grid
-# errors but carries on, because the deck sets MAXERR = 2.
+# errors but carries on, because the deck sets MAXERR = 2; since BF-67 an
+# incomplete grid is a severe error in the fork, which that MAXERR refuses.
 PRODUCTION_TEMPLATE = bg2.ROOT / "par" / "operational" / "so-rp_osk_org.swn"
 PRODUCTION_MD5 = "27eb876439c91f1496723cc65e2d695d"
 PRODUCTION_SEGMENTS = 18
+# Its grid file is read incompletely (BF-67, a severe error since then); the
+# matrix lets the deck accept severe errors so that the run computes on.
+PRODUCTION_MAXERR = " MAXERR = 2 "
+ACCEPTED_MAXERR = " MAXERR = 3 "
 TEMPLATES = {"corrected": TEMPLATE, "production": PRODUCTION_TEMPLATE}
 PLACEHOLDERS = frozenset(
     {"WR_ORG", "WSN_ORG", "WST_ORG", "HS_ORG_BG2", "TP_ORG_BG2", "GOLFTR_OSK"}
@@ -140,6 +149,8 @@ def validate_deck(
     waves = f"CON PAR {bc.hs_text} {bc.tp_text} {condition.direction_deg} 30.0\n"
     required = [f"WIND {condition.wind_speed_ms} {condition.direction_deg}\n"]
     if template == "production":
+        if text.count(ACCEPTED_MAXERR) != 1:
+            raise ValueError("production deck does not accept severe errors (MAXERR = 3)")
         segments = re.findall(r"(?m)^BOUND SEGMENT XY .*\n", text)
         if len(segments) != PRODUCTION_SEGMENTS or any(
             not segment.endswith(" " + waves) for segment in segments
@@ -191,6 +202,8 @@ def generate_deck(
     text = source
     for placeholder, value in replacements.items():
         text = text.replace(placeholder, value)
+    if template == "production":
+        text = text.replace(PRODUCTION_MAXERR, ACCEPTED_MAXERR, 1)
     if physics == "legacy-4131":
         text = re.sub(r"(?m)^(GEN3 +KOMEN)$", r"\1 DRAG FIT", text, count=1)
         text = re.sub(TRIAD_LINE, r"\1" + LEGACY_TRIAD, text, count=1)

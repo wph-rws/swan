@@ -4764,6 +4764,8 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
       IFLIDL(IGR1), IFLFAC(IGR1), &
       IFLNHD(IGR1), IFLNHF(IGR1))
    IF (STPNOW()) RETURN
+   CALL CHECK_FIELD_COMPLETE (IGR1)
+   IF (STPNOW()) RETURN
    IF (IGR1.EQ.1) THEN
       CALL ENSURE_FIELD_SIZE (DEPTH, MXG(IGR1)*MYG(IGR1))
       CALL SWCOPR( TARR, DEPTH, MXG(IGR1)*MYG(IGR1) )
@@ -4816,11 +4818,18 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
          ALLOCATE( TARR(MXG(IGR2)*MYG(IGR2)) )
          TARR = 0.
       END IF
-      CALL INAR2D( TARR        , MXG(IGR2), MYG(IGR2), IFLNDF(IGR2), &
-         IFLNDS(IGR2), IFLIFM(IGR2), IFLFRM(IGR2), &
-         IFLIDL(IGR2), IFLFAC(IGR2), &
-         IFLNHD(IGR2), 0)
-      IF (STPNOW()) RETURN
+!     After a failed first component the file has been closed; reading
+!     on would make the runtime open an empty fort.<unit> (BF-67), so the
+!     second component simply stays 0.
+      IF (IFLIDL(IGR1) >= 0) THEN
+         CALL INAR2D( TARR        , MXG(IGR2), MYG(IGR2), IFLNDF(IGR2), &
+            IFLNDS(IGR2), IFLIFM(IGR2), IFLFRM(IGR2), &
+            IFLIDL(IGR2), IFLFAC(IGR2), &
+            IFLNHD(IGR2), 0)
+         IF (STPNOW()) RETURN
+         CALL CHECK_FIELD_COMPLETE (IGR2)
+         IF (STPNOW()) RETURN
+      END IF
       IF (IGR2.EQ.3) THEN
          CALL ENSURE_FIELD_SIZE (UYB, MXG(IGR2)*MYG(IGR2))
          CALL SWCOPR( TARR, UYB, MXG(IGR2)*MYG(IGR2) )
@@ -4844,6 +4853,36 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
    IF (VECTOR) LEDS(IGR2) = 2
 
    RETURN
+
+CONTAINS
+
+SUBROUTINE CHECK_FIELD_COMPLETE (IGR)
+!     INAR2D sets [idla] to -1 when the file ended before the input grid
+!     was full, and to -2 when a value could not be read. The rest of
+!     the field then keeps the initial value 0. Upstream gives only an
+!     error of level 2, so with SET MAXERR 2 the computation went on with
+!     that field and ended with exit code 0 (BF-67). SWAN cannot tell
+!     from the file how bad that is. On the so-rp production deck one row
+!     and column too few shifts the grid points by about 50 m and changes
+!     Hs by a few centimetres; a file that ends halfway leaves grid points
+!     at (0,0) or a bottom of 0. So an incomplete grid, bottom or forcing
+!     field is a severe error (level 3): the computation does not start,
+!     unless the deck accepts severe errors with SET MAXERR 3, and then
+!     SWAN computes on as upstream does.
+   INTEGER, INTENT(IN) :: IGR
+   CHARACTER(LEN=200) :: WHAT
+   IF (IFLIDL(IGR) >= 0) RETURN
+   IF (IGR == 8 .OR. IGR == 9) THEN
+      WRITE (WHAT, '(A,I0,A,I0,A)') 'READGRID: CGRID asks for ', MXG(IGR), ' x ', MYG(IGR), &
+         ' grid points, and the file holds fewer, or a value could not be read'
+      CALL MSGERR (3, TRIM(WHAT)//'; the grid points after that would be misplaced or at 0')
+   ELSE
+      WRITE (WHAT, '(A,I0,A,I0,A)') 'READINP: the input grid asks for ', MXG(IGR), ' x ', MYG(IGR), &
+         ' values, and the file holds fewer, or a value could not be read'
+      CALL MSGERR (3, TRIM(WHAT)//'; the rest of the field would be 0')
+   END IF
+END SUBROUTINE CHECK_FIELD_COMPLETE
+
 ! * end of subroutine SREDEP *
 end subroutine SREDEP
 !************************************************************************

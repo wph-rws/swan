@@ -257,6 +257,15 @@ SUBROUTINE FLFILE (IGR1, IGR2, &
                   IFLIDL(IGR2), IFLFAC(IGR2), IFLNHD(IGR2), 0)
                IF (STPNOW()) RETURN
             END IF
+!        a second component that could not be read in full ends the
+!        updates as the first one does, instead of mixing a new first
+!        component with a partial or old second one
+            CALL SWBROADC(IFLIDL(IGR2),1)
+            IF (IFLIDL(IGR2).LT.0) THEN
+               IFLTIM(IGR1) = 1.E10
+               IFLTIM(IGR2) = IFLTIM(IGR1)
+               EXIT field_updates
+            END IF
             CALL SWBROADC(ARR2,MXG(IGR2)*MYG(IGR2))
          ENDIF
       ENDIF
