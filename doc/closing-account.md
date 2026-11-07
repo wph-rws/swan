@@ -22,7 +22,7 @@ The fork compared with that:
 | Shared state containers | 16 | 0; the run state in `M_GENARR`, `M_PARALL` and `OUTP_DATA` is still at module level, with an owner that clears it ([run-state-ownership.md](run-state-ownership.md)) |
 | Registered tests | 0 | 61 serial, 65 with MPI (6 November 2026) |
 | Build | CMake with 6 options, preprocessed by `switch.pl` (Perl) | CMake with 19 options, without Perl |
-| Compiler warnings (strict set) | not measurable | 1280 with gfortran 16.2; the 281 that can hide a defect all have a verdict |
+| Compiler warnings (strict set) | not measurable | 1025 with gfortran 16.2 (7 November 2026); the 240 that can hide a defect all have a verdict |
 
 There is no `COMMON` block and no unnamed shared state left. Three modules
 hold run state, each with an explicit owner. There is no general run object
@@ -48,7 +48,7 @@ in the strict build; the fork gives none. The calls to the external METIS
 library go through a checked `BIND(C)` interface.
 
 **Warnings that can hide a defect are reviewed.** The strict build gives
-1280 warnings. The 281 of the kinds that can point to a real defect (unset
+1025 warnings. The 240 of the kinds that can point to a real defect (unset
 values, index bounds, skipped calls, truncated text, loss of precision) all
 have a recorded verdict, and the strict gate fails on any new one without a
 verdict. The other kinds are counted but not checked; see
@@ -132,14 +132,16 @@ made with a different gfortran release, but have the same module version.
 
 This is the most important section of this document.
 
-- **Zero warnings.** There are 1280 (gfortran 16.2, 28 October 2026).
+- **Zero warnings.** There are 1025 (gfortran 16.2, 7 November 2026).
   The categories with possibly serious consequences (uninitialised values,
   index bounds, skipped functions, truncated text, loss of value in
-  conversions, and warnings without a flag; 281 together) have been assessed
-  one by one, which produced BF-19 to BF-33; no suspected defect remains
-  open. The other 999, mainly conversions to single precision, comparisons of
-  real numbers and unused declarations, are counted but not assessed; cleaning them
-  up touches inherited code without demonstrable gain.
+  conversions, and warnings without a flag; 240 together) have been assessed
+  one by one, which produced BF-19 to BF-33, BF-64 and BF-66; no suspected defect remains
+  open. The other 785, mainly conversions to single precision and
+  comparisons of real numbers, are counted but not assessed; rewriting them
+  changes inherited arithmetic without demonstrable gain. Unused declarations
+  were removed on 7 November 2026, except four names that only OpenMP
+  clauses use and the unused dummy arguments.
 - **The Debug route as a gate.** It runs only locally, not in CI. With
   gfortran 16.2 a Debug build (`-O0`) passes all 60 tests. Two things make `-O0` and `-O3` round
   differently. First, for a constant integer exponent above four, such as

@@ -3,7 +3,7 @@
 The strict build compiles SWAN with every extra warning gfortran offers:
 `-Wall -Wextra -Wimplicit-interface -Wsurprising -Wconversion-extra
 -Wcharacter-truncation`, Release, the default serial variant, with the
-reference compiler (gfortran 16.2, see `AGENTS.md`). It gives 1280 warnings.
+reference compiler (gfortran 16.2, see `AGENTS.md`). It gives 1025 warnings.
 Most of them say nothing about whether SWAN computes correctly. A few kinds
 do, and those are the ones the strict gate checks.
 
@@ -44,7 +44,7 @@ one changes every call.
 
 | Kind of warning | Count | Checked | What the review found |
 |---|---:|---|---|
-| `maybe-uninitialized` | 108 | yes | defects BF-19, BF-20, BF-21, BF-22, BF-23, BF-27, BF-28, BF-29, BF-30, BF-31, BF-33; the rest harmless |
+| `maybe-uninitialized` | 67 | yes | defects BF-19, BF-20, BF-21, BF-22, BF-23, BF-27, BF-28, BF-29, BF-30, BF-31, BF-33, BF-64, BF-66; the rest harmless |
 | `conversion` | 72 | yes | harmless: intended rounding to single precision, or integer expressions that convert exactly |
 | `function-elimination` | 49 | yes | defect BF-24; one in `CVMESH`, where the call is made only for a point not found yet; the rest harmless |
 | `character-truncation` | 24 | yes | defects BF-26 and BF-32; the rest harmless or deliberate |
@@ -75,6 +75,19 @@ the program with exit code 3. Its `NORETURN` attribute tells the compiler that
 the path ends there, so the warning disappears without setting a value. The
 paths cannot be reached with any input, so no result changes; the output of
 every deck stayed byte for byte the same.
+
+Checking these assumptions found two verdicts that were wrong. The one on
+the unset result of `X_CPLE` in the exact quadruplet code said that the
+function covers coupling coefficients 1 to 4. It covers only 1 and 2, while
+the configuration check allowed 3 as well, and that value made SWAN compute
+without the quadruplet transfer (BF-64). The one on `CDRAG` in `WINDP1` said
+that the drag formulations 4 to 6 never reach the first and second
+generation branch. They do, in the first guess of a stationary ST6 run, and
+that branch then used a value that was never set (BF-66). The second one
+surfaced because the new stop ended a registered test, which is exactly what
+such a stop is for. So the assumption behind each stop was checked again in
+the source, not taken from the verdict: where each option variable is set,
+which values it can take and which callers reach the routine.
 
 Two warnings of this kind stay on purpose. `NPF` and `NPH` in `SICE` are set
 and read under the same ice method in two chains, and the compiler does not
@@ -116,7 +129,7 @@ version reports somewhat different warnings, even in unchanged code: the
 same case can show up under another routine because the compiler inlines
 differently. After a compiler change, the new checked warnings have to be
 reviewed before the gate is green again; that is a few dozen at most, not a
-recount of all 1280.
+recount of all 1025.
 
 `tests/test_strict_diagnostics.py` tests the gate itself, including that a
 missing verdict and a silenced build both fail.
