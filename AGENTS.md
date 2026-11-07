@@ -180,11 +180,36 @@ for multicore timings.
 
 ## Verification: targeted gate selection
 
-Not every change needs the full breadth (serial + OpenMP + MPI + strict). For each change, use `python3 scripts/select_gates.py [--base HEAD]` to find which gates the change can break, and run only those, with the commands it prints:
+**While working, test what the change touches, and test it lightly.** The
+most useful check is usually a small new test aimed at the changed behaviour:
+the set-up error of November 2026 passed every existing gate, because no
+deck used `SETUP`, and one small deck found it. Repeating every gate after
+each step finds little and costs an hour. A rough guide, with the existing
+build directories:
+
+| Kind of change | Check while working | Time |
+|---|---|---:|
+| Docs, or comments only | read the diff | < 1 min |
+| Code that should not change output | incremental build, the tests that reach the code, an exact comparison of a few decks that run it; OpenMP or MPI only if it touches shared state, threads or reductions | 1–3 min |
+| Code that should change output | a small test that fails before and passes after, and a check that unrelated decks stay the same | 2–5 min |
+| Numerics or physics | the above, plus a small convergence, conservation or theory test on a model that runs in seconds | 5–15 min |
+
+The full breadth below runs **once per change set, before it is merged**
+(in CI, or locally if CI is not available), not after every step. Note that
+CTest compares with a relative tolerance of `1e-3`, so a green CTest does not
+show byte-identical output; compare the files when that is the claim.
+
+Runs on the operational so-rp grid take about 17 s per iteration on four
+cores. Use them only for questions about that deck itself, never as a check
+of a code change. Before starting one, work out the run time and say it, and
+give each process its own cores (`taskset`); `OMP_PROC_BIND` alone puts the
+threads of every process on the same first cores.
+
+Before merging, not every change needs the full breadth (serial + OpenMP + MPI + strict). For each change set, use `python3 scripts/select_gates.py [--base HEAD]` to find which gates the change can break, and run only those, with the commands it prints:
 
 - MPI only for paths that touch MPI (source with mpi/parall/metis/coh/esmf/adcirc in the name, MPI tests, toolchain/CMake). A deck or physics change without a code difference behaves under MPI exactly as in serial on the same code.
 - strict only for source or toolchain changes, or a change to its verdicts. Docs or comments only: no gates.
-- upstream_delta for anything that can shift the output of a deck (source, toolchain, decks, the inventory itself). That gate runs every deck (the four heavy ones only with `--include-skipped`) through its own build of the pinned TU Delft source (`43e9bbb`) and through the fork, and checks the result against `doc/upstream-delta.json`: every difference must have a BF number. The inventory itself is checked on every commit in the pytest gate; the measured half runs under `SWAN_UPSTREAM_DELTA=1` and needs a one-off upstream build in `.upstream/build_O3_gfortran<version>`, with the same compiler as the fork build and at `-O3`, because both the optimisation level and the compiler version change output (use a path without a hyphen, because upstream `switch.pl` loops forever on one).
+- upstream_delta for anything that can shift the output of a deck (source, toolchain, decks, the inventory itself). That gate runs every deck (the four heavy ones only with `--include-skipped`) through its own build of the pinned TU Delft source (`43e9bbb`) and through the fork, and checks the result against `doc/upstream-delta.json`: every difference must have a BF number. For a deck that already differs, the inventory also keeps a fingerprint (SHA-256) of each fork output file, so that a new change in such a deck fails the gate as well, and a fork that crashes or writes nothing is never an accepted difference. The inventory itself is checked on every commit in the pytest gate; the measured half runs under `SWAN_UPSTREAM_DELTA=1` and needs a one-off upstream build in `.upstream/build_O3_gfortran<version>`, with the same compiler as the fork build and at `-O3`, because both the optimisation level and the compiler version change output (use a path without a hyphen, because upstream `switch.pl` loops forever on one).
 - Unknown paths safely choose everything; never silently nothing.
 - Skipped gates stay at their last green commit. Mention that commit with the change, so the release claim stays traceable.
 

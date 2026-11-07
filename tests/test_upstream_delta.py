@@ -56,6 +56,57 @@ def test_inventory_requires_a_record_of_the_last_measurement(tmp_path):
     assert "last_measurement" in completed.stdout
 
 
+
+def _inventory_check(tmp_path, change):
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    change(manifest)
+    changed = tmp_path / "upstream-delta.json"
+    changed.write_text(json.dumps(manifest), encoding="utf-8")
+    return subprocess.run(
+        [sys.executable, str(SCRIPT), "--inventory-only", "--manifest", str(changed)],
+        capture_output=True,
+        text=True,
+    )
+
+
+def _first_differing(manifest):
+    return next(entry for entry in manifest["decks"] if entry["status"] == "differs")
+
+
+def test_a_differing_deck_needs_a_fingerprint_of_the_fork_output(tmp_path):
+    """Without it, a new change in an already differing deck would stay unseen."""
+    completed = _inventory_check(tmp_path, lambda m: _first_differing(m).pop("fork_output"))
+    assert completed.returncode != 0
+    assert "without a fingerprint of the fork output" in completed.stdout
+
+
+def test_a_fork_that_does_not_complete_a_deck_is_never_accepted(tmp_path):
+    def failed(manifest):
+        _first_differing(manifest)["status"] = "fork failed"
+    completed = _inventory_check(tmp_path, failed)
+    assert completed.returncode != 0
+    assert "the fork did not complete the deck" in completed.stdout
+
+
+@pytest.mark.parametrize("upstream_code", [0, 1])
+def test_no_fork_output_is_a_failure_even_when_upstream_fails(tmp_path, monkeypatch, upstream_code):
+    sys.path.insert(0, str(REPOSITORY / "scripts"))
+    import upstream_delta as delta
+    outcomes = iter([delta.RunOutcome(0, {}, 0.), delta.RunOutcome(upstream_code, {}, 0.)])
+    monkeypatch.setattr(delta, "run_deck", lambda *args: next(outcomes))
+    status, _, _ = delta._assess_deck("deck", Path("fork"), Path("upstream"), tmp_path, 5, 0)
+    assert status == delta.STATUS_FORK_FAILED
+
+
+def test_fingerprint_changes_names_the_changed_files():
+    sys.path.insert(0, str(REPOSITORY / "scripts"))
+    import upstream_delta
+    recorded = {"a.tbl": "1", "b.spc": "2"}
+    assert upstream_delta.fingerprint_changes(recorded, dict(recorded)) == []
+    assert upstream_delta.fingerprint_changes(recorded, {"a.tbl": "1", "b.spc": "3"}) == ["b.spc"]
+    assert upstream_delta.fingerprint_changes(recorded, {"a.tbl": "1"}) == ["b.spc"]
+    assert upstream_delta.fingerprint_changes(None, {"a.tbl": "1"}) == []
+
 def test_pinned_upstream_matches_the_bugfix_table():
     """The inventory and the bug-fix table must refer to the same upstream.
 

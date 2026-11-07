@@ -48,6 +48,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import filecmp
+import hashlib
 import json
 import os
 import re
@@ -91,6 +92,7 @@ STATUS_DIFFERS = "differs"
 STATUS_UPSTREAM_UNSTABLE = "upstream unstable"
 STATUS_FORK_UNSTABLE = "fork unstable"
 STATUS_FORK_ONLY = "fork only"
+STATUS_FORK_FAILED = "fork failed"
 STATUS_SKIPPED = "skipped"
 
 
@@ -109,6 +111,7 @@ class DeckVerdict:
     deck: str
     status: str
     detail: str
+    fork_output: dict[str, str] | None = None
 
 
 def load_manifest(path: Path) -> dict:
@@ -456,6 +459,31 @@ def assess_deck(
     root: Path,
     timeout: int,
     repeats: int,
+) -> tuple[str, str, float, dict[str, str] | None]:
+    """Determine the status of one deck; see _assess_deck.
+
+    Also returns the fingerprint of the fork's output when the deck differs
+    from upstream or only the fork completes it, else None.
+    """
+    status, detail, seconds = _assess_deck(deck, fork_binary, upstream_binary,
+                                           root, timeout, repeats)
+    output = None
+    if status in (STATUS_DIFFERS, STATUS_FORK_ONLY):
+        #  run_deck keeps only the output files in this directory
+        fork = root / "fork"
+        files = {str(path.relative_to(fork)): path
+                 for path in fork.rglob("*") if path.is_file()} if fork.is_dir() else {}
+        output = fingerprint(RunOutcome(0, files, 0.0))
+    return status, detail, seconds, output
+
+
+def _assess_deck(
+    deck: str,
+    fork_binary: Path,
+    upstream_binary: Path,
+    root: Path,
+    timeout: int,
+    repeats: int,
 ) -> tuple[str, str, float]:
     """Determine the status of one deck, with a check on self-consistency.
 
@@ -481,11 +509,11 @@ def assess_deck(
         side = "the fork" if fork.timed_out else "upstream"
         return STATUS_DIFFERS, time_limit_detail(side), seconds
     if fork.returncode != 0:
-        return STATUS_DIFFERS, f"the fork stopped with code {fork.returncode}", seconds
+        return STATUS_FORK_FAILED, f"the fork stopped with code {fork.returncode}", seconds
+    if not fork.outputs:
+        return STATUS_FORK_FAILED, "the fork produced no output to compare", seconds
     if upstream.returncode != 0:
         return STATUS_FORK_ONLY, f"upstream stopped with code {upstream.returncode}", seconds
-    if not fork.outputs:
-        return STATUS_DIFFERS, "the fork produced no output to compare", seconds
 
     same, detail = compare_outputs(fork, upstream)
     if same:
@@ -504,6 +532,8 @@ def assess_deck(
             #  An overrun is not an answer, so it must not count as instability.
             if again.timed_out:
                 return STATUS_DIFFERS, time_limit_detail(side), seconds
+            if side == "the fork" and (again.returncode != 0 or not again.outputs):
+                return STATUS_FORK_FAILED, "the fork failed or produced no output on a repeated run", seconds
             if not any(compare_outputs(seen, again)[0] for seen in answers):
                 answers.append(again)
         if len(answers) > 1:
@@ -514,6 +544,29 @@ def assess_deck(
                 seconds,
             )
     return STATUS_DIFFERS, detail, seconds
+
+
+def fingerprint(outcome: RunOutcome) -> dict[str, str]:
+    """The SHA-256 of every output file of one run, by file name.
+
+    For a deck that already differs from upstream, the status alone cannot
+    show a new change in the fork's output: it stays "differs". The
+    inventory therefore keeps this fingerprint of the fork's output for such
+    decks, and a run compares it. It holds for the compiler and optimisation
+    level of the last measurement; after a compiler change it is refreshed
+    with --update, like the statuses.
+    """
+    return {name: hashlib.sha256(path.read_bytes()).hexdigest()
+            for name, path in sorted(outcome.outputs.items())}
+
+
+def fingerprint_changes(recorded: dict[str, str] | None,
+                        measured: dict[str, str] | None) -> list[str]:
+    """The output files whose content differs from the recorded fingerprint."""
+    if not recorded or measured is None:
+        return []
+    names = sorted(set(recorded) | set(measured))
+    return [name for name in names if recorded.get(name) != measured.get(name)]
 
 
 def time_limit_detail(side: str) -> str:
@@ -547,8 +600,13 @@ def check_inventory(manifest: dict, decks: list[str]) -> list[str]:
             STATUS_SKIPPED,
             STATUS_UPSTREAM_UNSTABLE,
             STATUS_FORK_UNSTABLE,
+            STATUS_FORK_FAILED,
         ):
             problems.append(f"{deck}: unknown status {status!r}")
+            continue
+        #  A crash or a run without output is never an accepted difference.
+        if status == STATUS_FORK_FAILED:
+            problems.append(f"{deck}: the fork did not complete the deck")
             continue
         #  An unstable fork is never an accepted state: reproducible results
         #  are the promise of this side, so this is always red.
@@ -556,6 +614,11 @@ def check_inventory(manifest: dict, decks: list[str]) -> list[str]:
             problems.append(f"{deck}: the fork gives itself different answers")
             continue
         if status in (STATUS_DIFFERS, STATUS_FORK_ONLY):
+            if not entry.get("fork_output"):
+                problems.append(
+                    f"{deck}: {status} without a fingerprint of the fork output -- "
+                    "measure with --update to record it"
+                )
             bugfix = entry.get("bugfix")
             if bugfix:
                 #  An empty set means the table is missing or its format has
@@ -687,10 +750,10 @@ def main() -> int:
                 verdicts.append(DeckVerdict(deck, STATUS_SKIPPED, entry.get("reason", "")))
                 continue
             root = Path(results_root or scratch) / deck.replace("/", "_")
-            status, detail, seconds = assess_deck(
+            status, detail, seconds, output = assess_deck(
                 deck, fork_binary, upstream_binary, root, arguments.timeout, arguments.repeats
             )
-            verdicts.append(DeckVerdict(deck, status, detail))
+            verdicts.append(DeckVerdict(deck, status, detail, output))
             print(f"  {status:<18} {deck}  ({seconds:.1f} s)")
 
     width = max(len(verdict.deck) for verdict in verdicts) if verdicts else 10
@@ -706,10 +769,29 @@ def main() -> int:
 
     #  The claimed status is taken now, because --update below changes the
     #  entries in place.
+    def claimed(deck: str) -> str | None:
+        """What the manifest expects a run of this deck to give. A skipped
+        deck that was run anyway (--include-skipped) is held to the status
+        and fingerprint of its last such run, kept under measured_status."""
+        entry = entries.get(deck, {})
+        if entry.get("status") == STATUS_SKIPPED:
+            return entry.get("measured_status", STATUS_SKIPPED)
+        return entry.get("status")
+
     mismatched = [
-        (verdict, entries.get(verdict.deck, {}).get("status", "-- not in manifest --"))
+        (verdict, claimed(verdict.deck) or "-- not in manifest --")
         for verdict in verdicts
-        if entries.get(verdict.deck, {}).get("status") != verdict.status
+        if verdict.status != STATUS_SKIPPED and claimed(verdict.deck) != verdict.status
+    ]
+    #  A deck that differs from upstream, and still does, may have changed
+    #  again: compare the fork's output with the recorded fingerprint.
+    changed_output = [
+        (verdict, changes)
+        for verdict in verdicts
+        if verdict.status in (STATUS_DIFFERS, STATUS_FORK_ONLY)
+        and claimed(verdict.deck) == verdict.status
+        and (changes := fingerprint_changes(entries[verdict.deck].get("fork_output"),
+                                            verdict.fork_output))
     ]
 
     if arguments.update:
@@ -722,13 +804,21 @@ def main() -> int:
             if entry is None:
                 entry = {"deck": verdict.deck}
                 manifest.setdefault("decks", []).append(entry)
-            if entry.get("status") != verdict.status:
+            if entry.get("status") == STATUS_SKIPPED:
+                #  stays skipped for the ordinary gate; the run is recorded
+                #  so that the next --include-skipped run can be compared
+                entry["measured_status"] = verdict.status
+            elif entry.get("status") != verdict.status:
                 entry["status"] = verdict.status
                 if verdict.status in (STATUS_DIFFERS, STATUS_FORK_ONLY):
                     #  A new difference is not approved silently:
                     #  without a BF number the check still fails on it.
                     entry.setdefault("bugfix", None)
             entry["measured"] = verdict.detail
+            if verdict.status in (STATUS_DIFFERS, STATUS_FORK_ONLY) and verdict.fork_output:
+                entry["fork_output"] = verdict.fork_output
+            else:
+                entry.pop("fork_output", None)
         manifest["decks"] = sorted(manifest["decks"], key=lambda item: item["deck"])
         #  Only a run over every deck says something about the whole inventory;
         #  a run limited with --deck leaves the record of the last full one.
@@ -751,8 +841,13 @@ def main() -> int:
         print(f"  [!] {problem}")
     for verdict, claimed in mismatched:
         print(f"  [!] {verdict.deck}: manifest says {claimed!r}, measured {verdict.status!r}")
+    if not arguments.update:
+        for verdict, changes in changed_output:
+            print(f"  [!] {verdict.deck}: the fork output changed since the last measurement "
+                  f"({', '.join(changes[:3])}); if that is intended, measure with --update "
+                  "and say why in the change")
 
-    if problems or (mismatched and not arguments.update):
+    if problems or ((mismatched or changed_output) and not arguments.update):
         print("\nThe delta inventory no longer matches reality.")
         return 1
     print("\nEvery difference with upstream is in the manifest and has an explanation.")
