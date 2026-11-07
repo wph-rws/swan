@@ -1287,6 +1287,45 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
 
    IF (timing_enabled) CALL SWTSTO(101)
 !
+!     *** call initialization procedure of XNL to create *.BQF ***        40.41
+!     *** interaction files                                    ***        40.41
+!
+!     Before the parallel region, so that a failed initialisation can end
+!     the computation here: XNL_INIT reports a wrong configuration
+!     (xnl4v5.cfg) through IQERR, and computing on would use interaction
+!     tables that were never made.
+!
+   IF (timing_enabled) CALL SWTSTA(135)
+   IF (IQUAD.EQ.51.OR.IQUAD.EQ.52.OR.IQUAD.EQ.53) THEN
+      CALL init_constants
+      IXQUAD = IQUAD - 50
+      IF (IAMMASTER) THEN
+         WRITE(SCREEN,*) 'GurboQuad initialization'
+         WRITE(SCREEN,*) 'gravity               :', GRAV
+         WRITE(SCREEN,*) 'pftail                :', PWTAIL(1)
+         WRITE(SCREEN,*) 'number of sigma values:', MSC
+         WRITE(SCREEN,*) 'number of directions  :', MDC
+         WRITE(SCREEN,*) 'IQ_QUAD               :', IXQUAD
+      END IF
+
+      IXGRID = 3
+      CALL xnl_init(SPCSIG  , SPCDIR(:,1)*180./PI , MSC , MDC , &
+         -PWTAIL(1), GRAV   , COMPDA(2,JDP2) , &
+         MCGRD-1   , IXQUAD , IXGRID   ,INODE,IQERR )
+!     Each MPI process makes its own tables, for the depths of its own
+!     points, so one process can fail where the others succeed. They
+!     decide together, so that no process waits in an exchange for one
+!     that has stopped.
+      IQERR = MERGE(1, 0, IQERR.NE.0)
+      CALL SWREDUCE (IQERR, 1, SWMAX)
+      IF (IQERR.NE.0) THEN
+         CALL MSGERR (4, 'initialisation of the exact quadruplet computation (XNL) failed; see xnl4v5.err')
+         IF (timing_enabled) CALL SWTSTO(135)
+         RETURN
+      END IF
+   END IF
+   IF (timing_enabled) CALL SWTSTO(135)
+!
 !----------------------------------------------------------------------   40.22
 !     Begin parallel region.                                              40.22
 !----------------------------------------------------------------------   40.22
@@ -1592,31 +1631,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
       PRECOR = .FALSE.
    END IF
    !$OMP END MASTER
-!
-!     *** call initialization procedure of XNL to create *.BQF ***        40.41
-!     *** interaction files                                    ***        40.41
-!                                                                         40.41
-   IF (timing_enabled) CALL SWTSTA(135)
-   !$OMP MASTER
-   IF (IQUAD.EQ.51.OR.IQUAD.EQ.52.OR.IQUAD.EQ.53) THEN
-      CALL init_constants
-      IXQUAD = IQUAD - 50
-      IF (IAMMASTER) THEN
-         WRITE(SCREEN,*) 'GurboQuad initialization'
-         WRITE(SCREEN,*) 'gravity               :', GRAV
-         WRITE(SCREEN,*) 'pftail                :', PWTAIL(1)
-         WRITE(SCREEN,*) 'number of sigma values:', MSC
-         WRITE(SCREEN,*) 'number of directions  :', MDC
-         WRITE(SCREEN,*) 'IQ_QUAD               :', IXQUAD
-      END IF
-
-      IXGRID = 3
-      CALL xnl_init(SPCSIG  , SPCDIR(:,1)*180./PI , MSC , MDC , &
-         -PWTAIL(1), GRAV   , COMPDA(2,JDP2) , &
-         MCGRD-1   , IXQUAD , IXGRID   ,INODE,IQERR )
-   END IF
-   !$OMP END MASTER
-   IF (timing_enabled) CALL SWTSTO(135)
 !
    IF (timing_enabled) CALL SWTSTA(103)
    iteration_loop: do ITER = 1, ITERMX

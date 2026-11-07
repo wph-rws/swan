@@ -998,6 +998,30 @@ def test_broken_unstructured_grid_stops_cleanly(tmp_path, change, message):
     assert f"Terminating error: {message}" in report, report[-2000:]
 
 
+#  BF-64 and BF-65: the exact quadruplet code (XNL, QUADRUPLET 51-53) reads an
+#  optional configuration file xnl4v5.cfg. Its check let through two options
+#  that the code does not have: COUPLING 3 (Gorman), for which the coupling
+#  coefficient was never set, so that SWAN computed on with garbage (upstream
+#  odd wave heights, the fork NaN, both with exit code 0), and LOCUS 0, for
+#  which the locus was never computed. And SWCOMP ignored the error that the
+#  initialisation reports, so that a value the check does refuse, such as
+#  COUPLING 5, ended in a segmentation fault. Now each of these stops the
+#  run with a message.
+@pytest.mark.parametrize("setting", ["COUPLING 3", "LOCUS 0", "COUPLING 5"],
+                         ids=["coupling-gorman", "locus-0", "coupling-5"])
+def test_wrong_xnl_configuration_stops_cleanly(tmp_path, setting):
+    deck = _quick_deck()
+    old = "GEN3 KOMEN"
+    assert old in deck, "quick test deck has changed shape"
+    deck = deck.replace(old, "GEN3 KOMEN\nQUADRUPLET 51", 1)
+    result, report = _run_deck(tmp_path, deck, {"xnl4v5.cfg": setting + "\n"},
+                               timeout=120)
+    assert "Fortran runtime error" not in result.stderr, result.stderr[-2000:]
+    assert result.returncode == 1, (result.returncode, result.stderr[-2000:])
+    assert ("initialisation of the exact quadruplet computation (XNL) failed"
+            in report), report[-2000:]
+
+
 #  A frequency grid that ends too close to the spectral peak cuts off part of
 #  the spectrum; the manual asks for [fhigh] of at least 2.5 to 3 times the
 #  peak frequency. Upstream says nothing. The fork warns after a stationary

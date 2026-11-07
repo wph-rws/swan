@@ -821,6 +821,18 @@ if( BUILD_TESTING )
       set_tests_properties( mpi_output_ownership PROPERTIES RUN_SERIAL TRUE TIMEOUT 300 )
     endif()
 
+    # A failed XNL initialisation on one process must stop them all.
+    add_test(
+      NAME mpi_xnl_failure
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/tests/test_mpi_xnl_failure.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --mpi-exec ${MPIEXEC_EXECUTABLE}
+              --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/mpi-xnl-failure
+    )
+    set_tests_properties( mpi_xnl_failure PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
+
     add_test(
       NAME matlab_output_mpi
       COMMAND ${Python3_EXECUTABLE}
