@@ -521,15 +521,6 @@
    "category": "maybe-uninitialized",
    "file": "mod_xnl4v5.f90",
    "routine": "q_cmplocus",
-   "message": "‘__result_x_cple’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Inherited code. x_cple covers iq_cple 1-4 and otherwise sets 0; iq_cple is checked when it is set (line 1532)."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "mod_xnl4v5.f90",
-   "routine": "q_cmplocus",
    "message": "‘dsp’ may be used uninitialized",
    "count": 1,
    "verdict": "harmless",
@@ -552,15 +543,6 @@
    "count": 1,
    "verdict": "harmless",
    "reason": "Inherited code. Chain over iq_disp 1/2; iq_disp is checked when it is set (line 1573)."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "mod_xnl4v5.f90",
-   "routine": "x_cple",
-   "message": "‘__result_x_cple’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Inherited code; see q_cmplocus."
   },
   {
    "category": "maybe-uninitialized",

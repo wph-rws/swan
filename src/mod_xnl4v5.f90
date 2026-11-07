@@ -1516,7 +1516,9 @@ subroutine q_chkconfig
 
    if(qf_tail > -1.) call q_error('e','CONFIG','Incorrect power of spectral: qf_tail')
 
-   if(iq_cple < 1 .or. iq_cple > 3) &
+!  only the coupling coefficients of Webb (1) and of Herterich and Hasselmann (2)
+!  are implemented in x_cple; Gorman (3) and Zakharov (4, 5) are not
+   if(iq_cple < 1 .or. iq_cple > 2) &
       call q_error('e','CONFIG','Invalid option for coupling coefficient iq_cple')
 
    if(iq_compact < 0 .or. iq_compact > 1) &
@@ -1571,7 +1573,8 @@ subroutine q_chkconfig
    if(iq_log < 0) &
       call q_error('e','CONFIG','Incorrect value for IQ_LOG, (>=0) ')
 
-   if(iq_locus < 0 .or. iq_locus > 3) &
+!  q_polar2 computes the locus for methods 1 to 3 only
+   if(iq_locus < 1 .or. iq_locus > 3) &
       call q_error('e','CONFIG','Incorrect specifier for locus method')
 
    if(iq_lump<0) then
@@ -7865,7 +7868,7 @@ real function x_cple(k1x,k1y,k2x,k2y,k3x,k3y,k4x,k4y,iq_cple,depth,grav)
 !!real xc_webb             ! Webb, deep water
 !!real xc_hh               ! Herterich and Hasselmann, finite depth
 !------------------------------------------------------------------------------
-   if (iq_cple < 1 .or. iq_cple > 4) then
+   if (iq_cple < 1 .or. iq_cple > 2) then
       x_cple = 0.
       return
    end if
