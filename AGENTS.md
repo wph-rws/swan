@@ -268,8 +268,16 @@ before stopping. This is an extension of the fork, not upstream input. A small
 mean residual does not guarantee convergence of all points or of the whole
 spectrum. Operational decks get no general residual threshold.
 
-Whether the operational so-rp deck (`STOPC` with `CURVAT=0.001`, `NPNTS=98`,
-`MXITST=40`, `ALFA=0.01`) stops too early has not been measured yet. At 2 m/s
+The operational so-rp deck (`STOPC` with `CURVAT=0.001`, `NPNTS=98`,
+`MXITST=40`, `ALFA=0.01`) stops too early. Measured on 7 November 2026 with
+`convergence_check.py` on the corrected deck, references of 80 and 160 forced
+iterations: at low water (NAP −2 m, 20 m/s) and at 40 m/s the deck stops after
+36 and 25 iterations, while the reference hardly changes between 80 and 160;
+there the deck is 2.3 and 5 cm low on mean Hs, and up to 8 and 24 cm at single
+points. At the reference condition the mean is within 0.5 cm, but 39 of the
+130 points are more than 1 cm off (up to 17 cm), and a cluster of points 12–26
+m deep (x ≈ 36,500–37,000, y ≈ 404,000–404,600) keeps drifting after 160
+iterations while the energy residual stays flat from iteration 80 on. At 2 m/s
 wind the deck does not reach its criterion within 40 iterations (87–88%), and
 wherever the boundary waves do not arrive, which is at most output points, the
 peak lies at the highest frequency: the upper limit of 1 Hz is too low there.
