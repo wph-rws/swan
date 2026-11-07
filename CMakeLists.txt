@@ -402,6 +402,10 @@ if( BUILD_TESTING )
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/two_cases )
   file( MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/two_cases )
 
+  add_executable( test_extrapolation_history tests/test_extrapolation_history.f90 )
+  target_link_libraries( test_extrapolation_history PRIVATE swan${VERSION} )
+  add_test( NAME extrapolation_history COMMAND test_extrapolation_history )
+
   add_executable( test_surfbeat_sector tests/test_surfbeat_sector.f90 )
   target_link_libraries( test_surfbeat_sector PRIVATE swan${VERSION} )
   add_test( NAME surfbeat_sector COMMAND test_surfbeat_sector )
@@ -576,6 +580,13 @@ if( BUILD_TESTING )
     COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
             ${Python3_EXECUTABLE} -m pytest
             ${CMAKE_SOURCE_DIR}/tests/test_breaking_off.py -q
+  )
+
+  add_test(
+    NAME stop_extrapolation
+    COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
+            ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_stop_extrapolation.py -q
   )
 
   # The ADCIRC grid reader (fort.14) is always built; the ADCIRC option does

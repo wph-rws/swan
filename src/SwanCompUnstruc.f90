@@ -463,6 +463,12 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
       call msgerr ( 4, 'NUMERIC RESIDUAL is not available with a current or time-varying depth and a scheme in frequency space' )
       return
    endif
+   ! The extrapolated stopping test exists for regular and curvilinear
+   ! grids only. Ignoring it would look exactly like a satisfied criterion.
+   if ( PNUMS(PNUMS_EXTRAP) > 0. ) then
+      call msgerr ( 4, 'NUMERIC EXTRAP is not available on an unstructured grid' )
+      return
+   endif
    residual_reached = .true.
    if ( PNUMS(PNUMS_RESTOL) >= 0. ) then
       call balance_residual%start(nverts)

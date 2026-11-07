@@ -2156,6 +2156,19 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                   '[rtol] of NUMERIC RESIDUAL must be non-negative')
             ENDIF
 
+!       *** the iteration stops only once the change of Hs that is   ***
+!       *** still to come, extrapolated over blocks of [nstep]       ***
+!       *** iterations, meets the accuracy as well (see             ***
+!       *** swan_stop_extrapolation)                                ***
+
+            CALL INKEYW ('STA','  ')
+            IF (KEYWIS ('EXTRAP')) THEN
+               CALL INREAL ('NSTEP', PNUMS(PNUMS_EXTRAP), 'STA', 10.)
+               IF (PNUMS(PNUMS_EXTRAP).LT.2. .OR. &
+                  .NOT.EQREAL(PNUMS(PNUMS_EXTRAP), REAL(NINT(PNUMS(PNUMS_EXTRAP))))) CALL MSGERR (4, &
+                  '[nstep] of NUMERIC EXTRAP must be a whole number of at least 2')
+            ENDIF
+
 !       *** numerical scheme in directional space (standard  ***
 !       *** option implicit scheme)                          ***
 

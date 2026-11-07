@@ -284,6 +284,32 @@ peak lies at the highest frequency: the upper limit of 1 Hz is too low there.
 The manual (`swanuse.pdf` p. 23) asks for an
 upper limit of at least 2.5 to 3 times the highest peak frequency.
 
+The fork option `NUMERIC ... EXTRAP [nstep]` attacks the false stop itself
+(see `src/swan_stop_extrapolation.f90`). Every [nstep] iterations it stores Hs
+per point; from three checkpoints it takes the ratio r of the last two block
+changes and estimates the change still to come as |D| r/(1 − r). A steady or
+growing change (r ≥ 1) counts as going on for 100 more blocks. The iteration
+stops only when that estimate is within the deck's own [dabs]/[drel] in
+[npnts] percent of the wet points as well (under `NUMERIC ACCUR`, which has
+no [dabs], the default [dabs] of `STOPC`). One iteration is too short for the
+ratio: near convergence it jumps between −1 and 5 from noise. Measured on
+7 November 2026 with the so-rp numerics (`DREL=0.01 CURVAT=0.001 NPNTS=98
+ALFA=0.01`), against references of 600 forced iterations: on the test model
+`sphys` (so-rp physics, `build-testmodels/`) STOPC stops after 17 iterations
+up to 18 cm off and `EXTRAP 10` after 89 iterations within 2 mm; on `sq`
+after 8 (13 cm) against 49 (1 mm); on `quad_dia1` after 40 (0.55 m) against
+350 (6 mm). Where the iteration never settles (`isl`, the RESCALE floor
+behind an island) it runs to `MXITST` and says how many points still move,
+instead of reporting convergence. The estimate is not a bound. Output is the
+same at 1, 2, 4 and 8 threads and under MPI. On so-rp itself (`EXTRAP 10`,
+`MXITST=200`, three conditions) the test is not met within 200 iterations:
+93–96% of the wet points pass, against 98% required, and 37–59 minutes on 4
+cores instead of about 7. Against the 160-iteration reference the result then
+differs by at most 3–6 cm (rms 0.5 cm), against 8–24 cm for the operational
+stop. So on this deck the honest stop costs five to eight times the run time;
+making the iteration itself converge faster is the real remedy, not a
+stricter stop.
+
 The residual does not replace the comparison everywhere: its floor depends on
 the deck, so only a second run tells how much Hs still shifts. Note that the
 reference of the convergence check must then itself keep iterating (an

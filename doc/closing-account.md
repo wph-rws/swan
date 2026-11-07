@@ -86,7 +86,8 @@ reports "100%" while Hs still shifts by 27%. The check requires two long
 references and takes their mutual Hs shift per point into account before an
 operational run is judged; for the operational so-rp deck it was done on
 7 November 2026, and that deck stops too early (AGENTS.md, "Convergence").
-The balance residual is an addition of the fork and is
+The fork option `EXTRAP` lets the iteration stop only once the change of Hs
+that is still to come, extrapolated over blocks of iterations, is small. The balance residual is an addition of the fork and is
 off by default: `RESIDUAL 0` only measures, a positive value adds a stop
 condition. Switched off, it is not computed at all; switched on, it costs
 2.5% on one core and 3.0% on four threads. No general operational residual threshold has been set

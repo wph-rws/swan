@@ -1372,6 +1372,10 @@ SUBROUTINE SWINIT (INERR, SNL4)
 
    PNUMS(PNUMS_RESTOL) = -1.
 
+!     --- extrapolated stopping test; none unless NUMERIC EXTRAP asks for it
+
+   PNUMS(PNUMS_EXTRAP) = 0.
+
 !     *** (1) and (2): Komen et al. (1984) formulation ***
 
    PWCAP(1)  = 2.36E-5

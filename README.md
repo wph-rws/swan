@@ -360,6 +360,23 @@ measure has a floor that depends on the deck, and guarantees no accuracy in
 Hs, period or direction. For now, use it as a research aid. Background:
 [balance-residual-design.md](doc/balance-residual-design.md).
 
+A second fork option judges the change of Hs that is still to come instead
+of the change of the last iteration. With `EXTRAP [nstep]` the fork stores Hs
+every [nstep] iterations (default 10) and estimates from three such
+checkpoints, per grid point, how much Hs will still change if the iteration
+keeps converging at the rate it shows (a geometric series). The iteration
+only stops once that estimate is within [dabs] or [drel] in [npnts] percent
+of the wet points as well; a steady or growing change fails. For example:
+
+```
+NUMERIC STOPC STAT MXITST=600 ALFA=0.01 EXTRAP 10
+```
+
+On `quad_dia1` this deck stops after 350 instead of 40 iterations, with Hs
+within 6 mm of the converged value instead of 0.55 m below it. The estimate
+is not a bound, `MXITST` still ends the run, and the option exists for regular
+and curvilinear grids only. Background: `src/swan_stop_extrapolation.f90`.
+
 The [convergence check](so-rp_swan/matrix/convergence_check.py) uses only
 upstream input for its references: `NPNTS=101` forces two runs to iterate N
 and 2N times. Their difference counts per point as uncertainty; the script

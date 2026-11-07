@@ -122,6 +122,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
    USE swan_wave_setup, ONLY: SETUPP
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, STPNOW
    USE swan_frequency_range, ONLY: check_frequency_range
+   USE swan_stop_extrapolation, ONLY: hs_extrapolation_t
    USE swan_balance_residual, ONLY: balance_residual_t, &
       balance_residual_summary_t, summarize_balance_residual, &
       balance_defect_system, DEFECT_NONE, write_balance_residual, &
@@ -996,6 +997,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
    TYPE(balance_residual_summary_t) :: RESIDUAL_SUMMARY
    LOGICAL, ALLOCATABLE :: RESIDUAL_COUNTED(:)
    LOGICAL :: RESIDUAL_SUPPORTED, RESIDUAL_REACHED
+!     extrapolated change of Hs (NUMERIC EXTRAP); see swan_stop_extrapolation
+   TYPE(hs_extrapolation_t) :: HS_EXTRAPOLATION
    INTEGER :: RX1, RX2, RY1, RY2
 !
 !     Add variables for OMP thread parameters.                            40.31
@@ -1234,6 +1237,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
    IF (PNUMS(PNUMS_RESTOL).GE.0.) THEN
       CALL BALANCE_RESIDUAL%start(MCGRD)
       ALLOCATE(RESIDUAL_COUNTED(MCGRD))
+   END IF
+   IF (PNUMS(PNUMS_EXTRAP).GT.0.) THEN
+      IF (NSTATC.EQ.0) THEN
+         CALL HS_EXTRAPOLATION%start(NINT(PNUMS(PNUMS_EXTRAP)), MCGRD)
+      ELSE
+         CALL MSGERR (1, 'NUMERIC EXTRAP applies to stationary computations only; ignored')
+      END IF
    END IF
 
    ALLOCATE(SWTSDA(MDC,MSC,NPTSTA,MTSVAR))
@@ -2290,6 +2300,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
          RESIDUAL_REACHED = balance_residual_reached(RESIDUAL_SUMMARY, PNUMS(PNUMS_RESTOL))
       END IF
 
+!       *** extrapolated change of Hs, every [nstep] iterations     ***
+
+      IF (HS_EXTRAPOLATION%check(ITER, AC2, SPCSIG, COMPDA(:,JDP2), KGRPNT)) THEN
+         CALL HS_EXTRAPOLATION%write(PRINTF)
+         IF (IAMMASTER) CALL HS_EXTRAPOLATION%write(SCREEN)
+      END IF
+
 !       *** number of points in which the penta-diagonal solver ***
 !       *** did not converged                                   ***
 
@@ -2339,7 +2356,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
 !       *** can be terminated ---> EXIT iteration_loop      ***
 
       IF ( (ITER.NE.1 .OR. PNUMS(PNUMS_STOPTY).EQ.0.) .AND. &
-         ACCUR.GE.PNUMS(PNUMS_NPNTS) .AND. RESIDUAL_REACHED ) EXIT iteration_loop
+         ACCUR.GE.PNUMS(PNUMS_NPNTS) .AND. RESIDUAL_REACHED .AND. &
+         (.NOT.HS_EXTRAPOLATION%enabled .OR. HS_EXTRAPOLATION%reached) ) EXIT iteration_loop
 
    end do iteration_loop
    IF (timing_enabled) CALL SWTSTO(103)
