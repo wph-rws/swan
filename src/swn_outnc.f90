@@ -306,14 +306,14 @@ subroutine swn_outnc_colspc ( RTYPE, OQI, OQR, MIP, KGRPGL )
 !
 !  5. Local variables
 
-   logical                             :: lopen, file_exists
-   integer                             :: ip, ierr, otype, xpctime2, &
-                                          i, tmip, binnr, irq, &
+   logical                             :: lopen
+   integer                             :: ip, ierr, xpctime2, &
+                                          tmip, binnr, irq, &
                                           tip, ips(MIP), iproc, nref, ilpos
    integer, save                       :: IENT=0
    CHARACTER(LEN=LENFNM)                    :: binfile, ncfile, basefile
    CHARACTER(LEN=256)                       :: errmsg
-   type(spcaux_type)                   :: spcaux, lspcaux
+   type(spcaux_type)                   :: spcaux
    real                                :: xref, yref
 
 !  9. Subroutines calling
@@ -480,7 +480,6 @@ subroutine swn_outnc_spcaux(RTYPE, OQI, MIP, VOQR, VOQ, AC2, &
                           SPCSIG, SPCDIR, DEP2, KGRPNT, CROSS, IONOD, &
                           lspcaux)
    use swan_spectrum_output, only: SWCMSP
-   use swan_time, only: default_time_context
 
 !   --|-----------------------------------------------------------|--
 !     | BMT ARGOSS                                                |
@@ -559,10 +558,9 @@ subroutine swn_outnc_spcaux(RTYPE, OQI, MIP, VOQR, VOQ, AC2, &
 
 !  5. Local variables
 
-   LOGICAL :: lopen, do_open_files, write_header
+   LOGICAL :: write_header
    integer                                        :: ip, ierr, otype, xpctmp(2), xpctime, &
-                                                     pnr, ri, i, tmip, irq, ips(MIP), iproc, &
-                                                     binnr, xi, yi, npnts, kgrpnt1d(MXC*MYC)
+                                                     i, tmip, irq, ips(MIP), iproc
    integer, save                                  :: IENT=0
    CHARACTER(LEN=256)                                  :: errmsg
 !  8. Subroutines used
@@ -897,7 +895,7 @@ subroutine swn_outnc_appendspc(oqi, spcaux, xpctime2)
 
 !  5. Local variables
 
-   integer                             :: ierr, xpctmp(2), xpctime, pnr, ri, irq, i, &
+   integer                             :: xpctmp(2), xpctime, pnr, ri, irq, i, &
                                           ncid
    CHARACTER(LEN=256)                       :: errmsg
    integer, save                       :: IENT=0
@@ -1334,7 +1332,7 @@ subroutine swn_outnc_appendblock(myk, mxk, ivtype, nref, irq, data, excv, col)
    real,                   intent(   in) :: data(mxk * myk), excv
 
    integer                               :: ri, pnr, xpctmp(2), i, &
-                                            xpctime, ilpos, ncid
+                                            xpctime, ncid
    integer, save                         :: IENT=0
    if (LTRACE) call STRACE (IENT,'swn_outnc_appendblock')
    if ( ivtype == 40 ) return
@@ -1436,7 +1434,6 @@ subroutine swn_outnc_openblockfile(ncfile, myk, mxk, ovlnam, xgrdgl, &
 
    ! local variables
    logical                               :: file_exists = .false., &
-                                            nc_debug    = .false., &
                                             monthly     = .false.
    integer                               :: ncid, xpctmp(2), i
    type(mapgrid_type)                    :: mapgrid

@@ -3373,7 +3373,6 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG, TRIADS )
 !  6. Local variables
 !
 !     A     :     = (kd)^2
-!     ARR   :     auxiliary array (not used)
 !     C0    :     phase velocity at central bin
 !     CG    :     group velocity as function of frequency
 !     CG1   :     group velocity at first frequency bin
@@ -3421,7 +3420,7 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG, TRIADS )
    INTEGER I1, I2, IP, IS, IS1, IS2, IS3, ISLOW, J
    REAL    C0, R, S, RINT, W0, WM, WPM, WN0, WNM, WNPM, &
       XIS, XISLN
-   REAL    A, ARR(MSC), CG(MSC), CG1, CG2, DEPLOC, DF, DK, FT, ISB, &
+   REAL    A, CG(MSC), CG1, CG2, DEPLOC, DF, DK, FT, ISB, &
       K(MSC), K1, K2, K3, KB, KM, P, SIG1, SIG2, SIG3, WIS
    REAL    K3A(1), SIG3A(1)
 
@@ -5545,8 +5544,8 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV, IGP, &
 
    INTEGER, SAVE :: IENT = 0
    INTEGER ID, IS, ISPK
-   REAL    CG, DEP, DDDS, DDDX, DDDY, EMAX, ETD, &
-      K1, K2, LB, N, ND, SIG1, SIG2
+   REAL    DEP, DDDS, DDDX, DDDY, EMAX, ETD, &
+      K1, K2, LB, SIG1, SIG2
    REAL    CGA(1), KA(1), NA(1), NDA(1), SIGA(1)
 
 ! 13. Source text
@@ -5952,7 +5951,7 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC, BPHTMP )
    INTEGER :: IX, IY, IX1, IX2, IY1, IY2, IXI, IYJ, IND, INDL, ISPK
 
    REAL    :: DXA, DYA, DEPLOC, EMAX, ET, KW, LW
-   REAL    :: SIGMA(1), KWAVE(1), ARR(1)
+   REAL    :: SIGMA(1), KWAVE(1)
    REAL    :: LPAR, BETA
 
 ! 13. Source text

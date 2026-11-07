@@ -46,7 +46,6 @@ SUBROUTINE SWOUTP (AC2             , &
    USE swan_services, ONLY: AC2TST
    USE swan_output_writers, ONLY: SWBLOK, SWBLKP, SWBLKV, SWSPEC, &
       SWTABP_WITH_OQR
-   USE swan_time, ONLY: default_time_context
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_computational_grid_kind
@@ -256,7 +255,7 @@ SUBROUTINE SWOUTP (AC2             , &
 ! 13. Source text
 
    INTEGER   VOQR(NMOVAR)   ,BKC           , &
-      XYTST(*)       ,KGRPNT(MXC,MYC),IERR
+      XYTST(*)       ,KGRPNT(MXC,MYC)
 
    REAL      AC2(MDC,MSC,MCGRD) , &
       COMPDA(MCGRD,MCMVAR)
@@ -280,8 +279,7 @@ SUBROUTINE SWOUTP (AC2             , &
 
    LOGICAL   OQPROC(NMOVAR)  , LOGACT
    CHARACTER(LEN=4) :: RTYPE
-   CHARACTER(LEN=1) :: STYPE, PTYPE
-   CHARACTER(LEN=8) :: PNAME
+   CHARACTER(LEN=1) :: STYPE
    CALL STRACE (IENT, 'SWOUTP')
 
 !     processing of output requests
@@ -1032,7 +1030,7 @@ SUBROUTINE SWODDC (OPI, OPR, PSNAME, PSTYPE, MIP, MXK, MYK, &
    CHARACTER(LEN=1) :: PSTYPE
    INTEGER, SAVE :: IENT = 0
    INTEGER    MIP, MXK, MXN, MYK, MYN
-   REAL       ALPCN, XCLOSE, XCMAX, XCMIN, XNLEN, XPCN
+   REAL       ALPCN, XCMAX, XCMIN, XNLEN, XPCN
    REAL       XPMAX, XPMIN, YCMAX, YCMIN, YNLEN, YPCN, YPMAX, YPMIN
 
    CALL STRACE (IENT, 'SWODDC')

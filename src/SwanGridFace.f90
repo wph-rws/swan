@@ -73,12 +73,10 @@ subroutine SwanGridFace ( nfaces, ncells, nverts, xcugrd, ycugrd, kvertf )
 
    integer                               :: icell ! loop counter over cells
    integer                               :: icell1 ! sequence number of cell 1 adjacent to present face
-   integer                               :: icell2 ! sequence number of cell 2 adjacent to present face
    integer                               :: icelll ! sequence number of left cell adjacent to present face
    integer                               :: icellr ! sequence number of right cell adjacent to present face
    integer                               :: iface ! loop counter over faces
    integer, save                         :: ient = 0 ! number of entries in this subroutine
-   integer                               :: ivert ! loop counter over vertices
    integer                               :: j ! loop counter
    integer                               :: jf ! loop counter
    integer                               :: k ! counter

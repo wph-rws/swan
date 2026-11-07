@@ -648,7 +648,6 @@ subroutine SWFBXY ( dep2, mudl2, spcsig, spcdir )
    integer                                   :: istat ! indicate status of allocation
    integer                                   :: jk ! y-index in wave number space
 
-   real, dimension(MSC)                      :: arr ! auxiliary array
    real                                      :: d ! local depth
    real                                      :: dm ! local mud layer
    real                                      :: fmax ! maximum value of bottom spectrum at a computational point

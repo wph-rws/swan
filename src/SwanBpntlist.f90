@@ -116,14 +116,12 @@ subroutine SwanBpntlist
 
    real                               :: d1 ! distance of a point to origin
    real                               :: d2 ! distance of another point to origin
-   real                               :: xp, yp ! coordinates of a boundary point                  41.14
 
    character(7)                       :: intstr ! string to pass integer                           43.01
    character(80)                      :: msgstr ! string to pass message
    character (len=8)                  :: PSNAME ! name of output curve                             41.14
 
    logical                            :: firstvert ! indicate whether considered vertex is first vertex of boundary polygon
-   logical                            :: found ! indicates whether a new boundary part was found  41.14
 
    type(celltype), dimension(:), pointer :: cell ! datastructure for cells with their attributes
    type(facetype), dimension(:), pointer :: face ! datastructure for faces with their attributes
@@ -134,8 +132,6 @@ subroutine SwanBpntlist
       real                :: X, Y ! 41.14
       type(XYPT), pointer :: NEXTXY
    end type XYPT
-   type(XYPT), target  :: FRST ! 41.14
-   type(XYPT), pointer :: CURR, TMP ! 41.14
 
 !   Structure
 !

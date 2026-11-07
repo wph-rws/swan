@@ -84,10 +84,9 @@ subroutine SwanBndStruc ( xcgrid, ycgrid )
    real, allocatable, dimension (:)     :: xbnd, ybnd ! points of whole boundary
    real, allocatable, dimension (:)     :: xsid, ysid ! points of one side
 
-   character(80)                        :: msgstr ! string to pass message
    character(len=8)                     :: psname ! name assigned to output curve
 
-   TYPE(OPSDAT), POINTER :: OPSTMP, ROPS
+   TYPE(OPSDAT), POINTER :: OPSTMP
 
 !   Structure
 !

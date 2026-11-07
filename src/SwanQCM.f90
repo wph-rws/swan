@@ -190,7 +190,6 @@ subroutine SWQCINIT ( BGRIDP, COMPDA )
    integer                         :: n ! squared size coherent scattering region
 
    real                            :: alfa ! multiple of mean wave number to truncate scattering wave number space
-   real, dimension(MSC)            :: arr ! auxiliary array
    real, dimension(MSC)            :: cg ! group velocity
    real                            :: clen ! coherent length
    real                            :: dir1 ! first direction in directional sector
@@ -710,8 +709,6 @@ subroutine SWQCDFT ( sigft, cgft, dep2, kwave, cgo, cft, rft, sft, wft, wsave, &
    integer                        :: i ! loop counter
    integer, save                  :: ient = 0 ! number of entries in this subroutine
    integer                        :: ierr ! error indicator
-   integer                        :: ikx ! loop counter over x-components of wave number space
-   integer                        :: iky ! loop counter over y-components of wave number space
    integer                        :: is ! loop counter over frequency bins
    integer                        :: ish ! shift level for shifting matrix
                                               ! note: ish+1 is the centre of coherent scattering zone

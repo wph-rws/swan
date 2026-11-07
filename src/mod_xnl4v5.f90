@@ -484,7 +484,7 @@ subroutine xnl_init(sigma,dird,nsigma,ndir,pftail,x_grav,depth,ndepth, &
 !     along with this program. If not, see <http://www.gnu.org/licenses/>.
 
    use m_fileio
-   use m_constants, only: dera, pih, rade, sqrtg, trshdep
+   use m_constants, only: pih, trshdep
 ! do not use m_xnldata
 
    implicit none(type, external)
@@ -591,9 +591,7 @@ subroutine xnl_init(sigma,dird,nsigma,ndir,pftail,x_grav,depth,ndepth, &
    integer iuerr ! error indicator
    integer idepth ! index over water depths
    integer igrid ! status of quadruplet grid file
-   integer ia,ik ! counters
 
-   real depmin ! minimum water depth
    real dstep ! directional step
    real dgap ! directional gap between first and last direction
 
@@ -949,10 +947,7 @@ subroutine xnl_main(aspec,sigma,angle,nsig,ndir,depth,iquad,xnl,diag, &
 !     local variables
 
    integer, save :: i_qmain = 0 ! counter number of calls of XNL_MAIN
-   integer, save :: i_qlast = 0 ! value of iquad in last call
 
-   integer isig ! counter for sigma values
-   integer idir ! counter of directions
    real q_dfac ! depth scale factor for nonlinear transfer
 
    real sum_e ! sum of energy
@@ -1905,7 +1900,7 @@ subroutine q_cmplocus(ka,kb,km,kw,loclen)
 !
 !
 ! do not use m_xnldata
-   use m_constants, only: dera, pih, rade, sqrtg, trshdep
+   use m_constants, only: pih, rade
    use serv_xnl4v5
    implicit none(type, external)
 !-------------------------------------------------------------------------------
@@ -1984,11 +1979,10 @@ subroutine q_cmplocus(ka,kb,km,kw,loclen)
    real ratio ! maximum ratio between area1 and area2
 
    integer ierr ! local error level
-   integer iloc,jloc ! counters along locus
+   integer iloc ! counters along locus
    integer itest ! local test level for test output to unit luqtst
    integer ip1 ! index +1
    integer im1 ! index -1
-   integer jj ! counter
 !------------------------------------------------------------------------------
 !  function declarations
 !
@@ -2335,7 +2329,6 @@ subroutine q_ctrgrid(itask,igrid)
    integer nkz ! number of wave numbers in BQF file
    integer idep,jdep ! coding for depth in BQF file
 
-   logical lbqf ! flag for existence of BQF file
    real s_depth ! (stepped) depth
    real q_depth_saved ! save input water depth, needed after call to Q_MAKEGRID
    real z_depth ! water depth in BQF file
@@ -3046,7 +3039,6 @@ subroutine q_getlocus(ik1,ia1,ik3,ia3,ifnd)
 !
 !
 ! do not use m_xnldata
-   use m_constants, only: dera, pih, rade, sqrtg, trshdep
    use serv_xnl4v5
 !----------------------------------------------------------------------------------
    implicit none(type, external)
@@ -3125,16 +3117,15 @@ subroutine q_getlocus(ik1,ia1,ik3,ia3,ifnd)
    integer it1,it3 ! work indices for directions, copy of ia1 and ia3
    integer idir ! switch to indicate if locus should be inverted
    integer itrans ! type of transformation
-   integer iloc,jloc ! counters along locus
+   integer iloc ! counters along locus
    integer iadif,ikdif ! difference in angular and k-index
    integer ja1r,ja3r ! indices for reference locus
-   integer ja2r,ja4r ! directional indices for reference locus
+   integer ja2r ! directional indices for reference locus
    integer imirror ! extra step when locus is mirrorred
 
    integer ibeta,kdif
    integer nloc ! number of points on locus
 
-   integer ierr
    integer kmem ! index for storing 2-d matrix in 1-d array
    integer amem ! index for storing direction of reference wave number k3
 
@@ -3153,7 +3144,6 @@ subroutine q_getlocus(ik1,ia1,ik3,ia3,ifnd)
 
    integer ikmin,ja1,ja3,jk1,jk3,itmin
    integer ibdif,nhalf
-   integer iaq,ikq ! counters for loop over direction and wave numbers
 !------------------------------------------------------------------------------
 !
 !! data i_getloc /0/  ! Initialise counter
@@ -3530,7 +3520,7 @@ subroutine q_init
 !
 ! do not use m_xnldata
    use m_fileio
-   use m_constants, only: dera, pih, rade, sqrtg, trshdep
+   use m_constants, only: dera, pih, rade
    use serv_xnl4v5
    implicit none(type, external)
 !--------------------------------------------------------------------------------
@@ -3602,7 +3592,6 @@ subroutine q_init
    real ff ! frequency
 !!!real z_wnumb       ! service function to compute wave number
 
-   integer iuerr ! error indicator for i/o
 !------------------------------------------------------------------------------
 
    call q_stack('+q_init')
@@ -3839,7 +3828,7 @@ subroutine q_locpos(ka,kb,km,kw,loclen)
 !
 !
 ! do not use m_xnldata
-   use m_constants, only: dera, pih, rade, sqrtg, trshdep
+   use m_constants, only: pih, sqrtg
    use serv_xnl4v5, only: z_root2
 
    implicit none(type, external)
@@ -4238,7 +4227,7 @@ subroutine q_makegrid
 !
 !
 ! do not use m_xnldata
-   use m_constants, only: dera, pih, rade, sqrtg, trshdep
+   use m_constants, only: dera
    use serv_xnl4v5
 
 !  0. Update history
@@ -4309,7 +4298,6 @@ subroutine q_makegrid
 !     Local variables
 
    integer iloc,jloc ! counters
-   integer iaq,ikq ! counters
    integer iaq3,ikq1,ikq3,nkq1 ! counters
    integer jaq1,jaq3 ! counters
    integer amem,kmem ! index of angle and wave number in grid
@@ -4331,10 +4319,8 @@ subroutine q_makegrid
    real tfac ! combined tail factor
 
    logical lwrite ! indicator if binary interaction grid has been written successfully
-   real smax ! maximum s-value
 
    real, allocatable :: xloc(:),yloc(:)
-   real qq
 !-------------------------------------------------------------------------------
    call q_stack('+q_makegrid')
    q_makegrid_flow: do
@@ -4658,7 +4644,7 @@ subroutine q_modify
 !
 !
 ! do not use m_xnldata
-   use m_constants, only: dera, pih, rade, sqrtg, trshdep
+   use m_constants, only: rade
    use serv_xnl4v5
    implicit none(type, external)
 !--------------------------------------------------------------------------------
@@ -4730,9 +4716,7 @@ subroutine q_modify
 
    real k2a,k2m ! angle (deg) and wave number magnitude of wave number k2
    real k4a,k4m ! angle (deg) and wave number magnitude of wave number k4
-   real w2,w4 ! radian frequencies of wave numbers
 
-   real dk13,dk14 ! difference wave number
    real dsnew,slen ! new step size and length of locus
    real zero ! 0
    real q_eps ! accuracy to distinguish special case, with q=0
@@ -5280,7 +5264,6 @@ subroutine q_polar2(kmin,kmax,kx_beg,ky_beg,kx_end,ky_end,loclen,ierr)
 !
 !
 ! do not use m_xnldata
-   use m_constants, only: dera, pih, rade, sqrtg, trshdep
    use serv_xnl4v5, only: z_wnumb
 
    implicit none(type, external)
@@ -5364,7 +5347,6 @@ subroutine q_polar2(kmin,kmax,kx_beg,ky_beg,kx_end,ky_end,loclen,ierr)
    real knew ! temporary wave number
    real cosold ! 'old' cosine of angle
    real cosnew ! 'new' cosine of angle
-   real dkpol ! step in wave number
    real dkold ! 'old' step in wave number
    real ang1 ! 'old' angle
    real ang2 ! 'new' angle
@@ -5376,9 +5358,6 @@ subroutine q_polar2(kmin,kmax,kx_beg,ky_beg,kx_end,ky_end,loclen,ierr)
    real dke ! estimate of new dk
    real dsnew ! new step size along locus
    real dsz ! estimated step size along locus
-
-   integer itest ! local test level
-   integer lutest ! unit number for test output in service routine
 
 !  function declarations
 !!!real    z_wnumb  ! compute wave number, via module SERV_XNL4V4
@@ -6585,7 +6564,7 @@ subroutine q_t13v4(ik1,ia1,ik3,ia3,t13,diagk1,diagk3)
 !
 !
 ! do not use m_xnldata
-   use m_constants, only: dera, pih, rade, sqrtg, trshdep
+   use m_constants, only: rade
    implicit none(type, external)
 
 !  0. Update history
@@ -6675,7 +6654,6 @@ subroutine q_t13v4(ik1,ia1,ik3,ia3,t13,diagk1,diagk3)
    integer jk2,jk2p ! wave number indices for interpolation of k2
    integer ja4,ja4p ! direction indices for interpolation of k4
    integer jk4,jk4p ! wave number indices for interpolation of k4
-   integer ikq,iaq ! counters
 
    real sumt13 ! sum along locus
    real qn1,qn2,qn3,qn4 ! action densities at wave numbers k1, k2, k3 and k4
@@ -7029,7 +7007,6 @@ subroutine q_weight
    real k2a,k2m ! angle (radians) and magnitude of wave number k2
    real k4a,k4m ! angle (radians) and magnitude of wave number k2
    real dk ! difference between two wave numbers
-   real xtest ! test value for checking computation of weights, by inversion test
    real ff,gg ! variables in transformation of log-spacing to linear spacing
 
 ! functions used
@@ -7318,7 +7295,7 @@ subroutine q_xnl4v4(aspec,sigma,angle,nsig,nang,depth,xnl,diag,ierror)
 !
 !
 ! do not use m_xnldata
-   use m_constants, only: dera, pih, rade, sqrtg, trshdep
+   use m_constants, only: rade
    use serv_xnl4v5
    implicit none(type, external)
 !------------------------------------------------------------------------------
@@ -7408,12 +7385,8 @@ subroutine q_xnl4v4(aspec,sigma,angle,nsig,nang,depth,xnl,diag,ierror)
    integer iaq ! counter for directions
    integer jaq ! counter for directions
    integer ikq ! counter for wave numbers
-   integer iang ! counter for directions
-   integer ia ! counter for directions
-   integer ik ! counter for wave numbers
    integer idir1 ! direction in degrees of k1 (for integration test)
    integer idir3 ! direction in degrees of k3 (for integration test)
-   real period ! periodicity for direction, used in conversion of 2-spectra
    real diagk1 ! diagonal term for k1
    real diagk3 ! diagonal term for k3
 
@@ -7425,7 +7398,6 @@ subroutine q_xnl4v4(aspec,sigma,angle,nsig,nang,depth,xnl,diag,ierror)
    integer ia1,ia3,ja3 ! limits for directional loops
    integer jk3 ! start of k3 loop
    integer ik1,ik3 ! counters for wave number loop
-   integer nloc ! number of points on locus
 
    integer igrid ! status of grid file
    real t13 ! value of sub-integral
@@ -7436,23 +7408,10 @@ subroutine q_xnl4v4(aspec,sigma,angle,nsig,nang,depth,xnl,diag,ierror)
 
 !  testing of diagonal term on a low level
 
-   real diagk1_0 ! saved value of diagk1
-   real diagk3_0 ! saved value of diagk3
-   real dq1 ! small change in action density of n1
-   real dq3 ! small change in action density of n3
-   real t13_0 ! Original estimated of diagonal term
-   real t13_1,t13_3 ! perturbed estimated of diagonal term
-
    integer ifil_dir ! indicator for filtering of directional criterion
    integer ifil_krat ! indicator for filtering of wave number ratio criterion
    integer ifil_dens ! indicator for filtering of action density criterion
    integer ifil_tot ! indicator for filtering due to any criterion
-   integer nfil_dir ! counter to indicate filtering of directional criterion
-   integer nfil_krat ! counter to indicate filtering of wave number criterion
-   integer nfil_dens ! counter to indicate filtering of action density criterion
-
-   integer ntot_conf ! total number of configurations
-   integer ntot_filt ! total number of filtered configurations
 
    integer icx1,icx3 ! test output for T13 test
    real xt13 ! modified contribution of T13
@@ -7960,7 +7919,7 @@ real function x_flocus(kxx,kyy)
 !
 !
 ! do not use m_xnldata
-   use m_constants, only: dera, pih, rade, sqrtg, trshdep
+   use m_constants, only: sqrtg
    implicit none(type, external)
 
 !  0. Update history
@@ -8300,7 +8259,7 @@ real function x_locus1(k2)
 !
 !
 ! do not use m_xnldata
-   use m_constants, only: dera, pih, rade, sqrtg, trshdep
+   use m_constants, only: sqrtg
    implicit none(type, external)
 
 !  0. Update history
@@ -8403,7 +8362,7 @@ real function x_locus2(lambda)
 !
 !
 ! do not use m_xnldata
-   use m_constants, only: dera, pih, rade, sqrtg, trshdep
+   use m_constants, only: sqrtg
    implicit none(type, external)
 
 !  0. Update history

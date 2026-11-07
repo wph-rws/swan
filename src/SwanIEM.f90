@@ -766,7 +766,6 @@ subroutine SwanIEMsrfbeat ( HS, AC2, DEP2, SPCDIR, SPCSIG, KGRPNT )
 
 !   Local variables
 
-   integer              :: id ! loop counter in directional space
    integer              :: id1 ! counter of first short wave component in directional space
    integer              :: id2 ! counter of second short wave component in directional space
    integer, save        :: ient  = 0 ! number of entries in this subroutine

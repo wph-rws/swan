@@ -192,21 +192,18 @@ descriptor temporaries (`*.dim[0].ubound`, `*.offset`), which are artefacts of
 optimised descriptors; and do not silence a report with an initialiser, which
 hides the next real defect instead of surfacing it.
 
-`-Wunused-variable` looks like the easier target and is not:
-
-- Much of it sits in numerics taken from elsewhere, such as `mod_xnl4v5.f90`
-  and `SdsBabanin.f90`. Editing those buys a lower count and pays for it in
-  merge friction on the next import from Delft.
-- **Switch variants hide real uses.** GNU Fortran only sees the variant it
-  compiles. `swanparll.f90` and `swancom1.f90` still carry substantial
-  switch-prefixed sections, so a declaration that looks unused in the serial
-  build may well be used under `!MPI` or `!JAC`. Removing it breaks a
-  configuration nothing builds by default.
-
-The safe order is therefore: leave the files taken from elsewhere alone, and
-check every other candidate against the switch-prefixed lines in the *raw*
-source before removing it. The generated source has already dropped the
-inactive variants.
+`-Wunused-variable` was cleared on 7 November 2026, except four names that
+only OpenMP clauses use. The trap is that GNU Fortran only sees the build it
+compiles: OpenMP clauses, the MPI and netCDF code and the old I/O branches
+are only compiled with their option, so a declaration that looks unused in
+the serial build may be used in another. The source no longer has
+switch-prefixed lines; every variant is a CMake option. So collect the
+reports from builds that together switch on every option, and remove a name
+only if every build that compiles its file reports it
+([strict-warnings.md](strict-warnings.md) lists the five builds). The code
+taken from elsewhere, `mod_xnl4v5.f90` and `SdsBabanin.f90`, was included:
+a removed declaration only touches its own line, which an import of a new
+version can take over as it is.
 
 The same blind spot cuts the other way when a procedure moves into a module.
 Its `USE` line is then visible to *every* variant, while the calls to it stay

@@ -119,7 +119,6 @@ subroutine SwanPropvelS (cad, cas, ux2, uy2, dep1, dep2, cax, cay, kwave, cgo, s
 
 !   Local variables
 
-   integer                               :: icell ! cell index
    integer                               :: id ! loop counter over direction bins
    integer                               :: iddum ! counter in directional space
    integer, save                         :: ient = 0 ! number of entries in this subroutine

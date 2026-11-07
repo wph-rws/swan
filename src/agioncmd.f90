@@ -608,8 +608,6 @@ subroutine agnc_add_variable_attributes( ncid, varid, trecord )
    integer,                intent(in) :: ncid, varid
    type(nctable_record),   intent(in) :: trecord
    real(kind=4)                       :: add_offset, scale_factor, rng
-   integer                            :: tmpid
-   character(len=nf90_max_name)       :: lonname
 
    call nccheck ( nf90_put_att( ncid, varid, 'units', trecord%units) )
    if ( trim(trecord%standard_name) /= 'none' ) &
@@ -689,7 +687,6 @@ subroutine open_ncfile( ncfile, permission, ncid, recordaxe, monthly )
    type(recordaxe_type) , optional, intent(inout)   :: recordaxe
    logical              , optional, intent(   in)   :: monthly
    type(recordaxe_type)                             :: recordaxe_tmp
-   integer                                          :: oldmode
    if ( permission == "read") then
       call nccheck( nf90_open(ncfile, nf90_nowrite, ncid)  )
    else
@@ -762,7 +759,6 @@ end subroutine agnc_set_recordaxe
 subroutine agnc_set_pntgrid (ncid, pntgrid)
    integer,                intent (   in)                  :: ncid
    type (pntgrid_type),    intent (inout)                  :: pntgrid
-   character(len=nf90_max_name)                            :: name
 
    if ( pntgrid%lon_varid < 1 ) then
       call agnc_get_griddef(ncid, pntgrid)
@@ -777,7 +773,6 @@ end subroutine agnc_set_pntgrid
 subroutine agnc_set_mapgrid (ncid, mapgrid)
    integer,              intent (   in)                  :: ncid
    type (mapgrid_type),  intent (inout)                  :: mapgrid
-   character(len=nf90_max_name)                          :: name
 
    if ( mapgrid%lon_varid < 1 ) then
       call agnc_get_griddef(ncid, mapgrid)
@@ -794,7 +789,6 @@ end subroutine agnc_set_mapgrid
 subroutine agnc_set_spcgrid (ncid, spcgrid)
    integer,              intent (   in)                  :: ncid
    type (spcgrid_type),  intent (inout)                  :: spcgrid
-   character(len=nf90_max_name)                          :: name
 
    if ( spcgrid%frq_varid < 1 ) then
       call agnc_get_griddef(ncid, spcgrid)
@@ -1414,8 +1408,8 @@ subroutine agnc_add_spcdata_2d(ncid, ti, energy, theta, spr, spc_as_map)
    real(kind=4),    dimension(:,:,:),   allocatable    :: eloc, tloc, sloc
    integer                                             :: varid_scale_energy, &
                                                           varid_energy, varid_theta, &
-                                                          varid_spr, msc, nt, &
-                                                          ip, ik, ir, &
+                                                          varid_spr, msc, &
+                                                          ip, ik, &
                                                           chunksize, sx, cx, sy, cy, &
                                                           lxi, lyi
    real(kind=4)                                        :: sf_theta, sf_spr, &
@@ -1908,7 +1902,6 @@ function axe_is_regular_float_2d(x, nx, dx, fill_check) result (isregular)
    integer,     intent(in)             :: nx
    logical,     intent(in), optional   :: fill_check
    logical                             :: isregular
-   real(kind=4)                        :: dx2
 
    ! The reason for 2D meshes is that we can use the SWAN rotated grid feature
    !
@@ -2137,7 +2130,7 @@ end subroutine agnc_collect_spcmeta_2d
 
 function datevec_from_epoch( t_in ) result (datevec)
    INTEGER(KIND=SELECTED_INT_KIND(18)), intent( in)  :: t_in
-   integer                 :: t, year, month ,day, s
+   integer                 :: t, year, month ,s
    integer                 :: datevec(6)
    ! number of days per month
    integer, parameter :: ndpm(12) = &

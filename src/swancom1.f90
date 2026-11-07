@@ -661,9 +661,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
 !
 !  6. Local variables
 !
-!     SIGLOW: recommended lowest frequency when TRIADS are activated
-
-   REAL    SIGLOW
 
 !  7. Common blocks used
 !
@@ -4847,7 +4844,6 @@ SUBROUTINE ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, ANYBL
 
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_propagation, ONLY: SANDL, SORDUP, STRSD, STRSSB, STRSSI, STRSXY, SWFLXD
-   USE swan_time, ONLY: default_time_context
    USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_numerics
@@ -5443,7 +5439,6 @@ SUBROUTINE SINTGRL(SPCDIR, KWAVE, AC2, DEP2, POINT_INTEGRALS, RDX, RDY, AC2TOT, 
 
 !     AB2                : Sum of E_DSHKD2_DS_DD
 !     ACTOT_DSIG         : Integration term for calculating ACTOT
-!     ARR                : auxiliary array
 !     BIPH               : parameterized biphase of the spectrum
 !     EDRKTOT_SWELL      : Swell-part of EDRKTOT
 !     EMAX               : Maximum energy according calculated HM
@@ -5458,12 +5453,11 @@ SUBROUTINE SINTGRL(SPCDIR, KWAVE, AC2, DEP2, POINT_INTEGRALS, RDX, RDY, AC2TOT, 
 !     ETOT_SIG_2_DSIG    : Integration term for calculating ETOT_2
 !     ETOT_2             : (negative) second moment of the energy density
 !     FRINT_X_DDIR       : FRINTF * DDIR
-!     KLOC               : help variable to compute wave number based on sigma0,-2
 !     SINH_K_X_DEP_2     : SINH(KWAVE*DEP2)**2
 !     UB2                : Sum of ETOT_SIG2_DSHKD2_DSIG
 !     WH                 : fraction of breaking waves
 
-   REAL              :: AB2, EMAX, UB2, ETOT_2, KLOC(1), ARR(1)
+   REAL              :: AB2, EMAX, UB2, ETOT_2
    REAL              :: WH
    REAL              :: BIPH
    REAL              :: FRINTF_X_DDIR
@@ -6874,10 +6868,7 @@ SUBROUTINE SOURCE (ITER, IX, IY, SWPDIR, KWAVE, SPCSIG, ECOS, ESIN, AC2, DEP2, I
    INTEGER IQERR
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER           :: ID, IDIA, IDC, IERR, IS, ISC, IT
-   INTEGER           :: N2, LMAX
-
-   REAL              :: DQ, DQ2, DT2
+   INTEGER           :: ID, IDIA, IS, IT
 
 !     local copies of the interaction coefficients of one quadruplet
 !     of the MDIA; the dummy arguments must not be written to here,

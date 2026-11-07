@@ -18,9 +18,29 @@ these kinds has been looked at, and the verdict is recorded in
 `scripts/strict_diagnostics_triage.json`.
 
 The other kinds are only counted. They are mostly conversions to single
-precision, comparisons of real numbers and unused declarations, and nearly
-all of them sit in code inherited from TU Delft. None has ever led to a
-defect, and cleaning them up would touch a lot of that code for no gain.
+precision and comparisons of real numbers, and nearly all of them sit in code
+inherited from TU Delft. None has ever led to a defect. Rewriting them would
+change the arithmetic or the meaning of a test in that code, and every such
+change would have to be shown to leave the results alone, for no gain. They
+are only worth touching in code that changes for another reason.
+
+Declarations that nothing uses were a different matter. gfortran reports a
+name as unused only when nothing in its scope, contained procedures included,
+refers to it, so removing it changes no arithmetic in a build that reported
+it; the remaining risk is a build that compiles the file and was not among
+those checked. There a removed name would fail to compile, unless a used
+module or the host also defines it, in which case it would silently refer to
+that one. On 7 November 2026 every local variable, parameter and imported name
+that no build variant uses was removed (214 warnings). Unused names were
+collected from five builds that together switch on every build option
+(serial; OpenMP with netCDF, FFRO, ESMF, TIMG, MATL4 and the debug
+invariants; MPI with METIS, netCDF, COH, JAC and the `mpif.h` module; the
+Cray and the SGI I/O branch), and a name was removed only if every build that
+compiles its file reported it. The output of every deck the delta gate runs
+(all but the four heavy ones) stayed byte for byte the same. The four `unused-variable` warnings
+left are names that only OpenMP clauses use (`IJ`, `IK` and `RDFSIN`, twice),
+so the serial build cannot see them. Unused dummy arguments stay: removing
+one changes every call.
 
 | Kind of warning | Count | Checked | What the review found |
 |---|---:|---|---|
@@ -32,9 +52,8 @@ defect, and cleaning them up would touch a lot of that code for no gain.
 | `untagged` | 4 | yes | deliberate: FFTW transforms in place |
 | `conversion-extra` | 495 | counted only | |
 | `compare-reals` | 225 | counted only | |
-| `unused-variable` | 216 | counted only | |
+| `unused-variable` | 4 | counted only | used only in OpenMP clauses |
 | `unused-dummy-argument` | 61 | counted only | |
-| `unused-parameter` | 2 | counted only | |
 
 The defects themselves are described in
 [bug-fixes-vs-tu-delft-41.51.md](bug-fixes-vs-tu-delft-41.51.md). The

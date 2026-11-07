@@ -175,7 +175,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME, &
    INTEGER   OQI(4), IVTYP(OQI(3))
    REAL(KIND=KIND(0.0D0))    OQR(2)
    REAL      VOQ(MXK*MYK,*), FAC(OQI(3))
-   INTEGER DFAC_INT, IDLA, IF, IFAC, IL, IOSTAT, IP, IVTYPE
+   INTEGER IDLA, IF, IFAC, IL, IOSTAT, IP, IVTYPE
    INTEGER JVAR, NREF, NVAR
    REAL DFAC, FMAX, FTIP, FTIP1, FTIP2
    INTEGER, SAVE :: IREC(MAX_OUTP_REQ)=0
@@ -391,7 +391,6 @@ SUBROUTINE SBLKPT (IPD, NREF, DFAC, PSNAME, QUNIT, &
    USE swan_numerics
    USE OUTP_DATA
    USE swan_output_formats
-   USE swan_time, ONLY: default_time_context
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1076,7 +1075,7 @@ SUBROUTINE SRAWPT ( NREF, VOQR, VOQ, MXK, MYK )
    REAL    HS, TP, DIR, XP, YP, DEP, DSPR, WL
 
    REAL    HSPT(10), TPPT(10), WLPT(10), DIRPT(10), &
-      DSPT(10), WFPT(10), STPT(10)
+      DSPT(10), WFPT(10)
 
 !  9. Subroutines calling
 !
@@ -1319,7 +1318,7 @@ SUBROUTINE SWTABP_WITH_OQR (RTYPE , OQI  , OQR , IVTYP, PSNAME, MIP, VOQR, &
 !     NUMDEC
 
    INTEGER NUMDEC
-   INTEGER IOSTAT, IP, ISTR, IVTYPE, JVAR, LFIELD, LINKAR
+   INTEGER IOSTAT, IP, IVTYPE, JVAR, LFIELD, LINKAR
    INTEGER LSTR, NKOLS, NREF, NVAR
    LOGICAL EXIST
 !

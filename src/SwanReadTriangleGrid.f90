@@ -69,7 +69,6 @@ subroutine SwanReadTriangleGrid ( basenm, lenfnm )
 
    character(lenfnm) :: filenm ! file name
    integer, save     :: ient = 0 ! number of entries in this subroutine
-   integer           :: idum ! dummy integer
    integer           :: ii ! auxiliary integer
    integer           :: iostat ! I/O status in call FOR
    integer           :: istat ! indicate status of allocation

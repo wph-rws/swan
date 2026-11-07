@@ -247,7 +247,6 @@ SUBROUTINE SWMAIN
    TYPE(thread_workspaces_t) :: THREAD_WORKSPACES
    INTEGER   IUNIT
    INTEGER   IOSTAT, IT0, IT, SAVITE, ILEN
-   INTEGER   IGRID, IVT, IVTYPE, MXOUTAR
    INTEGER   INERR
    INTEGER   ISTAT, IF1, IL1
    CHARACTER(LEN=4)  :: COMPUT
@@ -5832,7 +5831,6 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
    USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
    USE swan_service_interfaces, ONLY: STPNOW, STRACE
    USE swan_input_interpolation, ONLY: SVALQI
-   USE swan_time, ONLY: default_time_context
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_computational_grid_kind
@@ -6002,7 +6000,7 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
 ! 13. Source text
 
    INTEGER :: IERR
-   INTEGER :: IBFILE, IBGRID, ID, IDD, II, INDX, INDXGR, IS, ISS
+   INTEGER :: IBFILE, IBGRID, ID, IDD, INDX, INDXGR, IS, ISS
    INTEGER :: IVP, IX, IXP, IXY, IY, IYP, JVERT, K1, K2
    REAL        TSTVAL(10)
    REAL :: AA, AADD, ADEG, APER, ASADD, ASTOT, ATOT, AX, AY
@@ -7280,7 +7278,6 @@ SUBROUTINE RESPEC (BTYPE, NDSD, BFILED, UNFORM, DORDER, &
 
    USE swan_spectrum_transform, ONLY: SSHAPE, SINTRP, CHGBAS, GAMMAF
    USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STRACE
-   USE swan_time, ONLY: default_time_context
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_physical_settings

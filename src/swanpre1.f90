@@ -508,13 +508,11 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 !     *** In the current version, LOGCOM(1) has no meanings       ***     40.80 40.31
 
    LOGICAL, SAVE :: LOGCOM(1:7) = .FALSE.
-   INTEGER   TIMARR(6)
-   CHARACTER(LEN=8)  :: PSNAME, PNAME
+   CHARACTER(LEN=8)  :: PSNAME
    CHARACTER(LEN=*)  :: COMPUT
    TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
    TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
    TYPE(spectral_powers_t), INTENT(INOUT) :: SPECTRAL_POWERS
-   CHARACTER(LEN=1)  :: PTYPE
    INTEGER, SAVE :: IENT = 0 ! number of entries to this subr
    INTEGER, SAVE :: LWINDR = 0 ! if non-zero, there is wind
    INTEGER, SAVE :: LWINDM = 5 ! type of wind growth formulation
@@ -4397,7 +4395,6 @@ SUBROUTINE SREDEP ( LWINDR, LWINDM ,LOGCOM )
    USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
    USE swan_input_parser, ONLY: INKEYW, INREAL, KEYWIS, WRNKEY
    USE swan_array_copy, ONLY: SWCOPR
-   USE swan_time, ONLY: default_time_context
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_input_grids

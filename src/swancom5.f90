@@ -1148,7 +1148,6 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
    USE swan_spectral_grid
    USE swan_math_constants
    USE swan_test_output
-   USE swan_time, ONLY: default_time_context
    USE swan_diagnostics_level
    USE swan_io_units
    USE M_PARALL
@@ -4512,7 +4511,6 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG, st_kc, st_n )
 !        IX          Counter of gridpoints in x-direction
 !        IY          Counter of gridpoints in y-direction
 !        IS          Counter of relative frequency band
-!        ID          Counter of directional distribution
 !        ICMAX       Maximum array size for the points of the molecule
 !        MXC         Maximum counter of gridppoints in x-direction
 !        MYC         Maximum counter of gridppoints in y-direction
@@ -4575,7 +4573,7 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG, st_kc, st_n )
 !                    Whether which value IC has, depends of the sweep
 !                    If necessary IC can be enlarged by increasing
 !                    the array size of ICMAX
-   INTEGER      IC, IS, ID, INDX
+   INTEGER      IC, IS, INDX
    REAL         DEPLOC, DM
    REAL      :: SWAPAR_REFRACTIVE_INDEX(1:MSC)
    REAL      :: SWAPAR_REFRACTIVE_DERIVATIVE(1:MSC)

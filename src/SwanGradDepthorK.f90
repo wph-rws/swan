@@ -91,7 +91,6 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
    integer, dimension(3)                 :: v ! vertices in present cell
 
    REAL(KIND=KIND(0.0D0))                      :: area ! twices the area of centroid dual around present vertex
-   real, dimension(MSC)                  :: arr ! auxiliary array
    real                                  :: cslat ! cosine of latitude
    real                                  :: dpmax ! maximum depth found in centroid dual
    real                                  :: dpmin ! minimum depth found in centroid dual

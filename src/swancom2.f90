@@ -2440,8 +2440,6 @@ SUBROUTINE SWCAP  (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLW
 !     HM    : Maximum waveheight as used in the Battjes-Janssen expression
 !     HRMS  : Significant wave height, based on total energy
 !     ID    : Counter in directional space
-!     ID1   : Counter in directional space
-!     ID2   : Another counter in directional space
 !     IDDUM : Counter in directional space within sweep limits
 !     IENT  : Number of entries in this subroutine
 !     IS    : Counter in frequency space
@@ -2457,7 +2455,7 @@ SUBROUTINE SWCAP  (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLW
 !     WCIMPL: Implicit part of the whitecapping source-term
 
    INTEGER, SAVE     :: IENT = 0
-   INTEGER           :: ID, IDDUM, IS, ID1, ID2
+   INTEGER           :: ID, IDDUM, IS
 
    REAL              :: A, C_BJ, HM, HRMS, N1, N2
    REAL              :: QB_WC, SIG0, STP_OV, STP_PM
@@ -2837,7 +2835,6 @@ SUBROUTINE SWCAP8 (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLW
 
 !     REAL              :: B, P, BRKD, FBR
 !     REAL              :: PWCAP1, PWCAP2, PWCAP9, PWCAP10, PWCAP11
-   REAL              :: EF(MSC)
 
 !     CHARACTER(LEN=20) NUMSTR, CHARS
    CHARACTER(LEN=80) MSGSTR
@@ -3168,10 +3165,6 @@ SUBROUTINE BRKPAR (BRCOEF, ECOS, ESIN, AC2, SPCSIG, DEP2, BOTLV, RDX, RDY, KWAVE
    INTEGER :: ID    ,IS ! counters
    INTEGER :: ISIGM
    INTEGER :: IS2
-
-   INTEGER :: IDMIN ! minimum direction counter within sweep
-   INTEGER :: IDMAX ! maximum direction counter within sweep
-   INTEGER :: IDDIR ! direction counter of mean wave direction
 
    REAL  :: ETOTS ,EEX   ,EEY   , &
       EAD   ,SIGMA1,COSDIR,SINDIR,DDDX  , &

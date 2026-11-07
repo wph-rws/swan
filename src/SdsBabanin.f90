@@ -12,7 +12,6 @@ CONTAINS
 SUBROUTINE CALC_SDS(NFREQ,EDENS,F,KDS,ANAR_IN,TESTFL,KWAVE,CG)
 
    USE swan_physics_selection, ONLY: A1SDS, A2SDS, P1SDS, P2SDS, UPWARDS
-   USE swan_physical_settings, ONLY: GRAV
    USE swan_math_constants, ONLY: PI
    USE swan_math_constants
 
@@ -132,15 +131,12 @@ SUBROUTINE CALC_SDS(NFREQ,EDENS,F,KDS,ANAR_IN,TESTFL,KWAVE,CG)
    ! Local variables:
    ! note: automatic arrays (not allocatables); this routine is called for
    ! every grid point, so heap traffic must stay out of it
-   REAL              ::  SDS(NFREQ) ! Sds(f), the source term
    REAL              ::  NDEDENS(NFREQ)
    ! NDEDENS(f)=DEDENS(f)/EDENST(f)
    REAL              ::  DEDENS(NFREQ) ! DEDENS(f)=EDENS(f)-EDENST(f)
    REAL              ::  EDENST(NFREQ) ! E(f) threshold for breaking
    REAL              ::  T1(NFREQ) ! inherent dissipation/E(f)
    REAL              ::  T2(NFREQ) ! induced dissipation/E(f)
-   REAL              ::  ST1(NFREQ) ! inherent dissipation
-   REAL              ::  ST2(NFREQ) ! induced dissipation
    REAL              ::  ANAR(NFREQ)
    ! ANAR = directional narrowness as defined in Babanin publications
    REAL              ::  XFF(NFREQ),ADF(NFREQ) ! temporary arrays
@@ -150,11 +146,7 @@ SUBROUTINE CALC_SDS(NFREQ,EDENS,F,KDS,ANAR_IN,TESTFL,KWAVE,CG)
    ! saturation range (Babanin et al 2007)
    INTEGER           :: II,IS ! counters
    ! *_INT: integrated values (for test output only)
-   REAL              :: ST1_INT,ST2_INT,SDS_INT
    ! IMAX,I3FP, fp,  FD(:) re: T1 and T2 at 3fp (for test output only)
-   INTEGER           :: IMAX,I3FP
-   REAL              :: FP
-   REAL              :: FD(NFREQ)
    REAL ::  ELIM ! needed for UPWARDS=.FALSE.
    REAL ::  CTMP1 ! temporary variable
 
@@ -373,7 +365,6 @@ SUBROUTINE SWIND_DBYB ( SPCSIG,THETAW,KWAVE,MEMSINA,MEMSINB, &
    !
    !        REALS:
    !        ---------
-   !        THETA       Spectral direction
    !        THETAW      Mean direction of the relative wind vector
    !        UFRIC       Wind friction velocity
    !
@@ -505,8 +496,8 @@ SUBROUTINE SWIND_DBYB ( SPCSIG,THETAW,KWAVE,MEMSINA,MEMSINB, &
    LOGICAL ANYWND(MDC)
 
    ! Local variables:
-   INTEGER IDDUM ,ID    ,IS
-   REAL    THETA ,SIGMA    ,SWINEB, CTW   ,STW   ,COSDIF
+   INTEGER ID    ,IS
+   REAL    SIGMA    ,SWINEB, CTW   ,STW   ,COSDIF
    REAL    TEMP2 ,UoverC
    REAL    S_IN(MDC,MSC)
    REAL    DMAX,AINV
@@ -514,11 +505,8 @@ SUBROUTINE SWIND_DBYB ( SPCSIG,THETAW,KWAVE,MEMSINA,MEMSINB, &
    REAL    KTHETA(MSC,MDC)
    REAL    ANAR(MSC),SIGDENS(MSC),SQRTBN(MSC),CINV(MSC)
    REAL    GAMMAD,GDONEL,TEMP4,WPSI,TEMP5,TEMP6,BN
-   REAL    SIN1D(MSC),SWND,FREQ,STRESS
    INTEGER, SAVE :: IENT = 0
-   REAL    RMSDIR(MSC)
 
-   REAL EDENS2D ! for test calcs
    REAL CINV2,CTH,STH
    REAL TAUX_linear,TAUY_linear
 !NRL    REAL TAUX_tmp,TAUY_tmp,ENCHECK
@@ -888,7 +876,6 @@ SUBROUTINE CALC_LFACTOR(TAUX_linear,TAUY_linear,LFACTOR_L,S_IN,UFRIC,PWIND,DDIR_
    REAL :: U10PROXY,TAU_VISC,TAU_VISC_X,TAU_VISC_Y
 
    INTEGER :: NF_OLD,NF_NEW,NDIR
-   INTEGER :: DIR
    INTEGER :: ITER
    INTEGER :: SLOW_DOWN
    INTEGER :: ISOL
@@ -1296,7 +1283,7 @@ SUBROUTINE CALC_TAU_TOTAL(TAU_TOTAL,LFACTOR,REDUC,S_IN,DF,CINV,WIND10,GRAV, &
 
    INTEGER :: NF,NDIR,IS,IDIR
    LOGICAL :: IS_THIS_A_NAN
-   REAL    :: PI,CTHETA,STHETA,TAU_TOTAL_X,TAU_TOTAL_Y,TAU_SIN_SCALAR,TEMP2,TAU_TMP
+   REAL    :: PI,CTHETA,STHETA,TAU_TOTAL_X,TAU_TOTAL_Y,TAU_SIN_SCALAR,TEMP2
 
    NF=SIZE(DF)
    NDIR=SIZE(S_IN,1)
@@ -1768,7 +1755,6 @@ SUBROUTINE SSWELL_ROGERS (SPCSIG, KWAVE, WINDOW, DISSC1, ETOT, IMATDA, URMSTOP, 
    REAL, PARAMETER   :: RE_CRIT=2.0E+5 ! Re_c or SWELLF4
    !          REAL, parameter   :: Cdsv=1.2 ! C_dsv or SWELLF5
    REAL, PARAMETER   :: NU_AIR=1.51E-5 ! 1.51E-5 m2/s at 20 deg C
-   REAL, PARAMETER   :: NU_WATER=1.0E-6 ! 1.0E-6 m2/s at 20 deg C
 
    !   local variables:
    INTEGER           :: IS
@@ -1776,7 +1762,6 @@ SUBROUTINE SSWELL_ROGERS (SPCSIG, KWAVE, WINDOW, DISSC1, ETOT, IMATDA, URMSTOP, 
    REAL              :: AORB,USIGTOP
    REAL              :: RE
    REAL              :: SWDIS(WINDOW%ISSTOP) ! this is S_SWELL / E(f,theta)
-   REAL              :: KDS_PHILLIPS
 
 ! Q: What should fe be?
 !   1)  0.004 < fe < 0.013 according to JPO 2010, near final version and
@@ -1997,7 +1982,6 @@ SUBROUTINE SSWELL_ARDHUIN (SPCSIG, THETAW, KWAVE, WINDOW, DISSC1, ETOT, IMATDA, 
    REAL, PARAMETER   :: RE_CRIT=2.0E+5 ! Re_c or SWELLF4
    !          REAL, parameter   :: Cdsv=1.2 ! C_dsv or SWELLF5
    REAL, PARAMETER   :: NU_AIR=1.51E-5 ! 1.51E-5 m2/s at 20 deg C
-   REAL, PARAMETER   :: NU_WATER=1.0E-6 ! 1.0E-6 m2/s at 20 deg C
 
    !   local variables:
    INTEGER           :: IS
@@ -2005,7 +1989,6 @@ SUBROUTINE SSWELL_ARDHUIN (SPCSIG, THETAW, KWAVE, WINDOW, DISSC1, ETOT, IMATDA, 
    REAL              :: AORB,USIGTOP
    REAL              :: RE
    REAL              :: SWDIS(MDC,WINDOW%ISSTOP) ! this is S_SWELL / E(f,theta)
-   REAL              :: KDS_PHILLIPS
    REAL              :: FESWELL, CTW, STW, COSDIF
    REAL, PARAMETER   :: s1 = 0.8 ! Ardhuin, table A1
    REAL, PARAMETER   :: s2 = -0.018 ! fixed by Ardhuin (pg 1921, right column)
@@ -2137,7 +2120,7 @@ SUBROUTINE SSWELL_ZIEGER (SPCSIG, KWAVE, AC2, CG, WINDOW, MDC, DISSC1, IMATDA, T
    REAL                 :: DMAX,AINV,BN
    ! Ktheta is like D(theta), except max value at each freq is unity
    REAL                 :: KTHETA(MSC,MDC)
-   REAL                 :: ANAR(MSC),SIGDENS(MSC),SQRTBN(MSC),CINV(MSC)
+   REAL                 :: ANAR(MSC),SIGDENS(MSC),SQRTBN(MSC)
    REAL                 :: SWDIS(WINDOW%ISSTOP) ! this is S_SWELL / E(f,theta)
 
 !   Calculate 1d spectrum E(sigma)
@@ -2285,11 +2268,10 @@ SUBROUTINE SURF_ROUGH_FAN (FPI,U,UST,CD)
 !/ ------------------------------------------------------------------- /
 !/ Local parameters
 !/
-   INTEGER                 :: I1, ITT, I
-   REAL                    :: SQRTH, SIX, R1, WNP, CP, UNZ, ALPHA, &
-                              RDCH, AFP, Z0, &
+   INTEGER                 :: I
+   REAL                    :: Z0, &
                               G,CAPA,PII,CW,Z0FTN,CDFTN,CPEAK, &
-                              ZCH,X,WAGE,A1,B1,A2,B2,FX,xx1,slope
+                              ZCH,X,WAGE,A1,B1,B2,FX,xx1,slope
 !/
 !/ ------------------------------------------------------------------- /
 !/
@@ -2436,7 +2418,7 @@ SUBROUTINE SURF_ROUGH_ECMWF(U, UST, S_IN, SPCSIG, KWAVE, CD, icmax)
 !/ ------------------------------------------------------------------- /
 !/ Local parameters
 !/
-   INTEGER  :: I1, ITT, I, IS, IDIR, NDIR, NF_OLD, NF_NEW, K, II
+   INTEGER  :: IS, IDIR, NDIR, NF_OLD, NF_NEW, K, II
    REAL     :: G, CAPA, PII, afa, TAU_wav, RHOW, RHOA, TAU_total
    REAL     :: FREQ_TMP, FRAT, Z0FTN, CDFTN, z0, ze, a, b, X, CDRAG
 

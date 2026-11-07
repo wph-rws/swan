@@ -230,7 +230,6 @@ SUBROUTINE SWPART ( SPEC, UABS, UDIR, DEPTH, WN, SPCSIG, SPCDIR, &
 
    USE W3ODATMD, ONLY: WSCUT, FLCOMB
    USE swan_spectral_grid, ONLY: MSC, MDC
-   USE swan_io_units, ONLY: PRINTF
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -315,13 +314,13 @@ SUBROUTINE SWPART ( SPEC, UABS, UDIR, DEPTH, WN, SPCSIG, SPCDIR, &
 !  7. Local variables
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER                 :: ITH, IMI(MSC*MDC), IMD(MSC*MDC), &
+   INTEGER                 :: ITH, IMI(MSC*MDC), &
       IMO(MSC*MDC), IND(MSC*MDC), NP_MAX, &
       IP, IT(1), INDEX(DIMXP), NWS, &
       IPW, IPT, ISP
    INTEGER                 :: PMAP(DIMXP)
    REAL                    :: ZP(MSC*MDC), ZMIN, ZMAX, Z(MSC*MDC), &
-      FACT, WSMAX, HSMAX
+      FACT
    REAL                    :: TP(7,DIMXP)
 
 !  8. Subroutines and functions used
@@ -617,7 +616,6 @@ SUBROUTINE PTNGHB
 !************************************************************************
 
    USE swan_spectral_grid, ONLY: MSC, MDC
-   USE swan_io_units, ONLY: PRINTF
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1282,8 +1280,8 @@ SUBROUTINE PTMEAN ( NPI, IMO, ZP, DEPTH, UABS, UDIR, WN, &
       EFPMAX(0:NPI), FCDIR(MDC)
    REAL                    :: SUMFK(MSC,0:NPI), SUMEK(0:NPI)
    REAL                    :: HS, XL, XH, XL2, XH2, EL, EH, DENOM, &
-      SIGP, WNP, CGP, UPAR, C(MSC), RD, FACT
-   REAL                    :: DS, FTE
+      SIGP, UPAR, C(MSC), RD, FACT
+   REAL                    :: DS
 
 !  8. Subroutines and functions used
 !
