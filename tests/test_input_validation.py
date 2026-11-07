@@ -996,3 +996,22 @@ def test_broken_unstructured_grid_stops_cleanly(tmp_path, change, message):
     assert "Fortran runtime error" not in result.stderr, result.stderr[-2000:]
     assert result.returncode == 1, (result.returncode, result.stderr[-2000:])
     assert f"Terminating error: {message}" in report, report[-2000:]
+
+
+#  A frequency grid that ends too close to the spectral peak cuts off part of
+#  the spectrum; the manual asks for [fhigh] of at least 2.5 to 3 times the
+#  peak frequency. Upstream says nothing. The fork warns after a stationary
+#  computation (swan_frequency_range) and changes nothing else.
+@pytest.mark.parametrize("short_grid", [False, True], ids=["fine-grid", "short-grid"])
+def test_short_frequency_grid_gives_a_warning(tmp_path, short_grid):
+    deck = _quick_deck()
+    if short_grid:
+        for old, new in (("CIRCLE 24 0.05 1.0 16", "CIRCLE 24 0.05 0.5 16"),
+                         ("WIND 8.0 270.0", "WIND 5.0 270.0"),
+                         ("BOUNDSPEC SIDE WEST CONSTANT PAR 1.0 6.0 270.0 20.0", "")):
+            assert old in deck, "quick test deck has changed shape"
+            deck = deck.replace(old, new, 1)
+    result, report = _run_deck(tmp_path, deck, timeout=60)
+    assert result.returncode == 0, result.stderr[-2000:]
+    warned = "frequency grid too short" in report
+    assert warned == short_grid, report[-2000:]

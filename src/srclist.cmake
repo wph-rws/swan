@@ -53,6 +53,7 @@ ${SRC}/swan_spectral_powers.f90
 ${SRC}/swan_source_workspaces.f90
 ${SRC}/swmod2.f90
 ${SRC}/swan_balance_residual.f90
+${SRC}/swan_frequency_range.f90
 ${SRC}/swan_output_formats.f90
 ${SRC}/swan_vtk_output.f90
 ${SRC}/swan_input_fields.f90

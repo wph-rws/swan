@@ -115,3 +115,7 @@ the highest frequency at most output points (only on the seaward side of the
 barrier do the boundary waves set it), while the manual asks for an upper
 limit of at least 2.5 to 3 times the peak frequency; such a condition then
 mainly says something about the frequency grid.
+Since 7 November 2026 SWAN itself warns after a stationary computation in
+which at least 1% of the wet grid points have [fhigh] below 2.5 times their
+peak frequency (`frequency grid too short` in PRINT; see
+`src/swan_frequency_range.f90`).

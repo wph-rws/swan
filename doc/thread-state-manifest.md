@@ -104,16 +104,16 @@ modules: one for the test status and one for the propagation scheme.
 
 | Symbol | Solver | COPYIN | First definition | Lifetime | Cat. | Proposed owner |
 |---|---|---|---|---|---|---|
-| `IPTST` | both | ✅ | [swancom1.f90:3181](../src/swancom1.f90#L3202), [SwanCompUnstruc.f90:995](../src/SwanCompUnstruc.f90#L1001) | point | 3 | `common_thread_seed_t` |
+| `IPTST` | both | ✅ | [swancom1.f90:3181](../src/swancom1.f90#L3190), [SwanCompUnstruc.f90:995](../src/SwanCompUnstruc.f90#L1001) | point | 3 | `common_thread_seed_t` |
 | `TESTFL` | both | ✅ | [swanmain.f90:1654](../src/swanmain.f90#L1655) | point | 3 | `common_thread_seed_t` |
 | `PROPSL` | structured | ✅ | [swanmain.f90:1217](../src/swanmain.f90#L1218) | sweep | 3/6 | `structured_thread_workspace_t` |
 
 The COPYIN of `IPTST` and `TESTFL` is probably unnecessary. Both solvers set
 the pair to `0`/`.FALSE.` at the top of the per-point block
-([swancom1.f90:3181](../src/swancom1.f90#L3202),
+([swancom1.f90:3181](../src/swancom1.f90#L3190),
 [SwanCompUnstruc.f90:995](../src/SwanCompUnstruc.f90#L1001)) before they read
 it, and neither appears inside the parallel region itself
-([swancom1.f90:1291-2353](../src/swancom1.f90#L1297-L2371)): all uses are in
+([swancom1.f90:1291-2353](../src/swancom1.f90#L1297-L2353)): all uses are in
 called routines. That makes them scratch rather than seed. This is not
 proven: nobody has checked whether a routine called earlier in the region
 already reads `TESTFL`. Check that before deleting the COPYIN; until then, the
@@ -129,7 +129,7 @@ variable, not a field of the context.
 
 In upstream, the eleven values are threadprivate module variables in
 `M_WCAP`. They are written only in `SINTGRL`
-([swancom1.f90:5174-5737](../src/swancom1.f90#L5228-L5737)); only four files
+([swancom1.f90:5174-5737](../src/swancom1.f90#L5224-L5800)); only four files
 import the module, and no scalar is in COPYIN.
 
 | Symbol | Default on entry | Write condition | Cat. | Invariant |
@@ -138,7 +138,7 @@ import the module, and no scalar is in COPYIN.
 | `KM01` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L180) | refined when `EKTOT > 0.` | 4 | proven |
 | `SIGM01` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L181) | refined when `ETOT1 > 0.` | 4 | proven |
 | `SIGM_10` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L182) | refined when `ACTOT > 0.` | 4 | proven |
-| `ACTOT` | **none** | [`IF (ETOT > 0.)`](../src/swancom1.f90#L5505) | **5** | tested: value is kept |
+| `ACTOT` | **none** | [`IF (ETOT > 0.)`](../src/swancom1.f90#L5566) | **5** | tested: value is kept |
 | `ETOT1` | **none** | same | **5** | tested: value is kept |
 | `ETOT2` | **none** | same | **5** | tested: value is kept |
 | `ETOT4` | **none** | same | **5** | tested: value is kept |
@@ -153,7 +153,7 @@ workspace. `begin_point` sets only the four entry defaults to 10, as
 upstream `SINTGRL` does; the seven category-5 values are deliberately left alone.
 
 **The category-5 finding.** When `ETOT <= 0.`, `SINTGRL` does not write seven
-of the eleven, while [line 5730](../src/swancom1.f90#L5730) executes
+of the eleven, while [line 5730](../src/swancom1.f90#L5793) executes
 `AC2TOT = ACTOT` unconditionally. The thread then carries over the value from
 the previous point it handled. Upstream behaves the same way.
 

@@ -121,6 +121,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
    USE swan_dissipation, ONLY: PLTSRC
    USE swan_wave_setup, ONLY: SETUPP
    USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, STPNOW
+   USE swan_frequency_range, ONLY: check_frequency_range
    USE swan_balance_residual, ONLY: balance_residual_t, &
       balance_residual_summary_t, summarize_balance_residual, &
       balance_defect_system, DEFECT_NONE, write_balance_residual, &
@@ -2369,6 +2370,10 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
    !$OMP END PARALLEL
 
    IF (SWCOMP_STOP_REQUESTED) RETURN
+
+!     Warn when the frequency grid cuts off the spectral peak (a check of
+!     this fork, see swan_frequency_range); stationary runs only.
+   IF (NSTATC.EQ.0) CALL check_frequency_range(AC2, SPCSIG, COMPDA(:,JDP2), KGRPNT)
    CALL prop_cache_reset()
 
 !     Print message when the solver did not converge in setup calculation
