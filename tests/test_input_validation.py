@@ -931,6 +931,18 @@ def test_st6_returns_finite_roughness_at_boundary_points(tmp_path):
     assert values[::21] == pytest.approx([.0001026]*11, rel=.001)
 
 
+def test_first_stationary_st6_guess_has_a_defined_drag(tmp_path):
+    deck = _quick_deck().replace("GEN3 KOMEN", "GEN3 ST6 4.7E-7 6.6E-6 4 4 UP HWANG VECTAU U10PROXY 28 AGROW")
+    deck = deck.replace("DEPTH HSIGN TM01 DIR", "DEPTH HSIGN TM01 DIR UFRIC")
+    deck = deck.replace("\nCOMPUTE\n", "\nNUMERIC STOPC STAT MXITST=1\nCOMPUTE\n")
+    proc, report = _run_deck(tmp_path, deck)
+    assert proc.returncode == 0, report[-2000:]
+    rows = [l.split() for l in (tmp_path / "work" / "quick_test_center.tbl").read_text().splitlines()
+            if l.strip() and not l.startswith('%')]
+    # WINDP1 uses Wu drag for the initial second-generation guess.
+    assert float(rows[0][-1]) == pytest.approx(8*math.sqrt((.8+.065*8)*.001), rel=1e-5)
+
+
 #  BF-54: after BOUNDSPEC SEGMENT on an unstructured grid SWAN checked whether the
 #  boundary point found has a boundary marker, with `IX2.GT.0 .AND. vert(IX2)...`.
 #  Fortran does not promise that the right-hand side of .AND. is skipped, so

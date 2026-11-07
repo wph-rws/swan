@@ -673,24 +673,6 @@
   {
    "category": "maybe-uninitialized",
    "file": "swancom3.f90",
-   "routine": "windp1",
-   "message": "‘cdrag’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "IDRAG 1-3 covered; for IWIND /= 8 swanmain resets an IDRAG > 3 to FIT."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swancom3.f90",
-   "routine": "windp1",
-   "message": "‘dspr’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Set and used under IDRAG = 3."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swancom3.f90",
    "routine": "windp2",
    "message": "‘atotd’ may be used uninitialized",
    "count": 1,

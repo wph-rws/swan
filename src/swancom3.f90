@@ -965,6 +965,17 @@ SUBROUTINE WINDP1 (WIND10, THETAW, WINDOW, FPM, UFRIC, WX2, WY2, ANYWND, SPCDIR,
          CDRAG = MAX ( 0.7  , CDRAG )
          CDRAG = CDRAG * 0.001
          CDRAG = MIN ( CDCAP, CDRAG )
+      ELSE
+!          the drag formulations of ST6 (IDRAG 4 to 6) have no first or
+!          second generation form; they only reach this point in the first
+!          guess of a stationary run, which uses the second generation
+!          model; use Wu (1982), the default drag, for that guess
+         IF ( WIND10 .GT. 7.5 ) THEN
+            CDRAG = ( 0.8 + 0.065 * WIND10 ) * 0.001
+            CDRAG = MIN ( CDCAP, CDRAG )
+         ELSE
+            CDRAG = 0.0012875
+         ENDIF
       ENDIF
 
       UFRIC = SQRT ( CDRAG ) * WIND10
