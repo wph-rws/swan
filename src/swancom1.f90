@@ -2445,7 +2445,7 @@ SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, 
 
 !************************************************************************
 
-   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_service_interfaces, ONLY: STRACE, internal_error
    USE swan_services, ONLY: SWTRCF
    USE swan_balance_residual, ONLY: balance_residual_t, accumulate_balance_defect
    USE swan_propagation, ONLY: ADDDIS, DSPHER, SPREDT, SPROSD, SPROXY, SWAPAR, SWGEOM, SWPSEL
@@ -3175,6 +3175,8 @@ SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, 
             LINK(3)  = CROSS(1,st_kc(2))
             LINK(4)  = CROSS(2,st_kc(7))
          ENDIF
+      ELSE IF (PROPSL.NE.0) THEN
+         CALL internal_error('SWOMPU', 'propagation scheme PROPSL is not 0 to 3')
       ENDIF
       IF (PROPSL.GT.1) THEN
 !           if there is an obstacle crossing, fall back to 1st order      33.10

@@ -1386,7 +1386,7 @@ SUBROUTINE SICE (IMATDA, WINDOW, DISSC1, PLICE, AICELOC, HICELOC, SPCSIG, CG)
 !****************************************************************
 
    USE swan_integer_powers, ONLY: power5, power6
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, internal_error
    USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_spectral_grid
@@ -1564,7 +1564,7 @@ SUBROUTINE SICE (IMATDA, WINDOW, DISSC1, PLICE, AICELOC, HICELOC, SPCSIG, CG)
       NPF = PSICE(2) ! power on freq
       NPH = 0.5*NPF-1.0 ! power on hice
    ELSE
-      CALL MSGERR (3,'invalid IICE option')
+      CALL internal_error('SICE', 'ice method IICE is not 3 to 6')
    ENDIF
 
    KI=0.0 ! initialize
@@ -1586,7 +1586,7 @@ SUBROUTINE SICE (IMATDA, WINDOW, DISSC1, PLICE, AICELOC, HICELOC, SPCSIG, CG)
          ELSEIF ( IICE.EQ.6 ) THEN ! R21B
             KI(IS) = CHF * (HICELOC**NPH) * (FREQ**NPF)
          ELSE
-            CALL MSGERR (3,'invalid IICE option')
+            CALL internal_error('SICE', 'ice method IICE is not 3 to 6')
          ENDIF
 
       ENDDO ki_calc

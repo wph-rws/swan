@@ -463,7 +463,7 @@ SUBROUTINE SWSTRIP_WFR ( IPOWN, IDIR, NPART, IWORK, MXC, MYC )
 !
 !****************************************************************
 !
-   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_service_interfaces, ONLY: STRACE, internal_error
    USE swan_diagnostics_level
 
    IMPLICIT NONE
@@ -600,6 +600,8 @@ SUBROUTINE SWSTRIP_WFR ( IPOWN, IDIR, NPART, IWORK, MXC, MYC )
       MYCI = MYC
       INCX = 1
       INCY = MXC
+   ELSE
+      CALL internal_error('SWSTRIP', 'strip direction IDIR is not 1 or 2')
    END IF
 
 !     --- create first empty part
@@ -666,7 +668,7 @@ SUBROUTINE SWSTRIP_JAC ( IPOWN, IDIR, IPART, LPARTS, &
 !
 !****************************************************************
 !
-   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_service_interfaces, ONLY: STRACE, internal_error
    USE swan_diagnostics_level
 
    IMPLICIT NONE
@@ -807,6 +809,8 @@ SUBROUTINE SWSTRIP_JAC ( IPOWN, IDIR, IPART, LPARTS, &
       MYCI = MYC
       INCX = 1
       INCY = MXC
+   ELSE
+      CALL internal_error('SWSTRIP', 'strip direction IDIR is not 1 or 2')
    END IF
 
 !     --- start by creating the first part, which is currently empty
@@ -4037,7 +4041,7 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
 
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_output_writers, ONLY: SBLKPT, SRAWPT, SWRMAT
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, TABHED
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, TABHED, internal_error
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_computational_grid_kind, ONLY: OPTG
@@ -4443,6 +4447,8 @@ SUBROUTINE SWCOLBLK ( RTYPE , OQI, OQR, IVTYP, FAC  , &
                      FTIP2 = ABS(VOQ(IP,2))
                      FMAX  = MAX (FMAX, FTIP1, FTIP2)
                   END DO
+               ELSE
+                  CALL internal_error('SWCOLBLK', 'quantity type OVSVTY is not 1, 2 or 3')
                END IF
                IFAC = INT (10.+LOG10(FMAX)) - 13
             END IF

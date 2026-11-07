@@ -8,7 +8,7 @@ module swan_action_interpolation
 contains
 
 subroutine SwanInterpolateAc ( acintp, x, y, ac2, excpt )
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL, internal_error
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -187,6 +187,7 @@ subroutine SwanInterpolateAc ( acintp, x, y, ac2, excpt )
             exit
          endif
       enddo
+      if ( k > 3 ) call internal_error('SWANINTERPOLATEAC', 'vertex not found in its own cell')
 
       thdiff = th - th2
       do

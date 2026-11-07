@@ -5,7 +5,7 @@ module swan_grid_cell
 contains
 
 subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
-   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_service_interfaces, ONLY: STRACE, internal_error
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -320,6 +320,7 @@ subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
                exit
             endif
          enddo
+         if ( k > nov ) call internal_error('SWANGRIDCELL', 'vertex not found in its own cell')
 
          ! search for next cell in counterclockwise direction
 
@@ -343,6 +344,7 @@ subroutine SwanGridCell ( ncells, nverts, xcugrd, ycugrd, kvertc )
                   exit
                endif
             enddo
+            if ( k > nov ) call internal_error('SWANGRIDCELL', 'vertex not found in its own cell')
 
             ! check whether first upwave vertex of next cell equals last upwave vertex of present cell
 

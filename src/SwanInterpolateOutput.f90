@@ -7,7 +7,7 @@ module swan_output_interpolation
 contains
 
 subroutine SwanInterpolateOutput ( foutp, x, y, finp, mip, kvert, excval )
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, EQREAL, internal_error
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -202,6 +202,7 @@ subroutine SwanInterpolateOutput ( foutp, x, y, finp, mip, kvert, excval )
                exit
             endif
          enddo
+         if ( k > 3 ) call internal_error('SWANINTERPOLATEOUTPUT', 'vertex not found in its own cell')
 
          thdiff = th - th2
          do

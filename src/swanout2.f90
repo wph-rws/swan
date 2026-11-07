@@ -46,7 +46,7 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME, &
 !************************************************************************
 
    USE swan_file_opening, ONLY: FOR
-   USE swan_service_interfaces, ONLY: STRACE, TXPBLA, STPNOW, TABHED
+   USE swan_service_interfaces, ONLY: STRACE, TXPBLA, STPNOW, TABHED, internal_error
    USE swan_wave_physics, ONLY: KSCIP1
    USE swan_diagnostics_level
    USE swan_io_units
@@ -294,6 +294,8 @@ SUBROUTINE SWBLOK ( RTYPE, OQI , OQR , IVTYP, FAC, PSNAME, &
                         FTIP2 = ABS(VOQ(IP,VOQR(IVTYPE)+1))
                         FMAX  = MAX (FMAX, FTIP1, FTIP2)
                      end do
+                  ELSE
+                     CALL internal_error('SWBLOK', 'quantity type OVSVTY is not 1, 2 or 3')
                   ENDIF
                   IFAC = INT (10.+LOG10(FMAX)) - 13
                ENDIF

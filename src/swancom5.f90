@@ -44,7 +44,7 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR, st_ix, st_iy, st_kc, st_n,
 
 !****************************************************************
 
-   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_service_interfaces, ONLY: STRACE, internal_error
    USE swan_coordinate_offset
    USE swan_stencil, ONLY: MICMAX
    USE swan_computational_grid
@@ -201,6 +201,8 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR, st_ix, st_iy, st_kc, st_n,
          ELSE IF ( SWPDIR .EQ. 2 .OR. SWPDIR .EQ. 4 ) THEN
             DX2 =  VIRT * DY1
             DY2 = -VIRT * DX1
+         ELSE
+            CALL internal_error('SWGEOM', 'sweep direction SWPDIR is not 1 to 4')
          ENDIF
       ELSE
          DX2 = XCGRID(st_ix(1),st_iy(1))-XCGRID(st_ix(3),st_iy(3))
@@ -1137,7 +1139,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 
 !****************************************************************
 
-   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_service_interfaces, ONLY: STRACE, internal_error
    USE swan_coordinate_offset
    USE swan_run_mode
    USE swan_stencil, ONLY: MICMAX
@@ -1329,6 +1331,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
    INTEGER  :: KCG2  ,KCG3 , KCG4, KCG5 ! grid addresses of neighbouring grid points   !
    INTEGER  :: IX1 ! IX1   Counter of gridpoints in x-direction  !
    INTEGER  :: IY1 ! IY1   Counter of gridpoints in y-direction  !
+   INTEGER  :: IGRADK ! depth gradient method: 0 @h/@x, 1 @C/@x
 
 !     local real variables :
 
@@ -1409,6 +1412,9 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 !************************************************************************
 
    IF (LTRACE) CALL STRACE (IENT,'SPROSD')
+
+   IGRADK = INT(PNUMS(PNUMS_GRADK))
+   IF ( IGRADK.NE.0 .AND. IGRADK.NE.1 ) CALL internal_error('SPROSD', 'gradient method is not 0 or 1')
 
    CAST1 = 0.
    CAST2 = 0.
@@ -1592,10 +1598,10 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 
 !          *** computation of CAS and CAD ***
 
-         IF ( INT(PNUMS(PNUMS_GRADK)).EQ.0 ) THEN
+         IF ( IGRADK.EQ.0 ) THEN
             ! @h/@x method, currents not included , Christoffersen, Tolman, Ris, Won et al.
             CAD_TMP=COEF*(ESIN(ID)*DHDX-ECOS(ID)*DHDY)
-         ELSE IF ( INT(PNUMS(PNUMS_GRADK)).EQ.1 ) THEN
+         ELSE
             CAD_TMP=(CGLOC1/CLOC1)*(ESIN(ID)*DCDX-ECOS(ID)*DCDY) ! @C/@x method, currents not included, Young method (1999, p. 45)
 !             CAD_TMP=(CGLOC1/KLOC1)*(-1.0)*(ESIN(ID)*DKDX-ECOS(ID)*DKDY)   ! @k/@x method, differs only very slightly from @C/dx
          ENDIF

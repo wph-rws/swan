@@ -61,6 +61,27 @@ pattern behind most of them: a chain of choices without a final `ELSE`,
 followed by an error message that does not stop the input processing, after
 which the code carries on with a value that was never set.
 
+## Impossible paths end in a stop
+
+Most `maybe-uninitialized` warnings that were judged harmless had the same
+shape: a chain of choices over an option without a final `ELSE`, or a search
+loop that cannot fail, with a value that is only set inside. The verdict then
+rested on an assumption the compiler cannot see, such as "`OPTG` is always
+1, 3 or 5". On 7 November 2026, 38 of them were replaced by code that checks
+the assumption: the missing `ELSE`, or a test after the search loop, now calls
+`internal_error` (in `swan_service_interfaces`). That routine writes the
+routine name and the broken assumption to PRINT, Errfile and stderr and ends
+the program with exit code 3. Its `NORETURN` attribute tells the compiler that
+the path ends there, so the warning disappears without setting a value. The
+paths cannot be reached with any input, so no result changes; the output of
+every deck stayed byte for byte the same.
+
+Two warnings of this kind stay on purpose. `NPF` and `NPH` in `SICE` are set
+and read under the same ice method in two chains, and the compiler does not
+connect them even when the method is copied to a local. `X_COSK` in the
+quadruplet code is left as it was, because that code has its own error
+handling and does not use the SWAN modules.
+
 ## How the gate works
 
 `scripts/strict_diagnostics.py` builds SWAN from scratch with the strict
@@ -117,7 +138,9 @@ warnings are not checked.
    upstream build in `.upstream/`.
 3. If it is a defect, fix the cause. Do not set a value to zero just to make
    the warning go away: that hides the next real one. A default is only
-   allowed if it is the documented default of the command.
+   allowed if it is the documented default of the command. If the path is
+   impossible by construction, end it with `internal_error` (see below)
+   rather than recording a verdict.
 4. Add a test that fails before the fix and passes after it, usually in
    `tests/test_input_validation.py`, and describe the defect in the bug-fix
    list.

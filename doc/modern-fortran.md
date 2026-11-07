@@ -186,11 +186,17 @@ one only reports the files it recompiled.
 ### Where not to start on the remaining warnings
 
 The review of each warning that can hide a defect, and the order for further
-work, are in [strict-warnings.md](strict-warnings.md). Two lessons for
+work, are in [strict-warnings.md](strict-warnings.md). Three lessons for
 `-Wmaybe-uninitialized`: prefer reports about *named locals* over array
 descriptor temporaries (`*.dim[0].ubound`, `*.offset`), which are artefacts of
-optimised descriptors; and do not silence a report with an initialiser, which
-hides the next real defect instead of surfacing it.
+optimised descriptors; do not silence a report with an initialiser, which
+hides the next real defect instead of surfacing it; and where the unset path
+is impossible by construction (an option variable outside the values input
+processing allows, a search that cannot fail), end that path with
+`internal_error` from `swan_service_interfaces`. Its `NORETURN` attribute
+tells the compiler that the path ends there, and if the assumption ever
+breaks, SWAN stops with a message instead of computing with a value that was
+never set.
 
 `-Wunused-variable` was cleared on 7 November 2026, except four names that
 only OpenMP clauses use. The trap is that GNU Fortran only sees the build it

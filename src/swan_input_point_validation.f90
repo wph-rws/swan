@@ -257,7 +257,7 @@ LOGICAL FUNCTION SINCMP (XP, YP ,XCGRID ,YCGRID ,KGRPNT, KGRBND)
 !                                                                      *
 !************************************************************************
 
-   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_service_interfaces, ONLY: STRACE, internal_error
    USE swan_services, ONLY: CVMESH
    USE swan_computational_grid_kind
    USE swan_computational_grid
@@ -408,6 +408,8 @@ LOGICAL FUNCTION SINCMP (XP, YP ,XCGRID ,YCGRID ,KGRPNT, KGRBND)
       CALL SwanFindPoint ( XP, YP, K )
       IF ( K.LT.0 ) SINCMP = .FALSE.
 
+   ELSE
+      CALL internal_error('SINCMP', 'grid type OPTG is not 1, 3 or 5')
    ENDIF
 
 !     --- check if output location is in global subdomain

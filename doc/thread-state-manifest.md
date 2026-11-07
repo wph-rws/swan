@@ -129,7 +129,7 @@ variable, not a field of the context.
 
 In upstream, the eleven values are threadprivate module variables in
 `M_WCAP`. They are written only in `SINTGRL`
-([swancom1.f90:5174-5737](../src/swancom1.f90#L5228-L5803)); only four files
+([swancom1.f90:5174-5737](../src/swancom1.f90#L5228-L5737)); only four files
 import the module, and no scalar is in COPYIN.
 
 | Symbol | Default on entry | Write condition | Cat. | Invariant |
@@ -138,7 +138,7 @@ import the module, and no scalar is in COPYIN.
 | `KM01` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L180) | refined when `EKTOT > 0.` | 4 | proven |
 | `SIGM01` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L181) | refined when `ETOT1 > 0.` | 4 | proven |
 | `SIGM_10` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L182) | refined when `ACTOT > 0.` | 4 | proven |
-| `ACTOT` | **none** | [`IF (ETOT > 0.)`](../src/swancom1.f90#L5566) | **5** | tested: value is kept |
+| `ACTOT` | **none** | [`IF (ETOT > 0.)`](../src/swancom1.f90#L5505) | **5** | tested: value is kept |
 | `ETOT1` | **none** | same | **5** | tested: value is kept |
 | `ETOT2` | **none** | same | **5** | tested: value is kept |
 | `ETOT4` | **none** | same | **5** | tested: value is kept |
@@ -153,7 +153,7 @@ workspace. `begin_point` sets only the four entry defaults to 10, as
 upstream `SINTGRL` does; the seven category-5 values are deliberately left alone.
 
 **The category-5 finding.** When `ETOT <= 0.`, `SINTGRL` does not write seven
-of the eleven, while [line 5730](../src/swancom1.f90#L5793) executes
+of the eleven, while [line 5730](../src/swancom1.f90#L5730) executes
 `AC2TOT = ACTOT` unconditionally. The thread then carries over the value from
 the previous point it handled. Upstream behaves the same way.
 

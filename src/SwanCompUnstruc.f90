@@ -29,7 +29,7 @@ contains
 
 subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it, &
                              diffr, triads, snl4, spectral_powers, thread_workspaces )
-   USE swan_service_interfaces, ONLY: MSGERR, STRACE, SWTSTA, SWTSTO
+   USE swan_service_interfaces, ONLY: MSGERR, STRACE, SWTSTA, SWTSTO, internal_error
    use swan_diffraction_state, only: diffraction_state_t
    use swan_computation, only: SWPRSET, SINTGRL, SOLPRE, SOLMAT, SOLMT1, SOURCE, PHILIM, RESCALE, SWSIP
    use swan_services, only: SWTRCF, SWACC
@@ -1039,6 +1039,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                            exit
                         endif
                      enddo
+                     if ( k > 3 ) call internal_error('SWANCOMPUNSTRUC', 'vertex not found in its own cell')
 
                      ! stores vertices of computational stencil
 
@@ -1078,6 +1079,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                            exit
                         endif
                      enddo
+                     if ( k > 3 ) call internal_error('SWANCOMPUNSTRUC', 'vertex not found in its own cell')
 
                      ! in case of spherical coordinates determine cosine of latitude (in degrees)
                      ! and recalculate local contravariant base vectors

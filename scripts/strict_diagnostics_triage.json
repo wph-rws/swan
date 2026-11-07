@@ -480,60 +480,6 @@
   },
   {
    "category": "maybe-uninitialized",
-   "file": "SwanCompUnstruc.f90",
-   "routine": "swancompunstruc",
-   "message": "‘th1’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "The cell comes from the vertex's own cell list; the search loop over the three vertices therefore always finds it and sets th1/th2 (same pattern as SwanGridCell)."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "SwanCompUnstruc.f90",
-   "routine": "swancompunstruc",
-   "message": "‘th2’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "See th1: the search loop finds the vertex by construction."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "SwanCompUnstruc.f90",
-   "routine": "swancompunstruc",
-   "message": "‘vu[0]’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "See th1: the search loop for the vertex in its own cell always succeeds, so vu is set."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "SwanCompUnstruc.f90",
-   "routine": "swancompunstruc",
-   "message": "‘vu[1]’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "See vu[0] in the same routine; the same reasoning applies here."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "SwanGridCell.f90",
-   "routine": "swangridcell",
-   "message": "‘vn’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Judged earlier (doc/modern-fortran.md): by construction the cell belongs to the vertex, so the search loop always finds it."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "SwanGridCell.f90",
-   "routine": "swangridcell",
-   "message": "‘vp’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "See vn in the same routine; the same reasoning applies here."
-  },
-  {
-   "category": "maybe-uninitialized",
    "file": "SwanIEM.f90",
    "routine": "swaniemsrfbeat",
    "message": "‘ci1’ may be used uninitialized",
@@ -561,60 +507,6 @@
    "verdict": "defect",
    "reason": "Confirmed and repaired (BF-29): a row with a dry or inactive west point is now skipped, because the reference phase, boundary condition and alongshore wavenumber are missing there. The compiler cannot see through the skip, so the warning remains.",
    "reference": "BF-29"
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "SwanInterpolateAc.f90",
-   "routine": "swaninterpolateac",
-   "message": "‘th1’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "The cell comes from the vertex's cell list; the search loop for that vertex always succeeds."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "SwanInterpolateAc.f90",
-   "routine": "swaninterpolateac",
-   "message": "‘th2’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "See th1 in the same routine; the same reasoning applies here."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "SwanInterpolateOutput.f90",
-   "routine": "swaninterpolateoutput",
-   "message": "‘th1’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Same search loop as SwanInterpolateAc: by construction the vertex lies in the cell."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "SwanInterpolateOutput.f90",
-   "routine": "swaninterpolateoutput",
-   "message": "‘th2’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "See th1 in the same routine; the same reasoning applies here."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "SwanInterpolatePoint.f90",
-   "routine": "swaninterpolatepoint",
-   "message": "‘th1’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Same search loop as SwanInterpolateAc: by construction the vertex lies in the cell."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "SwanInterpolatePoint.f90",
-   "routine": "swaninterpolatepoint",
-   "message": "‘th2’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "See th1 in the same routine; the same reasoning applies here."
   },
   {
    "category": "maybe-uninitialized",
@@ -669,15 +561,6 @@
    "count": 1,
    "verdict": "harmless",
    "reason": "Inherited code; see q_cmplocus."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swan_input_point_validation.f90",
-   "routine": "sincmp",
-   "message": "‘__result_sincmp’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "SINCMP sets the result for OPTG 1, 3 and 5; OPTG starts at 1 (SWINIT) and only takes those values."
   },
   {
    "category": "maybe-uninitialized",
@@ -753,15 +636,6 @@
   },
   {
    "category": "maybe-uninitialized",
-   "file": "swancom1.f90",
-   "routine": "swompu",
-   "message": "‘nlink’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Set for PROPSL = 2 and 3 and only used under PROPSL > 1; PROPSL is 0 to 3 inclusive."
-  },
-  {
-   "category": "maybe-uninitialized",
    "file": "swancom2.f90",
    "routine": "brkpar",
    "message": "‘cosdir’ may be used uninitialized",
@@ -782,82 +656,10 @@
    "category": "maybe-uninitialized",
    "file": "swancom2.f90",
    "routine": "sice",
-   "message": "‘c0’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swancom2.f90",
-   "routine": "sice",
-   "message": "‘c1’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swancom2.f90",
-   "routine": "sice",
-   "message": "‘c2’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swancom2.f90",
-   "routine": "sice",
-   "message": "‘c3’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swancom2.f90",
-   "routine": "sice",
-   "message": "‘c4’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swancom2.f90",
-   "routine": "sice",
-   "message": "‘c5’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swancom2.f90",
-   "routine": "sice",
-   "message": "‘c6’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swancom2.f90",
-   "routine": "sice",
-   "message": "‘chf’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swancom2.f90",
-   "routine": "sice",
    "message": "‘npf’ may be used uninitialized",
    "count": 1,
    "verdict": "harmless",
-   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
+   "reason": "NPF and NPH are set for IICE = 6 and only read in the IICE = 6 branch. The first chain stops through internal_error for any IICE other than 3 to 6, but the compiler does not connect it with the second chain inside the frequency loop."
   },
   {
    "category": "maybe-uninitialized",
@@ -866,7 +668,7 @@
    "message": "‘nph’ may be used uninitialized",
    "count": 1,
    "verdict": "harmless",
-   "reason": "Judged earlier (doc/modern-fortran.md): all coefficients are set and used under the same IICE choice; an invalid IICE gives a message in both chains."
+   "reason": "NPF and NPH are set for IICE = 6 and only read in the IICE = 6 branch. The first chain stops through internal_error for any IICE other than 3 to 6, but the compiler does not connect it with the second chain inside the frequency loop."
   },
   {
    "category": "maybe-uninitialized",
@@ -962,15 +764,6 @@
    "category": "maybe-uninitialized",
    "file": "swancom5.f90",
    "routine": "sprosd",
-   "message": "‘cad_tmp’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "PNUMS(PNUMS_GRADK) is only 0 or 1 (swanmain, swanpre1); both covered."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swancom5.f90",
-   "routine": "sprosd",
    "message": "‘uxloc4’ may be used uninitialized",
    "count": 1,
    "verdict": "harmless",
@@ -1002,24 +795,6 @@
    "count": 1,
    "verdict": "harmless",
    "reason": "See uxloc4 in the same routine; the same reasoning applies here."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swancom5.f90",
-   "routine": "swgeom",
-   "message": "‘dx2’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "SWPDIR is always 1-4; all branches covered."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swancom5.f90",
-   "routine": "swgeom",
-   "message": "‘dy2’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "See dx2 in the same routine; the same reasoning applies here."
   },
   {
    "category": "maybe-uninitialized",
@@ -1131,78 +906,6 @@
   },
   {
    "category": "maybe-uninitialized",
-   "file": "swanout2.f90",
-   "routine": "swblok",
-   "message": "‘fmax’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "OVSVTY 1-3 covered; the only other value (5, AAAA/EEEE) has OVHEXP = 100 and takes the first branch, where FMAX is not needed."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanparll.f90",
-   "routine": "swcolblk",
-   "message": "‘fmax’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Same chain as SWBLOK in swanout2: OVSVTY 1-3 covered, and the only other value (5) takes the first branch, where FMAX is not needed."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanparll.f90",
-   "routine": "swstrip_jac",
-   "message": "‘incx’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Set for IDIR = 1 and IDIR = 2; the caller only passes those values (fixed, or MOD(IDIR,2)+1)."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanparll.f90",
-   "routine": "swstrip_jac",
-   "message": "‘incy’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Set for IDIR = 1 and IDIR = 2; the caller only passes those values (fixed, or MOD(IDIR,2)+1)."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanparll.f90",
-   "routine": "swstrip_jac",
-   "message": "‘myci’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Set for IDIR = 1 and IDIR = 2; the caller only passes those values (fixed, or MOD(IDIR,2)+1)."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanparll.f90",
-   "routine": "swstrip_wfr",
-   "message": "‘incx’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Set for IDIR = 1 and IDIR = 2; the caller only passes those values (fixed, or MOD(IDIR,2)+1)."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanparll.f90",
-   "routine": "swstrip_wfr",
-   "message": "‘incy’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Set for IDIR = 1 and IDIR = 2; the caller only passes those values (fixed, or MOD(IDIR,2)+1)."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanparll.f90",
-   "routine": "swstrip_wfr",
-   "message": "‘myci’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Set for IDIR = 1 and IDIR = 2; the caller only passes those values (fixed, or MOD(IDIR,2)+1)."
-  },
-  {
-   "category": "maybe-uninitialized",
    "file": "swanpre1.f90",
    "routine": "cginit",
    "message": "‘iarr.dim[0].ubound’ may be used uninitialized",
@@ -1251,46 +954,10 @@
    "category": "maybe-uninitialized",
    "file": "swanpre2.f90",
    "routine": "swboun",
-   "message": "‘ix1’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Since BF-27 only used when ISIDM is 1-4, and then set in every branch; ISIDM cannot have another value."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanpre2.f90",
-   "routine": "swboun",
-   "message": "‘iy1’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "See ix1 in the same routine; the same reasoning applies here."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanpre2.f90",
-   "routine": "swboun",
    "message": "‘nbspss’ may be used uninitialized",
    "count": 1,
    "verdict": "harmless",
    "reason": "The first FILE line requires a file name ('REQ'), so NBSPSS is set before it is read."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanpre2.f90",
-   "routine": "swreps",
-   "message": "‘dxn’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "OPTG 1, 3 and 5 covered; OPTG starts at 1 and only takes those values."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanpre2.f90",
-   "routine": "swreps",
-   "message": "‘dyn’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "See dxn in the same routine; the same reasoning applies here."
   },
   {
    "category": "maybe-uninitialized",

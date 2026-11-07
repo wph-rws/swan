@@ -20,7 +20,7 @@ module swan_service_interfaces
    private
 
    public :: eqreal, eqdble
-   public :: msgerr, stpnow, strace, txpbla
+   public :: msgerr, stpnow, strace, txpbla, internal_error
    public :: swtsta, swtsto, swprti
    public :: timing_enabled
    public :: swi2b, swr2b
@@ -350,6 +350,36 @@ SUBROUTINE MSGERR (LEV,STRING,DIAG,IO)
    RETURN
 
 end subroutine MSGERR
+
+!*****************************************************************
+
+subroutine internal_error(routine, what)
+!
+!     Stops SWAN when an assumption the code relies on does not hold: an
+!     option variable outside the values that input processing allows, or a
+!     search that cannot fail by construction and failed anyway. Valid or
+!     invalid input cannot cause this; it means a programming error, and
+!     carrying on would compute with values that were never set. Wrong input
+!     gets an ordinary MSGERR message instead.
+!
+!     The NORETURN attribute tells gfortran that the call does not come
+!     back, so it no longer warns about values that are only unset on the
+!     branch that ends here. The message goes to PRINT and Errfile through
+!     MSGERR and to stderr, and the program ends with exit code 3, also when
+!     SWAN runs as a library: a host cannot recover from a broken assumption.
+!
+   use, intrinsic :: iso_fortran_env, only: error_unit
+   use swan_io_units, only: PRINTF
+!GCC$ ATTRIBUTES NORETURN :: internal_error
+   character(len=*), intent(in) :: routine ! name of the routine
+   character(len=*), intent(in) :: what ! the assumption that failed
+
+   call msgerr(4, 'internal error in '//routine//': '//what)
+   write (error_unit, '(A)') 'SWAN internal error in '//routine//': '//what
+   flush (PRINTF)
+   flush (error_unit)
+   error stop 3
+end subroutine internal_error
 
 !*****************************************************************
 !                                                                *

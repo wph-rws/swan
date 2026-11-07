@@ -194,7 +194,7 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 
    USE swan_coordinate_input, ONLY: READXY, REFIXY
    USE swan_file_opening, ONLY: FOR
-   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STPNOW, STRACE
+   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STPNOW, STRACE, internal_error
    USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, NWLINE
    USE swan_input_parser, ONLY: default_command_reader
    USE swan_diagnostics_level
@@ -1060,6 +1060,8 @@ SUBROUTINE SWREPS ( FOUND, BOTLEV, WATLEV )
 !              unstructured grid, DXN and DYN are average grid size       40.80
                DXN = 0.5*(mingsiz+maxgsiz)
                DYN = DXN
+            ELSE
+               CALL internal_error('SWREPS', 'grid type OPTG is not 1, 3 or 5')
             ENDIF
             CALL ININTG ('MXN',MXN,'STA',MAX(1,NINT(XNLEN/DXN)))
             CALL ININTG ('MYN',MYN,'STA',MAX(1,NINT(YNLEN/DYN)))
@@ -2695,7 +2697,7 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 
    USE swan_coordinate_input, ONLY: READXY, REFIXY
    USE swan_services, ONLY: CVMESH
-   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STPNOW, STRACE
+   USE swan_service_interfaces, ONLY: EQREAL, MSGERR, STPNOW, STRACE, internal_error
    USE swan_input_parser, ONLY: INCSTR, IGNORE, ININTG, INKEYW, INREAL, KEYWIS, WRNKEY
    USE swan_diagnostics_level
    USE swan_io_units
@@ -3780,6 +3782,8 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
                   IY1 = MYC
                   IX2 = 1
                   IY2 = 1
+               ELSE
+                  CALL internal_error('SWBOUN', 'side ISIDM is not 1 to 4')
                ENDIF
                IF (.NOT.CCW .EQV. CVLEFT) THEN
    !              swap end points
