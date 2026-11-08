@@ -10,7 +10,7 @@
   "memory_layout": "Both binaries run under setarch -R, with a fixed memory layout. Without that pin, upstream 41.51 gave two answers from run to run on quad_dia2, quad_mdia and src_nobreak: in decks without breaking, FRABRE reads an unset KTETA (valgrind, BF-16). The fork sets that value and does not depend on the memory layout; the pin stays to keep upstream reproducible. Run with --no-pin to see the instability of upstream for yourself.",
   "unexplained_budget": 0,
   "last_measurement": {
-    "date": "2026-11-07",
+    "date": "2026-11-09",
     "compiler": "GNU Fortran 16.2.0",
     "decks": "all except the skipped ones"
   },
@@ -33,13 +33,13 @@
     {
       "deck": "nonlinear_interactions/quad/quad_dia1.swn",
       "status": "differs",
-      "bugfix": "BF-16",
+      "bugfix": "BF-62",
       "measured": "differs in: quad_dia1.spc, quad_dia1.tbl, quad_dia1_sources.spc",
-      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged.",
+      "note": "Two fixes act on this deck; the field bugfix names the later one, and the fingerprints are those of both together. BF-16: the deck has no depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged. BF-62 (since 8 November 2026): the fork's semi-implicit DIA uses the consistent linearisation (QUADRUPLET 1 ... UPSTREAM for the upstream form).",
       "fork_output": {
-        "quad_dia1.spc": "f842cf1ab39f34c3eaef3b5d4dbaea99851eb9a85d8bb440daef9696b9f4bd64",
-        "quad_dia1.tbl": "1c90ea0c787fcd986441afdfa5bdcc45c5e2c29f75afa25cf40a46c5a58cf515",
-        "quad_dia1_sources.spc": "74b4b9534e47a92b6982f3a5658ee69116dea68a509058a9e83e871898eaa25c"
+        "quad_dia1.spc": "21506ffa4d86a9ad411ceeee4b31f63767b00437f7a8e3df2f6473a4cf62219f",
+        "quad_dia1.tbl": "a64e214376e80e71a50a5e873d60331e96737c846212806546ccb7795e91d10c",
+        "quad_dia1_sources.spc": "2f28c9414a4fd8359d658c42040a52437f118c96310664c2c81cf1a60e07d92b"
       }
     },
     {

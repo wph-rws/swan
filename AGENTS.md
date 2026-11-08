@@ -268,7 +268,11 @@ Measured on `examples/nonlinear_interactions/quad/quad_dia1`: with `ALFA=0.10` t
 25 km is then 1.278 m. `ALFA=0.01` also stops too early: after 40 iterations
 it reports 100% at 1.403 m, while the same run carried on until the balance
 residual reaches rounding level (about 1500 iterations) ends at 1.923 m, 27%
-higher.
+higher. Those numbers are for the upstream semi-implicit DIA. With the fork's
+DIA (BF-62, the default since 8 November 2026) the deck without `ALFA` reaches
+its balance in 100 iterations (residual 1e-8) at 1.933 m, and with
+`ALFA=0.01` it still stops after 40 iterations at 1.410 m: the false stop
+comes from the under-relaxation, not from the DIA.
 
 The fork has an optional balance residual
 (`balance residual energy rms ...` in PRINT; see
@@ -313,7 +317,7 @@ ALFA=0.01`), against references of 600 forced iterations: on the test model
 up to 18 cm off and `EXTRAP 10` after 120 iterations within 1 mm (89
 iterations and 2 mm before a swing that does not shrink was counted as
 growing, 8 November); on `sq` after 8 (13 cm) against 50 (1 mm); on
-`quad_dia1` after 40 (0.55 m) against 350 (6 mm). Where the iteration never settles (`isl`, the RESCALE floor
+`quad_dia1`, with the fork's DIA, after 40 (0.52 m) against 340 (4 mm). Where the iteration never settles (`isl`, the RESCALE floor
 behind an island) it runs to `MXITST` and says how many points still move,
 instead of reporting convergence. The estimate is not a bound: an iteration
 that slows down by itself, or a slow mode under a fast one, can still stop it

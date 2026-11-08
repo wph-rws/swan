@@ -1128,7 +1128,7 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, A
       E00    ,EP1    ,EM1    ,EP2    ,EM2    ,SA1A   ,SA1B  , &
       SA2A   ,SA2B   ,KMESPC ,FACHFR ,AWG1   ,AWG2   ,AWG3  , &
       AWG4   ,AWG5   ,AWG6   ,AWG7   ,AWG8   ,SWG1   ,SWG2  , &
-      SWG3   ,SWG4   ,SWG5   ,SWG6   ,SWG7   ,SWG8, JACOBI, SIGPI, PI3
+      SWG3   ,SWG4   ,SWG5   ,SWG6   ,SWG7   ,SWG8, JACOBI, SIGPI, PI3, DSNLC
 
    REAL      AC2(MDC,MSC,MCGRD)                    , &
       DEP2(MCGRD)                           , &
@@ -1365,15 +1365,41 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, A
 
 !         *** store results in IMATDA and IMATRA ***
 
-         IF(TESTFL) THEN
-            PLNL4S(ID,I,IPTST) = DIA_WORKSPACE%SFNL(I,ID) / SIGPI
-            PLNL4D(ID,I,IPTST) = DIA_WORKSPACE%DSNL(I,ID) / PI3
-         END IF
-         REDC0(ID,I,1) = REDC0(ID,I,1) + DIA_WORKSPACE%SFNL(I,ID) / SIGPI
-         REDC1(ID,I,1) = REDC1(ID,I,1) + DIA_WORKSPACE%DSNL(I,ID) / PI3
+         IF(TESTFL) PLNL4S(ID,I,IPTST) = DIA_WORKSPACE%SFNL(I,ID) / SIGPI
+         IF (DIA_NEWTON) THEN
+!           This fork (BF-62): S(N) = S(N0) - DSNLC (N - N0). DSNL
+!           is the derivative of SFNL to the energy of the same bin (with
+!           KMESPC and the tail held fixed), and with E = N SIGPI that is
+!           already the derivative of the action source SFNL/SIGPI, so no
+!           division by PI3. Only a sink is put on the diagonal. The upstream
+!           form below (QUADRUPLET 1 ... UPSTREAM) puts DSNL/PI3 on the diagonal without the matching
+!           term on the right-hand side, so it converges to a different
+!           balance than the explicit DIA (IQUAD 2).
+            DSNLC = MAX(0., - DIA_WORKSPACE%DSNL(I,ID))
+!           The test-point output gets the same two parts as the solver:
+!           PLTSRC adds PLNL4D times the new action density, so that it
+!           prints S(N0) + DSNLC (N0 - N). Without the DSNLC N0 part it
+!           would print S - DSNLC N, which does not integrate to zero.
+            IF(TESTFL) THEN
+               PLNL4S(ID,I,IPTST) = DIA_WORKSPACE%SFNL(I,ID) / SIGPI &
+                  + DSNLC * AC2(ID,I,IGP)
+               PLNL4D(ID,I,IPTST) = - DSNLC
+            END IF
+            REDC0(ID,I,1) = REDC0(ID,I,1) + DIA_WORKSPACE%SFNL(I,ID) / SIGPI &
+               + DSNLC * AC2(ID,I,IGP)
+            REDC1(ID,I,1) = REDC1(ID,I,1) - DSNLC
 
-         IMATRA(ID,I) = IMATRA(ID,I) + DIA_WORKSPACE%SFNL(I,ID) / SIGPI
-         IMATDA(ID,I) = IMATDA(ID,I) - DIA_WORKSPACE%DSNL(I,ID) / PI3
+            IMATRA(ID,I) = IMATRA(ID,I) + DIA_WORKSPACE%SFNL(I,ID) / SIGPI &
+               + DSNLC * AC2(ID,I,IGP)
+            IMATDA(ID,I) = IMATDA(ID,I) + DSNLC
+         ELSE
+            IF(TESTFL) PLNL4D(ID,I,IPTST) = DIA_WORKSPACE%DSNL(I,ID) / PI3
+            REDC0(ID,I,1) = REDC0(ID,I,1) + DIA_WORKSPACE%SFNL(I,ID) / SIGPI
+            REDC1(ID,I,1) = REDC1(ID,I,1) + DIA_WORKSPACE%DSNL(I,ID) / PI3
+
+            IMATRA(ID,I) = IMATRA(ID,I) + DIA_WORKSPACE%SFNL(I,ID) / SIGPI
+            IMATDA(ID,I) = IMATDA(ID,I) - DIA_WORKSPACE%DSNL(I,ID) / PI3
+         END IF
 
          IF(ITEST.GE.90 .AND. TESTFL) THEN
             WRITE(PRINTF,"(' IS ID DIA_WORKSPACE%SFNL DIA_WORKSPACE%DSNL SPCSIG:',2I4,3E12.4)") I,J, &

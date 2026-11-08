@@ -3512,9 +3512,13 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 
 ! ===================================================================
 !
-!  QUADrupl [iquad] [lambda] [cnl4] [csh1] [csh2] [csh3]                  34.00
+!  QUADrupl [iquad] [lambda] [cnl4] [csh1] [csh2] [csh3] [UPSTREAM]
 !
 ! ===================================================================
+!
+!  UPSTREAM is a keyword of this fork, only for [iquad] = 1: the
+!  semi-implicit DIA then uses the linearisation of TU Delft 41.51 instead
+!  of the consistent one of the fork (SWSNL1, BF-62).
 
             CALL ININTG ('IQUAD', IQUAD, 'UNC',  0)
             CALL INREAL ('LAMBDA', PQUAD(1), 'UNC', 0.0)
@@ -3528,6 +3532,10 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
             IF (ALL(IQUAD_VALUES.NE.IQUAD)) CALL MSGERR (4, &
                'QUADRUPLET [iquad] must be 0, 1, 2, 3, 4, 8, 51, 52 or 53')
             IF (IQUAD.GT.0 .AND. IQUAD.NE.4) CALL CHECK_QUADRUPLET_LAMBDA (PQUAD(1))
+            CALL INKEYW ('STA', ' ')
+            DIA_NEWTON = .NOT. KEYWIS ('UPSTREAM')
+            IF (.NOT.DIA_NEWTON .AND. IQUAD.NE.IQUAD_DIA) CALL MSGERR (4, &
+               'QUADRUPLET ... UPSTREAM requires [iquad] = 1')
             CYCLE command_loop
          ENDIF
 

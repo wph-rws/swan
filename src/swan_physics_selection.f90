@@ -32,7 +32,7 @@ module swan_physics_selection
    public :: U10, WDIC, WDIP, WNDSCL, TRUE_U10, SIGMAG, FPI
    public :: A1SDS, A2SDS, P1SDS, P2SDS, CDSV, CDFAC, B1Z
    public :: UPWARDS, VECTOR_TAU, FESWELL, ROGERS, ZIEGER, ARDHUIN
-   public :: MODGAM, OFFSRC
+   public :: MODGAM, OFFSRC, DIA_NEWTON
    public :: PHYSICS_OFF
    public :: IGEN_GEN1, IGEN_GEN2, IGEN_GEN3, IGEN_GEN4
    public :: IWIND_OFF, IWIND_GEN1, IWIND_GEN2, IWIND_KOMEN
@@ -228,6 +228,11 @@ module swan_physics_selection
    real :: FESWELL
    logical :: UPWARDS, VECTOR_TAU
    logical :: ROGERS, ZIEGER, ARDHUIN
+
+!     DIA_NEWTON : whether the semi-implicit DIA (IQUAD 1) uses the
+!     consistent linearisation of the fork (see SWSNL1, BF-62); on by
+!     default, off with QUADRUPLET 1 ... UPSTREAM
+   logical :: DIA_NEWTON
 
 !     MODGAM : whether the breaker index is varied rather than held constant
 !     OFFSRC : whether the source terms are switched off entirely

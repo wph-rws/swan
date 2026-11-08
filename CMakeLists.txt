@@ -583,6 +583,13 @@ if( BUILD_TESTING )
   )
 
   add_test(
+    NAME dia_newton
+    COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
+            ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_dia_newton.py -q
+  )
+
+  add_test(
     NAME stop_extrapolation
     COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
             ${Python3_EXECUTABLE} -m pytest

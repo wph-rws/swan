@@ -61,6 +61,9 @@ REJECTED = [
     ("QUADRUPLET 4\nMDIA LAMBDA CNL4", "requires at least one"),
     ("QUADRUPLET 4\nMDIA LAMBDA .25", "requires CNL4 or CNL4_12"),
     ("QUADRUPLET MDIA LAMBDA 1.0 CNL4 3.0E7", "[lambda]"),
+    #  UPSTREAM (this fork) chooses the upstream semi-implicit DIA (BF-62),
+    #  so it belongs to [iquad] = 1 only.
+    ("QUADRUPLET 2 UPSTREAM", "UPSTREAM requires [iquad] = 1"),
     #  The filter scheme in frequency space was never built: nothing applies
     #  DIFFC and the frequency terms exist only for schemes 1 and 2,
     #  so the frequency shift silently dropped out.
@@ -94,6 +97,8 @@ ACCEPTED = [
     "QUADRUPLET 2",
     "QUADRUPLET 8",
     "QUADRUPLET 1 0.25",
+    "QUADRUPLET 1 UPSTREAM",
+    "QUADRUPLET 1 0.25 UPSTREAM",
     "QUADRUPLET MDIA LAMBDA 0.25 CNL4 3.0E7",
     "NUMERIC SIGIMPL",
     "NUMERIC SIGEXPL",

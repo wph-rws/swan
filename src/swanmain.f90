@@ -1498,6 +1498,8 @@ SUBROUTINE SWINIT (INERR, SNL4)
    PQUAD(3) = 5.5
    PQUAD(4) = 0.833
    PQUAD(5) = -1.25
+!     consistent semi-implicit DIA (BF-62); QUADRUPLET 1 ... UPSTREAM
+   DIA_NEWTON = .TRUE.
 
    PWIND(1)  = 188.0
    PWIND(2)  = 0.59

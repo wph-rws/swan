@@ -3,7 +3,7 @@ is still to come is small, not just the change of the last iteration.
 
 quad_dia1 with ALFA=0.01 is the known case of a false stop (AGENTS.md,
 "Convergence"): STOPC stops after about 40 iterations with Hs at 25 km at
-1.40 m, while the converged value is 1.923 m. With EXTRAP the same deck must
+1.41 m, while the converged value is 1.933 m. With EXTRAP the same deck must
 run on until Hs is within a centimetre of that value, and without EXTRAP
 nothing may change.
 """
@@ -20,7 +20,9 @@ from swan_executable import swan_executable
 ROOT = Path(__file__).resolve().parents[1]
 QUAD = ROOT / "examples/nonlinear_interactions/quad"
 QUICK = ROOT / "examples/quick_test"
-CONVERGED_HS_25KM = 1.923   # forced 3200 iterations, ALFA=0.01
+#  the fork's semi-implicit DIA (BF-62) without ALFA, 100 forced iterations,
+#  balance residual 1e-8; the upstream DIA converges to 1.923 m
+CONVERGED_HS_25KM = 1.933
 
 
 def _run(tmp_path, name, numeric):

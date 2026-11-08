@@ -360,6 +360,25 @@ measure has a floor that depends on the deck, and guarantees no accuracy in
 Hs, period or direction. For now, use it as a research aid. Background:
 [balance-residual-design.md](doc/balance-residual-design.md).
 
+The residual often stalls well above rounding level, and then `ALFA` only hides
+that. A main cause is the DIA of the quadruplets, which drives a two-cycle in
+the high-frequency tail of the spectrum. The semi-implicit DIA
+(`QUADRUPLET 1`) is meant to damp that, but upstream it converges to another
+balance and damps 248 times too weakly. The fork corrects it (BF-62), so a
+deck with
+
+```
+QUADRUPLET 1
+NUMERIC STOPC STAT MXITST=50 ALFA=0.
+```
+
+reaches the answer of the explicit DIA (`QUADRUPLET 2`) without `ALFA`, on
+test channels and the Voordelta case in 2 to 5 times less work. On the so-rp
+case it gains little, because there something else keeps the residual up.
+One iteration costs about 1.5 times as much as with `QUADRUPLET 2`. Keep the
+limiter: without it the iteration can diverge. `QUADRUPLET 1 UPSTREAM` gives
+the upstream form.
+
 A second fork option judges the change of Hs that is still to come instead
 of the change of the last iteration. With `EXTRAP [nstep]` the fork stores Hs
 every [nstep] iterations (default 10) and estimates from three such
@@ -375,8 +394,8 @@ example:
 NUMERIC STOPC STAT MXITST=600 ALFA=0.01 EXTRAP 10
 ```
 
-On `quad_dia1` this deck stops after 350 instead of 40 iterations, with Hs
-within 6 mm of the converged value instead of 0.55 m below it. The estimate
+On `quad_dia1` this deck stops after 340 instead of 40 iterations, with Hs
+within 4 mm of the converged value instead of 0.52 m below it. The estimate
 is not a bound: an iteration that slows down by itself, or a slow mode under
 a fast one, can still stop it too early. It makes a false stop much less
 likely, it does not prove convergence, `MXITST` still ends the run, and the option exists for regular
