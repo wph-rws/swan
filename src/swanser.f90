@@ -846,6 +846,16 @@ LOGICAL FUNCTION INMESH (XP, YP, XCGRID ,YCGRID, KGRBND)
 !       procedure to find whether a given location is
 !       in the (curvilinear) computational grid
 !
+!       Up to 41.51 a crossing was skipped when its distance to the point,
+!       relative to the length of its side, was within 0.1 of that of the
+!       previous crossing. That was meant against counting a corner point
+!       twice, which the test on the x-coordinates already prevents. Two
+!       different sides, such as the south and north side of an excluded
+!       area, can have such a ratio by chance; a point inside the grid then
+!       got an even number of crossings and no output. Also, the side that
+!       closes each curve, from its last point back to its first point,
+!       was not tested when there was more than one curve. Both are fixed (BF-56).
+!
 !  3. Method  suggested by Gerbrant van Vledder
 !
 !       draw a line from the point (XP,YP) in vertical direction
@@ -872,8 +882,11 @@ LOGICAL FUNCTION INMESH (XP, YP, XCGRID ,YCGRID, KGRBND)
 !
 !     NUMCRS   number of crossings with boundary outline
 
-   INTEGER  NUMCRS, IX1, IY1, IX2, IY2
-   REAL     XP1, XP2, YP1, YP2, YPS, RELDIS, RELDO
+!     IX0      x-index of the first point of the current curve, 0 if none
+!     IX1      x-index of the previous point of the current curve, 0 if none
+
+   INTEGER  NUMCRS, IX0, IX1, IX2, IY2
+   REAL     XP0, YP0, XP1, XP2, YP1, YP2
 
 !  8. Subroutines used
 !
@@ -889,7 +902,8 @@ LOGICAL FUNCTION INMESH (XP, YP, XCGRID ,YCGRID, KGRBND)
 !
 !     --------------------------------------------------------------
 !     numcros = 0
-!     For all sections of the boundary do
+!     For all sections of the boundary, including the closing section
+!     of every curve, do
 !         determine coordinates of end points (XP1,YP1) and (XP2,YP2)
 !         If (XP1<XP and XP2>XP) or (XP1>XP and XP2<XP)
 !         then If not (YP1<YP and YP2<YP)
@@ -923,59 +937,73 @@ LOGICAL FUNCTION INMESH (XP, YP, XCGRID ,YCGRID, KGRBND)
    ENDIF
 
    NUMCRS = 0
+   IX0    = 0
    IX1    = 0
-   IY1    = 0
-   IX2    = 0
-   RELDIS = -1.
+   XP0    = 0.
+   YP0    = 0.
+   XP1    = 0.
+   YP1    = 0.
 
-!     loop over the boundary of the computational grid
-   DO IBND = 1, NGRBND+1
-      IF (IX2.NE.0) THEN
-         IX1 = IX2
-         IY1 = IY2
-         XP1 = XP2
-         YP1 = YP2
-      END IF
-      IF (IBND.GT.NGRBND) THEN
-         IX2 = KGRBND(2*1-1)
-         IY2 = KGRBND(2*1)
+!     loop over the boundary of the computational grid; KGRBND holds one
+!     or more closed curves (the outer boundary and the boundary of every
+!     excluded area), each ended by the pair (0,0)
+   DO IBND = 1, NGRBND
+      IX2 = KGRBND(2*IBND-1)
+      IY2 = KGRBND(2*IBND)
+      IF (IX2.LE.0) THEN
+!        end of a curve: close it with the side from its last point
+!        back to its first point
+         IF (IX0.GT.0) CALL CROSSING (XP1, YP1, XP0, YP0)
+         IX0 = 0
+         IX1 = 0
+         CYCLE
+      ENDIF
+      XP2 = XCGRID(IX2,IY2)
+      YP2 = YCGRID(IX2,IY2)
+      IF (ITEST.GE.180) WRITE (PRTEST, "(' boundary point ', 2F12.4)") XP2+XOFFS, &
+         YP2+YOFFS
+      IF (IX1.GT.0) THEN
+         CALL CROSSING (XP1, YP1, XP2, YP2)
       ELSE
-         IX2 = KGRBND(2*IBND-1)
-         IY2 = KGRBND(2*IBND)
+         IX0 = IX2
+         XP0 = XP2
+         YP0 = YP2
       ENDIF
-      IF (IX2.NE.0 .AND. (ABS(IX2-IX1).GT.1 .OR. &
-         ABS(IY2-IY1).GT.1)) IX1 = 0
-      IF (IX2.GT.0) THEN
-         XP2 = XCGRID(IX2,IY2)
-         YP2 = YCGRID(IX2,IY2)
-         IF (ITEST.GE.180) WRITE (PRTEST, "(' boundary point ', 2F12.4)") XP2+XOFFS, &
-            YP2+YOFFS
-         IF (IBND.GT.1 .AND. IX1.GT.0) THEN
-            IF (((XP1.GT.XP).AND.(XP2.LE.XP)).OR. &
-               ((XP1.LE.XP).AND.(XP2.GT.XP))) THEN
-               IF (YP1.GT.YP .OR. YP2.GT.YP) THEN
-!               determine y-coordinate of crossing point
-                  YPS = YP1 + (XP-XP1) * (YP2-YP1) / (XP2-XP1)
-!               determine relative distance from boundary segment         40.51
-!               with respect to the length of that segment                40.51
-                  RELDO  = RELDIS
-                  RELDIS = ABS(YP-YPS) / SQRT((XP2-XP1)**2 + (YP2-YP1)**2)
-                  IF (YPS.GT.YP.AND.ABS(RELDIS-RELDO).GT.0.1) THEN
-                     NUMCRS = NUMCRS + 1
-                     IF (ITEST.GE.70) WRITE (PRTEST, "(' crossing ', I1, ' point ', 3F12.4)") NUMCRS, &
-                        XP+XOFFS, YP+YOFFS, YPS+YOFFS
-                  ENDIF
-               ENDIF
-            ENDIF
-         ENDIF
-      ENDIF
+      IX1 = IX2
+      XP1 = XP2
+      YP1 = YP2
    ENDDO
+!     a last curve without the closing pair (0,0)
+   IF (IX0.GT.0) CALL CROSSING (XP1, YP1, XP0, YP0)
 !     point is inside the grid is number of crossings is odd
    IF (MOD(NUMCRS,2) .EQ. 1) THEN
       INMESH = .TRUE.
    ELSE
       INMESH = .FALSE.
    ENDIF
+
+CONTAINS
+
+!     count a crossing of the vertical line upward from (XP,YP) with the
+!     side from (XA,YA) to (XB,YB); the test on the x-coordinates includes
+!     one end point and excludes the other, so a line through a corner
+!     point of the boundary is counted once
+SUBROUTINE CROSSING (XA, YA, XB, YB)
+   REAL, INTENT(IN) :: XA, YA, XB, YB
+   REAL YPS
+   IF (((XA.GT.XP).AND.(XB.LE.XP)).OR. &
+      ((XA.LE.XP).AND.(XB.GT.XP))) THEN
+      IF (YA.GT.YP .OR. YB.GT.YP) THEN
+!        determine y-coordinate of crossing point
+         YPS = YA + (XP-XA) * (YB-YA) / (XB-XA)
+         IF (YPS.GT.YP) THEN
+            NUMCRS = NUMCRS + 1
+            IF (ITEST.GE.70) WRITE (PRTEST, "(' crossing ', I0, ' point ', 3F12.4)") NUMCRS, &
+               XP+XOFFS, YP+YOFFS, YPS+YOFFS
+         ENDIF
+      ENDIF
+   ENDIF
+end subroutine CROSSING
 end function INMESH
 !************************************************************************
 !                                                                      *

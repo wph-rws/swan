@@ -141,3 +141,9 @@ Since 7 November 2026 SWAN itself warns after a stationary computation in
 which at least 1% of the wet grid points have [fhigh] below 2.5 times their
 peak frequency (`frequency grid too short` in PRINT; see
 `src/swan_frequency_range.f90`).
+
+The historical measurements with 130 wet output points predate BF-56. The
+corrected point search also locates the other five output points. A comparison
+between versions must use the common wet set and name its size. The convergence
+check compares runs of the same binary and requires identical wet masks; it
+does not silently compare means over different sets.

@@ -1000,6 +1000,76 @@ STOP
     assert float(rows[1][2]) == pytest.approx(-99.0)
 
 
+def _curvilinear_depths(tmp_path: Path, nodes, bottom, points, exception="-999 -999"):
+    """Run a curvilinear grid given as rows of (x, y) and return DEPTH per point.
+
+    Every run stops after one iteration: only the location of the points matters.
+    """
+    nx, ny = len(nodes[0]), len(nodes)
+    xs = "\n".join(" ".join(f"{x:.3f}" for x, _ in row) for row in nodes)
+    ys = "\n".join(" ".join(f"{y:.3f}" for _, y in row) for row in nodes)
+    bot = "\n".join(" ".join(f"{b:.3f}" for b in row) for row in bottom)
+    deck = f"""PROJECT 'CURV' '1'
+SET NAUTICAL
+MODE STATIONARY TWODIMENSIONAL
+CGRID CURVILINEAR {nx-1} {ny-1} EXCEPTION {exception} CIRCLE 12 0.05 1.0 8
+READGRID COORDINATES 1.0 'coor.grd' 3 0 FREE
+INPGRID BOTTOM CURVILINEAR 0 0 {nx-1} {ny-1}
+READINP BOTTOM 1.0 'curv.bot' 3 0 FREE
+WIND 8.0 270.0
+GEN3 KOMEN
+NUMERIC STOPC STAT MXITST=1
+POINTS 'P' FILE 'points'
+TABLE 'P' NOHEADER 'p.tbl' XP YP DEPTH
+COMPUTE
+STOP
+"""
+    files = {"coor.grd": xs + "\n" + ys + "\n", "curv.bot": bot + "\n",
+             "points": "\n".join(f"{x:.3f} {y:.3f}" for x, y in points) + "\n"}
+    result, report = _run_deck(tmp_path, deck, files, timeout=120)
+    assert result.returncode == 0, report[-2000:]
+    rows = (tmp_path / "work" / "p.tbl").read_text().splitlines()
+    return [float(r.split()[2]) for r in rows], report
+
+
+def _fan_grid(hole, excluded_corners):
+    """A fan of 41 x 49 points (70 to 110 degrees, radius 50 to 6050 m) with
+    an excluded area `hole(i, j)` and excluded corner blocks."""
+    def node(i, j):
+        if hole(i, j) or any(c(i, j) for c in excluded_corners):
+            return -999.0, -999.0
+        angle, radius = math.radians(70.0 + i), 50.0 + 125.0 * j
+        return radius * math.cos(angle), radius * math.sin(angle)
+    return [[node(i, j) for i in range(41)] for j in range(49)], [[20.0] * 41 for _ in range(49)]
+
+
+def _fan_point(angle, radius):
+    return radius * math.cos(math.radians(angle)), radius * math.sin(math.radians(angle))
+
+
+#  BF-56: when the first search fails, INMESH decides whether an output point
+#  lies in a curvilinear grid by counting how often a line straight north from
+#  the point crosses the grid outline. Upstream skipped a crossing whose
+#  distance, relative to the length of its side, was within 0.1 of that of the
+#  previous crossing. In a fan-shaped grid that ratio is almost the same for
+#  every side the line crosses, so the north side of the excluded area below
+#  was skipped: two crossings, and a point well inside the grid got depth -99.
+#  The excluded corner makes the first search fail, so that INMESH is reached;
+#  the extra node at the south-east corner of the hole keeps this test
+#  independent of BF-58.
+def test_point_south_of_excluded_area_in_fan_grid(tmp_path):
+    nodes, bottom = _fan_grid(
+        lambda i, j: (15 <= i <= 25 and 33 <= j <= 34) or (i == 26 and j == 33),
+        [lambda i, j: i < 2 and j < 2])
+    depths, report = _curvilinear_depths(
+        tmp_path, nodes, bottom, [(-1.0, 60.0), (-36.6, 4200.0), (-1.0, 7000.0)])
+    #  south of the excluded area, inside the grid
+    assert depths[0] == pytest.approx(20.0), report[-2000:]
+    #  inside the excluded area and north of the grid: still no output
+    assert depths[1] == pytest.approx(-99.0)
+    assert depths[2] == pytest.approx(-99.0)
+
+
 @pytest.mark.parametrize("nx,ny,count", [(5, 0, 6), (0, 5, 6), (0, 0, 1)])
 def test_frame_with_zero_meshes_has_output_points(tmp_path, nx, ny, count):
     deck = _quick_deck().replace(POINTS, POINTS +
@@ -1107,6 +1177,15 @@ def test_first_stationary_st6_guess_has_a_defined_drag(tmp_path):
             if l.strip() and not l.startswith('%')]
     # WINDP1 uses Wu drag for the initial second-generation guess.
     assert float(rows[0][-1]) == pytest.approx(8*math.sqrt((.8+.065*8)*.001), rel=1e-5)
+
+
+def test_outline_closes_each_curve_when_there_is_a_hole(tmp_path):
+    nodes, bottom = _fan_grid(
+        lambda i, j: (15 <= i <= 25 and 33 <= j <= 34) or (i == 26 and j == 33),
+        [lambda i, j: i < 2 and j < 2])
+    depths, report = _curvilinear_depths(tmp_path, nodes, bottom,
+                                        [(120., 250.), (130., 300.)])
+    assert depths == [-99., -99.], report[-2000:]
 
 
 #  BF-54: after BOUNDSPEC SEGMENT on an unstructured grid SWAN checked whether the

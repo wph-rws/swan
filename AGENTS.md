@@ -116,6 +116,11 @@ fine and smooth, so points shifted by some 50 m still lie in a plausible
 place; the same shortage in another file can leave points at (0,0). The operational deck also only
 runs with the RWS/DZL `swaninit`, which sets `#` as the comment character.
 
+The 130-point comparisons above predate BF-56. The corrected point search
+also locates five points that upstream missed (135 output points in total).
+When comparing versions, use their common wet points and report that count;
+do not compare a mean over 130 points with a mean over 135.
+
 > Always average over the wet points: dry points have Hsig = −9 (SWAN
 > exception value `EXCV`), and a domain average that includes the −9 gives
 > artificially low values.
