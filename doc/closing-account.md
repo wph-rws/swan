@@ -20,9 +20,9 @@ The fork compared with that:
 | `COMMON` blocks | 4 | 0 |
 | Modules | — | 165 |
 | Shared state containers | 16 | 0; the run state in `M_GENARR`, `M_PARALL` and `OUTP_DATA` is still at module level, with an owner that clears it ([run-state-ownership.md](run-state-ownership.md)) |
-| Registered tests | 0 | 61 serial, 65 with MPI (6 November 2026) |
+| Registered tests | 0 | 66 serial and OpenMP, 73 with MPI (9 November 2026) |
 | Build | CMake with 6 options, preprocessed by `switch.pl` (Perl) | CMake with 19 options, without Perl |
-| Compiler warnings (strict set) | not measurable | 1025 with gfortran 16.2 (7 November 2026); the 240 that can hide a defect all have a verdict |
+| Compiler warnings (strict set) | not measurable | 1030 with gfortran 16.2 (9 November 2026); the 233 that can hide a defect all have a verdict |
 
 There is no `COMMON` block and no unnamed shared state left. Three modules
 hold run state, each with an explicit owner. There is no general run object
@@ -38,7 +38,7 @@ kernel asks for the thread number itself. The architecture is described in
 case compares its numerical output field by field with a reference under
 version control, with a relative tolerance of 1e-3 for the rounding of the
 printed numbers. Where a fix deliberately changes the result (BF-15, BF-16,
-BF-34), this is recorded per deck in [upstream-delta.json](upstream-delta.json).
+BF-34, BF-62 and BF-63), this is recorded per deck in [upstream-delta.json](upstream-delta.json).
 Where a build variant really changes the result — `JAC` and `FFRO` — that
 variant has its own reference instead of a wider tolerance.
 
@@ -48,7 +48,7 @@ in the strict build; the fork gives none. The calls to the external METIS
 library go through a checked `BIND(C)` interface.
 
 **Warnings that can hide a defect are reviewed.** The strict build gives
-1025 warnings. The 240 of the kinds that can point to a real defect (unset
+1030 warnings. The 233 of the kinds that can point to a real defect (unset
 values, index bounds, skipped calls, truncated text, loss of precision) all
 have a recorded verdict, and the strict gate fails on any new one without a
 verdict. The other kinds are counted but not checked; see
@@ -134,10 +134,10 @@ made with a different gfortran release, but have the same module version.
 
 This is the most important section of this document.
 
-- **Zero warnings.** There are 1025 (gfortran 16.2, 7 November 2026).
+- **Zero warnings.** There are 1030 (gfortran 16.2, 9 November 2026).
   The categories with possibly serious consequences (uninitialised values,
   index bounds, skipped functions, truncated text, loss of value in
-  conversions, and warnings without a flag; 240 together) have been assessed
+  conversions, and warnings without a flag; 233 together) have been assessed
   one by one, which produced BF-19 to BF-33, BF-64 and BF-66; no suspected defect remains
   open. The other 785, mainly conversions to single precision and
   comparisons of real numbers, are counted but not assessed; rewriting them

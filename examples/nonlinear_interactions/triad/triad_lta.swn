@@ -5,6 +5,10 @@ $ the operational so-rp deck selects (TRIAD ITRIAD=1 TRFAC=0.8 CUTFR=2.5). The
 $ older generation, ITRIAD = 11, is a different formulation, not a different
 $ spelling, and it has its own deck in triad_lta11.swn. Without these two decks
 $ the bounds-checked CI build would never reach SWLTA.
+$
+$ The fork computes the third-harmonic term of this LTA so that it conserves
+$ energy (BF-63); triad_lta_upstream.swn is the same deck with the form of
+$ TU Delft 41.51.
 PROJECT 'TRIADLTA' '001'
 SET CARTESIAN
 MODE STATIONARY ONEDIMENSIONAL

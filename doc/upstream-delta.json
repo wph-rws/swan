@@ -222,13 +222,32 @@
     },
     {
       "deck": "nonlinear_interactions/triad/triad_lta.swn",
-      "status": "identical",
-      "measured": "3 output file(s) equal"
+      "status": "differs",
+      "measured": "differs in: triad_lta.spc, triad_lta.tbl, triad_lta_sources.spc",
+      "bugfix": "BF-63",
+      "fork_output": {
+        "triad_lta.spc": "5e83092c776d9e28575ac112a2952f69c9313412a759b57b98de269a60e7a4b5",
+        "triad_lta.tbl": "aaba76ebb2bba9cf2b7656565630b1294158f80f6ee37fd0a98bd648a03db1e5",
+        "triad_lta_sources.spc": "28dcd2c31067afc05f1843809cd81f1618d65a50b93db37230636bb67ae13810"
+      },
+      "note": "The fork makes the third-harmonic term of the ITRIAD=1 LTA energy-conserving by default. triad_lta_upstream.swn is the same deck with TRIAD ... UPSTREAM, and its output equals upstream's output of this deck."
     },
     {
       "deck": "nonlinear_interactions/triad/triad_lta11.swn",
       "status": "identical",
       "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_lta_upstream.swn",
+      "status": "differs",
+      "bugfix": "BF-63",
+      "measured": "present on one side only: triad_lta_upstream.spc, triad_lta_upstream.tbl",
+      "fork_output": {
+        "triad_lta_upstream.spc": "2460f7e1c0277f8131c12da5f080f8d9e6abff6951454bcfc52557b78732f306",
+        "triad_lta_upstream.tbl": "80d2c0d9e7f2352070f472d7af3879600d8a9b168cd4d560eae4e2242e0b83bf",
+        "triad_lta_upstream_sources.spc": "bf2d0981c9620feb7bcf5eecd9d69b72a407e05aeb7977ef5d92a2af60ca29d4"
+      },
+      "note": "UPSTREAM is a keyword of this fork; upstream reports 'Illegal keyword: UPSTREAM' and writes no table or spectra. The table, spectra and source terms of the fork are equal, number for number, to upstream's output of triad_lta.swn."
     },
     {
       "deck": "nonlinear_interactions/triad/triad_off.swn",

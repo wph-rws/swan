@@ -1,0 +1,41 @@
+$ Shallow-water propagation over a submerged bar with LTA triads, with the
+$ third-harmonic term as TU Delft 41.51 computes it
+$
+$ The same deck as triad_lta.swn, with one word more on the TRIAD line:
+$ UPSTREAM. Since 41.51 the LTA (ITRIAD = 1) lets waves at f and 2f feed the
+$ third harmonic at 3f. Upstream takes the energy for that only from f, as
+$ twice the density gained at 3f, and nothing from 2f, so one third of what
+$ arrives at 3f is not taken from anywhere. The fork shares the loss as the
+$ triad requires, one third from f and two thirds from 2f (BF-63); this deck
+$ asks for the upstream form instead, and is what upstream computes for
+$ triad_lta.swn.
+$
+$ UPSTREAM is a keyword of this fork, not upstream input, and only valid with
+$ the LTA. It must be the last word on the TRIAD line.
+PROJECT 'TRIADLTU' '001'
+SET CARTESIAN
+MODE STATIONARY ONEDIMENSIONAL
+COORDINATES CARTESIAN
+
+CGRID REGULAR 0.0 0.0 0.0 30.0 0.0 300 0 &
+      SECTOR -10.0 10.0 20 0.10 2.0 31
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 30 0 1.0 1.0
+READINP BOTTOM 1.0 'bottom.bot' 1 0 FREE
+
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 0.06 2.0 0.0 2.0
+
+GEN3 WESTH
+OFF WINDGROWTH
+OFF WCAPPING
+OFF QUADRUPLET
+TRIAD LTA UPSTREAM
+
+POINTS 'GAUGES' 2.0 0.0 10.0 0.0 15.0 0.0 18.0 0.0 &
+         25.0 0.0 30.0 0.0
+TABLE 'GAUGES' HEADER 'triad_lta_upstream.tbl' XP DEPTH HSIGN TM01 RTP REDTRIAD REDQUAD
+SPECOUT 'GAUGES' SPEC1D ABS 'triad_lta_upstream.spc'
+TEST 1 0 POINTS XY 15.0 0.0 S1D 'triad_lta_upstream_sources.spc'
+
+COMPUTE
+STOP

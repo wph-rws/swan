@@ -448,6 +448,11 @@ if( BUILD_TESTING )
   target_link_libraries( test_physics_kernels PRIVATE swan${VERSION} )
   add_test( NAME physics_kernels COMMAND test_physics_kernels )
 
+  # The LTA triads must only move energy between frequencies (BF-63).
+  add_executable( test_lta_conservation tests/test_lta_conservation.f90 )
+  target_link_libraries( test_lta_conservation PRIVATE swan${VERSION} )
+  add_test( NAME lta_conservation COMMAND test_lta_conservation )
+
   add_executable( test_breaker_index tests/test_breaker_index.f90 )
   target_link_libraries( test_breaker_index PRIVATE swan${VERSION} )
   add_test( NAME breaker_index COMMAND test_breaker_index )

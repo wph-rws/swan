@@ -3,7 +3,7 @@
 The strict build compiles SWAN with every extra warning gfortran offers:
 `-Wall -Wextra -Wimplicit-interface -Wsurprising -Wconversion-extra
 -Wcharacter-truncation`, Release, the default serial variant, with the
-reference compiler (gfortran 16.2, see `AGENTS.md`). It gives 1025 warnings.
+reference compiler (gfortran 16.2, see `AGENTS.md`). It gives 1030 warnings.
 Most of them say nothing about whether SWAN computes correctly. A few kinds
 do, and those are the ones the strict gate checks.
 
@@ -44,14 +44,14 @@ one changes every call.
 
 | Kind of warning | Count | Checked | What the review found |
 |---|---:|---|---|
-| `maybe-uninitialized` | 67 | yes | defects BF-19, BF-20, BF-21, BF-22, BF-23, BF-27, BF-28, BF-29, BF-30, BF-31, BF-33, BF-64, BF-66; the rest harmless |
+| `maybe-uninitialized` | 60 | yes | defects BF-19, BF-20, BF-21, BF-22, BF-23, BF-27, BF-28, BF-29, BF-30, BF-31, BF-33, BF-64, BF-66; the rest harmless |
 | `conversion` | 72 | yes | harmless: intended rounding to single precision, or integer expressions that convert exactly |
 | `function-elimination` | 49 | yes | defect BF-24; one in `CVMESH`, where the call is made only for a point not found yet; the rest harmless |
 | `character-truncation` | 24 | yes | defects BF-26 and BF-32; the rest harmless or deliberate |
 | `do-subscript` | 24 | yes | harmless; the edge case behind them was defect BF-25 |
 | `untagged` | 4 | yes | deliberate: FFTW transforms in place |
-| `conversion-extra` | 495 | counted only | |
-| `compare-reals` | 225 | counted only | |
+| `conversion-extra` | 498 | counted only | |
+| `compare-reals` | 234 | counted only | |
 | `unused-variable` | 4 | counted only | used only in OpenMP clauses |
 | `unused-dummy-argument` | 61 | counted only | |
 
@@ -129,7 +129,7 @@ version reports somewhat different warnings, even in unchanged code: the
 same case can show up under another routine because the compiler inlines
 differently. After a compiler change, the new checked warnings have to be
 reviewed before the gate is green again; that is a few dozen at most, not a
-recount of all 1025.
+recount of all 1030.
 
 `tests/test_strict_diagnostics.py` tests the gate itself, including that a
 missing verdict and a silenced build both fail.

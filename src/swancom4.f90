@@ -3460,6 +3460,10 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG, TRIADS )
       WISM1 => TRIADS%lower_weight_next, &
       WISP => TRIADS%upper_weight, &
       WISP1 => TRIADS%upper_weight_next, &
+      ISH => TRIADS%three_halves_index, &
+      ISH1 => TRIADS%three_halves_index_next, &
+      WISH => TRIADS%three_halves_weight, &
+      WISH1 => TRIADS%three_halves_weight_next, &
       QTRI1 => TRIADS%interpolation, &
       QTRI2 => TRIADS%scaling, &
       TCOLL => TRIADS%collinear)
@@ -3495,6 +3499,15 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG, TRIADS )
          ISP1 (3) = ISP(3) + 1
          WISP (3) = (3. - XIS**ISP(3)) / (XIS**ISP1(3) - XIS**ISP(3))
          WISP1(3) = 1. - WISP(3)
+
+!        --- indices of 3/2 times the frequency, where f is the secondary
+!            wave (2p) of a third harmonic 3p; only the energy-conserving
+!            form of SWLTA uses them (BF-63)
+
+         ISH   = INT( LOG(1.5) / XISLN )
+         ISH1  = ISH + 1
+         WISH  = (1.5 - XIS**ISH) / (XIS**ISH1 - XIS**ISH)
+         WISH1 = 1. - WISH
 
          ISM  (3,1) = INT( LOG(1./3.) / XISLN )
          ISM1 (3,1) = ISM(3,1) - 1
@@ -4116,7 +4129,11 @@ SUBROUTINE SWLTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, 
       WISM => TRIADS%lower_weight, &
       WISM1 => TRIADS%lower_weight_next, &
       WISP => TRIADS%upper_weight, &
-      WISP1 => TRIADS%upper_weight_next)
+      WISP1 => TRIADS%upper_weight_next, &
+      ISH => TRIADS%three_halves_index, &
+      ISH1 => TRIADS%three_halves_index_next, &
+      WISH => TRIADS%three_halves_weight, &
+      WISH1 => TRIADS%three_halves_weight_next)
       IF (LTRACE) CALL STRACE (IENT,'SWLTA')
 
       DEP  = DEP2  (IGP)
@@ -4266,9 +4283,26 @@ SUBROUTINE SWLTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, 
                   WISP1(2) * SA(ID,IS+ISP (2)))
 
 !              --- interaction at third harmonic
-               STRI = STRI + &
-                  SA3(ID,IS) - 2.*(WISP (3) * SA3(ID,IS+ISP1(3)) + &
-                  WISP1(3) * SA3(ID,IS+ISP (3)))
+               IF (LTA_CONSERVE) THEN
+!                 This fork (BF-63; TRIAD ... UPSTREAM for the form of
+!                 TU Delft 41.51 below): the energy that
+!                 arrives at 3p comes one third from p and two thirds from
+!                 2p. Because the band at 3p is three times as wide as the
+!                 band at p and 3/2 times as wide as the band at 2p, the
+!                 density lost at f is SA3(3f) as primary wave plus
+!                 SA3(3f/2) as secondary wave. Upstream takes 2*SA3(3f) from
+!                 f and nothing from 2f, so one third of the gain at 3p is
+!                 not taken from anywhere.
+                  STRI = STRI + SA3(ID,IS) &
+                     - (WISP (3) * SA3(ID,IS+ISP1(3)) + &
+                     WISP1(3) * SA3(ID,IS+ISP (3))) &
+                     - (WISH     * SA3(ID,IS+ISH1   ) + &
+                     WISH1    * SA3(ID,IS+ISH    ))
+               ELSE
+                  STRI = STRI + &
+                     SA3(ID,IS) - 2.*(WISP (3) * SA3(ID,IS+ISP1(3)) + &
+                     WISP1(3) * SA3(ID,IS+ISP (3)))
+               END IF
 
 !              --- make energy flux conservative
                STRI = CG * STRI

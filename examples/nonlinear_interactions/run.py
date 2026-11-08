@@ -42,6 +42,10 @@ VARIANTS = {
     "triad_off": Variant("triad", "triad_off", "triads disabled"),
     "triad_dcta": Variant("triad", "triad_dcta", "DCTA triads"),
     "triad_lta": Variant("triad", "triad_lta", "LTA triads"),
+    "triad_lta_upstream": Variant(
+        "triad", "triad_lta_upstream",
+        "LTA triads, third harmonic as upstream (TRIAD ... UPSTREAM)",
+    ),
     "triad_spb": Variant("triad", "triad_spb", "SPB triads"),
     "triad_biph_sapr": Variant("triad", "triad_biph_sapr", "DCTA with the Saprykina biphase"),
     "triad_biph_dewit": Variant("triad", "triad_biph_dewit", "DCTA with the De Wit biphase"),
@@ -94,6 +98,7 @@ TRIAD_KEYS = (
     "triad_dcta",
     "triad_ftim",
     "triad_lta",
+    "triad_lta_upstream",
     "triad_lta11",
     "triad_spb",
     "triad_biph_sapr",
@@ -377,6 +382,39 @@ def run_variant(
     )
 
 
+def group_velocity(frequency: float, depth: float, gravity: float = 9.81) -> float:
+    """Linear group velocity, from the dispersion relation by Newton steps."""
+    omega = 2.0 * math.pi * frequency
+    wavenumber = max(omega * omega / gravity, omega / math.sqrt(gravity * depth))
+    for _ in range(50):
+        tanh = math.tanh(wavenumber * depth)
+        residual = gravity * wavenumber * tanh - omega * omega
+        slope = gravity * tanh + gravity * wavenumber * depth * (1.0 - tanh * tanh)
+        step = residual / slope
+        wavenumber -= step
+        if abs(step) < 1.0e-12 * wavenumber:
+            break
+    kh = wavenumber * depth
+    return 0.5 * (1.0 + 2.0 * kh / math.sinh(2.0 * kh)) * omega / wavenumber
+
+
+def energy_flux(frequencies: list[float], spectrum: list[float], depth: float) -> float:
+    """Energy flux of a one-dimensional spectrum, up to the factor rho g."""
+    flux = [group_velocity(f, depth) * e for f, e in zip(frequencies, spectrum, strict=True)]
+    return sum(
+        0.5 * (flux[i] + flux[i + 1]) * (frequencies[i + 1] - frequencies[i])
+        for i in range(len(frequencies) - 1)
+    )
+
+
+def flux_ratio(result: RunResult, first: int, last: int) -> float:
+    """Energy flux at gauge `last` divided by the flux at gauge `first`."""
+    return (
+        energy_flux(result.frequencies, result.spectra[last], result.table[last][1])
+        / energy_flux(result.frequencies, result.spectra[first], result.table[first][1])
+    )
+
+
 def relative_spectral_difference(first: list[float], second: list[float]) -> float:
     scale = sum(abs(value) for value in first)
     if scale == 0.0:
@@ -398,7 +436,8 @@ def validate_results(results: dict[str, RunResult]) -> list[str]:
                    "quad_full", *XNL_KEYS, "combined"}:
             if max(quad_sources) <= 1.0e-8:
                 raise RuntimeError(f"{key} did not activate quadruplet transfer")
-        if key in {"triad_dcta", "triad_ftim", "triad_lta", "triad_lta11", "combined"}:
+        if key in {"triad_dcta", "triad_ftim", "triad_lta", "triad_lta_upstream",
+                   "triad_lta11", "combined"}:
             if max(triad_sources) <= 1.0e-8:
                 raise RuntimeError(f"{key} did not activate triad transfer")
 
@@ -462,6 +501,35 @@ def validate_results(results: dict[str, RunResult]) -> list[str]:
         messages.append(
             f"TRIAD: ITRIAD=11 differs {lta_difference:.1%} from LTA at x=25 m."
         )
+
+    if {"triad_lta", "triad_lta_upstream"}.issubset(results):
+        # TRIAD LTA with the fork's energy-conserving third harmonic (BF-63)
+        # and with UPSTREAM. The two runs must differ, or the fix no longer
+        # reaches SWLTA. The energy flux from x=2 m to x=25 m, at the same
+        # depth, shows how much each run gains or loses: triads move energy
+        # between frequencies but should not create or destroy it. Hs alone
+        # does not show that, because energy moved to a higher frequency
+        # travels slower and so raises Hs at the same flux.
+        lta = results["triad_lta"]
+        upstream = results["triad_lta_upstream"]
+        difference = relative_spectral_difference(upstream.spectra[-2], lta.spectra[-2])
+        if difference <= 0.005:
+            raise RuntimeError(
+                "TRIAD LTA produced the same spectrum as TRIAD LTA UPSTREAM; "
+                "the BF-63 fix no longer reaches the third-harmonic term"
+            )
+        messages.append(
+            f"TRIAD: LTA (BF-63) differs {difference:.1%} from LTA UPSTREAM "
+            f"at x=25 m; Hs {upstream.table[-2][2] * 100:.2f} -> "
+            f"{lta.table[-2][2] * 100:.2f} cm, Tm01 {upstream.table[-2][3]:.3f} -> "
+            f"{lta.table[-2][3]:.3f} s."
+        )
+        fluxes = ", ".join(
+            f"{key.removeprefix('triad_')} {flux_ratio(results[key], 0, -2):.3f}"
+            for key in ("triad_off", "triad_lta_upstream", "triad_lta", "triad_lta11")
+            if key in results
+        )
+        messages.append(f"TRIAD: energy flux at x=25 m / x=2 m: {fluxes}.")
 
     if {"src_all", *SOURCE_VARIANTS}.issubset(results):
         # Wind, whitecapping, breaking and bottom friction each report their
@@ -577,6 +645,36 @@ def create_plots(results: dict[str, RunResult], results_root: Path) -> list[Path
             axis.grid(True, which="both", alpha=0.3)
             axis.legend()
         destination = results_root / "triad_comparison.png"
+        figure.savefig(destination, dpi=170)
+        plt.close(figure)
+        figures.append(destination)
+
+    lta_keys = [
+        key for key in ("triad_off", "triad_lta_upstream", "triad_lta") if key in results
+    ]
+    if {"triad_lta", "triad_lta_upstream"}.issubset(results):
+        figure, axes = plt.subplots(1, 2, figsize=(12, 4.8), constrained_layout=True)
+        for key in lta_keys:
+            result = results[key]
+            axes[0].semilogy(
+                result.frequencies,
+                [max(value, 1.0e-10) for value in result.spectra[-2]],
+                label=result.variant.description,
+            )
+            axes[1].plot(
+                [row[0] for row in result.table],
+                [row[3] for row in result.table],
+                marker="o",
+                label=result.variant.description,
+            )
+        axes[0].set(xlabel="Frequency [Hz]", ylabel="Variance density [m²/Hz]",
+                    title="Lee-side spectrum at x=25 m, LTA with and without BF-63")
+        axes[1].set(xlabel="Distance [m]", ylabel="Mean period Tm01 [s]",
+                    title="Transfer across the submerged bar")
+        for axis, location in zip(axes, ("lower left", "upper right"), strict=True):
+            axis.grid(True, which="both", alpha=0.3)
+            axis.legend(loc=location)
+        destination = results_root / "triad_lta_bf63.png"
         figure.savefig(destination, dpi=170)
         plt.close(figure)
         figures.append(destination)

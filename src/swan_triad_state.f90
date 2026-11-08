@@ -19,6 +19,12 @@ module swan_triad_state
       real(swan_real) :: lower_weight_next(3,2) = 0.0_swan_real
       real(swan_real) :: upper_weight(3) = 0.0_swan_real
       real(swan_real) :: upper_weight_next(3) = 0.0_swan_real
+!     index offsets and weights of 3/2 times the frequency, for the
+!     energy-conserving third-harmonic term of the LTA (BF-63)
+      integer :: three_halves_index = 0
+      integer :: three_halves_index_next = 0
+      real(swan_real) :: three_halves_weight = 0.0_swan_real
+      real(swan_real) :: three_halves_weight_next = 0.0_swan_real
       real(swan_real), allocatable :: biphase_unfiltered(:)
       real(swan_real), allocatable :: interpolation(:,:)
       real(swan_real), allocatable :: scaling(:,:,:)

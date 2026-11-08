@@ -1491,6 +1491,8 @@ SUBROUTINE SWINIT (INERR, SNL4)
    PTRIAD(7)  = 0.
    PTRIAD(8)  = 60.
    PTRIAD(10) = -1.
+!     energy-conserving third harmonic of the LTA (BF-63); TRIAD ... UPSTREAM
+   LTA_CONSERVE = .TRUE.
 
 !     quadruplet interactions
    PQUAD(1) = 0.25

@@ -64,6 +64,10 @@ REJECTED = [
     #  UPSTREAM (this fork) chooses the upstream semi-implicit DIA (BF-62),
     #  so it belongs to [iquad] = 1 only.
     ("QUADRUPLET 2 UPSTREAM", "UPSTREAM requires [iquad] = 1"),
+    #  UPSTREAM (this fork) chooses the upstream third harmonic of the LTA
+    #  (BF-63); ITRIAD=11 has no third harmonic and DCTA a different form.
+    ("TRIAD ITRIAD=11 UPSTREAM", "UPSTREAM requires the LTA"),
+    ("TRIAD DCTA UPSTREAM", "UPSTREAM requires the LTA"),
     #  The filter scheme in frequency space was never built: nothing applies
     #  DIFFC and the frequency terms exist only for schemes 1 and 2,
     #  so the frequency shift silently dropped out.
@@ -94,6 +98,9 @@ ACCEPTED = [
     "TRIAD ITRIAD=1",
     "TRIAD LTA",
     "TRIAD DCTA",
+    "TRIAD LTA UPSTREAM",
+    "TRIAD ITRIAD=1 TRFAC=0.8 CUTFR=2.5 UPSTREAM",
+    "TRIAD LTA TRANSFER MS UPSTREAM",
     "QUADRUPLET 2",
     "QUADRUPLET 8",
     "QUADRUPLET 1 0.25",

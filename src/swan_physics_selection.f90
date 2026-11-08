@@ -32,7 +32,7 @@ module swan_physics_selection
    public :: U10, WDIC, WDIP, WNDSCL, TRUE_U10, SIGMAG, FPI
    public :: A1SDS, A2SDS, P1SDS, P2SDS, CDSV, CDFAC, B1Z
    public :: UPWARDS, VECTOR_TAU, FESWELL, ROGERS, ZIEGER, ARDHUIN
-   public :: MODGAM, OFFSRC, DIA_NEWTON
+   public :: MODGAM, OFFSRC, DIA_NEWTON, LTA_CONSERVE
    public :: PHYSICS_OFF
    public :: IGEN_GEN1, IGEN_GEN2, IGEN_GEN3, IGEN_GEN4
    public :: IWIND_OFF, IWIND_GEN1, IWIND_GEN2, IWIND_KOMEN
@@ -233,6 +233,11 @@ module swan_physics_selection
 !     consistent linearisation of the fork (see SWSNL1, BF-62); on by
 !     default, off with QUADRUPLET 1 ... UPSTREAM
    logical :: DIA_NEWTON
+
+!     LTA_CONSERVE : whether the third-harmonic term of the LTA triads
+!     (ITRIAD 1) takes its loss from both f and 2f (see SWLTA, BF-63); on
+!     by default, off with TRIAD ... UPSTREAM
+   logical :: LTA_CONSERVE
 
 !     MODGAM : whether the breaker index is varied rather than held constant
 !     OFFSRC : whether the source terms are switched off entirely

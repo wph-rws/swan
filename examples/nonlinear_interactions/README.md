@@ -19,6 +19,8 @@ formulation):
   `ITRIAD=11`), SPB, DCTA with the Saprykina and De Wit biphase, and the new
   FTIM method isolate the transfer to superharmonics in shallow water. Wind
   input, whitecapping and quadruplets are disabled in all triad variants.
+  `triad_lta_upstream` is `triad_lta` with the third harmonic as upstream
+  computes it, without the fix of BF-63 (see below).
 - `combined` follows wind-wave growth over a 40 km deep section and subsequent
   transformation down a slope to 2 m water depth. DIA per iteration and FTIM
   are active together, along with breaking and bottom friction.
@@ -41,7 +43,7 @@ cmake --build build --parallel
 python3 examples/nonlinear_interactions/run.py
 ```
 
-The default `standard` selection runs 29 fast variants and takes about ten
+The default `standard` selection runs 30 fast variants and takes about ten
 seconds. Run an individual group with `--case quad`, `--case triad`,
 `--case combined`, `--case sources` or `--case formulations`.
 
@@ -75,6 +77,8 @@ file. It then verifies that:
 - DCTA and FTIM report nonzero triad transfer;
 - DIA measurably changes the spectrum after 100 km of fetch;
 - DCTA and FTIM measurably change the spectrum behind the submerged bar;
+- the LTA measurably differs from the LTA with `UPSTREAM`, and the
+  energy flux behind the bar is reported for both (see below);
 - both nonlinear source terms are active in the combined case;
 - each switched-off source term (wind, whitecapping, breaking, friction)
   reports zero in its own column, and each friction and breaking formulation
@@ -95,6 +99,7 @@ products are:
 
 - `quad_comparison.png`: down-fetch wave growth and spectra with and without DIA;
 - `triad_comparison.png`: DCTA/FTIM harmonic transfer across the bar;
+- `triad_lta_bf63.png`: the LTA with and without the BF-63 fix;
 - `combined_evolution.png`: ocean-to-nearshore spectral evolution;
 - `validation.txt`: quantitative comparisons from the latest selected run;
 - `*.tbl`, `*.spc` and `*_sources.spc`: raw SWAN tables, spectra and source terms;
@@ -106,3 +111,42 @@ frequency resolution. This is intentional: the SWAN manual warns that DIA is a
 poor approximation for long-crested waves and spectral resolutions far from
 10%. FTIM was introduced in SWAN 41.51; see the
 [release notes](https://swanmodel.sourceforge.io/modifications/modifications.htm).
+
+## LTA with and without the BF-63 fix
+
+Since 41.51 the LTA (`TRIAD LTA`, which is `ITRIAD=1`) also lets waves at f
+and 2f feed the third harmonic at 3f. Upstream takes the energy for that only
+from f, and nothing from 2f, so one third of what arrives at 3f is not taken
+from anywhere. The fork shares the loss as the triad requires (BF-63). The
+upstream form follows the documented formula, so it may be intended; it
+stays available with the word `UPSTREAM`:
+
+```
+TRIAD LTA UPSTREAM
+TRIAD ITRIAD=1 TRFAC=0.8 CUTFR=2.5 UPSTREAM
+```
+
+`UPSTREAM` must be the last word on the `TRIAD` line and is only accepted for
+the LTA. It is not upstream input: TU Delft SWAN reports an illegal keyword
+and does not compute. `triad_lta.swn` computes with the fix and
+`triad_lta_upstream.swn` without it; the decks are otherwise the same. Run
+both with `--case triad`.
+
+What the comparison shows on this bar (measured 6 November 2026):
+
+| Run | Hs at x=25 m | Tm01 at x=25 m | energy flux x=25 m / x=2 m |
+|---|---|---|---|
+| triads disabled | 5.99 cm | 1.658 s | 0.997 |
+| LTA with `UPSTREAM` | 6.26 cm | 1.333 s | 0.952 |
+| LTA (BF-63) | 6.21 cm | 1.350 s | 0.947 |
+| `ITRIAD=11` | 6.27 cm | 1.464 s | 0.993 |
+
+Hs behind the bar is higher than in front of it in every triad run. That is
+not created energy: energy moved to higher frequencies travels more slowly,
+so the same flux gives a higher wave. The flux is the measure that should stay
+at 1. With the fix the third-harmonic bracket conserves energy (net/absolute
+−0.002 at x=15 m, against +0.033 with `UPSTREAM`), but the flux still drops by about
+5%. That loss comes from the group velocity, which 41.51 applies once to the
+whole triad term instead of to each part, and which the fix does not
+change. See BF-63 in the
+[bug-fix list](../../doc/bug-fixes-vs-tu-delft-41.51.md).

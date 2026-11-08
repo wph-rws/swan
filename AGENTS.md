@@ -73,6 +73,12 @@ criterion after 35–37 iterations:
 | 41.51 with `GEN3 KOMEN DRAG FIT` (without URCRIT/URSLIM) | 1.603 m (+0.0%) |
 | 41.51 `legacy-4131`: `DRAG FIT`, `DINT=-1`, `URCRIT=0.2`, `URSLIM=0.01`, `IC=2` | 1.583 m (−1.2%) |
 
+Since 8 November 2026 the fork also makes the third-harmonic term of the
+`ITRIAD=1` LTA energy-conserving by default (BF-63, `TRIAD ... UPSTREAM` for
+the form of 41.51). On this deck at this condition that lowers mean Hsig from
+1.653 to 1.651 m, at single points by up to 2.5 cm (rms 0.4 cm); the table
+above was measured before that.
+
 With `DRAG FIT` alone the mean agrees only because the triad changes happen to
 cancel on average: point by point 41.51 still differs from 41.31 by up to 9 cm
 (RMS 3.5 cm). The `legacy-4131` variant of `so-rp_swan/matrix/deck.py` sets

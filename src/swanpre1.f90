@@ -3570,6 +3570,8 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 !
 !   TRIad [itriad] [trfac] [cutfr] [dint] [a] [b] [p] [urcrit] [urslim] [ic]  (obsolete)
 !
+!   ... [UPSTREAM]   (this fork, last on the line, only for [itriad] = 1)
+!
 ! ============================================================
 
          IF ( KEYWIS ('TRI') .OR. KEYWIS ('NL3') ) THEN
@@ -3712,6 +3714,14 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
                   PTRIAD(10) = 4.
                ENDIF
             ENDIF
+
+!     The fork makes the third-harmonic term of the LTA (ITRIAD 1)
+!     energy-conserving (SWLTA, BF-63); UPSTREAM, a keyword of this fork,
+!     keeps the form of TU Delft 41.51
+            CALL INKEYW ('STA', ' ')
+            LTA_CONSERVE = .NOT. KEYWIS ('UPSTREAM')
+            IF (.NOT.LTA_CONSERVE .AND. ITRIAD.NE.ITRIAD_LTA) CALL MSGERR (4, &
+               'TRIAD ... UPSTREAM requires the LTA ([itriad] = 1)')
 
             CYCLE command_loop
          ENDIF
