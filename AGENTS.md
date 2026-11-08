@@ -283,7 +283,8 @@ there the deck is 2.3 and 5 cm low on mean Hs, and up to 8 and 24 cm at single
 points. At the reference condition the mean is within 0.5 cm, but 39 of the
 130 points are more than 1 cm off (up to 17 cm), and a cluster of points 12–26
 m deep (x ≈ 36,500–37,000, y ≈ 404,000–404,600) keeps drifting after 160
-iterations while the energy residual stays flat from iteration 80 on. At 2 m/s
+iterations while the energy residual stays flat from iteration 80 on; a flat
+residual does not tell whether that drift settles later. At 2 m/s
 wind the deck does not reach its criterion within 40 iterations (87–88%), and
 wherever the boundary waves do not arrive, which is at most output points, the
 peak lies at the highest frequency: the upper limit of 1 Hz is too low there.
@@ -327,6 +328,8 @@ those references counts per point as uncertainty; a verdict follows only if
 the deviation of the operational run lies clearly above or below the 10 mm
 limit even with that uncertainty (a choice of this fork, not an upstream
 value). The check covers the wet output points, not the whole field or
-spectrum; periods and direction are reported separately. Run it after changes
-to numerics, source terms or deck settings. `inconclusive`, like `premature`
-and `not-converged`, gives a non-zero exit code.
+spectrum; periods and direction are reported separately. Run it when a
+change to numerics or source terms is meant to change how this deck
+converges, or when the deck's settings change; check any other code change on
+small models first (see Verification). `inconclusive`, like `premature` and
+`not-converged`, gives a non-zero exit code.

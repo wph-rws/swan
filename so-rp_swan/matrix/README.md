@@ -119,8 +119,11 @@ cores, 12–14 minutes per 80 iterations): the deck stops too early. At
 between 80 and 160, and the deck is 2.3 and 5 cm low on mean Hs, up to 8 and
 24 cm at single points. At `u20_d310_lp300_open` and `_closed` the mean is
 within 0.5 cm, but 39 of 130 points are more than 1 cm off; a cluster of
-points 12–26 m deep keeps drifting with a flat energy residual, so longer
-references would not settle it. `u02_d090_l0000_open` gives no verdict (see
+points 12–26 m deep is still moving at 160 iterations (one point by 0.7 mm
+per iteration, with Tm01 rising from 4.4 to 5.1 s) while the energy residual
+stays flat from iteration 80 on. Whether that is a slow mode that settles
+later or a level the iteration does not leave is not known: a flat residual
+does not tell the two apart. `u02_d090_l0000_open` gives no verdict (see
 the note on low wind below). Do not repeat this unless a change can affect
 the convergence of this deck.
 
