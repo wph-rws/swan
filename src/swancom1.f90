@@ -95,7 +95,7 @@ module swan_computation
 !  Entry points used by the driver (SWCOMP) and by the unstructured solver,
 !  which reuses the structured sweep building blocks.
    public :: SWCOMP, SWPRSET, SINTGRL, SOLPRE, SOLMAT, SOLMT1, SOURCE
-   public :: PHILIM, RESCALE, SWSIP
+   public :: PHILIM, RESCALE, SWSIP, SWDEPCHK
 contains
 
 SUBROUTINE SWCOMP (AC1        ,AC2        , &
@@ -911,6 +911,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
    REAL ::  DDX   ,DDY   ,ACCUR ,XIS
 
    LOGICAL :: PRECOR, SETUP_CONVERGED
+!     DEPTH_NAN   true once the set-up has given a NaN water depth
+   LOGICAL :: DEPTH_NAN
 
    INTEGER :: MNISL, MXNFL, MXNFR, NPFL, NPFR, NVARW, NWETP
    INTEGER, PARAMETER :: IDEBUG=0
@@ -1342,6 +1344,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
 !
    SETUP_CONVERGED = .TRUE.
    SWCOMP_STOP_REQUESTED = .FALSE.
+   DEPTH_NAN = .FALSE.
    !$OMP PARALLEL DEFAULT(SHARED) &
       !$OMP PRIVATE(ITER, SWPDIR, ISWP, IX, IY, II, IJ, IK, THREAD_INDEX) &
       !$OMP PRIVATE(CAX, CAY, CAX1, CAY1, CAS, CAD, CGO, KWAVE, DMW) &
@@ -2227,6 +2230,13 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
          CALL SETUPP ( KGRPNT, MSTPDA, SETPDA, AC2, COMPDA(1,JDP2), &
          COMPDA(1,JDPSAV), COMPDA(1,JSETUP), &
          XCGRID, YCGRID, SPCSIG, SPCDIR, SETUP_CONVERGED )
+!                 the set-up has just been added to the water depth;
+!                 DEPTH_NAN is shared and read by all threads after the
+!                 barrier below
+      IF (LSETUP.GT.0) THEN
+         CALL SWDEPCHK ( COMPDA, DEPTH_NAN )
+         IF (DEPTH_NAN) SWCOMP_STOP_REQUESTED = .TRUE.
+      ENDIF
       IF (timing_enabled) CALL SWTSTO(106)
 !
 !----------------------------------------------------------------------   40.31
@@ -2348,6 +2358,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
 !     starting next iteration.                                            40.22
 !----------------------------------------------------------------------   40.22
       !$OMP BARRIER
+!
+!       --- a NaN water depth after the set-up: stop iterating (BF-61)
+      IF (DEPTH_NAN) EXIT iteration_loop
 !
 !       --- check if breaker index for BKD needs to be modified           41.96
       IF (MODGAM .AND. ACCUR.GE.PNUMS(PNUMS_BKDACC)) MODGAM = .FALSE.
@@ -9156,4 +9169,59 @@ SUBROUTINE SWSTPC ( HSACC0, HSACC1, HSACC2, SACC0 , SACC1, &
    RETURN
 end subroutine SWSTPC
 
+!************************************************************************
+!  A NaN water depth is wet where a routine tests DEP.LE.DEPMIN and dry
+!  where it tests DEP.GT.DEPMIN, and the result silently depends on which
+!  one is met first. Input fields no longer bring a NaN (BF-59), but a
+!  depth from fort.14, a coupled model or a diverging set-up still can.
+!  Stop with a message instead (BF-61). It runs after each update of the
+!  input fields and after each set-up update in SWCOMP. All processes
+!  count together, so that they stop together.
+SUBROUTINE SWDEPCHK ( COMPDA, FOUND )
+   USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_NAN
+   USE swan_service_interfaces, ONLY: MSGERR
+   USE swan_io_units
+   USE swan_computational_grid
+   USE M_GENARR, ONLY: KGRPNT
+   USE swan_computational_grid_kind, ONLY: OPTG
+   USE swan_metis_partition_backend, ONLY: metis_enabled, metis_vertex_is_resident
+   USE swan_compda_layout
+   USE M_PARALL
+   REAL    COMPDA(MCGRD,MCMVAR)
+!  FOUND: true if a NaN depth was found. STPNOW cannot tell this inside an
+!  OpenMP parallel region, where it always returns false.
+   LOGICAL, OPTIONAL, INTENT(OUT) :: FOUND
+   INTEGER INDX, NNAN, IX, IY, IX1, IX2, IY1, IY2
+   NNAN = 0
+   IF (OPTG.EQ.5) THEN
+      DO INDX = 1, MCGRD
+         IF (metis_enabled .AND. PARLL) THEN
+            IF (.NOT.metis_vertex_is_resident(INDX)) CYCLE
+         ENDIF
+         IF (IEEE_IS_NAN(COMPDA(INDX,JDP2))) NNAN = NNAN + 1
+      ENDDO
+   ELSE
+      IX1 = 1
+      IX2 = MXC
+      IY1 = 1
+      IY2 = MYC
+      IF (.NOT.LMXF) IX1 = 1 + IHALOX
+      IF (.NOT.LMXL) IX2 = MXC - IHALOX
+      IF (.NOT.LMYF) IY1 = 1 + IHALOY
+      IF (.NOT.LMYL) IY2 = MYC - IHALOY
+      DO IY = IY1, IY2
+         DO IX = IX1, IX2
+            INDX = KGRPNT(IX,IY)
+            IF (INDX.LE.1) CYCLE
+            IF (IEEE_IS_NAN(COMPDA(INDX,JDP2))) NNAN = NNAN + 1
+         ENDDO
+      ENDDO
+   ENDIF
+   CALL SWREDUCE (NNAN, 1, SWSUM)
+   IF (PRESENT(FOUND)) FOUND = NNAN.GT.0
+   IF (NNAN.GT.0) THEN
+      CALL MSGERR (4, 'water depth is NaN')
+      WRITE (PRINTF, "(1X, I0, ' grid points with a NaN water depth')") NNAN
+   ENDIF
+end subroutine SWDEPCHK
 end module swan_computation

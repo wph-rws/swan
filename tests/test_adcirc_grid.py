@@ -87,3 +87,24 @@ def test_adcirc_grid_computes_like_triangle_grid(tmp_path):
     run(adcirc, adcirc_deck(deck))
     for name in OUTPUTS:
         assert (adcirc / name).read_bytes() == (triangle / name).read_bytes(), name
+
+
+#  BF-61: fort.14 gives the depth per vertex directly, so a NaN there does not
+#  pass the check on input fields of BF-59. Upstream computed on: a NaN depth
+#  is wet in some routines and dry in others, and Hs at the centre of this
+#  grid became 0.00 m instead of 0.94 m, with exit code 0. SWAN must stop
+#  with a message.
+def test_nan_depth_in_fort14_stops_with_message(tmp_path):
+    lines = fort14((CASE / f"{BASENAME}.node").read_text(),
+                   (CASE / f"{BASENAME}.ele").read_text()).splitlines()
+    assert lines[7] == f"6 0.0 500.0 {DEPTH}"
+    lines[7] = "6 0.0 500.0 NaN"
+    for name in ("bottom.bot", "wind.wnd"):
+        shutil.copy2(CASE / name, tmp_path / name)
+    (tmp_path / "fort.14").write_text("\n".join(lines) + "\n")
+    (tmp_path / "INPUT").write_text(adcirc_deck((CASE / f"{BASENAME}.swn").read_text()))
+    result = subprocess.run([swan_executable()], cwd=tmp_path, capture_output=True, text=True)
+    report = (tmp_path / "PRINT").read_text(errors="replace")
+    assert result.returncode != 0, report[-2000:]
+    assert "water depth is NaN" in report
+    assert "1 grid points with a NaN water depth" in report

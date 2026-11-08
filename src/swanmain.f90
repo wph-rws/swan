@@ -66,7 +66,7 @@ SUBROUTINE SWMAIN
 !************************************************************************
 
    USE swan_time, ONLY: DTTIME, DTINTI, DTRETI, DTTIWR
-   USE swan_computation, ONLY: SWCOMP
+   USE swan_computation, ONLY: SWCOMP, SWDEPCHK
    USE swan_parallel, ONLY: SWINITMPI, SWEXITMPI, SWSYNC, SWCOLLECT, SWCOLOUT
    USE swan_services, ONLY: HSOBND
    USE swan_command_reading, ONLY: SWREAD
@@ -563,6 +563,8 @@ SUBROUTINE SWMAIN
                AICEF , HICEF , HSSF  , TSSF  , DSSF  , &
                WYI   )
             IF (timing_enabled) CALL SWTSTO(7)
+            IF (STPNOW()) RETURN
+            CALL SWDEPCHK ( COMPDA )
             IF (STPNOW()) RETURN
 
 !           --- initialize quasi-coherent modelling framework             41.90

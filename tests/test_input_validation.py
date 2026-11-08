@@ -1302,6 +1302,18 @@ def test_point_just_outside_closing_side_of_outline(tmp_path):
     assert depths[3] == pytest.approx(-99.0)
 
 
+#  BF-61: SETUPP adds the set-up to the water depth inside the iterations of
+#  SWCOMP, so the check on NaN depths also runs there. The set-up examples
+#  (examples/setup) run in CTest with their own decks; this run adds SETUP to
+#  the quick test, so that the check is reached there and does not stop a
+#  valid set-up computation.
+def test_setup_run_passes_depth_check(tmp_path):
+    returncode, report = _run(tmp_path, "SETUP")
+    assert returncode == 0, report[-2000:]
+    assert " SETUP" in report
+    assert "water depth is NaN" not in report
+
+
 #  BF-59: upstream treated a NaN in an input file as the exception value
 #  without a message (EQREAL finds NaN equal to anything), and the bilinear
 #  interpolation of SVALQI multiplied the exception corner, with weight 0,
