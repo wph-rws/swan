@@ -5806,8 +5806,11 @@ SUBROUTINE CGBOUN (KGRPNT, KGRBND)
                      KGRBND(2*NGRBND)   = IYOLD
                      SCANND(KGRPNT(IXOLD,IYOLD)) = 1
                      IDIR = 4
+!                    the start point itself decides the first direction;
+!                    upstream passed IXNEW, IYNEW, which still held the
+!                    last point of the previous curve (BF-58)
                      IF (WNP.EQ.3) THEN
-                        CALL SEPARAREA(IXNEW, IYNEW, KGRPNT,IDIR)
+                        CALL SEPARAREA(IXOLD, IYOLD, KGRPNT,IDIR)
                      ENDIF
                      boundary_walk: DO
                         IF (IDIR.EQ.1) THEN

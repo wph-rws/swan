@@ -1070,6 +1070,26 @@ def test_point_south_of_excluded_area_in_fan_grid(tmp_path):
     assert depths[2] == pytest.approx(-99.0)
 
 
+#  BF-58: CGBOUN traces the outline of an excluded area from a point with
+#  three active neighbours and asks SEPARAREA which way to go. Upstream asked
+#  about the last point of the previous curve instead of the start point. For
+#  this rectangular hole the walk then went the wrong way: the outline became
+#  a loop around one active mesh east of the hole, and the hole itself had no
+#  outline. A point inside that mesh got two crossings in INMESH and no
+#  output. Both far corners are excluded, so that the first search fails.
+def test_outline_of_excluded_area_in_fan_grid(tmp_path):
+    nodes, bottom = _fan_grid(
+        lambda i, j: 15 <= i <= 25 and 33 <= j <= 34,
+        [lambda i, j: i < 2 and j < 2, lambda i, j: i > 38 and j > 46])
+    points = [_fan_point(96.5, 4110.0), _fan_point(96.8, 4130.0), (-36.6, 4200.0)]
+    depths, report = _curvilinear_depths(tmp_path, nodes, bottom, points)
+    #  inside the mesh that the upstream outline enclosed
+    assert depths[0] == pytest.approx(20.0), report[-2000:]
+    assert depths[1] == pytest.approx(20.0), report[-2000:]
+    #  inside the excluded area
+    assert depths[2] == pytest.approx(-99.0)
+
+
 @pytest.mark.parametrize("nx,ny,count", [(5, 0, 6), (0, 5, 6), (0, 0, 1)])
 def test_frame_with_zero_meshes_has_output_points(tmp_path, nx, ny, count):
     deck = _quick_deck().replace(POINTS, POINTS +
