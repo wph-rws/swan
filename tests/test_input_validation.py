@@ -1286,6 +1286,22 @@ def test_outline_closes_each_curve_when_there_is_a_hole(tmp_path):
     assert depths == [-99., -99.], report[-2000:]
 
 
+#  BF-60: a point that is not in any mesh, but within 1% of a side length from
+#  the grid outline, counts as a point on the boundary. CVMESH looks for that
+#  side in a loop over the outline that, like INMESH before BF-56, never
+#  looked at the side that closes each curve: here the first side of the west
+#  edge, from (0, 100) back to the start point (0, 0). A point 0.3 m west of
+#  that side got no output, the same point 400 m further north did.
+def test_point_just_outside_closing_side_of_outline(tmp_path):
+    nodes = [[(100.0 * i, 100.0 * j) for i in range(10)] for j in range(10)]
+    bottom = [[20.0] * 10 for _ in range(10)]
+    points = [(-0.3, 50.0), (-0.3, 450.0), (450.0, -0.3), (-5.0, 50.0)]
+    depths, report = _curvilinear_depths(tmp_path, nodes, bottom, points)
+    assert depths[:3] == [pytest.approx(20.0)] * 3, report[-2000:]
+    #  5 m away is not on the boundary
+    assert depths[3] == pytest.approx(-99.0)
+
+
 #  BF-59: upstream treated a NaN in an input file as the exception value
 #  without a message (EQREAL finds NaN equal to anything), and the bilinear
 #  interpolation of SVALQI multiplied the exception corner, with weight 0,

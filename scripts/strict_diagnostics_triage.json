@@ -927,24 +927,6 @@
    "category": "maybe-uninitialized",
    "file": "swanser.f90",
    "routine": "cvmesh",
-   "message": "‘ix1m’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Set together with ONBND = .TRUE. in the loop over the grid outline and only used inside IF (ONBND); ONBND starts at .FALSE."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanser.f90",
-   "routine": "cvmesh",
-   "message": "‘ix2m’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Set together with ONBND = .TRUE. in the loop over the grid outline and only used inside IF (ONBND); ONBND starts at .FALSE."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanser.f90",
-   "routine": "cvmesh",
    "message": "‘ixmin’ may be used uninitialized",
    "count": 1,
    "verdict": "harmless",
@@ -954,55 +936,10 @@
    "category": "maybe-uninitialized",
    "file": "swanser.f90",
    "routine": "cvmesh",
-   "message": "‘iy1m’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Set together with ONBND = .TRUE. in the loop over the grid outline and only used inside IF (ONBND); ONBND starts at .FALSE."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanser.f90",
-   "routine": "cvmesh",
-   "message": "‘iy2m’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Set together with ONBND = .TRUE. in the loop over the grid outline and only used inside IF (ONBND); ONBND starts at .FALSE."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanser.f90",
-   "routine": "cvmesh",
    "message": "‘iymin’ may be used uninitialized",
    "count": 1,
    "verdict": "harmless",
    "reason": "See ixmin in the same routine; the same reasoning applies here."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanser.f90",
-   "routine": "cvmesh",
-   "message": "‘rellcm’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Set together with ONBND = .TRUE. in the loop over the grid outline and only used inside IF (ONBND); ONBND starts at .FALSE."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanser.f90",
-   "routine": "cvmesh",
-   "message": "‘xp1’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "Only read when IX1 > 0, and that can only happen after a pass that has set XP2."
-  },
-  {
-   "category": "maybe-uninitialized",
-   "file": "swanser.f90",
-   "routine": "cvmesh",
-   "message": "‘yp1’ may be used uninitialized",
-   "count": 1,
-   "verdict": "harmless",
-   "reason": "See xp1 in the same routine; the same reasoning applies here."
   },
   {
    "category": "maybe-uninitialized",

@@ -553,7 +553,7 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
 !     IBND     counter of boundary grid points
 
    INTEGER       :: IX, IY, K1, IXMIN, IYMIN, IBND
-   INTEGER       :: ITER, IX1, IX1M, IX2, IX2M, IY1, IY1M, IY2, IY2M
+   INTEGER       :: ITER, IX0, IX1, IX1M, IX2, IX2M, IY0, IY1, IY1M, IY2, IY2M
    INTEGER       :: KORNER
    INTEGER, SAVE :: MXITNR = 0
    INTEGER, SAVE :: IENT = 0
@@ -723,50 +723,30 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
 !         scan boundary to see whether the point is close to the boundary
          DISMIN=99999.
          ONBND =.FALSE.
+!        KGRBND holds one or more closed curves, each ended by (0,0); the
+!        side from the last point of a curve back to its first point
+!        closes it (BF-60)
+         IX0 = 0
          IX1 = 0
-         IY1 = 0
-         IX2 = 0
          DO IBND = 1, NGRBND
-            IF (IX2.NE.0) THEN
-               IX1 = IX2
-               IY1 = IY2
-               XP1 = XP2
-               YP1 = YP2
-            END IF
             IX2 = KGRBND(2*IBND-1)
             IY2 = KGRBND(2*IBND)
-            IF (IX2.NE.0 .AND. (ABS(IX2-IX1).GT.1 .OR. &
-               ABS(IY2-IY1).GT.1)) IX1 = 0
-            IF (IX2.GT.0) THEN
-               XP2 = XCGRID(IX2,IY2)
-               YP2 = YCGRID(IX2,IY2)
-               IF (IBND.GT.1 .AND. IX1.GT.0) THEN
-!               --- determine relative distance from boundary segment
-!                   with respect to the length of that segment
-                  SLEN2  = (XP2-XP1)**2 + (YP2-YP1)**2
-                  RELDIS = ABS((XP-XP1)*(YP2-YP1)-(YP-YP1)*(XP2-XP1)) / &
-                     SLEN2
-                  IF (RELDIS.LT.0.01) THEN
-!                 --- determine location on the boundary section
-                     IF (RELDIS-DISMIN.LE.0.01) THEN
-                        DISMIN = RELDIS
-                        RELLOC = ((XP-XP1)*(XP2-XP1)+(YP-YP1)*(YP2-YP1)) / &
-                           SLEN2
-                        IF (RELLOC.GE.-0.001 .AND. RELLOC.LE.1.001) THEN
-                           RELLCM = RELLOC
-                           IF (RELLCM.LT.0.01) RELLCM=0.
-                           IF (RELLCM.GT.0.99) RELLCM=1.
-                           IX1M  = IX1
-                           IX2M  = IX2
-                           IY1M  = IY1
-                           IY2M  = IY2
-                           ONBND = .TRUE.
-                        ENDIF
-                     ENDIF
-                  ENDIF
-               ENDIF
+            IF (IX2.LE.0) THEN
+               IF (IX0.GT.0) CALL NEAR_SIDE (IX1, IY1, IX0, IY0)
+               IX0 = 0
+               IX1 = 0
+               CYCLE
             ENDIF
+            IF (IX1.GT.0) THEN
+               CALL NEAR_SIDE (IX1, IY1, IX2, IY2)
+            ELSE
+               IX0 = IX2
+               IY0 = IY2
+            ENDIF
+            IX1 = IX2
+            IY1 = IY2
          ENDDO
+         IF (IX0.GT.0) CALL NEAR_SIDE (IX1, IY1, IX0, IY0)
          IF (ONBND) THEN
             XC = FLOAT(IX1M) + RELLCM * FLOAT(IX2M-IX1M) - 1.
             YC = FLOAT(IY1M) + RELLCM * FLOAT(IY2M-IY1M) - 1.
@@ -795,6 +775,40 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
    ENDIF
 
 CONTAINS
+
+!  Is (XP,YP) within 1% of its length from the boundary side from grid
+!  point (IA,JA) to grid point (IB,JB)? If so, remember the location on it.
+SUBROUTINE NEAR_SIDE (IA, JA, IB, JB)
+   INTEGER, INTENT(IN) :: IA, JA, IB, JB
+   XP1 = XCGRID(IA,JA)
+   YP1 = YCGRID(IA,JA)
+   XP2 = XCGRID(IB,JB)
+   YP2 = YCGRID(IB,JB)
+!  --- determine relative distance from boundary segment
+!      with respect to the length of that segment
+   SLEN2  = (XP2-XP1)**2 + (YP2-YP1)**2
+   IF (SLEN2.LE.0.) RETURN
+   RELDIS = ABS((XP-XP1)*(YP2-YP1)-(YP-YP1)*(XP2-XP1)) / &
+      SLEN2
+   IF (RELDIS.LT.0.01) THEN
+!     --- determine location on the boundary section
+      IF (RELDIS-DISMIN.LE.0.01) THEN
+         DISMIN = RELDIS
+         RELLOC = ((XP-XP1)*(XP2-XP1)+(YP-YP1)*(YP2-YP1)) / &
+            SLEN2
+         IF (RELLOC.GE.-0.001 .AND. RELLOC.LE.1.001) THEN
+            RELLCM = RELLOC
+            IF (RELLCM.LT.0.01) RELLCM=0.
+            IF (RELLCM.GT.0.99) RELLCM=1.
+            IX1M  = IA
+            IX2M  = IB
+            IY1M  = JA
+            IY2M  = JB
+            ONBND = .TRUE.
+         ENDIF
+      ENDIF
+   ENDIF
+end subroutine NEAR_SIDE
 
 !  A search that converges in a mesh with a corner point that has no
 !  coordinates (the exception value of CGRID) has found nothing: the shape
