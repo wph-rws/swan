@@ -38,7 +38,7 @@ module swan_input_helpers
    use swan_io_limits, only: LENFNM
    implicit none(type, external)
    private
-   public :: REPARM, LSPLIT, reset_input_file_tracking
+   public :: REPARM, LSPLIT, reset_input_file_tracking, NAN_TO_EXCEPTION
 
    ! REPARM reuses an already-open data file when consecutive READINP
    ! commands name the same file. The remembered name belongs to one run.
@@ -537,4 +537,45 @@ SUBROUTINE LSPLIT(RELINE, DATITM, NUMITM)
    RETURN
 end subroutine LSPLIT
 
+!  A NaN in an input file is read as NaN. EQREAL then calls it equal to any
+!  exception value, because the difference with a NaN is not larger than
+!  anything; upstream thus treated NaN as missing data without saying so,
+!  and the interpolation of SVALQI carried it to neighbouring points
+!  (BF-59). Bottom and coordinate NaNs become explicit missing values, with
+!  one warning per field read. Auxiliary fields cannot deactivate a grid
+!  point; a NaN there is a terminating error before physics can use its sentinel.
+SUBROUTINE NAN_TO_EXCEPTION (ARR, NARR, EXCVAL, IGRID)
+   USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_NAN
+   USE swan_service_interfaces, ONLY: MSGERR
+   USE swan_io_units, ONLY: PRINTF
+   INTEGER, INTENT(IN)    :: NARR, IGRID
+   REAL,    INTENT(INOUT) :: ARR(NARR)
+   REAL,    INTENT(IN)    :: EXCVAL
+   CHARACTER(LEN=11), PARAMETER :: NAMES(18) = [CHARACTER(LEN=11) :: &
+      'BOTTOM', 'CURRENT', 'CURRENT', 'FRICTION', 'WIND', 'WIND', 'WLEVEL', &
+      'COORDINATES', 'COORDINATES', 'ASTD', 'NPLANTS', 'TURBULENCE', &
+      'MUDLAYER', 'AICE', 'HICE', 'HSS', 'TSS', 'DSS']
+   INTEGER :: I, NNAN
+   NNAN = 0
+   DO I = 1, NARR
+      IF (IEEE_IS_NAN(ARR(I))) THEN
+         ARR(I) = EXCVAL
+         NNAN = NNAN + 1
+      ENDIF
+   ENDDO
+   IF (NNAN.EQ.0) RETURN
+   IF (IGRID.NE.1 .AND. IGRID.NE.8 .AND. IGRID.NE.9) THEN
+!     Unlike bottom and coordinates, an auxiliary field cannot remove a
+!     computational point. Its sentinel could enter the physics as a value
+!     on a curvilinear or unstructured grid, so do not compute with it.
+      CALL MSGERR (4, 'NaN in auxiliary input field has no valid physical value')
+   ELSE
+      CALL MSGERR (1, 'NaN in input field is taken as exception value')
+   ENDIF
+   IF (IGRID.GE.1 .AND. IGRID.LE.SIZE(NAMES)) THEN
+      WRITE (PRINTF, "(1X, I0, ' NaN values in input field ', A)") NNAN, TRIM(NAMES(IGRID))
+   ELSE
+      WRITE (PRINTF, "(1X, I0, ' NaN values in input grid ', I0)") NNAN, IGRID
+   ENDIF
+end subroutine NAN_TO_EXCEPTION
 end module swan_input_helpers

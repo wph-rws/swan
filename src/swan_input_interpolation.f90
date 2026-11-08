@@ -287,8 +287,12 @@ REAL FUNCTION SVALQI (XP, YP, IGRID, ARRINP, ZERO ,IXC ,IYC)
          IF (SUMWEXC.GE.SUMWREG)   THEN
             SVALQI = EXCFLD(IGRID)
          ELSE
-            SVALQI = ( WF1*ARRINP(II)   + WF2*ARRINP(II+MXG(IGRID)) &
-               + WF3*ARRINP(II+1) + WF4*ARRINP(II+1+MXG(IGRID)) ) &
+!           a corner with an exception value has weight 0 and must not
+!           enter the sum at all: 0 times NaN is NaN (BF-59)
+            SVALQI = ( MERGE(WF1*ARRINP(II), 0., WF1.NE.0.) &
+               + MERGE(WF2*ARRINP(II+MXG(IGRID)), 0., WF2.NE.0.) &
+               + MERGE(WF3*ARRINP(II+1), 0., WF3.NE.0.) &
+               + MERGE(WF4*ARRINP(II+1+MXG(IGRID)), 0., WF4.NE.0.) ) &
                / SUMWREG
          END IF
       ELSE
@@ -386,8 +390,12 @@ REAL FUNCTION SVALQI (XP, YP, IGRID, ARRINP, ZERO ,IXC ,IYC)
          IF (SUMWEXC.GE.SUMWREG)   THEN
             SVALQI = EXCFLD(IGRID)
          ELSE
-            SVALQI = ( WF1*ARRINP(II)   + WF2*ARRINP(II+MXG(IGRID)) &
-               + WF3*ARRINP(II+1) + WF4*ARRINP(II+1+MXG(IGRID)) ) &
+!           a corner with an exception value has weight 0 and must not
+!           enter the sum at all: 0 times NaN is NaN (BF-59)
+            SVALQI = ( MERGE(WF1*ARRINP(II), 0., WF1.NE.0.) &
+               + MERGE(WF2*ARRINP(II+MXG(IGRID)), 0., WF2.NE.0.) &
+               + MERGE(WF3*ARRINP(II+1), 0., WF3.NE.0.) &
+               + MERGE(WF4*ARRINP(II+1+MXG(IGRID)), 0., WF4.NE.0.) ) &
                / SUMWREG
          END IF
       ENDIF

@@ -1120,6 +1120,33 @@ def test_table_format_reset_can_compute_with_maxerr_2(tmp_path):
     assert float(values[3]) == pytest.approx(.8787, abs=.0001)
 
 
+@pytest.mark.parametrize("quantity", ["WIND", "CURRENT", "FRICTION"])
+@pytest.mark.parametrize("exception", ["", " EXCEPTION -99"])
+def test_nan_in_auxiliary_field_stops_before_physics(tmp_path, quantity, exception):
+    deck = _quick_deck().replace("GEN3 KOMEN", f"GEN3 KOMEN\nINPGRID {quantity} REGULAR 0 0 0 1 1 2000 1000{exception}\n"
+                              f"READINP {quantity} 1 'aux.dat' 3 0 FREE")
+    data = "NaN 1\n1 1\n" + ("0 0\n0 0\n" if quantity != "FRICTION" else "")
+    proc, report = _run_deck(tmp_path, deck, {"aux.dat": data})
+    assert proc.returncode == 1
+    assert "NaN in auxiliary input field has no valid physical value" in report
+    assert not (tmp_path / "work" / "quick_test_center.tbl").exists()
+
+
+def test_nan_curvilinear_wind_is_not_used_as_a_velocity(tmp_path):
+    deck = _quick_deck().replace(
+        "CGRID REGULAR 0.0 0.0 0.0 2000.0 1000.0 20 10 CIRCLE 24 0.05 1.0 16",
+        "CGRID CURVILINEAR 20 10 CIRCLE 24 0.05 1.0 16\nREADGRID COORDINATES 1 'coor.grd' 3 0 FREE")
+    deck = deck.replace("WIND 8.0 270.0", "INPGRID WIND CURVILINEAR 0 0 20 10\nREADINP WIND 1 'wind.dat' 3 0 FREE")
+    coords = '\n'.join(' '.join(str(i*100) for i in range(21)) for _ in range(11))+'\n'
+    coords += '\n'.join(' '.join(str(j*100) for _ in range(21)) for j in range(11))+'\n'
+    wind = '\n'.join(' '.join('NaN' if i == j == 5 else '8' for i in range(21)) for j in range(11))+'\n'
+    wind += (' '.join(['0']*21)+'\n')*11
+    proc, report = _run_deck(tmp_path, deck, {'coor.grd': coords, 'wind.dat': wind})
+    assert proc.returncode == 1
+    assert "NaN in auxiliary input field has no valid physical value" in report
+    assert not (tmp_path / "work" / "quick_test_center.tbl").exists()
+
+
 @pytest.mark.parametrize("files_in_series", [1, 2])
 def test_series_end_retains_the_input_scale(tmp_path, files_in_series):
     deck = _quick_deck().replace("SET NAUTICAL", "SET MAXERR 3 NAUTICAL")
@@ -1257,6 +1284,30 @@ def test_outline_closes_each_curve_when_there_is_a_hole(tmp_path):
     depths, report = _curvilinear_depths(tmp_path, nodes, bottom,
                                         [(120., 250.), (130., 300.)])
     assert depths == [-99., -99.], report[-2000:]
+
+
+#  BF-59: upstream treated a NaN in an input file as the exception value
+#  without a message (EQREAL finds NaN equal to anything), and the bilinear
+#  interpolation of SVALQI multiplied the exception corner, with weight 0,
+#  by its value: 0 times NaN is NaN, so the neighbouring points west and south
+#  of a NaN became exception points as well. A NaN must now act exactly as the
+#  exception value, with a warning.
+def test_nan_in_bottom_acts_as_exception_value(tmp_path):
+    def run(sub, value):
+        rows = [" ".join(value if i in (10, 11) and j in (4, 5) else "20.0" for i in range(21))
+                for j in range(11)]
+        deck = _quick_deck().replace(
+            "INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0",
+            "INPGRID BOTTOM REGULAR 0.0 0.0 0.0 20 10 100.0 100.0 EXC -99999")
+        assert "EXC -99999" in deck, "smoke deck has changed shape"
+        result, report = _run_deck(tmp_path / sub, deck, {"bottom.bot": "\n".join(rows) + "\n"},
+                                   timeout=60)
+        assert result.returncode == 0, report[-2000:]
+        return (tmp_path / sub / "work" / "quick_test_hs.blk").read_text(), report
+    with_exception, _ = run("exc", "-99999")
+    with_nan, report = run("nan", "NaN")
+    assert with_nan == with_exception
+    assert "4 NaN values in input field BOTTOM" in report
 
 
 #  BF-54: after BOUNDSPEC SEGMENT on an unstructured grid SWAN checked whether the

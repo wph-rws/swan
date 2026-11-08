@@ -14,6 +14,7 @@ SUBROUTINE FLFILE (IGR1, IGR2, &
 !**********************************************************************
 
    USE swan_legacy_io, ONLY: INAR2D
+   USE swan_input_helpers, ONLY: NAN_TO_EXCEPTION
    USE swan_service_interfaces, ONLY: MSGERR, STPNOW, STRACE
    USE swan_input_interpolation, ONLY: SVALQI
    USE swan_time, ONLY: default_time_context
@@ -230,6 +231,7 @@ SUBROUTINE FLFILE (IGR1, IGR2, &
                IFLIDL(IGR1), IFLFAC(IGR1), &
                IFLNHD(IGR1), IFLNHF(IGR1))
             IF (STPNOW()) RETURN
+            CALL NAN_TO_EXCEPTION (ARR, MXG(IGR1)*MYG(IGR1), EXCFLD(IGR1), IGR1)
          END IF
          CALL SWBROADC(IFLIDL(IGR1),1)
          IF (IFLIDL(IGR1).LT.0) THEN
@@ -256,6 +258,7 @@ SUBROUTINE FLFILE (IGR1, IGR2, &
                   IFLNDS(IGR2), IFLIFM(IGR2), IFLFRM(IGR2), &
                   IFLIDL(IGR2), IFLFAC(IGR2), IFLNHD(IGR2), 0)
                IF (STPNOW()) RETURN
+               CALL NAN_TO_EXCEPTION (ARR2, MXG(IGR2)*MYG(IGR2), EXCFLD(IGR2), IGR2)
             END IF
 !        a second component that could not be read in full ends the
 !        updates as the first one does, instead of mixing a new first
