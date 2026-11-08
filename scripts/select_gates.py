@@ -50,6 +50,13 @@ COMMANDS = {
 }
 
 MPI_RE = re.compile(r"mpi|parall|metis|\bcoh\b|esmf|adcirc|decomp", re.IGNORECASE)
+#  A source file that calls the parallel layer touches MPI whatever its name:
+#  a reduction, gather or exchange in a new module behaves differently on
+#  several processes (the Jacobi edge counts of BF-68 sat in such modules).
+MPI_CALL_RE = re.compile(
+    r"\b(SWREDUCE|SWGATHER|SWBROADC|SWCOLLECT|SWEXCHG\w*|SWSENDNB|SWRECVNB|"
+    r"SWSEND\w*|SWRECV\w*|SWBCAST\w*|SWOWNNODE|PARLL|INODE|NPROC|BLKND|IBLKAD|exchange_swan_field|LMXF|LMXL|LMYF|LMYL|IHALOX|IHALOY)\b", re.IGNORECASE)
+REPOSITORY = Path(__file__).resolve().parent.parent
 #  Files under doc/ that a ctest entry reads (CMakeLists.txt: thread_state_manifest,
 #  run_state_ownership, switch_manifest) or that pytest reads (the BF table is
 #  checked by test_upstream_delta.py): data for a gate, not prose.
@@ -58,6 +65,26 @@ CTEST_DATA = {"doc/thread-state-manifest.md", "doc/run-state-ownership.json",
 PYTEST_DATA = {"doc/bug-fixes-vs-tu-delft-41.51.md"}
 #  Example runners that the MPI ctest also runs over several processes.
 MPI_EXAMPLES = ("quick_test", "output_backends", "hcat")
+#  Set by main() when the change is taken from git: the old content counts too,
+#  because removing the last reduction from a file is an MPI change as well.
+BASE: str | None = None
+
+
+def _calls_parallel_layer(path: Path) -> bool:
+    source = path if path.is_absolute() else REPOSITORY / path
+    texts = []
+    if BASE is not None:
+        old = subprocess.run(["git", "show", f"{BASE}:{path.as_posix()}"], cwd=REPOSITORY,
+                             capture_output=True, text=True, errors="replace")
+        if old.returncode == 0:
+            texts.append(old.stdout)
+    try:
+        texts.append(source.read_text(errors="replace"))
+    except OSError:
+        #  a deleted file: its old content is not at hand, so be safe
+        if not texts:
+            return True
+    return any(MPI_CALL_RE.search(text) for text in texts)
 
 
 def _classify(path: str) -> set[str]:
@@ -106,6 +133,8 @@ def _classify(path: str) -> set[str]:
     if MPI_RE.search(str(p)) or name == "CMakeLists.txt" or p.parts[:1] == ("cmake",):
         return {"serial", "openmp", "mpi", "strict", "pytest", "upstream_delta"}
     if suffix in (".f90", ".f", ".c", ".h"):
+        if _calls_parallel_layer(p):
+            return {"serial", "openmp", "mpi", "strict", "pytest", "upstream_delta"}
         return {"serial", "openmp", "strict", "pytest", "upstream_delta"}
     if p.parts[:1] == ("scripts",) and suffix == ".py":
         return {"serial", "pytest"}
@@ -165,6 +194,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     ap.add_argument("paths", nargs="*", help="assess exactly these paths instead of the change")
     args = ap.parse_args(argv)
+    global BASE
+    BASE = None if args.paths else args.base
     paths = args.paths if args.paths else worktree_changes(args.base)
     selection = select_gates(paths)
     scope = "as given" if args.paths else f"relative to {args.base}"

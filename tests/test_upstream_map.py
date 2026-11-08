@@ -60,6 +60,25 @@ def test_an_entry_for_a_routine_that_stayed_is_reported(tmp_path):
     assert "SWCOMP: is in the fork file of the same name" in completed.stdout
 
 
+def test_a_second_definition_elsewhere_needs_an_entry(tmp_path):
+    """A routine that also lives in another file, such as the empty version
+    for a build without netCDF, is not simply "kept"."""
+    map_file = changed_map(tmp_path, lambda d: d["procedures"].pop("SWN_OUTNC_SPEC"))
+    completed = run("check", map_file=map_file)
+    assert completed.returncode == 1
+    assert "procedure SWN_OUTNC_SPEC" in completed.stdout
+    assert "swan_netcdf_backend_disabled.f90" in completed.stdout
+
+
+def test_a_variant_without_the_upstream_file_is_reported(tmp_path):
+    def variant(data):
+        data["procedures"]["MSGERR"] = {"status": "variant", "reason": "build-variant",
+                                        "fork": ["src/swan_service_interfaces.f90"]}
+    completed = run("check", map_file=changed_map(tmp_path, variant))
+    assert completed.returncode == 1
+    assert "MSGERR: map says variant, but no version is in the file of its upstream name" in completed.stdout
+
+
 def test_a_wrong_fork_file_is_reported(tmp_path):
     def wrong(data):
         data["procedures"]["MSGERR"]["fork"] = ["src/swanser.f90"]

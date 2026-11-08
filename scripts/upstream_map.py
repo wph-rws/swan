@@ -51,7 +51,9 @@ MAP_FILE = REPOSITORY / "doc" / "upstream-map.json"
 DELTA_FILE = REPOSITORY / "doc" / "upstream-delta.json"
 SWITCH_MANIFEST = REPOSITORY / "doc" / "switch-manifest.json"
 
-PROCEDURE_STATUSES = {"moved", "renamed", "replaced", "removed"}
+#  "variant": the routine stays in the file of its upstream name, and a second
+#  version of it lives in a file that another build variant compiles instead
+PROCEDURE_STATUSES = {"moved", "renamed", "replaced", "removed", "variant"}
 STATE_STATUSES = {"moved", "renamed", "component", "local", "replaced", "removed"}
 
 # ---------------------------------------------------------------------------
@@ -419,7 +421,9 @@ def classify_procedures(upstream: Source, fork: Source, entries: dict,
     for name, defined in sorted(by_name(upstream.procedures).items()):
         upstream_stems = {stem(p.file) for p in defined}
         found = fork_names.get(name, [])
-        kept = any(stem(p.file) in upstream_stems for p in found)
+        #  every definition counts: a second one elsewhere, for instance in a
+        #  build variant, needs an entry of its own
+        kept = bool(found) and all(stem(p.file) in upstream_stems for p in found)
         entry = entries.get(name)
         if kept:
             status[name] = "kept"
@@ -449,6 +453,13 @@ def classify_procedures(upstream: Source, fork: Source, entries: dict,
             if found:
                 problems.append(Finding("procedure", name,
                     f"map says removed, but the fork defines it in {sorted(found_files)}"))
+        elif entry.get("status") == "variant":
+            if files != found_files:
+                problems.append(Finding("procedure", name,
+                    f"map says {sorted(files)}, fork defines it in {sorted(found_files)}"))
+            elif not any(stem(f) in upstream_stems for f in found_files):
+                problems.append(Finding("procedure", name,
+                    "map says variant, but no version is in the file of its upstream name"))
         elif entry.get("status") in ("renamed", "replaced"):
             for target in entry.get("by", []):
                 if not resolve_target(fork, target):

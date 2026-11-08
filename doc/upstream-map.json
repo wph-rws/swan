@@ -22,7 +22,8 @@
   "convergence-common": "Upstream used a COMMON block so that all OpenMP threads in SACCUR and SWSTPC add to one shared total. The fork keeps that sharing in module variables of M_CONVERGENCE_SHARED (src/swancom1.f90), with the routine name as prefix.",
   "single-routine-common": "The COMMON block was used by this one routine only, and every call sets the values before it reads them, so an ordinary local variable does the same job.",
   "split-shared-state": "The upstream shared modules were taken apart: what nobody used was removed, what had one user moved to that user, and the rest went to small modules by topic, each with an owner that clears it between runs (doc/run-state-ownership.md). A variable that sits in exactly one fork module is found automatically.",
-  "separate-computation": "Moved out of swancom1 into a module of its own (November 2026). The set-up is a computation of its own: SWCOMP calls it once the wave field is known, and it shares no data with the rest of swan_computation. The routines are otherwise unchanged."
+  "separate-computation": "Moved out of swancom1 into a module of its own (November 2026). The set-up is a computation of its own: SWCOMP calls it once the wave field is known, and it shares no data with the rest of swan_computation. The routines are otherwise unchanged.",
+  "build-variant": "The routine stays in the file of its upstream name. A build without the feature compiles a second, empty version from another file instead, so that the callers need no switch."
  },
  "modules": {
   "SWCOMM1": {
@@ -884,6 +885,14 @@
     "src/swan_spectrum_transform.f90"
    ]
   },
+  "STNAMES_INIT": {
+   "status": "variant",
+   "reason": "build-variant",
+   "fork": [
+    "src/output/swan_netcdf_backend_disabled.f90",
+    "src/swn_outnc.f90"
+   ]
+  },
   "STPNOW": {
    "status": "moved",
    "reason": "cycle-diagnostics",
@@ -983,6 +992,46 @@
    "reason": "cycle-output",
    "fork": [
     "src/swan_structured_output_interpolation.f90"
+   ]
+  },
+  "SWN_OUTNC_APPENDBLOCK": {
+   "status": "variant",
+   "reason": "build-variant",
+   "fork": [
+    "src/output/swan_netcdf_backend_disabled.f90",
+    "src/swn_outnc.f90"
+   ]
+  },
+  "SWN_OUTNC_CLOSE_ON_END": {
+   "status": "variant",
+   "reason": "build-variant",
+   "fork": [
+    "src/output/swan_netcdf_backend_disabled.f90",
+    "src/swn_outnc.f90"
+   ]
+  },
+  "SWN_OUTNC_COLSPC": {
+   "status": "variant",
+   "reason": "build-variant",
+   "fork": [
+    "src/output/swan_netcdf_backend_disabled.f90",
+    "src/swn_outnc.f90"
+   ]
+  },
+  "SWN_OUTNC_OPENBLOCKFILE": {
+   "status": "variant",
+   "reason": "build-variant",
+   "fork": [
+    "src/output/swan_netcdf_backend_disabled.f90",
+    "src/swn_outnc.f90"
+   ]
+  },
+  "SWN_OUTNC_SPEC": {
+   "status": "variant",
+   "reason": "build-variant",
+   "fork": [
+    "src/output/swan_netcdf_backend_disabled.f90",
+    "src/swn_outnc.f90"
    ]
   },
   "SWOINA": {

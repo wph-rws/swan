@@ -16,6 +16,14 @@ def test_physics_source_skips_mpi():
     assert set(sel) == {"serial", "openmp", "strict", "pytest", "upstream_delta"}
 
 
+def test_source_that_calls_the_parallel_layer_requires_mpi():
+    """The name says nothing about MPI, the reductions in it do (BF-68)."""
+    for path in ("src/swan_frequency_range.f90", "src/swan_stop_extrapolation.f90",
+                 "src/swanser.f90", "src/swanout1.f90"):
+        assert "mpi" in select_gates([path]), path
+    assert "mpi" not in select_gates(["src/SwanCheckGrid.f90"])
+
+
 def test_mpi_source_requires_mpi():
     sel = select_gates(["src/SwanParallel.f90"])
     assert "mpi" in sel and "strict" in sel

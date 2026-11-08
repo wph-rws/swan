@@ -94,6 +94,8 @@ STATUS_FORK_UNSTABLE = "fork unstable"
 STATUS_FORK_ONLY = "fork only"
 STATUS_FORK_FAILED = "fork failed"
 STATUS_SKIPPED = "skipped"
+#  A run that hit the time limit; never an accepted state, see check_inventory.
+STATUS_TIMED_OUT = "timed out"
 
 
 @dataclass
@@ -396,8 +398,16 @@ def written_since(directory: Path, moment: float) -> dict[str, bytes]:
 
 
 def run_deck(binary: Path, deck: str, destination: Path, timeout: int) -> RunOutcome:
-    """Run one deck and keep what it produced."""
-    destination.mkdir(parents=True, exist_ok=True)
+    """Run one deck and keep what it produced.
+
+    The destination is emptied first: with --keep-results it may hold the
+    output of an earlier gate run, and the fingerprint of a deck that differs
+    is taken from this directory, so a file the run no longer writes must not
+    survive from before.
+    """
+    if destination.exists():
+        shutil.rmtree(destination)
+    destination.mkdir(parents=True)
     with tempfile.TemporaryDirectory(prefix="swan-delta-") as temporary:
         work_directory = stage_case(deck, Path(temporary))
         timed_out = False
@@ -507,7 +517,7 @@ def _assess_deck(
     #  because then an overrun reads as a property of the code.
     if fork.timed_out or upstream.timed_out:
         side = "the fork" if fork.timed_out else "upstream"
-        return STATUS_DIFFERS, time_limit_detail(side), seconds
+        return STATUS_TIMED_OUT, time_limit_detail(side), seconds
     if fork.returncode != 0:
         return STATUS_FORK_FAILED, f"the fork stopped with code {fork.returncode}", seconds
     if not fork.outputs:
@@ -531,7 +541,7 @@ def _assess_deck(
             seconds += again.seconds
             #  An overrun is not an answer, so it must not count as instability.
             if again.timed_out:
-                return STATUS_DIFFERS, time_limit_detail(side), seconds
+                return STATUS_TIMED_OUT, time_limit_detail(side), seconds
             if side == "the fork" and (again.returncode != 0 or not again.outputs):
                 return STATUS_FORK_FAILED, "the fork failed or produced no output on a repeated run", seconds
             if not any(compare_outputs(seen, again)[0] for seen in answers):
@@ -601,8 +611,14 @@ def check_inventory(manifest: dict, decks: list[str]) -> list[str]:
             STATUS_UPSTREAM_UNSTABLE,
             STATUS_FORK_UNSTABLE,
             STATUS_FORK_FAILED,
+            STATUS_TIMED_OUT,
         ):
             problems.append(f"{deck}: unknown status {status!r}")
+            continue
+        #  A time limit proves nothing about the code, and output written
+        #  before it may still match a fingerprint; so it is always red.
+        if status == STATUS_TIMED_OUT:
+            problems.append(f"{deck}: a run exceeded the time limit")
             continue
         #  A crash or a run without output is never an accepted difference.
         if status == STATUS_FORK_FAILED:

@@ -88,6 +88,15 @@ def test_a_fork_that_does_not_complete_a_deck_is_never_accepted(tmp_path):
     assert "the fork did not complete the deck" in completed.stdout
 
 
+def test_a_run_over_the_time_limit_is_never_accepted(tmp_path):
+    """Output written before the limit may still match the fingerprint."""
+    def timed_out(manifest):
+        _first_differing(manifest)["status"] = "timed out"
+    completed = _inventory_check(tmp_path, timed_out)
+    assert completed.returncode != 0
+    assert "a run exceeded the time limit" in completed.stdout
+
+
 @pytest.mark.parametrize("upstream_code", [0, 1])
 def test_no_fork_output_is_a_failure_even_when_upstream_fails(tmp_path, monkeypatch, upstream_code):
     sys.path.insert(0, str(REPOSITORY / "scripts"))
@@ -96,6 +105,28 @@ def test_no_fork_output_is_a_failure_even_when_upstream_fails(tmp_path, monkeypa
     monkeypatch.setattr(delta, "run_deck", lambda *args: next(outcomes))
     status, _, _ = delta._assess_deck("deck", Path("fork"), Path("upstream"), tmp_path, 5, 0)
     assert status == delta.STATUS_FORK_FAILED
+
+
+def test_a_kept_result_directory_starts_empty(tmp_path, monkeypatch):
+    """With --keep-results a file from an earlier run must not survive: the
+    fingerprint of a differing deck is taken from this directory."""
+    sys.path.insert(0, str(REPOSITORY / "scripts"))
+    import upstream_delta
+    deck = tmp_path / "case" / "deck.swn"
+    deck.parent.mkdir()
+    deck.write_text("PROJECT 'X' '1'\nSTOP\n")
+    os.utime(deck, (1.0e9, 1.0e9))   # input is older than the run, as in examples/
+    destination = tmp_path / "kept" / "fork"
+    destination.mkdir(parents=True)
+    (destination / "old.tbl").write_text("from an earlier run\n")
+    binary = tmp_path / "fake_swan.sh"
+    binary.write_text("#!/bin/sh\necho 1.0 > new.tbl\n")
+    binary.chmod(0o755)
+    monkeypatch.setattr(upstream_delta, "launcher", lambda: [])
+    monkeypatch.setattr(upstream_delta, "EXAMPLES", tmp_path)
+    outcome = upstream_delta.run_deck(binary, "case/deck.swn", destination, timeout=30)
+    assert sorted(path.name for path in destination.iterdir()) == ["new.tbl"]
+    assert list(outcome.outputs) == ["new.tbl"]
 
 
 def test_fingerprint_changes_names_the_changed_files():
