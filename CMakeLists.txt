@@ -817,6 +817,25 @@ if( BUILD_TESTING )
     )
     set_tests_properties( quick_test_mpi PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
 
+    # Four processes: the Jacobi build then cuts the grid in both directions,
+    # and every edge point must still be computed and written (BF-68).
+    if( JAC )
+      set( MPI_EDGES_JACOBI --jacobi )
+    else()
+      set( MPI_EDGES_JACOBI "" )
+    endif()
+    add_test(
+      NAME mpi_edges
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/tests/test_mpi_edges.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --mpi-exec ${MPIEXEC_EXECUTABLE}
+              --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
+              ${MPI_EDGES_JACOBI}
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/mpi-edges
+    )
+    set_tests_properties( mpi_edges PROPERTIES RUN_SERIAL TRUE TIMEOUT 300 )
+
     # The Jacobi exchange gives values that depend on how the grid is split,
     # so this comparison of one and several processes holds only for the
     # wavefront exchange.

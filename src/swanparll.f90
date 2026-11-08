@@ -1456,6 +1456,7 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
    INTEGER      I, IC, ICOFF, IDOM, IF, IL, INB, ISTART, &
       IX, IXOFF, IY, IYOFF, JOFFS(2,4), MXSIZ, MYSIZ, &
       NNEIGH, NOVLU
+   LOGICAL      OWNXF, OWNXL, OWNYF, OWNYL
    INTEGER      IWORK(3,NPROC), &
       ICRECV(NPROC,MAX(MXC,MYC)), &
       ICSEND(NPROC,MAX(MXC,MYC))
@@ -1564,6 +1565,14 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
 
    ELSE
 
+!        --- whether the points this process owns reach the outer edge
+!            of the grid, before the halo is added
+
+      OWNXF = MXF.EQ.1
+      OWNXL = MXL.EQ.MXCGL
+      OWNYF = MYF.EQ.1
+      OWNYL = MYL.EQ.MYCGL
+
 !        --- extend enclosing box to include halo area
 
       MXF = MAX(1  ,MXF-IHALOX)
@@ -1575,7 +1584,26 @@ SUBROUTINE SWBLADM ( IPOWN, MXC, MYC )
 
 !     --- localize global bounds in present subdomain
 
-   IF ( MXCGL.GT.MYCGL ) THEN
+   IF ( jacobi_sweep_enabled ) THEN
+!     The Jacobi build cuts the grid by Orthogonal Recursive Bisection, in
+!     both directions (SWORB), so several subdomains can lie along the
+!     same outer edge. The rule below assumes strips, in which only the
+!     first and the last process reach the edge across the strips; with
+!     four or more processes it marked real edge points of the others as
+!     halo, so that no process computed or wrote them (BF-68). Here every
+!     subdomain whose own points reach an edge knows it.
+      IF ( MXF.GT.MXL .OR. MYF.GT.MYL ) THEN
+         LMXF = .FALSE.
+         LMXL = .FALSE.
+         LMYF = .FALSE.
+         LMYL = .FALSE.
+      ELSE
+         LMXF = OWNXF
+         LMXL = OWNXL
+         LMYF = OWNYF
+         LMYL = OWNYL
+      END IF
+   ELSE IF ( MXCGL.GT.MYCGL ) THEN
       LMXF = MXF.EQ.1     .AND. INODE.EQ.1
       LMXL = MXL.EQ.MXCGL .AND. INODE.EQ.NPROC
       LMYF = MYF.EQ.1
@@ -2702,7 +2730,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
    INTEGER, SAVE :: IENT = 0
    INTEGER ILEN, ILEN2, INDX, INDXC, IOFF1, IOFF2, IP, IX, IY, &
       MXFGL, MXLGL, MYFGL, MYLGL
-   INTEGER IARRL(5), IARRC(5,0:NPROC-1)
+   INTEGER IARRL(9), IARRC(9,0:NPROC-1)
 
    INTEGER, ALLOCATABLE :: KGRPTC(:)
    REAL,    ALLOCATABLE :: FLDC(:)
@@ -2761,7 +2789,13 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
       IARRL(3) = MYF
       IARRL(4) = MYL
       IARRL(5) = MCGRD
-      CALL SWGATHER (IARRC, 5*NPROC, IARRL, 5 )
+!     whether the points of this process reach each outer edge (see
+!     SWBLADM); the rest of the enclosing box is halo
+      IARRL(6) = MERGE(1, 0, LMXF)
+      IARRL(7) = MERGE(1, 0, LMXL)
+      IARRL(8) = MERGE(1, 0, LMYF)
+      IARRL(9) = MERGE(1, 0, LMYL)
+      CALL SWGATHER (IARRC, 9*NPROC, IARRL, 9 )
       IF (STPNOW()) RETURN
 
       IF (.NOT.FULL) THEN
@@ -2802,48 +2836,30 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
          IOFF2 = 0
 
          DO IP = 0, NPROC-1
-            IF ( MXCGL.GT.MYCGL ) THEN
-               IF ( IARRC(1,IP).EQ.1 .AND. IP.EQ.0 ) THEN
-                  MXFGL = 1
-               ELSE
-                  MXFGL = IARRC(1,IP) + IHALOX
-               END IF
-               IF ( IARRC(3,IP).EQ.1 ) THEN
-                  MYFGL = 1
-               ELSE
-                  MYFGL = IARRC(3,IP) + IHALOY
-               END IF
-               IF ( IARRC(2,IP).EQ.MXCGL .AND. IP.EQ.NPROC-1 ) THEN
-                  MXLGL = MXCGL
-               ELSE
-                  MXLGL = IARRC(2,IP) - IHALOX
-               END IF
-               IF ( IARRC(4,IP).EQ.MYCGL ) THEN
-                  MYLGL = MYCGL
-               ELSE
-                  MYLGL = IARRC(4,IP) - IHALOY
-               END IF
+!           Upstream decided here from the process number which box
+!           reaches an outer edge, which only holds for strips; with the
+!           two-way cuts of the Jacobi build the edge points of the other
+!           processes were not collected (BF-68). The flags of SWBLADM
+!           give the same answer for strips.
+            IF ( IARRC(6,IP).EQ.1 ) THEN
+               MXFGL = 1
             ELSE
-               IF ( IARRC(1,IP).EQ.1 ) THEN
-                  MXFGL = 1
-               ELSE
-                  MXFGL = IARRC(1,IP) + IHALOX
-               END IF
-               IF ( IARRC(3,IP).EQ.1 .AND. IP.EQ.0 ) THEN
-                  MYFGL = 1
-               ELSE
-                  MYFGL = IARRC(3,IP) + IHALOY
-               END IF
-               IF ( IARRC(2,IP).EQ.MXCGL ) THEN
-                  MXLGL = MXCGL
-               ELSE
-                  MXLGL = IARRC(2,IP) - IHALOX
-               END IF
-               IF ( IARRC(4,IP).EQ.MYCGL .AND. IP.EQ.NPROC-1 ) THEN
-                  MYLGL = MYCGL
-               ELSE
-                  MYLGL = IARRC(4,IP) - IHALOY
-               END IF
+               MXFGL = IARRC(1,IP) + IHALOX
+            END IF
+            IF ( IARRC(8,IP).EQ.1 ) THEN
+               MYFGL = 1
+            ELSE
+               MYFGL = IARRC(3,IP) + IHALOY
+            END IF
+            IF ( IARRC(7,IP).EQ.1 ) THEN
+               MXLGL = MXCGL
+            ELSE
+               MXLGL = IARRC(2,IP) - IHALOX
+            END IF
+            IF ( IARRC(9,IP).EQ.1 ) THEN
+               MYLGL = MYCGL
+            ELSE
+               MYLGL = IARRC(4,IP) - IHALOY
             END IF
 
             ILEN = IARRC(2,IP)-IARRC(1,IP)+1
