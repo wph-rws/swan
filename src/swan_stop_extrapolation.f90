@@ -31,8 +31,17 @@ module swan_stop_extrapolation
 !       in quad_dia1 (0.07 m per block of 10), then fails by far, while
 !       the noise of an iteration that has reached its floor (well below
 !       a millimetre per block, with a ratio that is random) passes;
-!     - r <= 0: Hs moves back and forth around its value; the remaining
-!       change is about the size of the swing, |D2|.
+!     - -1 < r <= 0: Hs moves back and forth around its value, and the
+!       swing does not grow; the remaining change is about the size of the
+!       swing, |D2|;
+!     - r <= -1: the swing grows, so Hs is not converging either; it is
+!       counted as a steady change, |D2| * HORIZON.
+!
+!     A change that shrinks by less than one percent per block is no better
+!     than a steady one, so its estimate is also at most |D2| * HORIZON.
+!     That means a drift of less than tolerance/HORIZON per block passes:
+!     Hs could then still move by the tolerance over another HORIZON
+!     blocks. This is a choice, not a bound.
 !
 !     A grid point passes when that estimate is within the accuracy of the
 !     stopping criterion itself: [dabs] or [drel] times Hs. Under NUMERIC
@@ -41,8 +50,10 @@ module swan_stop_extrapolation
 !     [dabs]/[dhoval] (0.25 m with the defaults) that is the stricter of the
 !     two. The iteration
 !     only stops when the share of passing wet points reaches [npnts] as
-!     well, so the criterion of the deck still has to be met, and it can
-!     no longer be met by an iteration that only moves slowly. If the block
+!     well, so the criterion of the deck still has to be met, and an
+!     iteration that only moves slowly, as under strong under-relaxation,
+!     no longer meets it unless it moves by less than tolerance/HORIZON per
+!     block. If the block
 !     test is never met, the run ends at [mxitst], as before, and PRINT says
 !     how many points were still drifting.
 !
@@ -114,6 +125,7 @@ logical function extrapolation_check(self, iter, ac2, spcsig, depth, kgrpnt) res
    integer :: ix, iy, ip, is, ix1, ix2, iy1, iy2
    integer :: counts(3) ! wet points, passing points, steady or growing change
    real :: largest(1), m0, hs, d1, d2, r, estimate, tolerance, tiny
+   logical :: growing ! the change is steady, grows, or swings without shrinking
 
    checked = .false.
    if (.not. self%enabled) return
@@ -149,28 +161,40 @@ logical function extrapolation_check(self, iter, ac2, spcsig, depth, kgrpnt) res
             d2 = hs - self%h1(ip)
             d1 = self%h1(ip) - self%h2(ip)
             tolerance = max(PNUMS(PNUMS_DABS), PNUMS(PNUMS_DREL) * hs)
-!              a change at rounding level counts as no change
-            tiny = 1.e-6 * max(hs, 1.e-3)
+!              a change at rounding level counts as no change, but never
+!              more than the deck itself allows
+            tiny = min(1.e-6 * max(hs, 1.e-3), tolerance)
             r = 0.
+            growing = .false.
             if (abs(d2) <= tiny) then
                estimate = 0.
             else if (d2 * d1 <= 0.) then
-               estimate = abs(d2)
+               if (abs(d2) >= abs(d1)) then
+!                    a swing that does not get smaller
+                  estimate = HORIZON * abs(d2)
+                  growing = .true.
+               else
+                  estimate = abs(d2)
+               end if
             else
                r = d2 / d1
                if (r >= 1.) then
                   estimate = HORIZON * abs(d2)
-                  if (estimate > tolerance) counts(3) = counts(3) + 1
+                  growing = .true.
                else
 !                    with r just below 1 the series is no better than a
 !                    steady change, so the estimate is not taken larger
                   estimate = abs(d2) * min(r / (1. - r), HORIZON)
                end if
             end if
-            if (estimate <= tolerance) counts(2) = counts(2) + 1
+            if (estimate <= tolerance) then
+               counts(2) = counts(2) + 1
+            else if (growing) then
+               counts(3) = counts(3) + 1
+            end if
 !              the largest estimate is that of the points that converge or
-!              swing; the steady ones are counted apart
-            if (r < 1. .or. d2 * d1 <= 0.) largest(1) = max(largest(1), estimate)
+!              swing; the steady or growing ones are counted apart
+            if (.not. growing) largest(1) = max(largest(1), estimate)
          end if
          self%held(ip) = min(2, self%held(ip) + 1)
          self%h2(ip) = self%h1(ip)

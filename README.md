@@ -366,7 +366,10 @@ every [nstep] iterations (default 10) and estimates from three such
 checkpoints, per grid point, how much Hs will still change if the iteration
 keeps converging at the rate it shows (a geometric series). The iteration
 only stops once that estimate is within [dabs] or [drel] in [npnts] percent
-of the wet points as well; a steady or growing change fails. For example:
+of the wet points as well. A change that does not shrink, steady, growing or
+a swing that does not get smaller, counts as going on for 100 more blocks;
+so a drift of less than 1/100 of the tolerance per block still passes. For
+example:
 
 ```
 NUMERIC STOPC STAT MXITST=600 ALFA=0.01 EXTRAP 10
@@ -374,7 +377,9 @@ NUMERIC STOPC STAT MXITST=600 ALFA=0.01 EXTRAP 10
 
 On `quad_dia1` this deck stops after 350 instead of 40 iterations, with Hs
 within 6 mm of the converged value instead of 0.55 m below it. The estimate
-is not a bound, `MXITST` still ends the run, and the option exists for regular
+is not a bound: an iteration that slows down by itself, or a slow mode under
+a fast one, can still stop it too early. It makes a false stop much less
+likely, it does not prove convergence, `MXITST` still ends the run, and the option exists for regular
 and curvilinear grids only. Background: `src/swan_stop_extrapolation.f90`.
 
 The [convergence check](so-rp_swan/matrix/convergence_check.py) uses only
