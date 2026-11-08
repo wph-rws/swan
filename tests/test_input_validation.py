@@ -7,6 +7,7 @@ valid physics cases that also have reference output.
 from __future__ import annotations
 
 import math
+import random
 import shutil
 import subprocess
 from pathlib import Path
@@ -1197,6 +1198,56 @@ def test_first_stationary_st6_guess_has_a_defined_drag(tmp_path):
             if l.strip() and not l.startswith('%')]
     # WINDP1 uses Wu drag for the initial second-generation guess.
     assert float(rows[0][-1]) == pytest.approx(8*math.sqrt((.8+.065*8)*.001), rel=1e-5)
+
+
+#  BF-57: the second search in CVMESH starts at the nearest active grid point
+#  and can step into a mesh with a corner point without coordinates. The shape
+#  of such a mesh is undefined (the corner lies at the exception value, here
+#  400 km away), so the search may converge there at a wrong place. Upstream
+#  accepted that, and the point got the depth of another place; when the
+#  search failed, it went on with an unconverged estimate. The depth here
+#  rises 0.5 m per mesh in x, so it shows where SWAN put the point.
+def test_point_next_to_mesh_without_coordinates(tmp_path):
+    n, d, ox, oy = 30, 100.0, 50000.0, 400000.0
+    excluded = {(0, 0), (1, 0), (0, 1), (1, 1), (28, 28), (29, 28), (28, 29), (29, 29),
+                (10, 10), (15, 12), (20, 20), (12, 22), (22, 8)}
+    nodes = [[(0.0, 0.0) if (i, j) in excluded else
+              (ox + i * d + 3.0 * j, oy + j * d + 2.0 * i) for i in range(n)] for j in range(n)]
+    bottom = [[10.0 + 0.5 * i for i in range(n)] for _ in range(n)]
+    rng = random.Random(1)
+    points = []
+    for i, j in sorted(excluded):
+        if 1 < i < 28:
+            for _ in range(60):
+                points.append((ox + i * d + 3.0 * j + rng.uniform(-150, 150),
+                               oy + j * d + 2.0 * i + rng.uniform(-150, 150)))
+    depths, report = _curvilinear_depths(tmp_path, nodes, bottom, points, exception="0 0")
+    wrong = []
+    for (x, y), depth in zip(points, depths):
+        #  grid indices from the exact inverse of x = i d + 3 j, y = j d + 2 i
+        det = d * d - 6.0
+        i = ((x - ox) * d - 3.0 * (y - oy)) / det
+        j = ((y - oy) * d - 2.0 * (x - ox)) / det
+        i0, j0 = int(i), int(j)
+        if {(i0, j0), (i0 + 1, j0), (i0, j0 + 1), (i0 + 1, j0 + 1)} & excluded:
+            continue
+        if abs(depth - (10.0 + 0.5 * i)) > 0.03:
+            wrong.append((round(x, 1), round(y, 1), depth, round(10.0 + 0.5 * i, 3)))
+    assert not wrong, wrong[:5]
+
+
+@pytest.mark.parametrize("offset", [0., -0.01])
+def test_grid_lines_next_to_missing_coordinates_keep_output(tmp_path, offset):
+    n, d, ox, oy = 30, 100., 50000., 400000.
+    excluded = {(10, 10), (15, 12), (20, 20), (12, 22), (22, 8)}
+    nodes = [[(0., 0.) if (i, j) in excluded else
+              (ox+i*d+3*j, oy+j*d+2*i) for i in range(n)] for j in range(n)]
+    bottom = [[10.+0.5*i for i in range(n)] for _ in range(n)]
+    ij = [(i-1+offset/d, j+v) for i, j in sorted(excluded)
+          for v in (-1., -.75, -.5, 0., .5, .75, 1.)]
+    points = [(ox+i*d+3*j, oy+j*d+2*i) for i, j in ij]
+    depths, report = _curvilinear_depths(tmp_path, nodes, bottom, points, exception="0 0")
+    assert depths == pytest.approx([10.+.5*i for i, _ in ij], abs=.03), report[-2000:]
 
 
 def test_outline_closes_each_curve_when_there_is_a_hole(tmp_path):

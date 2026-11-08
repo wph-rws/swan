@@ -5428,12 +5428,17 @@ SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
    INTEGER     IX, IY
    REAL        DEPTH(*)
    REAL        DEP, XP, YP
+!     NOCOOR   true for a point with (partly) exception coordinates
+   LOGICAL, ALLOCATABLE :: NOCOOR(:,:)
    CALL STRACE(IENT,'SWDIM')
 
+   ALLOCATE (NOCOOR(MXC,MYC))
    do IX = 1, MXC
       do IY = 1, MYC
 !         at start make each grid point invalid
          KGRPNT(IX,IY) = 1
+         NOCOOR(IX,IY) = EQREAL(XCGRID(IX,IY), EXCFLD(8)) .OR. &
+            EQREAL(YCGRID(IX,IY), EXCFLD(9))
 
 !         If coordinates are valid (excluding exception values)           30.60
 !         Then If grid offset is not yet defined (LXOFFS = False)
@@ -5486,6 +5491,19 @@ SUBROUTINE SWDIM ( KGRPNT, DEPTH, XCGRID, YCGRID )
 
    EXCFLD(8) = REAL(EXCFLD(8) - DBLE(XOFFS))
    EXCFLD(9) = REAL(EXCFLD(9) - DBLE(YOFFS))
+!     a point with exception coordinates was not shifted above; give it the
+!     shifted exception value, so that EQREAL(XCGRID, EXCFLD(8)) still
+!     recognises it (BACKUP, CVMESH; BF-57)
+   IF (OPTG.EQ.3) THEN
+      DO IX = 1, MXC
+         DO IY = 1, MYC
+            IF (NOCOOR(IX,IY)) THEN
+               XCGRID(IX,IY) = EXCFLD(8)
+               YCGRID(IX,IY) = EXCFLD(9)
+            ENDIF
+         ENDDO
+      ENDDO
+   ENDIF
 
    IF (MCGRD.LE.1) CALL MSGERR (3, 'No valid grid points found')
    IF (ITEST.GE.60) WRITE(PRINTF,*) &

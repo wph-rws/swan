@@ -452,11 +452,12 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
 !                                                                      *
 !************************************************************************
 
-   USE swan_service_interfaces, ONLY: STRACE
+   USE swan_service_interfaces, ONLY: EQREAL, STRACE
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_coordinate_offset
    USE swan_computational_grid
+   USE swan_input_grids, ONLY: EXCFLD
    USE swan_test_output
 
 !   --|-----------------------------------------------------------|--
@@ -650,6 +651,7 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
       MXITNR = 5
       CALL NEWTON  (XP, YP, XCGRID, YCGRID, &
          MXITNR ,ITER, XC ,YC ,FINDXY)
+      IF (FINDXY) CALL CHECK_MESH (XC, YC, FINDXY)
       IF ((ITEST .GE. 150 .OR. INTES .GE. 20) .AND. FINDXY) THEN
          WRITE(PRINTF,"(' CVMESH: (XP,YP)=','(',F12.4,',',F12.4, '), (XC,YC)=','(',F9.2,',',F9.2,')')") XP+XOFFS ,YP+YOFFS ,XC ,YC
       ENDIF
@@ -700,6 +702,7 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
             ENDIF
             CALL NEWTON  (XP, YP, XCGRID, YCGRID, &
                MXITNR ,ITER, XC ,YC ,FINDXY)
+            IF (FINDXY) CALL CHECK_MESH (XC, YC, FINDXY)
             IF (FINDXY) THEN
                IF (ITEST .GE. 150 .OR. INTES .GE. 20) THEN
                   WRITE(PRINTF, &
@@ -708,9 +711,13 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
                EXIT
             ENDIF
          ENDDO
-         IF (.NOT. FINDXY .AND. ITER.GE.MXITNR) THEN
-            WRITE (PRINTF, &
+         IF (.NOT. FINDXY) THEN
+            IF (ITER.GE.MXITNR) WRITE (PRINTF, &
                   "(' search for point with location ', 2F12.4, ' fails in', I3, ' iterations')") XP+XOFFS, YP+YOFFS, MXITNR
+!           the point was not found: XC and YC still hold the last,
+!           unconverged estimate, in grid indices counted from 1
+            XC = -99.
+            YC = -99.
          END IF
       ELSE IF (.NOT. FINDXY) THEN
 !         scan boundary to see whether the point is close to the boundary
@@ -786,6 +793,103 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
          YC = -99.
       ENDIF
    ENDIF
+
+CONTAINS
+
+!  A search that converges in a mesh with a corner point that has no
+!  coordinates (the exception value of CGRID) has found nothing: the shape
+!  of that mesh is undefined, so the solution lies at an arbitrary place.
+!  Upstream accepted it, and the output point then got values from a
+!  neighbouring mesh (BF-57). A corner that is only inactive because of
+!  its bottom has coordinates and is handled by the output interpolation.
+!
+!  One solution in such a mesh is not arbitrary: a point on a side or
+!  corner that the mesh shares with a mesh that has all its coordinates.
+!  An output point given at the coordinates of a grid point, or on a grid
+!  line, next to an excluded point ends there, because NEWTON takes the
+!  mesh from INT(XC) and so counts a grid line to the mesh beyond it. The
+!  side is the same line in both meshes. The solution is therefore kept
+!  when it lies within the tolerance of NEWTON from such a neighbour, and
+!  one Newton step from the nearest point of that neighbour, taken with
+!  the coordinates of the neighbour, stays within that tolerance as well.
+!  XCF and YCF are then put on the shared side or corner: SWIPOL and
+!  SWOINA give the grid points off that side a weight of zero, and the
+!  lower-left grid point of the mesh they take is a point of the side.
+SUBROUTINE CHECK_MESH (XCF, YCF, FOUND)
+   REAL, INTENT(INOUT)  :: XCF, YCF ! grid coordinates counted from 0
+   LOGICAL, INTENT(OUT) :: FOUND
+   REAL, PARAMETER :: TOLDC = 0.001 ! the tolerance of NEWTON, in meshes
+   INTEGER :: I1, J1, I, J
+   REAL    :: XS, YS, DXS, DYS
+   I1 = MIN(MAX(INT(XCF)+1, 1), MAX(MXC-1, 1))
+   J1 = MIN(MAX(INT(YCF)+1, 1), MAX(MYC-1, 1))
+   FOUND = MESH_HAS_GEOMETRY(I1, J1)
+   IF (FOUND) RETURN
+   DO J = MAX(J1-1, 1), MIN(J1+1, MYC-1)
+      DO I = MAX(I1-1, 1), MIN(I1+1, MXC-1)
+         IF (.NOT. MESH_HAS_GEOMETRY(I, J)) CYCLE
+!        the point of mesh (I,J) nearest to the solution
+         XS = MIN(MAX(XCF, REAL(I-1)), REAL(I))
+         YS = MIN(MAX(YCF, REAL(J-1)), REAL(J))
+         IF (ABS(XS-XCF).GT.TOLDC .OR. ABS(YS-YCF).GT.TOLDC) CYCLE
+         CALL NEWTON_STEP (I, J, XS, YS, DXS, DYS)
+         IF (ABS(DXS).LE.TOLDC .AND. ABS(DYS).LE.TOLDC) THEN
+            XCF   = XS
+            YCF   = YS
+            FOUND = .TRUE.
+            RETURN
+         ENDIF
+      ENDDO
+   ENDDO
+end subroutine CHECK_MESH
+
+!  Do all four corner points of the mesh with lower-left grid point (I,J)
+!  have coordinates?
+LOGICAL FUNCTION MESH_HAS_GEOMETRY (I, J)
+   INTEGER, INTENT(IN) :: I, J
+   INTEGER :: IC, JC
+   MESH_HAS_GEOMETRY = .TRUE.
+   DO JC = J, MIN(J+1, MYC)
+      DO IC = I, MIN(I+1, MXC)
+         IF (KGRPNT(IC,JC).LE.1) THEN
+            IF (EQREAL(XCGRID(IC,JC), EXCFLD(8)) .AND. &
+               EQREAL(YCGRID(IC,JC), EXCFLD(9))) MESH_HAS_GEOMETRY = .FALSE.
+         ENDIF
+      ENDDO
+   ENDDO
+end function MESH_HAS_GEOMETRY
+
+!  The step that NEWTON would take from (XS,YS), in grid coordinates
+!  counted from 0, with the coordinates of the mesh with lower-left grid
+!  point (I,J); (XS,YS) lies in or on that mesh.
+SUBROUTINE NEWTON_STEP (I, J, XS, YS, DXS, DYS)
+   INTEGER, INTENT(IN) :: I, J
+   REAL, INTENT(IN)    :: XS, YS
+   REAL, INTENT(OUT)   :: DXS, DYS
+   REAL :: SX, SY, XV, YV, DXDXC, DXDYC, DYDXC, DYDYC, DDEN
+   SX = XS - REAL(I-1)
+   SY = YS - REAL(J-1)
+   XV = SY*(SX*XCGRID(I+1,J+1) + (1.-SX)*XCGRID(I,J+1)) + &
+      (1.-SY)*(SX*XCGRID(I+1,J) + (1.-SX)*XCGRID(I,J))
+   YV = SY*(SX*YCGRID(I+1,J+1) + (1.-SX)*YCGRID(I,J+1)) + &
+      (1.-SY)*(SX*YCGRID(I+1,J) + (1.-SX)*YCGRID(I,J))
+   DXDXC = SY*(XCGRID(I+1,J+1) - XCGRID(I,J+1)) + &
+      (1.-SY)*(XCGRID(I+1,J) - XCGRID(I,J))
+   DXDYC = SX*(XCGRID(I+1,J+1) - XCGRID(I+1,J)) + &
+      (1.-SX)*(XCGRID(I,J+1) - XCGRID(I,J))
+   DYDXC = SY*(YCGRID(I+1,J+1) - YCGRID(I,J+1)) + &
+      (1.-SY)*(YCGRID(I+1,J) - YCGRID(I,J))
+   DYDYC = SX*(YCGRID(I+1,J+1) - YCGRID(I+1,J)) + &
+      (1.-SX)*(YCGRID(I,J+1) - YCGRID(I,J))
+   DDEN = DXDXC*DYDYC - DYDXC*DXDYC
+   IF (DDEN.NE.0.) THEN
+      DXS = ( DYDYC*(XP-XV) - DXDYC*(YP-YV)) / DDEN
+      DYS = (-DYDXC*(XP-XV) + DXDXC*(YP-YV)) / DDEN
+   ELSE
+      DXS = 1000.
+      DYS = 1000.
+   ENDIF
+end subroutine NEWTON_STEP
 end subroutine CVMESH
 !************************************************************************
 !                                                                      *
