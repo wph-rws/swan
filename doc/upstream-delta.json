@@ -99,22 +99,40 @@
       "deck": "nonlinear_interactions/quad/quad_xnl.swn",
       "status": "skipped",
       "reason": "The exact XNL route takes about four minutes per run; with the instability check added that grows to half an hour per deck, too long for a gate that runs at every source change. Include it deliberately with --include-skipped --timeout 3600.",
-      "measured": "With --include-skipped: differs from upstream; byte-identical with the KTETA repair reverted. Deck without breaking.",
-      "bugfix": "BF-16"
+      "measured": "differs in: quad_xnl.spc, quad_xnl.tbl, quad_xnl_sources.spc",
+      "bugfix": "BF-16",
+      "measured_status": "differs",
+      "fork_output": {
+        "quad_xnl.spc": "2a680c6763d4976a195642f2d029690b3b6265838fdab6a14658f80649995e3e",
+        "quad_xnl.tbl": "d1f7f148b7fdee10e98583305120df137aebc6b77cd2a68301897db15cae0d55",
+        "quad_xnl_sources.spc": "518de0621ff5404307317b04810695d363eea84320caedd0d0539edd5e1e9add"
+      }
     },
     {
       "deck": "nonlinear_interactions/quad/quad_xnl52.swn",
       "status": "skipped",
       "reason": "The exact XNL route takes about four minutes per run; with the instability check added that grows to half an hour per deck, too long for a gate that runs at every source change. Include it deliberately with --include-skipped --timeout 3600.",
-      "measured": "With --include-skipped: differs from upstream; byte-identical with the KTETA repair reverted. Deck without breaking.",
-      "bugfix": "BF-16"
+      "measured": "differs in: quad_xnl52.spc, quad_xnl52.tbl, quad_xnl52_sources.spc",
+      "bugfix": "BF-16",
+      "measured_status": "differs",
+      "fork_output": {
+        "quad_xnl52.spc": "3420487854a8cb0ca0fe66022b2881065ecc7dd772d6304c245fc1c66d24da64",
+        "quad_xnl52.tbl": "08afe71defbe98f8ec1fa13e416838ba1f7fa94f8916553ec0468fe08c0a7568",
+        "quad_xnl52_sources.spc": "c7b687d24c7d05671752725f0a764f661f5acd685045eed1ad13f0189aff659d"
+      }
     },
     {
       "deck": "nonlinear_interactions/quad/quad_xnl53.swn",
       "status": "skipped",
       "reason": "The exact XNL route takes about four minutes per run; with the instability check added that grows to half an hour per deck, too long for a gate that runs at every source change. Include it deliberately with --include-skipped --timeout 3600.",
-      "measured": "With --include-skipped: differs from upstream; byte-identical with the KTETA repair reverted. Deck without breaking.",
-      "bugfix": "BF-16"
+      "measured": "differs in: quad_xnl53.spc, quad_xnl53.tbl, quad_xnl53_sources.spc",
+      "bugfix": "BF-16",
+      "measured_status": "differs",
+      "fork_output": {
+        "quad_xnl53.spc": "bd4924213934552a72f0ff0c5c4162ac0874e18c190cf703a160f1c576e2ab0f",
+        "quad_xnl53.tbl": "1d7210e34bb6b9143355491b7af2d262a98b3f3f34facf3231151e26cbf4d67f",
+        "quad_xnl53_sources.spc": "b100f31f96d31e0d06d08797c54aa2ab7013ed431ea6319c983a69845434c0e7"
+      }
     },
     {
       "deck": "nonlinear_interactions/sources/src_all.swn",
@@ -315,8 +333,14 @@
       "deck": "voordelta_unstructured/voordelta_unstructured.swn",
       "status": "skipped",
       "reason": "The upstream binary needs more than ten minutes per run for this unstructured case, too long for a gate that runs at every source change. Include it deliberately with --include-skipped --timeout 3600.",
-      "measured": "With --include-skipped: differs in voordelta_hs.blk; byte-identical with only the first stencil neighbour in the front ordering, as upstream does.",
-      "bugfix": "BF-15"
+      "measured": "differs in: voordelta_hs.blk",
+      "bugfix": "BF-15",
+      "measured_status": "differs",
+      "fork_output": {
+        "voordelta_depth.blk": "0827c7e7e363bef02e61b0b91588767aa3498a60e415c84beeb313d669f28351",
+        "voordelta_hs.blk": "328ea6e8aa659284969c1f3c72f3fcd7b91fe931cbb79d58e056fa2c8fa3769f",
+        "voordelta_sites.tbl": "73593f2d95bd6cb009843350b19e85ef7df66eec48c1a323956cd82f90655d27"
+      }
     }
   ]
 }

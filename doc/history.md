@@ -27,7 +27,7 @@ reason given there.
    where they were made. Each bug-fix commit holds the fix, its test and its
    row in [bug-fixes-vs-tu-delft-41.51.md](bug-fixes-vs-tu-delft-41.51.md),
    and ends with the trailer `Bug-fix: BF-NN`.
-7. **Layout check and this record** (`5e60340` and the commit that added this file).
+7. **Layout check and this record** (`5e60340` and the two commits after it).
 
 The bug numbers were given in the order the bugs were found. BF-56 to BF-63
 come after BF-64 to BF-68 in the history, because BF-59 and BF-67 change the
@@ -70,7 +70,7 @@ inherited; both carry the trailer.
 |---|---|---|
 | `upstream-41.51` | `43e9bbb` | the TU Delft source the fork starts from |
 | `fork-41.51-identical` | `4457162` | the last commit that computes exactly what upstream computes |
-| `fork-41.51-2026-11-10` | the commit that added this file | the state of 10 November 2026, after the history was rebuilt |
+| `fork-41.51-2026-11-10` | the last commit of 10 November 2026 | the state of 10 November 2026, after the history was rebuilt |
 
 ## Measurements made before 10 November 2026
 

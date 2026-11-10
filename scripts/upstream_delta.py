@@ -372,28 +372,44 @@ def stage_case(deck: str, work_root: Path) -> Path:
         if neighbour.is_dir():
             copy_case_files(neighbour, work_root / sibling)
     shutil.copy2(deck_path, run_directory / "INPUT")
+    #  A case whose grid is made by a script (voordelta_unstructured makes its
+    #  Triangle mesh with generate_mesh.py; the mesh is not under version
+    #  control) gets it here, or the run would stop on a missing file.
+    generator = run_directory / "generate_mesh.py"
+    if generator.is_file():
+        subprocess.run([sys.executable, str(generator)], cwd=run_directory,
+                       check=True, capture_output=True)
     return run_directory
 
 
-def written_since(directory: Path, moment: float) -> dict[str, bytes]:
+def staged_state(directory: Path) -> dict[str, tuple[int, int]]:
+    """Size and modification time of every file before the run."""
+    return {str(path.relative_to(directory)): (path.stat().st_size, path.stat().st_mtime_ns)
+            for path in directory.rglob("*") if path.is_file()}
+
+
+def written_since(directory: Path, before: dict[str, tuple[int, int]]) -> dict[str, bytes]:
     """The files that the run itself wrote.
 
-    By timestamp, not by content. Several cases keep their own
-    output next to the deck; if the run writes exactly the same thing back
-    there, that is still output that must be compared. A
-    content comparison would silently skip it -- and precisely on the side
-    that gets it right, which turns the comparison on its head.
-
-    `shutil.copy2` keeps the original timestamp of the copied
-    input, so everything touched after the start of the run comes from the run.
+    A file counts when it was not there before the run, or when its size or
+    modification time changed. Several cases keep their own output next to
+    the deck; if the run writes exactly the same thing back there, that is
+    still output that must be compared, so the test is on the time stamp, not
+    on the content. A file that the staging made (a copied input, a generated
+    mesh) is not output, however close to the start of the run it was made:
+    an earlier test on "touched after the start, less one second" counted the
+    inputs of a case that was staged from a freshly made checkout, and so saw
+    a difference between a first run and its repeats that was not there.
     """
     written: dict[str, bytes] = {}
     for path in directory.rglob("*"):
         if not path.is_file():
             continue
-        if path.stat().st_mtime + 1.0 < moment:
+        name = str(path.relative_to(directory))
+        state = (path.stat().st_size, path.stat().st_mtime_ns)
+        if before.get(name) == state:
             continue
-        written[str(path.relative_to(directory))] = path.read_bytes()
+        written[name] = path.read_bytes()
     return written
 
 
@@ -411,7 +427,7 @@ def run_deck(binary: Path, deck: str, destination: Path, timeout: int) -> RunOut
     with tempfile.TemporaryDirectory(prefix="swan-delta-") as temporary:
         work_directory = stage_case(deck, Path(temporary))
         timed_out = False
-        moment = time.time()
+        before = staged_state(work_directory)
         started = time.monotonic()
         try:
             completed = subprocess.run(
@@ -428,7 +444,7 @@ def run_deck(binary: Path, deck: str, destination: Path, timeout: int) -> RunOut
             timed_out = True
         seconds = time.monotonic() - started
         outputs: dict[str, Path] = {}
-        for name, content in written_since(work_directory, moment).items():
+        for name, content in written_since(work_directory, before).items():
             if not is_output(name):
                 continue
             target = destination / name
