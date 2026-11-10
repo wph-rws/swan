@@ -78,17 +78,31 @@ or `examples/`. For the other 16 it does not:
 
 ## How the history was checked
 
-On 10 November 2026 every commit from the conversion on (103 commits) was
-checked out into a fresh worktree and built from scratch at `-O0` with
-gfortran 16.2, once serially and once with OpenMP, and its Fortran sources
-were checked against the layout. All 103 built both ways, and all were in
-the layout. The rename commit does not build (see above). The tests were run
-at the tip: CTest serially, with OpenMP and with runtime checks (66 of 66
-each), under MPI (73 of 73), the strict gate, pytest and the delta gate,
-including the four heavy decks. `fork-41.51-identical` was compared with an
-upstream build at `-O3` on the 41 light decks, serially; OpenMP and MPI runs
-were not compared with upstream at that commit. The scripts that built and checked the history are kept outside the
-repository, with the earlier histories.
+On 10 November 2026, after a review of the published text by six
+independent reviewers had led to corrections of two early commits and of
+fifteen commit messages, the history was put together once more, and every
+commit from the conversion to `cd3c030` (109 commits) was checked out into a
+fresh worktree and built from scratch at `-O0` with gfortran 16.2, once
+serially and once with OpenMP, and its Fortran sources were checked against
+the layout. All 109 built both ways, and all were in the layout. The rename
+commit does not build (see above). The conversion and FFTW commits were also
+built with netCDF, which before the correction failed there because four
+continuation lines under alternative switches were converted wrongly. A
+static check confirmed that no CMake file of any commit names a file that
+the commit lacks.
+
+At `cd3c030`, built from scratch with gfortran 16.2 at `-O3`, CTest passed 66
+of 66 serially, with OpenMP and with runtime checks, and 73 of 73 under MPI;
+the strict gate was green (1030 warnings, the 233 in the checked kinds all
+with a verdict); pytest passed 462 tests and skipped one (the measured part
+of the delta gate, which runs on its own); and the delta gate was green, the
+four heavy decks included. The configurations of `scripts/build_matrix.py`
+and their results are in [support-matrix.md](support-matrix.md).
+`fork-41.51-identical` was compared with an upstream build at `-O3` on the
+41 light decks, serially; OpenMP and MPI runs were not compared with
+upstream at that commit. Its sources are the same as before the last
+assembly. The scripts that built and checked the history are kept outside
+the repository, with the earlier histories.
 
 Until 10 November 2026 the delta gate compared output with white space
 collapsed. It therefore missed that the first conversion had taken blanks out
@@ -104,7 +118,8 @@ original work, from July to November 2026. The checks that the messages
 name (builds with gfortran 16.2, byte-identical output, tests that pass)
 were repeated for every commit when the history was rebuilt on 10 November
 2026, as described above; gfortran 16.2 itself has been used since
-28 October 2026.
+28 October 2026. A correction folded into a commit can therefore mention a
+date after the commit's own date.
 
 ## Tracing a line to upstream
 
@@ -143,6 +158,7 @@ fix, unless the row names another commit. A fix with more than one commit
 | `upstream-41.51` | `43e9bbb` | the TU Delft source the fork starts from |
 | `fork-41.51-identical` | `4457162` | the last commit that computes exactly what upstream computes (41 light decks, serial, `-O3`) |
 | `fork-41.51-2026-11-10` | the last commit of 10 November 2026 | the state of 10 November 2026, after the history was rebuilt |
+| `archive/before-rebuild-2026-11-10` | `01fd3fc` | the earlier history, on which the measurements dated before 10 November 2026 were made |
 
 ## Measurements made before 10 November 2026
 
