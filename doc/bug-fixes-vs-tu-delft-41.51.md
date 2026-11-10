@@ -262,8 +262,10 @@ claimed.
 
 ## Commit of each fix
 
-Each fix is one commit, which holds the fix, its test and its row above, and
-ends with the trailer `Bug-fix: BF-NN`. The table names that commit; a later
+Each fix is one commit, which holds the fix and its row above, and ends with
+the trailer `Bug-fix: BF-NN`. Most of these commits also hold the test;
+[history.md](history.md) lists the 16 that do not, and says where those fixes
+are tested, or why they are not. The table names that commit; a later
 correction of a fix carries the same trailer (`git log --grep='Bug-fix: BF-01'`
 shows both commits of BF-01). The fix of BF-04 is part of the commit that put
 every routine in a module, because the old calls do not compile with module

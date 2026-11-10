@@ -107,8 +107,10 @@ Thread counts, pinning and cases are in
 renames the upstream files and one that only converts and lays them out
 (`scripts/fortran_layout.py`), so that `git blame` leads from a line in the
 fork to the upstream commit it came from, or to the fork commit that changed
-it. Every bug fix is one commit with its test and its row in the bug-fix
-table, and the table names that commit. See [history.md](history.md).
+it. Every bug fix is one commit with its row in the bug-fix table, and the
+table names that commit. Most of these commits also hold the test;
+[history.md](history.md) lists the 16 that do not, and says where those
+fixes are tested, or why they are not.
 
 ## 3. Fixes on top of the upstream source base
 

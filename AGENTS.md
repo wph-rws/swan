@@ -54,10 +54,15 @@ in [doc/history.md](doc/history.md).
   the bug-fix table, and ends with the trailer `Bug-fix: BF-NN`
   (`git log --grep='Bug-fix: BF-62'` finds it). The table names the commit.
   A later correction of a fix that is already pushed gets its own commit with
-  the same trailer.
+  the same trailer. Sixteen older fixes have their test elsewhere or none;
+  [doc/history.md](doc/history.md) lists them and says why.
 - A measurement in this file, in the bug-fix table or in a commit message
   names the commit or tag it was made on, not only the date; a number
-  without one cannot be repeated after the code moves on.
+  without one cannot be repeated after the code moves on. Measurements dated
+  before 10 November 2026 were made on the earlier history (tag
+  `archive/before-rebuild-2026-11-10`); the commit named with them is the
+  commit of the rebuilt history that holds the same change, as explained in
+  doc/history.md, and the number was not measured again there.
 
 ## Important physics fact: changed defaults (41.31 → 41.51)
 

@@ -11,8 +11,8 @@ fails if a `THREADPRIVATE` symbol is added or removed.
 The analysis is **import-aware**: a symbol only counts in a file that actually
 `USE`s the matching module. That is not a formality. A count based on names
 alone attributes ten writers of `EKTOT` to
-[swanout1.f90:4083](../src/swanout1.f90#L4089) onwards, but that is a local
-`REAL` at [line 3188](../src/swanout1.f90#L3194) in a file that does not import
+[swanout1.f90:4089](../src/swanout1.f90#L4089) onwards, but that is a local
+`REAL` at [line 3194](../src/swanout1.f90#L3194) in a file that does not import
 the whitecapping state: a name clash, not shared state.
 
 Lifetime is the shortest unit over which the value must stay valid:
@@ -54,7 +54,7 @@ threadprivate, seeded with `COPYIN`.
 The two solvers seed different sets. That is design input, not a detail: only
 these symbols must have the master value on entry to the parallel region.
 
-| Symbol | [swancom1.f90:1334-1336](../src/swancom1.f90#L1340-L1342) (structured) | [SwanCompUnstruc.f90:499](../src/SwanCompUnstruc.f90#L501) (unstructured) |
+| Symbol | [swancom1.f90:1360-1362](../src/swancom1.f90#L1360-L1362) (structured) | [SwanCompUnstruc.f90:510](../src/SwanCompUnstruc.f90#L510) (unstructured) |
 |---|---|---|
 | `IPTST` | ✅ | ✅ |
 | `TESTFL` | ✅ | ✅ |
@@ -104,23 +104,23 @@ modules: one for the test status and one for the propagation scheme.
 
 | Symbol | Solver | COPYIN | First definition | Lifetime | Cat. | Proposed owner |
 |---|---|---|---|---|---|---|
-| `IPTST` | both | ✅ | [swancom1.f90:3189](../src/swancom1.f90#L3196), [SwanCompUnstruc.f90:995](../src/SwanCompUnstruc.f90#L1001) | point | 3 | `common_thread_seed_t` |
-| `TESTFL` | both | ✅ | [swanmain.f90:1653](../src/swanmain.f90#L1654) | point | 3 | `common_thread_seed_t` |
-| `PROPSL` | structured | ✅ | [swanmain.f90:1216](../src/swanmain.f90#L1217) | sweep | 3/6 | `structured_thread_workspace_t` |
+| `IPTST` | both | ✅ | [swancom1.f90:3252](../src/swancom1.f90#L3252), [SwanCompUnstruc.f90:1009](../src/SwanCompUnstruc.f90#L1009) | point | 3 | `common_thread_seed_t` |
+| `TESTFL` | both | ✅ | [swanmain.f90:1679](../src/swanmain.f90#L1679) | point | 3 | `common_thread_seed_t` |
+| `PROPSL` | structured | ✅ | [swanmain.f90:1228](../src/swanmain.f90#L1228) | sweep | 3/6 | `structured_thread_workspace_t` |
 
 The COPYIN of `IPTST` and `TESTFL` is probably unnecessary. Both solvers set
 the pair to `0`/`.FALSE.` at the top of the per-point block
-([swancom1.f90:3189](../src/swancom1.f90#L3196),
-[SwanCompUnstruc.f90:995](../src/SwanCompUnstruc.f90#L1001)) before they read
+([swancom1.f90:3252](../src/swancom1.f90#L3252),
+[SwanCompUnstruc.f90:1009](../src/SwanCompUnstruc.f90#L1009)) before they read
 it, and neither appears inside the parallel region itself
-([swancom1.f90:1322-2359](../src/swancom1.f90#L1328-L2361)): all uses are in
+([swancom1.f90:1348-2415](../src/swancom1.f90#L1348-L2415)): all uses are in
 called routines. That makes them scratch rather than seed. This is not
 proven: nobody has checked whether a routine called earlier in the region
 already reads `TESTFL`. Check that before deleting the COPYIN; until then, the
 COPYIN is unnecessary but not wrong.
 
 `IPTST` is also used as a `DO` loop variable in
-[swanmain.f90:6094](../src/swanmain.f90#L6088) onwards, outside the parallel
+[swanmain.f90:6113](../src/swanmain.f90#L6113) onwards, outside the parallel
 region. That is legal, but it means the symbol carries two meanings. If this
 state moves into a context type, the loop variable should become a local
 variable, not a field of the context.
@@ -129,7 +129,7 @@ variable, not a field of the context.
 
 In upstream, the eleven values are threadprivate module variables in
 `M_WCAP`. They are written only in `SINTGRL`
-([swancom1.f90:5181-5742](../src/swancom1.f90#L5179-L5804)); only four files
+([swancom1.f90:5273-5847](../src/swancom1.f90#L5273-L5847)); only four files
 import the module, and no scalar is in COPYIN.
 
 | Symbol | Default on entry | Write condition | Cat. | Invariant |
@@ -138,7 +138,7 @@ import the module, and no scalar is in COPYIN.
 | `KM01` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L180) | refined when `EKTOT > 0.` | 4 | proven |
 | `SIGM01` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L181) | refined when `ETOT1 > 0.` | 4 | proven |
 | `SIGM_10` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L182) | refined when `ACTOT > 0.` | 4 | proven |
-| `ACTOT` | **none** | [`IF (ETOT > 0.)`](../src/swancom1.f90#L5510) | **5** | tested: value is kept |
+| `ACTOT` | **none** | [`IF (ETOT > 0.)`](../src/swancom1.f90#L5613) | **5** | tested: value is kept |
 | `ETOT1` | **none** | same | **5** | tested: value is kept |
 | `ETOT2` | **none** | same | **5** | tested: value is kept |
 | `ETOT4` | **none** | same | **5** | tested: value is kept |
@@ -153,7 +153,7 @@ workspace. `begin_point` sets only the four entry defaults to 10, as
 upstream `SINTGRL` does; the seven category-5 values are deliberately left alone.
 
 **The category-5 finding.** When `ETOT <= 0.`, `SINTGRL` does not write seven
-of the eleven, while [line 5735](../src/swancom1.f90#L5720) executes
+of the eleven, while [line 5840](../src/swancom1.f90#L5840) executes
 `AC2TOT = ACTOT` unconditionally. The thread then carries over the value from
 the previous point it handled. Upstream behaves the same way.
 
