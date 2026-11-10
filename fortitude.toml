@@ -1,8 +1,8 @@
 # fortitude (https://fortitude.readthedocs.io), a Fortran linter.
 #
 # Only rules that can point at a real error are selected; the style rules
-# would give tens of thousands of findings on code that follows upstream
-# layout. Run `fortitude check src/` from the repository root. Most findings
+# would give tens of thousands of findings on code whose layout is set by
+# scripts/fortran_layout.py to keep the upstream text recognisable. Run `fortitude check src/` from the repository root. Most findings
 # here are known and harmless (an implicitly saved flag that is meant to
 # keep its value, code after RETURN that upstream also has); read a finding
 # before acting on it.

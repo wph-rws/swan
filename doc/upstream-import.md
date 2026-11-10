@@ -79,6 +79,25 @@ what is still to do, and after the work it shows what was missed. A count is
 a pointer, not a verdict: a short common line can match by accident, and a
 line the fork rewrote does not match.
 
+## Reading a release line by line
+
+The fork converted the upstream sources with `scripts/fortran_layout.py`,
+and every fork source is in the layout of that script. A new release can
+therefore be put in the same form and compared with the fork as text:
+
+    git worktree add /tmp/upstream-new NEW
+    cd /tmp/upstream-new
+    for f in src/*.ftn src/*.ftn90 src/hcat/*.ftn; do git mv $f ${f%.*}.f90; done
+    python3 /path/to/fork/scripts/fortran_layout.py convert <the former .ftn files>
+    python3 /path/to/fork/scripts/fortran_layout.py format src/*.f90 src/*/*.f90
+    git diff --no-index -w /tmp/upstream-new/src/swancom1.f90 /path/to/fork/src/swancom1.f90
+
+Doing the same for `OLD` gives the upstream diff in the fork's layout, which
+is what has to be carried over. Most of a fork file is then line for line the
+upstream text; what differs is the fork's own work (modules, interfaces,
+fixes), and `git blame` on the fork tells for each such line which commit
+made it and why.
+
 ## The route
 
 1. Fetch the release (`git fetch upstream`) and list the changes with

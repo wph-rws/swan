@@ -34,6 +34,15 @@ without an entry. `scripts/upstream_map.py where NAME` finds upstream code in
 the fork; for a new upstream release follow
 [doc/upstream-import.md](doc/upstream-import.md).
 
+Every Fortran source has one layout, set by `scripts/fortran_layout.py`:
+three spaces per level, `&` at the end of a continued line, no code line
+longer than 132 characters, TU Delft headers after the procedure statement
+with the declarations in sections 4 to 6. The script also converted the
+upstream fixed-form files, and it refuses to write a file whose statements
+would change. Run `python3 scripts/fortran_layout.py format <file>` after an
+edit; `tests/test_fortran_layout.py` (pytest gate) fails on a file that is
+not in the layout.
+
 ## Important physics fact: changed defaults (41.31 → 41.51)
 
 **Symptom:** a deck that does not choose its source terms itself gives a
@@ -173,7 +182,8 @@ Their output goes to `build-*` directories, which git ignores.
 - **Error-prone constructs: fortitude.** `fortitude check src/` uses
   `fortitude.toml`, which selects only rules that can point at a real error
   (about 140 findings, mostly known and harmless). The style rules are left
-  out on purpose: the code follows upstream layout.
+  out on purpose: the layout is set by `scripts/fortran_layout.py`, which
+  keeps the upstream text recognisable line by line.
 - **A second compiler: LLVM flang 22.** It is a check, not a supported route
   (see [doc/support-matrix.md](doc/support-matrix.md)); references and gates
   stay on gfortran. Build with
