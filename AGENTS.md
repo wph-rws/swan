@@ -332,19 +332,27 @@ mean residual does not guarantee convergence of all points or of the whole
 spectrum. Operational decks get no general residual threshold.
 
 The operational so-rp deck (`STOPC` with `CURVAT=0.001`, `NPNTS=98`,
-`MXITST=40`, `ALFA=0.01`) stops too early. Measured on 7 November 2026 (commit
-`591c4ce`) with `convergence_check.py` on the corrected deck, references of 80 and 160 forced
-iterations: at low water (NAP −2 m, 20 m/s) and at 40 m/s the deck stops after
-36 and 25 iterations, while the reference hardly changes between 80 and 160;
-there the deck is 2.3 and 5 cm low on mean Hs, and up to 8 and 24 cm at single
-points. At the reference condition the mean is within 0.5 cm, but 39 of the
-130 points are more than 1 cm off (up to 17 cm), and a cluster of points 12–26
-m deep (x ≈ 36,500–37,000, y ≈ 404,000–404,600) keeps drifting after 160
-iterations while the energy residual stays flat from iteration 80 on; a flat
-residual does not tell whether that drift settles later. At 2 m/s
-wind the deck does not reach its criterion within 40 iterations (87–88%), and
-wherever the boundary waves do not arrive, which is at most output points, the
-peak lies at the highest frequency: the upper limit of 1 Hz is too low there.
+`MXITST=40`, `ALFA=0.01`) stops too early. Measured on 10 November 2026
+(commit `a49f403`) with `convergence_check.py` on the corrected deck, with
+references of 80 and 160 forced iterations, over the wet output points (135,
+at low water 122): the deck stops after 25 to 38 iterations, and the check
+gives `premature` at four of the five conditions. At low water (NAP −2 m,
+20 m/s) the reference hardly changes between 80 and 160 iterations (at most
+6 mm), and the deck is 2.2 cm low on mean Hs, up to 8 cm at single points.
+At 40 m/s it is 4.7 cm low on mean Hs, up to 24 cm, with 113 of the 135
+points more than 1 cm off. At the reference condition, open or closed, the
+mean is within 0.7 cm, but 44 points are more than 1 cm off (up to 16 cm).
+At the reference condition and at 40 m/s some points are still moving
+between 80 and 160 iterations (6 and 10 points by more than 1 cm, up to 10
+and 23 cm), most of them in a cluster 12–26 m deep at x ≈ 36,000–37,000,
+y ≈ 402,500–404,600, while the energy residual stays flat; a flat residual
+does not tell whether that drift settles later, so the verdict rests on the
+other points. The 7 November 2026 measurement on the
+earlier history gave the same picture. At 2 m/s wind the deck does not reach
+its criterion within 40 iterations (88%), and the check gives no verdict,
+because the longer reference drifts away from its own equilibrium; wherever
+the boundary waves do not arrive, which is at most output points, the peak
+lies at the highest frequency: the upper limit of 1 Hz is too low there.
 The manual (`swanuse.pdf` p. 23) asks for an
 upper limit of at least 2.5 to 3 times the highest peak frequency.
 
@@ -375,13 +383,13 @@ reporting convergence. The estimate is not a bound: an iteration
 that slows down by itself, or a slow mode under a fast one, can still stop it
 too early. Output is the
 same at 1, 2, 4 and 8 threads and under MPI. On so-rp itself (`EXTRAP 10`,
-`MXITST=200`, three conditions) the test is not met within 200 iterations:
-93–96% of the wet points pass, against 98% required, and 37–59 minutes on 4
-cores instead of about 7. Against the 160-iteration reference the result then
-differs by at most 3–6 cm (rms 0.5 cm), against 8–24 cm for the operational
-stop. The so-rp runs were made before the change of 8 November. Since none of
-them met the test, the price of an honest stop on this deck is not measured;
-it is at least five to eight times the run time. Making the iteration itself
+`MXITST=200`, three conditions; 10 November 2026, commit `a49f403`) the test
+is not met within 200 iterations: 89–96% of the wet points pass, against 98%
+required. Against the 160-iteration reference the result then differs by at
+most 0.5–6 cm (rms 0.1–0.6 cm), against 8–24 cm for the operational stop.
+Since none of the runs met the test, the price of an honest stop on this deck
+is not measured; it is more than the five times as many iterations (200
+against 40) these runs took. Making the iteration itself
 converge faster is the real remedy, not a stricter stop.
 
 The residual does not replace the comparison everywhere: its floor depends on

@@ -10,9 +10,9 @@
   "memory_layout": "Both binaries run under setarch -R, with a fixed memory layout. Without that pin, upstream 41.51 gave two answers from run to run on quad_dia2, quad_mdia and src_nobreak: in decks without breaking, FRABRE reads an unset KTETA (valgrind, BF-16). The fork sets that value and does not depend on the memory layout; the pin stays to keep upstream reproducible. Run with --no-pin to see the instability of upstream for yourself.",
   "unexplained_budget": 0,
   "last_measurement": {
-    "date": "2026-11-09",
+    "date": "2026-11-10",
     "compiler": "GNU Fortran 16.2.0",
-    "decks": "all except the skipped ones"
+    "decks": "all, including the heavy ones"
   },
   "decks": [
     {

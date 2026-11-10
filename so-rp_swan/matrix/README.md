@@ -112,20 +112,22 @@ under-relaxation separately.
 The shift between N and 2N iterations is not a bound on the remaining error:
 a slow iteration can move only millimetres between N and 2N and centimetres
 after that. A `premature` verdict is therefore firm where the reference has
-settled, and only a lower bound elsewhere. Result of 7 November 2026 (N = 80,
-2N = 160, `--residual`, five conditions, each run with 4 threads on its own
-cores, 12–14 minutes per 80 iterations): the deck stops too early. At
-`u20_d300_lm200_open` and `u40_d300_lp300_open` the reference hardly changes
-between 80 and 160, and the deck is 2.3 and 5 cm low on mean Hs, up to 8 and
-24 cm at single points. At `u20_d310_lp300_open` and `_closed` the mean is
-within 0.5 cm, but 39 of 130 points are more than 1 cm off; a cluster of
-points 12–26 m deep is still moving at 160 iterations (one point by 0.7 mm
-per iteration, with Tm01 rising from 4.4 to 5.1 s) while the energy residual
-stays flat from iteration 80 on. Whether that is a slow mode that settles
-later or a level the iteration does not leave is not known: a flat residual
-does not tell the two apart. `u02_d090_l0000_open` gives no verdict (see
-the note on low wind below). Do not repeat this unless a change can affect
-the convergence of this deck.
+settled, and only a lower bound elsewhere. Result of 10 November 2026
+(commit `a49f403`; N = 80, 2N = 160, `--residual`, five conditions, each run
+with 4 threads on its own cores while other work ran on the machine): the
+deck stops too early. At `u20_d300_lm200_open` the reference hardly changes
+between 80 and 160 (at most 6 mm), and the deck is 2.2 cm low on mean Hs, up
+to 8 cm at single points. At `u40_d300_lp300_open` it is 4.7 cm low on mean
+Hs, up to 24 cm, while 10 of the 135 points of the reference itself still
+move by more than 1 cm. At `u20_d310_lp300_open` and `_closed` the mean is
+within 0.7 cm, but 44 of 135 points are more than 1 cm off, and 6 points of
+the reference still move; those moving points lie mostly in a cluster 12–26
+m deep, while the energy residual stays flat from iteration 80 on. Whether
+that is a slow mode that settles later or a level the iteration does not
+leave is not known: a flat residual does not tell the two apart.
+`u02_d090_l0000_open` gives no verdict (see the note on low wind below). The
+result of 7 November 2026, on the earlier history, was the same. Do not
+repeat this unless a change can affect the convergence of this deck.
 
 `stopping_study.py` puts the same references next to the existing input, the
 default `STOPC` and stricter variants, all ordinary upstream input. A

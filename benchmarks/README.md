@@ -19,7 +19,10 @@
   transform was 18% faster. A transform looks up its plan without a lock;
   only the first use of a size takes one. On eight threads that made a 6 × 6
   transform 27 times faster. A whole QCM run on eight threads went from
-  8.56 s to 8.28 s, because the FFT is only a small share of it.
+  8.56 s to 8.28 s, because the FFT is only a small share of it. These
+  numbers were measured in July 2026, on the earlier history and with the
+  compiler of that time, when the plan and the lock were chosen; they explain
+  that choice and were not measured again.
 
 Measure on a quiet machine, both on one core and on several, and report the
 thread count, the binding and the cores used (see AGENTS.md). Build with
