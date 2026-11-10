@@ -96,7 +96,7 @@ Doing the same for `OLD` gives the upstream diff in the fork's layout, which
 is what has to be carried over. Most of a fork file is then line for line the
 upstream text; what differs is the fork's own work (modules, interfaces,
 fixes), and `git blame` on the fork tells for each such line which commit
-made it and why.
+made it and why (see [history.md](history.md)).
 
 ## The route
 

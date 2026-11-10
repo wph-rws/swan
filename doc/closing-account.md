@@ -15,14 +15,14 @@ The fork compared with that:
 
 | | Upstream 41.51 | Fork |
 |---|---|---|
-| Source files | 76 | 162 (`git ls-files src \| grep -c '\.f90$'`) |
+| Source files | 76 | 164 (`git ls-files src \| grep -c '\.f90$'`) |
 | Fixed-form | 19 | 0 |
 | `COMMON` blocks | 4 | 0 |
-| Modules | — | 165 |
+| Modules | — | 167 (`MODULE` statements in `src`) |
 | Shared state containers | 16 | 0; the run state in `M_GENARR`, `M_PARALL` and `OUTP_DATA` is still at module level, with an owner that clears it ([run-state-ownership.md](run-state-ownership.md)) |
-| Registered tests | 0 | 66 serial and OpenMP, 73 with MPI (9 November 2026) |
+| Registered tests | 0 | 66 serial and OpenMP, 73 with MPI, all passing (10 November 2026) |
 | Build | CMake with 6 options, preprocessed by `switch.pl` (Perl) | CMake with 19 options, without Perl |
-| Compiler warnings (strict set) | not measurable | 1030 with gfortran 16.2 (9 November 2026); the 233 that can hide a defect all have a verdict |
+| Compiler warnings (strict set) | not measurable | 1030 with gfortran 16.2 (10 November 2026); the 233 that can hide a defect all have a verdict |
 
 There is no `COMMON` block and no unnamed shared state left. Three modules
 hold run state, each with an explicit owner. There is no general run object
@@ -34,7 +34,11 @@ kernel asks for the thread number itself. The architecture is described in
 
 ## 2. What has been proven
 
-**Output is the same as upstream, within the print precision.** Each example
+**Output is the same as upstream, byte for byte.** The upstream delta gate
+builds the pinned TU Delft source and the fork with the same compiler and
+flags, runs every example deck through both, and compares every output file
+byte for byte, blanks included; each difference must have a BF number. In
+addition, each example
 case compares its numerical output field by field with a reference under
 version control, with a relative tolerance of 1e-3 for the rounding of the
 printed numbers. Where a fix deliberately changes the result (BF-15, BF-16,
@@ -99,6 +103,13 @@ are built at `-O3`. On four OpenMP threads these factors are 1.86 and 1.28.
 Thread counts, pinning and cases are in
 [benchmarks/speed-vs-upstream.md](../benchmarks/speed-vs-upstream.md).
 
+**Every line can be traced.** The history starts with a commit that only
+renames the upstream files and one that only converts and lays them out
+(`scripts/fortran_layout.py`), so that `git blame` leads from a line in the
+fork to the upstream commit it came from, or to the fork commit that changed
+it. Every bug fix is one commit with its test and its row in the bug-fix
+table, and the table names that commit. See [history.md](history.md).
+
 ## 3. Fixes on top of the upstream source base
 
 This fork fixes a number of real defects that are also in upstream
@@ -126,7 +137,12 @@ GNU Fortran 16.2 on Linux x86-64, Release, with the six required gates green
 on the same commit: serial, OpenMP, runtime checks, strict, MPI on two ranks,
 and the manifest and Python checks. This includes an installation test with a
 case that runs from the installation. This was shown locally on
-28 October 2026; CI with gfortran 16.2 has not run yet. MPI and netCDF also
+10 November 2026, on the commit that brought this account up to date. On
+GitHub, CI last ran on 29 October 2026 and failed in two jobs for a reason of
+the CI environment: the commit dates lay ahead of the runner's clock, so that
+CMake regenerated its build files in a loop (MPI job); the strict job could
+not trace 24 warnings to a routine, which is probably the same cause but has
+not been shown. MPI and netCDF also
 build with 16.2: the `mpi.mod` and `netcdf.mod` from the system packages were
 made with a different gfortran release, but have the same module version.
 
@@ -195,7 +211,7 @@ ctest --test-dir build --output-on-failure
 ```
 
 With gfortran 16.2, the reference compiler and the one CI uses, this should
-give 60 out of 60 green from a fresh `git clone`, without preparation and
+give 66 out of 66 green from a fresh `git clone`, without preparation and
 without local data. Choose the compiler explicitly, as above: another
 gfortran version can shift the stored references by a fraction of a
 millimetre. A build directory that, after a compiler change, only recompiles
@@ -218,7 +234,9 @@ corresponding routine of the fork, and then pin the upstream delta gate to the
 new release. Where each upstream routine and shared variable lives in the
 fork is recorded in [upstream-map.json](upstream-map.json), and
 `scripts/upstream_map.py` lists for an upstream change which fork routine each
-part belongs to; the whole route is in [upstream-import.md](upstream-import.md). That gate shows that every deck gives the same result as
+part belongs to. Because the fork's sources are in the layout of
+`scripts/fortran_layout.py`, a new release put through the same script can
+be compared with the fork as text, file by file; the whole route is in [upstream-import.md](upstream-import.md). That gate shows that every deck gives the same result as
 upstream, apart from the known BF differences; the regression suite shows that
 nothing else shifted. If either turns red, that is a finding, not a reason to
 adjust the gate or the suite.

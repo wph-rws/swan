@@ -260,6 +260,87 @@ These issues are in upstream and have been investigated, but not resolved:
 See `doc/closing-account.md` for the current scope: what is and is not
 claimed.
 
+## Commit of each fix
+
+Each fix is one commit, which holds the fix, its test and its row above, and
+ends with the trailer `Bug-fix: BF-NN`. The table names that commit; a later
+correction of a fix carries the same trailer (`git log --grep='Bug-fix: BF-01'`
+shows both commits of BF-01). The fix of BF-04 is part of the commit that put
+every routine in a module, because the old calls do not compile with module
+interfaces. `scripts/bf_commits.py check` (pytest gate) fails when this table
+and the history disagree; see [history.md](history.md).
+
+| BF | Commit | Subject |
+|---|---|---|
+| BF-01 | `54ba7da355` | Free the action array for a second run in the same process (BF-01) |
+| BF-02 | `b819921765` | Give the netCDF dummy file name its declared length (BF-02) |
+| BF-03 | `5cd21ae28b` | Let INTSTR leave the integer it formats alone (BF-03) |
+| BF-04 | `0f9877e289` | Put every routine in a module and build with CMake instead of switch.pl |
+| BF-05 | `6a9c54d35e` | Free the linked lists of the parser and the output in full (BF-05) |
+| BF-06 | `9092aef46a` | Call METIS through an interface that matches the C library (BF-06) |
+| BF-07 | `f851ea987d` | Use the standard file back end on Windows unless asked otherwise (BF-07) |
+| BF-08 | `02e03f62e9` | Give optional input arrays an empty state instead of none (BF-08) |
+| BF-09 | `e538990656` | Test that a field read again on a larger grid is resized (BF-09) |
+| BF-10 | `06c6b73daa` | Stop reading boundary points past a short segment (BF-10) |
+| BF-11 | `20c2af11d6` | Seed the helper value of ININTV and INITVD (BF-11) |
+| BF-12 | `0da9ca0c76` | Stop an unstructured MPI run without METIS cleanly (BF-12) |
+| BF-13 | `b63bf57887` | Fill the time string before reading it back (BF-13) |
+| BF-14 | `47338b2180` | Warn when a spread in degrees is too narrow for the grid (BF-14) |
+| BF-15 | `1f9dc15647` | Order the unstructured fronts on both stencil neighbours (BF-15) |
+| BF-16 | `ac9fdfc3ec` | Set the directional factor when breaking is off (BF-16) |
+| BF-17 | `5ae8350f54` | Make the unstructured OpenMP loop independent of threads (BF-17) |
+| BF-18 | `9511a913e4` | Look only at the cells a vertex has (BF-18) |
+| BF-19 | `8c08c30cec` | Refuse MDIA LAMBDA without a valid lambda (BF-19) |
+| BF-20 | `9ec4459acf` | Initialise all timing rows in SWPRTI (BF-20) |
+| BF-21 | `abea98d02c` | Handle an empty spectrum in the asymmetry breaker index (BF-21) |
+| BF-22 | `e1a818b8ff` | Stop SREDEP after an unknown quantity in READINP (BF-22) |
+| BF-23 | `99b19fd06f` | Stop BCFILE after an unknown boundary file header (BF-23) |
+| BF-24 | `047821dcad` | Accept COMPUTE STATIONARY in a stationary run (BF-24) |
+| BF-25 | `d2a1ee9882` | Reject CGRID with too few frequencies (BF-25) |
+| BF-26 | `3cc7f37b52` | Read several quantities from one input file (BF-26) |
+| BF-27 | `a24e331e17` | Do not carry on with unset values after an input error (BF-27) |
+| BF-28 | `7a421fe371` | Compute the QCM wavenumber domain for every sector (BF-28) |
+| BF-29 | `b45840a759` | Keep SURFBEAT inside its arrays (BF-29) |
+| BF-30 | `14da8c6b28` | Drop a BOUNDSPEC SIDE with an unknown side (BF-30) |
+| BF-31 | `29f6ca41fb` | Return the roughness length from CALC_LFACTOR in every case (BF-31) |
+| BF-32 | `b831e6061d` | Keep long netCDF output file names whole (BF-32) |
+| BF-33 | `93a4714ebe` | Free the MPI helper lists of unstructured grids in full (BF-33) |
+| BF-34 | `0b4d4bde0e` | Keep the asymmetry breaking index at the spilling constant (BF-34) |
+| BF-35 | `a729fdf741` | Reject a TRIAD, QUADRUPLET or BRAGG number without a formulation (BF-35) |
+| BF-36 | `a7014cabee` | Check the quadruplet lambda against its bounds (BF-36) |
+| BF-37 | `c0fd0fea13` | Clamp SWBIDW on its last table node as well (BF-37) |
+| BF-38 | `2ad480131c` | Say in the header of EQREAL that it compares exactly (BF-38) |
+| BF-39 | `e43e7e103f` | Prepare the QC framework for GEN4 without scattering (BF-39) |
+| BF-40 | `13eebd2643` | Write the first active row of the block output under MPI (BF-40) |
+| BF-41 | `1880a51471` | Refuse NUMERIC FIL, which was never implemented (BF-41) |
+| BF-42 | `6f4e02d480` | Refuse a boundary spectrum with one frequency or direction (BF-42) |
+| BF-43 | `238bb8428b` | End a refused computation with exit code 1 (BF-43) |
+| BF-44 | `226c783dff` | Bound the number of points on a CURVE (BF-44) |
+| BF-45 | `fe6f0e9acc` | Stop cleanly on a deck without a bottom (BF-45) |
+| BF-46 | `889956eb69` | Refuse a grid, spectral axis or time step without steps (BF-46) |
+| BF-47 | `4c25abc0b7` | Stop cleanly on a missing, doubled or late computational grid (BF-47) |
+| BF-48 | `67ed56160a` | Refuse an input grid without meshes or with zero mesh size (BF-48) |
+| BF-49 | `8127e3e8d6` | Stop on files that are too short or cannot be opened (BF-49) |
+| BF-50 | `d1353a46f5` | Stop on broken boundary spectra and hotstart files (BF-50) |
+| BF-51 | `e5e33066cb` | Do not free lists that were never filled (BF-51) |
+| BF-52 | `3ae539504f` | Refuse output requests with impossible dimensions or format (BF-52) |
+| BF-53 | `ea5af86589` | Check unstructured grid files before using them as an index (BF-53) |
+| BF-54 | `c4bec12fe3` | Separate guards from the array access they protect (BF-54) |
+| BF-55 | `33c3b26c90` | Bound the number of rays on a RAY (BF-55) |
+| BF-56 | `b3c0aa2508` | Count every crossing of the grid outline in INMESH (BF-56) |
+| BF-57 | `62672203dc` | Reject a curvilinear search ending in a mesh without coordinates (BF-57) |
+| BF-58 | `dcffbc1eb1` | Start the outline of an excluded area at its start point (BF-58) |
+| BF-59 | `0f6a8856c9` | Take a NaN in bottom or grid as missing, refuse it elsewhere (BF-59) |
+| BF-60 | `5ec046c2c5` | Close every outline curve when CVMESH looks for a near boundary (BF-60) |
+| BF-61 | `0e50044f9e` | Stop with a message on a NaN water depth (BF-61) |
+| BF-62 | `80a798fa4e` | Use a consistent linearisation in the semi-implicit DIA (BF-62) |
+| BF-63 | `225b99c202` | Make the third harmonic of the LTA triads conserve energy (BF-63) |
+| BF-64 | `18a967d815` | Refuse XNL options that the exact quadruplet code does not have (BF-64) |
+| BF-65 | `67a62d17d9` | End the computation when the XNL initialisation fails (BF-65) |
+| BF-66 | `0527b3c1c0` | Give the first guess of a stationary ST6 run a drag coefficient (BF-66) |
+| BF-67 | `affd698575` | Treat an incomplete grid or field file as a severe error (BF-67) |
+| BF-68 | `e07f2f9294` | Compute and write every edge point in the Jacobi MPI build (BF-68) |
+
 ## Appendix: BF-34 against the literature
 
 Kuznetsov, Saprykina & Volkova (2018), *Dependencies of breaking type, breaking criteria and energy dissipation on amplitude-phase frequency structure of waves*, Coastal Engineering Proceedings (ICCE 2018), paper 8566, gives the two regimes explicitly: for `E2/E1 > 0.35` gamma does not rise and is roughly uniformly distributed around the mean **0.6** — exactly the constant that `BRKPAR` assigns in that branch — and for `E2/E1 < 0.35`, `gamma = Hs/hb = 0.6 + 3.5*(E2/E1)^2` holds. The paper also gives the observed range of gamma: **0.4 to 1.2**. A breaking index of zero therefore does not occur anywhere in it, which confirms the fix externally as well, apart from the internal inconsistency. SWAN replaces the second branch with a linear function of the biphase, `gamma = PSURF(4) - 0.3*PSURF(5)*BIPH`. Both are anchored at 0.6 and run to comparable upper limits (paper 1.029 at `E2/E1` = 0.35; SWAN 0.977 at biphase = -pi/2). As a check, the formula from the paper was temporarily put into `BRKPAR` in place of the biphase branch — `E1` and `E2` are already available there — and run on `src_break_asym`: Hsig comes out at 0.5018 / 1.9361 / 2.3864 / 0.8246 / 0.5870 / 0.6188 m against 0.5018 / 1.9357 / 2.3860 / 0.8368 / 0.5841 / 0.5786 m for the biphase form, so equal to rounding level outside the surf zone, within 1.5% in the surf zone (1.48%) and 6.5% (6.50%) at the last point — each time with the paper's value as denominator, because that is the relation being reproduced; with the biphase form as denominator, that last point becomes 6.9%. The biphase branch therefore reproduces the relation from the paper within a few per cent. Note: the two regimes as the paper writes them down do not join up (1.03 against 0.6 at `E2/E1` = 0.35); they describe two clouds of points in a figure, not a single curve. This is therefore a consistency check against the published relation, not a validation against the measured series themselves.

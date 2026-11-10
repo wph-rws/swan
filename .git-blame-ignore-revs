@@ -1,0 +1,6 @@
+# Mechanical commits that `git blame` skips; see doc/history.md.
+# Use: git blame --ignore-revs-file .git-blame-ignore-revs <file>
+# or once: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Convert the sources to free form and give them one layout
+2bc4d0ca7c20aa48bc15319ea9cc50fbab8574d0

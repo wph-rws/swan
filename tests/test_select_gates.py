@@ -128,3 +128,7 @@ def test_bad_base_is_an_error_not_a_clean_tree():
     from select_gates import worktree_changes
     with pytest.raises(SystemExit):
         worktree_changes("no-such-revision-for-select-gates")
+
+
+def test_the_blame_ignore_list_selects_no_gate():
+    assert select_gates([".git-blame-ignore-revs"]) == {}

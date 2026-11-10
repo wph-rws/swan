@@ -122,6 +122,10 @@ def _classify(path: str) -> set[str]:
         return set()
     if suffix == ".md" or name == "AGENTS.md":
         return set()
+    #  The list of mechanical commits that `git blame` skips (see doc/history.md)
+    #  is not read by any build or test.
+    if p.as_posix() == ".git-blame-ignore-revs":
+        return set()
     #  Linter configuration: no build, test or gate reads it.
     if path == "fortitude.toml":
         return set()

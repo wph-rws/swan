@@ -41,7 +41,23 @@ with the declarations in sections 4 to 6. The script also converted the
 upstream fixed-form files, and it refuses to write a file whose statements
 would change. Run `python3 scripts/fortran_layout.py format <file>` after an
 edit; `tests/test_fortran_layout.py` (pytest gate) fails on a file that is
-not in the layout.
+not in the layout. Because the conversion and the layout came in their own
+commits, a line can be traced to upstream: `git blame -w -C -C
+--ignore-revs-file .git-blame-ignore-revs <file>` skips them (set
+`git config blame.ignoreRevsFile .git-blame-ignore-revs` once to make it the
+default). How the history is built, and how to find the commit of a fix, is
+in [doc/history.md](doc/history.md).
+
+## Traceability
+
+- Every bug fix has one commit, which holds the fix, its test and its row in
+  the bug-fix table, and ends with the trailer `Bug-fix: BF-NN`
+  (`git log --grep='Bug-fix: BF-62'` finds it). The table names the commit.
+  A later correction of a fix that is already pushed gets its own commit with
+  the same trailer.
+- A measurement in this file, in the bug-fix table or in a commit message
+  names the commit or tag it was made on, not only the date; a number
+  without one cannot be repeated after the code moves on.
 
 ## Important physics fact: changed defaults (41.31 → 41.51)
 
@@ -71,7 +87,7 @@ remains (below).
 `GEN3 KOMEN`, `WCAP KOMEN DELTA=1`, `TRIAD ITRIAD=1 TRFAC=0.8 CUTFR=2.5`,
 `STOPC` with `MXITST=40` and `CDCAP=0.00275` itself. Of the list above, the
 wind drag and the triad changes remain. Measured on 28 October 2026 with the
-corrected deck (see below), 20 m/s from 310°, NAP +3.00 m, barrier open, mean
+corrected deck, on the code of commit `3391642` (see below), 20 m/s from 310°, NAP +3.00 m, barrier open, mean
 Hsig over the 130 wet output points; every run stopped on its own stopping
 criterion after 35–37 iterations:
 
@@ -84,7 +100,7 @@ criterion after 35–37 iterations:
 
 Since 8 November 2026 the fork also makes the third-harmonic term of the
 `ITRIAD=1` LTA energy-conserving by default (BF-63, `TRIAD ... UPSTREAM` for
-the form of 41.51). On this deck at this condition that lowers mean Hsig from
+the form of 41.51; commit `225b99c`). On this deck at this condition that lowers mean Hsig from
 1.653 to 1.651 m, at single points by up to 2.5 cm (rms 0.4 cm); the table
 above was measured before that.
 
@@ -125,7 +141,7 @@ with `--target`); `deck.py` accepts that deck only byte for byte, and changes
 only `MAXERR = 2` into `MAXERR = 3`, so that the fork computes on the
 incomplete grid as production does (for RWS 41.31 that changes nothing). With
 it, the current code gives 1.659 m at the reference condition, against 1.608 m for
-RWS 41.31A.1 (measured 29 October 2026): the same +5 cm as on the corrected
+RWS 41.31A.1 (measured 29 October 2026, commit `3391642`): the same +5 cm as on the corrected
 deck, but up to 13 cm at single points. The deck "works" because the grid is
 fine and smooth, so points shifted by some 50 m still lie in a plausible
 place; the same shortage in another file can leave points at (0,0). The operational deck also only
@@ -188,7 +204,7 @@ Their output goes to `build-*` directories, which git ignores.
   (see [doc/support-matrix.md](doc/support-matrix.md)); references and gates
   stay on gfortran. Build with
   `-DCMAKE_Fortran_COMPILER=/usr/bin/flang-22` in `build-flang/`. On
-  29 October 2026 the whole source compiled without a Fortran warning, and
+  29 October 2026 (commit `3391642`) the whole source compiled without a Fortran warning, and
   `-fsyntax-only -pedantic` found only unused variables and four harmless
   TARGET arguments. Of the 60 CTest tests, 58 passed. `source_terms_st6` differs
   only in rounding (Hsig within 0.3 mm), and `BF-49-directory-as-file`
@@ -284,8 +300,9 @@ Measured on `examples/nonlinear_interactions/quad/quad_dia1`: with `ALFA=0.10` t
 25 km is then 1.278 m. `ALFA=0.01` also stops too early: after 40 iterations
 it reports 100% at 1.403 m, while the same run carried on until the balance
 residual reaches rounding level (about 1500 iterations) ends at 1.923 m, 27%
-higher. Those numbers are for the upstream semi-implicit DIA. With the fork's
-DIA (BF-62, the default since 8 November 2026) the deck without `ALFA` reaches
+higher (commit `423fb70`). Those numbers are for the upstream semi-implicit
+DIA. With the fork's DIA (BF-62, the default since 8 November 2026, commit
+`80a798f`) the deck without `ALFA` reaches
 its balance in 100 iterations (residual 1e-8) at 1.933 m, and with
 `ALFA=0.01` it still stops after 40 iterations at 1.410 m: the false stop
 comes from the under-relaxation, not from the DIA.
@@ -300,8 +317,8 @@ mean residual does not guarantee convergence of all points or of the whole
 spectrum. Operational decks get no general residual threshold.
 
 The operational so-rp deck (`STOPC` with `CURVAT=0.001`, `NPNTS=98`,
-`MXITST=40`, `ALFA=0.01`) stops too early. Measured on 7 November 2026 with
-`convergence_check.py` on the corrected deck, references of 80 and 160 forced
+`MXITST=40`, `ALFA=0.01`) stops too early. Measured on 7 November 2026 (commit
+`591c4ce`) with `convergence_check.py` on the corrected deck, references of 80 and 160 forced
 iterations: at low water (NAP −2 m, 20 m/s) and at 40 m/s the deck stops after
 36 and 25 iterations, while the reference hardly changes between 80 and 160;
 there the deck is 2.3 and 5 cm low on mean Hs, and up to 8 and 24 cm at single
@@ -327,12 +344,12 @@ stops only when that estimate is within the deck's own [dabs]/[drel] in
 [npnts] percent of the wet points as well (under `NUMERIC ACCUR`, which has
 no [dabs], the default [dabs] of `STOPC`). One iteration is too short for the
 ratio: near convergence it jumps between −1 and 5 from noise. Measured on
-7 November 2026 with the so-rp numerics (`DREL=0.01 CURVAT=0.001 NPNTS=98
+7 November 2026 (commit `9b71ffa`) with the so-rp numerics (`DREL=0.01 CURVAT=0.001 NPNTS=98
 ALFA=0.01`), against references of 600 forced iterations: on the test model
 `sphys` (so-rp physics, `build-testmodels/`) STOPC stops after 17 iterations
 up to 18 cm off and `EXTRAP 10` after 120 iterations within 1 mm (89
 iterations and 2 mm before a swing that does not shrink was counted as
-growing, 8 November); on `sq` after 8 (13 cm) against 50 (1 mm); on
+growing, 8 November, commit `33e8042`); on `sq` after 8 (13 cm) against 50 (1 mm); on
 `quad_dia1`, with the fork's DIA, after 40 (0.52 m) against 340 (4 mm). Where the iteration never settles (`isl`, the RESCALE floor
 behind an island) it runs to `MXITST` and says how many points still move,
 instead of reporting convergence. The estimate is not a bound: an iteration
