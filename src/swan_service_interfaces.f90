@@ -25,6 +25,16 @@ module swan_service_interfaces
    public :: timing_enabled
    public :: swi2b, swr2b
    public :: tabhed, bugfix
+   public :: reset_error_file_state
+
+!  The error message file of MSGERR belongs to a run. SWMAIN closes its unit
+!  at the end of a run, so a second run in the same process must open it
+!  again, or its errors go to a file fort.17.
+!     IERR   : if non-zero error message file was already opened unsuccessfully
+!     IERRF  : unit reference number of the error message file
+!     ERRFNM : name of error message file
+   integer :: IERR = 0, IERRF = 0
+   character(len=LENFNM) :: ERRFNM = 'Errfile'
 
    interface
 !     TXPBLA stays external: it lives in swanser.f90 next to the switch
@@ -61,6 +71,20 @@ module swan_service_interfaces
    end interface
 
 contains
+
+subroutine reset_error_file_state()
+   logical :: lopen
+   integer :: unit
+!  SWMAIN has normally closed it already; close it only if the unit is still
+!  connected to the error message file, never a unit the host opened
+   if (IERRF /= 0) then
+      inquire(file=ERRFNM, opened=lopen, number=unit)
+      if (lopen .and. unit == IERRF) close(IERRF)
+   end if
+   IERR   = 0
+   IERRF  = 0
+   ERRFNM = 'Errfile'
+end subroutine reset_error_file_state
 
 !                                                                *
 !*****************************************************************
@@ -278,21 +302,15 @@ SUBROUTINE MSGERR (LEV,STRING,DIAG,IO)
 !
 !  6. LOCAL VARIABLES
 !
-!     IERR   : if non-zero error message file was already opened unsuccessfully
-!     IERRF  : unit reference number of the error message file
+!     IERR, IERRF and ERRFNM are kept in the module: see there
 !     ILPOS  : actual length of error message filename
 
-   INTEGER, SAVE :: IERR=0, IERRF=0
    INTEGER ILPOS
    INTEGER CUR_MAXERR, CUR_PRINTF
 
 !     ERRM   : error message prefix
 
    CHARACTER (LEN=17) :: ERRM
-
-!     ERRFNM : name of error message file
-
-   CHARACTER (LEN=LENFNM), SAVE :: ERRFNM = 'Errfile'
 
 !  8. SUBROUTINE USED
 !

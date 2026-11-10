@@ -13,6 +13,7 @@ program test_contexts
    implicit none
 
    call test_time_contexts
+   call test_reader_repetitions
    call test_command_readers
    call test_io_contexts
    call test_reader_input_streams
@@ -412,6 +413,36 @@ subroutine test_time_contexts
       "resetting one time context changed another context")
 end subroutine test_time_contexts
 
+subroutine test_reader_repetitions
+   use swan_input_parser, only: leesel
+   type(command_reader_t) :: first, second
+   integer :: saved_itest, saved_itrace
+   saved_itest = ITEST
+   saved_itrace = ITRACE
+   ITEST = 0
+   ITRACE = 0
+   call rdinit(first)
+   call rdinit(second)
+   first%KAART = '3*7 9;'
+   first%KARNR = 1
+   call getkar(first)
+   second%KAART = '5;'
+   second%KARNR = 1
+   call getkar(second)
+   call leesel(first)
+   call require(first%ELINT == 7, 'first repeated value was not read')
+   call leesel(second)
+   call require(second%ELINT == 5, 'another reader consumed the first reader repetition')
+   call leesel(first)
+   call require(first%ELINT == 7, 'the repetition was lost to another reader')
+   call leesel(first)
+   call require(first%ELINT == 7, 'the last repetition was lost')
+   call leesel(first)
+   call require(first%ELINT == 9, 'the reader did not advance after the repetitions')
+   ITEST = saved_itest
+   ITRACE = saved_itrace
+end subroutine test_reader_repetitions
+
 subroutine test_command_readers
    type(command_reader_t) :: first, second
 
@@ -436,7 +467,9 @@ subroutine test_command_readers
 
    call require(keywis(second, "BETA"), &
       "the second reader did not recognize its keyword")
+   second%NREP = 5
    call second%reset()
+   call require(second%NREP == 1, "reader reset retained a repetition")
    call require(second%ELTYPE == "USED" .and. second%KEYWRD == "", &
       "command reader reset did not restore its initial state")
    call require(first%KEYWRD == "ALPHA", &

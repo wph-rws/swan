@@ -120,7 +120,7 @@ already reads `TESTFL`. Check that before deleting the COPYIN; until then, the
 COPYIN is unnecessary but not wrong.
 
 `IPTST` is also used as a `DO` loop variable in
-[swanmain.f90:6094](../src/swanmain.f90#L6089) onwards, outside the parallel
+[swanmain.f90:6094](../src/swanmain.f90#L6088) onwards, outside the parallel
 region. That is legal, but it means the symbol carries two meanings. If this
 state moves into a context type, the loop variable should become a local
 variable, not a field of the context.

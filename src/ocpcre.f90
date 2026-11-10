@@ -17,6 +17,7 @@ module swan_input_parser
       character :: KAR = ';'
       character(len=8) :: KEYWRD = ''
       character :: TABC = achar(9)
+      integer :: NREP = 1 ! repetitions remaining in this reader
       integer :: ELINT = 0
       integer :: KARNR = LINELN + 1
       integer :: LENCST = 0
@@ -132,6 +133,7 @@ subroutine reset_command_reader(self)
    self%KAR = ';'
    self%KEYWRD = ''
    self%TABC = achar(9)
+   self%NREP = 1
    self%ELINT = 0
    self%KARNR = LINELN + 1
    self%LENCST = 0
@@ -1769,12 +1771,11 @@ SUBROUTINE LEESEL_CTX (STATE)
 !     J      : counter
 !     JJ     : counter
 !     JKAR   : counts the number of characters in the data field
-!     NREP   : repetition number
+!     STATE%NREP   : repetition number
 !     NUM1   : value of integer part of mantissa
 !     NUM2   : exponent value
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER, SAVE :: NREP = 1
    INTEGER   IRK, ISIGN1, ISIGN2, ISTATE, J, JJ, JKAR, NUM1, NUM2
    LOGICAL :: PARSE_AS_OTHER
 
@@ -1801,12 +1802,12 @@ SUBROUTINE LEESEL_CTX (STATE)
    CALL  STRACE ( IENT, 'LEESEL')
 
    parse_item: BLOCK
-      IF (NREP.GT.1) THEN
-         NREP = NREP - 1
+      IF (STATE%NREP.GT.1) THEN
+         STATE%NREP = STATE%NREP - 1
          EXIT parse_item
       ENDIF
 
-      NREP = 1
+      STATE%NREP = 1
       do J=1,LINELN,4
          STATE%ELTEXT(J:J+3) = '    '
       end do
@@ -1828,7 +1829,7 @@ SUBROUTINE LEESEL_CTX (STATE)
          ENDIF
 
          IF (STATE%KAR.EQ.'!' .OR. STATE%KARNR.GT.LINELN) THEN
-            IF (NREP.GT.1) THEN
+            IF (STATE%NREP.GT.1) THEN
                STATE%ELTYPE = 'EMPT'
             ELSE
                STATE%ELTYPE = 'EOR'
@@ -1844,7 +1845,7 @@ SUBROUTINE LEESEL_CTX (STATE)
          ENDIF
 
          IF (INDEX(';/',STATE%KAR).GT.0) THEN
-            IF (NREP.GT.1) THEN
+            IF (STATE%NREP.GT.1) THEN
                STATE%ELTYPE = 'EMPT'
             ELSE
                STATE%ELTYPE = 'EOR'
@@ -1859,7 +1860,7 @@ SUBROUTINE LEESEL_CTX (STATE)
          ENDIF
 
          IF (STATE%KAR.EQ.STATE%COMID) THEN
-            IF (NREP.GT.1) THEN
+            IF (STATE%NREP.GT.1) THEN
                STATE%ELTYPE = 'EMPT'
                EXIT parse_item
             ENDIF
@@ -1955,7 +1956,7 @@ SUBROUTINE LEESEL_CTX (STATE)
 
                IF (STATE%KAR.EQ.'*') THEN
                   IF (STATE%ELTYPE.EQ.'INT' .AND. STATE%ELINT.GT.0) THEN
-                     NREP = STATE%ELINT
+                     STATE%NREP = STATE%ELINT
                      STATE%ELINT = 0
                      CALL GETKAR (STATE)
                      CYCLE item_start
@@ -1998,7 +1999,7 @@ SUBROUTINE LEESEL_CTX (STATE)
          ELSE
             CALL UPCASE (STATE%KAR)
             IF (INDEX('ABCDEFGHIJKLMNOPQRSTUVWXYZ',STATE%KAR).GT.0) THEN
-               IF (NREP.GT.1) THEN
+               IF (STATE%NREP.GT.1) THEN
                   STATE%ELTYPE = 'EMPT'
                   EXIT parse_item
                ENDIF
@@ -2023,7 +2024,7 @@ SUBROUTINE LEESEL_CTX (STATE)
             ENDIF
 
             IF (INDEX('_&',STATE%KAR).GT.0) THEN
-               IF (NREP.GT.1) THEN
+               IF (STATE%NREP.GT.1) THEN
                   STATE%ELTYPE = 'EMPT'
                   EXIT parse_item
                ENDIF
@@ -2050,7 +2051,7 @@ SUBROUTINE LEESEL_CTX (STATE)
 
    IF (ITEST.GE.120) WRITE (PRTEST, &
          "(' test LEESEL: ', A1, 1X, I4, 1X, A4, D12.4, 2I6, 2X, A)") STATE%KAR, STATE%KARNR, STATE%ELTYPE, STATE%ELREAL, &
-      STATE%ELINT, NREP, STATE%ELTEXT(1:STATE%LENCST)
+      STATE%ELINT, STATE%NREP, STATE%ELTEXT(1:STATE%LENCST)
 end subroutine LEESEL_CTX
 
 !****************************************************************

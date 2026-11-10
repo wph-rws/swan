@@ -38,7 +38,16 @@ module swan_propagation
    private
    public :: SWGEOM, SWPSEL, SPROXY, SPROSD, DSPHER, STRSXY, SORDUP, SANDL
    public :: STRSSI, STRSSB, STRSD, SPREDT, SWAPAR, SWAPRE, ADDDIS, SWFLXD, DIFPAR
+   public :: RESET_PROPAGATION_STATE
+!  SANDL gives its CFL error once per run: the flag must survive successive
+!  COMPUTE commands and time steps, but not the end of the run, or a second
+!  run in the same process skips an error that stops it.
+   logical :: NOWARN = .false.
 contains
+
+subroutine RESET_PROPAGATION_STATE()
+   NOWARN = .false.
+end subroutine RESET_PROPAGATION_STATE
 
 SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR, st_ix, st_iy, st_kc, st_n, st_cos )
 
@@ -2847,7 +2856,6 @@ SUBROUTINE SANDL ( WINDOW  ,CGO     ,CAX     , &
    REAL  :: CAX1(MDC,MSC,MICMAX),CAY1(MDC,MSC,MICMAX)
    REAL  :: DCG, SPCDIR(MDC,6), DXX, DYY, DXY
    REAL  :: MYU,DX1DUM,DY1DUM,DX2DUM,DY2DUM,DXMYU,DYMYU
-   LOGICAL, SAVE :: NOWARN = .FALSE.
 
    INTEGER, SAVE :: IENT=0
    IF (LTRACE) CALL STRACE (IENT,'SANDL')

@@ -69,12 +69,15 @@ SUBROUTINE SWMAIN
    USE swan_computation, ONLY: SWCOMP, SWDEPCHK
    USE swan_parallel, ONLY: SWINITMPI, SWEXITMPI, SWSYNC, SWCOLLECT, SWCOLOUT
    USE swan_services, ONLY: HSOBND
-   USE swan_command_reading, ONLY: SWREAD
+   USE swan_input_processing, ONLY: RESET_BOUNDARY_COMMAND_STATE
+   USE swan_command_reading, ONLY: SWREAD, RESET_COMMAND_STATE
+   USE swan_propagation, ONLY: RESET_PROPAGATION_STATE
    USE swan_output_orchestration, ONLY: SWOUTP
    USE swan_time, ONLY: DCUMTM, NCUMTM
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_file_opening, ONLY: FOR
    USE swan_service_interfaces, ONLY: MSGERR, TXPBLA, STPNOW, SWTSTA, SWTSTO, SWPRTI
+   USE swan_service_interfaces, ONLY: RESET_ERROR_FILE_STATE
    USE swan_time, ONLY: default_time_context
    USE swan_diagnostics_level
    USE swan_io_units
@@ -344,6 +347,10 @@ SUBROUTINE SWMAIN
    ISTAT =0
 
    IF (timing_enabled) CALL SWTSTA(2)
+   CALL RESET_COMMAND_STATE()
+   CALL RESET_BOUNDARY_COMMAND_STATE()
+   CALL RESET_PROPAGATION_STATE()
+   CALL RESET_ERROR_FILE_STATE()
    CALL SWINIT (INERR, SNL4)
    IF (timing_enabled) CALL SWTSTO(2)
    IF (INERR.GT.0) RETURN
@@ -1369,6 +1376,12 @@ SUBROUTINE SWINIT (INERR, SNL4)
 !     --- parameter for BKD surf breaking
 
    PNUMS(PNUMS_BKDACC) = 95.
+
+!     --- BKD varies its breaker index until the iteration has reached
+!         [npnts] of BKD; a run starts varying it again, whatever an
+!         earlier run in the same process did
+
+   MODGAM = .TRUE.
 
 !     --- balance-residual threshold; none unless NUMERIC RESIDUAL sets one
 

@@ -30,8 +30,13 @@ module swan_input_processing
    use swan_output_settings, only: IUBOTR, OUTPAR
    implicit none(type, external)
    private
-   public :: SPROUT, SVARTP, SWBOUN, RETSTP
+   public :: SPROUT, SVARTP, SWBOUN, RETSTP, RESET_BOUNDARY_COMMAND_STATE
+   logical :: BNDDONE = .false.
 contains
+
+subroutine RESET_BOUNDARY_COMMAND_STATE()
+   BNDDONE = .false.
+end subroutine RESET_BOUNDARY_COMMAND_STATE
 
 !                                                                      *
 SUBROUTINE SPROUT (FOUND, BOTLEV, WATLEV)
@@ -2832,7 +2837,6 @@ SUBROUTINE SWBOUN ( XCGRID, YCGRID, KGRPNT, XYTST, KGRBND )
 
    LOGICAL :: LOCGRI, CCW, BPARF, DONALL
    LOGICAL   LFRST1, LFRST2, LFRST3
-   LOGICAL, SAVE :: BNDDONE = .FALSE.
 !  (local LOGICAL declaration removed: SwanPointinMesh is now a module function)
 
    INTEGER   NUMP

@@ -54,10 +54,10 @@ have a recorded verdict, and the strict gate fails on any new one without a
 verdict. The other kinds are counted but not checked; see
 [strict-warnings.md](strict-warnings.md).
 
-**SWAN can be reused within one process.** The same case runs twice
-bit-identically, also with changing physics, a changing computational grid or
-changing spectrum dimensions in between, and the run in between demonstrably
-differs.
+**SWAN can be reused within one process.** Both choices of physics are compared in B–A–B–A, with a default-physics B
+before and after an explicit Komen A. Whitecapping, boundary output and wind
+read before bottom are covered too. Separate tests vary the grid and spectrum
+dimensions. This proves the tested serial run sequences, not concurrent instances.
 
 **The physics is not only pinned but also tested.** Shoaling against Green,
 refraction against Snell, grid convergence against first-order theory — with

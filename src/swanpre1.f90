@@ -39,8 +39,23 @@ module swan_command_reading
    use swan_output_settings, only: ERRPTS, INRHOG, OUTPAR
    implicit none(type, external)
    private
-   public :: SWREAD
+   public :: SWREAD, RESET_COMMAND_STATE
+   ! Parser flags belong to a run and must also survive successive COMPUTE commands.
+   logical :: LOGCOM(7) = .false., SWELLSET = .false., WCAPSET = .false.
+   integer :: LWINDR = 0, LWINDM = 5
+   integer, parameter :: MXINCL = 10
+   integer :: INCNUM(MXINCL) = 0, INCLEV = 1
 contains
+
+subroutine RESET_COMMAND_STATE()
+   INCLEV = 1
+   INCNUM = 0
+   LOGCOM = .false.
+   LWINDR = 0
+   LWINDM = 5
+   SWELLSET = .false.
+   WCAPSET = .false.
+end subroutine RESET_COMMAND_STATE
 
 !                                                                      *
 SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
@@ -335,7 +350,6 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 !
 !  5. Parameter variables
 
-   INTEGER, PARAMETER :: MXINCL = 10
    INTEGER, PARAMETER :: NVOTP  = 15
 
 !  6. Local variables
@@ -379,9 +393,6 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
    INTEGER           :: NN
    INTEGER           :: NREGB, NDSD, IDLA, IK, JK
    REAL              :: VARB
-
-   INTEGER, SAVE     :: INCNUM(1:MXINCL) = 0
-   INTEGER, SAVE     :: INCLEV = 1
 
    INTEGER           :: IOSTAT = 0
    INTEGER           :: ICNL4, ILAMBDA
@@ -507,21 +518,16 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 !     *** LOGCOM(7): mesh partitioning has been carried out       ***     42.10
 !     *** In the current version, LOGCOM(1) has no meanings       ***     40.80 40.31
 
-   LOGICAL, SAVE :: LOGCOM(1:7) = .FALSE.
    CHARACTER(LEN=8)  :: PSNAME
    CHARACTER(LEN=*)  :: COMPUT
    TYPE(triad_state_t), INTENT(INOUT) :: TRIADS
    TYPE(snl4_tables_t), INTENT(INOUT) :: SNL4
    TYPE(spectral_powers_t), INTENT(INOUT) :: SPECTRAL_POWERS
    INTEGER, SAVE :: IENT = 0 ! number of entries to this subr
-   INTEGER, SAVE :: LWINDR = 0 ! if non-zero, there is wind
-   INTEGER, SAVE :: LWINDM = 5 ! type of wind growth formulation
    INTEGER, ALLOCATABLE :: IARR(:)
    INTEGER, PARAMETER :: IVOTP(NVOTP) = &
       [10, 11, 13, 15, 16, 17, 18, 19, 28, 32, 33, 42, 43, 47, 48]
    INTEGER :: INDX(1)
-   LOGICAL :: SWELLSET = .FALSE.
-   LOGICAL :: WCAPSET  = .FALSE.
 
    ASSOCIATE(TCOLL => TRIADS%collinear)
 

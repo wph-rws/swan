@@ -33,3 +33,46 @@ owner of its own lifetime. Only the point at which state is cleared is
 explicit and idempotent. Moving an array that a hot loop uses into a type
 component or behind an alias can make the loop slower, so such a change needs
 a speed measurement, serial and multicore, before it goes in.
+
+## Command state between runs
+
+`SWMAIN` resets the command and boundary parsers before `SWINIT`. The reset
+clears the command-presence flags, include stack, remembered wind choice,
+whitecapping and swell latches, and the flag that the boundary output list has
+been built. These values must persist across successive COMPUTE commands in
+one deck, so resetting them at every entry of SWREAD would be wrong. The
+command reader owns its repetition count and resets it with the rest of its
+parse state.
+
+Three more decisions are taken once per run and reset there in the same way.
+`SANDL` gives its error for a CFL number above 10 with the higher-order
+scheme only once; the flag now lives in `swan_propagation` and
+`RESET_PROPAGATION_STATE` clears it. The error has level 2, so with the
+default `[maxerr]` it stops the run; before the reset, a second run in the
+same process skipped it and computed on. `MSGERR` opens its error message file
+`Errfile` once; `SWMAIN` closes that unit at the end of a run, so
+`RESET_ERROR_FILE_STATE` lets the next run open it again, where before its
+errors went to a file `fort.17`. `BREAKING BKD` varies its breaker index until
+the iteration is accurate enough and then switches that off (`MODGAM`);
+`SWINIT` switches it on again, where before a second run kept the constant
+index. Within one run all three keep upstream behaviour across COMPUTE
+commands.
+
+The reuse test compares both B and A in B–A–B–A. It also repeats decks with
+explicit whitecapping, boundary output and wind input before bottom. A–B–A
+alone cannot show that B inherited A's source-term choice. It then repeats a
+nonstationary deck whose time step is too large for the higher-order scheme
+three times, and a `BREAKING BKD` deck twice; each must give the same result
+every time.
+
+The other saved locals were reviewed. Output format flags are assigned from
+the filename on every call; MATLAB record counters start again when each file
+opens. Boundary interpolation remembers its first point only within a file
+and replaces it on the first spectrum. The WW3 record counter resets when a
+new boundary file starts. HSRR is assigned at entry. FAC4WW's cache checks all
+of its inputs and the presence of the run-owned cached arrays, so a new run
+rebuilds it. Fixed tables, format strings and trace counters carry no deck
+physics. The VTK writer keeps a flag that gives its warning about an empty
+subdomain of an output frame only once in a nonstationary run. It is a level-1
+warning: it does not stop the run or change any field, but once a
+nonstationary run has given it, a later run in the same process does not.

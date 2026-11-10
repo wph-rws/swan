@@ -410,9 +410,11 @@ if( BUILD_TESTING )
   target_link_libraries( test_surfbeat_sector PRIVATE swan${VERSION} )
   add_test( NAME surfbeat_sector COMMAND test_surfbeat_sector )
 
-  # Runs SWMAIN three times in one process with alternating physics (GEN3
-  # KOMEN, 41.51 default, KOMEN again). Needs a directory of its own because
-  # the runs write INPUT, PRINT and the result table in the working directory.
+  # Runs SWMAIN repeatedly in one process: stationary decks with alternating
+  # physics (41.51 default, GEN3 KOMEN, B-A-B-A), then a nonstationary deck
+  # that must stop on the same error every time. Needs a directory of its own
+  # because the runs write INPUT, PRINT and the result tables in the working
+  # directory.
   add_executable( test_physics_reuse tests/test_physics_reuse.f90 )
   target_link_libraries( test_physics_reuse PRIVATE swan${VERSION} )
   add_test( NAME physics_reuse COMMAND ${CMAKE_COMMAND} -E env
