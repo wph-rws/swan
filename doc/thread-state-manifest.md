@@ -129,7 +129,7 @@ variable, not a field of the context.
 
 In upstream, the eleven values are threadprivate module variables in
 `M_WCAP`. They are written only in `SINTGRL`
-([swancom1.f90:5312-5886](../src/swancom1.f90#L5312-L5886)); only four files
+([swancom1.f90:5312-5886](../src/swancom1.f90#L5312-L5886)); only five files
 import the module, and no scalar is in COPYIN.
 
 | Symbol | Default on entry | Write condition | Cat. | Invariant |
@@ -164,7 +164,7 @@ seven values does not change the numerical result of the solver:
   [`SWCAP8`](../src/swancom2.f90#L2744) return when `ETOT <= 0.` before
   a workspace value can affect a source term;
 - `SSURF` reads `SIGM_WAM` for `ISURF = 6`, but only uses the chosen
-  frequency behind the [`BB > 0`](../src/swancom2.f90#L2168) condition;
+  frequency behind the [`BB > 0`](../src/swancom2.f90#L2147) condition;
   when `ETOT = 0.` the surf-breaking contribution stays zero;
 - `AC2TOT` has no reader after the call in the structured and unstructured
   solver;
@@ -245,5 +245,6 @@ run.
    term workspace does not store this COPYIN state a second time.
 4. The OpenMP check must include `TESTFL`/`IPTST`: they determine the `TEST`
    output, so an error shows up in the PRINT diff and not in the Hsig
-   statistics. The structured and unstructured reference tests therefore run
-   with 1, 2 and 4 threads.
+   statistics. Under OpenMP every CTest reference test runs on 2 threads,
+   and the CI smoke test compares the unstructured case on 1 and 4 threads;
+   running the structured references on 1 and 4 threads is not automated.

@@ -65,7 +65,10 @@ are worth about 1.25 times. The upstream MPI run on four processes at `-O3`
 scaled poorly in this series (18.77 s, against 13.38 s on eight); that point
 is an outlier, not a property of the source.
 
-Eight workers are slower than four for both programs. The Voordelta grid is
+With OpenMP, eight workers are slower than four for both programs, and the
+fork is slower on eight MPI processes too; only upstream MPI is faster on
+eight (17.18 against 18.71 s in its default build, and against the outlier
+above at `-O3`). The Voordelta grid is
 small enough that eight workers mostly wait for each other and for memory;
 four is the useful maximum for this case on this machine.
 

@@ -84,42 +84,46 @@ the deck leaves open: `GEN3 KOMEN DRAG FIT`, and on the `TRIAD` line
 `ITRIAD=1` also `DINT=-1` and, after `URSLIM`, `IC=2`). `GEN3 KOMEN` alone is
 not enough: the wind drag still changes. The third harmonic and the
 group-velocity weighting of the `ITRIAD=1` LTA cannot be switched off from a
-deck, so such a deck never matches 41.31 exactly; on the so-rp deck about 2 cm
+deck, so such a deck never matches 41.31 exactly; on the so-rp deck about 3 cm
 remains (below).
 
 **The operational so-rp deck** (template from the Rijkswaterstaat production environment in
 `so-rp_swan/par/operational/`, provenance in `PROVENANCE.md` there) chooses
 `GEN3 KOMEN`, `WCAP KOMEN DELTA=1`, `TRIAD ITRIAD=1 TRFAC=0.8 CUTFR=2.5`,
 `STOPC` with `MXITST=40` and `CDCAP=0.00275` itself. Of the list above, the
-wind drag and the triad changes remain. Measured on 28 October 2026 with the
-corrected deck, on the code of commit `3391642` (see below), 20 m/s from 310°, NAP +3.00 m, barrier open, mean
-Hsig over the 130 wet output points; every run stopped on its own stopping
-criterion after 35–37 iterations:
+wind drag and the triad changes remain. Measured on 10 November 2026 with
+the corrected deck, the fork at commit `a49f403` and upstream `43e9bbb`, both
+built with gfortran 16.2 at `-O3` with OpenMP, 20 m/s from 310°, NAP +3.00 m,
+barrier open; mean Hsig over the 130 output points that are wet in every run
+(RWS 41.31 and upstream do not find five of the 135; see BF-56). Every run
+stopped on its own stopping criterion after 36–38 iterations:
 
-| Run | mean Hsig |
-|---|---|
-| RWS 41.31A.1 | 1.602 m |
-| 41.51 | 1.653 m (+3.2%) |
-| 41.51 with `GEN3 KOMEN DRAG FIT` (without URCRIT/URSLIM) | 1.603 m (+0.0%) |
-| 41.51 `legacy-4131`: `DRAG FIT`, `DINT=-1`, `URCRIT=0.2`, `URSLIM=0.01`, `IC=2` | 1.583 m (−1.2%) |
+| Run | mean Hsig | against 41.31 per point |
+|---|---|---|
+| RWS 41.31A.1 | 1.602 m | |
+| upstream 41.51 | 1.653 m (+3.2%) | up to 12.8 cm, rms 5.7 cm |
+| fork | 1.651 m (+3.0%) | up to 12.5 cm, rms 5.6 cm |
+| fork with `GEN3 KOMEN DRAG FIT` (without URCRIT/URSLIM) | 1.600 m (−0.1%) | up to 8.4 cm, rms 3.6 cm |
+| fork `legacy-4131`: `DRAG FIT`, `DINT=-1`, `URCRIT=0.2`, `URSLIM=0.01`, `IC=2` | 1.575 m (−1.7%) | up to 9.7 cm, rms 4.2 cm |
 
-Since 8 November 2026 the fork also makes the third-harmonic term of the
-`ITRIAD=1` LTA energy-conserving by default (BF-63, `TRIAD ... UPSTREAM` for
-the form of 41.51; commit `225b99c`). On this deck at this condition that lowers mean Hsig from
-1.653 to 1.651 m, at single points by up to 2.5 cm (rms 0.4 cm); the table
-above was measured before that.
+The fork differs from upstream on this deck only through BF-63: it makes the
+third-harmonic term of the `ITRIAD=1` LTA energy-conserving by default, and
+with `TRIAD ... UPSTREAM` it gives exactly the values of upstream at all 130
+points. BF-63 lowers mean Hsig by 0.2 cm, at single points by up to 2.5 cm
+(rms 0.4 cm).
 
 With `DRAG FIT` alone the mean agrees only because the triad changes happen to
-cancel on average: point by point 41.51 still differs from 41.31 by up to 9 cm
-(RMS 3.5 cm). The `legacy-4131` variant of `so-rp_swan/matrix/deck.py` sets
-everything a deck can set. What remains, 2 cm on average and up to 13 cm at
-single points (RMS 4 cm), is the third harmonic and the group-velocity
-weighting of the `ITRIAD=1` LTA. A test build with those two parts written as
-in 41.31 reproduces RWS 41.31A.1 to within 0.1 mm, so on this deck the whole
-difference between the versions lies in the wind drag and the triads. Step by
-step from `legacy-4131` without `DINT` and `IC` (1.542 m): integrating over all
-directions lowers the mean to 1.515 m, the Madsen and Sørensen coefficient
-raises it to 1.583 m, and the last two parts bring it to 1.602 m.
+cancel on average; point by point the fork still differs from 41.31 by up to
+8 cm. The `legacy-4131` variant of `so-rp_swan/matrix/deck.py` sets
+everything a deck can set. What remains is the third harmonic and the
+group-velocity weighting of the `ITRIAD=1` LTA, which a deck cannot switch
+off. On 28 October 2026, on the earlier history and before BF-63, a test
+build with those two parts written as in 41.31 reproduced RWS 41.31A.1 to
+within 0.1 mm, so on this deck the whole difference between the versions
+lies in the wind drag and the triads. Step by step from `legacy-4131`
+without `DINT` and `IC` (then 1.542 m): integrating over all directions
+lowered the mean to 1.515 m, the Madsen and Sørensen coefficient raised it
+to 1.583 m, and the last two parts brought it to 1.602 m.
 
 **Grid and boundary of the operational deck are wrong.** `CGRID CURVILINEAR
 249 578` asks for one row and column more than `so-rp.rgf` has (249 × 578
@@ -137,25 +141,27 @@ one cell further inside, SWAN accepts it without a message but overwrites the
 boundary spectrum in the first sweep, so that no waves enter at all
 (`so-rp_swan/matrix/test_deck.py` checks the position against the bottom). At
 the reference condition the two corrections change mean Hsig by less than 1 cm
-(RWS 41.31: 1.608 m in production, 1.602 m corrected), but single points by up
-to 9 cm. This has been put to the maintainer of the operational deck. Compare
+(RWS 41.31: 1.608 m in production, 1.602 m corrected, over the same 130
+points), but single points by up to 9 cm. This has been put to the maintainer of the operational deck. Compare
 versions with the corrected template. Because production still runs the deck
 as it is, the matrix also has two targets with the production deck itself
 (`rws_4131_production` and `current_4151_production`, only run when named
 with `--target`); `deck.py` accepts that deck only byte for byte, and changes
 only `MAXERR = 2` into `MAXERR = 3`, so that the fork computes on the
 incomplete grid as production does (for RWS 41.31 that changes nothing). With
-it, the current code gives 1.659 m at the reference condition, against 1.608 m for
-RWS 41.31A.1 (measured 29 October 2026, commit `3391642`): the same +5 cm as on the corrected
-deck, but up to 13 cm at single points. The deck "works" because the grid is
+it, the fork (commit `a49f403`) gives 1.656 m at the reference condition over
+the same 130 points, against 1.608 m for RWS 41.31A.1 (measured 10 November
+2026): the same +5 cm as on the corrected deck, up to 13 cm at single
+points. On the production deck RWS 41.31 also finds the five other points
+(1.619 m against 1.666 m over all 135). The deck "works" because the grid is
 fine and smooth, so points shifted by some 50 m still lie in a plausible
 place; the same shortage in another file can leave points at (0,0). The operational deck also only
 runs with the RWS/DZL `swaninit`, which sets `#` as the comment character.
 
-The 130-point comparisons above predate BF-56. The corrected point search
-also locates five points that upstream missed (135 output points in total).
-When comparing versions, use their common wet points and report that count;
-do not compare a mean over 130 points with a mean over 135.
+The corrected point search of the fork (BF-56) also locates five points that
+upstream and RWS 41.31 miss on the corrected deck (135 output points in
+total). When comparing versions, use their common wet points and report that
+count; do not compare a mean over 130 points with a mean over 135.
 
 > Always average over the wet points: dry points have Hsig = −9 (SWAN
 > exception value `EXCV`), and a domain average that includes the −9 gives
@@ -209,12 +215,15 @@ Their output goes to `build-*` directories, which git ignores.
   (see [doc/support-matrix.md](doc/support-matrix.md)); references and gates
   stay on gfortran. Build with
   `-DCMAKE_Fortran_COMPILER=/usr/bin/flang-22` in `build-flang/`. On
-  29 October 2026 (commit `3391642`) the whole source compiled without a Fortran warning, and
-  `-fsyntax-only -pedantic` found only unused variables and four harmless
-  TARGET arguments. Of the 60 CTest tests, 58 passed. `source_terms_st6` differs
-  only in rounding (Hsig within 0.3 mm), and `BF-49-directory-as-file`
-  fails because the flang runtime opens a directory without an error, where
-  gfortran refuses.
+  10 November 2026 (commit `a49f403`, flang 22.1.8) the whole source compiled
+  without a Fortran warning, and `-fsyntax-only -pedantic` found only two
+  unused variables (`IJ` and `IK`, which only an OpenMP clause uses) and six
+  TARGET arguments, none of which keeps a pointer after the call. Of the 66
+  CTest tests, 63 passed. `setup` and `source_terms_st6` differ only in
+  rounding (34 of 1722 set-up values by one in the last printed digit; Hsig of
+  ST6 within 0.1 mm), and in `input_validation` the case
+  `BF-49-directory-as-file` fails because the flang runtime opens a directory
+  without an error, where gfortran refuses.
 - **Timing: hyperfine.** `hyperfine -w 1 -r 5 -N --prepare 'cp deck.swn INPUT'
   swan.exe` gives a mean and spread over repeated runs. The rules under
   "Performance measurements" still apply. Callgrind (`valgrind --tool=callgrind`)
@@ -253,7 +262,7 @@ of a code change. Before starting one, work out the run time and say it, and
 give each process its own cores (`taskset`); `OMP_PROC_BIND` alone puts the
 threads of every process on the same first cores.
 
-Before merging, not every change needs the full breadth (serial + OpenMP + MPI + strict). For each change set, use `python3 scripts/select_gates.py --base <commit the branch started from>` to find which gates the change can break, and run only those, with the commands it prints. The default base `HEAD` only sees uncommitted work, so on a clean branch it selects nothing:
+Before merging, not every change needs the full breadth (serial + OpenMP + MPI + strict). For each change set, use `python3 scripts/select_gates.py --base <commit the branch started from>` to find which gates the change can break, and run only those, with the commands it prints. Those commands expect the build directories `build`, `build-modernization-openmp` and `build-modernization-mpi`, configured with gfortran-16 (Release; the second with `-DOPENMP=ON`, the third with `-DMPI=ON`). The default base `HEAD` only sees uncommitted work, so on a clean branch it selects nothing:
 
 - MPI only for paths that touch MPI: source with mpi/parall/metis/coh/esmf/adcirc in the name, source that calls the parallel layer (a reduction, gather, broadcast or exchange, or the subdomain edge flags), MPI tests, toolchain/CMake. A deck or physics change without a code difference behaves under MPI exactly as in serial on the same code.
 - strict only for source or toolchain changes, or a change to its verdicts. Docs or comments only: no gates.
@@ -300,17 +309,18 @@ for. The test cannot tell those two causes apart. The extra curvature check of
 applied on the first iteration.
 
 This is not an edge case here: most decks in this repository set `ALFA`.
-Measured on `examples/nonlinear_interactions/quad/quad_dia1`: with `ALFA=0.10` the run stops after two iterations and with
-`ALFA=0.05` after ten, with the message "accuracy OK in 100.00 %", while Hs at
-25 km is then 1.278 m. `ALFA=0.01` also stops too early: after 40 iterations
-it reports 100% at 1.403 m, while the same run carried on until the balance
-residual reaches rounding level (about 1500 iterations) ends at 1.923 m, 27%
-higher (commit `423fb70`). Those numbers are for the upstream semi-implicit
-DIA. With the fork's DIA (BF-62, the default since 8 November 2026, commit
-`80a798f`) the deck without `ALFA` reaches
-its balance in 100 iterations (residual 1e-8) at 1.933 m, and with
-`ALFA=0.01` it still stops after 40 iterations at 1.410 m: the false stop
-comes from the under-relaxation, not from the DIA.
+Measured on `examples/nonlinear_interactions/quad/quad_dia1` with
+`scripts/stop_check.py` (10 November 2026, commit `a49f403`), with the
+upstream semi-implicit DIA (`QUADRUPLET 1 UPSTREAM`): with `ALFA=0.10` the run
+stops after two iterations and with `ALFA=0.05` after ten, with the message
+"accuracy OK in 100.00 %", while Hs at 25 km is then 1.278 m. `ALFA=0.01`
+also stops too early: after 40 iterations it reports 100% at 1.403 m, while
+the same run carried on for 1500 iterations ends at 1.923 m, 27% higher (and
+after 3000 at the same value). With the fork's DIA (BF-62, the default) the
+deck stops after 40 iterations at 1.410 m with `ALFA=0.01`, while its
+balance lies at 1.933 m (residual 1e-8 when it is made to run 100 iterations
+without `ALFA`; its own criterion stops it there after 28 iterations at
+1.919 m): the false stop comes from the under-relaxation, not from the DIA.
 
 The fork has an optional balance residual
 (`balance residual energy rms ...` in PRINT; see
@@ -349,15 +359,19 @@ stops only when that estimate is within the deck's own [dabs]/[drel] in
 [npnts] percent of the wet points as well (under `NUMERIC ACCUR`, which has
 no [dabs], the default [dabs] of `STOPC`). One iteration is too short for the
 ratio: near convergence it jumps between −1 and 5 from noise. Measured on
-7 November 2026 (commit `9b71ffa`) with the so-rp numerics (`DREL=0.01 CURVAT=0.001 NPNTS=98
-ALFA=0.01`), against references of 600 forced iterations: on the test model
-`sphys` (so-rp physics, `build-testmodels/`) STOPC stops after 17 iterations
-up to 18 cm off and `EXTRAP 10` after 120 iterations within 1 mm (89
-iterations and 2 mm before a swing that does not shrink was counted as
-growing, 8 November, commit `33e8042`); on `sq` after 8 (13 cm) against 50 (1 mm); on
-`quad_dia1`, with the fork's DIA, after 40 (0.52 m) against 340 (4 mm). Where the iteration never settles (`isl`, the RESCALE floor
-behind an island) it runs to `MXITST` and says how many points still move,
-instead of reporting convergence. The estimate is not a bound: an iteration
+10 November 2026 (commit `a49f403`) with `scripts/stop_check.py` and the
+stopping numerics of so-rp (`STOPC DREL=0.01 CURVAT=0.001 NPNTS=98
+ALFA=0.01`, with the default [dabs]), against references of 600 iterations
+on the test models of `examples/testmodels`: on `sphys` (so-rp physics)
+STOPC stops after 18 iterations up to 18 cm off and `EXTRAP 10` after 100
+iterations within 1 mm; on `sq` after 7 (16 cm) against 50 (1 mm); on
+`quad_dia1`, with the fork's DIA, after 40 (0.52 m) against 340 (4 mm).
+With `DABS=0.00`, as in the so-rp deck, `quad_dia1` does not stop within 600
+iterations: on its 41 wet points 98% means all of them, and one keeps an
+estimate above 1% of its small Hs. Where the iteration never settles (`isl`,
+the RESCALE floor behind an island) it runs to `MXITST` and says how many
+points still move (50 with a steady or growing change), instead of
+reporting convergence. The estimate is not a bound: an iteration
 that slows down by itself, or a slow mode under a fast one, can still stop it
 too early. Output is the
 same at 1, 2, 4 and 8 threads and under MPI. On so-rp itself (`EXTRAP 10`,

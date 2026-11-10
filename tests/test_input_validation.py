@@ -54,6 +54,8 @@ REJECTED = [
     ("TRIAD ITRIAD=6", "TRIAD [itriad]"),
     ("QUADRUPLET 6", "QUADRUPLET [iquad]"),
     ("QUADRUPLET 9", "QUADRUPLET [iquad]"),
+    #  BF-19: the MDIA entries refuse a missing or empty LAMBDA list and missing
+    #  coefficients.
     ("QUADRUPLET 4\nMDIA CNL4 1.0", "MDIA requires LAMBDA"),
     ("QUADRUPLET 1 1.0", "[lambda]"),
     ("QUADRUPLET 1 1.5", "[lambda]"),
@@ -1176,6 +1178,8 @@ def test_series_end_retains_the_input_scale(tmp_path, files_in_series):
     assert float(rows[0][2]) == 20.
 
 
+#  BF-10: values given beyond the length of a short segment must not move on
+#  to the next segment.
 def test_surplus_boundary_lengths_do_not_change_the_next_segment(tmp_path):
     boundary = "BOUNDSPEC SEGMENT IJ 0 0 0 10 VARIABLE PAR 0 1 6 270 20 1200 2 6 270 20{extra}\n" + \
                "BOUNDSPEC SEGMENT IJ 1 0 20 0 CONSTANT PAR 1.5 6 200 20"
@@ -1192,6 +1196,8 @@ def test_surplus_boundary_lengths_do_not_change_the_next_segment(tmp_path):
     assert found[0] == pytest.approx([1.872, 1.676], abs=.001)
 
 
+#  BF-22: after an unknown quantity SREDEP stops, instead of reading past its
+#  tables (BF-43 added this test).
 @pytest.mark.parametrize("maxerr", [1, 3])
 def test_unknown_readinp_quantity_is_dropped(tmp_path, maxerr):
     deck = _quick_deck().replace("SET NAUTICAL", f"SET MAXERR {maxerr} NAUTICAL")
@@ -1203,6 +1209,8 @@ def test_unknown_readinp_quantity_is_dropped(tmp_path, maxerr):
         assert (tmp_path / "work" / "quick_test_center.tbl").exists()
 
 
+#  BF-14: a spread in degrees narrower than half a directional bin is reported
+#  for constant and for variable parametric boundaries.
 @pytest.mark.parametrize("branch", ["CONSTANT", "VARIABLE"])
 @pytest.mark.parametrize("maxerr", [1, 2])
 def test_directional_spread_check_covers_both_parameter_branches(tmp_path, branch, maxerr):

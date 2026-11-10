@@ -20,10 +20,15 @@ reason given there.
    files instead of switch.pl. Still byte-identical to upstream. This commit
    is large (175 files), because a routine cannot move into a module without
    its callers. It also holds the fix of BF-04, whose old calls do not
-   compile with module interfaces, and the fork's own guard that keeps the
-   wave-induced set-up from reusing a cached depth.
-5. **Faster kernels** (`a6a5b2a` to `4457162`), one commit per kernel; same output at
-   `-O3`. The tag `fork-41.51-identical` marks the last commit that computes
+   compile with module interfaces. It also brings the fork's first
+   speed-ups, which keep the output bit for bit: a cache of wave number and
+   group velocity per grid point for stationary runs on a fixed depth (not
+   with a nonstationary run, a changing depth or the wave-induced set-up),
+   a bucket index for the nearest-vertex search and a cache of boundary
+   faces on unstructured grids, an O(N log N) sort of the vertex list, and
+   the precomputed MDIA coefficients (`SWPRE4W`).
+5. **Faster kernels** (`a6a5b2a` to `4457162`), one commit per kernel; same
+   output at `-O3`. The tag `fork-41.51-identical` marks the last commit that computes
    exactly what upstream computes.
 6. **Tests, CI and the comparison with upstream**, then **one commit per bug
    fix**, BF-01 to BF-68, with the fork's own additions (balance residual,
@@ -32,11 +37,24 @@ reason given there.
    [bug-fixes-vs-tu-delft-41.51.md](bug-fixes-vs-tu-delft-41.51.md), and
    ends with the trailer `Bug-fix: BF-NN`. Most also hold their test; the
    exceptions are listed below.
-7. **Layout check and this record** (`5e60340` and the two commits after it).
+7. **Layout check, this record, and the corrections after a review**
+   (`5e60340` and the commits after it).
 
 The bug numbers were given in the order the bugs were found. BF-56 to BF-63
 come after BF-64 to BF-68 in the history, because BF-59 and BF-67 change the
-same reading code in `SREDEP` and were made in that order.
+same reading code in `SREDEP` and were made in that order. BF-58 also comes
+before BF-57, whose test needs it.
+
+## Fixes whose parts are in more than one commit
+
+- **BF-01** has two commits: the fix, and a later one (`413681e`) that resets
+  the rest of the state a second run inherited.
+- **BF-04**: the fix is part of the module commit (`0f9877e`), because the
+  old calls do not compile with module interfaces; its row came in the next
+  commit that records it. Both carry the trailer.
+- **BF-09**: the repair, `ENSURE_FIELD_SIZE`, came with the fix of BF-08
+  (`02e03f6`), which needed it for the same arrays; the commit of BF-09 adds
+  the test and the row.
 
 ## Fixes without a test in their own commit
 
@@ -79,6 +97,15 @@ lines). The rebuilt history keeps those blanks as upstream has them from the
 conversion on, and the gate compares bytes. An earlier claim that output was
 "byte-identical" to upstream holds only with white space collapsed.
 
+## Dates
+
+The author dates of the commits up to the record commits are those of the
+original work, from July to November 2026. The checks that the messages
+name (builds with gfortran 16.2, byte-identical output, tests that pass)
+were repeated for every commit when the history was rebuilt on 10 November
+2026, as described above; gfortran 16.2 itself has been used since
+28 October 2026.
+
 ## Tracing a line to upstream
 
     git blame -w -C -C --ignore-revs-file .git-blame-ignore-revs src/swancom1.f90
@@ -106,9 +133,8 @@ commit of every fix; `scripts/bf_commits.py check` (pytest gate) fails when
 it and the history disagree.
 
 A measurement in a row of the bug-fix table belongs to the commit of that
-fix, unless the row names another commit. BF-01 has two commits: the fix,
-and a later one (`413681e`) that resets the rest of the state a second run
-inherited; both carry the trailer.
+fix, unless the row names another commit. A fix with more than one commit
+(above) has the trailer on each.
 
 ## Tags
 

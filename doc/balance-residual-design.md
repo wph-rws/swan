@@ -163,7 +163,13 @@ double precision (`SWREDUCE` for `real(8)`), as in the serial route.
 
 ### What it shows
 
-`examples/nonlinear_interactions/quad`, Hs at 25 km:
+`examples/nonlinear_interactions/quad`, Hs at 25 km. The `quad_dia1` rows are
+for `QUADRUPLET 1 UPSTREAM`, the upstream semi-implicit DIA, and were
+measured before the fork's DIA (BF-62) became the default; with that default
+`quad_dia1` gives 1.4099 m after 40 iterations at `ALFA=0.01` (residual
+0.144), 1.2802 m after 11 at `ALFA=0.05` (0.156), and 1.9193 m after 28
+without `ALFA` (0.0034), so a run that really converges is then at 0.003 to
+0.006 (measured on 10 November 2026):
 
 | run | iterations | accuracy | energy rms | Hs |
 |---|---:|---:|---:|---:|

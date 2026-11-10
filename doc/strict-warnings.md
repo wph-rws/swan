@@ -46,7 +46,7 @@ one changes every call.
 |---|---:|---|---|
 | `maybe-uninitialized` | 60 | yes | defects BF-19, BF-20, BF-21, BF-22, BF-23, BF-27, BF-28, BF-29, BF-30, BF-31, BF-33, BF-64, BF-66; the rest harmless |
 | `conversion` | 72 | yes | harmless: intended rounding to single precision, or integer expressions that convert exactly |
-| `function-elimination` | 49 | yes | defect BF-24; one in `CVMESH`, where the call is made only for a point not found yet; the rest harmless |
+| `function-elimination` | 49 | yes | 40 synonyms `KEYWIS('A') .OR. KEYWIS('B')` and nine `VALIDBP` in `CGBOUN`, all harmless; the warning that showed BF-24 went with its fix |
 | `character-truncation` | 24 | yes | defects BF-26 and BF-32; the rest harmless or deliberate |
 | `do-subscript` | 24 | yes | harmless; the edge case behind them was defect BF-25 |
 | `untagged` | 4 | yes | deliberate: FFTW transforms in place |
@@ -137,8 +137,8 @@ missing verdict and a silenced build both fail.
 is about a checked kind of warning and gives a reason.
 
 **What the gate does not see:** only the default serial variant is built.
-Code behind `!MPI`, OpenMP or other build options is not compiled, so its
-warnings are not checked.
+The MPI, netCDF and other backend files, and the OpenMP directives, are not
+compiled in this build, so their warnings are not checked.
 
 ## Reviewing a new warning
 
@@ -152,7 +152,7 @@ warnings are not checked.
 3. If it is a defect, fix the cause. Do not set a value to zero just to make
    the warning go away: that hides the next real one. A default is only
    allowed if it is the documented default of the command. If the path is
-   impossible by construction, end it with `internal_error` (see below)
+   impossible by construction, end it with `internal_error` (see above)
    rather than recording a verdict.
 4. Add a test that fails before the fix and passes after it, usually in
    `tests/test_input_validation.py`, and describe the defect in the bug-fix

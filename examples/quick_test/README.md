@@ -4,8 +4,8 @@ This is a small end-to-end smoke test for SWAN 41.51. It exercises a regular
 two-dimensional grid, bathymetry input, a parametric wave boundary, constant
 wind, the stationary solver, block output and tabular point output.
 
-The case uses only 21 x 11 spatial points, 24 directional bins and 16 frequency
-bins. It should normally finish in seconds and is intended to remain below three
+The case uses only 21 x 11 spatial points, 24 directional bins and 17 frequencies
+(16 frequency intervals). It should normally finish in seconds and is intended to remain below three
 minutes even on modest hardware. Runtime is not a hard guarantee because it
 depends on the compiler, build options and machine.
 

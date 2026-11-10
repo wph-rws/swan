@@ -159,12 +159,13 @@ With GNU Fortran's `-Wall -Wextra -Wimplicit-interface -Wsurprising
 
 | Diagnostic inventory | Upstream 41.51 | Fork | Reduction |
 |---|---:|---:|---:|
-| All warnings | 19,022 | 1,280 | 93% |
+| All warnings | 19,022 | 1,030 | 95% |
 | Implicit-interface warnings | 3,573 | 0 | 100% |
 
 Both counts are measured with gfortran 16.2 and the same flags; for upstream
-that means replacing the `-w` its own CMake sets, which silences every
-warning. See
+that means building through its own CMake with these flags in place of the
+`-w` it sets, which silences every warning (28 October 2026; the fork count
+of 10 November 2026). See
 [strict-warnings.md](strict-warnings.md) for the breakdown by kind and the
 review of each warning that can hide a defect.
 
@@ -173,9 +174,9 @@ the argument diagnostics can only fire at a call site once the compiler knows
 the dummy argument types, so making several thousand calls checkable exposes
 conversions that were invisible before.
 
-The only calls into an external C library, the `METIS_*` calls, go through an
-explicit `ISO_C_BINDING`/`BIND(C)` binding in
-`src/swan_metis_interface.f90`. A C binding is an explicit interface. CMake
+The calls into external C libraries have explicit interfaces: FFTW through
+its own `fftw3.f03`, and the `METIS_*` calls through the
+`ISO_C_BINDING`/`BIND(C)` binding in `src/swan_metis_interface.f90`. A C binding is an explicit interface. CMake
 derives the `idx_t`/`real_t` widths from the installed `metis.h` (32/32 here)
 and stops with a clear error on a different installation; `SwanParallel`
 checks how arguments are passed and the index range.
@@ -213,13 +214,12 @@ version can take over as it is.
 
 The same blind spot cuts the other way when a procedure moves into a module.
 Its `USE` line is then visible to *every* variant, while the calls to it stay
-behind their own switch prefix, and a default build compiles clean either way.
-So the rule is: **an import used only from a switch-prefixed call site carries
-that same prefix**. `SWRECVAC` and `SWSENDAC` do not exist under `!JAC`,
-`SWSYNC` is only called under `!JAC`, and JAC-only bodies need imports while
-the default ones do not; each of those imports therefore sits behind the
-prefix of the variant that uses it. The only way to know is to build the
-variant, which is why every one of them has a registered test.
+behind their own variant, and a default build compiles clean either way. A
+variant now lives in a whole backend file that CMake selects, so an import
+that only one variant needs sits in that backend file (`SWRECVAC` and
+`SWSENDAC` in `src/parallel/swan_sweep_exchange_backend_wavefront.f90`, for
+example). The only way to know that an import is missing or superfluous is
+to build the variant, which is why every backend has a registered test.
 
 ## Guarding the result
 
@@ -260,10 +260,9 @@ that all threads share in the first iteration of a run with wind (BF-17).
 
 The optimized LTO build does not need `-fno-strict-aliasing`. Its quick-test
 center table and significant wave-height block are byte-identical to the
-ordinary Release build. Every build option the project offers passes its
-registered tests: serial, OpenMP, MPI (also on two processes), MPI+netCDF,
-netCDF, LTO, TIMG, METIS, MATL4, JAC, FFRO, the debug-invariant build and
-`SWAN_RUNTIME_CHECKS`.
+ordinary Release build. The configurations of `scripts/build_matrix.py`
+pass their registered tests; [support-matrix.md](support-matrix.md) gives
+the result per configuration and the date.
 
 Two of those options change the answer rather than the code path around it, and
 they have their own stored references instead of being exempt from comparison:
@@ -350,8 +349,11 @@ every configuration. Matlab output goes through the fixed module entry point
 two external byte converters from upstream.
 
 The standalone upstream `Swan*.f90` files (`SwanFindPoint`, `SwanReadGrid`,
-`SwanVertlist` and 34 others) are modules in the fork, named after the file in
-snake_case. Their `CONTAINS`-ed helpers are internal, and callers import them
+`SwanVertlist` and 38 others) are modules in the fork; 37 are named after the
+file in snake_case, and four have descriptive names (`SwanInterpolateAc`,
+`SwanInterpolateOutput`, `SwanInterpolatePoint` and `SwanIntgratSpc` became
+`swan_action_interpolation`, `swan_output_interpolation`,
+`swan_point_interpolation` and `swan_spectral_integration`). Their `CONTAINS`-ed helpers are internal, and callers import them
 with an `ONLY` list at module level.
 
 ### How modules are named

@@ -47,8 +47,8 @@ Check the manifest, the programs and all decks without running SWAN:
 python3 so-rp_swan/matrix/matrix_runner.py plan
 ```
 
-The two current targets expect an OpenMP build in `build-so-rp-current/`;
-`plan` reports `MISSING` until it exists. Build it with the compiler named in
+The three targets of the current code expect an OpenMP build in
+`build-so-rp-current/`; `plan` reports `MISSING` until it exists. Build it with the compiler named in
 the Compiler section of AGENTS.md.
 
 The production deck at one condition, with the program in production and

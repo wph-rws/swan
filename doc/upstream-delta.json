@@ -6,7 +6,7 @@
     "version": "41.51",
     "note": "The source the fork is compared against. If this pin changes, the whole inventory has to be measured again."
   },
-  "comparison": "Built serially, with the same compiler and the same optimisation level (-O3) on both sides: the gate reads the compiler from the CMake cache of the fork build, builds upstream with it in .upstream/build_O3_gfortran<version>, and refuses to compare binaries whose .comment section names a different or mixed compiler version. Both the optimisation level and the compiler version change the outcome of some of the decks. Fields must be exactly equal; white space in header lines does not count. Differences that only show under OpenMP or MPI are therefore not seen by this gate -- those are covered by the stored ctest references.",
+  "comparison": "Built serially, with the same compiler and the same optimisation level (-O3) on both sides: the gate reads the compiler from the CMake cache of the fork build, builds upstream with it in .upstream/build_O3_gfortran<version>, and refuses to compare binaries whose .comment section names a different or mixed compiler version. Both the optimisation level and the compiler version change the outcome of some of the decks. Every output file must be equal byte for byte, blanks included. Differences that only show under OpenMP or MPI are therefore not seen by this gate -- those are covered by the stored ctest references.",
   "memory_layout": "Both binaries run under setarch -R, with a fixed memory layout. Without that pin, upstream 41.51 gave two answers from run to run on quad_dia2, quad_mdia and src_nobreak: in decks without breaking, FRABRE reads an unset KTETA (valgrind, BF-16). The fork sets that value and does not depend on the memory layout; the pin stays to keep upstream reproducible. Run with --no-pin to see the instability of upstream for yourself.",
   "unexplained_budget": 0,
   "last_measurement": {
@@ -35,7 +35,7 @@
       "status": "differs",
       "bugfix": "BF-62",
       "measured": "differs in: quad_dia1.spc, quad_dia1.tbl, quad_dia1_sources.spc",
-      "note": "Two fixes act on this deck; the field bugfix names the later one, and the fingerprints are those of both together. BF-16: the deck has no depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged. BF-62 (since 8 November 2026): the fork's semi-implicit DIA uses the consistent linearisation (QUADRUPLET 1 ... UPSTREAM for the upstream form).",
+      "note": "Two fixes act on this deck; the field bugfix names the later one, and the fingerprints are those of both together. BF-16: the deck has no depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation, upstream needs 144 iterations to meet its criterion (MXITST 100 stops it at 83%, the deck's default 50 at 88%) and ends at Hs 1.846 m at 25 km; the fork converges in 28 iterations at 1.907 m. BF-62 (since 8 November 2026): the fork's semi-implicit DIA uses the consistent linearisation (QUADRUPLET 1 ... UPSTREAM for the upstream form).",
       "fork_output": {
         "quad_dia1.spc": "21506ffa4d86a9ad411ceeee4b31f63767b00437f7a8e3df2f6473a4cf62219f",
         "quad_dia1.tbl": "a64e214376e80e71a50a5e873d60331e96737c846212806546ccb7795e91d10c",
@@ -47,7 +47,7 @@
       "status": "differs",
       "bugfix": "BF-16",
       "measured": "differs in: quad_dia2.spc, quad_dia2.tbl, quad_dia2_sources.spc",
-      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged.",
+      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation, upstream needs 144 iterations to meet its criterion (MXITST 100 stops it at 83%, the deck's default 50 at 88%) and ends at Hs 1.846 m at 25 km; the fork converges in 28 iterations at 1.907 m.",
       "fork_output": {
         "quad_dia2.spc": "3d4045be42b96fe03f97cae69d6b5af5bdf0d23ec2fbd7db775755a160edcbb4",
         "quad_dia2.tbl": "b9e4e472d9ba4f88838617d4cf2250fcfb497bf6ef1612b31c09ed940fdc346c",
@@ -59,7 +59,7 @@
       "status": "differs",
       "bugfix": "BF-16",
       "measured": "differs in: quad_dia3.spc, quad_dia3.tbl, quad_dia3_sources.spc",
-      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged.",
+      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation, upstream needs 144 iterations to meet its criterion (MXITST 100 stops it at 83%, the deck's default 50 at 88%) and ends at Hs 1.846 m at 25 km; the fork converges in 28 iterations at 1.907 m.",
       "fork_output": {
         "quad_dia3.spc": "4406ccca1835cb88b08ab9f3e17c9c9329999b96c535f38d695cb34f9fce8600",
         "quad_dia3.tbl": "04d6935a1608e95d59fc0fc0b8df6a05f1f3240fe1cf144cf46e5a16184bb557",
@@ -71,7 +71,7 @@
       "status": "differs",
       "bugfix": "BF-16",
       "measured": "differs in: quad_full.spc, quad_full.tbl, quad_full_sources.spc",
-      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged.",
+      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation, upstream needs 144 iterations to meet its criterion (MXITST 100 stops it at 83%, the deck's default 50 at 88%) and ends at Hs 1.846 m at 25 km; the fork converges in 28 iterations at 1.907 m.",
       "fork_output": {
         "quad_full.spc": "9baf5dad71073c2a5fbffffdef997b192bd2464d5813b7ac93b4b95cfb970d99",
         "quad_full.tbl": "70027d6d58854f400a8b9e7e6c1288c5c81a312b6d1245ebb85fc5e34d700fb7",
@@ -83,7 +83,7 @@
       "status": "differs",
       "bugfix": "BF-16",
       "measured": "differs in: quad_mdia.spc, quad_mdia.tbl, quad_mdia_sources.spc",
-      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged.",
+      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation, upstream needs 144 iterations to meet its criterion (MXITST 100 stops it at 83%, the deck's default 50 at 88%) and ends at Hs 1.846 m at 25 km; the fork converges in 28 iterations at 1.907 m.",
       "fork_output": {
         "quad_mdia.spc": "3aae1982f9e1ad971f4c4e8d67ce752c6a8b1506f42375d534546ef0d8ac427c",
         "quad_mdia.tbl": "554fc3cd104e818e86c67676cf58b1c3a6a63652269c562a48bf94a673d3519a",
@@ -196,7 +196,7 @@
       "status": "differs",
       "bugfix": "BF-16",
       "measured": "differs in: src_nobreak.spc, src_nobreak.tbl, src_nobreak_sources.spc",
-      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation: upstream 100 iterations at 83%, the fork 28 iterations and converged.",
+      "note": "Deck without depth-induced breaking. In FRABRE, upstream divides by an unset KTETA, which gave Qb = 1 and switched the limiter off everywhere; the fork sets KTETA = 1 and computes with the limiter. On quad_dia2 without under-relaxation, upstream needs 144 iterations to meet its criterion (MXITST 100 stops it at 83%, the deck's default 50 at 88%) and ends at Hs 1.846 m at 25 km; the fork converges in 28 iterations at 1.907 m.",
       "fork_output": {
         "src_nobreak.spc": "6df8ed5717829c55a42d6e0cd0b6d1e2f983765a79435d75ffa1e0c77231f11d",
         "src_nobreak.tbl": "11dbcc02a7b3fb3493fb3f6470336d0590d3b9855f0282789baa7ebeb68961cf",
@@ -287,7 +287,7 @@
       "status": "differs",
       "bugfix": "BF-15",
       "measured": "differs in: nonstationary_unstructured_hs.blk",
-      "note": "Attributed by measurement (the same compiler and -O3 on both sides): with only the first stencil neighbour in the front ordering, as upstream does, the fork is byte-identical to upstream; with both neighbours it is byte-identical to upstream built with FFRO. Even serially, the front ordering decides the order in which the sweep updates the nodes, and at two boundary nodes upstream read a neighbour's value from the previous sweep. Up to 11% in the block file; the table at the centre point is equal.",
+      "note": "Attributed by measurement (the same compiler and -O3 on both sides): with only the first stencil neighbour in the front ordering, as upstream does, the fork is byte-identical to upstream; with both neighbours it is byte-identical to upstream built with FFRO. Even serially, the front ordering decides the order in which the sweep updates the nodes, and at two boundary nodes upstream read a neighbour's value from the previous sweep. 237 of the 1617 values in the block file differ, by up to 13% of the upstream value (0.52 against 0.59 m); the table at the centre point is equal.",
       "fork_output": {
         "nonstationary_unstructured_center.tbl": "d42a22f0bc41e3e5603b5fafecc3dbbf40bdef14a57ae5644a4cf5df7e2e18ba",
         "nonstationary_unstructured_hs.blk": "6f81894382334082aa1eca711dce710401c81f57c0a5d425eb962dc90816e9c1"

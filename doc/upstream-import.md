@@ -130,8 +130,8 @@ fork claims 41.51 compatibility only for the old pin.
 
 ## Trial on upstream "patch B"
 
-The previous upstream update, "patch B" (`f5d931d..0dabfa4`, July 2026, 11
-files, 728 lines added and 697 removed), is already in the fork, because the
+The previous upstream update, "patch B" (`f5d931d..0dabfa4`, July 2026, 13
+files, 733 lines added and 697 removed), is already in the fork, because the
 fork started from `43e9bbb`, which includes it. It was used as a trial of the
 route above: does the script lead every part of it to the right place, and is
 each part really there?

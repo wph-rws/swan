@@ -7,16 +7,19 @@ $ bounds-checked CI build has nothing to check that routine against.
 $
 $ ALFA=0.01 keeps the deck in the regime where the change-based criterion
 $ stops too early: it reports convergence after 40 iterations at Hs 1.410 m
-$ at 25 km, while without ALFA the same deck reaches its balance (residual
-$ 1e-8) in 100 iterations at 1.933 m. The reference output of this deck
-$ therefore pins the code path, not a converged wave height. These numbers
-$ are for the fork's semi-implicit DIA (BF-62); with QUADRUPLET 1 UPSTREAM
-$ the run reports convergence at 1.403 m and only reaches 1.923 m after
-$ about 1500 iterations with ALFA=0.01.
+$ at 25 km, while the balance of the same deck is at 1.933 m (residual 1e-8
+$ when it is made to run 100 iterations without ALFA; its own criterion
+$ stops it after 28 iterations at 1.919 m). The reference output of this
+$ deck therefore pins the code path, not a converged wave height. These
+$ numbers are for the fork's semi-implicit DIA (BF-62); with QUADRUPLET 1
+$ UPSTREAM the run reports convergence at 1.403 m and only reaches 1.923 m
+$ after about 1500 iterations with ALFA=0.01.
 $
 $ With the upstream DIA and without ALFA the run converges in 28 iterations.
-$ Upstream 41.51 shows a limit cycle there instead: with breaking off, an
-$ undefined KTETA switches its action limiter off everywhere (BF-16).
+$ Upstream 41.51 does not: after 1000 iterations it is at 80% of its
+$ criterion. With breaking off, an undefined KTETA switches its action
+$ limiter off everywhere (BF-16).
+$ (Measured on 10 November 2026 with scripts/stop_check.py.)
 PROJECT 'QUADDIA1' '001'
 SET CARTESIAN
 MODE STATIONARY ONEDIMENSIONAL

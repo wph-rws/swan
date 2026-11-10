@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Exercise the retained historical switch.py command-line interface."""
+"""Exercise the retained historical switch.py command-line interface.
+
+CTest runs this file as a script (`switch_compatibility`); pytest collects no
+tests from it.
+"""
 
 from __future__ import annotations
 

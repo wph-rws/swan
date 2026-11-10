@@ -74,14 +74,15 @@ not itself offer that three-run library sequence.
 
 **The difference from operational practice has been explained.** With the
 operational so-rp deck, which chooses the source terms itself
-(`GEN3 KOMEN`), 41.51 gives a 3.2 per cent higher wave height on the
-reference condition than RWS 41.31A.1, the Rijkswaterstaat production build
-of 41.31 (1.653 against 1.602 m). That comes from the default for the wind
+(`GEN3 KOMEN`), upstream 41.51 gives a 3.2 per cent higher wave height on
+the reference condition than RWS 41.31A.1, the Rijkswaterstaat production
+build of 41.31 (1.653 against 1.602 m), and the fork 3.0 per cent (1.651 m,
+the difference being BF-63; measured 10 November 2026). That comes from the default for the wind
 drag, which the deck does not set itself; with `DRAG FIT` the mean difference
 disappears. It does not come from the fork. The rest lies in the triads, whose
-LTA was reformulated: a deck that sets everything it can comes to within 2 cm
-of 41.31, and a test build with the old form of the last two parts reproduces
-RWS 41.31A.1 to within 0.1 mm. The operational deck itself reads
+LTA was reformulated: a deck that sets everything it can comes to within 3 cm
+of 41.31 on average, and on the earlier history a test build with the old
+form of the last two parts reproduced RWS 41.31A.1 to within 0.1 mm. The operational deck itself reads
 the grid in wrongly and places the boundary on that grid; the repo computes
 with a corrected template (see `so-rp_swan/par/operational/PROVENANCE.md`).
 
@@ -135,16 +136,21 @@ message and an exit code that is not 0.
 
 ## 4. What is claimed
 
-GNU Fortran 16.2 on Linux x86-64, Release, with the six required gates green
-on the same commit: serial, OpenMP, runtime checks, strict, MPI on two ranks,
+GNU Fortran 16.2 on Linux x86-64, Release, with the six base gates green on
+the same commit: serial, OpenMP, runtime checks, strict, MPI on two ranks,
 and the manifest and Python checks. This includes an installation test with a
-case that runs from the installation. This was shown locally on
+case that runs from the installation. CI also requires the build variants of
+its matrix (see `doc/support-matrix.md`). This was shown locally on
 10 November 2026, on the commit that brought this account up to date. On
-GitHub, CI last ran on 29 October 2026 and failed in two jobs for a reason of
-the CI environment: the commit dates lay ahead of the runner's clock, so that
-CMake regenerated its build files in a loop (MPI job); the strict job could
-not trace 24 warnings to a routine, which is probably the same cause but has
-not been shown. MPI and netCDF also
+GitHub, CI last ran on 29 October 2026 (run 40849401258) and failed in every
+job except the manifest and Python checks, for a reason of the CI
+environment: the jobs unpack the source from a tarball whose files carry the
+commit time, the commit times lay ahead of the runner's clock, and Ninja
+regenerated its build files in a loop; the strict job could not trace 24
+warnings to a routine. A fresh clone with its file times set ahead shows
+both failures, and passes when the files are touched first, which CI now
+does after the checkout. CI has not run on the rebuilt history; its first
+run comes with the push. MPI and netCDF also
 build with 16.2: the `mpi.mod` and `netcdf.mod` from the system packages were
 made with a different gfortran release, but have the same module version.
 
@@ -152,16 +158,16 @@ made with a different gfortran release, but have the same module version.
 
 This is the most important section of this document.
 
-- **Zero warnings.** There are 1030 (gfortran 16.2, 9 November 2026).
+- **Zero warnings.** There are 1030 (gfortran 16.2, 10 November 2026).
   The categories with possibly serious consequences (uninitialised values,
   index bounds, skipped functions, truncated text, loss of value in
   conversions, and warnings without a flag; 233 together) have been assessed
   one by one, which produced BF-19 to BF-33, BF-64 and BF-66; no suspected defect remains
-  open. The other 785, mainly conversions to single precision and
+  open. The other 797, mainly conversions to single precision and
   comparisons of real numbers, are counted but not assessed; rewriting them
   changes inherited arithmetic without demonstrable gain. Unused declarations
-  were removed on 7 November 2026, except four names that only OpenMP
-  clauses use and the unused dummy arguments.
+  were removed on 7 November 2026, except three names (four warnings) that only
+  OpenMP clauses use and the unused dummy arguments.
 - **The Debug route as a gate.** It runs only locally, not in CI. With
   gfortran 16.2 a Debug build (`-O0`) passes all 60 tests. Two things make `-O0` and `-O3` round
   differently. First, for a constant integer exponent above four, such as
@@ -177,8 +183,9 @@ This is the most important section of this document.
   last digits. The references stay at `-O3`, the default of both the fork and
   the comparison with upstream.
 - **A second compiler.** Intel and NAG have not been tried. Flang 22 compiled the source and passed
-  58 of 60 CTest tests on 29 October 2026; the two differences are recorded in
-  `doc/support-matrix.md`. Intel and NAG remain unverified.
+  63 of 66 CTest tests on 10 November 2026; the three differences (two in
+  rounding, one in how the runtime opens a directory) are described in
+  AGENTS.md and `doc/support-matrix.md`. Intel and NAG remain unverified.
 - **Native Windows, IBM, Fujitsu, Cray.** The branches have been kept and
   compile where that is possible; they have not been tried.
 - **The full clean build matrix of all 28 configurations on one candidate.**

@@ -22,6 +22,9 @@ fractional point across the strips, between the leading land and the first
 wet column, is still lost with two or more processes: its lower-left corner
 lies in that unowned land. That is a known open issue (see the bug list,
 "MPI loses output points next to wide leading land"), not checked here.
+
+CTest runs this file as a script (`mpi_output_ownership`); pytest collects no
+tests from it.
 """
 from pathlib import Path
 import argparse

@@ -43,8 +43,8 @@ cmake --build build --parallel
 python3 examples/nonlinear_interactions/run.py
 ```
 
-The default `standard` selection runs 30 fast variants and takes about ten
-seconds. Run an individual group with `--case quad`, `--case triad`,
+The default `standard` selection runs 30 fast variants and takes about a
+minute. Run an individual group with `--case quad`, `--case triad`,
 `--case combined`, `--case sources` or `--case formulations`.
 
 The exact XNL calculation evaluates the nonlinear Boltzmann integral and is
@@ -88,8 +88,9 @@ file. It then verifies that:
 measures how much Hs and the period still change from one iteration to the
 next, and under-relaxation (`ALFA`) makes that change small even when the
 solution is still far away. With `ALFA=0.01`, `quad_dia1` reports "accuracy OK
-in 100.00 %" after 40 iterations with Hs = 1.403 m at 25 km, while the same run
-carried on until the balance residual reaches rounding level ends at 1.923 m.
+in 100.00 %" after 40 iterations with Hs = 1.410 m at 25 km, while the same run
+carried on until the balance residual reaches rounding level ends at 1.933 m
+(with `QUADRUPLET 1 UPSTREAM`, the upstream DIA: 1.403 m and 1.923 m).
 The stored references therefore pin the code path, not the physical answer.
 See the convergence section of [AGENTS.md](../../AGENTS.md) and the
 [balance residual design](../../doc/balance-residual-design.md).

@@ -5,8 +5,9 @@ Usage:
     python3 scripts/check_mpi_field_mask.py --serial serial.mat --mpi mpi.mat
     python3 scripts/check_mpi_field_mask.py --self-test
 
-Intersecting the masks must not hide the 174 cells: mask differences are
-always reported explicitly and fail, even when the point results are equal.
+Intersecting the masks must not hide cells like the 174 of BF-40, wet in the
+serial run and missing under MPI: mask differences are always reported
+explicitly and fail, even when the point results are equal.
 """
 from __future__ import annotations
 

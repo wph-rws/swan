@@ -9,8 +9,9 @@ everything (fail-safe), never nothing.
 
 Rules:
 - MPI only for paths that touch MPI (source with mpi/parall/metis/coh/esmf/
-  adcirc/decomp in the name, MPI tests) and for every change to CMakeLists.txt
-  or cmake/. A deck or physics change without a code difference behaves under
+  adcirc/decomp in the name, source that calls the parallel layer -- a
+  reduction, gather, broadcast or exchange --, MPI tests) and for every change
+  to CMakeLists.txt or cmake/. A deck or physics change without a code difference behaves under
   MPI exactly as in serial on the same code; the MPI claim stays at the last
   green commit.
 - strict only for source, toolchain or baseline changes (only those can
@@ -19,7 +20,7 @@ Rules:
   toolchain, decks and the delta inventory itself. That gate compares the fork
   deck by deck with the pinned TU Delft source, so that a new difference must
   get a BF reference instead of going unnoticed.
-- pytest takes <1 second and always runs as soon as there is anything to test,
+- pytest takes about a minute and always runs as soon as there is anything to test,
   including every so-rp_swan/ file other than Markdown: the matrix tests
   check the template, the reference deck and the matrix input.
 - Docs/comments only: no gate at all.
@@ -44,7 +45,7 @@ COMMANDS = {
     "serial": 'cmake --build build -j"$(nproc)" && ctest --test-dir build --output-on-failure -j"$(nproc)"',
     "openmp": 'cmake --build build-modernization-openmp -j"$(nproc)" && ctest --test-dir build-modernization-openmp --output-on-failure -j"$(nproc)"',
     "mpi": 'cmake --build build-modernization-mpi -j"$(nproc)" && ctest --test-dir build-modernization-mpi --output-on-failure -j"$(nproc)"',
-    "strict": "python3 scripts/strict_diagnostics.py",
+    "strict": "FC=/usr/bin/gfortran-16 python3 scripts/strict_diagnostics.py",
     "pytest": "python3 -m pytest tests/ so-rp_swan/matrix so-rp_swan/comparison -q",
     "upstream_delta": "SWAN_UPSTREAM_DELTA=1 python3 -m pytest tests/test_upstream_delta.py -q",
 }

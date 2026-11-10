@@ -210,6 +210,10 @@ where `<value>` is a string or a boolean, depending on the specified option. The
 | `SWAN_RUNTIME_CHECKS`    | boolean    | compiler runtime checks (bounds, allocation) | `OFF`                 |
 | `JAC`                    | boolean    | Jacobi instead of wavefront sweep exchange (MPI) | `OFF`             |
 | `FFRO`                   | boolean    | fixed-front vertex ordering (unstructured, OpenMP) | `OFF`           |
+| `SWAN_LEGACY_CRAY_IO`    | boolean    | preserved Cray sequential-I/O branch (not built in CI) | `OFF`       |
+| `SWAN_LEGACY_SGI_IO`     | boolean    | preserved SGI I/O and unit-limit branch (not built in CI) | `OFF`    |
+| `SWAN_DEC_SHARED_IO`     | boolean    | preserved DEC SHARED file-opening backend (not built in CI) | `OFF`  |
+| `SWAN_MPIF_COMPAT`       | boolean    | preserved mpif.h-backed MPI module, with MPI or JAC (not built in CI) | `OFF` |
 | `CMAKE_VERBOSE_MAKEFILE` | boolean    | provide verbose output of the build       | `OFF`                   |
 
 For an optimized, portable OpenMP build, use:

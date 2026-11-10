@@ -49,13 +49,14 @@ At the reference condition (20 m/s from 310°, NAP +3.00 m, barrier open), grid
 and boundary together change the mean Hsig over the 130 wet output points by
 less than 1 cm (RWS 41.31: 1.608 m as in production, 1.602 m corrected), but
 single points by up to 9 cm.
-With the code of 29 October (41.51) the effect is the same: 1.659 m with this
-deck, 1.653 m corrected, up to 9 cm at single points; that code also
+With the code of 29 October (41.51) the effect was the same: 1.659 m with
+this deck, 1.653 m corrected, up to 9 cm at single points; that code also
 reported the 1558 grid errors and carried on. Since BF-67 the fork refuses
 to start on this deck with the severe error "READGRID: CGRID asks for 250 x
-579 grid points, and the file holds fewer". Measured on 29 October 2026; on
-this deck the current code is 5.2 cm higher on average than RWS 41.31A.1, and
-up to 13 cm at single points.
+579 grid points, and the file holds fewer", unless `MAXERR = 3`. Measured on
+10 November 2026 with the fork at commit `a49f403` and `MAXERR = 3`: on this
+deck the fork gives 1.656 m against 1.608 m for RWS 41.31A.1 over the same
+130 points, 4.8 cm higher on average and up to 13 cm at single points.
 
 The matrix runs this deck through the targets `rws_4131_production` and
 `current_4151_production` (`template: production`), because production
