@@ -451,6 +451,9 @@ SUBROUTINE SWPSEL(SWPDIR    ,WINDOW    ,CAX       , &
 !     ISTOT             Maximum value between the lowest and highest
 !                       counter in frequency space
 !     FULCIR            logical: if true, computation on a full circle
+!     KC1               input: address of the grid point being computed
+!     IX1               input: x-index of that grid point
+!     IY1               input: y-index of that grid point
 !
 !     REALS:
 !     --------------------------------------------------------------
@@ -461,10 +464,13 @@ SUBROUTINE SWPSEL(SWPDIR    ,WINDOW    ,CAX       , &
 !
 !     CAX     3D  propagation velocity
 !     CAY     3D  propagation velocity
-!     IDCMIN  1D  minimum frequency dependent counter (INTEGER)
-!     IDCMAX  1D  maximum frequency dependent counter (INTEGER)
-!     ISCMIN  1D  minimum counter in frequency space
-!     ISCMAX  1D  maximum counter in frequency space
+!     WINDOW      output: spectral window of the sweep (spectral_window_t);
+!                 SWPSEL sets IDCMIN and IDCMAX, the minimum and maximum
+!                 frequency dependent counter in directional space;
+!                 ISCMIN and ISCMAX, the minimum and maximum counter in
+!                 frequency space per direction; ISSTOP, the highest
+!                 frequency counter of the sweep; and IDDLOW and IDDTOP,
+!                 the lowest and highest directional counter of the sweep
 !     SECTOR  1D  Counter for number enclosed sectors (INTEGER)
 !     ANYBIN  2D  Is a certain bin enclosed in a sweep (LOGICAL)
 !     SPCDIR  1D  spectral directions                                     20.44
@@ -1271,9 +1277,15 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 !
 !  4. Argument variables
 !
-!     WINDOW: spectral window of the grid point; used here are the minimum
-!             and maximum direction that is propagated within a sweep
-!             (IDDLOW, IDDTOP)
+!     WINDOW  : spectral window of the grid point; used here are the minimum
+!               and maximum direction that is propagated within a sweep
+!               (IDDLOW, IDDTOP)
+!     DIFFR   : diffraction parameter and its x- and y-derivatives per grid
+!               point; used only if diffraction is on (IDIFFR=1)
+!     ST_KC5  : grid addresses of the active grid point (1) and of its
+!               neighbouring grid points in the stencil (2 to 5)
+!     ST_IX1  : x-index of the active grid point
+!     ST_IY1  : y-index of the active grid point
 
    TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
    INTEGER, INTENT(IN) :: st_kc5(5), st_ix1, st_iy1
@@ -1862,6 +1874,9 @@ SUBROUTINE DSPHER (CAD, CAX, CAY, ANYBIN, YCGRID, ECOS, ESIN, st_ix1, st_iy1)
 !
 !
 !  4. Argument variables
+!
+!     i  ST_IX1       x-index of the grid point being computed
+!     i  ST_IY1       y-index of the grid point being computed
 !
 !        one and more dimensional arrays:
 !        ---------------------------------
@@ -3209,6 +3224,9 @@ SUBROUTINE STRSSI(SPCSIG  , &
 !        IS          Counter of relative frequency band
 !        ID          Counter of directional distribution
 !        ICMAX       Maximum counter for the points of the molecule
+!        ST_KC1      Grid address of the grid point being computed
+!        ST_N        Number of points of the molecule (ICMAX); last
+!                    dimension of CAS
 !        MXC         Maximum counter of gridpoints in x-direction
 !        MYC         Maximum counter of gridpoints in y-direction
 !        MSC         Maximum counter of relative frequency
@@ -3231,8 +3249,10 @@ SUBROUTINE STRSSI(SPCSIG  , &
 !        IMATDA  2D  Coefficients of diagonal of matrix
 !        IMAT5L  2D  Coefficients of lower diagonal of matrix
 !        IMAT6U  2D  Coefficients of upper diagonal of matrix
-!        ISCMIN  1D  Minimum counter in frequency space per direction
-!        ISCMIN  1D  Maximum counter in frequency space per direction
+!        WINDOW      Spectral window of the sweep (spectral_window_t); used
+!                    are IDDLOW and IDDTOP, the range of directions, and
+!                    ISCMIN and ISCMAX, the minimum and maximum counter in
+!                    frequency space per direction
 !
 !     5. SUBROUTINES CALLING
 !
@@ -3594,11 +3614,15 @@ SUBROUTINE STRSSB (WINDOW  ,CAX     ,CAY     , &
 !        MYC         Maximum counter of gridpoints in y-direction
 !        MSC         Maximum counter of relative frequency
 !        MDC         Maximum counter of directional distribution
-!        ISSTOP      Maximum frequency counter for wave components
-!                    that are propagated within a sweep
-!        IDDLOW      Minimum direction that is propagated within a
-!                    sweep
-!        IDDTOP      Idem maximum
+!        ST_KC1      Grid address of the grid point being computed
+!        ST_N        Number of points of the molecule (ICMAX); last
+!                    dimension of CAS, CAX and CAY
+!        WINDOW      Spectral window of the sweep (spectral_window_t); used
+!                    are ISSTOP, the maximum frequency counter for wave
+!                    components that are propagated within a sweep,
+!                    IDCMIN and IDCMAX, the minimum and maximum direction
+!                    per frequency, and IDDLOW and IDDTOP, the minimum and
+!                    maximum direction that is propagated within a sweep
 !
 !        REALS:
 !        ---------
@@ -4530,6 +4554,8 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG, st_kc, st_n )
 !        MYC         Maximum counter of gridppoints in y-direction
 !        MSC         Maximum counter of relative frequency
 !        MDC         Maximum counter of directional distribution
+!        ST_N        Number of points of the molecule for which KWAVE, CGO
+!                    and DMW are computed
 !
 !        REALS:
 !        ---------
@@ -4543,6 +4569,7 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG, st_kc, st_n )
 !                        direction of wave propagation in absence of currents
 !        DEP       2D    Depth as function of X and Y at certain time
 !        KWAVE     2D    wavenumber as function of the relative frequency S
+!        ST_KC     1D    grid addresses of the points of the molecule (INTEGER)
 !
 !     5. SUBROUTINES CALLING
 !

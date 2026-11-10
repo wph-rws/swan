@@ -174,7 +174,10 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
 !
 !     ARRAYS
 !     ------
-!     AF11    1D   Scaling frequency
+!     AF11    1D   Scaling frequency (frequency to the power 11), stored in
+!                  SNL4 as SNL4%frequency_power_11
+!     SNL4         tables of the quadruplet interactions (input/output);
+!                  FAC4WW allocates and fills the scaling array AF11 in it
 !     WWINT   1D   counters for 4WAVE interactions
 !     WWAWG   1D   values for the interpolation
 !     WWSWG   1D   vaules for the interpolation
@@ -697,8 +700,8 @@ SUBROUTINE SWPRE4W (XIS   ,SNLC1 , &
 !  2. Purpose
 !
 !     Computes the interaction coefficients of all quadruplets of the
-!     MDIA (IQUAD=4) once per computation and caches them in module
-!     M_SNL4, so that the source term evaluation does not have to call
+!     MDIA (IQUAD=4) once per computation and caches them in SNL4,
+!     so that the source term evaluation does not have to call
 !     FAC4WW again for every grid point and quadruplet. The spectral
 !     ranges MSC4MI/MSC4MA/MDC4MI/MDC4MA are widened to cover all
 !     quadruplets, so work arrays allocated with these bounds fit each
@@ -707,8 +710,20 @@ SUBROUTINE SWPRE4W (XIS   ,SNLC1 , &
 !
 !  4. Argument variables (see FAC4WW)
 !
-!     XIS, SNLC1, DAL1, DAL2, DAL3, WWINT, WWAWG, WWSWG: as in FAC4WW;
-!                  on output they hold the values of the last quadruplet
+!     All arguments except SPCSIG and SNL4 are output as in FAC4WW; they
+!     hold the values of the last quadruplet.
+!
+!     XIS          ratio of two succeeding relative frequencies
+!     SNLC1        coefficient 1/GRAV**4 for the subroutines SWSNLn
+!     DAL1         coefficient 1/(1+LAMBDA)**4 for the non linear
+!                  interactions
+!     DAL2         coefficient 1/(1-LAMBDA)**4
+!     DAL3         coefficient 2*DAL1*DAL2
+!     SPCSIG       relative frequencies in computational domain in
+!                  sigma-space (input)
+!     WWINT        counters for the four-wave interactions (see FAC4WW)
+!     WWAWG        weight factors for the interpolation
+!     WWSWG        quadratic weight factors for the interpolation
 !     SNL4         tables of the quadruplet interactions; on input the
 !                  number of quadruplets and their lambda values, on
 !                  output the cached coefficients of every quadruplet
@@ -1022,7 +1037,7 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, A
 !  4. Argument variables
 !
 !     SPCSIG: Relative frequencies in computational domain in sigma-space
-!     DIA_WORKSPACE: work space and coefficients of the DIA, in upstream
+!     DIA_WORKSPACE  : work space and coefficients of the DIA, in upstream
 !             separate arguments: the proportionality constant SNLC1,
 !             the LAMBDA dependend weight factors DAL1, DAL2, DAL3 and
 !             the interpolation weights WWAWG, WWSWG (see FAC4WW), the
@@ -1033,7 +1048,7 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, A
 !             part for the diagonal matrix DSNL
 !     IGP   : grid address of the point being computed
 !             (KCGRD(1) in upstream)
-!     WINDOW: spectral window of the grid point: the directional range
+!     WINDOW  : spectral window of the grid point: the directional range
 !             per frequency (IDCMIN, IDCMAX), the directional range
 !             of the sweep (IDDLOW, IDDTOP) and the maximum frequency
 !             counter that is propagated (ISSTOP)
@@ -1046,9 +1061,8 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, A
 
 !     Data in PARAMETER statements :
 !     ----------------------------------------------------------------    40.17
-!       DAL1    Real  LAMBDA dependend weight factors (see FAC4WW)
-!       DAL2    Real
-!       DAL3    Real
+!       DIA_WORKSPACE%DAL1, %DAL2, %DAL3
+!               Real  LAMBDA dependend weight factors (see FAC4WW)
 !       ITHP, ITHP1, ITHM, ITHM1, IFRP, IFRP1, IFRM, IFRM1
 !               Int.  Counters of interpolation point relative to
 !                     central bin, see figure below (set in FAC4WW).
@@ -1057,10 +1071,12 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, A
 !       AF11    R.A.  Scaling array (Freq**11).
 !       AWGn    Real  Interpolation weights, see numbers in fig.
 !       SWGn    Real  Id. squared.
-!       UE      R.A.  "Unfolded" spectrum.
-!       SA1     R.A.  Interaction constribution of first and second
-!       SA2     R.A.    quadr. respectively (unfolded space).
-!       DA1C, DA1P, DA1M, DA2C, DA2P, DA2M
+!       DIA_WORKSPACE%UE
+!               R.A.  "Unfolded" spectrum.
+!       DIA_WORKSPACE%SA1, %SA2
+!               R.A.  Interaction constribution of first and second
+!                       quadr. respectively (unfolded space).
+!       DIA_WORKSPACE%DA1C, %DA1P, %DA1M, %DA2C, %DA2P, %DA2M
 !               R.A.  Idem for diagonal matrix.
 !       PERCIR        full circle or sector
 !     ----------------------------------------------------------------    40.17
@@ -1555,7 +1571,7 @@ SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2
 !             module array of M_SNL4)
 !     IGP   : grid address of the point being computed
 !             (KCGRD(1) in upstream)
-!     WINDOW: spectral window of the grid point: the directional range
+!     WINDOW  : spectral window of the grid point: the directional range
 !             per frequency (IDCMIN, IDCMAX), the directional range
 !             of the sweep (IDDLOW, IDDTOP) and the maximum frequency
 !             counter that is propagated (ISSTOP)
@@ -2426,6 +2442,10 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   , &
 
 !     AC2   : action density
 !     AF11  : scaling frequency
+!     CNL4_1  : values of C1 in the MDIA formulation, one per quadruplet
+!             (in upstream a module array of M_SNL4)
+!     CNL4_2  : values of C2 in the MDIA formulation, one per quadruplet
+!             (in upstream a module array of M_SNL4)
 !     DAL1  : coefficient for the quadruplet interactions
 !     DAL2  : coefficient for the quadruplet interactions
 !     DAL3  : coefficient for the quadruplet interactions
@@ -2436,7 +2456,8 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   , &
 !     PI    : circular constant
 !     SA1   : interaction contribution of first quadruplet (unfolded space)
 !     SA2   : interaction contribution of second quadruplet (unfolded space)
-!     SFNL
+!     SFNL  : work array for the source term of quadruplet IDIA, before
+!             it is stored in MEMNL4
 !     SNLC1
 !     SPCSIG: relative frequencies in computational domain in sigma-space
 !     UE    : "unfolded" spectrum
@@ -3048,7 +3069,7 @@ SUBROUTINE FILNL3 (WINDOW, IMATRA, IMATDA, AC2, MEMNL4, PLNL4S, REDC0, REDC1, IG
 !
 !     IGP   : grid address of the point being computed
 !             (KCGRD(1) in upstream)
-!     WINDOW: spectral window of the grid point: the directional range
+!     WINDOW  : spectral window of the grid point: the directional range
 !             per frequency (IDCMIN, IDCMAX) and the maximum frequency
 !             counter that is propagated (ISSTOP)
 !
@@ -5586,6 +5607,13 @@ SUBROUTINE PEREXC ( DELL, DEP2, AC2, SPCSIG, RDX, RDY, BOTLV, IGP, &
 !     See Saprykina et al., 2017, Oceanology, vol. 57, 253-264
 !
 !  4. Argument variables
+!
+!     IGP     : grid address of the point being computed (KCGRD(1) in
+!               upstream)
+!     KGRD2   : index in the computational grid of the neighbouring point
+!               in x-direction (second point of the stencil)
+!     KGRD3   : index in the computational grid of the neighbouring point
+!               in y-direction (third point of the stencil)
 
    INTEGER, INTENT(IN) :: IGP, KGRD2, KGRD3
    REAL, INTENT(IN)  :: AC2(MDC,MSC,MCGRD) ! action densities
@@ -5736,6 +5764,13 @@ SUBROUTINE SWBIDW( BIP, AC2, SPCSIG, RDX, RDY, BOTLV, ECOS, ESIN, IGP, &
 !     number (see routine SINTGRL)
 !
 !  4. Argument variables
+!
+!     IGP     : grid address of the point being computed (KCGRD(1) in
+!               upstream)
+!     KGRD2   : index in the computational grid of the neighbouring point
+!               in x-direction (second point of the stencil)
+!     KGRD3   : index in the computational grid of the neighbouring point
+!               in y-direction (third point of the stencil)
 
    INTEGER, INTENT(IN) :: IGP, KGRD2, KGRD3
    REAL, INTENT(IN)  :: AC2(MDC,MSC,MCGRD) ! action densities
@@ -5998,6 +6033,10 @@ SUBROUTINE SWBIPM( BIPHAS, DEP2, HSIBC, BPHTMP )
 !     Spatially averages the De Wit's biphase
 !
 !  4. Argument variables
+!
+!     BPHTMP  : biphase of De Wit (2022) per grid point before it is
+!               spatially averaged, stored by SINTGRL (in upstream the
+!               module array BPHTMP of M_SNL3)
 
    REAL   , INTENT(OUT) :: BIPHAS(MCGRD)
    REAL   , INTENT(IN)  :: DEP2(MCGRD)

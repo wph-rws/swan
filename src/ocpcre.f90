@@ -2423,9 +2423,9 @@ LOGICAL FUNCTION KEYWIS_CTX (STATE, STRING)
 !
 !  4. ARGUMENT VARIABLES
 !
-!     STATE  : command reader: the current input line, the position in it
-!              and the last data item read (input and output)
-!     STRING : a keyword which is compared with a keyword found in the input file
+!     STATE   : command reader: the current input line, the position in it
+!               and the last data item read (input and output)
+!     STRING  : a keyword which is compared with a keyword found in the input file
 
    TYPE(command_reader_t), INTENT(INOUT) :: STATE
    CHARACTER(LEN=*), INTENT(IN) :: STRING
@@ -2619,9 +2619,9 @@ SUBROUTINE IGNORE_CTX (STATE, STRING)
 !
 !  4. ARGUMENT VARIABLES
 !
-!     STATE  : command reader: the current input line, the position in it
-!              and the last data item read (input and output)
-!     STRING : keyword (if appearing in input file) that can be ignored
+!     STATE   : command reader: the current input line, the position in it
+!               and the last data item read (input and output)
+!     STRING  : keyword (if appearing in input file) that can be ignored
 
    TYPE(command_reader_t), INTENT(INOUT) :: STATE
    CHARACTER(LEN=*), INTENT(IN) :: STRING

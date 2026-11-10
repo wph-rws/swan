@@ -104,13 +104,13 @@ modules: one for the test status and one for the propagation scheme.
 
 | Symbol | Solver | COPYIN | First definition | Lifetime | Cat. | Proposed owner |
 |---|---|---|---|---|---|---|
-| `IPTST` | both | ✅ | [swancom1.f90:3252](../src/swancom1.f90#L3252), [SwanCompUnstruc.f90:1009](../src/SwanCompUnstruc.f90#L1009) | point | 3 | `common_thread_seed_t` |
+| `IPTST` | both | ✅ | [swancom1.f90:3276](../src/swancom1.f90#L3276), [SwanCompUnstruc.f90:1009](../src/SwanCompUnstruc.f90#L1009) | point | 3 | `common_thread_seed_t` |
 | `TESTFL` | both | ✅ | [swanmain.f90:1679](../src/swanmain.f90#L1679) | point | 3 | `common_thread_seed_t` |
 | `PROPSL` | structured | ✅ | [swanmain.f90:1228](../src/swanmain.f90#L1228) | sweep | 3/6 | `structured_thread_workspace_t` |
 
 The COPYIN of `IPTST` and `TESTFL` is probably unnecessary. Both solvers set
 the pair to `0`/`.FALSE.` at the top of the per-point block
-([swancom1.f90:3252](../src/swancom1.f90#L3252),
+([swancom1.f90:3276](../src/swancom1.f90#L3276),
 [SwanCompUnstruc.f90:1009](../src/SwanCompUnstruc.f90#L1009)) before they read
 it, and neither appears inside the parallel region itself
 ([swancom1.f90:1348-2415](../src/swancom1.f90#L1348-L2415)): all uses are in
@@ -120,7 +120,7 @@ already reads `TESTFL`. Check that before deleting the COPYIN; until then, the
 COPYIN is unnecessary but not wrong.
 
 `IPTST` is also used as a `DO` loop variable in
-[swanmain.f90:6113](../src/swanmain.f90#L6113) onwards, outside the parallel
+[swanmain.f90:6119](../src/swanmain.f90#L6119) onwards, outside the parallel
 region. That is legal, but it means the symbol carries two meanings. If this
 state moves into a context type, the loop variable should become a local
 variable, not a field of the context.
@@ -129,7 +129,7 @@ variable, not a field of the context.
 
 In upstream, the eleven values are threadprivate module variables in
 `M_WCAP`. They are written only in `SINTGRL`
-([swancom1.f90:5273-5847](../src/swancom1.f90#L5273-L5847)); only four files
+([swancom1.f90:5312-5886](../src/swancom1.f90#L5312-L5886)); only four files
 import the module, and no scalar is in COPYIN.
 
 | Symbol | Default on entry | Write condition | Cat. | Invariant |
@@ -138,7 +138,7 @@ import the module, and no scalar is in COPYIN.
 | `KM01` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L180) | refined when `EKTOT > 0.` | 4 | proven |
 | `SIGM01` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L181) | refined when `ETOT1 > 0.` | 4 | proven |
 | `SIGM_10` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L182) | refined when `ACTOT > 0.` | 4 | proven |
-| `ACTOT` | **none** | [`IF (ETOT > 0.)`](../src/swancom1.f90#L5613) | **5** | tested: value is kept |
+| `ACTOT` | **none** | [`IF (ETOT > 0.)`](../src/swancom1.f90#L5652) | **5** | tested: value is kept |
 | `ETOT1` | **none** | same | **5** | tested: value is kept |
 | `ETOT2` | **none** | same | **5** | tested: value is kept |
 | `ETOT4` | **none** | same | **5** | tested: value is kept |
@@ -153,18 +153,18 @@ workspace. `begin_point` sets only the four entry defaults to 10, as
 upstream `SINTGRL` does; the seven category-5 values are deliberately left alone.
 
 **The category-5 finding.** When `ETOT <= 0.`, `SINTGRL` does not write seven
-of the eleven, while [line 5840](../src/swancom1.f90#L5840) executes
+of the eleven, while [line 5879](../src/swancom1.f90#L5879) executes
 `AC2TOT = ACTOT` unconditionally. The thread then carries over the value from
 the previous point it handled. Upstream behaves the same way.
 
 **Effect on results.** For valid, non-negative spectra, initialising these
 seven values does not change the numerical result of the solver:
 
-- [`SWCAP`](../src/swancom2.f90#L2244) and
-  [`SWCAP8`](../src/swancom2.f90#L2741) return when `ETOT <= 0.` before
+- [`SWCAP`](../src/swancom2.f90#L2247) and
+  [`SWCAP8`](../src/swancom2.f90#L2744) return when `ETOT <= 0.` before
   a workspace value can affect a source term;
 - `SSURF` reads `SIGM_WAM` for `ISURF = 6`, but only uses the chosen
-  frequency behind the [`BB > 0`](../src/swancom2.f90#L2165) condition;
+  frequency behind the [`BB > 0`](../src/swancom2.f90#L2168) condition;
   when `ETOT = 0.` the surf-breaking contribution stays zero;
 - `AC2TOT` has no reader after the call in the structured and unstructured
   solver;

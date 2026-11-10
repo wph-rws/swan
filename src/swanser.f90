@@ -558,10 +558,11 @@ SUBROUTINE CVMESH (XP, YP, XC, YC, KGRPNT, XCGRID ,YCGRID, KGRBND)
    INTEGER, SAVE :: MXITNR = 0
    INTEGER, SAVE :: IENT = 0
 
-!     INMESH   if True, point (XP,YP) is inside the computational grid
+!     INMESH   if True, point (XP,YP) is inside the computational grid;
+!              its result is kept in TRYAGN, which is True when the point
+!              was not found but lies inside the grid (second attempt)
 !     FINDXY   if True, Newton-Raphson procedure succeeded
 !     ONBND    if True, given point is on boundary                        40.41
-!     TRYAGN   if True, point not found but inside grid: second attempt
 
    LOGICAL  FINDXY, ONBND, TRYAGN
 

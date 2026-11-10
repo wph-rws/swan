@@ -93,7 +93,8 @@ SUBROUTINE FOR (IUNIT, DDNAME, SF, IOSTAT, IO)
 !                               -1: Only error messages printed
 !                               -2: No messages printed
 !                       output  error indicator
-!       IO      type    in/out  optional stream context of the run; when
+!       IO      type(io_context_t), optional, input and output
+!                               stream context of the run; when
 !                               present, the free unit numbers are taken
 !                               from its range instead of the global one,
 !                               and the unit opened is stored in it (HIOPEN)

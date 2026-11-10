@@ -210,6 +210,8 @@ SUBROUTINE SBOT (ABRBOT, DEP2, ECOS, ESIN, AC2, IMATDA, KWAVE, SPCSIG, UBOT, UX2
 !  4. Argument variables
 !
 !     SPCSIG: Relative frequencies in computational domain in sigma-space
+!     WINDOW  : spectral window of the sweep: the source term is added
+!             for frequencies 1 to ISSTOP and directions IDCMIN to IDCMAX
 
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP, IXCG, IYCG
@@ -230,8 +232,9 @@ SUBROUTINE SBOT (ABRBOT, DEP2, ECOS, ESIN, AC2, IMATDA, KWAVE, SPCSIG, UBOT, UX2
 !     MYC         Maximum counter of gridppoints in y-direction
 !     MSC         Maximum counter of relative frequency
 !     MDC         Maximum counter of directional distribution
-!     ISSTOP      Maximum counter of wave component in frequency
-!                 space that is propagated
+!     IGP         index of the grid point in the computational grid
+!     IXCG        x-index of the grid point
+!     IYCG        y-index of the grid point
 !
 !     REALS:
 !     ---------
@@ -2032,7 +2035,7 @@ SUBROUTINE SSURF (ETOT, HM, QB, SMEBRK, KTETA, KMESPC, SPCSIG, AC2, IMATRA, IMAT
 !     PLWBRK  output:   array containing the surf breaking source term
 !                       for test-output
 !     QB      input :   Fraction of breaking waves
-!     SIGM_WAM input:   Mean frequency according to the WAM-formulation,
+!     SIGM_WAM  input : Mean frequency according to the WAM-formulation,
 !                       computed in SINTGRL; used when ISURF = 6
 !                       (in upstream read from module M_WCAP)
 !     SMEBRK  input :   Mean frequency according to first order moment
@@ -2405,11 +2408,11 @@ SUBROUTINE SWCAP  (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLW
 !             (*,6); sine^2 of spectral directions
 !     SPCSIG: Relative frequencies in computational domain in sigma-space
 !     UFRIC : wind friction velocity
-!     WCAP_WORKSPACE: Integral parameters of the spectrum at this point,
+!     WCAP_WORKSPACE  : Integral parameters of the spectrum at this point,
 !             computed in SINTGRL: total action (ACTOT), energy moments,
 !             and mean wavenumbers and frequencies (KM_WAM, SIGM_WAM and
 !             others); in upstream these were module variables of M_WCAP
-!     WINDOW: Spectral window of the grid point: the counters that indicate
+!     WINDOW  : Spectral window of the grid point: the counters that indicate
 !             the minimum and maximum direction that is propagated in the
 !             sweep (IDCMIN, IDCMAX) and the maximum counter in frequency
 !             space that is propagated within a sweep (ISSTOP)
@@ -2802,6 +2805,13 @@ SUBROUTINE SWCAP8 (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLW
 !  4. Argument variables
 !
 !     See WCAP_DELFT
+!
+!     IGP   : Grid address of the point being computed (KCGRD(1) in upstream)
+!     WCAP_WORKSPACE  : Integral parameters of the spectrum at this point,
+!             computed in SINTGRL; here only used to skip the computation
+!             when ACTOT, EDRKTOT, ETOT2 or ETOT4 is not positive
+!     WINDOW  : Spectral window of the grid point: the source term is added
+!             for frequencies 1 to ISSTOP and directions IDCMIN to IDCMAX
 
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
@@ -3078,6 +3088,19 @@ SUBROUTINE BRKPAR (BRCOEF, ECOS, ESIN, AC2, SPCSIG, DEP2, BOTLV, RDX, RDY, KWAVE
 !
 !
 !  4. Argument variables
+!
+!     IGP     : Grid address of the point being computed (KCGRD(1) in
+!               upstream)
+!     KGRD2   : index in the computational grid of the neighbouring point
+!               in x-direction (second point of the stencil)
+!     KGRD3   : index in the computational grid of the neighbouring point
+!               in y-direction (third point of the stencil)
+!     KM_WAM  : Mean wavenumber according to the WAM-formulation, computed
+!               in SINTGRL; used when ISURF = 6 (in upstream read from
+!               module M_WCAP)
+!     WINDOW  : Spectral window of the sweep; it replaces the upstream
+!               arguments IDDLOW and IDDTOP, which the present breaker
+!               formulations do not use either
 
    TYPE(spectral_window_t) :: WINDOW
    REAL, INTENT(IN) :: KM_WAM

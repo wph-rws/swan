@@ -460,6 +460,11 @@ SUBROUTINE DTRETI (TSTRNG, IOPT, TIMESC, CONTEXT)
 !     TSTRNG : input    time string
 
    CHARACTER(LEN=*), INTENT(IN) :: TSTRNG
+
+!     CONTEXT  : in/out   optional simulation clock of the run, which holds
+!                         the reference day REFDAY (set by the first call);
+!                         without it the shared default clock is used
+
    TYPE(time_context_t), OPTIONAL, TARGET, INTENT(INOUT) :: CONTEXT
 
 !  5. PARAMETER VARIABLES
@@ -554,6 +559,11 @@ CHARACTER(LEN=18) FUNCTION DTTIWR (IOPT, TIMESC, CONTEXT)
 !     TIMESC : output   time in seconds from given reference day REFDAY
 
    REAL(KIND=KIND(0.0D0)), INTENT(IN) :: TIMESC
+
+!     CONTEXT  : in/out   optional simulation clock of the run, which holds
+!                         the reference day REFDAY; without it the shared
+!                         default clock is used
+
    TYPE(time_context_t), OPTIONAL, TARGET, INTENT(INOUT) :: CONTEXT
 
 !     TSTRNG : input    time string

@@ -344,9 +344,9 @@ SUBROUTINE SWREAD (COMPUT, TRIADS, SNL4, SPECTRAL_POWERS)
 !     SNL4     Tables for the quadruplet interactions; the MDIA option of
 !              the QUADRUPL command sets in it the number of quadruplets
 !              and their coefficients
-!     SPECTRAL_POWERS
-!              Powers of the relative frequencies (sigma up to sigma**6);
-!              computed again from the frequency grid of the CGRID command
+!     SPECTRAL_POWERS  Powers of the relative frequencies (sigma up to
+!              sigma**6); computed again from the frequency grid of the
+!              CGRID command
 !
 !  5. Parameter variables
 
@@ -4990,8 +4990,8 @@ SUBROUTINE SSFILL (SPCSIG, SPCDIR, SPECTRAL_POWERS)
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
 !   o SPCSIG: Relative frequencies in computational domain in sigma-space 30.72
-!   o SPECTRAL_POWERS: powers of the relative frequencies; column p of
-!             its table holds SPCSIG to the power p, for p = 1 to 6
+!   o SPECTRAL_POWERS  : powers of the relative frequencies; column p
+!             of its table holds SPCSIG to the power p, for p = 1 to 6
 
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)

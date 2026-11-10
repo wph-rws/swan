@@ -3718,6 +3718,12 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
 
 !     XCGRID: input  Coordinates of computational grid in x-direction     30.72
 !     YCGRID: input  Coordinates of computational grid in y-direction     30.72
+!
+!     DIFFR   : in/out  diffraction parameter and its x- and y-derivatives per
+!                       grid point; sized here for all grid points if
+!                       diffraction is on (IDIFFR=1), and emptied otherwise
+!     TRIADS  : in/out  data of the triad model; its arrays are sized here
+!                       for the chosen model ITRIAD
 
    TYPE(diffraction_state_t), INTENT(INOUT) :: DIFFR
    TYPE(triad_state_t), INTENT(INOUT) :: TRIADS

@@ -1284,27 +1284,35 @@ SUBROUTINE SWTABP_WITH_OQR (RTYPE , OQI  , OQR , IVTYP, PSNAME, MIP, VOQR, &
 !
 !  4. Argument variables
 !
-!     PSNAME
-! i   RTYPE : Type of output request
-!             ='TABD'; Output to datafile (no header information)
-!             ='TABI'; Indexed output for table in ArcView format
-!             ='TABP'; Output to paper (with header information)
-!             ='TABS';
-!             ='TABT';
-!             ='TABC'; NETCDF output
+! i   PSNAME  : name of the output point set
+! i   RTYPE   : Type of output request
+!               ='TABD'; Output to datafile (no header information)
+!               ='TABI'; Indexed output for table in ArcView format
+!               ='TABP'; Output to paper (with header information)
+!               ='TABS';
+!               ='TABT';
+!               ='TABC'; NETCDF output
 
    CHARACTER(LEN=LENFNM) :: FILENM ! file name buffer, local to this routine
    CHARACTER(LEN=LENFNM) :: NETCDF_DUMMY
    CHARACTER(LEN=4) :: RTYPE
    CHARACTER(LEN=8) :: PSNAME
 
-!     MIP
-!     VOQR
+! i   MIP     : number of output points
+! i   VOQR    : place of each output quantity in array VOQ (subscript: IVTYP)
+! i/o OQI     : integer data of the output request: (1) unit number of the
+!               output file, 0 until the file is opened here; (2) index of
+!               the file name in OUTP_FILES; (3) number of output quantities
+! i   IVTYP   : type of each output quantity, in the order given by the user
+! i   IONOD   : for each output point, the subdomain it lies in; in a
+!               parallel run a process writes only the points of its own
 
    INTEGER   MIP, VOQR(*), OQI(4), IVTYP(OQI(3))
    INTEGER   IONOD(*)
 
-!     VOQ
+! i   VOQ     : values of the output quantities in the output points
+! i   OQR     : real data of the output request: (1) time of output,
+!               (2) time interval; passed on to the netCDF writer
 
    REAL      VOQ(MIP,*)
    REAL(KIND=KIND(0.0D0))    OQR(2)

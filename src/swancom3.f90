@@ -188,7 +188,7 @@ SUBROUTINE WNDPAR (WINDOW, DEP2, WIND10, GENC0, GENC1, THETAW, AC2, KWAVE, IMATR
 !             (*,6); sine^2 of spectral directions                        30.82
 ! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 ! i   IGP   : Grid address of the point being computed (KCGRD(1) in upstream)
-! i   WINDOW: Spectral window of the grid point: the minimum and maximum
+! i   WINDOW  : Spectral window of the grid point: the minimum and maximum
 !             counter in the wind sector (IDWMIN, IDWMAX), the minimum
 !             and maximum counter in directional space per frequency
 !             (IDCMIN, IDCMAX) and the counter for the maximum frequency
@@ -682,12 +682,15 @@ SUBROUTINE WINDP1 (WIND10, THETAW, WINDOW, FPM, UFRIC, WX2, WY2, ANYWND, SPCDIR,
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
 
-!        IDWMIN           Minimum counter for spectral wind direction
-!        IDWMAX           Maximum counter for spectral wind direction
+!        WINDOW           Spectral window of the grid point; WINDP1 sets
+!                         its minimum and maximum counter for the spectral
+!                         wind direction (IDWMIN, IDWMAX)
 !        IX               Counter of gridpoints in x-direction
 !        IY               Counter of gridpoints in y-direction
 !        MXC              Maximum counter of gridppoints in x-direction
 !        MYC              Maximum counter of gridppoints in y-direction
+!        IGP     int, i   Grid address of the point being computed
+!                         (KCGRD(1) in upstream)
 !        KCGRD   int, i   Point index for grid point                      30.21
 !        MCGRD   int, i   Maximum counter of gridpoints in space          30.21
 !        ICMAX   int, i   Maximum counter for the points of the molecule  30.21
@@ -1223,8 +1226,11 @@ SUBROUTINE WINDP2 (WINDOW, SIGPKD, FPM, ETOTW, AC2, SPCSIG, WIND10, IGP)
 
 !        ISFPM       Counter in point just for the Pierson Moskowitz
 !                    frequency
-!        IDWMIN      Minimum counter for spectral wind direction
-!        IDWMAX      Maximum counter for spectral wind direction
+!        WINDOW      Spectral window of the grid point: the minimum and
+!                    maximum counter for spectral wind direction
+!                    (IDWMIN, IDWMAX)
+!        IGP         Grid address of the point being computed
+!                    (KCGRD(1) in upstream)
 !        IX          Counter of gridpoints in x-direction
 !        IY          Counter of gridpoints in y-direction
 !        IS          Counter of relative frequency band
@@ -1623,6 +1629,8 @@ SUBROUTINE SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, FPM, PLWNDS, IMATRA, S
 
 !        IDWMIN      Minimum counter for spectral wind direction
 !        IDWMAX      Maximum counter for spectral wind direction
+!        IGP         Grid address of the point being computed
+!                    (KCGRD(1) in upstream)
 !        IS          Counter of relative frequency band
 !        ID          Counter of directional distribution
 !        MSC         Maximum counter of relative frequency
@@ -1644,8 +1652,10 @@ SUBROUTINE SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, FPM, PLWNDS, IMATRA, S
 !        ANYWND    1D    Determines the number of directional bins
 !                        that fall within the wind sea part of the
 !                        spectrum ( thetaw +- 90 degrees)
-!        IDCMIN    1D    Frequency dependent counter
-!        IDCMAX    1D    Frequency dependent counter
+!        WINDOW          Spectral window of the grid point: the maximum
+!                        frequency counter in this sweep (ISSTOP) and the
+!                        frequency dependent directional counters
+!                        (IDCMIN, IDCMAX)
 !
 !  7. Common blocks used
 !
@@ -1945,7 +1955,8 @@ SUBROUTINE SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, GENC0, WINDOW, AC2, UFRIC, FPM
 !        ID          Counter of directional distribution
 !        MSC         Maximum counter of relative frequency
 !        MDC         Maximum counter of directional distribution
-!        ISSTOP      Maximum frequency counter in this sweep
+!        IGP         Grid address of the point being computed
+!                    (KCGRD(1) in upstream)
 !
 !        REALS:
 !        ---------
@@ -1964,8 +1975,10 @@ SUBROUTINE SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, GENC0, WINDOW, AC2, UFRIC, FPM
 !        LOGSIG    1D    Logaritmic distribution of frequency
 !        IMATRA    2D    Coefficients of right hand side of matrix
 !        PWIND     1D    Wind coefficients
-!        IDCMIN    1D    Frequency dependent counter
-!        IDCMAX    1D    Frequency dependent counter
+!        WINDOW          Spectral window of the grid point: the maximum
+!                        frequency counter in this sweep (ISSTOP) and the
+!                        frequency dependent directional counters
+!                        (IDCMIN, IDCMAX)
 !        ANYWND    1D    Wind input for bin considered
 !
 !  7. Common blocks used
@@ -2187,8 +2200,8 @@ SUBROUTINE SWIND4 (WINDOW, SPCSIG, WIND10, THETAW, XIS, DD, KWAVE, IMATRA, GENC0
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
 
-!        IDWMIN      Minimum counter for spectral wind direction
-!        IDWMAX      Maximum counter for spectral wind direction
+!        IGP         Grid address of the point being computed
+!                    (KCGRD(1) in upstream)
 !        IS          Counter of relative frequency band
 !        ID          Counter of directional distribution
 !        MSC         Maximum counter of relative frequency
@@ -2211,8 +2224,11 @@ SUBROUTINE SWIND4 (WINDOW, SPCSIG, WIND10, THETAW, XIS, DD, KWAVE, IMATRA, GENC0
 !        KWAVE     2D    Wavenumber
 !        IMATRA    2D    Coefficients of right hand side of matrix
 !        PWIND     1D    Wind coefficients
-!        IDCMIN    1D    Frequency dependent counter
-!        IDCMAX    1D    Frequency dependent counter
+!        WINDOW          Spectral window of the grid point: the minimum
+!                        and maximum counter for spectral wind direction
+!                        (IDWMIN, IDWMAX), the maximum frequency counter
+!                        in this sweep (ISSTOP) and the frequency
+!                        dependent directional counters (IDCMIN, IDCMAX)
 !        USTAR     2D    Friction velocity at previous iteration level
 !        ZELEN     2D    Roughness length at previous iteration level
 !        ANYWND    1D    Determine if wind input is active for bin
@@ -2734,6 +2750,8 @@ SUBROUTINE SWIND5 (SPCSIG, THETAW, WINDOW, UFRIC, KWAVE, IMATRA, AC2, ANYWND, PL
 !        ID          Counter of directional distribution
 !        MSC         Maximum counter of relative frequency
 !        MDC         Maximum counter of directional distribution
+!        IGP         Grid address of the point being computed
+!                    (KCGRD(1) in upstream)
 !
 !        REALS:
 !        ---------
@@ -2747,8 +2765,10 @@ SUBROUTINE SWIND5 (SPCSIG, THETAW, WINDOW, UFRIC, KWAVE, IMATRA, AC2, ANYWND, PL
 !        ---------------------------------
 !        KWAVE     2D    Wavenumber
 !        IMATRA    2D    Coefficients of right hand side of matrix
-!        IDCMIN    1D    Frequency dependent counter
-!        IDCMAX    1D    Frequency dependent counter
+!        WINDOW          Spectral window of the grid point: the maximum
+!                        frequency counter in this sweep (ISSTOP) and the
+!                        frequency dependent directional counters
+!                        (IDCMIN, IDCMAX)
 !        ANYWND    1D    Wind input for bin considered
 !
 !  7. Common blocks used

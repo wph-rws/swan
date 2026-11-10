@@ -146,8 +146,6 @@ SUBROUTINE SWOUTP (AC2             , &
 !
 !  4. Argument variables
 !
-! i   DIFFR : diffraction parameter per grid point, passed on to SWOEXD
-!             for output quantity DIFPAR
 ! i   OURQT : array indicating at what time requested output              40.51
 !             is processed                                                40.51
 ! i   SPCDIR: (*,1); spectral directions (radians)                        30.82
@@ -167,6 +165,8 @@ SUBROUTINE SWOUTP (AC2             , &
    REAL    XCGRID(MXC,MYC),    YCGRID(MXC,MYC)
 
 !     AC2     real arr input  action density in all computational points
+!     DIFFR   type     input  diffraction parameter per grid point, passed
+!                             on to SWOEXD for output quantity DIFPAR
 !     SPCDIR  real arr input  spectral directions, cosines and sines
 !     UX2     real arr input  current velocity x-comp.
 !     UY2     real arr input  current velocity y-comp.

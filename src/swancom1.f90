@@ -2749,6 +2749,30 @@ SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, 
 !
 !     ITER  : input Iteration counter for SWAN
 !     IT    : input Time step counter for SWAN
+!     ITERATION_CACHE   : input/output source terms kept from the previous
+!                         iteration (MEMNL4, MEMBRG, MEMQCM, MEMQCB, MEMSINA,
+!                         MEMSINB), passed on to SOURCE and QCSOURCE
+!     WINDOW            : output directional and frequency window of the
+!                         sweep in this grid point: IDCMIN, IDCMAX per
+!                         frequency, ISCMIN, ISCMAX per direction, IDDLOW,
+!                         IDDTOP, ISSTOP; computed here by SWPSEL, and the
+!                         wind sector IDWMIN, IDWMAX by WINDP1
+!     DIFFR             : input diffraction parameter and its x- and
+!                         y-derivatives in each grid point
+!     TRIADS            : input/output frequency- and depth-dependent data of
+!                         the triad interactions
+!     SNL4              : input/output precomputed tables of the quadruplet
+!                         interactions
+!     SPECTRAL_POWERS   : input powers 1 to 6 of the relative frequencies
+!     WCAP_WORKSPACE    : input/output scratch of the whitecapping terms
+!                         (spectral means) of this thread
+!     DIA_WORKSPACE     : input/output scratch and coefficient tables of the
+!                         DIA quadruplets of this thread
+!     FFT_WORKSPACE     : input/output scratch of the Fourier transforms of
+!                         the QC scattering of this thread
+!     BALANCE_RESIDUAL  : input/output per grid point sums of the defect of
+!                         the action balance (only if the balance residual is
+!                         switched on, NUMERIC ... RESIDUAL)
 
    TYPE(iteration_cache_t) :: ITERATION_CACHE
    TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
@@ -5012,12 +5036,11 @@ SUBROUTINE ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, ANYBL
 !                 depending on the sweep direction, KSY = -1 or +1
 !     IDTOT,ISTOT Maximum range between the counters in directional
 !                 space and frequency space respectively
-!     IDDLOW      Minimum counter per sweep taken over all
-!                 frequencies
-!     IDDTOP      Maximum counter per sweep taken over all
-!                 frequencies
-!     ISSTOP      Maximum counter per sweep taken over all
-!                 frequencies
+!     IGP         Index of the present grid point in the computational
+!                 grid
+!     ST_KC       Index in the computational grid of each point of the
+!                 stencil
+!     ST_N        Number of points in the stencil
 !
 !
 !     REALS:
@@ -5028,6 +5051,8 @@ SUBROUTINE ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, ANYBL
 !                 direction of the sweep
 !     DDY         Same as DY but with correct sign depending of the
 !                 direction of the sweep
+!     ST_COS      Cosine of the latitude in each point of the stencil
+!                 (used in spherical coordinates)
 !
 !     one and more dimensional arrays:
 !     ---------------------------------
@@ -5041,14 +5066,28 @@ SUBROUTINE ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, ANYBL
 !                     (ID,IS,IC)
 !     CAY       3D    Wave transport velocity in Y-dirction as function of
 !                     (ID,IS,IC)
-!     IMATDA    2D    Coefficients of main diagonal of matrix
-!     IMATLA    2D    Coefficients of lower diagonal of matrix
-!     IMATUA    2D    Coefficients of upper diagonal of matrix
-!     IMATRA    2D    Coefficients of right hand side
-!     IMAT5L    2D    coefficient of lower diagonal in presence of
-!                     a current (see routine SWSIP)
-!     IMAT6U    2D    coefficient of upper diagonal in presence of
-!                     a current (see routine SWSIP)
+!
+!     derived types:
+!     ---------------------------------
+!
+!     SYSTEM_MATRIX   Matrix and right-hand side of the system in this grid
+!                     point, each an array (ID,IS):
+!                     IMATDA  Coefficients of main diagonal of matrix
+!                     IMATLA  Coefficients of lower diagonal of matrix
+!                     IMATUA  Coefficients of upper diagonal of matrix
+!                     IMATRA  Coefficients of right hand side
+!                     IMAT5L  coefficient of lower diagonal in presence of
+!                             a current (see routine SWSIP)
+!                     IMAT6U  coefficient of upper diagonal in presence of
+!                             a current (see routine SWSIP)
+!                     IMATDA and IMATRA already hold the source terms;
+!                     the propagation terms are added here
+!     WINDOW          Directional and frequency window of the sweep in this
+!                     grid point: IDCMIN, IDCMAX per frequency, ISCMIN,
+!                     ISCMAX per direction, IDDLOW and IDDTOP (minimum and
+!                     maximum directional counter of the sweep taken over all
+!                     frequencies) and ISSTOP (maximum frequency counter of
+!                     the sweep)
 !
 !  7. Common blocks used
 !
@@ -5923,19 +5962,26 @@ SUBROUTINE SOLPRE (AC2, AC2OLD, SYSTEM_MATRIX, WINDOW, ANYBIN, IDTOT, ISTOT, SPC
 !        AC2       4D    Action density as function of D,S,X,Y and T
 !        AC2OLD    2D    Values of action density at previous iteration
 !        SPCSIG    1D    Relative frequencies in sigma-space
-!        SYSTEM_MATRIX   coefficients of the system of equations, all 2D:
-!                        diagonal (IMATDA), lower and upper diagonal
-!                        (IMATLA, IMATUA), right hand side (IMATRA), and
-!                        lower and upper diagonal for implicit calculation
-!                        in frequency space (IMAT5L, IMAT6U)
+!
+!        derived types:
+!        ---------------------------------
+!        SYSTEM_MATRIX   coefficients of the system of equations, each an
+!                        array (ID,IS): diagonal (IMATDA), lower and upper
+!                        diagonal (IMATLA, IMATUA), right hand side
+!                        (IMATRA), and lower and upper diagonal for
+!                        implicit calculation in frequency space (IMAT5L,
+!                        IMAT6U)
+!        WINDOW          directional and frequency window of the sweep:
+!                        minimum and maximum directional counter per
+!                        frequency (IDCMIN, IDCMAX) and the highest
+!                        frequency counter of the sweep (ISSTOP)
+!
+!        IGP             index of the grid point in the computational grid
 
    TYPE(system_matrix_t) :: SYSTEM_MATRIX
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    REAL :: AC2(MDC,MSC,MCGRD), AC2OLD(MDC,MSC), SPCSIG(MSC)
-
-!        IDCMIN    1D    Integer array containing minimum counter
-!        IDCMAX    1D    Integer array containing maximum counter
 
 !        ANYBIN    2D    Logical array. if a certain bin is enclosed
 !                        in a sweep then ANYBIN is TRUE . array is
@@ -6146,9 +6192,9 @@ SUBROUTINE SOLMAT (WINDOW, AC2, SYSTEM_MATRIX, IGP)
 !     ---------------------------------
 !     AC2       4D    Action density as function of D,S,X,Y and T
 !     IGP             index of the grid point in the computational grid
-!     SYSTEM_MATRIX   coefficients of the system of equations, all 2D:
-!                     diagonal (IMATDA), lower and upper diagonal
-!                     (IMATLA, IMATUA) and right hand side (IMATRA)
+!     SYSTEM_MATRIX   coefficients of the system of equations, each an
+!                     array (ID,IS): diagonal (IMATDA), lower and upper
+!                     diagonal (IMATLA, IMATUA) and right hand side (IMATRA)
 !     WINDOW          spectral window of the grid point: minimum and
 !                     maximum direction counter per frequency (IDCMIN,
 !                     IDCMAX)
@@ -6400,9 +6446,10 @@ SUBROUTINE SOLMT1 (WINDOW, AC2, SYSTEM_MATRIX, ANYBLK, IGP)
 !        ---------------------------------
 !        AC2       4D    Action density as function of D,S,X,Y and T
 !        IGP             index of the grid point in the computational grid
-!        SYSTEM_MATRIX   coefficients of the system of equations, all 2D:
-!                        diagonal (IMATDA), lower and upper diagonal
-!                        (IMATLA, IMATUA) and right hand side (IMATRA)
+!        SYSTEM_MATRIX   coefficients of the system of equations, each an
+!                        array (ID,IS): diagonal (IMATDA), lower and upper
+!                        diagonal (IMATLA, IMATUA) and right hand side
+!                        (IMATRA)
 !        WINDOW          spectral window of the grid point: minimum and
 !                        maximum direction counter per frequency (IDCMIN,
 !                        IDCMAX), the minimum and maximum direction counter
@@ -6749,17 +6796,17 @@ SUBROUTINE SOURCE (ITER, IX, IY, SWPDIR, KWAVE, SPCSIG, ECOS, ESIN, AC2, DEP2, I
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
 ! i   SPCSIG: Relative frequencies in computational domain in sigma-space
-! i/o POINT_INTEGRALS: wave and wind parameters of the grid point, computed
-!             before by SINTGRL and the wind routines: among them the near
+! i/o POINT_INTEGRALS: wave and wind parameters of the grid point, mostly
+!             computed before by SINTGRL and WINDP1: among them the near
 !             bottom excursion amplitude (ABRBOT), the total energy density
-!             (ETOT), the total energy of the wind sea spectrum (ETOTW), the
-!             maximum wave height (HM), the mean average wavenumber and
-!             frequency over full spectrum (KMESPC, SMESPC), the fraction of
-!             breaking waves (QBLOC), and as function of IX and IY the
-!             absolute orbital velocity (UBOT) and, for the Janssen
-!             (1989,1990) wind input, the friction velocity (USTAR) and
-!             roughness length (ZELEN) at previous iteration, which are
-!             updated here
+!             (ETOT), the maximum wave height (HM), the mean average
+!             wavenumber and frequency over full spectrum (KMESPC, SMESPC),
+!             the fraction of breaking waves (QBLOC), and as function of IX
+!             and IY the absolute orbital velocity (UBOT) and, for the
+!             Janssen (1989,1990) wind input, the friction velocity (USTAR)
+!             and roughness length (ZELEN) at previous iteration, which are
+!             updated here; with first or second generation wind the total
+!             energy of the wind sea spectrum (ETOTW) is computed here
 ! i   WINDOW: spectral window of the grid point: the direction range per
 !             frequency (IDCMIN, IDCMAX), the direction ranges of the sweep
 !             (IDDLOW, IDDTOP) and of the wind (IDWMIN, IDWMAX), and the
@@ -6818,7 +6865,6 @@ SUBROUTINE SOURCE (ITER, IX, IY, SWPDIR, KWAVE, SPCSIG, ECOS, ESIN, AC2, DEP2, I
 !     MTRIAD   Maximum array size for PTRIAD
 !     MWCAP    Maximum array size for PWCAP
 !     MWIND    Maximum array size for PWIND
-!     ISSTOP   Max frequency that is propagated within a sweep
 !
 !     REALS:
 !     --------
@@ -6827,16 +6873,9 @@ SUBROUTINE SOURCE (ITER, IX, IY, SWPDIR, KWAVE, SPCSIG, ECOS, ESIN, AC2, DEP2, I
 !                 of the logharitmic distribution of the frequency
 !                 direction of the sweep (+1. OR -1. ) no input
 !     GRAV        Gravitational acceleration
-!     ABRBOT      Near bottom excursion amplitude
 !     EMAX        Maximum energy according to the depth and the
 !                 breaker parameter
-!     ETOT        Total energy density per gridpoint
-!     ETOTW       Total energy of the wind sea spectrum
 !     GRAV        Gravitational acceleration
-!     HM          Maximum wave height
-!     KMESPC      Mean average wavenumber over full spectrum
-!     SMESPC      Mean average frequency over full spectrum
-!     QBLOC       Fraction of breaking waves
 !
 !     one and more dimensional arrays:
 !     ---------------------------------
@@ -6859,15 +6898,10 @@ SUBROUTINE SOURCE (ITER, IX, IY, SWPDIR, KWAVE, SPCSIG, ECOS, ESIN, AC2, DEP2, I
 !     PTRIAD    1D    Coefficient for the triad interaction model
 !     PWCAP     1D    Coefficient for the white capping model
 !     PWIND     1D    Coefficient for the wind growth model
-!     UBOT      2D    Absolute orbital velocity in a gridpoint (IX,IY)
 !     UX2       2D    (Nonstationary case) X-component of current velocity
 !                     in (X,Y) at time T+DIT
 !     UY2       2D    (Nonstationary case) Y-component of current velocity
 !                     in (X,Y) at time T+DIT
-!     USTAR     2D    Friction velocity at previous iteration for
-!                     Janssen (1989,1990) wind input formulation
-!     ZELEN     2D    Roughness length at previous iteration for
-!                     Janssen (1989,1990) wind input formulation
 !
 !     Coefficients for the arrays:
 !     -----------------------------
@@ -7963,15 +7997,16 @@ SUBROUTINE RESCALE (AC2, WINDOW, NRSCAL, IGP)
 !  4. Argument variables
 !
 !     AC2         action densities
+!     IGP         index of the grid point in the computational grid
+!     WINDOW      spectral window of the grid point: maximum frequency
+!                 counter in this sweep (ISSTOP) and, per frequency, the
+!                 minimum and maximum counter of directions (IDCMIN,
+!                 IDCMAX)
 
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    REAL        AC2(MDC,MSC,MCGRD)
 
-!     ISSTOP      maximum frequency counter in this sweep
-
-!     IDCMIN      Integer array containing minimum counter of directions
-!     IDCMAX      Integer array containing maximum counter
 !     NRSCAL      Number of frequency use of rescaling
 
    INTEGER     NRSCAL(MCGRD)
@@ -8160,10 +8195,10 @@ SUBROUTINE SWSIP (AC2, SYSTEM_MATRIX, AC2OLD, REPS, MAXIT, IAMOUT, INOCNV, WINDO
 !                       k
 !     ST_IX1      x-index of the grid point (for messages)
 !     ST_IY1      y-index of the grid point (for messages)
-!     SYSTEM_MATRIX coefficients of the system of equations:
-!                 main diagonal (IMATDA), lower and upper diagonal in
-!                 theta-space (IMATLA, IMATUA), lower and upper
-!                 diagonal in sigma-space (IMAT5L, IMAT6U) and
+!     SYSTEM_MATRIX  coefficients of the system of equations, each an
+!                 array (ID,IS): main diagonal (IMATDA), lower and upper
+!                 diagonal in theta-space (IMATLA, IMATUA), lower and
+!                 upper diagonal in sigma-space (IMAT5L, IMAT6U) and
 !                 right-hand side (IMATRA)
 !     WINDOW      spectral window of the grid point: minimum and maximum
 !                 counter in directional space (IDCMIN, IDCMAX), minimum
