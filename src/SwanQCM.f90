@@ -358,8 +358,18 @@ subroutine SWQCINIT ( BGRIDP, COMPDA )
    call SWREDUCE( hsi  , 1, SWMAX )
    if ( stpnow() ) return
 
+   ! no boundary point brings waves in, for instance because they come from
+   ! outside the directional sector. Without a given number of wave number
+   ! bins, the step of the wave number grid follows from sdev below, and with
+   ! the placeholder 9999 the grid and the coherent zone come out empty: the
+   ! run then crashed. That is a terminating error; sdev is the same on every
+   ! process after the reduction above, so every process stops
    if ( sdev /= 9999. ) then
       if ( ITEST >= 50 ) write (PRTEST,'(a,f8.5)') ' standard deviation of incoming spectra (1/m) = ', sdev
+   else if ( mkxc == -1 .and. mkyc == -1 ) then
+      call msgerr ( 4, 'unable to compute standard deviation of incoming spectra' )
+      call msgerr ( 0, 'please instead specify resolution of the wave number grid!' )
+      return
    else
       call msgerr ( 3, 'unable to compute standard deviation of incoming spectra' )
       call msgerr ( 0, 'please instead specify resolution of the wave number grid!' )

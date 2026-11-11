@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""The sweep of 120 directional sectors behind the BF-28 row and the open
-issue "QCM crashes after its own severe error" in
-doc/bug-fixes-vs-tu-delft-41.51.md.
+"""The sweep of 120 directional sectors behind the rows BF-28 and BF-69 in
+doc/bug-fixes-vs-tu-delft-41.51.md. Since BF-69, a case whose boundary waves
+come from outside the sector stops with a terminating error and exit code 1;
+it still counts as failed here.
 
 The deck is `examples/qcm/qcm.swn` (`GEN4`, the quasi-coherent model) with its
 `CIRCLE` replaced by `SECTOR start start+width mdc` (mdc = width/10, at least

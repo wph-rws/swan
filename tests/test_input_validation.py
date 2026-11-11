@@ -375,6 +375,56 @@ def test_qcm_breaking_grid_covers_negative_wave_numbers(tmp_path, sector):
     assert len(values) == 6 and all(math.isfinite(v) for v in values)
 
 
+#  BF-69: boundary waves from 270 degrees (nautical) and a sector from 30 to
+#  60 degrees: no boundary point brings waves in. SWQCINIT then cannot compute
+#  the standard deviation of the incoming spectra, from which it takes the
+#  step of the wave number grid. It reported a severe error and carried on with
+#  the placeholder 9999, which gave an empty coherent zone and a segmentation
+#  fault, in upstream as well. The run must stop with the message, exit code 1
+#  and no table, also with SET MAXERR 3. The message names the remedy, a given
+#  number of wave number bins (SCAT GRID K); that run goes on as before.
+def _run_qcm_without_incoming_waves(tmp_path: Path, extra: str) -> tuple[int, str, Path]:
+    work = tmp_path / "work"
+    work.mkdir()
+    shutil.copy2(QCM / "bottom.bot", work / "bottom.bot")
+    deck = (QCM / "qcm.swn").read_text(encoding="utf-8")
+    replacements = {
+        "CIRCLE 12 0.05 1.0 8": "SECTOR 30.0 60.0 3 0.05 1.0 8",
+        "INPGRID BOTTOM REGULAR 0.0 0.0 0.0 1 1 2000.0 1000.0":
+            "INPGRID BOTTOM REGULAR -1000.0 -1000.0 0.0 1 1 4000.0 3000.0",
+        "\nGEN4\n": f"\nGEN4\n{extra}",
+    }
+    for old, new in replacements.items():
+        assert old in deck, "QCM deck has changed shape"
+        deck = deck.replace(old, new, 1)
+    (work / "INPUT").write_text(deck, encoding="utf-8")
+    result = subprocess.run([_swan()], cwd=work, capture_output=True, text=True,
+                            timeout=60)
+    report = (work / "PRINT").read_text(encoding="utf-8", errors="replace")
+    return result.returncode, report, work
+
+
+@pytest.mark.parametrize("maxerr", ["", "SET MAXERR 3\n"], ids=["default", "maxerr-3"])
+def test_qcm_without_incoming_waves_stops_cleanly(tmp_path, maxerr):
+    code, report, work = _run_qcm_without_incoming_waves(tmp_path, maxerr)
+    assert code == 1, (code, report[-2000:])
+    assert ("Terminating error: unable to compute standard deviation of incoming spectra"
+            in report), report[-2000:]
+    assert not (work / "qcm_center.tbl").exists(), "table written for a run that did not compute"
+    assert not (work / "norm_end").exists()
+
+
+def test_qcm_without_incoming_waves_runs_with_given_grid(tmp_path):
+    code, report, work = _run_qcm_without_incoming_waves(
+        tmp_path, "SET MAXERR 3\nSCAT 1 GRID K 0.0 0.0 0.2 0.2 32 32\n")
+    assert code == 0, (code, report[-2000:])
+    assert "Severe error     : unable to compute standard deviation" in report, report[-2000:]
+    assert (work / "norm_end").is_file()
+    values = [float(v) for v in
+              (work / "qcm_center.tbl").read_text().strip().splitlines()[-1].split()]
+    assert len(values) == 6 and values[3] == 0.0, values
+
+
 #  GEN4 computes surf breaking through the QC framework, and SCAT 0 then
 #  switches the scattering off. The grids for that surf breaking are made in
 #  SWQCINIT, which only ran with scattering on. The fork then ended with a
