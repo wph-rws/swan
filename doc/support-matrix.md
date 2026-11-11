@@ -27,7 +27,7 @@ source revision.
 | METIS 64-bit index | not installed | **not run** (library missing) | requires a derived 64-bit interface + a test with both 32- and 64-bit libs; without METIS there is no dependency |
 | netCDF-Fortran / MPI (OpenMPI, GNU wrapper) | libnetcdff-dev 4.6.4, OpenMPI 5.0.10 from the system packages | **passed** with GNU 16.2 (10 November: see "Build variants") | both `.mod` files come from the system packages and have module version 16, which 16.2 reads |
 | Native Windows (MSYS2 UCRT64-GNU, ifx-Windows) | not measured here | **not run** | separate build/run tests, paths with spaces, I/O, Matlab/netCDF, DLL discovery, installed executable; a green WSL result does not certify a Windows binary |
-| WSL2, Linux x86-64 | kernel 6.18.54.1-microsoft-standard-WSL2 | **passed** (Linux development + small MPI) | cluster performance on the intended production hardware not measured |
+| WSL2, Linux x86-64 | kernel 6.18.58.1-microsoft-standard-WSL2 | **passed** (Linux development + small MPI) | cluster performance on the intended production hardware not measured |
 
 ## Configurations
 

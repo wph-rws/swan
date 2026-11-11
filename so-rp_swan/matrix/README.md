@@ -120,7 +120,7 @@ between 80 and 160 (at most 6 mm), and the deck is 2.2 cm low on mean Hs, up
 to 8 cm at single points. At `u40_d300_lp300_open` it is 4.7 cm low on mean
 Hs, up to 24 cm, while 10 of the 135 points of the reference itself still
 move by more than 1 cm. At `u20_d310_lp300_open` and `_closed` the mean is
-within 0.7 cm, but 44 of 135 points are more than 1 cm off, and 6 points of
+within 0.7 cm, but 44 of 135 points are more than 1 cm off, and 6 and 5 points of
 the reference still move; those moving points lie mostly in a cluster 12–26
 m deep, while the energy residual stays flat from iteration 80 on. Whether
 that is a slow mode that settles later or a level the iteration does not

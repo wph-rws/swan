@@ -79,17 +79,28 @@ or `examples/`. For the other 16 it does not:
 ## How the history was checked
 
 On 10 November 2026, after a review of the published text by six
-independent reviewers had led to corrections of two early commits and of
-fifteen commit messages, the history was put together once more, and every
+independent reviewers had led to corrections in the trees of seven commits
+(the conversion, the registration of four tests, two benchmark files, the
+layout test, and the METIS condition of the NaN depth check of BF-61) and in
+seventeen commit messages, the history was put together once more, and every
 commit from the conversion to `cd3c030` (109 commits) was checked out into a
 fresh worktree and built from scratch at `-O0` with gfortran 16.2, once
 serially and once with OpenMP, and its Fortran sources were checked against
 the layout. All 109 built both ways, and all were in the layout. The rename
 commit does not build (see above). The conversion and FFTW commits were also
-built with netCDF, which before the correction failed there because four
-continuation lines under alternative switches were converted wrongly. A
+built with netCDF, which before the correction failed there, as a MATL4
+build would have, because four continuation lines under alternative switches
+(`!NCF`/`!NNCF` and `!MatL4`/`!MatL5`) were converted wrongly. A
 static check confirmed that no CMake file of any commit names a file that
 the commit lacks.
+
+The measurements of 10 and 11 November 2026 that the documents attribute to
+a commit of this history were made on builds of the commits just before the
+last of these corrections (the METIS condition of BF-61, and for the so-rp
+runs, flang and the test models also the JAC condition of one test
+registration). Their sources differ from the named commits only in those two
+conditions, which no measured build reaches; the full build matrix was
+repeated on `c63f018`.
 
 At `cd3c030`, built from scratch with gfortran 16.2 at `-O3`, CTest passed 66
 of 66 serially, with OpenMP and with runtime checks, and 73 of 73 under MPI;
@@ -114,7 +125,8 @@ conversion on, and the gate compares bytes. An earlier claim that output was
 ## Dates
 
 The author dates of the commits up to the record commits are those of the
-original work, from July to November 2026. The checks that the messages
+original work, from July to November 2026, to the day; the time of day is
+often a placeholder. The checks that the messages
 name (builds with gfortran 16.2, byte-identical output, tests that pass)
 were repeated for every commit when the history was rebuilt on 10 November
 2026, as described above; gfortran 16.2 itself has been used since

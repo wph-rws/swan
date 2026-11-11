@@ -221,7 +221,7 @@ Their output goes to `build-*` directories, which git ignores.
   TARGET arguments, none of which keeps a pointer after the call. Of the 66
   CTest tests, 63 passed. `setup` and `source_terms_st6` differ only in
   rounding (34 of 1722 set-up values by one in the last printed digit; Hsig of
-  ST6 within 0.1 mm), and in `input_validation` the case
+  ST6 within 0.3 mm of the reference), and in `input_validation` the case
   `BF-49-directory-as-file` fails because the flang runtime opens a directory
   without an error, where gfortran refuses.
 - **Timing: hyperfine.** `hyperfine -w 1 -r 5 -N --prepare 'cp deck.swn INPUT'
@@ -316,7 +316,7 @@ upstream semi-implicit DIA (`QUADRUPLET 1 UPSTREAM`): with `ALFA=0.10` the run
 stops after two iterations and with `ALFA=0.05` after ten, with the message
 "accuracy OK in 100.00 %", while Hs at 25 km is then 1.278 m. `ALFA=0.01`
 also stops too early: after 40 iterations it reports 100% at 1.403 m, while
-the same run carried on for 1500 iterations ends at 1.923 m, 27% higher (and
+the same run carried on for 1500 iterations ends at 1.923 m, 37% higher (and
 after 3000 at the same value). With the fork's DIA (BF-62, the default) the
 deck stops after 40 iterations at 1.410 m with `ALFA=0.01`, while its
 balance lies at 1.933 m (residual 1e-8 when it is made to run 100 iterations
@@ -335,9 +335,9 @@ spectrum. Operational decks get no general residual threshold.
 The operational so-rp deck (`STOPC` with `CURVAT=0.001`, `NPNTS=98`,
 `MXITST=40`, `ALFA=0.01`) stops too early. Measured on 10 November 2026
 (commit `a49f403`) with `convergence_check.py` on the corrected deck, with
-references of 80 and 160 forced iterations, over the wet output points (135,
-at low water 122): the deck stops after 25 to 38 iterations, and the check
-gives `premature` at four of the five conditions. At low water (NAP −2 m,
+references of 80 and 160 forced iterations, over the wet output points (135;
+122 at low water, 131 at 2 m/s): at four of the five conditions the deck
+stops after 25 to 38 iterations, and the check gives `premature` there. At low water (NAP −2 m,
 20 m/s) the reference hardly changes between 80 and 160 iterations (at most
 6 mm), and the deck is 2.2 cm low on mean Hs, up to 8 cm at single points.
 At 40 m/s it is 4.7 cm low on mean Hs, up to 24 cm, with 113 of the 135

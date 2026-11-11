@@ -3,7 +3,8 @@
 Measured on 11 November 2026, on commit `c63f018`, on the Voordelta example (`examples/voordelta`),
 with gfortran 16.2 for every build, on an Intel Core Ultra 9 185H with 22
 logical CPUs under WSL2, on an otherwise idle machine, apart from one
-left-over process that kept one logical CPU (17 to 19) busy; the runs used
+left-over process that kept one logical CPU busy (it moved between CPUs 17
+and 19); the runs used
 CPUs 0 to 14.
 
 `benchmark_parallel.py` runs each configuration three times, alternating
@@ -68,7 +69,8 @@ and on four OpenMP threads its median differs between them by 12% (7.79 and
 8.71 s): differences of that size between the rows are noise of this
 machine, not of the code.
 
-With OpenMP, eight workers are slower than four for both programs. With MPI,
+With OpenMP, eight workers are slower than four for the fork and for
+upstream at `-O3`; upstream's default build gains 2%. With MPI,
 eight are about as fast as four for the fork and somewhat faster for
 upstream. The Voordelta grid is small enough that eight workers mostly wait
 for each other and for memory; four is the useful maximum for this case on

@@ -87,21 +87,23 @@ the grid in wrongly and places the boundary on that grid; the repo computes
 with a corrected template (see `so-rp_swan/par/operational/PROVENANCE.md`).
 
 **The stop message does not prove convergence.** On the quad examples a run
-reports "100%" while Hs still shifts by 27%. The check requires two long
+reports "100%" while Hs is still 27% below its final value. The check requires two long
 references and takes their mutual Hs shift per point into account before an
 operational run is judged; for the operational so-rp deck it was done on
-7 November 2026, and that deck stops too early (AGENTS.md, "Convergence").
+7 November 2026 and again on 10 November 2026 on the rebuilt history, and that
+deck stops too early (AGENTS.md, "Convergence").
 The fork option `EXTRAP` lets the iteration stop only once the change of Hs
 that is still to come, extrapolated over blocks of iterations, is small. The balance residual is an addition of the fork and is
 off by default: `RESIDUAL 0` only measures, a positive value adds a stop
 condition. Switched off, it is not computed at all; switched on, it costs
-2.5% on one core and 3.0% on four threads. No general operational residual threshold has been set
+2.7% on one core and 4.4% on four threads (11 November 2026; on four threads
+the runs scatter by more than that). No general operational residual threshold has been set
 ([balance-residual-design.md](balance-residual-design.md)).
 
 **Speed against upstream.** On one core the fork is 1.86 times as fast as
 upstream with upstream's own default build, and 1.28 times as fast when both
 are built at `-O3`. On four OpenMP threads these factors are 1.74 and 1.24
-(11 November 2026; the runs scatter by up to about 10%).
+(11 November 2026; the runs scatter by up to about 12%).
 Thread counts, pinning and cases are in
 [benchmarks/speed-vs-upstream.md](../benchmarks/speed-vs-upstream.md).
 
