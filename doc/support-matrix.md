@@ -6,7 +6,7 @@ not licensed and missing hardware are different reasons for
 "not run". Only measured combinations count as supported.
 
 The compilers and the build configurations were measured on 10 November
-2026, on commit `c63f018` of the rebuilt history, with
+2026, on commit `13f05a6` of the rebuilt history, with
 `scripts/build_matrix.py --clean` (gfortran 16.2, WSL2; MPI runs with the
 `OMPI_MCA_*` settings of AGENTS.md). Repeat for each release on the same
 source revision.
@@ -33,7 +33,7 @@ source revision.
 
 `scripts/build_matrix.py` builds 30 configurations, each in a clean build
 directory, and runs the full CTest suite in each. On 10 November 2026 (commit
-`c63f018`):
+`13f05a6`):
 
 | Configuration | CTest | Result |
 |---|---:|---|
@@ -117,6 +117,11 @@ What was established for each variant:
   hit it: the unstructured example has 15 nodes, so one node per front.
   `front_dependency_completeness` does not apply to the fixed order and is
   not registered there.
+- **One regular-grid deck is not deterministic with OpenMP either**:
+  `triad_biph_dewit` can give a different table from run to run on more
+  than one thread, in upstream too. See "A deck that is not reproducible
+  with OpenMP" under the known open issues in
+  [bug-fixes-vs-tu-delft-41.51.md](bug-fixes-vs-tu-delft-41.51.md).
 - **COH** leaves starting and stopping MPI to a host program, and
   SWAN then does not split up the domain (as in upstream, where under COH all
   MPI calls are dropped). A standalone `swan.exe` from a COH+MPI build under

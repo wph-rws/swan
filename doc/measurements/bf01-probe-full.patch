@@ -1,0 +1,142 @@
+--- a/tests/test_physics_reuse.f90
++++ b/tests/test_physics_reuse.f90
+@@ -52,13 +52,13 @@
+       ! B starts with the default physics. It must also give that answer
+       ! after A explicitly selects Komen. A-B-A alone cannot show this leak.
+       call run_once(.false., first, status)
+-      if (status /= 0) error stop "the first B did not produce a table"
++      if (status /= 0) write(error_unit,*) "WOULD STOP: ", "the first B did not produce a table"
+       call run_once(.true., middle, status)
+-      if (status /= 0) error stop "the first A did not produce a table"
++      if (status /= 0) write(error_unit,*) "WOULD STOP: ", "the first A did not produce a table"
+       call run_once(.false., third, status)
+-      if (status /= 0) error stop "the second B did not produce a table"
++      if (status /= 0) write(error_unit,*) "WOULD STOP: ", "the second B did not produce a table"
+       call run_once(.true., fourth, status)
+-      if (status /= 0) error stop "the second A did not produce a table"
++      if (status /= 0) write(error_unit,*) "WOULD STOP: ", "the second A did not produce a table"
+       call compare('B depth', first(1), third(1))
+       call compare('B Hsig', first(2), third(2))
+       call compare('B Tm01', first(3), third(3))
+@@ -67,7 +67,7 @@
+       call compare('A Tm01', middle(3), fourth(3))
+       if (all(transfer(first, [1, 1, 1, 1]) == &
+               transfer(middle, [1, 1, 1, 1]))) then
+-         error stop "the contrasting physics did not change the answer"
++         write(error_unit,*) "WOULD STOP: ", "the contrasting physics did not change the answer"
+       end if
+    end do
+ 
+@@ -77,19 +77,20 @@
+    do run = 1, 3
+       call run_nonstationary(rows(run))
+    end do
++   write(error_unit, '(A,3I3)') ' times written by the three nonstationary runs:', rows
+    if (any(rows /= rows(1))) then
+       ! SWAN closes unit 6 at the end of a run, so report on error_unit.
+       write(error_unit, '(A,3I3)') ' times written by the three nonstationary runs:', rows
+-      error stop "the CFL error did not stop every nonstationary run alike"
++      write(error_unit,*) "WOULD STOP: ", "the CFL error did not stop every nonstationary run alike"
+    end if
+-   if (rows(1) >= 4) error stop "the CFL error did not stop the nonstationary run"
++   if (rows(1) >= 4) write(error_unit,*) "WOULD STOP: ", "the CFL error did not stop the nonstationary run"
+ 
+    ! The BKD deck: the second run must repeat the first.
+    scenario = 4
+    call run_once(.false., first, status)
+-   if (status /= 0) error stop "the first BKD run did not produce a table"
++   if (status /= 0) write(error_unit,*) "WOULD STOP: ", "the first BKD run did not produce a table"
+    call run_once(.false., third, status)
+-   if (status /= 0) error stop "the second BKD run did not produce a table"
++   if (status /= 0) write(error_unit,*) "WOULD STOP: ", "the second BKD run did not produce a table"
+    call compare('BKD Hsig', first(2), third(2))
+    call compare('BKD Tm01', first(3), third(3))
+ 
+@@ -133,7 +134,7 @@
+ 
+    ! The CFL error is above [maxerr], so it must be in this run's Errfile.
+    inquire(file='fort.17', exist=found)
+-   if (found) error stop "the error message went to fort.17"
++   if (found) write(error_unit,*) "WOULD STOP: ", "the error message went to fort.17"
+    found = .false.
+    open(newunit=unit, file='Errfile', status='old', action='read', iostat=ierr)
+    if (ierr == 0) then
+@@ -144,7 +145,7 @@
+       end do
+       close(unit)
+    end if
+-   if (.not.found) error stop "the CFL error is missing from this run's Errfile"
++   if (.not.found) write(error_unit,*) "WOULD STOP: ", "the CFL error is missing from this run's Errfile"
+ 
+    times = 0
+    open(newunit=unit, file='nonstat_reuse.tbl', status='old', action='read', &
+@@ -170,43 +171,43 @@
+  !  Every SWMAIN return must have left all owners empty.
+ subroutine check_clear
+    if (.not.OBSTACLE_STATE_IS_CLEAR()) then
+-      error stop "SWMAIN returned with live obstacle state"
++      write(error_unit,*) "WOULD STOP: ", "SWMAIN returned with live obstacle state"
+    end if
+    if (.not.BOUNDARY_STATE_IS_CLEAR()) then
+-      error stop "SWMAIN returned with live boundary state"
++      write(error_unit,*) "WOULD STOP: ", "SWMAIN returned with live boundary state"
+    end if
+    if (.not.OUTPUT_STATE_IS_CLEAR()) then
+-      error stop "SWMAIN returned with live output state"
++      write(error_unit,*) "WOULD STOP: ", "SWMAIN returned with live output state"
+    end if
+    if (.not.GENERAL_ARRAY_STATE_IS_CLEAR()) then
+-      error stop "SWMAIN returned with live general array state"
++      write(error_unit,*) "WOULD STOP: ", "SWMAIN returned with live general array state"
+    end if
+    if (.not.INPUT_FIELDS_ARE_CLEAR()) then
+-      error stop "SWMAIN returned with live input fields"
++      write(error_unit,*) "WOULD STOP: ", "SWMAIN returned with live input fields"
+    end if
+    if (.not.VEGETATION_LAYERS_ARE_CLEAR()) then
+-      error stop "SWMAIN returned with live vegetation state"
++      write(error_unit,*) "WOULD STOP: ", "SWMAIN returned with live vegetation state"
+    end if
+    if (.not.GLOBAL_GRID_IS_CLEAR()) then
+-      error stop "SWMAIN returned with live global grid"
++      write(error_unit,*) "WOULD STOP: ", "SWMAIN returned with live global grid"
+    end if
+    if (.not.PARALLEL_STORAGE_IS_CLEAR()) then
+-      error stop "SWMAIN returned with live parallel storage"
++      write(error_unit,*) "WOULD STOP: ", "SWMAIN returned with live parallel storage"
+    end if
+    if (.not.GRID_DATA_IS_CLEAR()) then
+-      error stop "SWMAIN returned with live grid data"
++      write(error_unit,*) "WOULD STOP: ", "SWMAIN returned with live grid data"
+    end if
+    if (.not.COMPUTATION_DATA_IS_CLEAR()) then
+-      error stop "SWMAIN returned with live computation data"
++      write(error_unit,*) "WOULD STOP: ", "SWMAIN returned with live computation data"
+    end if
+    if (.not.IEM_STATE_IS_CLEAR()) then
+-      error stop "SWMAIN returned with live IEM state"
++      write(error_unit,*) "WOULD STOP: ", "SWMAIN returned with live IEM state"
+    end if
+    if (.not.BRAGG_STATE_IS_CLEAR()) then
+-      error stop "SWMAIN returned with live Bragg state"
++      write(error_unit,*) "WOULD STOP: ", "SWMAIN returned with live Bragg state"
+    end if
+    if (.not.QCM_STATE_IS_CLEAR()) then
+-      error stop "SWMAIN returned with live QCM state"
++      write(error_unit,*) "WOULD STOP: ", "SWMAIN returned with live QCM state"
+    end if
+ end subroutine check_clear
+ 
+@@ -242,10 +243,11 @@
+ 
+    !  Bit patterns, not values: all runs do the same arithmetic on the same
+    !  input, so anything but an identical result is state that survived.
++   write(error_unit, '(A,A,A,G16.8,A,G16.8)') 'value ', name, ': ', a, ' then ', b
+    if (transfer(a, 1) /= transfer(b, 1)) then
+       write(error_unit, '(A,A,A,G16.8,A,G16.8)') &
+          'second run differs in ', name, ': ', a, ' then ', b
+-      error stop "state survived from the contrasting run"
++      write(error_unit,*) "WOULD STOP: ", "state survived from the contrasting run"
+    end if
+ end subroutine compare
+ 

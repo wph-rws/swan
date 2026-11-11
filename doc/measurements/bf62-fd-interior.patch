@@ -1,0 +1,67 @@
+--- a/src/swancom1.f90
++++ b/src/swancom1.f90
+@@ -6831,6 +6831,11 @@
+    TYPE(test_output_t) :: TEST_OUTPUT
+    TYPE(source_budget_t) :: SOURCE_BUDGET
+    TYPE(spectral_window_t) :: WINDOW
++   LOGICAL, SAVE :: FDDONE_TEST = .FALSE.
++   REAL, ALLOCATABLE :: FD_IMA(:,:), FD_IMD(:,:), FD_R0(:,:,:), FD_R1(:,:,:), FD_P4S(:,:,:), FD_P4D(:,:,:), FD_DS(:,:)
++   INTEGER :: FD_K, FD_J, FD_IS, FD_ID, FD_LOC(2)
++   REAL :: FD_SIGPI, FD_A0, FD_H, FD_SP, FD_SM
++   DOUBLE PRECISION :: FD_FD
+    INTEGER, INTENT(IN) :: IGP
+    INTEGER, INTENT(IN) :: st_kc(MICMAX), st_n
+    TYPE(triad_state_t), INTENT(IN) :: TRIADS
+@@ -7377,6 +7382,52 @@
+          CALL SWSNL1 (DIA_WORKSPACE, WINDOW, WWINTL, SPCSIG, POINT_INTEGRALS%kmespc, FACHFR, DEP2, &
+                AC2, IMATDA, IMATRA, TEST_OUTPUT%plnl4s, TEST_OUTPUT%plnl4d, SOURCE_BUDGET%redc0, &
+                SOURCE_BUDGET%redc1, SNL4%frequency_power_11, IGP)
++!        TEST BUILD (BF-62 check): central finite differences of the DIA
++!        source term at the three bins with the largest |DSNL|, once, at the
++!        first grid point with energy in iteration 3.
++         IF (.NOT. FDDONE_TEST .AND. ITER .EQ. 3) THEN
++           IF (POINT_INTEGRALS%etot .GT. 1.E-4) THEN
++            FDDONE_TEST = .TRUE.
++            ALLOCATE (FD_IMA(MDC,MSC), FD_IMD(MDC,MSC), FD_R0(MDC,MSC,MREDS), FD_R1(MDC,MSC,MREDS))
++            ALLOCATE (FD_P4S(MDC,MSC,MAX(1,NPTST)), FD_P4D(MDC,MSC,MAX(1,NPTST)))
++            ALLOCATE (FD_DS(MSC4MI:MSC4MA,MDC4MI:MDC4MA))
++            FD_IMA = 0.; FD_IMD = 0.; FD_R0 = 0.; FD_R1 = 0.; FD_P4S = 0.; FD_P4D = 0.
++            DIA_WORKSPACE%DSNL = 0.; DIA_WORKSPACE%SFNL = 0.
++            CALL SWSNL1 (DIA_WORKSPACE, WINDOW, WWINTL, SPCSIG, POINT_INTEGRALS%kmespc, FACHFR, DEP2, &
++               AC2, FD_IMD, FD_IMA, FD_P4S, FD_P4D, FD_R0, FD_R1, SNL4%frequency_power_11, IGP)
++            FD_DS = DIA_WORKSPACE%DSNL
++            WRITE (0,'(A,I8,A,3I6)') ' FDCHECK grid point', IGP, ' MSC MDC ITER', MSC, MDC, ITER
++            DO FD_K = 1, 3
++               FD_LOC = MAXLOC(ABS(FD_DS(1:MSC-1,1:MDC)))
++               FD_IS = FD_LOC(1); FD_ID = FD_LOC(2)
++               FD_SIGPI = SPCSIG(FD_IS) * 8. * ATAN(1.)
++               FD_A0 = AC2(FD_ID,FD_IS,IGP)
++               DO FD_J = 1, 3
++                  FD_H = FD_A0 * 10.**(-FD_J)
++                  AC2(FD_ID,FD_IS,IGP) = FD_A0 + FD_H
++                  DIA_WORKSPACE%SFNL = 0.
++                  CALL SWSNL1 (DIA_WORKSPACE, WINDOW, WWINTL, SPCSIG, POINT_INTEGRALS%kmespc, FACHFR, DEP2, &
++                     AC2, FD_IMD, FD_IMA, FD_P4S, FD_P4D, FD_R0, FD_R1, SNL4%frequency_power_11, IGP)
++                  FD_SP = DIA_WORKSPACE%SFNL(FD_IS,FD_ID)
++                  AC2(FD_ID,FD_IS,IGP) = FD_A0 - FD_H
++                  DIA_WORKSPACE%SFNL = 0.
++                  CALL SWSNL1 (DIA_WORKSPACE, WINDOW, WWINTL, SPCSIG, POINT_INTEGRALS%kmespc, FACHFR, DEP2, &
++                     AC2, FD_IMD, FD_IMA, FD_P4S, FD_P4D, FD_R0, FD_R1, SNL4%frequency_power_11, IGP)
++                  FD_SM = DIA_WORKSPACE%SFNL(FD_IS,FD_ID)
++                  AC2(FD_ID,FD_IS,IGP) = FD_A0
++                  FD_FD = (DBLE(FD_SP) - DBLE(FD_SM)) / (2.D0 * DBLE(FD_H) * DBLE(FD_SIGPI))
++                  WRITE (0,'(A,2I4,A,ES10.2,A,ES14.6,A,ES14.6,A,ES11.3,A,ES11.3)') ' FDCHECK bin IS ID', FD_IS, FD_ID, &
++                     ' h/N', 10.**(-FD_J), ' FD', FD_FD, ' DSNL', FD_DS(FD_IS,FD_ID), &
++                     ' rel(FD-DSNL)', (FD_FD - FD_DS(FD_IS,FD_ID)) / FD_DS(FD_IS,FD_ID), &
++                     ' FD/(DSNL/PI3)', FD_FD / (FD_DS(FD_IS,FD_ID) / (8.*ATAN(1.))**3)
++               ENDDO
++               FD_DS(FD_IS,FD_ID) = 0.
++            ENDDO
++            DIA_WORKSPACE%SFNL = 0.
++            CALL SWSNL1 (DIA_WORKSPACE, WINDOW, WWINTL, SPCSIG, POINT_INTEGRALS%kmespc, FACHFR, DEP2, &
++               AC2, FD_IMD, FD_IMA, FD_P4S, FD_P4D, FD_R0, FD_R1, SNL4%frequency_power_11, IGP)
++           ENDIF
++         ENDIF
+ 
+       ELSE IF ( IQUAD .EQ. 2) THEN
+ 

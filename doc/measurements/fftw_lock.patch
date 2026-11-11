@@ -1,0 +1,12 @@
+--- a/src/fftw_compat.f90
++++ b/src/fftw_compat.f90
+@@ -104,8 +104,7 @@
+       ier = 20
+       return
+    end if
+-   if (published_plan_index(l, m) /= 0) return
+-
++   ! variant for timing: every lookup takes the planner lock
+    !$omp critical(swan_fftw_planner)
+    if (cached_plan_index(l, m) == 0) then
+       slot = 0

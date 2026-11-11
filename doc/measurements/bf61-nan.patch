@@ -1,0 +1,30 @@
+--- a/src/swancom1.f90
++++ b/src/swancom1.f90
+@@ -9213,7 +9213,7 @@
+ !  input fields and after each set-up update in SWCOMP. All processes
+ !  count together, so that they stop together.
+ SUBROUTINE SWDEPCHK ( COMPDA, FOUND )
+-   USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_NAN
++   USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_NAN, IEEE_VALUE, IEEE_QUIET_NAN
+    USE swan_service_interfaces, ONLY: MSGERR
+    USE swan_io_units
+    USE swan_computational_grid
+@@ -9227,7 +9227,18 @@
+ !  OpenMP parallel region, where it always returns false.
+    LOGICAL, OPTIONAL, INTENT(OUT) :: FOUND
+    INTEGER INDX, NNAN, IX, IY, IX1, IX2, IY1, IY2
++!  TEST BUILD ONLY (BF-61 repeat): put a NaN in the depth of one wet point
++!  after the second set-up update
++   INTEGER, SAVE :: NSETUPCALL = 0
+    NNAN = 0
++   IF (PRESENT(FOUND) .AND. OPTG.NE.5) THEN
++      NSETUPCALL = NSETUPCALL + 1
++      IF (NSETUPCALL.EQ.2) THEN
++         INDX = KGRPNT(MAX(1,MXC/2),MAX(1,MYC/2))
++         IF (INDX.GT.1) COMPDA(INDX,JDP2) = IEEE_VALUE(1.0, IEEE_QUIET_NAN)
++         WRITE (PRINTF, "(1X, 'TEST BUILD: NaN injected into depth at index ', I0)") INDX
++      ENDIF
++   ENDIF
+    IF (OPTG.EQ.5) THEN
+       DO INDX = 1, MCGRD
+          IF (metis_enabled .AND. PARLL) THEN

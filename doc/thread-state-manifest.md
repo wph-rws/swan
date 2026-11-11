@@ -192,16 +192,20 @@ So initialising would not change results for the normal solver, but it can
 prevent a runtime error and protects external or future users. It is
 therefore a separate correctness change.
 
-**Reachability in the so-rp case.** A temporary atomic counter around the
-`ETOT == 0.` branch was run on a so-rp computation (20 m/s from 310°,
-NAP +3.00 m, barrier open) with eight OpenMP threads. Input, grid and physics
-were unchanged; only the iteration limit and the amount of output were
-reduced for the short trial. After one iteration there were 188 `SINTGRL`
-calls with exactly zero energy. A separate trial with two iterations counted
-192 in total, so four more in the second iteration. These are calls over the
-four sweeps, not necessarily the same number of unique grid points. So in
-this case the path really is reachable, and not only an artificial unit-test
-situation.
+**Reachability in the so-rp case.** A temporary counter around the
+`ETOT == 0.` branch was run on a so-rp computation (corrected deck, 20 m/s
+from 310°, NAP +3.00 m, barrier open) with eight OpenMP threads, on
+11 November 2026 at commit `20bfacb` (patch:
+`doc/measurements/sintgrl-cnt.patch`). Input, grid, physics and output were
+unchanged; only the iteration limit was reduced for the short trial. After
+one iteration there were 148 `SINTGRL` calls with exactly zero energy, at 147
+different grid points. A separate trial with two iterations counted 150 in
+total, so two more in the second iteration. The count after one iteration
+(148) was the same on four threads, and that after two (150) on one thread.
+These are calls over the four sweeps, not necessarily the same number of
+unique grid points. (A trial before the history was rebuilt counted 188 and
+192.) So in this case the path really is reachable, and not only an
+artificial unit-test situation.
 
 **Limited test footprint.** One compact fixture in
 [`test_contexts.f90`](../tests/test_contexts.f90) checks the seven carry-over

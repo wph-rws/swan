@@ -7,11 +7,9 @@ byte identical to the original:
 
 - date in the production environment: 2 September 2022;
 - md5 `27eb876439c91f1496723cc65e2d695d`, 2833 bytes;
-- probably written by Krijn Saman ("KS", with "PB"): the run script names
-  Krijn Saman as its author (first version 20 August 2022), and the commits in
-  the `hydro` repository from that time are by "KS" and "KS/PB". The template
-  itself is not in that repository, because its `.gitignore` excludes all
-  `*.swn` files.
+- the run script gives 20 August 2022 as the date of its first version. The
+  template itself is not in the `hydro` repository of the suite, because its
+  `.gitignore` excludes all `*.swn` files.
 
 The run script replaces `WST_ORG` (water level in m), `WSN_ORG` and `WR_ORG`
 (wind speed and direction), `HS_ORG_BG2` and `TP_ORG_BG2` (boundary waves from
@@ -49,12 +47,12 @@ At the reference condition (20 m/s from 310°, NAP +3.00 m, barrier open), grid
 and boundary together change the mean Hsig over the 130 wet output points by
 less than 1 cm (RWS 41.31: 1.608 m as in production, 1.602 m corrected), but
 single points by up to 9 cm.
-With the code of 29 October (41.51) the effect was the same: 1.659 m with
-this deck, 1.653 m corrected, up to 9 cm at single points; that code also
-reported the 1558 grid errors and carried on. Since BF-67 the fork refuses
+The fork at commit `aea2500` (10 November 2026, with `MAXERR = 3`) shows the
+same effect: 1.656 m with this deck, 1.651 m corrected, up to 9 cm at single
+points; it also reports the 1558 grid errors. Since BF-67 the fork refuses
 to start on this deck with the severe error "READGRID: CGRID asks for 250 x
 579 grid points, and the file holds fewer", unless `MAXERR = 3`. Measured on
-10 November 2026 with the fork at commit `a49f403` and `MAXERR = 3`: on this
+10 November 2026 with the fork at commit `aea2500` and `MAXERR = 3`: on this
 deck the fork gives 1.656 m against 1.608 m for RWS 41.31A.1 over the same
 130 points, 4.8 cm higher on average and up to 13 cm at single points.
 

@@ -1,0 +1,14 @@
+--- a/src/swancom4.f90
++++ b/src/swancom4.f90
+@@ -1413,7 +1413,10 @@
+             REDC0(ID,I,1) = REDC0(ID,I,1) + DIA_WORKSPACE%SFNL(I,ID) / SIGPI
+             REDC1(ID,I,1) = REDC1(ID,I,1) + DIA_WORKSPACE%DSNL(I,ID) / PI3
+ 
+-            IMATRA(ID,I) = IMATRA(ID,I) + DIA_WORKSPACE%SFNL(I,ID) / SIGPI
++!           TEST BUILD ONLY (BF-62 repeat): upstream diagonal DSNL/PI3, with
++!           the matching term on the right-hand side
++            IMATRA(ID,I) = IMATRA(ID,I) + DIA_WORKSPACE%SFNL(I,ID) / SIGPI &
++               - DIA_WORKSPACE%DSNL(I,ID) / PI3 * AC2(ID,I,IGP)
+             IMATDA(ID,I) = IMATDA(ID,I) - DIA_WORKSPACE%DSNL(I,ID) / PI3
+          END IF
+ 

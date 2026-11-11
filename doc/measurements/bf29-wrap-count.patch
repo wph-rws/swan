@@ -1,0 +1,34 @@
+--- a/src/SwanIEM.f90
++++ b/src/SwanIEM.f90
+@@ -80,6 +80,8 @@
+ 
+ !   Source text
+ 
++   integer, save :: probe_nwrap = 0
++   real, save :: probe_maxshare = 0.
+ contains
+ 
+ subroutine SwanIEMinitig(spectral_powers)
+@@ -1248,7 +1250,13 @@
+                   ! unwrapped as jdl+1 it fell outside the directional range
+                   ! and landed in the first direction of the next frequency
+                   jdu = jdl + 1
+-                  if ( FULCIR .and. jdu > MDC ) jdu = jdu - MDC
++                  if ( FULCIR .and. jdu > MDC ) then
++                     jdu = jdu - MDC
++                     if ( ind > 1 .and. deploc > DEPMIN ) then
++                        probe_nwrap = probe_nwrap + 1
++                        probe_maxshare = max(probe_maxshare, max((idth-floor(idth))*0.5*abs(Z(ind))**2, 0.))
++                     endif
++                  endif
+ 
+                   ! compute fraction of actual directional bin to appropriately assign amount of bound energy in directional space
+ 
+@@ -1273,6 +1281,7 @@
+ 
+    ! deallocate arrays
+ 
++   write(0,'(A,I0,A,ES12.4)') 'PROBE wrap count ', probe_nwrap, ' max share ', probe_maxshare
+    deallocate(cg    )
+    deallocate(cgx   )
+    deallocate(costb )

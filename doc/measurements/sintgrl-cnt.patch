@@ -1,0 +1,24 @@
+--- a/src/swancom1.f90
++++ b/src/swancom1.f90
+@@ -5549,6 +5549,7 @@
+ !     WH                 : fraction of breaking waves
+ 
+    REAL              :: AB2, EMAX, UB2, ETOT_2
++   INTEGER, SAVE     :: NZERO_TESTCOUNT = 0
+    REAL              :: WH
+    REAL              :: BIPH
+    REAL              :: FRINTF_X_DDIR
+@@ -5649,6 +5650,13 @@
+ 
+       ENDIF
+ 
++      IF ( POINT_INTEGRALS%etot .EQ. 0. ) THEN
++!$OMP CRITICAL (sintgrl_zero_count)
++         NZERO_TESTCOUNT = NZERO_TESTCOUNT + 1
++         WRITE (0,'(A,I8,A,I8)') ' SINTGRL-ZERO count', NZERO_TESTCOUNT, ' IGP', IGP
++!$OMP END CRITICAL (sintgrl_zero_count)
++      ENDIF
++
+       IF ( POINT_INTEGRALS%etot .GT. 0. ) THEN
+ 
+ !       --- calculate all other integrals

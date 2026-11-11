@@ -133,7 +133,8 @@ and does not compute. `triad_lta.swn` computes with the fix and
 `triad_lta_upstream.swn` without it; the decks are otherwise the same. Run
 both with `--case triad`.
 
-What the comparison shows on this bar (measured 6 November 2026):
+What the comparison shows on this bar (measured 11 November 2026, commit
+`20bfacb`):
 
 | Run | Hs at x=25 m | Tm01 at x=25 m | energy flux x=25 m / x=2 m |
 |---|---|---|---|
@@ -146,7 +147,7 @@ Hs behind the bar is higher than in front of it in every triad run. That is
 not created energy: energy moved to higher frequencies travels more slowly,
 so the same flux gives a higher wave. The flux is the measure that should stay
 at 1. With the fix the third-harmonic bracket conserves energy (net/absolute
-−0.002 at x=15 m, against +0.033 with `UPSTREAM`), but the flux still drops by about
+−0.001 at x=15 m, against +0.040 with `UPSTREAM`), but the flux still drops by about
 5%. That loss comes from the group velocity, which 41.51 applies once to the
 whole triad term instead of to each part, and which the fix does not
 change. See BF-63 in the

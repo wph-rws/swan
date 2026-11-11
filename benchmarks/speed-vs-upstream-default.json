@@ -1,7 +1,7 @@
 {
   "date": "2026-11-11",
   "revisions": {
-    "current": "c63f018",
+    "current": "13f05a6",
     "upstream": "43e9bbb"
   },
   "host": {
@@ -21,7 +21,7 @@
     ]
   },
   "configuration": {
-    "case_directory": "/home/wilbert/swan/examples/voordelta",
+    "case_directory": "examples/voordelta",
     "workers": [
       1,
       2,
@@ -44,12 +44,12 @@
     ],
     "executables": {
       "openmp": {
-        "current": "/home/wilbert/swan/build-final-omp/bin/swan.exe",
-        "upstream": "/home/wilbert/swan/.upstream/meting-2026-11-10/speed/b_up_omp_def/bin/swan.exe"
+        "current": "fork, built with -DOPENMP=ON",
+        "upstream": "upstream, OpenMP build"
       },
       "mpi": {
-        "current": "/home/wilbert/swan/build-final-mpi/bin/swan.exe",
-        "upstream": "/home/wilbert/swan/.upstream/meting-2026-11-10/speed/b_up_mpi_def/bin/swan.exe"
+        "current": "fork, built with -DMPI=ON",
+        "upstream": "upstream, MPI build"
       }
     },
     "build_descriptions": {

@@ -1,0 +1,67 @@
+--- a/src/swancom4.f90
++++ b/src/swancom4.f90
+@@ -4118,6 +4118,12 @@
+ 
+    INTEGER, SAVE :: IENT = 0
+    INTEGER ID, ID1, ID2, IDD, IDDUM, IDW, II, IS, ISMAX
++   ! test build (BF-63): energy-weighted sums of the triad bracket
++   INTEGER, SAVE :: IUDIAG = 0
++   LOGICAL, SAVE :: DIAGOPEN = .FALSE.
++   INTEGER, SAVE :: NCALL = 0
++   REAL :: DS2, DS3, DSB, WGT, DN2, DA2, DN3, DA3, DNB, DAB, DNC, DAC, DPC, DMC
++   REAL :: UNB, UAB, UNC, UAC
+    REAL    BIPH, CG, DEP, E0, ED0, EDM, EDPM, EE1, EE2, EE3, EM, EPM, &
+       FT, PWDTH, SIGPI, SINBPH, STRI
+    REAL    E(MSC), ED(MSC), &
+@@ -4293,6 +4299,9 @@
+ 
+ !         ---  put source term together
+ 
++         DN2 = 0.; DA2 = 0.; DN3 = 0.; DA3 = 0.; DNB = 0.; DAB = 0.
++         DNC = 0.; DAC = 0.; DPC = 0.; DMC = 0.
++         UNB = 0.; UAB = 0.; UNC = 0.; UAC = 0.
+          DO IS = 1, WINDOW%ISSTOP
+             SIGPI = SPCSIG(IS) * 2. * PI
+             IF (ITRIAD.NE.11) CG = CGO(IS,1)
+@@ -4302,6 +4311,7 @@
+ !              --- self interaction
+                STRI = SA(ID,IS) - 2.*(WISP (2) * SA(ID,IS+ISP1(2)) + &
+                   WISP1(2) * SA(ID,IS+ISP (2)))
++               DS2 = STRI
+ 
+ !              --- interaction at third harmonic
+                IF (LTA_CONSERVE) THEN
+@@ -4325,6 +4335,19 @@
+                      WISP1(3) * SA3(ID,IS+ISP (3)))
+                END IF
+ 
++               DSB = STRI
++               DS3 = DSB - DS2
++               WGT = SPCSIG(IS) * FRINTF * DDIR
++               DN2 = DN2 + WGT*DS2; DA2 = DA2 + WGT*ABS(DS2)
++               DN3 = DN3 + WGT*DS3; DA3 = DA3 + WGT*ABS(DS3)
++               DNB = DNB + WGT*DSB; DAB = DAB + WGT*ABS(DSB)
++               DNC = DNC + WGT*CG*DSB; DAC = DAC + WGT*ABS(CG*DSB)
++               UNB = UNB + DSB; UAB = UAB + ABS(DSB); UNC = UNC + CG*DSB; UAC = UAC + ABS(CG*DSB)
++               IF (CG*DSB.GT.0.) THEN
++                  DPC = DPC + WGT*CG*DSB
++               ELSE
++                  DMC = DMC - WGT*CG*DSB
++               END IF
+ !              --- make energy flux conservative
+                STRI = CG * STRI
+ 
+@@ -4343,6 +4366,13 @@
+                END IF
+             END DO
+          END DO
++         IF (.NOT.DIAGOPEN) THEN
++            OPEN(NEWUNIT=IUDIAG, FILE='lta_diag.txt', STATUS='REPLACE', ACTION='WRITE')
++            DIAGOPEN = .TRUE.
++         END IF
++         NCALL = NCALL + 1
++         WRITE(IUDIAG,'(I9,I8,L2,14ES14.6)') NCALL, IGP, TESTFL, DN2, DA2, DN3, DA3, DNB, DAB, DNC, DAC, DPC, DMC, &
++            UNB, UAB, UNC, UAC
+ 
+       END IF
+ 

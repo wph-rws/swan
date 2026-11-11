@@ -1,0 +1,37 @@
+--- a/src/fftw_compat.f90
++++ b/src/fftw_compat.f90
+@@ -214,6 +214,8 @@
+          scale = 1.0_c_double / real(l*m, c_double)
+          c = c * scale
+       end if
++      ! TEST BUILD: relative perturbation of the transform output, from SWAN_FFT_EPS
++      c = c * (1.0_c_double + fft_test_eps())
+    else
+       allocate(packed(l,m))
+       packed = c(1:l,:)
+@@ -228,11 +230,25 @@
+          scale = 1.0_c_double / real(l*m, c_double)
+          packed = packed * scale
+       end if
++      packed = packed * (1.0_c_double + fft_test_eps())
+       c(1:l,:) = packed
+       deallocate(packed)
+    end if
+ end subroutine execute_transform
+ 
++real(c_double) function fft_test_eps()
++   character(len=40) :: txt
++   integer :: n, st
++   real(c_double), save :: eps = 0.0_c_double
++   logical, save :: done = .false.
++   if (.not. done) then
++      call get_environment_variable('SWAN_FFT_EPS', txt, n, st)
++      if (st == 0 .and. n > 0) read (txt, *) eps
++      done = .true.
++   end if
++   fft_test_eps = eps
++end function fft_test_eps
++
+ end module swan_fftw_compat
+ 
+ subroutine cfft2i(l, m, wsave, lensav, ier)

@@ -1,0 +1,11 @@
+--- a/src/swanmain.f90
++++ b/src/swanmain.f90
+@@ -1683,7 +1683,7 @@
+ !     command fills it, so a deck without one left it unallocated while it is
+ !     still passed on to SWBOUN and the computation routines. Establish the
+ !     empty state here, so that NPTST = 0 and an allocated XYTST always agree.
+-   IF (.NOT.ALLOCATED(XYTST)) ALLOCATE(XYTST(0))
++!TEST BUILD BF-08 negative:    IF (.NOT.ALLOCATED(XYTST)) ALLOCATE(XYTST(0))
+    LXDMP  = -1
+    LYDMP  = 0
+    IFPAR = 0

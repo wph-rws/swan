@@ -16,7 +16,7 @@
   "upstream": {
    "0.00": 1.90718,
    "0.01": 1.41715,
-   "0.02": 1.30435,
+   "0.02": 1.30596,
    "0.05": 1.27853
   },
   "rws4131": {
@@ -36,7 +36,7 @@
   "upstream": {
    "0.00": 28,
    "0.01": 42,
-   "0.02": 35,
+   "0.02": 36,
    "0.05": 2
   },
   "rws4131": {
@@ -66,6 +66,6 @@
    "0.05": 100.0
   }
  },
- "finding": "Every run reports 'accuracy OK in 100.00 %'. Under-relaxation changes the path of the iteration, not its end point, so every column should be equal; instead Hs falls as ALFA rises, in all three programs. At ALFA=0.01, Hs at 25 km is 26% below the run without under-relaxation for the fork and for upstream, and 25% below for RWS 41.31A.1. The mechanism has been in SWAN since at least 41.31.",
- "note": "The fork and upstream differ at ALFA=0.05 (11 against 2 iterations) because upstream reads an unset KTETA in decks without breaking (BF-16); the fork sets it. Each program is compared only with itself."
+ "finding": "Every run reports 'accuracy OK in 100.00 %'. Under-relaxation changes the path of the iteration, not its end point, so every column should be equal; instead Hs falls as ALFA rises, in all three programs. At ALFA=0.01, Hs at 25 km is a quarter below the run without under-relaxation (23 to 26%; for upstream and RWS 41.31A.1 it depends on the run, see the note). The mechanism has been in SWAN since at least 41.31.",
+ "note": "Measured again on 11 November 2026: the fork at commit 20bfacb, upstream 43e9bbb and RWS 41.31A.1. The fork gives the same values as before. Upstream and RWS 41.31A.1 read an unset KTETA in this deck without breaking (BF-16), so their numbers change from run to run; the columns show one outcome. In five repeats, upstream at ALFA=0 gave 1.90718 m after 28 iterations or 1.84566 m after 144, and at ALFA=0.05 1.27853 m after 2 iterations or 1.27989 m after 11; RWS 41.31A.1 at ALFA=0 gave 1.802 m after 26 iterations or 1.76681 m after 95, and at ALFA=0.02 1.2832 m or 1.28291 m. Upstream at ALFA=0.02 gave 1.30596 m after 36 iterations in every repeat. Against either outcome at ALFA=0, the run at ALFA=0.01 ends 23 to 26% lower in all three programs; for upstream and RWS 41.31A.1 the run at ALFA=0.01 itself was made once. The fork sets KTETA. Each program is compared only with itself."
 }

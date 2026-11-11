@@ -1,0 +1,16 @@
+--- a/src/swancom3.f90
++++ b/src/swancom3.f90
+@@ -973,12 +973,7 @@
+ !          second generation form; they only reach this point in the first
+ !          guess of a stationary run, which uses the second generation
+ !          model; use Wu (1982), the default drag, for that guess
+-         IF ( WIND10 .GT. 7.5 ) THEN
+-            CDRAG = ( 0.8 + 0.065 * WIND10 ) * 0.001
+-            CDRAG = MIN ( CDCAP, CDRAG )
+-         ELSE
+-            CDRAG = 0.0012875
+-         ENDIF
++         CDRAG = (-0.016*WIND10**2 + 0.967*WIND10 + 8.058) * 0.0001
+       ENDIF
+ 
+       UFRIC = SQRT ( CDRAG ) * WIND10

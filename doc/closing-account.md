@@ -81,8 +81,9 @@ the difference being BF-63; measured 10 November 2026). That comes from the defa
 drag, which the deck does not set itself; with `DRAG FIT` the mean difference
 disappears. It does not come from the fork. The rest lies in the triads, whose
 LTA was reformulated: a deck that sets everything it can comes to within 3 cm
-of 41.31 on average, and on the earlier history a test build with the old
-form of the last two parts reproduced RWS 41.31A.1 to within 0.1 mm. The operational deck itself reads
+of 41.31 on average, and a test build with the old form of the last two
+parts reproduced RWS 41.31A.1 to within 0.1 mm (11 November 2026, commit
+`20bfacb`; patch: `doc/measurements/lta4131.patch`). The operational deck itself reads
 the grid in wrongly and places the boundary on that grid; the repo computes
 with a corrected template (see `so-rp_swan/par/operational/PROVENANCE.md`).
 
@@ -90,8 +91,7 @@ with a corrected template (see `so-rp_swan/par/operational/PROVENANCE.md`).
 reports "100%" while Hs is still 27% below its final value. The check requires two long
 references and takes their mutual Hs shift per point into account before an
 operational run is judged; for the operational so-rp deck it was done on
-7 November 2026 and again on 10 November 2026 on the rebuilt history, and that
-deck stops too early (AGENTS.md, "Convergence").
+10 November 2026 (commit `aea2500`), and that deck stops too early (AGENTS.md, "Convergence").
 The fork option `EXTRAP` lets the iteration stop only once the change of Hs
 that is still to come, extrapolated over blocks of iterations, is small. The balance residual is an addition of the fork and is
 off by default: `RESIDUAL 0` only measures, a positive value adds a stop
@@ -147,7 +147,7 @@ its matrix. All 30 configurations of `scripts/build_matrix.py` were built from
 scratch and tested on one commit; all pass except the two preserved legacy I/O
 routes, which fail one test for a documented reason, and the Intel compiler,
 which is not installed (see `doc/support-matrix.md`). This was shown locally on
-10 November 2026, on commit `c63f018`, which has the same sources as the
+10 November 2026, on commit `13f05a6`, which has the same sources as the
 commits after it that bring the documents up to date. On
 GitHub, CI last ran on 29 October 2026 (run 40849401258) and failed in every
 job except the manifest and Python checks, for a reason of the CI
@@ -204,6 +204,11 @@ This is the most important section of this document.
   is bounded (BF-44), and that deck does not abort in 80 runs with varying
   heap settings. The abort could not be reproduced on demand, so there is no
   conclusive proof that this was the cause.
+- **That every deck gives the same output at every thread count.** One
+  deck, `examples/nonlinear_interactions/triad/triad_biph_dewit.swn`, gives a
+  table that changes from run to run with more than one OpenMP thread, in
+  upstream as well; the cause has not been found (see "A deck that is not
+  reproducible with OpenMP" under the known open issues of the bug-fix table).
 - **Simultaneous or overlapping use within one process.** Serial reuse has
   been proven; running several runs at the same time in a thread-safe way
   has not been investigated.

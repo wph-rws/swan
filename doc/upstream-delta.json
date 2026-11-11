@@ -302,7 +302,7 @@
       "deck": "qcm/qcm_scatter.swn",
       "status": "identical",
       "measured": "1 output file(s) equal",
-      "note": "The deck that lets this gate see the FFT path: on the flat bottom of qcm.swn the QC scattering is zero. The fork transforms with FFTW, upstream with FFTPACK; their rounding differs only in the last bits of double precision, which the single-precision fields almost never show. Measured: a change of 1e-9 in part of the transform output changes 350 of the 3234 output values, one of 1e-12 none. A larger deck (40 x 20 meshes, 36 directions, 30 frequencies) did show it once: Tm01 one unit in the last place at 1 of 861 points. Should this deck ever differ by such a single last-place value, the cause is that rounding, not a defect."
+      "note": "The deck that lets this gate see the FFT path: on the flat bottom of qcm.swn the QC scattering is zero. The fork transforms with FFTW, upstream with FFTPACK; their rounding differs only in the last bits of double precision, which the single-precision fields almost never show. Measured on 11 November 2026 (commit 20bfacb, a test build that multiplies every transform output by 1 + eps, doc/measurements/fftpert.patch): eps = 1e-9 changes 357 of the 3234 output values, eps = 1e-12 none (an earlier trial, which changed part of the transform output by 1e-9, changed 350). A larger deck (40 x 20 meshes, 36 directions, 30 frequencies) did show it once: Tm01 one unit in the last place at 1 of 861 points. Should this deck ever differ by such a single last-place value, the cause is that rounding, not a defect."
     },
     {
       "deck": "quick_test/quick_test.swn",

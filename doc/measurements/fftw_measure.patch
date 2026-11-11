@@ -1,0 +1,22 @@
+--- a/src/fftw_compat.f90
++++ b/src/fftw_compat.f90
+@@ -128,15 +128,15 @@
+          ! candidate plans, so the choice, and with it the last bits of the QCM
+          ! and Bragg results, could change from one run to the next.
+          aligned_forward = fftw_plan_dft_2d(int(m,c_int), int(l,c_int), &
+-                                            scratch, scratch, FFTW_FORWARD, FFTW_ESTIMATE)
++                                            scratch, scratch, FFTW_FORWARD, FFTW_MEASURE)
+          aligned_backward = fftw_plan_dft_2d(int(m,c_int), int(l,c_int), &
+-                                             scratch, scratch, FFTW_BACKWARD, FFTW_ESTIMATE)
++                                             scratch, scratch, FFTW_BACKWARD, FFTW_MEASURE)
+          unaligned_forward = fftw_plan_dft_2d(int(m,c_int), int(l,c_int), &
+                                               scratch, scratch, FFTW_FORWARD, &
+-                                              ior(FFTW_ESTIMATE, FFTW_UNALIGNED))
++                                              ior(FFTW_MEASURE, FFTW_UNALIGNED))
+          unaligned_backward = fftw_plan_dft_2d(int(m,c_int), int(l,c_int), &
+                                                scratch, scratch, FFTW_BACKWARD, &
+-                                               ior(FFTW_ESTIMATE, FFTW_UNALIGNED))
++                                               ior(FFTW_MEASURE, FFTW_UNALIGNED))
+ 
+          if (.not. c_associated(aligned_forward) .or. &
+              .not. c_associated(aligned_backward) .or. &

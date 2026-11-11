@@ -113,7 +113,7 @@ The shift between N and 2N iterations is not a bound on the remaining error:
 a slow iteration can move only millimetres between N and 2N and centimetres
 after that. A `premature` verdict is therefore firm where the reference has
 settled, and only a lower bound elsewhere. Result of 10 November 2026
-(commit `a49f403`; N = 80, 2N = 160, `--residual`, five conditions, each run
+(commit `aea2500`; N = 80, 2N = 160, `--residual`, five conditions, each run
 with 4 threads on its own cores while other work ran on the machine): the
 deck stops too early. At `u20_d300_lm200_open` the reference hardly changes
 between 80 and 160 (at most 6 mm), and the deck is 2.2 cm low on mean Hs, up
@@ -125,8 +125,7 @@ the reference still move; those moving points lie mostly in a cluster 12–26
 m deep, while the energy residual stays flat from iteration 80 on. Whether
 that is a slow mode that settles later or a level the iteration does not
 leave is not known: a flat residual does not tell the two apart.
-`u02_d090_l0000_open` gives no verdict (see the note on low wind below). The
-result of 7 November 2026, on the earlier history, was the same. Do not
+`u02_d090_l0000_open` gives no verdict (see the note on low wind below). Do not
 repeat this unless a change can affect the convergence of this deck.
 
 `stopping_study.py` puts the same references next to the existing input, the

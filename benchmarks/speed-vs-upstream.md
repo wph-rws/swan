@@ -1,6 +1,6 @@
 # Speed against upstream
 
-Measured on 11 November 2026, on commit `c63f018`, on the Voordelta example (`examples/voordelta`),
+Measured on 11 November 2026, on commit `13f05a6`, on the Voordelta example (`examples/voordelta`),
 with gfortran 16.2 for every build, on an Intel Core Ultra 9 185H with 22
 logical CPUs under WSL2, on an otherwise idle machine, apart from one
 left-over process that kept one logical CPU busy (it moved between CPUs 17

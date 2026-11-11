@@ -164,12 +164,12 @@ double precision (`SWREDUCE` for `real(8)`), as in the serial route.
 ### What it shows
 
 `examples/nonlinear_interactions/quad`, Hs at 25 km. The `quad_dia1` rows are
-for `QUADRUPLET 1 UPSTREAM`, the upstream semi-implicit DIA, and were
-measured before the fork's DIA (BF-62) became the default; with that default
-`quad_dia1` gives 1.4099 m after 40 iterations at `ALFA=0.01` (residual
+for `QUADRUPLET 1 UPSTREAM`, the upstream semi-implicit DIA; with the fork's
+DIA (BF-62), the default, `quad_dia1` gives 1.4099 m after 40 iterations at `ALFA=0.01` (residual
 0.144), 1.2802 m after 11 at `ALFA=0.05` (0.156), and 1.9193 m after 28
 without `ALFA` (0.0034), so a run that really converges is then at 0.003 to
-0.006 (measured on 10 November 2026):
+0.006 (all of it, the table included, measured on 11 November 2026 at
+commit `20bfacb`):
 
 | run | iterations | accuracy | energy rms | Hs |
 |---|---:|---:|---:|---:|
@@ -199,10 +199,17 @@ NUMERIC STOPC ... RESIDUAL [rtol]
 
 `RESIDUAL` follows the `STOPC`/`ACCUR` part. The iteration then stops only
 when the existing criterion is met **and** the *energy* rms is below `[rtol]`.
-Without the keyword nothing changes: when the residual was added (commit
-`8a4cb1b`, 26 October 2026, on the earlier history), the numerical output of
-all 215 files from the test suite was bit-identical to the build before it,
-serial and with OpenMP, and across 1, 2, 4 and 8 threads.
+Without the keyword nothing changes: commit `8a4cb1b`, which added the
+residual, gives the same output as its parent. Measured on 11 November 2026
+on those two commits: the 134 numerical output files of the example decks
+are byte-identical serially and with OpenMP at 1, 2, 4 and 8 threads, with
+one exception that the residual does not cause. The 1D deck
+`triad_biph_dewit` gives a slightly different answer from run to run with
+more than one thread: of ten runs at four or eight threads, one to seven
+differ from the serial answer, in both commits and still at commit
+`20bfacb`. Upstream 41.51 built with OpenMP does the same at eight threads
+(nine of ten runs), so the fork did not bring it in; see the known open
+issues in the bug-fix table.
 
 A threshold must lie above the floor of the deck, otherwise the run always
 iterates up to `MXITST`. As a safety net against false convergence, 0.03 is
@@ -220,8 +227,11 @@ builds the system. For SOLMT1 (`SIGEXPL`, explicit in frequency), the
 frequency terms are already in the right-hand side; there, the bins that an
 opposing current blocks stay out of the defect, because `SOLMT1` replaces
 their row with an identity row. On the smoke deck with a current from 0 to
-2 m/s, the residual on both paths drops within a few iterations from 0.2 to
-0.01–0.05, a floor about ten times higher than without a current (0.002).
+2 m/s, the energy residual on both paths falls from 0.2 to about 0.02 in
+three iterations, rises again to 0.07 (`SIGEXPL`) and 0.09 (`SIGIMPL`), and
+then keeps moving between 0.01 and 0.06 without settling in 30 iterations.
+That is some ten times higher than without a current (0.002; 11 November
+2026, commit `20bfacb`).
 This also fits the picture that the floor differs from deck to deck. The
 solution stays byte-identical with and without the measurement
 (`tests/test_balance_residual.py`).
@@ -252,7 +262,7 @@ With the residual switched off, the call sits behind
 costs nothing measurable, serial or on several cores.
 
 With the residual switched on (`NUMERIC STOPC RESIDUAL 0`), measured on
-Voordelta regular on 11 November 2026 (commit `c63f018`), seven alternating
+Voordelta regular on 11 November 2026 (commit `13f05a6`), seven alternating
 rounds per configuration; the cost is the median of the ratio per round, and
 the output is byte-identical with the residual on and off:
 

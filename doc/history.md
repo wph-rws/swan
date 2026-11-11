@@ -83,7 +83,7 @@ independent reviewers had led to corrections in the trees of seven commits
 (the conversion, the registration of four tests, two benchmark files, the
 layout test, and the METIS condition of the NaN depth check of BF-61) and in
 seventeen commit messages, the history was put together once more, and every
-commit from the conversion to `cd3c030` (109 commits) was checked out into a
+commit from the conversion to `c9bf3e0` (109 commits) was checked out into a
 fresh worktree and built from scratch at `-O0` with gfortran 16.2, once
 serially and once with OpenMP, and its Fortran sources were checked against
 the layout. All 109 built both ways, and all were in the layout. The rename
@@ -100,9 +100,9 @@ last of these corrections (the METIS condition of BF-61, and for the so-rp
 runs, flang and the test models also the JAC condition of one test
 registration). Their sources differ from the named commits only in those two
 conditions, which no measured build reaches; the full build matrix was
-repeated on `c63f018`.
+repeated on `13f05a6`.
 
-At `cd3c030`, built from scratch with gfortran 16.2 at `-O3`, CTest passed 66
+At `c9bf3e0`, built from scratch with gfortran 16.2 at `-O3`, CTest passed 66
 of 66 serially, with OpenMP and with runtime checks, and 73 of 73 under MPI;
 the strict gate was green (1030 warnings, the 233 in the checked kinds all
 with a verdict); pytest passed 462 tests and skipped one (the measured part
@@ -112,8 +112,8 @@ and their results are in [support-matrix.md](support-matrix.md).
 `fork-41.51-identical` was compared with an upstream build at `-O3` on the
 41 light decks, serially; OpenMP and MPI runs were not compared with
 upstream at that commit. Its sources are the same as before the last
-assembly. The scripts that built and checked the history are kept outside
-the repository, with the earlier histories.
+assembly. The scripts that built and checked the history are not part of
+the repository and were not kept.
 
 Until 10 November 2026 the delta gate compared output with white space
 collapsed. It therefore missed that the first conversion had taken blanks out
@@ -170,17 +170,51 @@ fix, unless the row names another commit. A fix with more than one commit
 | `upstream-41.51` | `43e9bbb` | the TU Delft source the fork starts from |
 | `fork-41.51-identical` | `4457162` | the last commit that computes exactly what upstream computes (41 light decks, serial, `-O3`) |
 | `fork-41.51-2026-11-10` | the last commit of 10 November 2026 | the state of 10 November 2026, after the history was rebuilt |
-| `archive/before-rebuild-2026-11-10` | `01fd3fc` | the earlier history, on which the measurements dated before 10 November 2026 were made |
 
 ## Measurements made before 10 November 2026
 
 The history was rebuilt on 10 November 2026, with the knowledge of that day:
 corrections of a fix were folded into the commit of that fix, and every
-commit was given the layout above. A measurement that was made earlier names
-the commit of this history that holds the same change. That commit also holds
-corrections that came later (each is described in the bug-fix table, with
-its fix), so the measured number belongs to that commit only as far as those
-corrections leave the measured deck unchanged, and none of these numbers
-was measured again on the rebuilt history. The earlier history, on which they
-were measured, ends in the tag `archive/before-rebuild-2026-11-10`; older
-states are kept, outside the repository, in git bundles.
+commit was given the layout above. The earlier history is not kept. The
+measurements that the documents quoted from it were repeated on the rebuilt
+history on 10 and 11 November 2026, at commits `aea2500` and `20bfacb`,
+whose sources differ only in comments, and for the state before a fix on
+the commit before it in this history. The test builds, small programs and
+scripts that a repeated number needs are in
+[measurements/](measurements/README.md). Where the repeat gave
+a different number, the documents give the new one; an old number that is
+still mentioned beside it ("an earlier set gave ...") is only an account of
+the original work.
+
+A few statements were not repeated, mostly because what they need was not
+kept. They stand only as an account of the original work:
+
+- **Counts inside one commit.** BF-05: the four steps of the lost memory
+  (216 + 792 + 936 + 96 B), whose intermediate states existed only while the
+  fix was made. BF-29: the change from 6.778e-05 to 6.779e-05 of an earlier
+  form of the fix that is not in the history.
+- **Decks, point files and trial lists that were not kept.** BF-05: the two
+  `FILE` error decks (280 B and 328 B lost). BF-46: the trial of more than
+  1900 variants. BF-53: the 29 variants run with the fork before the fix.
+  BF-56: the comparison on 13 extra points of the so-rp deck without triads.
+  The larger QCM deck (40 × 20 meshes) in the note on `qcm/qcm_scatter.swn`
+  in [upstream-delta.json](upstream-delta.json).
+- **Parts of a check that were not run on their own.** BF-01: the `fort.17`
+  case and the refused whitecapping and boundary output. BF-17: that no run
+  left the iteration loop at a different iteration (not checked separately;
+  all runs after the fix were bit-identical). BF-62: the double-precision
+  finite-difference check by Codex (3·10⁻¹⁰ at three bins, factor 248.05);
+  the single-precision test build of 11 November 2026 replaces it. The
+  comparison of the XNL interaction table between the fork and upstream.
+  In [thread-state-manifest.md](thread-state-manifest.md), the direct check
+  that passed old and zeroed values through `SWCAP`, `SWCAP8` and `SSURF`.
+- **Counts of compiler warnings and of source patterns at the commit of a
+  fix**: the six warnings of BF-20, the 40 synonyms and 9 `VALIDBP` warnings
+  of BF-24, the 22 warnings of BF-27, and the 1505 compound conditions (307
+  of them checked by hand) of BF-54. These were not counted again; the
+  commits are in this history, so they can be.
+- **A reading that the repeat could not settle.** BF-58: the outline of the
+  excluded area of the fan grid "of 4 points" before the fix. `TEST 180`
+  prints 5 points there (4 of them the corners of one mesh) and 30 after the
+  fix, but the print does not mark where a curve ends, so the text was left
+  as it was.

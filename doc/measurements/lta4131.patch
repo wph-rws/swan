@@ -1,0 +1,29 @@
+--- a/src/swancom4.f90
++++ b/src/swancom4.f90
+@@ -4250,7 +4250,7 @@
+ 
+                FT = QTL2(IS,1) * SINBPH
+ 
+-               SA(ID,IS) = MAX(0., FT * ( EDM * (EM - E0) - ED0 * EM ))
++               SA(ID,IS) = MAX(0., FT * ( EDM * (EM - E0) - ED0 * EM )) * CGO(IS,1)
+ 
+ !              --- primary wave (sum interaction)
+                IF ( IS.GT.-ISM1(3,1) ) THEN
+@@ -4284,7 +4284,7 @@
+ !              --- compute contribution
+ 
+                FT = QTL2(IS,2) * SINBPH
+-               IF (ITRIAD.EQ.11) FT = 0.
++               FT = 0.   ! test build: no third harmonic, as in 41.31
+ 
+                SA3(ID,IS) = MAX(0., FT * ( EE1 - EE2 - EE3 ))
+ 
+@@ -4295,7 +4295,7 @@
+ 
+          DO IS = 1, WINDOW%ISSTOP
+             SIGPI = SPCSIG(IS) * 2. * PI
+-            IF (ITRIAD.NE.11) CG = CGO(IS,1)
++            CG = 1.   ! test build: group velocity per term (SA above), as in 41.31
+             DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
+                ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+ 

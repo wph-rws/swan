@@ -1,6 +1,6 @@
 # Small test models for numerical questions
 
-Three small stationary decks that run in seconds to minutes. They are meant
+Five small stationary decks that run in seconds to minutes. They are meant
 for questions about the iteration (when it stops, how fast it converges)
 that should not need a run on a large grid. A small grid shows the same
 local behaviour of the iteration as a large one.
@@ -10,6 +10,8 @@ local behaviour of the iteration as a large one.
 | `sq` | 20 x 10 cells of 500 m | 20 m, flat | `GEN3 KOMEN`, depth-induced breaking, JONSWAP friction; wind 15 m/s and a JONSWAP boundary (Hs 2 m, Tp 7.5 s) from the west |
 | `sphys` | 50 x 20 cells of 500 m | 25 m in the west to 3 m in the east | the physics of the operational so-rp deck (`CDCAP=0.00275`, `WCAP KOMEN DELTA=1`, `TRIAD ITRIAD=1 TRFAC=0.8 CUTFR=2.5`, 0.03-1 Hz); wind 20 m/s from 300°, boundary Hs 3.65 m, Tp 7.41 s |
 | `isl` | 40 x 20 cells of 250 m | 15 m, an island and a 1 m shoal behind it | as `sq`, with the semi-implicit DIA (`QUAD IQUAD=1`) |
+| `chan` | 200 x 10 cells of 500 m | 20 m, flat | as `sq`: a long channel with wind and waves from the west |
+| `slope` | 100 x 40 cells of 500 m | 30 m in the west to 5 m in the east | as `sq`, with wind and boundary waves from 240° |
 
 Each deck writes Hs on the computational grid to `hs.blk` and Tm01 to
 `tm.blk`, and keeps iterating until `MXITST` (`NPNTS=101`), so that a run
@@ -17,6 +19,11 @@ is a reference unless its NUMERIC line is changed. `isl` has steep
 gradients: behind the island the default propagation scheme gives negative
 action density, which RESCALE removes every iteration, so the iteration
 never settles there.
+
+`sq`, `chan` and `slope` are the models of the BF-62 row in
+[doc/bug-fixes-vs-tu-delft-41.51.md](../../doc/bug-fixes-vs-tu-delft-41.51.md);
+`doc/measurements/bf62_runs.py` runs them with each form of the DIA and
+`bf62_compare.py` compares the results.
 
 `scripts/stop_check.py` runs a deck with several NUMERIC lines and compares
 each run with a reference that keeps iterating; it is the measurement behind

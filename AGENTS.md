@@ -58,11 +58,12 @@ in [doc/history.md](doc/history.md).
   [doc/history.md](doc/history.md) lists them and says why.
 - A measurement in this file, in the bug-fix table or in a commit message
   names the commit or tag it was made on, not only the date; a number
-  without one cannot be repeated after the code moves on. Measurements dated
-  before 10 November 2026 were made on the earlier history (tag
-  `archive/before-rebuild-2026-11-10`); the commit named with them is the
-  commit of the rebuilt history that holds the same change, as explained in
-  doc/history.md, and the number was not measured again there.
+  without one cannot be repeated after the code moves on. The history was
+  rebuilt on 10 November 2026. The measurements made before that day were
+  repeated on the rebuilt history on 10 and 11 November 2026, at commits
+  `aea2500` and `20bfacb`, whose sources differ only in comments;
+  doc/history.md lists the few that were not. Test builds, small programs
+  and scripts that a repeated number needs are in `doc/measurements/`.
 
 ## Important physics fact: changed defaults (41.31 → 41.51)
 
@@ -92,7 +93,7 @@ remains (below).
 `GEN3 KOMEN`, `WCAP KOMEN DELTA=1`, `TRIAD ITRIAD=1 TRFAC=0.8 CUTFR=2.5`,
 `STOPC` with `MXITST=40` and `CDCAP=0.00275` itself. Of the list above, the
 wind drag and the triad changes remain. Measured on 10 November 2026 with
-the corrected deck, the fork at commit `a49f403` and upstream `43e9bbb`, both
+the corrected deck, the fork at commit `aea2500` and upstream `43e9bbb`, both
 built with gfortran 16.2 at `-O3` with OpenMP, 20 m/s from 310°, NAP +3.00 m,
 barrier open; mean Hsig over the 130 output points that are wet in every run
 (RWS 41.31 and upstream do not find five of the 135; see BF-56). Every run
@@ -117,13 +118,17 @@ cancel on average; point by point the fork still differs from 41.31 by up to
 8 cm. The `legacy-4131` variant of `so-rp_swan/matrix/deck.py` sets
 everything a deck can set. What remains is the third harmonic and the
 group-velocity weighting of the `ITRIAD=1` LTA, which a deck cannot switch
-off. On 28 October 2026, on the earlier history and before BF-63, a test
-build with those two parts written as in 41.31 reproduced RWS 41.31A.1 to
-within 0.1 mm, so on this deck the whole difference between the versions
-lies in the wind drag and the triads. Step by step from `legacy-4131`
-without `DINT` and `IC` (then 1.542 m): integrating over all directions
-lowered the mean to 1.515 m, the Madsen and Sørensen coefficient raised it
-to 1.583 m, and the last two parts brought it to 1.602 m.
+off. On 11 November 2026 a test build of commit `20bfacb` with those two
+parts written as in 41.31 reproduced RWS 41.31A.1 to within 0.06 mm at the
+130 common wet points (rms 0.01 mm), so on this deck the whole difference
+between the versions lies in the wind drag and the triads. Step by step from
+`legacy-4131` without `DINT` and `IC` (then 1.535 m): integrating over all
+directions lowered the mean to 1.510 m, the Madsen and Sørensen coefficient
+raised it to 1.575 m, and the last two parts brought it to 1.602 m. With
+`TRIAD ... UPSTREAM` the first three are 1.542, 1.515 and 1.583 m; the test
+build has no third harmonic, so `UPSTREAM` does not change its last step.
+(Patch and scripts: `doc/measurements/lta4131.patch`, `sorp_lta_chain.py`
+and `sorp_compare_points.py`.)
 
 **Grid and boundary of the operational deck are wrong.** `CGRID CURVILINEAR
 249 578` asks for one row and column more than `so-rp.rgf` has (249 × 578
@@ -149,7 +154,7 @@ as it is, the matrix also has two targets with the production deck itself
 with `--target`); `deck.py` accepts that deck only byte for byte, and changes
 only `MAXERR = 2` into `MAXERR = 3`, so that the fork computes on the
 incomplete grid as production does (for RWS 41.31 that changes nothing). With
-it, the fork (commit `a49f403`) gives 1.656 m at the reference condition over
+it, the fork (commit `aea2500`) gives 1.656 m at the reference condition over
 the same 130 points, against 1.608 m for RWS 41.31A.1 (measured 10 November
 2026): the same +5 cm as on the corrected deck, up to 13 cm at single
 points. On the production deck RWS 41.31 also finds the five other points
@@ -215,7 +220,7 @@ Their output goes to `build-*` directories, which git ignores.
   (see [doc/support-matrix.md](doc/support-matrix.md)); references and gates
   stay on gfortran. Build with
   `-DCMAKE_Fortran_COMPILER=/usr/bin/flang-22` in `build-flang/`. On
-  10 November 2026 (commit `a49f403`, flang 22.1.8) the whole source compiled
+  10 November 2026 (commit `aea2500`, flang 22.1.8) the whole source compiled
   without a Fortran warning, and `-fsyntax-only -pedantic` found only two
   unused variables (`IJ` and `IK`, which only an OpenMP clause uses) and six
   TARGET arguments, none of which keeps a pointer after the call. Of the 66
@@ -258,7 +263,7 @@ show byte-identical output; compare the files when that is the claim.
 
 Runs on the operational so-rp grid take about 6 s per iteration on four
 pinned cores, about 4 minutes for a run of 38 iterations (11 November 2026,
-commit `c63f018`). Use them only for questions about that deck itself, never as a check
+commit `13f05a6`). Use them only for questions about that deck itself, never as a check
 of a code change. Before starting one, work out the run time and say it, and
 give each process its own cores (`taskset`); `OMP_PROC_BIND` alone puts the
 threads of every process on the same first cores.
@@ -289,7 +294,9 @@ Two things go with this:
 
 - **Check byte-identical output across thread counts.** The output should not
   depend on the number of threads. Measure that explicitly at 1, 2, 4 and more
-  threads; a speed-up that breaks determinism is not a gain.
+  threads; a speed-up that breaks determinism is not a gain. One deck,
+  `triad_biph_dewit`, does not meet this yet, in upstream too (see the known
+  open issues in the bug-fix table).
 - **Measure on a quiet machine.** If anything else runs on the same node (a
   second agent, a build, another run), the time is useless. Check this
   beforehand, and say so if it was not possible.
@@ -311,7 +318,7 @@ applied on the first iteration.
 
 This is not an edge case here: most decks in this repository set `ALFA`.
 Measured on `examples/nonlinear_interactions/quad/quad_dia1` with
-`scripts/stop_check.py` (10 November 2026, commit `a49f403`), with the
+`scripts/stop_check.py` (10 November 2026, commit `aea2500`), with the
 upstream semi-implicit DIA (`QUADRUPLET 1 UPSTREAM`): with `ALFA=0.10` the run
 stops after two iterations and with `ALFA=0.05` after ten, with the message
 "accuracy OK in 100.00 %", while Hs at 25 km is then 1.278 m. `ALFA=0.01`
@@ -334,7 +341,7 @@ spectrum. Operational decks get no general residual threshold.
 
 The operational so-rp deck (`STOPC` with `CURVAT=0.001`, `NPNTS=98`,
 `MXITST=40`, `ALFA=0.01`) stops too early. Measured on 10 November 2026
-(commit `a49f403`) with `convergence_check.py` on the corrected deck, with
+(commit `aea2500`) with `convergence_check.py` on the corrected deck, with
 references of 80 and 160 forced iterations, over the wet output points (135;
 122 at low water, 131 at 2 m/s): at four of the five conditions the deck
 stops after 25 to 38 iterations, and the check gives `premature` there. At low water (NAP −2 m,
@@ -348,8 +355,7 @@ between 80 and 160 iterations (6 and 10 points by more than 1 cm, up to 10
 and 23 cm), most of them in a cluster 12–26 m deep at x ≈ 36,000–37,000,
 y ≈ 402,500–404,600, while the energy residual stays flat; a flat residual
 does not tell whether that drift settles later, so the verdict rests on the
-other points. The 7 November 2026 measurement on the
-earlier history gave the same picture. At 2 m/s wind the deck does not reach
+other points. At 2 m/s wind the deck does not reach
 its criterion within 40 iterations (88%), and the check gives no verdict,
 because the longer reference drifts away from its own equilibrium; wherever
 the boundary waves do not arrive, which is at most output points, the peak
@@ -368,7 +374,7 @@ stops only when that estimate is within the deck's own [dabs]/[drel] in
 [npnts] percent of the wet points as well (under `NUMERIC ACCUR`, which has
 no [dabs], the default [dabs] of `STOPC`). One iteration is too short for the
 ratio: near convergence it jumps between −1 and 5 from noise. Measured on
-10 November 2026 (commit `a49f403`) with `scripts/stop_check.py` and the
+10 November 2026 (commit `aea2500`) with `scripts/stop_check.py` and the
 stopping numerics of so-rp (`STOPC DREL=0.01 CURVAT=0.001 NPNTS=98
 ALFA=0.01`, with the default [dabs]), against references of 600 iterations
 on the test models of `examples/testmodels`: on `sphys` (so-rp physics)
@@ -384,7 +390,7 @@ reporting convergence. The estimate is not a bound: an iteration
 that slows down by itself, or a slow mode under a fast one, can still stop it
 too early. Output is the
 same at 1, 2, 4 and 8 threads and under MPI. On so-rp itself (`EXTRAP 10`,
-`MXITST=200`, three conditions; 10 November 2026, commit `a49f403`) the test
+`MXITST=200`, three conditions; 10 November 2026, commit `aea2500`) the test
 is not met within 200 iterations: 89–96% of the wet points pass, against 98%
 required. Against the 160-iteration reference the result then differs by at
 most 0.5–6 cm (rms 0.1–0.6 cm), against 8–24 cm for the operational stop.

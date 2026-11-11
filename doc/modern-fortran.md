@@ -164,8 +164,8 @@ With GNU Fortran's `-Wall -Wextra -Wimplicit-interface -Wsurprising
 
 Both counts are measured with gfortran 16.2 and the same flags; for upstream
 that means building through its own CMake with these flags in place of the
-`-w` it sets, which silences every warning (28 October 2026; the fork count
-of 10 November 2026). See
+`-w` it sets, which silences every warning. Both counts were made again on
+11 November 2026: upstream at `43e9bbb`, the fork at commit `20bfacb`. See
 [strict-warnings.md](strict-warnings.md) for the breakdown by kind and the
 review of each warning that can hide a defect.
 
@@ -255,12 +255,15 @@ which `scripts/unstruc_determinism_smoke.py` checks on a deck with wind. In
 upstream that result depends on the number of threads, for two reasons: a
 missing stencil neighbour in the front ordering (BF-15) and a scratch variable
 that all threads share in the first iteration of a run with wind (BF-17).
+One regular-grid deck, `triad_biph_dewit`, still gives a table that changes
+from run to run with more than one thread, in upstream as well; see the known
+open issues in [bug-fixes-vs-tu-delft-41.51.md](bug-fixes-vs-tu-delft-41.51.md).
 
 ## Behaviour preservation
 
 The optimized LTO build does not need `-fno-strict-aliasing`. Its quick-test
 center table and significant wave-height block are byte-identical to the
-ordinary Release build. The configurations of `scripts/build_matrix.py`
+ordinary Release build (11 November 2026, commit `20bfacb`). The configurations of `scripts/build_matrix.py`
 pass their registered tests; [support-matrix.md](support-matrix.md) gives
 the result per configuration and the date.
 

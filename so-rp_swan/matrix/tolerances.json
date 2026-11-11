@@ -1,7 +1,7 @@
 {
   "_comment": "Absolute/relative tolerances per quantity, comparison and computational variant, fixed in advance. Bit equality where proven and required (41.51 refactor); the RWS migration has its own documented residuals, not an automatic tolerance.",
   "fork_4151_vs_upstream_4151": {
-    "_comment": "Measured on 28 October 2026 at u20_d310_lp300_open with eight OpenMP threads, both built with gfortran 16.2 at -O3: same iteration history, table and spectra numerically identical (only white space in one header line differs).",
+    "_comment": "Holds since BF-63 only when the fork computes the LTA as upstream does (TRIAD ... UPSTREAM); with the deck as it is, the fork differs by up to 2.5 cm in Hsig. Measured on 10 November 2026 at u20_d310_lp300_open, upstream 43e9bbb and the fork at commit aea2500 with UPSTREAM, both built with gfortran 16.2 at -O3 and run with four OpenMP threads pinned to four logical CPUs (two cores): the same accuracy at every iteration, and table and spectra byte-identical, except at the five output points that only the fork finds (BF-56), where upstream writes exception values and NODATA. The deck writes no field, so Hsig_field was not compared.",
     "Hsig_points": {
       "mode": "bit_equal",
       "max_abs": 0.0

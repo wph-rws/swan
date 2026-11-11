@@ -63,7 +63,9 @@ source.
 On the operational so-rp computation with the corrected template
 (`../../par/so-rp_osk_org.swn`), condition `u20_d310_lp300_open`, eight
 threads, this build and the RWS 41.31A.1 executable both stop on their
-criterion at 98.02% after 35 iterations; the accuracy per iteration differs by
-at most 0.01 percentage point. Over the 130 wet output points Hsig differs by
-at most 0.00017 m and by 0.000016 m RMS, and the mean Hsig is 1.602 m in both,
-consistent with compiler rounding.
+criterion at 98.02% after 36 iterations (35 accuracy lines); the accuracy per
+iteration differs by at most 0.01 percentage point. Over the 130 wet output
+points Hsig differs by at most 0.00017 m and by 0.000016 m RMS, and the mean
+Hsig is 1.602 m in both, consistent with compiler rounding. Measured again on
+11 November 2026: this build with eight threads, against the RWS 41.31A.1 run
+of 10 November 2026 with four threads, with the same numbers.
