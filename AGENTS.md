@@ -256,8 +256,9 @@ The full breadth below runs **once per change set, before it is merged**
 CTest compares with a relative tolerance of `1e-3`, so a green CTest does not
 show byte-identical output; compare the files when that is the claim.
 
-Runs on the operational so-rp grid take about 17 s per iteration on four
-cores. Use them only for questions about that deck itself, never as a check
+Runs on the operational so-rp grid take about 6 s per iteration on four
+pinned cores, about 4 minutes for a run of 38 iterations (11 November 2026,
+commit `c63f018`). Use them only for questions about that deck itself, never as a check
 of a code change. Before starting one, work out the run time and say it, and
 give each process its own cores (`taskset`); `OMP_PROC_BIND` alone puts the
 threads of every process on the same first cores.

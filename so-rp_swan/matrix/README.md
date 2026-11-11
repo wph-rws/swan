@@ -105,7 +105,7 @@ OMP_NUM_THREADS=4 OMP_PROC_BIND=close OMP_PLACES=cores OMP_WAIT_POLICY=PASSIVE \
   --json .upstream/convergence-check/result.json
 ```
 
-With 200 and 400 iterations one condition takes well over an hour and a half;
+With 200 and 400 iterations one condition takes about an hour on four cores;
 start with a single condition. `--reference-alfa` tests the effect of
 under-relaxation separately.
 

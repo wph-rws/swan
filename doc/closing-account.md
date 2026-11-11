@@ -98,9 +98,10 @@ condition. Switched off, it is not computed at all; switched on, it costs
 2.5% on one core and 3.0% on four threads. No general operational residual threshold has been set
 ([balance-residual-design.md](balance-residual-design.md)).
 
-**Speed against upstream.** On one core the fork is 1.78 times as fast as
-upstream with upstream's own default build, and 1.25 times as fast when both
-are built at `-O3`. On four OpenMP threads these factors are 1.86 and 1.28.
+**Speed against upstream.** On one core the fork is 1.86 times as fast as
+upstream with upstream's own default build, and 1.28 times as fast when both
+are built at `-O3`. On four OpenMP threads these factors are 1.74 and 1.24
+(11 November 2026; the runs scatter by up to about 10%).
 Thread counts, pinning and cases are in
 [benchmarks/speed-vs-upstream.md](../benchmarks/speed-vs-upstream.md).
 
@@ -140,8 +141,12 @@ GNU Fortran 16.2 on Linux x86-64, Release, with the six base gates green on
 the same commit: serial, OpenMP, runtime checks, strict, MPI on two ranks,
 and the manifest and Python checks. This includes an installation test with a
 case that runs from the installation. CI also requires the build variants of
-its matrix (see `doc/support-matrix.md`). This was shown locally on
-10 November 2026, on the commit that brought this account up to date. On
+its matrix. All 30 configurations of `scripts/build_matrix.py` were built from
+scratch and tested on one commit; all pass except the two preserved legacy I/O
+routes, which fail one test for a documented reason, and the Intel compiler,
+which is not installed (see `doc/support-matrix.md`). This was shown locally on
+10 November 2026, on commit `c63f018`, which has the same sources as the
+commits after it that bring the documents up to date. On
 GitHub, CI last ran on 29 October 2026 (run 40849401258) and failed in every
 job except the manifest and Python checks, for a reason of the CI
 environment: the jobs unpack the source from a tarball whose files carry the
@@ -169,7 +174,7 @@ This is the most important section of this document.
   were removed on 7 November 2026, except three names (four warnings) that only
   OpenMP clauses use and the unused dummy arguments.
 - **The Debug route as a gate.** It runs only locally, not in CI. With
-  gfortran 16.2 a Debug build (`-O0`) passes all 60 tests. Two things make `-O0` and `-O3` round
+  gfortran 16.2 a Debug build (`-O0`) passes all 66 tests (10 November 2026). Two things make `-O0` and `-O3` round
   differently. First, for a constant integer exponent above four, such as
   `SF**5` in the JONSWAP shape `SSHAPE`, GCC at `-O1` and higher multiplies in
   its own order, (x·x²)·x², while `-O0` calls libgcc's `__powisf2`, which
@@ -188,9 +193,6 @@ This is the most important section of this document.
   AGENTS.md and `doc/support-matrix.md`. Intel and NAG remain unverified.
 - **Native Windows, IBM, Fujitsu, Cray.** The branches have been kept and
   compile where that is possible; they have not been tried.
-- **The full clean build matrix of all 28 configurations on one candidate.**
-  The registration counts were measured per configuration; the combined
-  clean build was not.
 - **The MPI field contract on land.** With BF-40, the wet field of the MPI
   assembly is bit-identical to serial, on 2 and 4 ranks. Quantities that SWAN
   also fills in at inactive points (such as `WIND`) are at the exception

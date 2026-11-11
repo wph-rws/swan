@@ -199,9 +199,10 @@ NUMERIC STOPC ... RESIDUAL [rtol]
 
 `RESIDUAL` follows the `STOPC`/`ACCUR` part. The iteration then stops only
 when the existing criterion is met **and** the *energy* rms is below `[rtol]`.
-Without the keyword nothing changes: the numerical output of all 215 files
-from the test suite is bit-identical to a build without the residual, serial
-and with OpenMP, and across 1, 2, 4 and 8 threads.
+Without the keyword nothing changes: when the residual was added (commit
+`8a4cb1b`, 26 October 2026, on the earlier history), the numerical output of
+all 215 files from the test suite was bit-identical to the build before it,
+serial and with OpenMP, and across 1, 2, 4 and 8 threads.
 
 A threshold must lie above the floor of the deck, otherwise the run always
 iterates up to `MXITST`. As a safety net against false convergence, 0.03 is
@@ -251,13 +252,17 @@ With the residual switched off, the call sits behind
 costs nothing measurable, serial or on several cores.
 
 With the residual switched on (`NUMERIC STOPC RESIDUAL 0`), measured on
-Voordelta regular, seven alternating rounds per configuration; the output is
-byte-identical with the residual on and off:
+Voordelta regular on 11 November 2026 (commit `c63f018`), seven alternating
+rounds per configuration; the cost is the median of the ratio per round, and
+the output is byte-identical with the residual on and off:
 
-| configuration | residual off | residual on | cost of the residual |
+| configuration | residual off (median) | residual on (median) | cost of the residual |
 |---|---:|---:|---:|
-| serial, one thread on CPU 0 | 22.91 s | 23.49 s | 2.5% |
-| OpenMP, 4 threads on CPU 0,2,4,6 (`OMP_PROC_BIND=close`, `OMP_PLACES=cores`) | 7.26 s | 7.35 s | 3.0% |
+| serial, one thread on CPU 0 | 24.22 s | 24.84 s | 2.7% |
+| OpenMP, 4 threads on CPU 0,2,4,6 (`OMP_PROC_BIND=close`, `OMP_PLACES=cores`) | 8.27 s | 8.32 s | 4.4% |
+
+On four threads the single runs spread from 7.7 to 8.9 s, more than the cost
+itself.
 
 Measured with gfortran 16.2 on an Intel Core Ultra 9 185H;
 `benchmarks/residual_cost.py` repeats the measurement.

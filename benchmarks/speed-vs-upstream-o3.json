@@ -1,11 +1,11 @@
 {
-  "date": "2026-10-28",
+  "date": "2026-11-11",
   "revisions": {
-    "current": "main",
+    "current": "c63f018",
     "upstream": "43e9bbb"
   },
   "host": {
-    "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.44",
+    "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.44",
     "processor": "",
     "cpu_model": "Intel(R) Core(TM) Ultra 9 185H",
     "logical_cpus": 22,
@@ -17,10 +17,7 @@
       8,
       10,
       12,
-      14,
-      16,
-      18,
-      20
+      14
     ]
   },
   "configuration": {
@@ -47,17 +44,17 @@
     ],
     "executables": {
       "openmp": {
-        "current": "/home/wilbert/swan/.upstream/meting16/b_cur_omp/bin/swan.exe",
-        "upstream": "/home/wilbert/swan/.upstream/meting16/b_up_omp_o3/bin/swan.exe"
+        "current": "/home/wilbert/swan/build-final-omp/bin/swan.exe",
+        "upstream": "/home/wilbert/swan/.upstream/meting-2026-11-10/speed/b_up_omp_o3/bin/swan.exe"
       },
       "mpi": {
-        "current": "/home/wilbert/swan/.upstream/meting16/b_cur_mpi/bin/swan.exe",
-        "upstream": "/home/wilbert/swan/.upstream/meting16/b_up_mpi_o3/bin/swan.exe"
+        "current": "/home/wilbert/swan/build-final-mpi/bin/swan.exe",
+        "upstream": "/home/wilbert/swan/.upstream/meting-2026-11-10/speed/b_up_mpi_o3/bin/swan.exe"
       }
     },
     "build_descriptions": {
       "current": "repository default Release; effective -O3",
-      "upstream": "upstream source built at -O3"
+      "upstream": "upstream source built at -O3; MPI build after switch.pl -unix -mpi"
     }
   },
   "results": {
@@ -65,11 +62,11 @@
       "current": {
         "1": {
           "seconds": [
-            22.886541312996997,
-            23.176250427990453,
-            22.795855791991926
+            24.218814564999775,
+            24.07127637999656,
+            23.942515816001105
           ],
-          "median_seconds": 22.886541312996997,
+          "median_seconds": 24.07127637999656,
           "scaling_speedup": 1.0,
           "parallel_efficiency": 1.0,
           "repeat_outputs_byte_identical": true,
@@ -77,85 +74,85 @@
           "sha256": {
             "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
             "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
-            "voordelta_sites.tbl": "87685f971c74e84cae365f3a33dab4a648e1d509e6f9efb8a25334fecde407be"
+            "voordelta_sites.tbl": "d7ce2cfce4cdb5d3f2a868dc8d18f5ff54093fe637b8877e44469ebaf4d7c3b3"
           },
           "numerical_data_sha256": {
             "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
           },
-          "speedup_vs_upstream": 1.2473746502178544
+          "speedup_vs_upstream": 1.2842328618967755
         },
         "2": {
           "seconds": [
-            11.756518996990053,
-            12.368633958991268,
-            13.860613459997694
+            12.920397387002595,
+            13.242723960996955,
+            13.198070384998573
           ],
-          "median_seconds": 12.368633958991268,
-          "scaling_speedup": 1.8503693608266119,
-          "parallel_efficiency": 0.9251846804133059,
+          "median_seconds": 13.198070384998573,
+          "scaling_speedup": 1.8238481594519216,
+          "parallel_efficiency": 0.9119240797259608,
           "repeat_outputs_byte_identical": true,
           "repeat_numerical_data_identical": true,
           "sha256": {
             "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
             "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
-            "voordelta_sites.tbl": "87685f971c74e84cae365f3a33dab4a648e1d509e6f9efb8a25334fecde407be"
+            "voordelta_sites.tbl": "d7ce2cfce4cdb5d3f2a868dc8d18f5ff54093fe637b8877e44469ebaf4d7c3b3"
           },
           "numerical_data_sha256": {
             "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
           },
-          "speedup_vs_upstream": 1.254214931368814
+          "speedup_vs_upstream": 1.240498576110659
         },
         "4": {
           "seconds": [
-            7.42824340100924,
-            8.504550862999167,
-            7.645451383999898
+            8.708427101999405,
+            8.382705858995905,
+            8.73381449500448
           ],
-          "median_seconds": 7.645451383999898,
-          "scaling_speedup": 2.9934846438096585,
-          "parallel_efficiency": 0.7483711609524146,
+          "median_seconds": 8.708427101999405,
+          "scaling_speedup": 2.7641359453385026,
+          "parallel_efficiency": 0.6910339863346256,
           "repeat_outputs_byte_identical": true,
           "repeat_numerical_data_identical": true,
           "sha256": {
             "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
             "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
-            "voordelta_sites.tbl": "87685f971c74e84cae365f3a33dab4a648e1d509e6f9efb8a25334fecde407be"
+            "voordelta_sites.tbl": "d7ce2cfce4cdb5d3f2a868dc8d18f5ff54093fe637b8877e44469ebaf4d7c3b3"
           },
           "numerical_data_sha256": {
             "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
           },
-          "speedup_vs_upstream": 1.2804358327993355
+          "speedup_vs_upstream": 1.2421516082408823
         },
         "8": {
           "seconds": [
-            10.963732193995384,
-            11.017647878004937,
-            11.15801950499008
+            10.895407030999195,
+            10.664078809000785,
+            11.071008261002135
           ],
-          "median_seconds": 11.017647878004937,
-          "scaling_speedup": 2.0772620042329093,
-          "parallel_efficiency": 0.25965775052911366,
+          "median_seconds": 10.895407030999195,
+          "scaling_speedup": 2.2093049219281014,
+          "parallel_efficiency": 0.27616311524101267,
           "repeat_outputs_byte_identical": true,
           "repeat_numerical_data_identical": true,
           "sha256": {
             "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
             "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
-            "voordelta_sites.tbl": "87685f971c74e84cae365f3a33dab4a648e1d509e6f9efb8a25334fecde407be"
+            "voordelta_sites.tbl": "d7ce2cfce4cdb5d3f2a868dc8d18f5ff54093fe637b8877e44469ebaf4d7c3b3"
           },
           "numerical_data_sha256": {
             "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
           },
-          "speedup_vs_upstream": 1.1111544767591692
+          "speedup_vs_upstream": 1.1096082933474753
         }
       },
       "upstream": {
         "1": {
           "seconds": [
-            29.557940696002333,
-            28.024325464997673,
-            28.548091464996105
+            31.27164712699596,
+            30.913124154991237,
+            30.300203058999614
           ],
-          "median_seconds": 28.548091464996105,
+          "median_seconds": 30.913124154991237,
           "scaling_speedup": 1.0,
           "parallel_efficiency": 1.0,
           "repeat_outputs_byte_identical": true,
@@ -171,13 +168,13 @@
         },
         "2": {
           "seconds": [
-            15.023478767994675,
-            15.512925392002217,
-            15.97015515799285
+            16.372187519998988,
+            16.364863430004334,
+            16.494858349004062
           ],
-          "median_seconds": 15.512925392002217,
-          "scaling_speedup": 1.8402777518490645,
-          "parallel_efficiency": 0.9201388759245323,
+          "median_seconds": 16.372187519998988,
+          "scaling_speedup": 1.888148673916065,
+          "parallel_efficiency": 0.9440743369580324,
           "repeat_outputs_byte_identical": true,
           "repeat_numerical_data_identical": true,
           "sha256": {
@@ -191,13 +188,13 @@
         },
         "4": {
           "seconds": [
-            16.169080908002798,
-            9.789509909998742,
-            9.750007774011465
+            10.429398891996243,
+            10.817186729997047,
+            11.003917852998711
           ],
-          "median_seconds": 9.789509909998742,
-          "scaling_speedup": 2.916192100264167,
-          "parallel_efficiency": 0.7290480250660417,
+          "median_seconds": 10.817186729997047,
+          "scaling_speedup": 2.8577785450690536,
+          "parallel_efficiency": 0.7144446362672634,
           "repeat_outputs_byte_identical": true,
           "repeat_numerical_data_identical": true,
           "sha256": {
@@ -211,13 +208,13 @@
         },
         "8": {
           "seconds": [
-            12.151957785987179,
-            12.245517059011036,
-            12.242308763001347
+            12.0640511399979,
+            12.089634000993101,
+            12.249817069998244
           ],
-          "median_seconds": 12.242308763001347,
-          "scaling_speedup": 2.331920556625236,
-          "parallel_efficiency": 0.2914900695781545,
+          "median_seconds": 12.089634000993101,
+          "scaling_speedup": 2.556994211111096,
+          "parallel_efficiency": 0.319624276388887,
           "repeat_outputs_byte_identical": true,
           "repeat_numerical_data_identical": true,
           "sha256": {
@@ -235,11 +232,11 @@
       "current": {
         "1": {
           "seconds": [
-            24.977657069990528,
-            25.981664880993776,
-            25.822723423989373
+            26.917058442995767,
+            26.78047614300158,
+            26.979709679013467
           ],
-          "median_seconds": 25.822723423989373,
+          "median_seconds": 26.917058442995767,
           "scaling_speedup": 1.0,
           "parallel_efficiency": 1.0,
           "repeat_outputs_byte_identical": true,
@@ -247,85 +244,85 @@
           "sha256": {
             "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
             "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
-            "voordelta_sites.tbl": "87685f971c74e84cae365f3a33dab4a648e1d509e6f9efb8a25334fecde407be"
+            "voordelta_sites.tbl": "d7ce2cfce4cdb5d3f2a868dc8d18f5ff54093fe637b8877e44469ebaf4d7c3b3"
           },
           "numerical_data_sha256": {
             "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
           },
-          "speedup_vs_upstream": 1.2141988015436258
+          "speedup_vs_upstream": 1.2367187489118132
         },
         "2": {
           "seconds": [
-            19.575557415009825,
-            16.006798801987316,
-            16.04157986798964
+            17.457156854012283,
+            17.212791661993833,
+            17.338605972996447
           ],
-          "median_seconds": 16.04157986798964,
-          "scaling_speedup": 1.6097369234508898,
-          "parallel_efficiency": 0.8048684617254449,
+          "median_seconds": 17.338605972996447,
+          "scaling_speedup": 1.5524349815041087,
+          "parallel_efficiency": 0.7762174907520544,
           "repeat_outputs_byte_identical": true,
           "repeat_numerical_data_identical": true,
           "sha256": {
             "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
             "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
-            "voordelta_sites.tbl": "29128b2fff97dc41117e93195d6ffd111142b338a3401e2d2e5be2eb833f8b53"
+            "voordelta_sites.tbl": "db3516c763a0ffb4653f4f815669077ed0871a118b4776f854280c7f4ab5f2e2"
           },
           "numerical_data_sha256": {
             "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
           },
-          "speedup_vs_upstream": 1.234968996695903
+          "speedup_vs_upstream": 1.24724987416444
         },
         "4": {
           "seconds": [
-            10.39910412800964,
-            10.51916764199268,
-            13.393356793996645
+            10.959704072985915,
+            11.193841514992528,
+            11.40306419999979
           ],
-          "median_seconds": 10.51916764199268,
-          "scaling_speedup": 2.4548257336354884,
-          "parallel_efficiency": 0.6137064334088721,
+          "median_seconds": 11.193841514992528,
+          "scaling_speedup": 2.4046310113417517,
+          "parallel_efficiency": 0.6011577528354379,
           "repeat_outputs_byte_identical": true,
           "repeat_numerical_data_identical": true,
           "sha256": {
             "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
             "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
-            "voordelta_sites.tbl": "29128b2fff97dc41117e93195d6ffd111142b338a3401e2d2e5be2eb833f8b53"
+            "voordelta_sites.tbl": "db3516c763a0ffb4653f4f815669077ed0871a118b4776f854280c7f4ab5f2e2"
           },
           "numerical_data_sha256": {
             "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
           },
-          "speedup_vs_upstream": 1.7846628025065998
+          "speedup_vs_upstream": 1.3187578973872618
         },
         "8": {
           "seconds": [
-            10.981746462013689,
-            11.013178902998334,
-            11.286476060995483
+            10.991628138013766,
+            11.261979008006165,
+            11.104460716000176
           ],
-          "median_seconds": 11.013178902998334,
-          "scaling_speedup": 2.344711154829161,
-          "parallel_efficiency": 0.2930888943536451,
+          "median_seconds": 11.104460716000176,
+          "scaling_speedup": 2.4239861017484228,
+          "parallel_efficiency": 0.30299826271855285,
           "repeat_outputs_byte_identical": true,
           "repeat_numerical_data_identical": true,
           "sha256": {
             "voordelta_depth.blk": "d89c8fdae15c99cb737ef56d8dcfdd8e769d32103709fd13f735b88261690f8e",
             "voordelta_hs.blk": "30a805ae2b23bcc6256ccffad0efb5a9f4047915cdcf9b78bc68f7ee3c644b44",
-            "voordelta_sites.tbl": "29128b2fff97dc41117e93195d6ffd111142b338a3401e2d2e5be2eb833f8b53"
+            "voordelta_sites.tbl": "db3516c763a0ffb4653f4f815669077ed0871a118b4776f854280c7f4ab5f2e2"
           },
           "numerical_data_sha256": {
             "voordelta_sites.tbl": "069e6d01a52f27cfde32983d4bced0fa219d75f8b42f9cbe1065a1e8d9ebab0a"
           },
-          "speedup_vs_upstream": 1.2148828860261
+          "speedup_vs_upstream": 1.2033013795751029
         }
       },
       "upstream": {
         "1": {
           "seconds": [
-            31.231274706005934,
-            31.35856149700703,
-            31.353919834000408
+            33.80200100399088,
+            33.23769658499805,
+            33.28883084200788
           ],
-          "median_seconds": 31.353919834000408,
+          "median_seconds": 33.28883084200788,
           "scaling_speedup": 1.0,
           "parallel_efficiency": 1.0,
           "repeat_outputs_byte_identical": true,
@@ -341,13 +338,13 @@
         },
         "2": {
           "seconds": [
-            19.553631525996025,
-            19.81085379498836,
-            19.84123811298923
+            21.939514919009525,
+            21.580218048999086,
+            21.625574118006625
           ],
-          "median_seconds": 19.81085379498836,
-          "scaling_speedup": 1.582663733651507,
-          "parallel_efficiency": 0.7913318668257535,
+          "median_seconds": 21.625574118006625,
+          "scaling_speedup": 1.5393270329082176,
+          "parallel_efficiency": 0.7696635164541088,
           "repeat_outputs_byte_identical": true,
           "repeat_numerical_data_identical": true,
           "sha256": {
@@ -361,13 +358,13 @@
         },
         "4": {
           "seconds": [
-            13.32972076900478,
-            30.96858213499945,
-            18.7731672039954
+            12.902829700993607,
+            14.761966899997788,
+            15.203222506999737
           ],
-          "median_seconds": 18.7731672039954,
-          "scaling_speedup": 1.6701454524587365,
-          "parallel_efficiency": 0.4175363631146841,
+          "median_seconds": 14.761966899997788,
+          "scaling_speedup": 2.255040338968168,
+          "parallel_efficiency": 0.563760084742042,
           "repeat_outputs_byte_identical": true,
           "repeat_numerical_data_identical": true,
           "sha256": {
@@ -381,13 +378,13 @@
         },
         "8": {
           "seconds": [
-            13.410742647000006,
-            13.194326783996075,
-            13.379722569996375
+            13.819219899000018,
+            13.362012899000547,
+            13.214871390999178
           ],
-          "median_seconds": 13.379722569996375,
-          "scaling_speedup": 2.3433908789940556,
-          "parallel_efficiency": 0.29292385987425695,
+          "median_seconds": 13.362012899000547,
+          "scaling_speedup": 2.4913036002605433,
+          "parallel_efficiency": 0.3114129500325679,
           "repeat_outputs_byte_identical": true,
           "repeat_numerical_data_identical": true,
           "sha256": {
@@ -411,7 +408,7 @@
     "unique_sha256_per_output": {
       "voordelta_depth.blk": 1,
       "voordelta_hs.blk": 1,
-      "voordelta_sites.tbl": 4
+      "voordelta_sites.tbl": 2
     }
   }
 }
