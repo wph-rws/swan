@@ -148,7 +148,11 @@ scratch and tested on one commit; all pass except the two preserved legacy I/O
 routes, which fail one test for a documented reason, and the Intel compiler,
 which is not installed (see `doc/support-matrix.md`). This was shown locally on
 10 November 2026, on commit `13f05a6`, which has the same sources as the
-commits after it that bring the documents up to date. On
+commits after it that bring the documents up to date. The MPI suite of that
+day did not run the quasi-coherent model (`GEN4`), and on two or more
+processes it hung after its first iteration, through a fault in the fork's
+own MPI layer; the commit that fixed this added the test `mpi_qcm`, which
+runs it on one, two and four processes. On
 GitHub, CI last ran on 29 October 2026 (run 40849401258) and failed in every
 job except the manifest and Python checks, for a reason of the CI
 environment: the jobs unpack the source from a tarball whose files carry the

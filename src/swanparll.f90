@@ -2798,16 +2798,21 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
       CALL SWGATHER (IARRC, 9*NPROC, IARRL, 9 )
       IF (STPNOW()) RETURN
 
+!     only the master receives; the other processes pass an empty buffer
+!     with a defined length instead of an unallocated array
       IF (.NOT.FULL) THEN
          IF (IAMMASTER) THEN
             ILEN = MXCGL*MYCGL + &
                4*MAX(IHALOX,IHALOY)*NPROC*MAX(MXCGL,MYCGL)
             ALLOCATE(KGRPTC(ILEN))
+         ELSE
+            ILEN = 0
+            ALLOCATE(KGRPTC(0))
          END IF
          CALL SWGATHER ( KGRPTC, ILEN, KGRPNT, MXC*MYC )
          IF (STPNOW()) RETURN
       ELSE
-         IF (IAMMASTER) ALLOCATE(KGRPTC(0))
+         ALLOCATE(KGRPTC(0))
       END IF
 
       IF (IAMMASTER) THEN
@@ -2819,6 +2824,9 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
                4*MAX(IHALOX,IHALOY)*NPROC*MAX(MXCGL,MYCGL)
          END IF
          ALLOCATE(FLDC(ILEN))
+      ELSE
+         ILEN = 0
+         ALLOCATE(FLDC(0))
       END IF
       IF (FULL) THEN
          ILEN2 = MXC*MYC
@@ -2892,7 +2900,7 @@ SUBROUTINE SWCOLLECT ( FIELDGL, FIELD, FULL )
 
       END IF
 
-      IF (IAMMASTER) DEALLOCATE(KGRPTC,FLDC)
+      DEALLOCATE(KGRPTC,FLDC)
 
    END IF
 

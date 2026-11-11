@@ -67,6 +67,17 @@ depth check of BF-61 asked for the table of resident vertices, which only a
 parallel run has. That was corrected in the commit of BF-61 before the
 history was published.
 
+No test in these suites ran the quasi-coherent model (`GEN4`) on more than
+one process, and there it hung after the first iteration, in the fork only.
+After each iteration QCM gathers its bulk dissipation on the master and
+broadcasts it back. The fork's typed `SWGATHER` checked the receive buffer,
+which only the master uses, on every process; on the other processes the
+check failed, so they left the gather and waited in the broadcast, while the
+master waited in the gather. The commit that fixed this added `mpi_qcm`,
+which runs `examples/qcm/qcm_scatter.swn` on one, two and four processes in
+every MPI configuration except COH; from that commit on, the CTest counts of
+those configurations are one higher than in the tables here.
+
 ## Build variants (10 November 2026)
 
 Each variant was built in its own build directory and run with the full CTest

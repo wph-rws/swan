@@ -877,6 +877,20 @@ if( BUILD_TESTING )
     )
     set_tests_properties( mpi_xnl_failure PROPERTIES RUN_SERIAL TRUE TIMEOUT 180 )
 
+    # QCM (GEN4) gathers and broadcasts its bulk dissipation after every
+    # iteration; a run on several processes must end and agree with one.
+    add_test(
+      NAME mpi_qcm
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/tests/test_mpi_qcm.py
+              --swan-executable $<TARGET_FILE:${EXE}>
+              --mpi-exec ${MPIEXEC_EXECUTABLE}
+              --mpi-numproc-flag=${MPIEXEC_NUMPROC_FLAG}
+              ${MPI_EDGES_JACOBI}
+              --work-directory ${CMAKE_CURRENT_BINARY_DIR}/test-runs/mpi-qcm
+    )
+    set_tests_properties( mpi_qcm PROPERTIES RUN_SERIAL TRUE TIMEOUT 300 )
+
     add_test(
       NAME matlab_output_mpi
       COMMAND ${Python3_EXECUTABLE}
