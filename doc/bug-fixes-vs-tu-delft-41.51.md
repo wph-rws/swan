@@ -263,6 +263,23 @@ These issues are in upstream and have been investigated, but not resolved:
   the deck writes do not change. The delta gate leaves `.bqf` files out for
   that reason. Whether the differing bytes are only padding has not been
   shown.
+- **A grid that is too small for the number of MPI processes gives wrong or
+  missing values without a message.** SWAN cuts the grid into strips, one
+  per process, and does not check that a strip is wide enough for the
+  points its neighbours need. Measured on 11 November 2026 with
+  `examples/qcm/qcm.swn` (2000 m by 1000 m, one output point in the centre),
+  with `GEN3 KOMEN` instead of `GEN4` and the number of meshes varied, on
+  the fork at `6013ccb` and on upstream `43e9bbb` built for MPI: with 12 by
+  2 meshes or more, 2 and 4 processes give the same Hs in both programs.
+  With 8 by 2 meshes, 4 processes give 0.813 m where 2 give 0.767 m, in both
+  programs alike. With 6 by 2 or 4 by 6 meshes on 4 processes upstream
+  writes exception values and the fork a value that differs from that of 2
+  processes; with 4 by 2 meshes the fork writes exception values on 2 and 4
+  processes and upstream on 4. Every one of these runs ends with exit code
+  0. Grids of practical size are far from this limit; the defect is that
+  SWAN does not refuse the run. It is not fixed. `examples/qcm/qcm.swn`
+  itself has 4 by 2 meshes, so it cannot be used to test MPI; the MPI test
+  of QCM uses `qcm_scatter.swn`.
 - **How complete this list is.** Some defects were found by reading code that
   looks wrong and checking the pattern against `43e9bbb`, the others through
   compiler warnings, runtime checks, Valgrind, the comparison with upstream
@@ -282,7 +299,7 @@ claimed.
 
 Each fix is one commit, which holds the fix and its row above, and ends with
 the trailer `Bug-fix: BF-NN`. Most of these commits also hold the test;
-[history.md](history.md) lists the 16 that do not, and says where those fixes
+[history.md](history.md) lists the 17 that do not, and says where those fixes
 are tested, or why they are not. The table names that commit; a later
 correction of a fix carries the same trailer (`git log --grep='Bug-fix: BF-01'`
 shows both commits of BF-01). The fix of BF-04 is part of the commit that put
@@ -360,6 +377,8 @@ and the history disagree; see [history.md](history.md).
 | BF-66 | `0527b3c1c0` | Give the first guess of a stationary ST6 run a drag coefficient (BF-66) |
 | BF-67 | `affd698575` | Treat an incomplete grid or field file as a severe error (BF-67) |
 | BF-68 | `e07f2f9294` | Compute and write every edge point in the Jacobi MPI build (BF-68) |
+| BF-69 | `2db9a5d5f8` | Stop QCM cleanly when no waves come in over the boundary (BF-69) |
+| BF-70 | `7cc677e2e9` | Wait for every thread before filtering the De Wit biphase (BF-70) |
 
 ## Appendix: BF-34 against the literature
 

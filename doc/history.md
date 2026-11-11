@@ -39,6 +39,11 @@ reason given there.
    exceptions are listed below.
 7. **Layout check, this record, and the corrections after a review**
    (`5e60340` and the commits after it).
+8. **Two more fixes and a fault of the fork** (`2db9a5d` to `6013ccb`, 11
+   November 2026), found when the earlier measurements were repeated: BF-69
+   and BF-70, each in one commit as above, and the commit that lets the
+   quasi-coherent model run under MPI again, which has no BF number because
+   upstream does not have that fault.
 
 The bug numbers were given in the order the bugs were found. BF-56 to BF-63
 come after BF-64 to BF-68 in the history, because BF-59 and BF-67 change the
@@ -58,12 +63,14 @@ before BF-57, whose test needs it.
 
 ## Fixes without a test in their own commit
 
-For 52 of the 68 fixes the commit also adds or extends a test under `tests/`
-or `examples/`. For the other 16 it does not:
+For 53 of the 70 fixes the commit also adds or extends a test under `tests/`
+or `examples/`. For the other 17 it does not:
 
 - **The test is in the same commit, outside `tests/`.** BF-02 registers its
   CTest case `netcdf_mixed_block_output` in `CMakeLists.txt`; BF-17 adds
-  `scripts/unstruc_determinism_smoke.py`, which CI runs; BF-05 adds
+  `scripts/unstruc_determinism_smoke.py`, which CI runs; BF-70 adds
+  `scripts/triad_dewit_determinism_smoke.py`, a CTest case of the OpenMP
+  builds; BF-05 adds
   `scripts/lifetime_protocol.py`, a Valgrind protocol that is run by hand.
 - **The test came with a later fix**, which needed the same test deck or
   helper: BF-10 in BF-52 (`3ae5395`), BF-14 in BF-50 (`d1353a4`), BF-19 in
