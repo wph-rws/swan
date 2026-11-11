@@ -1751,6 +1751,14 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
          END DO
       END IF
 
+!     Each thread has cleared its own part of COMPDA above. The master
+!     region below writes the filtered De Wit biphase into COMPDA(:,JBIPH)
+!     for the whole grid (SWBIPM), so it has to wait until every thread
+!     has finished clearing. Without this barrier a thread that is still
+!     clearing its part overwrites the filtered biphase with zero, and the
+!     result changes from run to run with more than one thread.
+      !$OMP BARRIER
+
 !----------------------------------------------------------------------   40.31
 !     Begin master thread region.                                         40.31
 !----------------------------------------------------------------------   40.31

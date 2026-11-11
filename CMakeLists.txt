@@ -1114,6 +1114,17 @@ if( BUILD_TESTING )
             ${CMAKE_SOURCE_DIR}/tests/test_time_convergence.py -q
   )
 
+  # A regular-grid deck must give the serial answer on more threads than
+  # CPUs (BF-70): the script sets its own thread counts and pinning.
+  if( OPENMP )
+    add_test(
+      NAME triad_dewit_determinism
+      COMMAND ${Python3_EXECUTABLE}
+              ${CMAKE_SOURCE_DIR}/scripts/triad_dewit_determinism_smoke.py
+              --exe $<TARGET_FILE:${EXE}>
+    )
+  endif()
+
   # Keep the small OpenMP reference runs deterministic while still exercising
   # real parallel work; otherwise the runtime inherits the host CPU count.
   if( OPENMP )

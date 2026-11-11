@@ -294,9 +294,10 @@ Two things go with this:
 
 - **Check byte-identical output across thread counts.** The output should not
   depend on the number of threads. Measure that explicitly at 1, 2, 4 and more
-  threads; a speed-up that breaks determinism is not a gain. One deck,
-  `triad_biph_dewit`, does not meet this yet, in upstream too (see the known
-  open issues in the bug-fix table).
+  threads; a speed-up that breaks determinism is not a gain. Run a check
+  more than once and with more threads than cores: a race may show in only
+  a few runs (BF-70 showed in 11 of 100 runs at two threads; 11 November
+  2026, commit `3cd6c83`).
 - **Measure on a quiet machine.** If anything else runs on the same node (a
   second agent, a build, another run), the time is useless. Check this
   beforehand, and say so if it was not possible.

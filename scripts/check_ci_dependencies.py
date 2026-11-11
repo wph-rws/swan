@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 #  Files that a gate actually runs (see the pytest and script steps in ci.yml).
 TEST_LAYER = ("tests/*.py", "examples/*/run.py", "examples/*.py", "scripts/check_*.py",
             "scripts/ci_gate.py", "scripts/strict_diagnostics.py", "scripts/select_gates.py",
-            "scripts/unstruc_determinism_smoke.py",
+            "scripts/unstruc_determinism_smoke.py", "scripts/triad_dewit_determinism_smoke.py",
             "so-rp_swan/matrix/*.py", "so-rp_swan/comparison/*.py")
 
 #  Module name -> Debian package. Only what the test layer really needs.

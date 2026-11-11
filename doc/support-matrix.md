@@ -117,11 +117,12 @@ What was established for each variant:
   hit it: the unstructured example has 15 nodes, so one node per front.
   `front_dependency_completeness` does not apply to the fixed order and is
   not registered there.
-- **One regular-grid deck is not deterministic with OpenMP either**:
-  `triad_biph_dewit` can give a different table from run to run on more
-  than one thread, in upstream too. See "A deck that is not reproducible
-  with OpenMP" under the known open issues in
-  [bug-fixes-vs-tu-delft-41.51.md](bug-fixes-vs-tu-delft-41.51.md).
+- **The regular grid with OpenMP** gives the same output at every thread
+  count on the example decks. `triad_biph_dewit` did not, in upstream too,
+  until BF-70 (see
+  [bug-fixes-vs-tu-delft-41.51.md](bug-fixes-vs-tu-delft-41.51.md)); the
+  CTest `triad_dewit_determinism` of an OpenMP build checks that deck on more
+  threads than CPUs.
 - **COH** leaves starting and stopping MPI to a host program, and
   SWAN then does not split up the domain (as in upstream, where under COH all
   MPI calls are dropped). A standalone `swan.exe` from a COH+MPI build under

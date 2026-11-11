@@ -204,11 +204,12 @@ This is the most important section of this document.
   is bounded (BF-44), and that deck does not abort in 80 runs with varying
   heap settings. The abort could not be reproduced on demand, so there is no
   conclusive proof that this was the cause.
-- **That every deck gives the same output at every thread count.** One
-  deck, `examples/nonlinear_interactions/triad/triad_biph_dewit.swn`, gives a
-  table that changes from run to run with more than one OpenMP thread, in
-  upstream as well; the cause has not been found (see "A deck that is not
-  reproducible with OpenMP" under the known open issues of the bug-fix table).
+- **That every deck gives the same output at every thread count.** The
+  example decks do since BF-70: `triad_biph_dewit.swn` gave a table that
+  changed from run to run with more than one OpenMP thread, in upstream as
+  well, until a missing barrier was added before the filtering of the De Wit
+  biphase. That only covers the decks that were tried; a race that no deck
+  reaches is not ruled out.
 - **Simultaneous or overlapping use within one process.** Serial reuse has
   been proven; running several runs at the same time in a thread-safe way
   has not been investigated.

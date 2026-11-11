@@ -255,9 +255,12 @@ which `scripts/unstruc_determinism_smoke.py` checks on a deck with wind. In
 upstream that result depends on the number of threads, for two reasons: a
 missing stencil neighbour in the front ordering (BF-15) and a scratch variable
 that all threads share in the first iteration of a run with wind (BF-17).
-One regular-grid deck, `triad_biph_dewit`, still gives a table that changes
-from run to run with more than one thread, in upstream as well; see the known
-open issues in [bug-fixes-vs-tu-delft-41.51.md](bug-fixes-vs-tu-delft-41.51.md).
+On a regular grid the deck `triad_biph_dewit` gave a table that changed from
+run to run with more than one thread, in upstream as well, because the master
+thread wrote the filtered De Wit biphase while other threads could still be
+clearing it (BF-70 in
+[bug-fixes-vs-tu-delft-41.51.md](bug-fixes-vs-tu-delft-41.51.md));
+`scripts/triad_dewit_determinism_smoke.py` checks that deck.
 
 ## Behaviour preservation
 

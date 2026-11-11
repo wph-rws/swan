@@ -204,12 +204,13 @@ residual, gives the same output as its parent. Measured on 11 November 2026
 on those two commits: the 134 numerical output files of the example decks
 are byte-identical serially and with OpenMP at 1, 2, 4 and 8 threads, with
 one exception that the residual does not cause. The 1D deck
-`triad_biph_dewit` gives a slightly different answer from run to run with
+`triad_biph_dewit` gave a slightly different answer from run to run with
 more than one thread: of ten runs at four or eight threads, one to seven
-differ from the serial answer, in both commits and still at commit
-`20bfacb`. Upstream 41.51 built with OpenMP does the same at eight threads
-(nine of ten runs), so the fork did not bring it in; see the known open
-issues in the bug-fix table.
+differed from the serial answer, in both commits and still at commit
+`20bfacb`. Upstream 41.51 built with OpenMP did the same at eight threads
+(nine of ten runs), so the fork did not bring it in. The cause was a missing
+barrier before the filtering of the De Wit biphase, fixed as BF-70 in the
+bug-fix table; since then that deck is also the same at every thread count.
 
 A threshold must lie above the floor of the deck, otherwise the run always
 iterates up to `MXITST`. As a safety net against false convergence, 0.03 is

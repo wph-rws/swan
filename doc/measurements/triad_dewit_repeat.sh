@@ -1,8 +1,8 @@
 #!/bin/bash
 # Repeat examples/nonlinear_interactions/triad/triad_biph_dewit.swn N times
 # with one SWAN executable at a given number of OpenMP threads, and print the
-# md5 of the table of each run (the known open issue "A deck that is not
-# reproducible with OpenMP" in doc/bug-fixes-vs-tu-delft-41.51.md).
+# md5 of the table of each run (BF-70 in doc/bug-fixes-vs-tu-delft-41.51.md;
+# before that fix the table changed from run to run on several threads).
 #
 #   doc/measurements/triad_dewit_repeat.sh EXE THREADS N WORKDIR [CPUS]
 #

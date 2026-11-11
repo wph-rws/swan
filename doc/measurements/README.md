@@ -195,9 +195,8 @@ python3 doc/measurements/sorp_random_points.py --depth-mat BLOCK_RUN/dat/blk.mat
   1e-9, and compare `qcm_scatter.mat` value by value with the fork as it is.
 - `triad_dewit_repeat.sh`: runs
   `examples/nonlinear_interactions/triad/triad_biph_dewit.swn` N times at a
-  given number of OpenMP threads and prints the md5 of each table. Used in
-  the open issue "A deck that is not reproducible with OpenMP" of the bug-fix
-  table.
+  given number of OpenMP threads and prints the md5 of each table. Used for
+  BF-70 in the bug-fix table, before and after the fix.
 
 ```sh
 doc/measurements/triad_dewit_repeat.sh BUILD_OMP/bin/swan.exe 8 10 /tmp/dewit 12-15
