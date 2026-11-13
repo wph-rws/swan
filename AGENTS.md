@@ -54,7 +54,7 @@ in [doc/history.md](doc/history.md).
   the bug-fix table, and ends with the trailer `Bug-fix: BF-NN`
   (`git log --grep='Bug-fix: BF-62'` finds it). The table names the commit.
   A later correction of a fix that is already pushed gets its own commit with
-  the same trailer. Sixteen older fixes have their test elsewhere or none;
+  the same trailer. Seventeen fixes have their test elsewhere or none;
   [doc/history.md](doc/history.md) lists them and says why.
 - A measurement in this file, in the bug-fix table or in a commit message
   names the commit or tag it was made on, not only the date; a number
