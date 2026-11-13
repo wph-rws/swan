@@ -533,7 +533,9 @@ SUBROUTINE SBOT (ABRBOT, DEP2, ECOS, ESIN, AC2, IMATDA, KWAVE, SPCSIG, UBOT, UX2
             FACB = CFBOT(IS) * (SPCSIG(IS) / SINH(KD)) **2
 
             do IDDUM = WINDOW%IDCMIN(IS) , WINDOW%IDCMAX(IS)
-               ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+               ID = IDDUM
+               IF (ID.LT.1) ID = ID + MDC
+               IF (ID.GT.MDC) ID = ID - MDC
 
                SBOTEO = FACB
                IF (IBOT.EQ.2 .AND. ICUR.EQ.1 .AND. PBOT(1).GT.0.) THEN
@@ -1038,7 +1040,9 @@ SUBROUTINE SVEG (DEP2, IMATDA, ETOT, SMEBRK, KWAVE, KMESPC, PLVEGT, WINDOW, DISS
 
    DO IS = 1, WINDOW%ISSTOP
       DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
 
 !           *** store the results in the array IMATDA ***
 !           *** if testfl store results in array for isoline plot ***
@@ -1196,7 +1200,9 @@ SUBROUTINE STURBV (TURBV2, DEP2, IMATDA, WINDOW, KWAVE, DISSC1, PLTURB, SIGPOW, 
                SIGPOW(IS,2) / GRAV * &
                (TANH(MIN(30.,XKD)) - XKD/((COSH(MIN(30.,XKD)))**2))
             DO IDDUM = WINDOW%IDCMIN(IS) , WINDOW%IDCMAX(IS)
-               ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+               ID = IDDUM
+               IF (ID.LT.1) ID = ID + MDC
+               IF (ID.GT.MDC) ID = ID - MDC
 
 !              *** store the results in the array IMATDA             ***
 !              *** if testfl store results in array for isoline plot ***
@@ -1364,7 +1370,9 @@ SUBROUTINE SMUD (DEP2, IMATDA, KMUD, CGMUD, DMW, WINDOW, DISSC1, PLMUD, IGP, ICM
          SMUDWD = 2. * DMW(IS,1) * CGMUD(IS,1)
 
          DO IDDUM = WINDOW%IDCMIN(IS) , WINDOW%IDCMAX(IS)
-            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
 
 !              *** store the results in the array IMATDA             ***
 !              *** if testfl store results in array for isoline plot ***
@@ -1598,7 +1606,9 @@ SUBROUTINE SICE (IMATDA, WINDOW, DISSC1, PLICE, AICELOC, HICELOC, SPCSIG, CG)
          SICEWD = 2. * KI(IS) * CG(IS,1) * AICELOC
 
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
 
 !     *** store the results in the array IMATDA             ***
 !     *** if testfl store results in array for isoline plot ***
@@ -2221,7 +2231,9 @@ SUBROUTINE SSURF (ETOT, HM, QB, SMEBRK, KTETA, KMESPC, SPCSIG, AC2, IMATRA, IMAT
       SURFA0 = TEMP1*FRFAC(IS)
       SURFA1 = TEMP2*FRFAC(IS)
       do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          IMATDA(ID,IS) = IMATDA(ID,IS) + REAL(SURFA1)
          DIS0 = SURFA0 * DBLE(AC2(ID,IS,IGP))
          IMATRA(ID,IS) = IMATRA(ID,IS) + REAL(DIS0)
@@ -2691,7 +2703,9 @@ SUBROUTINE SWCAP  (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLW
 !        Only fill the values for the current sweep
 
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
             IMATDA(ID,IS)   = IMATDA(ID,IS)   + WCAP(IS)
             DISSC1(ID,IS,1) = DISSC1(ID,IS,1) + WCAP(IS)
             IF (TESTFL) PLWCAP(ID,IS,IPTST) = -1.*(WCAP(IS)-WCIMPL(IS))
@@ -2707,7 +2721,9 @@ SUBROUTINE SWCAP  (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLW
 !       Only fill the values for the current sweep
 
             DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-               ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+               ID = IDDUM
+               IF (ID.LT.1) ID = ID + MDC
+               IF (ID.GT.MDC) ID = ID - MDC
                IMATRA(ID,IS)   = IMATRA(ID,IS) + &
                   WCIMPL(IS) * AC2(ID,IS,IGP)
                DISSC0(ID,IS,1) = DISSC0(ID,IS,1) + &
@@ -2725,7 +2741,9 @@ SUBROUTINE SWCAP  (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLW
 !           Only fill the values for the current sweep
 
             DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-               ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+               ID = IDDUM
+               IF (ID.LT.1) ID = ID + MDC
+               IF (ID.GT.MDC) ID = ID - MDC
                IMATDA(ID,IS)   = IMATDA(ID,IS)   + WCCUR(ID,IS)
                DISSC1(ID,IS,1) = DISSC1(ID,IS,1) + WCCUR(ID,IS)
                IF (TESTFL) PLWCAP(ID,IS,IPTST) = PLWCAP(ID,IS,IPTST) - &
@@ -2961,7 +2979,9 @@ SUBROUTINE SWCAP8 (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLW
 !         Only fill the values for the current sweep
 
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
             IMATDA(ID,IS)   = IMATDA(ID,IS)   + WCAP(IS)
             DISSC1(ID,IS,1) = DISSC1(ID,IS,1) + WCAP(IS)
             IF (TESTFL) PLWCAP(ID,IS,IPTST) = -1.*(WCAP(IS))

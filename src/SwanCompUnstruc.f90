@@ -624,6 +624,13 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
    allocate( genc1(MDC,MSC,MGENR))
    allocate( redc0(MDC,MSC,MREDS))
    allocate( redc1(MDC,MSC,MREDS))
+   ! SOURCE clears the dissipation and redistribution budget only when an
+   ! output quantity needs it (LADDS), so give it a defined start here, as
+   ! SWMATR = 0 does on the structured path.
+   disc0 = 0.
+   disc1 = 0.
+   redc0 = 0.
+   redc1 = 0.
    source_budget%dissc0 => disc0
    source_budget%dissc1 => disc1
    source_budget%genc0 => genc0

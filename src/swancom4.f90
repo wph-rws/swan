@@ -1889,10 +1889,16 @@ SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2
 !     *** Store results in rhs and main diagonal according to ***
 !     *** Patankar rules.                                      ***
 
+!     ID follows J around the circle, one step up and from MDC back to
+!     1: the same counter as MOD ( J - 1 + MDC , MDC ) + 1, without a
+!     division for each bin (IDCMIN is never below 2 - MDC, see SWPSEL).
+
    DO I = 1, WINDOW%ISSTOP
       SIGPI = SPCSIG(I) * JACOBI
+      ID = MOD ( WINDOW%IDCMIN(I) - 2 + MDC , MDC ) + 1
       DO J = WINDOW%IDCMIN(I), WINDOW%IDCMAX(I)
-         ID = MOD ( J - 1 + MDC , MDC ) + 1
+         ID = ID + 1
+         IF (ID.GT.MDC) ID = 1
          IF(TESTFL) PLNL4S(ID,I,IPTST) =  SFNL(I,ID) / SIGPI
          IF (SFNL(I,ID).GT.0.) THEN
             IMATRA(ID,I) = IMATRA(ID,I) + SFNL(I,ID) / SIGPI
@@ -3133,7 +3139,9 @@ SUBROUTINE FILNL3 (WINDOW, IMATRA, IMATDA, AC2, MEMNL4, PLNL4S, REDC0, REDC1, IG
 
    do IS=1, WINDOW%ISSTOP
       do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          IF(TESTFL) PLNL4S(ID,IS,IPTST) = MEMNL4(ID,IS,IGP)
          IF (MEMNL4(ID,IS,IGP).GT.0.) THEN
             IMATRA(ID,IS) = IMATRA(ID,IS) + MEMNL4(ID,IS,IGP)
@@ -3152,7 +3160,9 @@ SUBROUTINE FILNL3 (WINDOW, IMATRA, IMATDA, AC2, MEMNL4, PLNL4S, REDC0, REDC1, IG
       IF ( ITEST .GE. 100 ) THEN
          DO IS=1, WINDOW%ISSTOP
             DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-               ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+               ID = IDDUM
+               IF (ID.LT.1) ID = ID + MDC
+               IF (ID.GT.MDC) ID = ID - MDC
                WRITE(PRINTF,"(' FILNL3: IS ID MEMNL()          :',2I6,E12.4)") IS,ID,MEMNL4(ID,IS,IGP)
             ENDDO
          ENDDO
@@ -4314,7 +4324,9 @@ SUBROUTINE SWLTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, 
             SIGPI = SPCSIG(IS) * 2. * PI
             IF (ITRIAD.NE.11) CG = CGO(IS,1)
             DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-               ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+               ID = IDDUM
+               IF (ID.LT.1) ID = ID + MDC
+               IF (ID.GT.MDC) ID = ID - MDC
 
 !              --- self interaction
                STRI = SA(ID,IS) - 2.*(WISP (2) * SA(ID,IS+ISP1(2)) + &
@@ -4571,7 +4583,9 @@ SUBROUTINE SWDCTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW,
       BETA = PTRIAD(1) / FT2 * SINBPH * KM**(2.-P)
 
       DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
-         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
 
 !          --- compute E(sigma) for each direction
 
@@ -4635,7 +4649,9 @@ SUBROUTINE SWDCTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW,
       DO IS = 1, WINDOW%ISSTOP
          CG = CGO(IS,1)
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
 
             STRI = BETA * CG * ( SAP(ID,IS) - SAN(ID,IS) )
             IF(TESTFL) PLTRI(ID,IS,IPTST) = STRI
@@ -5041,7 +5057,9 @@ SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0
       DO IS = 1, WINDOW%ISSTOP
          CG = CGO(IS,1)
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
 
             STRI = BETA * CG * ( SAP(ID,IS) - SAN(ID,IS) )
             IF(TESTFL) PLTRI(ID,IS,IPTST) = STRI
@@ -5537,7 +5555,9 @@ SUBROUTINE SWFTIM (AC2, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, PLTRI, URS
       DO IS = 1, WINDOW%ISSTOP
          SIGPI = SPCSIG(IS) * 2. * PI
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
 
             STRI = 2.*CSUM(ID,IS) - 4.*CDIF(ID,IS)
 

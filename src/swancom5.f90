@@ -549,6 +549,7 @@ SUBROUTINE SWPSEL(SWPDIR    ,WINDOW    ,CAX       , &
 
    LOGICAL   ANYBIN(MDC,MSC)     , &
       LOWEST, LOWBIN, HGHBIN
+   LOGICAL :: IRREGULAR
 
    CALL STRACE (IENT,'SWPSEL')
 
@@ -587,8 +588,27 @@ SUBROUTINE SWPSEL(SWPDIR    ,WINDOW    ,CAX       , &
 !     *** if a current is present: IDCMIN and IDCMAX            ***
 !
 !     *** DO LOOP totally organized for curvilinear 30.21       ***
+!
+!     Without a current the propagation velocity has the same direction
+!     at every frequency, so the bins of the sweep, their number and
+!     their limits are those of the first frequency. They are copied
+!     instead of being worked out again for every frequency. IDSUM still
+!     holds the number of bins of the first frequency. Should the first
+!     frequency have given one of the error messages below, every
+!     frequency is worked out as before, so that it gives its own message.
 
+   IRREGULAR = .FALSE.
    do IS = 1, MSC
+      IF (IS.GT.1 .AND. ICUR.EQ.0 .AND. .NOT.IRREGULAR) THEN
+         DO ID = 1, MDC
+            ANYBIN(ID,IS) = ANYBIN(ID,1)
+         ENDDO
+         IF (IDSUM.GT.0) WINDOW%ISSTOP = MAX(IS,WINDOW%ISSTOP)
+         SECTOR(IS) = SECTOR(1)
+         WINDOW%IDCMIN(IS) = WINDOW%IDCMIN(1)
+         WINDOW%IDCMAX(IS) = WINDOW%IDCMAX(1)
+         CYCLE
+      ENDIF
       IDCLOW  = 0
       IDCHGH  = 0
       IDSUM   = 0
@@ -650,6 +670,8 @@ SUBROUTINE SWPSEL(SWPDIR    ,WINDOW    ,CAX       , &
             IDCHGH = ID
          ENDIF
       end do
+      IF (IS.EQ.1) IRREGULAR = SECTOR(IS).EQ.1 .OR. SECTOR(IS).EQ.3 .OR. &
+         (IDSUM.EQ.MDC .AND. FULCIR .AND. SECTOR(IS).NE.0) .OR. (IDSUM.EQ.0 .AND. SECTOR(IS).NE.0)
 !       check value of SECTOR
       IF (SECTOR(IS).EQ.1 .OR. SECTOR(IS).EQ.3) WRITE (PRTEST, "(' error SWPSEL directions ', 6I6)") &
          SWPDIR, IS, SECTOR(IS), IDSUM, IDCLOW, IDCHGH
@@ -699,7 +721,9 @@ SUBROUTINE SWPSEL(SWPDIR    ,WINDOW    ,CAX       , &
 !     *** Determine counters for a certain sweep ***
 
    do IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
-      ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+      ID = IDDUM
+      IF (ID.LT.1) ID = ID + MDC
+      IF (ID.GT.MDC) ID = ID - MDC
       LOWEST = .TRUE.
       do IS = 1, MSC
          IF (ANYBIN(ID,IS)) THEN
@@ -866,7 +890,7 @@ SUBROUTINE SPROXY (CAX        , &
    CAY        ,CGO        ,ECOS       , &
    ESIN       ,UX2        ,UY2        , &
    SWPDIR     ,DIFFR &
-   ,st_kc,st_n &
+   ,st_kc,st_n,OLD_LEVEL &
    )
 
 !****************************************************************
@@ -884,8 +908,16 @@ SUBROUTINE SPROXY (CAX        , &
 
    TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
    INTEGER, INTENT(IN) :: st_kc(MICMAX), st_n
+   LOGICAL, INTENT(IN) :: OLD_LEVEL
 
 !  Stencil addresses and width passed explicitly by SWOMPU.
+!
+!  OLD_LEVEL says that the velocities are those of the previous time level
+!  (CAX1, CAY1). The points 4 and 5 of the stencil are read for that level
+!  only, by SANDL. The velocities of the new level are read in the points
+!  1 to 3 and from 6 on (SWPSEL, SPROSD, DSPHER, SPREDT, SWTRCF and the
+!  schemes STRSXY, SORDUP and SANDL), so for that level the points 4 and 5
+!  are left as they are, unless the velocities are printed below.
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1078,6 +1110,8 @@ SUBROUTINE SPROXY (CAX        , &
    IF (TESTFL .AND. ITEST .GE. 5 ) WRITE (PRTEST,"(' Start SPROXY ', 4I5)")SWPDIR,st_kc(1)
 
    DO IC = 1, st_n
+      IF (.NOT.OLD_LEVEL .AND. (IC.EQ.4 .OR. IC.EQ.5) .AND. &
+         .NOT.(TESTFL .AND. ITEST .GE. 120)) CYCLE
       IF ( st_kc(IC) .LE. 1 ) THEN
          do IS = 1, MSC
             do ID = 1 , MDC
@@ -2158,7 +2192,9 @@ SUBROUTINE STRSXY (         WINDOW  ,CAX     , &
          'IS ID IDDUM     IMATDA    IMATRA'
       DO IS = 1, WINDOW%ISSTOP
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
             WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID, &
                IMATDA(ID,IS), IMATRA(ID,IS)
          ENDDO
@@ -2172,7 +2208,9 @@ SUBROUTINE STRSXY (         WINDOW  ,CAX     , &
       IND3 = st_kc(3)
 
       do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
 !         test output     ver 30.50
 
          IF (NUMOBS .GT. 0) THEN
@@ -2265,7 +2303,9 @@ SUBROUTINE STRSXY (         WINDOW  ,CAX     , &
          'IS ID IDDUM     IMATDA    IMATRA'
       DO IS = 1, WINDOW%ISSTOP
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
             WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID, &
                IMATDA(ID,IS), IMATRA(ID,IS)
          ENDDO
@@ -2478,7 +2518,9 @@ SUBROUTINE SORDUP (         WINDOW  ,CAX     , &
          'IS ID IDDUM     IMATDA    IMATRA'
       DO IS = 1, WINDOW%ISSTOP
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
             WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID, &
                IMATDA(ID,IS), IMATRA(ID,IS)
          ENDDO
@@ -2491,7 +2533,9 @@ SUBROUTINE SORDUP (         WINDOW  ,CAX     , &
       IND6 = st_kc(6)
       IND7 = st_kc(7)
       do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
 !         find Courant number values: XMU, YMU                            40.08
 !         depending on relative size of XMU and YMU, XNUM is true or      40.08
 !         false because of RDX and RDY, XMU and YMU are always positive   40.08
@@ -2601,7 +2645,9 @@ SUBROUTINE SORDUP (         WINDOW  ,CAX     , &
          'IS ID IDDUM     IMATDA    IMATRA'
       DO IS = 1, WINDOW%ISSTOP
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
             WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID, &
                IMATDA(ID,IS), IMATRA(ID,IS)
          ENDDO
@@ -2881,7 +2927,9 @@ SUBROUTINE SANDL ( WINDOW  ,CGO     ,CAX     , &
          'IS ID IDDUM     IMATDA    IMATRA'
       DO IS = 1, WINDOW%ISSTOP
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
             WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID, &
                IMATDA(ID,IS), IMATRA(ID,IS)
          ENDDO
@@ -2968,7 +3016,9 @@ SUBROUTINE SANDL ( WINDOW  ,CGO     ,CAX     , &
    do IS = 1, WINDOW%ISSTOP
 
       do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
 
          IF (WAVAGE.GT.0.) THEN
 !           calculate DSS,DXX,DXY for the central grid point (IC=1)       33.08
@@ -3107,7 +3157,9 @@ SUBROUTINE SANDL ( WINDOW  ,CGO     ,CAX     , &
          'IS ID IDDUM     IMATDA    IMATRA'
       DO IS = 1, WINDOW%ISSTOP
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
             WRITE(PRINTF,"(3I3,2E12.4)") IS,IDDUM,ID, &
                IMATDA(ID,IS), IMATRA(ID,IS)
          ENDDO
@@ -3312,7 +3364,9 @@ SUBROUTINE STRSSI(SPCSIG  , &
    IF (LTRACE) CALL STRACE (IENT,'STRSSI')
 
    direction_loop: do IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
-      ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+      ID = IDDUM
+      IF (ID.LT.1) ID = ID + MDC
+      IF (ID.GT.MDC) ID = ID - MDC
       IF (WINDOW%ISCMIN(ID).EQ.0) CYCLE direction_loop
       do IS = WINDOW%ISCMIN(ID), WINDOW%ISCMAX(ID)
          A1 = 0.
@@ -3425,7 +3479,9 @@ SUBROUTINE STRSSI(SPCSIG  , &
       WRITE(PRINTF,*) &
          '   IS   ID    IMAT5L       IMATDA       IMAT6U    IMATRA    CAS'
       DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
-         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          IF (WINDOW%ISCMIN(ID).GT.0) THEN
             DO IS = WINDOW%ISCMIN(ID), WINDOW%ISCMAX(ID)
                WRITE(PRINTF,"(1X,2I4,4X,4E12.4,E10.2)") IS, ID, IMAT5L(ID,IS),IMATDA(ID,IS), &
@@ -3721,7 +3777,9 @@ SUBROUTINE STRSSB (WINDOW  ,CAX     ,CAY     , &
          DS = 0.5 * ( SPCSIG(IS+1) - SPCSIG(IS-1) )
       END IF
       DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          CAXCEN = ABS ( CAX(ID,IS,1) )
          CAYCEN = ABS ( CAY(ID,IS,1) )
          CASCEN = ABS ( CAS(ID,IS,1) )
@@ -4016,12 +4074,16 @@ SUBROUTINE STRSD (DD      ,WINDOW  , &
 
    do IS = 1, WINDOW%ISSTOP
       do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD (IDDUM-1+MDC, MDC) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          C2 = CAD(ID,IS,1)
          BIN2 = ANYBIN(ID,IS)
          IF (BIN2) THEN
             IF (FULCIR .OR. ID.GT.1) THEN
-               IIDM = MOD (IDDUM-2+MDC, MDC) + 1
+!              the bin below ID on the circle, as MOD (IDDUM-2+MDC, MDC) + 1
+               IIDM = ID - 1
+               IF (IIDM.LT.1) IIDM = MDC
                C1   = CAD(IIDM,IS,1)
                BIN1 = ANYBIN(IIDM,IS)
                IF (.NOT.BIN1) A1 = AC2(IIDM,IS,st_kc1)
@@ -4032,7 +4094,9 @@ SUBROUTINE STRSD (DD      ,WINDOW  , &
                A1   = 0.
             ENDIF
             IF (FULCIR .OR. ID.LT.MDC) THEN
-               IIDP = MOD (IDDUM+MDC, MDC) + 1
+!              the bin above ID on the circle, as MOD (IDDUM+MDC, MDC) + 1
+               IIDP = ID + 1
+               IF (IIDP.GT.MDC) IIDP = 1
                C3   = CAD(IIDP,IS,1)
                BIN3 = ANYBIN(IIDP,IS)
                IF (.NOT.BIN3) A3 = AC2(IIDP,IS,st_kc1)
@@ -4403,7 +4467,9 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       , &
    ELSE
       DO IS = 1, WINDOW%ISSTOP
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
             IF ( ANYBIN(ID,IS) ) THEN
 
 !             *** Computation of weighting coefs WEIG1 AND WEIG2 ***
@@ -4776,6 +4842,8 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid
+   USE swan_compda_layout, ONLY: JGENR, JGSXW, JREDS, JRSXQ, JRSXT, JRSXB, JRSXC, JTRAN, JTSXG, JTSXT, &
+         JTSXS, JRADS
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -4886,6 +4954,19 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
 !     Proc. 31st Int. Conf. on Coast. Engng.,
 !     ASCE, World Scientific Publishing, Singapore, pp. 437-448
 !
+!     A quantity that no output command asks for has no column of its
+!     own in COMPDA: its index is 1, the column that all such quantities
+!     share and that nobody reads. The generation, redistribution and
+!     propagation terms and the radiation stress are therefore summed
+!     only when their column is asked for. The total dissipation and the
+!     leak always have a column. The radiation stress is one running sum
+!     over all terms of all bins, in which each bin ends with ABS, so it
+!     cannot be split: when it is asked for, everything is summed as
+!     before. Without it the sums of the separate terms do not wait for
+!     each other, which is where the time goes. A sum that is made has
+!     the same terms in the same order as before, so its value is the
+!     same.
+!
 ! 12. Structure
 !
 !     -------------------------------------------------------------
@@ -4936,8 +5017,14 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
    INTEGER ISC, IDC, IDM, IDP
 
    LOGICAL  ANYBIN(MDC,MSC)
+   LOGICAL :: WANT_GENR, WANT_REDS, WANT_TRAN, WANT_RADS
    INTEGER, SAVE :: IENT=0
    CALL STRACE (IENT, 'ADDDIS')
+
+   WANT_RADS = JRADS.GT.1
+   WANT_GENR = WANT_RADS .OR. JGENR.GT.1 .OR. JGSXW.GT.1
+   WANT_REDS = WANT_RADS .OR. JREDS.GT.1 .OR. JRSXQ.GT.1 .OR. JRSXT.GT.1 .OR. JRSXB.GT.1 .OR. JRSXC.GT.1
+   WANT_TRAN = WANT_RADS .OR. JTRAN.GT.1 .OR. JTSXG.GT.1 .OR. JTSXT.GT.1 .OR. JTSXS.GT.1
 
    ADISSIP(1:MDISP) = 0.
    AGENERT(1:MGENR) = 0.
@@ -4948,37 +5035,9 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
       DSDD  = DDIR * FRINTF * SPCSIG(ISC)
       SDSDD = DSDD * SPCSIG(ISC)
       do IDC = 1, MDC
-         IDM = MOD ( IDC - 2 + MDC , MDC ) + 1
-         IDP = MOD ( IDC     + MDC , MDC ) + 1
-
-         S1   = SPCSIG(ISC)
-         ACT1 = AC2(IDC,ISC,IGP)
-         IF (ISC.EQ.1) THEN
-            S2   = 0.
-            ACT2 = 0.
-         ELSE
-            S2   = SPCSIG(ISC-1)
-            ACT2 = AC2(IDC,ISC-1,IGP)
-         ENDIF
-         IF (ISC.EQ.MSC) THEN
-            S3   = 0.
-            ACT3 = 0.
-         ELSE
-            S3   = SPCSIG(ISC+1)
-            ACT3 = AC2(IDC,ISC+1,IGP)
-         ENDIF
-         IF (.NOT.FULCIR .AND. IDC.EQ.1) THEN
-            ACT4 = 0.
-         ELSE
-            ACT4 = AC2(IDM,ISC,IGP)
-         ENDIF
-         IF (.NOT.FULCIR .AND. IDC.EQ.MDC) THEN
-            ACT5 = 0.
-         ELSE
-            ACT5 = AC2(IDP,ISC,IGP)
-         ENDIF
-
          IF (ANYBIN(IDC,ISC)) THEN
+            ACT1 = AC2(IDC,ISC,IGP)
+
             LEAKXY(IGP) = LEAKXY(IGP) + SDSDD* &
                LEAKC1(IDC,ISC) * AC2(IDC,ISC,IGP)
 
@@ -4987,46 +5046,80 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
             DO II = 1, MDISP
                ACONTR= SDSDD*(DISC0(IDC,ISC,II) + DISC1(IDC,ISC,II)*ACT1)
                ADISSIP(II) = ADISSIP(II) + ACONTR
-               ARADSTR     = ARADSTR     - ACONTR
+               IF (WANT_RADS) ARADSTR = ARADSTR - ACONTR
             ENDDO
 
 !           --- compute for each generation term                          40.85
 
-            DO II = 1, MGENR
-               ACONTR= SDSDD*(GENC0(IDC,ISC,II) + GENC1(IDC,ISC,II)*ACT1)
-               AGENERT(II) = AGENERT(II) + ACONTR
-               ARADSTR     = ARADSTR     + ACONTR
-            ENDDO
+            IF (WANT_GENR) THEN
+               DO II = 1, MGENR
+                  ACONTR= SDSDD*(GENC0(IDC,ISC,II) + GENC1(IDC,ISC,II)*ACT1)
+                  AGENERT(II) = AGENERT(II) + ACONTR
+                  IF (WANT_RADS) ARADSTR = ARADSTR + ACONTR
+               ENDDO
+            ENDIF
 
 !           --- compute for each redistribution term                      40.85
 
-            DO II = 1, MREDS
-               ACONTR= SDSDD*(REDC0(IDC,ISC,II) + REDC1(IDC,ISC,II)*ACT1)
-               AREDIST(II) = AREDIST(II) + ABS(ACONTR)
-               ARADSTR     = ARADSTR     + ACONTR
-            ENDDO
+            IF (WANT_REDS) THEN
+               DO II = 1, MREDS
+                  ACONTR= SDSDD*(REDC0(IDC,ISC,II) + REDC1(IDC,ISC,II)*ACT1)
+                  AREDIST(II) = AREDIST(II) + ABS(ACONTR)
+                  IF (WANT_RADS) ARADSTR = ARADSTR + ACONTR
+               ENDDO
+            ENDIF
 
 !           --- compute for each propagation term
 
-            ACONTR = SDSDD* (TRAC0(IDC,ISC,1) + TRAC1(IDC,ISC,1)*ACT1)
-            ATRANSP(1) = ATRANSP(1) + ABS(ACONTR)
-            ARADSTR    = ARADSTR    - ACONTR
+            IF (WANT_TRAN) THEN
+               IDM = MOD ( IDC - 2 + MDC , MDC ) + 1
+               IDP = MOD ( IDC     + MDC , MDC ) + 1
+               S1   = SPCSIG(ISC)
+               IF (ISC.EQ.1) THEN
+                  S2   = 0.
+                  ACT2 = 0.
+               ELSE
+                  S2   = SPCSIG(ISC-1)
+                  ACT2 = AC2(IDC,ISC-1,IGP)
+               ENDIF
+               IF (ISC.EQ.MSC) THEN
+                  S3   = 0.
+                  ACT3 = 0.
+               ELSE
+                  S3   = SPCSIG(ISC+1)
+                  ACT3 = AC2(IDC,ISC+1,IGP)
+               ENDIF
+               IF (.NOT.FULCIR .AND. IDC.EQ.1) THEN
+                  ACT4 = 0.
+               ELSE
+                  ACT4 = AC2(IDM,ISC,IGP)
+               ENDIF
+               IF (.NOT.FULCIR .AND. IDC.EQ.MDC) THEN
+                  ACT5 = 0.
+               ELSE
+                  ACT5 = AC2(IDP,ISC,IGP)
+               ENDIF
 
-            ACONTR = SDSDD* (TRAC0(IDC,ISC,2)      + &
-               TRAC1(IDC,ISC,2)*ACT1 + &
-               IMATLA(IDC,ISC) *ACT4 + &
-               IMATUA(IDC,ISC) *ACT5 )
-            ATRANSP(2) = ATRANSP(2) + ABS(ACONTR)
-            ARADSTR    = ARADSTR    - ACONTR
+               ACONTR = SDSDD* (TRAC0(IDC,ISC,1) + TRAC1(IDC,ISC,1)*ACT1)
+               ATRANSP(1) = ATRANSP(1) + ABS(ACONTR)
+               IF (WANT_RADS) ARADSTR = ARADSTR - ACONTR
 
-            ACONTR = DSDD * (TRAC0(IDC,ISC,3)           + &
-               TRAC1(IDC,ISC,3)* S1 *ACT1 + &
-               IMAT5L(IDC,ISC) * S2 *ACT2 + &
-               IMAT6U(IDC,ISC) * S3 *ACT3 )
-            ATRANSP(3) = ATRANSP(3) + ABS(ACONTR)
-            ARADSTR    = ARADSTR    - ACONTR
+               ACONTR = SDSDD* (TRAC0(IDC,ISC,2)      + &
+                  TRAC1(IDC,ISC,2)*ACT1 + &
+                  IMATLA(IDC,ISC) *ACT4 + &
+                  IMATUA(IDC,ISC) *ACT5 )
+               ATRANSP(2) = ATRANSP(2) + ABS(ACONTR)
+               IF (WANT_RADS) ARADSTR = ARADSTR - ACONTR
 
-            ARADSTR    = ABS(ARADSTR)
+               ACONTR = DSDD * (TRAC0(IDC,ISC,3)           + &
+                  TRAC1(IDC,ISC,3)* S1 *ACT1 + &
+                  IMAT5L(IDC,ISC) * S2 *ACT2 + &
+                  IMAT6U(IDC,ISC) * S3 *ACT3 )
+               ATRANSP(3) = ATRANSP(3) + ABS(ACONTR)
+               IF (WANT_RADS) ARADSTR = ARADSTR - ACONTR
+            ENDIF
+
+            IF (WANT_RADS) ARADSTR = ABS(ARADSTR)
          ENDIF
       end do
    end do
@@ -5232,7 +5325,9 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA, &
    do IS = 1, WINDOW%ISSTOP
 
       do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD (IDDUM-1+MDC, MDC) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
 
          IF ( ANYBIN(ID,IS) ) THEN
 
@@ -5371,7 +5466,9 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA, &
          '   IS ID      IMATLA      IMATDA      IMATUA      IMATRA     CAD'
       DO IS = 1, WINDOW%ISSTOP
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD (IDDUM-1+MDC, MDC) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
             WRITE(PRINTF,"(1X,2I4,4X,4E12.4,E10.2)") IS, ID, IMATLA(ID,IS),IMATDA(ID,IS), &
                IMATUA(ID,IS),IMATRA(ID,IS),CAD(ID,IS,1)
          END DO

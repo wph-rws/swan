@@ -468,7 +468,9 @@ SUBROUTINE WNDPAR (WINDOW, DEP2, WIND10, GENC0, GENC1, THETAW, AC2, KWAVE, IMATR
       CINV    = KWAVE(IS,1) / SIGMA
       FACTB = PWIND(2) * PWIND(9) * SIGMA / TWOPI
       DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID     = MOD ( IDDUM - 1 + MDC, MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          DTHETA = SPCDIR(ID,1) - THETAW
          COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
          AC2CEN = AC2(ID,IS,IGP)
@@ -1495,7 +1497,9 @@ SUBROUTINE WINDP3 (WINDOW, ALIMW, AC2, GROWW, IGP)
 
    DO IS = 1, WINDOW%ISSTOP
       DO IDDUM = WINDOW%IDCMIN(IS) , WINDOW%IDCMAX(IS)
-         ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          AC2CEN = AC2(ID,IS,IGP)
          IF ( GROWW(ID,IS) .AND. AC2CEN .GT. ALIMW(ID,IS) ) &
             AC2(ID,IS,IGP) = ALIMW(ID,IS)
@@ -1766,7 +1770,9 @@ SUBROUTINE SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, FPM, PLWNDS, IMATRA, S
 !       thus, we are calculating "A/sigma" here, not "A"
       TEMP2  = TEMP1 / SIGMA
       DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          IF ( ANYWND(ID) .AND. SIGMA .GE. (0.7 * FPM) ) THEN
             THETA  = SPCDIR(ID,1)
             COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
@@ -1822,7 +1828,9 @@ SUBROUTINE SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, FPM, PLWNDS, IMATRA, S
       IF (ITEST.GE. 120.AND.TESTFL) THEN
          DO IS = 1, WINDOW%ISSTOP
             DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-               ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
+               ID = IDDUM
+               IF (ID.LT.1) ID = ID + MDC
+               IF (ID.GT.MDC) ID = ID - MDC
                WRITE(PRINTF,"(' IS ID ANYWND : ', 2I5,1X,L2)") IS,ID,ANYWND(ID)
             ENDDO
          ENDDO
@@ -1849,7 +1857,7 @@ SUBROUTINE SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, GENC0, WINDOW, AC2, UFRIC, FPM
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
-   USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input
+   USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input, esmf_coupling_enabled
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2050,7 +2058,9 @@ SUBROUTINE SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, GENC0, WINDOW, AC2, UFRIC, FPM
       CINV  = KWAVE(IS,1) / SIGMA
       TEMP3 = TEMP2 * CINV
       DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          IF ( ANYWND(ID) ) THEN
             THETA  = SPCDIR(ID,1)
             COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
@@ -2061,7 +2071,7 @@ SUBROUTINE SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, GENC0, WINDOW, AC2, UFRIC, FPM
             IF (TESTFL) PLWNDS(ID,IS,IPTST) = PLWNDS(ID,IS,IPTST) + &
                SWINEB*AC2(ID,IS,IGP)
             GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEB*AC2(ID,IS,IGP)
-            CALL accumulate_exponential_wind_input(ID, IS, IGP, &
+            IF (esmf_coupling_enabled) CALL accumulate_exponential_wind_input(ID, IS, IGP, &
                SWINEB*AC2(ID,IS,IGP))
 
          END IF
@@ -2104,7 +2114,7 @@ SUBROUTINE SWIND4 (WINDOW, SPCSIG, WIND10, THETAW, XIS, DD, KWAVE, IMATRA, GENC0
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
-   USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input
+   USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input, esmf_coupling_enabled
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2585,7 +2595,9 @@ SUBROUTINE SWIND4 (WINDOW, SPCSIG, WIND10, THETAW, XIS, DD, KWAVE, IMATRA, GENC0
       CW1    = SIGMA / WAVEN
       ZCN    = ALOG ( GRAV * ZE / CW1**2 )
       DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          IF ( ANYWND(ID) )  THEN
             THETA  = SPCDIR(ID,1)
             COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
@@ -2609,7 +2621,7 @@ SUBROUTINE SWIND4 (WINDOW, SPCSIG, WIND10, THETAW, XIS, DD, KWAVE, IMATRA, GENC0
             IF (TESTFL) PLWNDS(ID,IS,IPTST) = PLWNDS(ID,IS,IPTST) + &
                SWINEB*AC2(ID,IS,IGP)
             GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEB*AC2(ID,IS,IGP)
-            CALL accumulate_exponential_wind_input(ID, IS, IGP, &
+            IF (esmf_coupling_enabled) CALL accumulate_exponential_wind_input(ID, IS, IGP, &
                SWINEB*AC2(ID,IS,IGP))
 !
 !           *** test output ***
@@ -2657,7 +2669,7 @@ SUBROUTINE SWIND5 (SPCSIG, THETAW, WINDOW, UFRIC, KWAVE, IMATRA, AC2, ANYWND, PL
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
-   USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input
+   USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input, esmf_coupling_enabled
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2852,7 +2864,9 @@ SUBROUTINE SWIND5 (SPCSIG, THETAW, WINDOW, UFRIC, KWAVE, IMATRA, AC2, ANYWND, PL
       USTAC2 = USTAC1 * USTAC1
       TEMP3  = ( COF1 * USTAC2 + COF2 * USTAC1 + COF3)
       DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD ( IDDUM - 1 + MDC, MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          IF ( ANYWND(ID) ) THEN
             THETA  = SPCDIR(ID,1)
             COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
@@ -2865,7 +2879,7 @@ SUBROUTINE SWIND5 (SPCSIG, THETAW, WINDOW, UFRIC, KWAVE, IMATRA, AC2, ANYWND, PL
             IF (TESTFL) PLWNDS(ID,IS,IPTST) = PLWNDS(ID,IS,IPTST) + &
                SWINEB*AC2(ID,IS,IGP)
             GENC0(ID,IS,1) = GENC0(ID,IS,1) + SWINEB*AC2(ID,IS,IGP)
-            CALL accumulate_exponential_wind_input(ID, IS, IGP, &
+            IF (esmf_coupling_enabled) CALL accumulate_exponential_wind_input(ID, IS, IGP, &
                SWINEB*AC2(ID,IS,IGP))
          END IF
       ENDDO

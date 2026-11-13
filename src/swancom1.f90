@@ -3371,7 +3371,7 @@ SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, 
          CAY1           ,CGO            ,SPCDIR(1,2)    , &
          SPCDIR(1,3)    ,COMPDA(1,JVX1) ,COMPDA(1,JVY1) , &
          SWPDIR         ,DIFFR &
-         ,st_kc,st_nm &
+         ,st_kc,st_nm,.TRUE. &
          )
       IF (timing_enabled) CALL SWTSTO(111)
 
@@ -3395,7 +3395,7 @@ SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, 
       CAY            ,CGO            ,SPCDIR(1,2)    , &
       SPCDIR(1,3)    ,COMPDA(1,JVX2) ,COMPDA(1,JVY2) , &
       SWPDIR         ,DIFFR &
-      ,st_kc,st_nm &
+      ,st_kc,st_nm,.FALSE. &
       )
    IF (timing_enabled) CALL SWTSTO(111)
 !
@@ -3645,7 +3645,9 @@ SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, 
             IF (timing_enabled) CALL SWTSTA(120)
             DO IS = 1, MSC
                DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-                  ID = MOD(IDDUM-1+MDC, MDC) + 1
+                  ID = IDDUM
+                  IF (ID.LT.1) ID = ID + MDC
+                  IF (ID.GT.MDC) ID = ID - MDC
                   SP = SWMATR(ID,IS,JMATD)
                   IF ( ABS(SP) .LE. 1.E-20 ) THEN
                      TEMP = SIGN (1.E-20,SP)
@@ -5195,15 +5197,15 @@ SUBROUTINE ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, ANYBL
    IF (LTRACE) CALL STRACE (IENT,'ACTION')
 
 !     *** set the coefficients in the arrays 0 ***
+!
+!     Each array is cleared as one block (see CLEAR_BUDGET). The four are
+!     pointer components, so in a loop over the bins the compiler must
+!     assume that they overlap and writes them element by element.
 
-   DO IS = 1, MSC
-      DO ID = 1, MDC
-         SYSTEM_MATRIX%imatla(ID,IS) = 0.
-         SYSTEM_MATRIX%imatua(ID,IS) = 0.
-         SYSTEM_MATRIX%imat5l(ID,IS) = 0.
-         SYSTEM_MATRIX%imat6u(ID,IS) = 0.
-      ENDDO
-   ENDDO
+   CALL CLEAR_BUDGET(SYSTEM_MATRIX%imatla, SIZE(SYSTEM_MATRIX%imatla))
+   CALL CLEAR_BUDGET(SYSTEM_MATRIX%imatua, SIZE(SYSTEM_MATRIX%imatua))
+   CALL CLEAR_BUDGET(SYSTEM_MATRIX%imat5l, SIZE(SYSTEM_MATRIX%imat5l))
+   CALL CLEAR_BUDGET(SYSTEM_MATRIX%imat6u, SIZE(SYSTEM_MATRIX%imat6u))
 
 !     set leak coefficient at 0
 
@@ -5251,7 +5253,9 @@ SUBROUTINE ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, ANYBL
       WRITE(PRINTF,*) &
          '   IS   ID    IMAT5L       IMATDA       IMAT6U    IMATRA    CAS'
       DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
-         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          IF (WINDOW%ISCMIN(ID).GT.0) THEN
             DO IS = WINDOW%ISCMIN(ID), WINDOW%ISCMAX(ID)
                WRITE(PRINTF,"(1X,2I4,4X,4E12.4,E10.2)") IS, ID, SYSTEM_MATRIX%imat5l(ID,IS),SYSTEM_MATRIX%imatda(ID,IS), &
@@ -5647,7 +5651,11 @@ SUBROUTINE SINTGRL(SPCDIR, KWAVE, AC2, DEP2, POINT_INTEGRALS, RDX, RDY, AC2TOT, 
 !     --- calculate total spectral energy
 
       FRINTF_X_DDIR = FRINTF * DDIR
-      ETOT_DSIG(:)  = SUM(AC2(:,:,IGP),DIM=1) * SIGPOW(:,2) * &
+!     ACTOT_DSIG first holds the action density summed over the
+!     directions. The integrals further down need the same sum, and it
+!     is made again only when the spectrum is reduced in between.
+      ACTOT_DSIG(:) = SUM(AC2(:,:,IGP),DIM=1)
+      ETOT_DSIG(:)  = ACTOT_DSIG(:) * SIGPOW(:,2) * &
          FRINTF_X_DDIR
       POINT_INTEGRALS%etot          = SUM(ETOT_DSIG)
 
@@ -5664,6 +5672,7 @@ SUBROUTINE SINTGRL(SPCDIR, KWAVE, AC2, DEP2, POINT_INTEGRALS, RDX, RDY, AC2TOT, 
       IF (ACUPDA .AND. POINT_INTEGRALS%etot .GT. EMAX .AND. ISURF .GE. 1 &
          .AND. IQCM .EQ. 0) THEN
          AC2(:,:,IGP) = MAX(0.,(EMAX/POINT_INTEGRALS%etot)*AC2(:,:,IGP))
+         ACTOT_DSIG(:) = SUM(AC2(:,:,IGP),DIM=1)
 
          IF (TESTFL.AND.ITEST.GE.80) &
             WRITE (PRTEST,"(' energy is reduced in SINTGRL', 4(1x, e12.4))") DEP2(IGP), EMAX, POINT_INTEGRALS%etot
@@ -5684,7 +5693,7 @@ SUBROUTINE SINTGRL(SPCDIR, KWAVE, AC2, DEP2, POINT_INTEGRALS, RDX, RDY, AC2TOT, 
          TANH_K_X_DEP_2(:)   = TANH(MIN(30., &
             KWAVE(:,1)*DEP2(IGP)) &
             )**2
-         ACTOT_DSIG(:)       = SUM(AC2(:,:,IGP),DIM=1) * &
+         ACTOT_DSIG(:)       = ACTOT_DSIG(:) * &
             SIGPOW(:,1) * FRINTF_X_DDIR
          ETOT_SIG_DSIG(:)    = ACTOT_DSIG(:) * SIGPOW(:,2)
          ETOT_SIG2_DSIG(:)   = ACTOT_DSIG(:) * SIGPOW(:,3)
@@ -6052,7 +6061,9 @@ SUBROUTINE SOLPRE (AC2, AC2OLD, SYSTEM_MATRIX, WINDOW, ANYBIN, IDTOT, ISTOT, SPC
    IF (ALFA.GT.0. .AND. NSTATC.EQ.0) THEN
       DO IS = 1, WINDOW%ISSTOP
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD(IDDUM-1 + MDC, MDC) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
             SYSTEM_MATRIX%imatda(ID,IS) = SYSTEM_MATRIX%imatda(ID,IS) + ALFA*SPCSIG(IS)
             SYSTEM_MATRIX%imatra(ID,IS) = SYSTEM_MATRIX%imatra(ID,IS) + ALFA*SPCSIG(IS)* &
                AC2(ID,IS,IGP)
@@ -6290,67 +6301,146 @@ SUBROUTINE SOLMAT_KERNEL (WINDOW, AC2, IGP, IMATLA, IMATDA, IMATUA, IMATRA)
    REAL :: IMATLA(MDC,MSC), IMATDA(MDC,MSC), IMATUA(MDC,MSC), IMATRA(MDC,MSC)
    INTEGER  IS, ID, J, ID_MIN, ID_MAX, IDDUM, IDM1, IDP1
    REAL     SP, TEMP
+   LOGICAL  SAME_RANGE
 
 !     **** 17/JAN   IN MOD (  , ) ;   + MDC WAS ADDED ****
 
-   do IS = 1, MSC
-      ID_MIN = WINDOW%IDCMIN(IS)
-      ID_MAX = WINDOW%IDCMAX(IS)
+!     Without a current every frequency has the same range of directions
+!     (see SWPSEL). The systems of the frequencies do not depend on each
+!     other, but within one system every direction has to wait for the
+!     division of the direction before it. With the frequencies in the
+!     inner loop the processor works on all systems side by side instead
+!     of waiting for one. Each system gets the same operations in the same
+!     order as in the loop below, so the action densities are the same.
+!     That loop still does the work when the ranges differ (a current) and
+!     when the solution is printed for a test point.
 
-!       *** elimination of the lower diagonal of the first matrix ***
+   ID_MIN = WINDOW%IDCMIN(1)
+   ID_MAX = WINDOW%IDCMAX(1)
+   SAME_RANGE = .NOT.(ITEST .GE. 120 .AND. TESTFL)
+   DO IS = 2, MSC
+      IF (WINDOW%IDCMIN(IS).NE.ID_MIN .OR. WINDOW%IDCMAX(IS).NE.ID_MAX) SAME_RANGE = .FALSE.
+   ENDDO
 
+   IF (SAME_RANGE) THEN
+
+!       *** elimination of the lower diagonal ***
+
+      ID = MOD(ID_MIN-1+MDC, MDC) + 1
       do IDDUM = (ID_MIN+1), ID_MAX
-         ID   = MOD(IDDUM-1+MDC, MDC) + 1
-         IDM1 = MOD(IDDUM-2+MDC, MDC) + 1
-         SP   = IMATDA(IDM1,IS)
-         IF ( ABS(SP) .LE. 1.E-20 ) THEN
-            TEMP = IMATLA(ID,IS) / SIGN( 1.E-20 , SP)
-         ELSE
-            TEMP = IMATLA(ID,IS) / SP
-         END IF
-         IMATDA(ID,IS) = IMATDA(ID,IS) - TEMP * IMATUA(IDM1,IS)
-         IMATRA(ID,IS) = IMATRA(ID,IS) - TEMP * IMATRA(IDM1,IS)
+         IDM1 = ID
+         ID   = ID + 1
+         IF (ID.GT.MDC) ID = 1
+         do IS = 1, MSC
+            SP   = IMATDA(IDM1,IS)
+            IF ( ABS(SP) .LE. 1.E-20 ) THEN
+               TEMP = IMATLA(ID,IS) / SIGN( 1.E-20 , SP)
+            ELSE
+               TEMP = IMATLA(ID,IS) / SP
+            END IF
+            IMATDA(ID,IS) = IMATDA(ID,IS) - TEMP * IMATUA(IDM1,IS)
+            IMATRA(ID,IS) = IMATRA(ID,IS) - TEMP * IMATRA(IDM1,IS)
+         end do
       end do
 
-!       *** solving of the linear equations for the wave action ***
-!
-!       *** first for ID_MAX, then for the others ***
+!       *** wave action for ID_MAX, then for the others ***
 
       ID   = MOD(ID_MAX-1+MDC, MDC) + 1
-      SP = IMATDA(ID,IS)
-      IF ( ABS(SP) .LE. 1.E-20 ) THEN
-         TEMP = SIGN (1.E-20 , SP)
-      ELSE
-         TEMP = SP
-      END IF
-
-!       *** wave action for ID_MAX ***
-
-      AC2(ID,IS,IGP) = IMATRA(ID,IS) / TEMP
-
-      do J = 1, (ID_MAX-ID_MIN)
-         ID   = MOD(ID_MAX-J-1+MDC, MDC) +1
-         IDP1 = MOD(ID_MAX-J+MDC, MDC) +1
+      do IS = 1, MSC
          SP = IMATDA(ID,IS)
          IF ( ABS(SP) .LE. 1.E-20 ) THEN
             TEMP = SIGN (1.E-20 , SP)
          ELSE
             TEMP = SP
          END IF
-         AC2(ID,IS,IGP) = ( IMATRA(ID,IS) - IMATUA(ID,IS) * &
-            AC2(IDP1,IS,IGP) ) / TEMP
+         AC2(ID,IS,IGP) = IMATRA(ID,IS) / TEMP
+      end do
+
+      do J = 1, (ID_MAX-ID_MIN)
+         IDP1 = ID
+         ID   = ID - 1
+         IF (ID.LT.1) ID = MDC
+         do IS = 1, MSC
+            SP = IMATDA(ID,IS)
+            IF ( ABS(SP) .LE. 1.E-20 ) THEN
+               TEMP = SIGN (1.E-20 , SP)
+            ELSE
+               TEMP = SP
+            END IF
+            AC2(ID,IS,IGP) = ( IMATRA(ID,IS) - IMATUA(ID,IS) * &
+               AC2(IDP1,IS,IGP) ) / TEMP
+         end do
+      end do
+
+   ELSE
+
+      do IS = 1, MSC
+         ID_MIN = WINDOW%IDCMIN(IS)
+         ID_MAX = WINDOW%IDCMAX(IS)
+
+!       *** elimination of the lower diagonal of the first matrix ***
+
+!     ID and IDM1 follow IDDUM around the circle: one step up, and from
+!     MDC back to 1. That gives the same counters as MOD for every IDDUM,
+!     without a division for each bin.
+
+         ID = MOD(ID_MIN-1+MDC, MDC) + 1
+         do IDDUM = (ID_MIN+1), ID_MAX
+            IDM1 = ID
+            ID   = ID + 1
+            IF (ID.GT.MDC) ID = 1
+            SP   = IMATDA(IDM1,IS)
+            IF ( ABS(SP) .LE. 1.E-20 ) THEN
+               TEMP = IMATLA(ID,IS) / SIGN( 1.E-20 , SP)
+            ELSE
+               TEMP = IMATLA(ID,IS) / SP
+            END IF
+            IMATDA(ID,IS) = IMATDA(ID,IS) - TEMP * IMATUA(IDM1,IS)
+            IMATRA(ID,IS) = IMATRA(ID,IS) - TEMP * IMATRA(IDM1,IS)
+         end do
+
+!       *** solving of the linear equations for the wave action ***
+!
+!       *** first for ID_MAX, then for the others ***
+
+         ID   = MOD(ID_MAX-1+MDC, MDC) + 1
+         SP = IMATDA(ID,IS)
+         IF ( ABS(SP) .LE. 1.E-20 ) THEN
+            TEMP = SIGN (1.E-20 , SP)
+         ELSE
+            TEMP = SP
+         END IF
+
+!       *** wave action for ID_MAX ***
+
+         AC2(ID,IS,IGP) = IMATRA(ID,IS) / TEMP
+
+         do J = 1, (ID_MAX-ID_MIN)
+            IDP1 = ID
+            ID   = ID - 1
+            IF (ID.LT.1) ID = MDC
+            SP = IMATDA(ID,IS)
+            IF ( ABS(SP) .LE. 1.E-20 ) THEN
+               TEMP = SIGN (1.E-20 , SP)
+            ELSE
+               TEMP = SP
+            END IF
+            AC2(ID,IS,IGP) = ( IMATRA(ID,IS) - IMATUA(ID,IS) * &
+               AC2(IDP1,IS,IGP) ) / TEMP
+
+         end do
+
+         IF ( ITEST .GE. 120 .AND. TESTFL ) THEN
+            WRITE(PRINTF,"(' SOLMAT: POINT ID_MIN ID_MAX :',3I5)") IGP,ID_MIN,ID_MAX
+            do IDDUM = ID_MIN, ID_MAX
+               ID = MOD(IDDUM-1+MDC, MDC) + 1
+               WRITE (PRINTF,"(' IS ID AC2()         :',2I5,2X,E12.4)") IS,ID,AC2(ID,IS,IGP)
+            end do
+         END IF
 
       end do
 
-      IF ( ITEST .GE. 120 .AND. TESTFL ) THEN
-         WRITE(PRINTF,"(' SOLMAT: POINT ID_MIN ID_MAX :',3I5)") IGP,ID_MIN,ID_MAX
-         do IDDUM = ID_MIN, ID_MAX
-            ID = MOD(IDDUM-1+MDC, MDC) + 1
-            WRITE (PRINTF,"(' IS ID AC2()         :',2I5,2X,E12.4)") IS,ID,AC2(ID,IS,IGP)
-         end do
-      END IF
-
-   end do
+   END IF
 
 !     *** set all the coefficients in the arrays 0 ***
 
@@ -6547,7 +6637,9 @@ SUBROUTINE SOLMT1 (WINDOW, AC2, SYSTEM_MATRIX, ANYBLK, IGP)
 
    DO IS = 1, WINDOW%ISSTOP
       DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
-         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          IF ( ANYBLK(ID,IS) ) THEN
             SYSTEM_MATRIX%imatla(ID,IS) = 0.
             SYSTEM_MATRIX%imatda(ID,IS) = 1.
@@ -7133,13 +7225,26 @@ SUBROUTINE SOURCE (ITER, IX, IY, SWPDIR, KWAVE, SPCSIG, ECOS, ESIN, AC2, DEP2, I
 !     Measured on Voordelta: the sector version and its
 !     containment check (SWEEP_WINDOW_COVERS_ACTIVE_BINS) together cost 6% of
 !     the run.
+!
+!     The source terms only add to the dissipation and redistribution
+!     budget; no source term reads it back. Only ADDDIS reads it, and only
+!     when an output quantity asks for it (LADDS). Without such output the
+!     budget is not cleared, which saves writing 24 full spectra at every
+!     point visit. On the sphys test model (the so-rp physics) the run is
+!     3% faster on one thread and 4% on four. The budget then starts from
+!     the zero that SWCOMP or SwanCompUnstruc gives it after allocating it,
+!     and holds sums over earlier points that nothing reads. The
+!     generation budget is still cleared at every visit, because WINDP1
+!     reads GENC0 at the next point (see above).
 
-   CALL CLEAR_BUDGET(SOURCE_BUDGET%dissc0, SIZE(SOURCE_BUDGET%dissc0))
-   CALL CLEAR_BUDGET(SOURCE_BUDGET%dissc1, SIZE(SOURCE_BUDGET%dissc1))
+   IF (LADDS) THEN
+      CALL CLEAR_BUDGET(SOURCE_BUDGET%dissc0, SIZE(SOURCE_BUDGET%dissc0))
+      CALL CLEAR_BUDGET(SOURCE_BUDGET%dissc1, SIZE(SOURCE_BUDGET%dissc1))
+      CALL CLEAR_BUDGET(SOURCE_BUDGET%redc0, SIZE(SOURCE_BUDGET%redc0))
+      CALL CLEAR_BUDGET(SOURCE_BUDGET%redc1, SIZE(SOURCE_BUDGET%redc1))
+   END IF
    CALL CLEAR_BUDGET(SOURCE_BUDGET%genc0, SIZE(SOURCE_BUDGET%genc0))
    CALL CLEAR_BUDGET(SOURCE_BUDGET%genc1, SIZE(SOURCE_BUDGET%genc1))
-   CALL CLEAR_BUDGET(SOURCE_BUDGET%redc0, SIZE(SOURCE_BUDGET%redc0))
-   CALL CLEAR_BUDGET(SOURCE_BUDGET%redc1, SIZE(SOURCE_BUDGET%redc1))
 
 !     *** set local ice concentration ***                                 41.75
 !     (see Remarks)                                                       41.75
@@ -8103,7 +8208,9 @@ SUBROUTINE RESCALE (AC2, WINDOW, NRSCAL, IGP)
       FACTOR = 0.
       NEGVAL = .FALSE.
       do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          ATOT = ATOT + AC2(ID,IS,IGP)
          IF ( AC2(ID,IS,IGP) .LT. 0. ) THEN
             NRSCAL(IGP) = NRSCAL(IGP) + 1
@@ -8119,7 +8226,9 @@ SUBROUTINE RESCALE (AC2, WINDOW, NRSCAL, IGP)
 !         *** rescale ***
 
          do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
             IF ( AC2(ID,IS,IGP) .LT. 0.) THEN
                AC2(ID,IS,IGP) = 0.
             END IF
@@ -8708,7 +8817,9 @@ SUBROUTINE SWSIP (AC2, SYSTEM_MATRIX, AC2OLD, REPS, MAXIT, IAMOUT, INOCNV, WINDO
          '         IMATUA         IMATRA         IMAT5L'// &
          '         IMAT6U            AC2'
       DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
-         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          DO IS = 1, WINDOW%ISSTOP
             WRITE(PRTEST,"(2I3,7E15.7)") IS, ID, &
                SYSTEM_MATRIX%imatla(ID,IS), SYSTEM_MATRIX%imatda(ID,IS), &
@@ -8720,7 +8831,9 @@ SUBROUTINE SWSIP (AC2, SYSTEM_MATRIX, AC2OLD, REPS, MAXIT, IAMOUT, INOCNV, WINDO
       WRITE(PRTEST,*)
       WRITE(PRTEST,*)'IS ID      LPER          UPER '
       DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
-         ID = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          IF ( ID.EQ.1 .OR. ID.EQ.MDC ) THEN
             DO IS = 1, WINDOW%ISSTOP
                WRITE(PRTEST,"(2I3,2E15.7)") IS, ID, LOPERI(IS), UPPERI(IS)

@@ -27,6 +27,18 @@ module swan_spectral_grid
 !     receive the window as one compiler-checked value.  The four dynamic
 !     bounds remain pointer views; the scalar sweep counters live in the view
 !     itself so they cannot outlive a stack target.
+!
+!     IDCMIN, IDCMAX, IDDLOW and IDDTOP are running counters of directions:
+!     they go below 1 or above MDC when the range crosses the seam between
+!     direction MDC and direction 1, and lie between 1 - MDC and MDC + 1
+!     (see SWPSEL). A loop over such a range finds the direction with
+!
+!         ID = IDDUM
+!         IF (ID.LT.1) ID = ID + MDC
+!         IF (ID.GT.MDC) ID = ID - MDC
+!
+!     which gives the same ID as upstream's MOD ( IDDUM - 1 + MDC , MDC ) + 1
+!     for every IDDUM up to 2 MDC, without an integer division for each bin.
    type :: spectral_window_t
       integer, pointer, contiguous :: idcmin(:) => null()
       integer, pointer, contiguous :: idcmax(:) => null()

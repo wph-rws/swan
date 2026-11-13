@@ -302,7 +302,7 @@ SUBROUTINE SWIND_DBYB ( SPCSIG,THETAW,KWAVE,MEMSINA,MEMSINB, &
    USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
-   USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input
+   USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input, esmf_coupling_enabled
 
    IMPLICIT NONE(TYPE, EXTERNAL)
    INTEGER, INTENT(IN) :: IGP
@@ -702,7 +702,7 @@ SUBROUTINE SWIND_DBYB ( SPCSIG,THETAW,KWAVE,MEMSINA,MEMSINB, &
       DO ID = 1, MDC
          S_IN(ID,IS)= S_IN(ID,IS) * RDFSIN(IS)
          MEMSINB(ID,IS,IGP) = S_IN(ID,IS) / SPCSIG(IS)
-         CALL accumulate_exponential_wind_input(ID, IS, IGP, &
+         IF (esmf_coupling_enabled) CALL accumulate_exponential_wind_input(ID, IS, IGP, &
             S_IN(ID,IS)/SPCSIG(IS))
       ENDDO
    ENDDO
@@ -1667,7 +1667,9 @@ subroutine filsin (memsin, WINDOW, imatra, anywnd, plwnds, genc0, aiceloc, IGP)
    factor_on_Sin = (1.-aiceloc*(1.-icewind))
    do is = 1, WINDOW%ISSTOP
       do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
-         id = mod ( iddum - 1 + MDC , MDC ) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          if ( anywnd(id).or.ZIEGER ) then
             memsins = memsin(id,is,IGP)
             if ( aiceloc > 0. ) then
@@ -1686,7 +1688,9 @@ subroutine filsin (memsin, WINDOW, imatra, anywnd, plwnds, genc0, aiceloc, IGP)
       if ( ITEST > 100 ) then
          do is = 1, WINDOW%ISSTOP
             do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
-               id = mod ( iddum - 1 + MDC , MDC ) + 1
+               ID = IDDUM
+               IF (ID.LT.1) ID = ID + MDC
+               IF (ID.GT.MDC) ID = ID - MDC
                memsins = memsin(id,is,IGP)
                if ( aiceloc > 0. ) then
                   factor_on_Sin = (1.-aiceloc*(1.-icewind))
@@ -1868,7 +1872,9 @@ SUBROUTINE SSWELL_ROGERS (SPCSIG, KWAVE, WINDOW, DISSC1, ETOT, IMATDA, URMSTOP, 
    DO IS=1, WINDOW%ISSTOP
       !         Only fill the values for the current sweep
       DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          IMATDA(ID,IS)   = IMATDA(ID,IS)   + SWDIS(IS)
          DISSC1(ID,IS,4) = DISSC1(ID,IS,4) + SWDIS(IS)
          IF (TESTFL) PLSWEL(ID,IS,IPTST) = -1.*(SWDIS(IS))
@@ -2005,7 +2011,9 @@ SUBROUTINE SSWELL_ARDHUIN (SPCSIG, THETAW, KWAVE, WINDOW, DISSC1, ETOT, IMATDA, 
    IF(RE > RE_CRIT)THEN
       DO IS=1, WINDOW%ISSTOP
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
             COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
             FESWELL = s1*(feGM + (abs(s3) + s2*COSDIF)*UFRIC/USIGTOP)
             ! note that "-1" omitted since LHS
@@ -2016,7 +2024,9 @@ SUBROUTINE SSWELL_ARDHUIN (SPCSIG, THETAW, KWAVE, WINDOW, DISSC1, ETOT, IMATDA, 
    ELSE
       DO IS=1, WINDOW%ISSTOP
          DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-            ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+            ID = IDDUM
+            IF (ID.LT.1) ID = ID + MDC
+            IF (ID.GT.MDC) ID = ID - MDC
             SWDIS(ID,IS) = RHOAW * CDSV * 2.0 * KWAVE(IS,1) &
                            * SQRT(2.0 * NU_AIR * SPCSIG(IS))
          END DO
@@ -2026,7 +2036,9 @@ SUBROUTINE SSWELL_ARDHUIN (SPCSIG, THETAW, KWAVE, WINDOW, DISSC1, ETOT, IMATDA, 
    DO IS=1, WINDOW%ISSTOP
       !         Only fill the values for the current sweep
       DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          IMATDA(ID,IS)   = IMATDA(ID,IS)   + SWDIS(ID,IS)
          DISSC1(ID,IS,4) = DISSC1(ID,IS,4) + SWDIS(ID,IS)
          IF (TESTFL) PLSWEL(ID,IS,IPTST) = -1.*(SWDIS(ID,IS))
@@ -2186,7 +2198,9 @@ SUBROUTINE SSWELL_ZIEGER (SPCSIG, KWAVE, AC2, CG, WINDOW, MDC, DISSC1, IMATDA, T
    DO IS=1, WINDOW%ISSTOP
       !         Only fill the values for the current sweep
       DO IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
-         ID = MOD(IDDUM - 1 + MDC, MDC) + 1
+         ID = IDDUM
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
          IMATDA(ID,IS)   = IMATDA(ID,IS)   + SWDIS(IS)
          DISSC1(ID,IS,4) = DISSC1(ID,IS,4) + SWDIS(IS)
          IF (TESTFL) PLSWEL(ID,IS,IPTST) = -1.*(SWDIS(IS))
