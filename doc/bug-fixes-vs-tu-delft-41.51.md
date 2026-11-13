@@ -174,6 +174,30 @@ are:
 - the conversion to free-form Fortran, modules and explicit state ownership;
 - the replacement of FFTPACK by FFTW3, the spatial index and other
   performance improvements;
+- **abrupt underflow.** The fork lets a result below
+  the smallest normal number (1.2E-38) become zero instead of a subnormal
+  number (`IEEE_SET_UNDERFLOW_MODE` in `SWMAIN`), which is also what a build
+  with the Intel compiler does by default (that one treats subnormal
+  input as zero as well). A build with gfortran spent a third or more of
+  its run time on such numbers, almost all of it in the DIA. That is a
+  matter of speed, not a bug in the model. It does change output, in one
+  kind of file: the test-point source-term spectra (`*_sources.spc`) of the
+  example decks `quad_dia1`, `quad_dia2`, `quad_dia3`, `quad_full`,
+  `quad_mdia`, `quad_off`, `quad_xnl`, `quad_xnl52`, `quad_xnl53` and
+  `st6_testpoints` differ from the output before in values
+  at least seventeen orders of magnitude below the largest value of the
+  file (values of 1E-35 and smaller become zero; the largest value that
+  changes is 1.1E-13, by 0.1%, in a file with a maximum of 5E4). Hs,
+  periods, tables, block files and spectra of the example decks are the
+  same. The delta inventory lists the decks concerned under
+  `deliberate_differences`, so that the gate keeps watching their output.
+  A large deck whose iteration has not settled shifts a little more: at
+  the 135 output points of the operational so-rp deck (reference condition,
+  37 iterations with and without the change) Hs differs by up to 0.09 mm,
+  Tm01 by up to 0.0004 s and the mean direction by up to 0.007 degrees. A
+  value that was a subnormal number is now zero, a test on its sign can go
+  the other way, and an iteration that has not converged carries that
+  change of a last digit along;
 - the extension of CMake, CI, tests, examples and verification tools, as far
   as no upstream bug was fixed in the process;
 - removed dead code and compiler warnings without a demonstrated bug in

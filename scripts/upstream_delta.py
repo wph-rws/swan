@@ -22,7 +22,9 @@ Statuses in the manifest:
 
   identical     both binaries run the deck and give equal output;
   differs       both run, the output differs; `bugfix` names the repair
-                that makes the difference, or `investigation` says what has been
+                that makes the difference, `deliberate` names a choice of the
+                fork that is no repair and that the manifest describes under
+                `deliberate_differences`, or `investigation` says what has been
                 measured while the attribution is not yet settled;
   fork only     upstream refuses the deck (a command it does not know),
                 `bugfix` names the repair that made the deck reachable;
@@ -657,12 +659,25 @@ def check_inventory(manifest: dict, decks: list[str]) -> list[str]:
                 #  changed; then no BF number can be confirmed.
                 if bugfix not in known:
                     problems.append(f"{deck}: refers to {bugfix}, which is not in the bug-fix table")
+            elif entry.get("deliberate"):
+                pass
             elif entry.get("investigation"):
                 unattributed.append(deck)
             else:
                 problems.append(
                     f"{deck}: {status} without a BF reference and without an investigation note -- "
                     "explain the difference or fix it"
+                )
+            #  A deliberate difference is a choice of the fork that changes
+            #  output without repairing a bug. It counts as an explanation
+            #  only when the manifest says what the choice is; a deck can
+            #  have one next to a repair.
+            deliberate = entry.get("deliberate")
+            description = manifest.get("deliberate_differences", {}).get(deliberate) if deliberate else None
+            if deliberate and not (isinstance(description, str) and description.strip()):
+                problems.append(
+                    f"{deck}: refers to the deliberate difference {deliberate!r}, "
+                    "which the manifest does not describe"
                 )
         if status == STATUS_SKIPPED and not entry.get("reason"):
             problems.append(f"{deck}: skipped without a reason")
@@ -795,7 +810,8 @@ def main() -> int:
         claimed = entry.get("status", "-- not in manifest --")
         #  For a skipped deck the reason is already in the detail column; putting
         #  it on the left as well would print the same sentence twice.
-        attribution = entry.get("bugfix") or ("" if verdict.status == STATUS_SKIPPED else entry.get("reason", ""))
+        attribution = (entry.get("bugfix") or entry.get("deliberate")
+                       or ("" if verdict.status == STATUS_SKIPPED else entry.get("reason", "")))
         marker = "[x]" if claimed == verdict.status else "[!]"
         print(f"  {marker} {verdict.deck:<{width}}  {verdict.status:<18} {attribution:<8} {verdict.detail}")
 

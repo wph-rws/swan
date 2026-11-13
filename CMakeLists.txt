@@ -605,6 +605,16 @@ if( BUILD_TESTING )
             ${CMAKE_SOURCE_DIR}/tests/test_dia_current_rotation.py -q
   )
 
+  # SWMAIN sets abrupt underflow, and only the run time shows when that is
+  # lost. This shows it in the output: the source terms of a test point hold
+  # subnormal numbers when the run computes with gradual underflow.
+  add_test(
+    NAME abrupt_underflow
+    COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
+            ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_abrupt_underflow.py -q
+  )
+
   add_test(
     NAME stop_extrapolation
     COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}

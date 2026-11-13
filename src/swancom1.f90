@@ -133,6 +133,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
    USE swan_number_formatting
    USE swan_run_mode
    USE swan_stencil, ONLY: MICMAX, RDFSIN
+   USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_SUPPORT_UNDERFLOW_CONTROL, IEEE_SET_UNDERFLOW_MODE, &
+      IEEE_GET_UNDERFLOW_MODE
    USE swan_physics_selection
    USE swan_numerics
    USE swan_physical_settings
@@ -988,6 +990,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
 
    !$ LOGICAL, ALLOCATABLE :: LLOCK(:,:)
    !$ LOGICAL LLOCKED
+   LOGICAL :: UNDERFLOW_WAS_GRADUAL
 
    INTEGER, ALLOCATABLE :: ISLMIN(:), NFLIM(:), NRSCAL(:)
 
@@ -1357,9 +1360,20 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
       !$OMP PRIVATE(JDUM,ROW_ACTIVE,STOP_REQUESTED,SWEEP_LAYOUT) &
       !$OMP PRIVATE(QTL1,QTL2) &
       !$OMP PRIVATE(LLOCKED) &
+      !$OMP PRIVATE(UNDERFLOW_WAS_GRADUAL) &
       !$OMP COPYIN(PROPSL) &
       !$OMP COPYIN(IPTST,TESTFL) &
       !$OMP COPYIN(RDFSIN)
+!
+!  Every thread has its own floating-point modes, and a thread that was
+!  made before SWMAIN set abrupt underflow does not have it. Set it here,
+!  so that all threads compute alike (see SWMAIN). The threads can belong
+!  to the program that called SWAN, so each of them remembers the mode it
+!  came with and puts it back at the end of the parallel region.
+   IF (IEEE_SUPPORT_UNDERFLOW_CONTROL(1.)) THEN
+      CALL IEEE_GET_UNDERFLOW_MODE(UNDERFLOW_WAS_GRADUAL)
+      CALL IEEE_SET_UNDERFLOW_MODE(GRADUAL=.FALSE.)
+   END IF
 !
    !$OMP MASTER
 !  Print number of threads set by environment                             40.22
@@ -2417,6 +2431,9 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
 !     End deallocate private arrays.                                      40.22
 !----------------------------------------------------------------------   40.22
 !
+!
+!  give the thread the underflow mode back that it came with
+   IF (IEEE_SUPPORT_UNDERFLOW_CONTROL(1.)) CALL IEEE_SET_UNDERFLOW_MODE(UNDERFLOW_WAS_GRADUAL)
 !----------------------------------------------------------------------   40.22
 !     End parallel region.                                                40.22
 !----------------------------------------------------------------------   40.22

@@ -129,6 +129,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
    use swan_coordinate_offset
    use swan_run_mode
    use swan_stencil, only: MICMAX, RDFSIN
+   use, intrinsic :: ieee_arithmetic, only: ieee_support_underflow_control, ieee_set_underflow_mode, &
+      ieee_get_underflow_mode
    use swan_physics_selection
    use swan_numerics
    use swan_physical_settings
@@ -318,6 +320,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
    logical                               :: fguess ! indicate whether first guess need to be applied or not
    logical                               :: lpredt ! indicate whether action density in first iteration need to be estimated or not
    logical                               :: initial_prediction_pass
+   logical                               :: underflow_was_gradual ! underflow mode of the thread on entry
 
    type(balance_residual_t)              :: balance_residual ! defect of the action balance per vertex, this iteration
    type(balance_residual_summary_t)      :: residual_summary ! its reduction over the active vertices
@@ -498,6 +501,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
       !$omp private(disc0, disc1, genc0, genc1, redc0, redc1, trac0, trac1, leakcf) &
       !$omp private(qtl1, qtl2) &
       !$omp private(tid, iter, kvert, ifront, first_front_vertex, last_front_vertex) &
+      !$omp private(underflow_was_gradual) &
       !$omp private(dummy) &
       !$omp private(ivert, jc, k, j, icell, n, v, vu, swpnr, swpdir, sdir, rdx, rdy, lpredt, initial_prediction_pass, vb, ve, iface, link, inocnt, thmin, thmax, th1, th2) &
 
@@ -508,6 +512,16 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
       !$omp private(st_ix, st_iy, st_kc, st_co) &
       !$omp firstprivate(st_nm) &
       !$omp copyin(IPTST, TESTFL, RDFSIN)
+   !
+   ! every thread has its own floating-point modes; give each of them
+   ! abrupt underflow, so that all threads compute alike (see SWMAIN).
+   ! The threads can belong to the program that called SWAN, so each
+   ! remembers the mode it came with and puts it back at the end
+   !
+   if ( ieee_support_underflow_control(1.) ) then
+      call ieee_get_underflow_mode(underflow_was_gradual)
+      call ieee_set_underflow_mode(gradual=.false.)
+   endif
    !
    ! print number of threads set by environment
    !
@@ -1749,6 +1763,10 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
    deallocate(qtl2)
    IF (timing_enabled) CALL SWTSTO(101)
 
+   ! give the thread the underflow mode back that it came with
+   !
+   if ( ieee_support_underflow_control(1.) ) call ieee_set_underflow_mode(underflow_was_gradual)
+   !
    ! end of parallel region
    !
    !$omp end parallel

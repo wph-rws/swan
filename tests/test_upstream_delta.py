@@ -80,6 +80,36 @@ def test_a_differing_deck_needs_a_fingerprint_of_the_fork_output(tmp_path):
     assert "without a fingerprint of the fork output" in completed.stdout
 
 
+def test_a_deliberate_difference_must_be_described(tmp_path):
+    """A choice of the fork explains a difference only when the manifest says what it is."""
+    def undescribed(manifest):
+        entry = _first_differing(manifest)
+        entry.pop("bugfix", None)
+        entry["deliberate"] = "a choice nobody wrote down"
+    completed = _inventory_check(tmp_path, undescribed)
+    assert completed.returncode != 0
+    assert "which the manifest does not describe" in completed.stdout
+
+    #  A name with an empty description, or with none at all, explains nothing.
+    for nothing in ("", "   ", None):
+        def named_only(manifest, nothing=nothing):
+            entry = _first_differing(manifest)
+            entry.pop("bugfix", None)
+            entry["deliberate"] = "a choice"
+            manifest.setdefault("deliberate_differences", {})["a choice"] = nothing
+        completed = _inventory_check(tmp_path, named_only)
+        assert completed.returncode != 0
+        assert "which the manifest does not describe" in completed.stdout
+
+    def described(manifest):
+        entry = _first_differing(manifest)
+        entry.pop("bugfix", None)
+        entry["deliberate"] = "a choice"
+        manifest.setdefault("deliberate_differences", {})["a choice"] = "what it is and why"
+    completed = _inventory_check(tmp_path, described)
+    assert completed.returncode == 0, completed.stdout
+
+
 def test_a_fork_that_does_not_complete_a_deck_is_never_accepted(tmp_path):
     def failed(manifest):
         _first_differing(manifest)["status"] = "fork failed"

@@ -79,6 +79,7 @@ SUBROUTINE SWMAIN
    USE swan_service_interfaces, ONLY: MSGERR, TXPBLA, STPNOW, SWTSTA, SWTSTO, SWPRTI
    USE swan_service_interfaces, ONLY: RESET_ERROR_FILE_STATE
    USE swan_time, ONLY: default_time_context
+   USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_SUPPORT_UNDERFLOW_CONTROL, IEEE_SET_UNDERFLOW_MODE
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_time
@@ -334,6 +335,18 @@ SUBROUTINE SWMAIN
 !
 ! 13. Source text
 !
+!     --- let a result that is too small for a normal number become zero
+!         (abrupt underflow) instead of a subnormal number. A processor
+!         computes with subnormal numbers many times slower, and the DIA
+!         makes them all the time: it multiplies three energy densities,
+!         and in the directions against the wind these are tiny. The
+!         numbers concerned are below 1.2E-38 and carry no information.
+!         A program built with the Intel compiler has always run this
+!         way. The mode holds until SWMAIN returns; SWCOMP and
+!         SwanCompUnstruc set it for each thread.
+
+   IF (IEEE_SUPPORT_UNDERFLOW_CONTROL(1.)) CALL IEEE_SET_UNDERFLOW_MODE(GRADUAL=.FALSE.)
+
 !     --- initialize various data
 
    DCUMTM(:,1:2) = 0D0

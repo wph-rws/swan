@@ -13,6 +13,15 @@ program test_two_cases
 !  A difference here is not a rounding question. Both runs read the same deck
 !  and do the same arithmetic, so any difference in the answer is state that
 !  survived from the first run.
+!
+!  SWMAIN computes with abrupt underflow: a result below the smallest normal
+!  number becomes zero. That is a mode of the processor, kept per thread,
+!  and it belongs to the caller. So SWMAIN must hand every thread back with
+!  the mode it had, also the OpenMP threads that the caller made before the
+!  first run and that SWAN then computes on. The test first gives every
+!  thread gradual underflow, the opposite of what SWMAIN sets, so that it
+!  does not depend on the mode a compiler starts a program with (gfortran
+!  starts with gradual underflow, the Intel compiler with abrupt).
    use swan_driver, only: SWMAIN
    use swan_parallel, only: SWINITMPI, SWEXITMPI
    use M_OBSTA, only: OBSTACLE_STATE_IS_CLEAR
@@ -40,14 +49,26 @@ program test_two_cases
    ! both SWAN runs and is initialized only once.
    call SWINITMPI
 
+   !  This also makes the OpenMP threads, before SWAN runs.
+   call give_every_thread_gradual_underflow
+   if (.not.every_thread_has_gradual_underflow()) then
+      error stop "the test could not set gradual underflow on every thread"
+   end if
+
    call run_once(.true., first, status)
    if (status /= 0) error stop "the first run did not produce a result table"
+   if (.not.every_thread_has_gradual_underflow()) then
+      error stop "SWMAIN returned with abrupt underflow on a thread"
+   end if
 
    call run_once(.false., middle, status)
    if (status /= 0) error stop "the middle run did not produce a result table"
 
    call run_once(.true., third, status)
    if (status /= 0) error stop "the third run did not produce a result table"
+   if (.not.every_thread_has_gradual_underflow()) then
+      error stop "SWMAIN returned with abrupt underflow on a thread"
+   end if
 
    call compare('depth', first(1), third(1))
    call compare('Hsig',  first(2), third(2))
@@ -62,6 +83,34 @@ program test_two_cases
    print *, 'A-B-A runs agree and obstacle state is clear'
 
 contains
+
+ !  The mode of the caller in this test: gradual underflow on the main
+ !  thread and, in an OpenMP build, on every thread of the team.
+subroutine give_every_thread_gradual_underflow()
+   use, intrinsic :: ieee_arithmetic, only: ieee_set_underflow_mode, &
+      ieee_support_underflow_control
+
+   if (.not.ieee_support_underflow_control(1.)) return
+   !$omp parallel
+   call ieee_set_underflow_mode(gradual=.true.)
+   !$omp end parallel
+end subroutine give_every_thread_gradual_underflow
+
+ !  Whether the main thread and, in an OpenMP build, every thread of the
+ !  team compute with gradual underflow. Without control over the mode
+ !  there is nothing to check.
+logical function every_thread_has_gradual_underflow() result(all_gradual)
+   use, intrinsic :: ieee_arithmetic, only: ieee_get_underflow_mode, &
+      ieee_support_underflow_control
+   logical :: gradual
+
+   all_gradual = .true.
+   if (.not.ieee_support_underflow_control(1.)) return
+   !$omp parallel private(gradual) reduction(.and.:all_gradual)
+   call ieee_get_underflow_mode(gradual)
+   all_gradual = all_gradual .and. gradual
+   !$omp end parallel
+end function every_thread_has_gradual_underflow
 
 subroutine run_once(with_obstacle, values, ierr)
    logical, intent(in)     :: with_obstacle
