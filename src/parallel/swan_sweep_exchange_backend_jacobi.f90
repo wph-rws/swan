@@ -1,6 +1,7 @@
 module swan_sweep_exchange_backend
    use swan_build_config, only: timing_enabled
    use swan_computational_grid, only: MCGRD, MXC, MYC
+   use M_PARALL, only: IBLKAD, PARLL
    use swan_mpi_backend, only: mpi_backend_enabled
    use swan_parallel, only: SWEXCHG_JAC, SWSYNC
    use swan_service_interfaces, only: STPNOW, SWTSTA, SWTSTO
@@ -134,26 +135,64 @@ subroutine complete_sweep(sweep_index, action_density, work, &
    integer, intent(in) :: group_points(MXC*MYC)
    logical, intent(out) :: stop_requested
 
-   integer :: direction, frequency
+   integer :: direction, frequency, k
+   integer, allocatable :: points(:)
 
    stop_requested = .false.
    if (sweep_index /= 3 .or. .not.mpi_backend_enabled) return
    if (timing_enabled) call SWTSTA(213)
-   do direction = 1, MDC
-      do frequency = 1, MSC
-         work(:) = action_density(direction,frequency,:)
-         call exchange_swan_field(work, group_points)
-         if (STPNOW()) then
-            stop_requested = .true.
-            return
-         end if
-         action_density(direction,frequency,:) = work(:)
+   !  The exchange reads the field only in the points it sends to a
+   !  neighbour and writes it only in the points it receives, the edges of
+   !  the subdomain. So only those points are copied to the work array and
+   !  back, instead of the whole field for each of the MDC*MSC bins. With
+   !  one process there is no neighbour and nothing to copy.
+   if (PARLL) then
+      call exchange_points(group_points, points)
+      do direction = 1, MDC
+         do frequency = 1, MSC
+            do k = 1, size(points)
+               work(points(k)) = action_density(direction,frequency,points(k))
+            end do
+            call exchange_swan_field(work, group_points)
+            if (STPNOW()) then
+               stop_requested = .true.
+               return
+            end if
+            do k = 1, size(points)
+               action_density(direction,frequency,points(k)) = work(points(k))
+            end do
+         end do
       end do
-   end do
+   end if
    call SWSYNC
    stop_requested = STPNOW()
    if (timing_enabled) call SWTSTO(213)
 end subroutine complete_sweep
+
+!  The grid addresses that SWEXCHG_JAC reads or writes: for every
+!  neighbour, the points to send and the points to receive, as the block
+!  administration IBLKAD lists them. A point may be in the list twice.
+subroutine exchange_points(group_points, points)
+   integer, intent(in) :: group_points(MXC*MYC)
+   integer, allocatable, intent(out) :: points(:)
+
+   integer :: neighbour, start, k, n
+
+   n = 0
+   do neighbour = 1, IBLKAD(1)
+      start = IBLKAD(3*neighbour+1)
+      n = n + 2*IBLKAD(start)
+   end do
+   allocate(points(n))
+   n = 0
+   do neighbour = 1, IBLKAD(1)
+      start = IBLKAD(3*neighbour+1)
+      do k = 1, 2*IBLKAD(start)
+         n = n + 1
+         points(n) = group_points(IBLKAD(start+k))
+      end do
+   end do
+end subroutine exchange_points
 
 subroutine complete_sweep_iteration(action_density, work, group_points, &
    stop_requested)
