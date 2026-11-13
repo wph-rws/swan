@@ -10,7 +10,11 @@
 name: ci
 
 on:
+  # Branches and pull requests only. A tag only marks a point in the
+  # history; a run at an old tag would use the workflow of that day, not
+  # today's.
   push:
+    branches: ['**']
   pull_request:
 
 jobs:

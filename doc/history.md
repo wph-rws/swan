@@ -178,12 +178,15 @@ fix, unless the row names another commit. A fix with more than one commit
 | `fork-41.51-identical` | `4457162` | the last commit that computes exactly what upstream computes (41 light decks, serial, `-O3`) |
 | `fork-41.51-2026-11-10` | the last commit of 10 November 2026 | the state of 10 November 2026, after the history was rebuilt |
 
-On GitHub, CI fails at `fork-41.51-2026-11-10` in the four MPI jobs. The
+CI runs on branches and pull requests, not on tags: a tag only marks a point
+in the history, and a run at an old tag would use the workflow of that day.
+A run at `fork-41.51-2026-11-10`
+itself, with the workflow of that commit, fails in the four MPI jobs. The
 cause is the runner, not the code: two tests, `mpi_edges` and
-`mpi_output_ownership`, start three or four processes, the runner has fewer cores, and Open MPI 5 refuses with "not
-enough slots". Every other job passes there. Commit `442f8f5` (13 November
-2026) lets the CI jobs start more processes than cores; from that commit on
-CI is green.
+`mpi_output_ownership`, start three or four processes, the runner has fewer
+cores, and Open MPI 5 refuses with "not enough slots". Every other job
+passes there. Commit `442f8f5` (13 November 2026) lets the CI jobs start
+more processes than cores; from that commit on CI is green.
 
 ## Measurements made before 10 November 2026
 
