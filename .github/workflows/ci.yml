@@ -159,6 +159,10 @@ jobs:
       DEBIAN_FRONTEND: noninteractive
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+      # The runner has fewer cores than the four processes some MPI tests
+      # start, and Open MPI 5 then refuses with "not enough slots". Allow
+      # more processes than cores; the tests check results, not speed.
+      PRTE_MCA_rmaps_default_mapping_policy: ":oversubscribe"
       FC: gfortran-16
     steps:
       - uses: actions/checkout@v4
@@ -226,6 +230,10 @@ jobs:
       FC: gfortran-16
       OMPI_ALLOW_RUN_AS_ROOT: 1
       OMPI_ALLOW_RUN_AS_ROOT_CONFIRM: 1
+      # The runner has fewer cores than the four processes some MPI tests
+      # start, and Open MPI 5 then refuses with "not enough slots". Allow
+      # more processes than cores; the tests check results, not speed.
+      PRTE_MCA_rmaps_default_mapping_policy: ":oversubscribe"
     steps:
       - uses: actions/checkout@v4
       - name: Give every file the time of the runner
