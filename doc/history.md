@@ -179,8 +179,8 @@ fix, unless the row names another commit. A fix with more than one commit
 | `fork-41.51-2026-11-10` | the last commit of 10 November 2026 | the state of 10 November 2026, after the history was rebuilt |
 
 On GitHub, CI fails at `fork-41.51-2026-11-10` in the four MPI jobs. The
-cause is the runner, not the code: three tests start three or four
-processes, the runner has fewer cores, and Open MPI 5 refuses with "not
+cause is the runner, not the code: two tests, `mpi_edges` and
+`mpi_output_ownership`, start three or four processes, the runner has fewer cores, and Open MPI 5 refuses with "not
 enough slots". Every other job passes there. Commit `442f8f5` (13 November
 2026) lets the CI jobs start more processes than cores; from that commit on
 CI is green.
