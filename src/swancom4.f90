@@ -1129,7 +1129,7 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, A
 !*************************************************************
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER :: IS, ID, ID0, I, J, IDDUM, IIID, ISLOW, ISHGH, IDLOW, ISP, ISP1, IDP, IDP1, ISM, ISM1, &
+   INTEGER :: IS, ID, ID0, I, J, JC, IDDUM, IIID, ISLOW, ISHGH, IDLOW, ISP, ISP1, IDP, IDP1, ISM, ISM1, &
          IDHGH, IDM, IDM1, ISCLW, ISCHG, IDCLOW, IDCHGH
 
 !     The counters that RANGE4 recomputes for this grid point and this sweep.
@@ -1359,25 +1359,32 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, A
       SIGPI = SPCSIG(I) * JACOBI
       DO J = WINDOW%IDCMIN(I), WINDOW%IDCMAX(I)
          ID = MOD ( J - 1 + MDC , MDC ) + 1
-         DIA_WORKSPACE%SFNL(I,ID) =   - 2. * ( DIA_WORKSPACE%SA1(I,J) + DIA_WORKSPACE%SA2(I,J) ) &
-            + AWG1 * ( DIA_WORKSPACE%SA1(I-ISP1,J-IDP1) + DIA_WORKSPACE%SA2(I-ISP1,J+IDP1) ) &
-            + AWG2 * ( DIA_WORKSPACE%SA1(I-ISP1,J-IDP ) + DIA_WORKSPACE%SA2(I-ISP1,J+IDP ) ) &
-            + AWG3 * ( DIA_WORKSPACE%SA1(I-ISP ,J-IDP1) + DIA_WORKSPACE%SA2(I-ISP ,J+IDP1) ) &
-            + AWG4 * ( DIA_WORKSPACE%SA1(I-ISP ,J-IDP ) + DIA_WORKSPACE%SA2(I-ISP ,J+IDP ) ) &
-            + AWG5 * ( DIA_WORKSPACE%SA1(I-ISM1,J+IDM1) + DIA_WORKSPACE%SA2(I-ISM1,J-IDM1) ) &
-            + AWG6 * ( DIA_WORKSPACE%SA1(I-ISM1,J+IDM ) + DIA_WORKSPACE%SA2(I-ISM1,J-IDM ) ) &
-            + AWG7 * ( DIA_WORKSPACE%SA1(I-ISM ,J+IDM1) + DIA_WORKSPACE%SA2(I-ISM ,J-IDM1) ) &
-            + AWG8 * ( DIA_WORKSPACE%SA1(I-ISM ,J+IDM ) + DIA_WORKSPACE%SA2(I-ISM ,J-IDM ) )
+!        With the full circle (PERCIR) the interactions are there for
+!        the directions 1 to MDC and, folded, a few on either side. The
+!        range of this frequency can then still be stored with counters
+!        below 1 (SWPSEL); those columns are not filled, so take the
+!        direction itself as the column.
+         JC = J
+         IF (PERCIR) JC = ID
+         DIA_WORKSPACE%SFNL(I,ID) =   - 2. * ( DIA_WORKSPACE%SA1(I,JC) + DIA_WORKSPACE%SA2(I,JC) ) &
+            + AWG1 * ( DIA_WORKSPACE%SA1(I-ISP1,JC-IDP1) + DIA_WORKSPACE%SA2(I-ISP1,JC+IDP1) ) &
+            + AWG2 * ( DIA_WORKSPACE%SA1(I-ISP1,JC-IDP ) + DIA_WORKSPACE%SA2(I-ISP1,JC+IDP ) ) &
+            + AWG3 * ( DIA_WORKSPACE%SA1(I-ISP ,JC-IDP1) + DIA_WORKSPACE%SA2(I-ISP ,JC+IDP1) ) &
+            + AWG4 * ( DIA_WORKSPACE%SA1(I-ISP ,JC-IDP ) + DIA_WORKSPACE%SA2(I-ISP ,JC+IDP ) ) &
+            + AWG5 * ( DIA_WORKSPACE%SA1(I-ISM1,JC+IDM1) + DIA_WORKSPACE%SA2(I-ISM1,JC-IDM1) ) &
+            + AWG6 * ( DIA_WORKSPACE%SA1(I-ISM1,JC+IDM ) + DIA_WORKSPACE%SA2(I-ISM1,JC-IDM ) ) &
+            + AWG7 * ( DIA_WORKSPACE%SA1(I-ISM ,JC+IDM1) + DIA_WORKSPACE%SA2(I-ISM ,JC-IDM1) ) &
+            + AWG8 * ( DIA_WORKSPACE%SA1(I-ISM ,JC+IDM ) + DIA_WORKSPACE%SA2(I-ISM ,JC-IDM ) )
 
-         DIA_WORKSPACE%DSNL(I,ID) =   - 2. * ( DIA_WORKSPACE%DA1C(I,J) + DIA_WORKSPACE%DA2C(I,J) ) &
-            + SWG1 * ( DIA_WORKSPACE%DA1P(I-ISP1,J-IDP1) + DIA_WORKSPACE%DA2P(I-ISP1,J+IDP1) ) &
-            + SWG2 * ( DIA_WORKSPACE%DA1P(I-ISP1,J-IDP ) + DIA_WORKSPACE%DA2P(I-ISP1,J+IDP ) ) &
-            + SWG3 * ( DIA_WORKSPACE%DA1P(I-ISP ,J-IDP1) + DIA_WORKSPACE%DA2P(I-ISP ,J+IDP1) ) &
-            + SWG4 * ( DIA_WORKSPACE%DA1P(I-ISP ,J-IDP ) + DIA_WORKSPACE%DA2P(I-ISP ,J+IDP ) ) &
-            + SWG5 * ( DIA_WORKSPACE%DA1M(I-ISM1,J+IDM1) + DIA_WORKSPACE%DA2M(I-ISM1,J-IDM1) ) &
-            + SWG6 * ( DIA_WORKSPACE%DA1M(I-ISM1,J+IDM ) + DIA_WORKSPACE%DA2M(I-ISM1,J-IDM ) ) &
-            + SWG7 * ( DIA_WORKSPACE%DA1M(I-ISM ,J+IDM1) + DIA_WORKSPACE%DA2M(I-ISM ,J-IDM1) ) &
-            + SWG8 * ( DIA_WORKSPACE%DA1M(I-ISM ,J+IDM ) + DIA_WORKSPACE%DA2M(I-ISM ,J-IDM ) )
+         DIA_WORKSPACE%DSNL(I,ID) =   - 2. * ( DIA_WORKSPACE%DA1C(I,JC) + DIA_WORKSPACE%DA2C(I,JC) ) &
+            + SWG1 * ( DIA_WORKSPACE%DA1P(I-ISP1,JC-IDP1) + DIA_WORKSPACE%DA2P(I-ISP1,JC+IDP1) ) &
+            + SWG2 * ( DIA_WORKSPACE%DA1P(I-ISP1,JC-IDP ) + DIA_WORKSPACE%DA2P(I-ISP1,JC+IDP ) ) &
+            + SWG3 * ( DIA_WORKSPACE%DA1P(I-ISP ,JC-IDP1) + DIA_WORKSPACE%DA2P(I-ISP ,JC+IDP1) ) &
+            + SWG4 * ( DIA_WORKSPACE%DA1P(I-ISP ,JC-IDP ) + DIA_WORKSPACE%DA2P(I-ISP ,JC+IDP ) ) &
+            + SWG5 * ( DIA_WORKSPACE%DA1M(I-ISM1,JC+IDM1) + DIA_WORKSPACE%DA2M(I-ISM1,JC-IDM1) ) &
+            + SWG6 * ( DIA_WORKSPACE%DA1M(I-ISM1,JC+IDM ) + DIA_WORKSPACE%DA2M(I-ISM1,JC-IDM ) ) &
+            + SWG7 * ( DIA_WORKSPACE%DA1M(I-ISM ,JC+IDM1) + DIA_WORKSPACE%DA2M(I-ISM ,JC-IDM1) ) &
+            + SWG8 * ( DIA_WORKSPACE%DA1M(I-ISM ,JC+IDM ) + DIA_WORKSPACE%DA2M(I-ISM ,JC-IDM ) )
 
 !         *** store results in IMATDA and IMATRA ***
 
@@ -1853,10 +1860,20 @@ SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2
 !     *** Put source term together. Keep this arithmetic stencil ***
 !     *** separate from the sign-dependent Patankar update below ***
 !     *** so the compiler can optimize both loops independently.  ***
+!
+!     The loop over the frequencies is the inner one: that is the order
+!     in which SA1, SA2 and SFNL lie in memory, so that the processor can
+!     take several frequencies in one instruction. It covers all
+!     directions of the sweep, IDDLOW to IDDTOP, at every frequency. With
+!     a current a frequency can have a smaller range, IDCMIN to IDCMAX;
+!     the update below uses only that range. With the full circle
+!     (PERCIR) that range can be stored with counters below 1 (SWPSEL),
+!     for which SA1 and SA2 are not filled; IDDLOW to IDDTOP is then 1 to
+!     MDC, which is filled.
 
-   DO I = 1, WINDOW%ISSTOP
-      DO J = WINDOW%IDCMIN(I), WINDOW%IDCMAX(I)
-         ID = MOD ( J - 1 + MDC , MDC ) + 1
+   DO J = WINDOW%IDDLOW, WINDOW%IDDTOP
+      ID = MOD ( J - 1 + MDC , MDC ) + 1
+      DO I = 1, WINDOW%ISSTOP
          SFNL(I,ID) =   - 2. * ( SA1(I,J) + SA2(I,J) ) &
             + AWG1 * ( SA1(I-ISP1,J-IDP1) + SA2(I-ISP1,J+IDP1) ) &
             + AWG2 * ( SA1(I-ISP1,J-IDP ) + SA2(I-ISP1,J+IDP ) ) &

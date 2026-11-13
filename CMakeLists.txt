@@ -596,6 +596,15 @@ if( BUILD_TESTING )
             ${CMAKE_SOURCE_DIR}/tests/test_dia_newton.py -q
   )
 
+  # BF-71: with a current, the DIA must give the same waves when the model
+  # is turned by a quarter turn.
+  add_test(
+    NAME dia_current_rotation
+    COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}
+            ${Python3_EXECUTABLE} -m pytest
+            ${CMAKE_SOURCE_DIR}/tests/test_dia_current_rotation.py -q
+  )
+
   add_test(
     NAME stop_extrapolation
     COMMAND ${CMAKE_COMMAND} -E env ${SWAN_PYTEST_ENVIRONMENT}

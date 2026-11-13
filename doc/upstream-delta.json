@@ -16,6 +16,18 @@
   },
   "decks": [
     {
+      "deck": "current/current_box.swn",
+      "status": "differs",
+      "bugfix": "BF-71",
+      "note": "The only example deck with a current. With a current the directions of a sweep differ per frequency; where SWPSEL widens the sweep to the full circle, the DIA of upstream reads columns of its workspace that were never filled and leaves out part of the quadruplet source term (BF-71). The fork before that repair gave the files of upstream byte for byte; with it Hs differs by up to 8 mm and Tm01 by up to 0.06 s after 20 iterations.",
+      "measured": "differs in: current_box_hs.blk, current_box_mid.sp2, current_box_tm01.blk",
+      "fork_output": {
+        "current_box_hs.blk": "717101f5af9575c67b178520711755e60c541a8d1bea33db2499027479db222f",
+        "current_box_mid.sp2": "e43f71c7d856f8bb60c5feaaba748f0bae800b8c914066610413c3dc156739ab",
+        "current_box_tm01.blk": "653c8db365be498dec47199ca517cd2b15ed7728fd40f7d110f0a08ac911a266"
+      }
+    },
+    {
       "deck": "curve_output/curve.swn",
       "status": "identical",
       "measured": "2 output file(s) equal"

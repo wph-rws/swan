@@ -63,7 +63,7 @@ before BF-57, whose test needs it.
 
 ## Fixes without a test in their own commit
 
-For 53 of the 70 fixes the commit also adds or extends a test under `tests/`
+For 54 of the 71 fixes the commit also adds or extends a test under `tests/`
 or `examples/`. For the other 17 it does not:
 
 - **The test is in the same commit, outside `tests/`.** BF-02 registers its
