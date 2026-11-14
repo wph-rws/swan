@@ -3,7 +3,7 @@
 The strict build compiles SWAN with every extra warning gfortran offers:
 `-Wall -Wextra -Wimplicit-interface -Wsurprising -Wconversion-extra
 -Wcharacter-truncation`, Release, the default serial variant, with the
-reference compiler (gfortran 16.2, see `AGENTS.md`). It gives 1030 warnings.
+reference compiler (gfortran 16.2, see `AGENTS.md`). It gives 1028 warnings.
 Most of them say nothing about whether SWAN computes correctly. A few kinds
 do, and those are the ones the strict gate checks.
 
@@ -37,8 +37,8 @@ collected from five builds that together switch on every build option
 invariants; MPI with METIS, netCDF, COH, JAC and the `mpif.h` module; the
 Cray and the SGI I/O branch), and a name was removed only if every build that
 compiles its file reported it. The output of every deck the delta gate runs
-(all but the four heavy ones) stayed byte for byte the same. The four `unused-variable` warnings
-left are names that only OpenMP clauses use (`IJ`, `IK` and `RDFSIN`, twice),
+(all but the four heavy ones) stayed byte for byte the same. The two `unused-variable` warnings
+left are names that only OpenMP clauses use (`IJ` and `IK`),
 so the serial build cannot see them. Unused dummy arguments stay: removing
 one changes every call.
 
@@ -52,7 +52,7 @@ one changes every call.
 | `untagged` | 4 | yes | deliberate: FFTW transforms in place |
 | `conversion-extra` | 498 | counted only | |
 | `compare-reals` | 234 | counted only | |
-| `unused-variable` | 4 | counted only | used only in OpenMP clauses |
+| `unused-variable` | 2 | counted only | used only in OpenMP clauses |
 | `unused-dummy-argument` | 61 | counted only | |
 
 The defects themselves are described in
@@ -129,7 +129,7 @@ version reports somewhat different warnings, even in unchanged code: the
 same case can show up under another routine because the compiler inlines
 differently. After a compiler change, the new checked warnings have to be
 reviewed before the gate is green again; that is a few dozen at most, not a
-recount of all 1030.
+recount of all 1028.
 
 `tests/test_strict_diagnostics.py` tests the gate itself, including that a
 missing verdict and a silenced build both fail.

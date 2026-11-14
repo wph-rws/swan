@@ -157,7 +157,7 @@ end function INFRAM
 
 !************************************************************************
 !                                                                      *
-SUBROUTINE AC2TST (XYTST, AC2,KGRPNT)
+SUBROUTINE AC2TST (XYTST, AC2,KGRPNT, TESTFL)
 !                                                                      *
 !************************************************************************
 
@@ -198,6 +198,11 @@ SUBROUTINE AC2TST (XYTST, AC2,KGRPNT)
 !
 !     0. Authors
 
+!     TESTFL : whether the grid point that was handled last, by SWINCO or
+!              by the first thread of the solver, is a test point
+!              (TESTFL_MASTER); if so, the spectra of all test points are
+!              written
+   LOGICAL, INTENT(IN) :: TESTFL
    INTEGER   XYTST(*) ,KGRPNT(MXC,MYC)
    INTEGER   ID, II, INDEX, IS, IX, IY
    REAL      AC2(MDC,MSC,MCGRD)
@@ -1824,7 +1829,7 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   , &
    AC2   , REFLSO, KGRPNT, XCGRID, &
    YCGRID, CAX,    CAY   , RDX   , RDY , ANYBIN, &
    SPCSIG, SPCDIR, CGO   , KWAVE , HSS2, TSS2  , &
-   DSS2  , KCGRD, IXCGRD, IYCGRD )
+   DSS2  , KCGRD, IXCGRD, IYCGRD, TESTFL )
 !                                                                      *
 !************************************************************************
 
@@ -1843,7 +1848,6 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   , &
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
-   USE swan_test_output
    USE M_OBSTA
    USE M_PARALL
    USE SwanGriddata
@@ -1991,6 +1995,8 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   , &
 
 !  KGRPNT/XCGRID/YCGRID are dereferenced only on the OPTG /= 5 branches below;
 !  unstructured callers omit them (see the KGRPNT history note in swancom2).
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    INTEGER, OPTIONAL :: KGRPNT(MXC,MYC)
    INTEGER  LINK(2)
    INTEGER, INTENT(IN) :: KCGRD(MICMAX), IXCGRD(MICMAX), IYCGRD(MICMAX)
@@ -2404,14 +2410,14 @@ SUBROUTINE SWTRCF (DEP2  , WLEV2 , CHS   , &
                   CAY, RDX, RDY, ILINK, &
                   REFLCOEF, LREFDIFF, POWN, ANYBIN, &
                   LRFRD, SPCSIG, SPCDIR, FD1, FD2, FD3, FD4, &
-                  OBREDF, REFLTST, KCGRD(1), IXCGRD(1), IYCGRD(1))
+                  OBREDF, REFLTST, KCGRD(1), IXCGRD(1), IYCGRD(1), TESTFL)
             ELSE
                CALL REFLECT(AC2, REFLSO, X1, Y1, X2, Y2, &
                   X3, Y3, X4, Y4, CAX, &
                   CAY, RDX, RDY, ILINK, &
                   REFLCOEF, LREFDIFF, POWN, ANYBIN, &
                   LRFRD, SPCSIG, SPCDIR, FD1, FD2, FD3, FD4, &
-                  OBREDF, REFLTST, KCGRD(1), IXCGRD(1), IYCGRD(1))
+                  OBREDF, REFLTST, KCGRD(1), IXCGRD(1), IYCGRD(1), TESTFL)
             ENDIF
          ENDIF
 
@@ -2512,7 +2518,7 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3, &
    X4, Y4, CAX, CAY, RDX, RDY, &
    ILINK, REF0, LREFDIFF, POWN, ANYBIN, &
    LRFRD, SPCSIG, SPCDIR, FD1, FD2, FD3, FD4, &
-   OBREDF, REFLTST, IGP, IXCG, IYCG)
+   OBREDF, REFLTST, IGP, IXCG, IYCG, TESTFL)
 
 !************************************************************************
 
@@ -2523,7 +2529,6 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3, &
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
-   USE swan_test_output
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -2630,6 +2635,8 @@ SUBROUTINE REFLECT (AC2, REFLSO, X1, Y1, X2, Y2, X3, Y3, &
 !     X3, Y3   inp  User coordinates of one end of obstacle side          40.09
 !     X4, Y4   inp  User coordinates of other end of obstacle side        40.09
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    REAL       :: AC2(MDC,MSC,MCGRD)
 !     Changed ICMAX to MICMAX, since MICMAX doesn't vary over gridpoint   40.22
    REAL       :: CAX(MDC,MSC,MICMAX), CAY(MDC,MSC,MICMAX)
@@ -3302,7 +3309,7 @@ SUBROUTINE SWTSTA (ITIMER)
 !
 !****************************************************************
 !
-   USE swan_time, ONLY: LASTTM, LISTTM, MXTIMR, NSECTM, TIMERS
+   USE swan_time, ONLY: MXTIMR, NSECTM, THREAD_TIMERS, timer_thread
    USE swan_diagnostics_level
    USE swan_io_units
 !
@@ -3374,6 +3381,8 @@ SUBROUTINE SWTSTA (ITIMER)
    INTEGER          :: I, IFOUND, IFREE
    INTEGER          :: C, R, M
    REAL(KIND=KIND(0.0D0)) :: TIMER1, TIMER2
+!     ITHR  :     number of the thread that calls
+   INTEGER          :: ITHR
 !
 !  7. Common blocks used
 !
@@ -3395,68 +3404,76 @@ SUBROUTINE SWTSTA (ITIMER)
 !
 
 !
+!     --- every thread has its own timers; take those of this thread
+!
+   ITHR = timer_thread()
+   ASSOCIATE (LISTTM => THREAD_TIMERS(ITHR)%LISTTM, &
+      LASTTM => THREAD_TIMERS(ITHR)%LASTTM, &
+      TIMERS => THREAD_TIMERS(ITHR)%TIMERS)
+!
 !     --- check whether a valid timer number is given
 !
-   IF (ITIMER.LE.0 .OR. ITIMER.GT.NSECTM) THEN
-      WRITE(PRINTF,*) 'SWTSTA: ITIMER out of range: ', &
-         ITIMER, 1, NSECTM
-      STOP
-   END IF
+      IF (ITIMER.LE.0 .OR. ITIMER.GT.NSECTM) THEN
+         WRITE(PRINTF,*) 'SWTSTA: ITIMER out of range: ', &
+            ITIMER, 1, NSECTM
+         STOP
+      END IF
 !
 !     --- check whether timing for ITIMER was started already,
 !         also determine first free location in LISTTM
 !
-   IFOUND=0
-   IFREE =0
-   I     =0
-   DO WHILE (I.LT.LASTTM .AND. (IFOUND.EQ.0 .OR. IFREE.EQ.0))
-      I=I+1
-      IF (LISTTM(I).EQ.ITIMER) THEN
-         IFOUND=I
-      END IF
-      IF (IFREE.EQ.0 .AND. LISTTM(I).EQ.-1) THEN
-         IFREE =I
-      END IF
-   END DO
+      IFOUND=0
+      IFREE =0
+      I     =0
+      DO WHILE (I.LT.LASTTM .AND. (IFOUND.EQ.0 .OR. IFREE.EQ.0))
+         I=I+1
+         IF (LISTTM(I).EQ.ITIMER) THEN
+            IFOUND=I
+         END IF
+         IF (IFREE.EQ.0 .AND. LISTTM(I).EQ.-1) THEN
+            IFREE =I
+         END IF
+      END DO
 
-   IF (IFOUND.EQ.0 .AND. IFREE.EQ.0 .AND. LASTTM.LT.MXTIMR) THEN
-      LASTTM=LASTTM+1
-      IFREE =LASTTM
-   END IF
+      IF (IFOUND.EQ.0 .AND. IFREE.EQ.0 .AND. LASTTM.LT.MXTIMR) THEN
+         LASTTM=LASTTM+1
+         IFREE =LASTTM
+      END IF
 !
 !     --- produce warning if found in the list
 !
-   IF (IFOUND.GT.0) THEN
-      WRITE(PRINTF,*) &
-         'SWTSTA: warning: previous timing for section ', &
-         ITIMER,' not closed properly/will be ignored.'
-   END IF
+      IF (IFOUND.GT.0) THEN
+         WRITE(PRINTF,*) &
+            'SWTSTA: warning: previous timing for section ', &
+            ITIMER,' not closed properly/will be ignored.'
+      END IF
 !
 !     --- produce error if not found and no free position available
 !
-   IF (IFOUND.EQ.0 .AND. IFREE.EQ.0) THEN
-      WRITE(PRINTF,*) &
-         'SWTSTA: maximum number of simultaneous timers', &
-         ' exceeded:',MXTIMR
-      STOP
-   END IF
+      IF (IFOUND.EQ.0 .AND. IFREE.EQ.0) THEN
+         WRITE(PRINTF,*) &
+            'SWTSTA: maximum number of simultaneous timers', &
+            ' exceeded:',MXTIMR
+         STOP
+      END IF
 !
 !     --- register ITIMER in appropriate location of LISTTM
 !
-   IF (IFOUND.EQ.0) THEN
-      IFOUND=IFREE
-   END IF
-   LISTTM(IFOUND)=ITIMER
+      IF (IFOUND.EQ.0) THEN
+         IFOUND=IFREE
+      END IF
+      LISTTM(IFOUND)=ITIMER
 !
 !     --- get current cpu/wall-clock time and store in TIMERS
 !
-   CALL CPU_TIME (TIMER1)
-   CALL SYSTEM_CLOCK (C,R,M)
-   TIMER2=DBLE(C)/DBLE(R)
+      CALL CPU_TIME (TIMER1)
+      CALL SYSTEM_CLOCK (C,R,M)
+      TIMER2=DBLE(C)/DBLE(R)
 
-   TIMERS(IFOUND,1)=TIMER1
-   TIMERS(IFOUND,2)=TIMER2
+      TIMERS(IFOUND,1)=TIMER1
+      TIMERS(IFOUND,2)=TIMER2
 
+   END ASSOCIATE
    RETURN
 end subroutine SWTSTA
 !****************************************************************
@@ -3465,7 +3482,7 @@ SUBROUTINE SWTSTO (ITIMER)
 !
 !****************************************************************
 !
-   USE swan_time, ONLY: DCUMTM, LASTTM, LISTTM, NCUMTM, NSECTM, TIMERS
+   USE swan_time, ONLY: NSECTM, THREAD_TIMERS, timer_thread
    USE swan_io_units
 !
    IMPLICIT NONE
@@ -3535,6 +3552,8 @@ SUBROUTINE SWTSTO (ITIMER)
    INTEGER          :: I, IFOUND
    INTEGER          :: C, R, M
    REAL(KIND=KIND(0.0D0)) :: TIMER1, TIMER2
+!     ITHR  :     number of the thread that calls
+   INTEGER          :: ITHR
 !
 !  7. Common blocks used
 !
@@ -3556,60 +3575,70 @@ SUBROUTINE SWTSTO (ITIMER)
 !
 
 !
+!     --- every thread has its own timers; take those of this thread
+!
+   ITHR = timer_thread()
+   ASSOCIATE (LISTTM => THREAD_TIMERS(ITHR)%LISTTM, &
+      LASTTM => THREAD_TIMERS(ITHR)%LASTTM, &
+      TIMERS => THREAD_TIMERS(ITHR)%TIMERS, &
+      DCUMTM => THREAD_TIMERS(ITHR)%DCUMTM, &
+      NCUMTM => THREAD_TIMERS(ITHR)%NCUMTM)
+!
 !     --- check whether a valid timer number is given
 !
-   IF (ITIMER.LE.0 .OR. ITIMER.GT.NSECTM) THEN
-      WRITE(PRINTF,*) 'SWTSTO: ITIMER out of range: ', &
-         ITIMER, 1, NSECTM
-      STOP
-   END IF
+      IF (ITIMER.LE.0 .OR. ITIMER.GT.NSECTM) THEN
+         WRITE(PRINTF,*) 'SWTSTO: ITIMER out of range: ', &
+            ITIMER, 1, NSECTM
+         STOP
+      END IF
 !
 !     --- check whether timing for ITIMER was started already,
 !         also determine first free location in LISTTM
 !
-   IFOUND=0
-   I     =0
-   DO WHILE (I.LT.LASTTM .AND. IFOUND.EQ.0)
-      I=I+1
-      IF (LISTTM(I).EQ.ITIMER) THEN
-         IFOUND=I
-      END IF
-   END DO
+      IFOUND=0
+      I     =0
+      DO WHILE (I.LT.LASTTM .AND. IFOUND.EQ.0)
+         I=I+1
+         IF (LISTTM(I).EQ.ITIMER) THEN
+            IFOUND=I
+         END IF
+      END DO
 !
 !     --- produce error if not found
 !
-   IF (IFOUND.EQ.0) THEN
-      WRITE(PRINTF,*) &
-         'SWTSTO: section ',ITIMER,' not found', &
-         ' in list of active timings'
-      STOP
-   END IF
+      IF (IFOUND.EQ.0) THEN
+         WRITE(PRINTF,*) &
+            'SWTSTO: section ',ITIMER,' not found', &
+            ' in list of active timings'
+         STOP
+      END IF
 !
 !     --- get current cpu/wall-clock time
 !
-   CALL CPU_TIME (TIMER1)
-   CALL SYSTEM_CLOCK (C,R,M)
-   TIMER2=DBLE(C)/DBLE(R)
+      CALL CPU_TIME (TIMER1)
+      CALL SYSTEM_CLOCK (C,R,M)
+      TIMER2=DBLE(C)/DBLE(R)
 !
 !     --- calculate elapsed time since start of timing,
 !         store in appropriate location in DCUMTM,
 !         increment number of timings for current section
 !
-   DCUMTM(ITIMER,1)=DCUMTM(ITIMER,1)+(TIMER1-TIMERS(IFOUND,1))
-   DCUMTM(ITIMER,2)=DCUMTM(ITIMER,2)+(TIMER2-TIMERS(IFOUND,2))
-   NCUMTM(ITIMER)  =NCUMTM(ITIMER)+1
+      DCUMTM(ITIMER,1)=DCUMTM(ITIMER,1)+(TIMER1-TIMERS(IFOUND,1))
+      DCUMTM(ITIMER,2)=DCUMTM(ITIMER,2)+(TIMER2-TIMERS(IFOUND,2))
+      NCUMTM(ITIMER)  =NCUMTM(ITIMER)+1
 !
 !     --- free appropriate location of LISTTM,
 !         adjust last occupied position of LISTTM
 !
-   IF (IFOUND.GT.0) THEN
-      LISTTM(IFOUND)=-1
-   END IF
-   DO WHILE (LASTTM.GT.1 .AND. LISTTM(LASTTM).EQ.-1)
-      LASTTM=LASTTM-1
-   END DO
-   IF (LISTTM(LASTTM).EQ.-1) LASTTM=0
+      IF (IFOUND.GT.0) THEN
+         LISTTM(IFOUND)=-1
+      END IF
+      DO WHILE (LASTTM.GT.1 .AND. LISTTM(LASTTM).EQ.-1)
+         LASTTM=LASTTM-1
+      END DO
+      IF (LISTTM(LASTTM).EQ.-1) LASTTM=0
 
+   END ASSOCIATE
    RETURN
 end subroutine SWTSTO
 !****************************************************************
@@ -3620,7 +3649,7 @@ SUBROUTINE SWPRTI
 !
    USE swan_build_config, ONLY: jacobi_sweep_enabled
    USE swan_service_interfaces, ONLY: STRACE
-   USE swan_time, ONLY: DCUMTM, NCUMTM, NSECTM
+   USE swan_time, ONLY: NSECTM, THREAD_TIMERS, timer_thread
    USE swan_diagnostics_level
    USE swan_io_units
    USE M_PARALL
@@ -3687,6 +3716,12 @@ SUBROUTINE SWPRTI
 !     TABLE :     array for computing aggregate cpu- and wallclock-times
 !
    INTEGER          :: J, K, MYPRC
+!     ITHR  :     number of the thread that calls
+!     DCUMTM:     cpu- and wall-clock time per section of that thread
+!     NCUMTM:     number of timings per section of that thread
+   INTEGER          :: ITHR
+   REAL(KIND=KIND(0.0D0)) :: DCUMTM(NSECTM,2)
+   INTEGER          :: NCUMTM(NSECTM)
    INTEGER, PARAMETER :: IDEBUG = 0
    INTEGER, SAVE :: IENT = 0
    REAL(KIND=KIND(0.0D0)) :: TABLE(33,2)
@@ -3718,6 +3753,14 @@ SUBROUTINE SWPRTI
 ! 13. Source text
 !
    IF (LTRACE) CALL STRACE (IENT,'SWPRTI')
+!
+!     --- the report shows the timers of the thread that calls, which is
+!         the thread that runs the serial part of the program; the time
+!         that the other threads spend in the sweeps is not in it
+!
+   ITHR = timer_thread()
+   DCUMTM = THREAD_TIMERS(ITHR)%DCUMTM
+   NCUMTM = THREAD_TIMERS(ITHR)%NCUMTM
 !
    MYPRC = INODE
 !

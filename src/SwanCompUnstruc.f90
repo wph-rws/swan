@@ -21,7 +21,7 @@ module swan_comp_unstruc
    use swan_propvel_x, only: SwanPropvelX
    use swan_sweep_sel, only: SwanSweepSel
    use swan_transp_ac, only: SwanTranspAc
-   use swan_time, only: CHTIME
+   use swan_time, only: CHTIME, prepare_thread_timers
    implicit none(type, external)
    private
    public :: SwanCompUnstruc
@@ -128,7 +128,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
    use swan_propagation, only: SPREDT, ADDDIS
    use swan_coordinate_offset
    use swan_run_mode
-   use swan_stencil, only: MICMAX, RDFSIN
+   use swan_stencil, only: MICMAX, RDFSIN_MASTER
    use, intrinsic :: ieee_arithmetic, only: ieee_support_underflow_control, ieee_set_underflow_mode, &
       ieee_get_underflow_mode
    use swan_physics_selection
@@ -322,6 +322,16 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
    logical                               :: initial_prediction_pass
    logical                               :: underflow_was_gradual ! underflow mode of the thread on entry
 
+   ! What a thread keeps from one vertex to the next. Each thread has its own
+   ! copy. TESTFL and RDFSIN start with the value of the first thread before
+   ! the parallel region (TESTFL_MASTER, RDFSIN_MASTER); at the end the first
+   ! thread puts its copy back there.
+   logical                               :: TESTFL ! whether the present vertex is a test point
+   integer                               :: IPTST ! sequence number of that test point
+   real, dimension(100)                  :: RDFSIN ! reduction factor per frequency for the ST6 wind input;
+                                                   ! SWIND_DBYB computes it in a vertex and
+                                                   ! SURF_ROUGH_ECMWF reads it in the next
+
    type(balance_residual_t)              :: balance_residual ! defect of the action balance per vertex, this iteration
    type(balance_residual_summary_t)      :: residual_summary ! its reduction over the active vertices
    logical, dimension(:), allocatable    :: residual_counted ! vertices that take part in the reduction
@@ -364,7 +374,6 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
    ! some initializations
 
    st_nm  = 3 ! stencil size
-   PROPSL = PROPSC
    idummy = 0 ! structured-grid arguments are unused for OPTG=5
 
    st_ix(1) = -9999 ! to be used in routines SINTGRL and SOURCE so that Ursell number and
@@ -374,6 +383,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
    thread_count = 1
    !$ thread_count = omp_get_max_threads()
    call thread_workspaces%ensure_unstructured(thread_count)
+   ! every thread of the parallel region below needs its own timers
+   if (timing_enabled) call prepare_thread_timers()
 
    ! print all the settings used in SWAN run
 
@@ -491,6 +502,12 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
 
    swtsda = 0.
 
+   ! every thread starts with the test flag and the reduction factor of the
+   ! wind input that the previous computation left
+   !
+   TESTFL = TESTFL_MASTER
+   RDFSIN = RDFSIN_MASTER
+   !
    ! spawn a parallel region
    !
    !$omp parallel default(shared) &
@@ -510,8 +527,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
       !$omp private(abrbot, kmespc, hs, etot, qbloc, ufric, fpm, thetaw, hm, wind10, smebrk, kteta) &
       !$omp private(dhdx, dhdy, dkdx, dkdy, duxdx, duxdy, duydx, duydy) &
       !$omp private(st_ix, st_iy, st_kc, st_co) &
-      !$omp firstprivate(st_nm) &
-      !$omp copyin(IPTST, TESTFL, RDFSIN)
+      !$omp private(IPTST) &
+      !$omp firstprivate(st_nm, TESTFL, RDFSIN)
    !
    ! every thread has its own floating-point modes; give each of them
    ! abrupt underflow, so that all threads compute alike (see SWMAIN).
@@ -1188,7 +1205,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                                  call SPREDT (swpnr , ac2   , cax  , cay  , spectral_window, &
                                               anybin, rdx=rdx, rdy=rdy, obredf=obredf, IGP=st_kc(1), &
                                               st_ix1=st_ix(1), st_iy1=st_iy(1), st_ix2=st_ix(2), st_iy2=st_iy(2), &
-                                              st_ix3=st_ix(3), st_iy3=st_iy(3), st_kc2=st_kc(2), st_kc3=st_kc(3))
+                                              st_ix3=st_ix(3), st_iy3=st_iy(3), st_kc2=st_kc(2), st_kc3=st_kc(3), TESTFL=TESTFL)
                                  lpredt = .false.
                               endif
 
@@ -1200,7 +1217,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                                     JBOTLV), compda(1,JGAMMA), swpnr, urmstop, SPECTRAL_WINDOW, &
                                     triads, spectral_powers%value, &
                                     thread_workspaces%unstructured(tid)%source%wcap, st_kc(1), &
-                                    st_kc(2), st_kc(3), st_ix(1), st_iy(1))
+                                    st_kc(2), st_kc(3), st_ix(1), st_iy(1), TESTFL)
                               IF (timing_enabled) CALL SWTSTO(116)
 
                               compda(ivert,JHS) = POINT_INTEGRALS%hs
@@ -1248,7 +1265,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                                                cax=cax       , cay=cay        , rdx=rdx        , rdy=rdy         , anybin=anybin, &
                                                spcsig=spcsig , spcdir=spcdir  , cgo=cgo        , kwave=kwave     , &
                                                hss2=compda(1,JHSS2), tss2=compda(1,JTSS2), dss2=compda(1,JDSS2), &
-                                               kcgrd=st_kc, ixcgrd=st_ix, iycgrd=st_iy )
+                                               kcgrd=st_kc, ixcgrd=st_ix, iycgrd=st_iy, TESTFL=TESTFL )
 
                               endif
 
@@ -1264,7 +1281,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                                             cgo   , cax   , cay   , cad   , cas   , &
                                             anybin, rdx   , rdy   , spcsig, spcdir, &
                                             obredf, spectral_window, isslow, anyblk, &
-                                            trac0 , trac1 , st_kc, st_co, st_nm )
+                                            trac0 , trac1 , st_kc, st_co, st_nm, TESTFL )
                         IF (timing_enabled) CALL SWTSTO(118)
 
                         ! compute the source part of the action balance equation
@@ -1284,7 +1301,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                            if ( IWIND > 0 ) call WINDP1 (POINT_INTEGRALS%wind10, thetaw, &
                                  SPECTRAL_WINDOW, POINT_INTEGRALS%fpm, ufric, compda(1,JWX2), &
                                  compda(1,JWY2), anywnd, spcdir, compda(1,JVX2), compda(1,JVY2), &
-                                 spcsig, ac2, genc0, kwave, st_kc(1), st_nm)
+                                 spcsig, ac2, genc0, kwave, st_kc(1), st_nm, TESTFL, RDFSIN)
                            IF (timing_enabled) CALL SWTSTO(115)
                            if ( IWIND > 0 .and. IWIND /= 4 ) compda(ivert,JUSTAR) = ufric
 
@@ -1320,7 +1337,9 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                                     memsinb, SOURCE_BUDGET, xis, compda(1,JFRC2), it, compda(1, &
                                     JNPLA2), compda(1,JTURB2), compda(1,JMUDL2), compda(1,JAICE2), &
                                     compda(1,JHICE2), anybin, reflso, urmstop, triads, snl4, &
-                                    spectral_powers, thread_workspaces%unstructured(tid)%source%wcap, st_kc(1), st_kc, st_nm)
+                                    spectral_powers, &
+                                          thread_workspaces%unstructured(tid)%source%wcap, st_kc(1), st_kc, st_nm, TESTFL, IPTST, &
+                                          RDFSIN)
                            endif
                            if ( IQCM > 0 .or. IGEN == 4 ) then
                               call QCSOURCE (rhs, amat(1,1,1), iter, ac2, compda(1,JDP2), compda(1, &
@@ -1331,7 +1350,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                                     spcdir(1,3), POINT_INTEGRALS%etot, POINT_INTEGRALS%hm, &
                                     POINT_INTEGRALS%qbloc, POINT_INTEGRALS%smebrk, &
                                     POINT_INTEGRALS%kteta, POINT_INTEGRALS%kmespc, &
-                                    thread_workspaces%unstructured(tid)%source%wcap%mean_frequency_wam, st_kc(1), st_kc)
+                                    thread_workspaces%unstructured(tid)%source%wcap%mean_frequency_wam, &
+                                          st_kc(1), st_kc, TESTFL, IPTST, PROPSC)
                            endif
                            IF (timing_enabled) CALL SWTSTO(117)
 
@@ -1352,7 +1372,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                            ! preparatory steps before solving system of equations
 
                            IF (timing_enabled) CALL SWTSTA(119)
-                           call SOLPRE(ac2, ac2old, SYSTEM_MATRIX, SPECTRAL_WINDOW, anybin, idtot, istot, spcsig, st_kc(1))
+                           call SOLPRE(ac2, ac2old, SYSTEM_MATRIX, SPECTRAL_WINDOW, anybin, idtot, istot, spcsig, st_kc(1), TESTFL)
                            IF (timing_enabled) CALL SWTSTO(119)
 
                            if ( IREFR == 0 .and. ITFRE == 0 ) then
@@ -1386,7 +1406,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                               ! solve tridiagonal system of equations using Thomas' algorithm
 
                               IF (timing_enabled) CALL SWTSTA(120)
-                              call SOLMAT (SPECTRAL_WINDOW, ac2, SYSTEM_MATRIX, st_kc(1))
+                              call SOLMAT (SPECTRAL_WINDOW, ac2, SYSTEM_MATRIX, st_kc(1), TESTFL)
                               IF (timing_enabled) CALL SWTSTO(120)
 
                            else
@@ -1401,7 +1421,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                                  IF (timing_enabled) CALL SWTSTA(120)
                                  call SWSIP (ac2, SYSTEM_MATRIX, ac2old, PNUMS(PNUMS_EPS2), &
                                        nint(PNUMS(PNUMS_SIPMAX)), nint(PNUMS(PNUMS_SIPPRN)), inocnt, &
-                                       SPECTRAL_WINDOW, st_kc(1), st_ix(1), st_iy(1))
+                                       SPECTRAL_WINDOW, st_kc(1), st_ix(1), st_iy(1), TESTFL)
                                  IF (timing_enabled) CALL SWTSTO(120)
 
                               elseif (int(PNUMS(PNUMS_SCHEMEFR)) == 2 ) then
@@ -1410,7 +1430,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                                  ! solve tridiagonal system of equations using Thomas' algorithm
 
                                  IF (timing_enabled) CALL SWTSTA(120)
-                                 call SOLMT1  (SPECTRAL_WINDOW, ac2, SYSTEM_MATRIX, anyblk, st_kc(1))
+                                 call SOLMT1  (SPECTRAL_WINDOW, ac2, SYSTEM_MATRIX, anyblk, st_kc(1), TESTFL)
                                  IF (timing_enabled) CALL SWTSTO(120)
 
                               endif
@@ -1420,7 +1440,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                            ! if negative action density occur rescale with a factor
 
                            IF (timing_enabled) CALL SWTSTA(121)
-                           if ( BRESCL ) call RESCALE (ac2, SPECTRAL_WINDOW, nrscal, st_kc(1))
+                           if ( BRESCL ) call RESCALE (ac2, SPECTRAL_WINDOW, nrscal, st_kc(1), TESTFL)
                            IF (timing_enabled) CALL SWTSTO(121)
 
                            ! store propagation, generation, dissipation, redistribution, leak and radiation stress in present vertex
@@ -1457,7 +1477,7 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
                            ! as computed in SOURCE in case of first or second generation mode
 
                            IF (timing_enabled) CALL SWTSTA(123)
-                           if ( IWIND == 1 .or. IWIND == 2 ) call WINDP3 (SPECTRAL_WINDOW, alimw, ac2, groww, st_kc(1))
+                           if ( IWIND == 1 .or. IWIND == 2 ) call WINDP3 (SPECTRAL_WINDOW, alimw, ac2, groww, st_kc(1), TESTFL)
                            IF (timing_enabled) CALL SWTSTO(123)
 
                            ! store some infinity norms meant for convergence check
@@ -1773,6 +1793,14 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
    ! give the thread the underflow mode back that it came with
    !
    if ( ieee_support_underflow_control(1.) ) call ieee_set_underflow_mode(underflow_was_gradual)
+   !
+   ! the first thread leaves its test flag and its reduction factor of the
+   ! wind input for the part of the program that follows
+   !
+   !$omp master
+   TESTFL_MASTER = TESTFL
+   RDFSIN_MASTER = RDFSIN
+   !$omp end master
    !
    ! end of parallel region
    !

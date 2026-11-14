@@ -289,22 +289,26 @@ END SUBROUTINE CALC_SDS
  !****************************************************************************
 SUBROUTINE SWIND_DBYB ( SPCSIG,THETAW,KWAVE,MEMSINA,MEMSINB, &
                         AC2,UFRIC,WIND10,SPCDIR,ANYWND,CG &
-                       ,ZELEN,IGP,icmax )
+                       ,ZELEN,IGP,icmax, TESTFL, RDFSIN )
  !****************************************************************************
 
-   USE swan_stencil, ONLY: RDFSIN
    USE swan_physics_selection
    USE swan_numerics
    USE swan_physical_settings
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_esmf_coupling_backend, ONLY: accumulate_exponential_wind_input, esmf_coupling_enabled
 
    IMPLICIT NONE(TYPE, EXTERNAL)
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
+!     RDFSIN : reduction factor per frequency for the wind input of the
+!              thread that calls; computed here for this grid point and
+!              left for SURF_ROUGH_ECMWF
+   REAL, INTENT(INOUT) :: RDFSIN(100)
    INTEGER, INTENT(IN) :: IGP
 !   Stencil width passed explicitly by SOURCE.
    INTEGER, INTENT(IN) :: icmax
@@ -1359,7 +1363,7 @@ END SUBROUTINE CALC_TAU_TOTAL
 !****************************************************************
 
 SUBROUTINE SWIND0_NRL (SPCSIG,THETAW,ANYWND, &
-                       UFRIC,FPM,MEMSINA,SPCDIR,KWAVE,IGP)
+                       UFRIC,FPM,MEMSINA,SPCDIR,KWAVE,IGP, TESTFL)
 
 !****************************************************************
 
@@ -1369,7 +1373,6 @@ SUBROUTINE SWIND0_NRL (SPCSIG,THETAW,ANYWND, &
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
 
@@ -1419,6 +1422,8 @@ SUBROUTINE SWIND0_NRL (SPCSIG,THETAW,ANYWND, &
 !     Without either method, overall contribution to stress can be 1400% of
 !       the stress calculated from Ufric! (factor 14)
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    INTEGER, INTENT(IN) :: IGP
    REAL    SPCDIR(MDC,6)
    REAL    SPCSIG(MSC)
@@ -1560,7 +1565,7 @@ SUBROUTINE SWIND0_NRL (SPCSIG,THETAW,ANYWND, &
 !     end of subroutine SWIND0_NRL
 END SUBROUTINE SWIND0_NRL
 
-subroutine filsin (memsin, WINDOW, imatra, anywnd, plwnds, genc0, aiceloc, IGP)
+subroutine filsin (memsin, WINDOW, imatra, anywnd, plwnds, genc0, aiceloc, IGP, TESTFL, IPTST)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1618,6 +1623,10 @@ subroutine filsin (memsin, WINDOW, imatra, anywnd, plwnds, genc0, aiceloc, IGP)
 
    implicit none(type, external)
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
 
 !   Argument variables
@@ -2399,7 +2408,7 @@ SUBROUTINE SURF_ROUGH_FAN (FPI,U,UST,CD)
 
 END SUBROUTINE SURF_ROUGH_FAN
 
-SUBROUTINE SURF_ROUGH_ECMWF(U, UST, S_IN, SPCSIG, KWAVE, CD, icmax)
+SUBROUTINE SURF_ROUGH_ECMWF(U, UST, S_IN, SPCSIG, KWAVE, CD, icmax, RDFSIN)
 !------------------------------------------------------------------------------
 !     variable list
 !     ----------------------------------------------------------------    40.17
@@ -2411,13 +2420,16 @@ SUBROUTINE SURF_ROUGH_ECMWF(U, UST, S_IN, SPCSIG, KWAVE, CD, icmax)
 !       CD      Real   O   Drag coefficient.
 !     ----------------------------------------------------------------    40.17
 !/
-   USE swan_stencil, ONLY: RDFSIN
    USE swan_physics_selection
    USE swan_spectral_grid
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 !     Stencil width passed explicitly by WINDP1.
    INTEGER, INTENT(IN) :: icmax
+!     RDFSIN : reduction factor per frequency for the wind input, as
+!              SWIND_DBYB left it at the grid point that the thread
+!              computed before this one
+   REAL, INTENT(IN) :: RDFSIN(100)
 !/
 !/ ------------------------------------------------------------------- /
 !/ Parameter list

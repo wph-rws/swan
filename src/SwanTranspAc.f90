@@ -11,7 +11,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
                           cgo   , cax   , cay   , cad   , cas   , &
                           anybin, rdx   , rdy   , spcsig, spcdir, &
                           obredf, window, isslow, anyblk, &
-                          trac0 , trac1 , kcgrd , coslat, icmax )
+                          trac0 , trac1 , kcgrd , coslat, icmax, TESTFL )
    USE swan_service_interfaces, ONLY: STRACE, SWTSTA, SWTSTO
 
 !   --|-----------------------------------------------------------|--
@@ -71,6 +71,8 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
 
 !   Argument variables
 
+   ! TESTFL : whether the grid point is a test point
+   logical, intent(in) :: TESTFL
    integer, intent(in)                         :: isslow ! minimum frequency that is propagated within a sweep
    integer, intent(in)                         :: icmax ! number of active stencil points
    integer, dimension(icmax), intent(in)       :: kcgrd ! grid addresses of the stencil points
@@ -153,7 +155,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
       call STRSD ( DDIR       , window     , cad    , &
                    amat(1,1,4), amat(1,1,1), amat(1,1,5), rhs    , &
                    ac2        , anybin     , leakcf , &
-                   trac0      , trac1      , kcgrd(1)   , icmax  )
+                   trac0      , trac1      , kcgrd(1)   , icmax, TESTFL  )
 
    endif
    IF (timing_enabled) CALL SWTSTO(142)
@@ -170,7 +172,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
          call STRSSI ( spcsig     , cas   , amat(1,1,2), amat(1,1,1), &
                        amat(1,1,3), anybin, rhs        , ac2        , &
                        window     , &
-                       trac0      , trac1 , kcgrd(1)   , icmax      )
+                       trac0      , trac1 , kcgrd(1)   , icmax, TESTFL      )
 
       elseif ( int(PNUMS(PNUMS_SCHEMEFR)) == 2 ) then
 
@@ -178,7 +180,7 @@ subroutine SwanTranspAc ( amat  , rhs   , leakcf, ac2   , ac1   , &
 
          call STRSSB ( window, cax   , cay   , cas   , ac2   , spcsig, &
                        rhs   , anyblk, rdx   , rdy   , trac0 , &
-                       kcgrd(1), icmax )
+                       kcgrd(1), icmax, TESTFL )
 
       endif
 

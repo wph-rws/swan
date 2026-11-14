@@ -84,13 +84,11 @@ module swan_source_workspaces
 !  the solver-to-SOURCE hop; individual kernels continue to receive exactly
 !  the one output array they used before.
 !
-!  TESTFL and IPTST are deliberately NOT members.  They are upstream
-!  threadprivate state in swan_test_output, updated per point by the solver
-!  after this view is bound, and read directly by every kernel that needs
-!  them.  A copy here would be stale by one point, and eliminating the
-!  globals would mean widening the signature of every leaf kernel that reads
-!  them: they are per point and change inside the loop, while the bundle is
-!  bound once per loop, so a bundled copy would lag behind.
+!  TESTFL and IPTST (whether the grid point is a test point, and which one)
+!  are deliberately not members.  This view is bound once per loop, while
+!  the two change with every grid point.  The solver works them out per
+!  point and passes them as arguments of their own to every routine that
+!  writes test output.
    type :: test_output_t
       real, pointer, contiguous :: plwnds(:,:,:) => null()
       real, pointer, contiguous :: plwndd(:,:,:) => null()

@@ -1,41 +1,36 @@
 module swan_stencil
 !
-!     The computational stencil: which grid points the thread that is running
-!     is currently working on, and the few per-thread quantities that go with
-!     it.
+!     The size of the computational stencil, and the reduction factor of
+!     the ST6 wind input as it is kept between two computations.
 !
-!     Only RDFSIN is still `THREADPRIVATE` (seeded by COPYIN): each solver
-!     thread scales the wind input with its own copy. The stencil itself
-!     lives in thread-local scratch inside the solvers, which pass every
-!     kernel its context explicitly. That is what made the rest of SWCOMM3
-!     hard to reason about: fifty-odd files imported a module in which most
-!     symbols were run configuration and a handful were per-thread state,
-!     with nothing in the source saying which was which.
-!
-!     The former shared stencil arrays were the last of SWCOMM3; they are
-!     removed now that solver kernels take their context as arguments, so no
-!     kernel depends on hidden per-thread module state for them anymore.
-!     The thread-state manifest records the remaining threadprivate inventory.
+!     The stencil itself (which grid points the running thread is working
+!     on) is not in this module. Every solver thread keeps it in variables
+!     of its own (st_ix, st_iy, st_kc, st_co and st_nm in SWOMPU and
+!     SwanCompUnstruc) and passes each routine what it needs as arguments.
+!     Upstream keeps the stencil in SWCOMM3 (IXCGRD, IYCGRD, KCGRD, COSLAT
+!     and ICMAX), where every routine reads it without it being visible in
+!     the call. No module variable of the fork is thread-private.
 !
    implicit none(type, external)
    private
 
    public :: MICMAX
-   public :: RDFSIN
+   public :: RDFSIN_MASTER
 
 !     MICMAX : the largest stencil SWAN uses, and so the extent of the
-!              thread-local scratch arrays in the solvers.
+!              stencil arrays in the solvers.
    integer, parameter :: MICMAX = 13
 
-!     The former shared stencil arrays (IXCGRD, IYCGRD, KCGRD, COSLAT, ICMAX)
-!     are removed: no kernel reads them implicitly anymore, and shared module
-!     data picked up inside a parallel region would silently race where the
-!     old code was threadprivate-safe.
-
-!     RDFSIN : reduction factor per frequency for the wind input, handed to
-!              LFACTOR in SdsBabanin
-   real :: RDFSIN(100)
-   !$OMP THREADPRIVATE(RDFSIN)
-!  Only RDFSIN remains threadprivate: every solver thread scales the wind
-!  input with its own copy, seeded by COPYIN at region entry.
+!     RDFSIN_MASTER : reduction factor per frequency for the ST6 wind input
+!                     (upstream RDFSIN), as the part of the program that
+!                     runs on one thread holds it. SWIND_DBYB computes the
+!                     factor for a grid point and SURF_ROUGH_ECMWF reads it
+!                     at the next one, so it lives on from point to point.
+!                     In the solvers every thread starts with this value in
+!                     an array of its own, which the routines get as the
+!                     argument RDFSIN; when the solver is done, the first
+!                     thread puts its last value back here. This is how
+!                     upstream behaves, where RDFSIN is one array per
+!                     thread for the whole program.
+   real :: RDFSIN_MASTER(100)
 end module swan_stencil

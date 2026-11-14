@@ -22,7 +22,7 @@ program test_lta_conservation
    use swan_physics_selection, only: ITRIAD, PTRIAD, LTA_CONSERVE, MREDS
    use swan_physical_settings, only: GRAV, DEPMIN
    use swan_diagnostics_level, only: ITEST, LTRACE
-   use swan_test_output, only: TESTFL, NPTST, IPTST
+   use swan_test_output, only: NPTST
    use swan_stencil, only: MICMAX
    use swan_math_constants, only: PI
    implicit none(type, external)
@@ -83,9 +83,7 @@ subroutine set_up
    DEPMIN = 0.05
    ITEST = 0
    LTRACE = .false.
-   TESTFL = .false.
    NPTST = 0
-   IPTST = 1
 
    MSC = nfreq
    MDC = ndir
@@ -177,8 +175,10 @@ subroutine net_source(conserve, net, gain, loss)
    pltri = 0.0
    qtl2 = triads%scaling(:, point, :)
 
+!  the last two arguments say that the point is not a test point
    call SWLTA(ac2, dep2, cgo, spcsig, imatra, imatda, redc0, redc1, &
-              window, smebrk, pltri, ursell, biphas, qtl2, triads, point)
+              window, smebrk, pltri, ursell, biphas, qtl2, triads, point, &
+              .false., 1)
 
    net = 0.0
    gain = 0.0

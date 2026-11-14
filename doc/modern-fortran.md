@@ -393,11 +393,11 @@ that upstream `SWCLME` releases piece by piece has an idempotent owner `clear`
 one process reproduce each other bit for bit (`test_two_cases`, A–B–A). Grid
 dimensions, most physics settings and output request tables live in small
 focused modules (upstream's `SWCOMM*`/`OCPCOMM*` families do not exist in the
-fork). In `swan_stencil` only `RDFSIN` is `THREADPRIVATE`, seeded by `COPYIN`
-(for the other directives see
-[thread-state-manifest.md](thread-state-manifest.md)); all other stencil
-values travel as explicit procedure arguments from thread-local solver
-scratch.
+fork). No module variable is `THREADPRIVATE` and no parallel region has a
+`COPYIN` clause: the stencil, the test-point flag, the propagation scheme of
+a grid point and the reduction factor of the ST6 wind input are variables of
+the solver, one per thread, and travel as explicit procedure arguments (see
+[thread-state-manifest.md](thread-state-manifest.md)).
 
 The accurate description is therefore “standard Fortran 2018 with a modular,
 compiler-checked interface layer and explicit ownership for the migrated

@@ -26,10 +26,13 @@ The fork compared with that:
 
 There is no `COMMON` block and no unnamed shared state left. Three modules
 hold run state, each with an explicit owner. There is no general run object
-(see [run-state-ownership.md](run-state-ownership.md)), and `IPTST`, `TESTFL`
-and `PROPSL` are still per thread. But run state and thread state are kept
-apart, computational kernels get the smallest sub-context they need, and no
-kernel asks for the thread number itself. The architecture is described in
+(see [run-state-ownership.md](run-state-ownership.md)). But run state and
+thread state are kept apart: no module variable is thread-private, and what a
+thread keeps for itself (such as `IPTST`, `TESTFL` and `PROPSL`) is a variable
+of the solver that reaches the kernels as an argument
+([thread-state-manifest.md](thread-state-manifest.md)). Computational kernels
+get the smallest sub-context they need, and no kernel asks for the thread
+number itself. The architecture is described in
 [modern-fortran.md](modern-fortran.md).
 
 ## 2. What has been proven

@@ -96,8 +96,9 @@ subroutine test_empty_spectrum_keeps_a_finite_index
       ISURF = branches(branch)
       brcoef = huge(brcoef)
       kteta = huge(kteta)
+      !  the last argument says that the point is not a test point
       call BRKPAR(brcoef, ecos, esin, ac2, spcsig, dep2, botlv, rdx, rdy, &
-                  kwave, window, 0.0, kteta, 0.1, 1, 2, 3)
+                  kwave, window, 0.0, kteta, 0.1, 1, 2, 3, .false.)
       call require(ieee_is_finite(brcoef), &
                    'breaker index is NaN or infinite without energy')
       !  Zero is the trap of BF-34: HM then becomes zero and SSURF dissipates everything.
@@ -115,7 +116,7 @@ subroutine test_empty_spectrum_matches_the_spilling_constant
    ac2 = 0.0
    brcoef = huge(brcoef)
    call BRKPAR(brcoef, ecos, esin, ac2, spcsig, dep2, botlv, rdx, rdy, &
-               kwave, window, 0.0, kteta, 0.1, 1, 2, 3)
+               kwave, window, 0.0, kteta, 0.1, 1, 2, 3, .false.)
    call require(same_bits(brcoef, PSURF(4)), &
                 'empty Saprykina branch does not give the spilling constant')
 end subroutine test_empty_spectrum_matches_the_spilling_constant
@@ -133,7 +134,7 @@ subroutine test_energy_bearing_spectrum_still_selects_a_branch
    call set_energy_density([3], [1.0], [10, 11], [0.0, 0.0])
    brcoef = huge(brcoef)
    call BRKPAR(brcoef, ecos, esin, ac2, spcsig, dep2, botlv, rdx, rdy, &
-               kwave, window, 0.0, kteta, 0.1, 1, 2, 3)
+               kwave, window, 0.0, kteta, 0.1, 1, 2, 3, .false.)
    call require(same_bits(brcoef, -1.0), &
                 'narrow peak does not select the biphase branch')
 
@@ -147,7 +148,7 @@ subroutine test_energy_bearing_spectrum_still_selects_a_branch
    call set_energy_density([3], [1.0], [10, 11], [0.5, 0.5])
    brcoef = huge(brcoef)
    call BRKPAR(brcoef, ecos, esin, ac2, spcsig, dep2, botlv, rdx, rdy, &
-               kwave, window, 0.0, kteta, 0.1, 1, 2, 3)
+               kwave, window, 0.0, kteta, 0.1, 1, 2, 3, .false.)
    call require(same_bits(brcoef, PSURF(4)), &
                 'heavy second harmonic does not select the spilling constant')
 end subroutine test_energy_bearing_spectrum_still_selects_a_branch

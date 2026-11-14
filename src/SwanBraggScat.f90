@@ -958,7 +958,7 @@ subroutine SWFB ( fbd, dep2, kwave, ecos, esin ,IGP)
 
 end subroutine SWFB
 
-subroutine SWBRAGG1 (imatra, ac2, dep2, kwave, cgo, spcsig, WINDOW, ecos, esin, plbrag, redc0, IGP)
+subroutine SWBRAGG1 (imatra, ac2, dep2, kwave, cgo, spcsig, WINDOW, ecos, esin, plbrag, redc0, IGP, TESTFL, IPTST)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1017,6 +1017,10 @@ subroutine SWBRAGG1 (imatra, ac2, dep2, kwave, cgo, spcsig, WINDOW, ecos, esin, 
 
    implicit none(type, external)
 
+   ! TESTFL : whether the grid point is a test point
+   ! IPTST  : sequence number of that test point
+   logical, intent(in) :: TESTFL
+   integer, intent(in) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
 
 !   Argument variables
@@ -1114,7 +1118,7 @@ subroutine SWBRAGG1 (imatra, ac2, dep2, kwave, cgo, spcsig, WINDOW, ecos, esin, 
 
 end subroutine SWBRAGG1
 
-subroutine SWBRAGG2 (imatra, ac2, dep2, kwave, cgo, fbd, spcsig, WINDOW, ecos, esin, plbrag, redc0, IGP)
+subroutine SWBRAGG2 (imatra, ac2, dep2, kwave, cgo, fbd, spcsig, WINDOW, ecos, esin, plbrag, redc0, IGP, TESTFL, IPTST)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1173,6 +1177,10 @@ subroutine SWBRAGG2 (imatra, ac2, dep2, kwave, cgo, fbd, spcsig, WINDOW, ecos, e
 
    implicit none(type, external)
 
+   ! TESTFL : whether the grid point is a test point
+   ! IPTST  : sequence number of that test point
+   logical, intent(in) :: TESTFL
+   integer, intent(in) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
 
 !   Argument variables
@@ -1411,7 +1419,7 @@ subroutine SWBRAGG3 ( membrg, ac2, dep2, kwave, cgo, fbd, spcsig, ecos, esin ,IG
 
 end subroutine SWBRAGG3
 
-subroutine FILBRG (imatra, WINDOW, membrg, plbrag, redc0, IGP)
+subroutine FILBRG (imatra, WINDOW, membrg, plbrag, redc0, IGP, TESTFL, IPTST)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1463,6 +1471,10 @@ subroutine FILBRG (imatra, WINDOW, membrg, plbrag, redc0, IGP)
 
    implicit none(type, external)
 
+   ! TESTFL : whether the grid point is a test point
+   ! IPTST  : sequence number of that test point
+   logical, intent(in) :: TESTFL
+   integer, intent(in) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
 
 !   Argument variables

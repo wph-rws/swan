@@ -19,6 +19,7 @@
   "context-object": "Became a component of an object owned by its subsystem (the command reader, the clock, a source-term workspace or table). The object can be cleared between runs and, where needed, exists once per thread, which a shared module variable could not offer.",
   "one-user": "Had a single user upstream. In the fork it is a local variable, argument or parameter of that routine instead of shared state.",
   "stencil-arguments": "The stencil of the grid point being computed is now passed to the kernels as arguments from thread-local solver scratch. Upstream kept it in shared (threadprivate) arrays that every kernel read implicitly (src/swan_stencil.f90).",
+  "thread-arguments": "A value that upstream keeps in a thread-private module variable, which every routine reads without it showing in the call. In the fork it is a variable of the solver, one per thread, and the routines that need it get it as an argument (doc/thread-state-manifest.md). The fork has no thread-private module variables, because the gfortran of MSYS2 on Windows does not always compile them correctly.",
   "convergence-common": "Upstream used a COMMON block so that all OpenMP threads in SACCUR and SWSTPC add to one shared total. The fork keeps that sharing in module variables of M_CONVERGENCE_SHARED (src/swancom1.f90), with the routine name as prefix.",
   "single-routine-common": "The COMMON block was used by this one routine only, and every call sets the values before it reads them, so an ordinary local variable does the same job.",
   "split-shared-state": "The upstream shared modules were taken apart: what nobody used was removed, what had one user moved to that user, and the rest went to small modules by topic, each with an owner that clears it between runs (doc/run-state-ownership.md). A variable that sits in exactly one fork module is found automatically.",
@@ -1815,9 +1816,28 @@
    "module": "SWAN_MATH_CONSTANTS",
    "note": "nctablemd has a private PI of its own, as upstream."
   },
+  "SWCOMM3::RDFSIN": {
+   "status": "replaced",
+   "reason": "thread-arguments",
+   "by": [
+    "variable SWAN_STENCIL::RDFSIN_MASTER",
+    "SWIND_DBYB",
+    "SURF_ROUGH_ECMWF"
+   ],
+   "note": "The argument RDFSIN of SWIND_DBYB (which computes it) and SURF_ROUGH_ECMWF (which reads it). RDFSIN_MASTER holds the value between two computations."
+  },
   "SWCOMM3::WBICETH": {
    "status": "local",
    "reason": "one-user"
+  },
+  "SWCOMM4::IPTST": {
+   "status": "replaced",
+   "reason": "thread-arguments",
+   "by": [
+    "SWOMPU",
+    "SWANCOMPUNSTRUC"
+   ],
+   "note": "SWOMPU and SwanCompUnstruc set it per grid point and pass it as the argument IPTST. The routines that used it as a loop counter over the test points have a local counter."
   },
   "SWCOMM4::MAXMES": {
    "status": "removed",
@@ -1826,6 +1846,24 @@
   "SWCOMM4::NEGMES": {
    "status": "removed",
    "reason": "unused-state"
+  },
+  "SWCOMM4::PROPSL": {
+   "status": "replaced",
+   "reason": "thread-arguments",
+   "by": [
+    "SWOMPU"
+   ],
+   "note": "A local variable of SWOMPU, passed to ACTION and QCSOURCE as the argument PROPSL."
+  },
+  "SWCOMM4::TESTFL": {
+   "status": "replaced",
+   "reason": "thread-arguments",
+   "by": [
+    "variable SWAN_TEST_OUTPUT::TESTFL_MASTER",
+    "SWOMPU",
+    "SWANCOMPUNSTRUC"
+   ],
+   "note": "SWOMPU and SwanCompUnstruc set it per grid point and pass it as the argument TESTFL. TESTFL_MASTER holds the value between two computations, which SWINCO also sets and AC2TST reads."
   },
   "SWCOMM4::UNDFLW": {
    "status": "local",

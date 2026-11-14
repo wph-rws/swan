@@ -504,14 +504,13 @@ end subroutine FAC4WW
 
 !******************************************************************
 
-SUBROUTINE RANGE4 (WWINT, WINDOW, IXCG, IYCG)
+SUBROUTINE RANGE4 (WWINT, WINDOW, IXCG, IYCG, TESTFL)
 
 !******************************************************************
 
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_physics_selection
    USE swan_spectral_grid
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
 
@@ -635,6 +634,8 @@ SUBROUTINE RANGE4 (WWINT, WINDOW, IXCG, IYCG)
 !
 !****************************************************************
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    TYPE(spectral_window_t) :: WINDOW
 
    INTEGER, SAVE :: IENT = 0
@@ -924,7 +925,7 @@ end subroutine SWPRE4W
 !********************************************************************
 
 SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, AC2, IMATDA, IMATRA, &
-      PLNL4S, PLNL4D, REDC0, REDC1, AF11, IGP)
+      PLNL4S, PLNL4D, REDC0, REDC1, AF11, IGP, TESTFL, IPTST)
 
 !********************************************************************
 
@@ -1053,6 +1054,10 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, A
 !             of the sweep (IDDLOW, IDDTOP) and the maximum frequency
 !             counter that is propagated (ISSTOP)
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
@@ -1458,7 +1463,7 @@ end subroutine SWSNL1
 !*******************************************************************
 
 SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2, DAL3, SFNL, DEP2, &
-      AC2, KMESPC, REDC0, REDC1, IMATDA, IMATRA, FACHFR, PLNL4S, AF11, IGP)
+      AC2, KMESPC, REDC0, REDC1, IMATDA, IMATRA, FACHFR, PLNL4S, AF11, IGP, TESTFL, IPTST)
 
 !*******************************************************************
 
@@ -1583,6 +1588,10 @@ SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2
 !             of the sweep (IDDLOW, IDDTOP) and the maximum frequency
 !             counter that is propagated (ISSTOP)
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
@@ -1938,7 +1947,7 @@ end subroutine SWSNL2
 SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
    UE      ,SA1     ,SA2     ,SPCSIG  ,SNLC1   , &
    DAL1    ,DAL2    ,DAL3    ,SFNL    ,DEP2    , &
-   AC2     ,KMESPC  ,MEMNL4  ,FACHFR, AF11     ,IGP)
+   AC2     ,KMESPC  ,MEMNL4  ,FACHFR, AF11     ,IGP, TESTFL)
 
 !*******************************************************************
 
@@ -1947,7 +1956,6 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
 
@@ -2063,6 +2071,8 @@ SUBROUTINE SWSNL3 (                  WWINT   ,WWAWG   , &
 !     MSC4MI: lowest array counter in frequency space (Snl4)
 !     WWINT : counters for quadruplet interactions
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
    INTEGER WWINT(*)
@@ -2331,7 +2341,7 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   , &
    DAL1    ,DAL2    ,DAL3    ,DEP2    , &
    AC2     ,KMESPC  ,MEMNL4  ,FACHFR  , &
    IDIA    ,ITER    ,UE      ,SA1     , &
-   SA2     ,SFNL    ,AF11, CNL4_1, CNL4_2,IGP)
+   SA2     ,SFNL    ,AF11, CNL4_1, CNL4_2,IGP, TESTFL)
 
 !*******************************************************************
 
@@ -2340,7 +2350,6 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   , &
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
 
@@ -2456,6 +2465,8 @@ SUBROUTINE SWSNL4 (WWINT   ,WWAWG   , &
 !     MSC4MI: lowest array counter in frequency space (Snl4)
 !     WWINT : counters for quadruplet interactions
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
    REAL, INTENT(IN) :: CNL4_1(:)
@@ -2737,7 +2748,7 @@ end subroutine SWSNL4
 !*********************************************************************
 SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  , &
    SNLC1   ,DAL1    ,DAL2    ,DAL3    ,SFNL    , &
-   DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, AF11 ,IGP)
+   DEP2    ,AC2     ,KMESPC  ,MEMNL4  ,FACHFR, AF11 ,IGP, TESTFL)
 !*********************************************************************
 
    USE swan_service_interfaces, ONLY: STRACE
@@ -2745,7 +2756,6 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  , &
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
 
@@ -2843,6 +2853,8 @@ SUBROUTINE SWSNL8 (WWINT   ,UE      ,SA1     ,SA2     ,SPCSIG  , &
 !     MSC4MI: lowest array counter in frequency space (Snl4)
 !     WWINT : counters for quadruplet interactions
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: AF11(MSC4MI:MSC4MA)
    INTEGER WWINT(*)
@@ -3029,7 +3041,7 @@ end subroutine SWSNL8
 
 !*******************************************************************
 
-SUBROUTINE FILNL3 (WINDOW, IMATRA, IMATDA, AC2, MEMNL4, PLNL4S, REDC0, REDC1, IGP)
+SUBROUTINE FILNL3 (WINDOW, IMATRA, IMATDA, AC2, MEMNL4, PLNL4S, REDC0, REDC1, IGP, TESTFL, IPTST)
 
 !*******************************************************************
 
@@ -3120,6 +3132,10 @@ SUBROUTINE FILNL3 (WINDOW, IMATRA, IMATDA, AC2, MEMNL4, PLNL4S, REDC0, REDC1, IG
 !
 !*******************************************************************
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
 
    INTEGER, INTENT(IN) :: IGP
@@ -3938,7 +3954,8 @@ end subroutine FAC3WW
 
 !****************************************************************
 
-SUBROUTINE SWLTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, SMEBRK, PLTRI, URSELL, BIPHAS, QTL2, TRIADS, IGP)
+SUBROUTINE SWLTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, SMEBRK, PLTRI, &
+      URSELL, BIPHAS, QTL2, TRIADS, IGP, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -4091,6 +4108,10 @@ SUBROUTINE SWLTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, 
 !                 within a sweep (IDDLOW, IDDTOP) and the maximum
 !                 frequency counter in a sweep (ISSTOP)
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    TYPE(triad_state_t), INTENT(IN) :: TRIADS
@@ -4390,7 +4411,8 @@ end subroutine SWLTA
 
 !****************************************************************
 
-SUBROUTINE SWDCTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, SIGM, PLTRI, URSELL, BIPHAS, QTL1, QTL2, IGP)
+SUBROUTINE SWDCTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, SIGM, PLTRI, &
+      URSELL, BIPHAS, QTL1, QTL2, IGP, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -4499,6 +4521,10 @@ SUBROUTINE SWDCTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW,
 !                 within a sweep (IDDLOW, IDDTOP) and the maximum
 !                 frequency counter in a sweep (ISSTOP)
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
 
@@ -4676,7 +4702,7 @@ end subroutine SWDCTA
 !******************************************************************
 
 SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0, REDC1, WINDOW, &
-      ETOT, SIGM, PLTRI, URSELL, BIPHAS, QTL1, QTL2, IGP)
+      ETOT, SIGM, PLTRI, URSELL, BIPHAS, QTL1, QTL2, IGP, TESTFL, IPTST)
 
 !******************************************************************
 
@@ -4794,6 +4820,10 @@ SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0
 !                 within a sweep (IDDLOW, IDDTOP) and the maximum
 !                 frequency counter in a sweep (ISSTOP)
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
 
@@ -5201,7 +5231,7 @@ end subroutine SWDNCTA
 
 !****************************************************************
 
-SUBROUTINE SWFTIM (AC2, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, PLTRI, URSELL, BIPHAS, QTL1, QTL2, IGP)
+SUBROUTINE SWFTIM (AC2, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, PLTRI, URSELL, BIPHAS, QTL1, QTL2, IGP, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -5299,6 +5329,10 @@ SUBROUTINE SWFTIM (AC2, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW, PLTRI, URS
 !                 within a sweep (IDDLOW, IDDTOP) and the maximum
 !                 frequency counter in a sweep (ISSTOP)
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
 

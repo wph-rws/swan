@@ -34,7 +34,7 @@ module swan_wind_source
 contains
 
 SUBROUTINE WNDPAR (WINDOW, DEP2, WIND10, GENC0, GENC1, THETAW, AC2, KWAVE, IMATRA, IMATDA, SPCSIG, &
-      CGO, ALIMW, GROWW, ETOTW, PLWNDS, PLWNDD, SPCDIR, ITER, AICELOC, IGP)
+      CGO, ALIMW, GROWW, ETOTW, PLWNDS, PLWNDD, SPCDIR, ITER, AICELOC, IGP, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -194,6 +194,10 @@ SUBROUTINE WNDPAR (WINDOW, DEP2, WIND10, GENC0, GENC1, THETAW, AC2, KWAVE, IMATR
 !             (IDCMIN, IDCMAX) and the counter for the maximum frequency
 !             of all directions (ISSTOP)
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    REAL    SPCDIR(MDC,6)
@@ -400,7 +404,7 @@ SUBROUTINE WNDPAR (WINDOW, DEP2, WIND10, GENC0, GENC1, THETAW, AC2, KWAVE, IMATR
 !       *** of the total energy in the wind sea part of the spectrum  ***
 !       *** output of subroutine (WINDP2) is ETOTW                    ***
 
-      CALL WINDP2 (WINDOW, SIGPKD, FPM, ETOTW, AC2, SPCSIG, WIND10, IGP)
+      CALL WINDP2 (WINDOW, SIGPKD, FPM, ETOTW, AC2, SPCSIG, WIND10, IGP, TESTFL)
 
       EDML = MIN ( PWIND(10) , (GRAV**2 * ETOTW) / WIND10**4 )
       EDML = MAX ( 1.E-25 , EDML )
@@ -549,7 +553,8 @@ end subroutine WNDPAR
 
 !****************************************************************
 
-SUBROUTINE WINDP1 (WIND10, THETAW, WINDOW, FPM, UFRIC, WX2, WY2, ANYWND, SPCDIR, UX2, UY2, SPCSIG, AC2, GENC0, KWAVE, IGP, icmax)
+SUBROUTINE WINDP1 (WIND10, THETAW, WINDOW, FPM, UFRIC, WX2, WY2, ANYWND, SPCDIR, UX2, UY2, SPCSIG, &
+      AC2, GENC0, KWAVE, IGP, icmax, TESTFL, RDFSIN)
 
 !****************************************************************
 
@@ -563,7 +568,6 @@ SUBROUTINE WINDP1 (WIND10, THETAW, WINDOW, FPM, UFRIC, WX2, WY2, ANYWND, SPCDIR,
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
-   USE swan_test_output
    USE SDSBABANIN
 
    IMPLICIT NONE(TYPE, EXTERNAL)
@@ -677,6 +681,11 @@ SUBROUTINE WINDP1 (WIND10, THETAW, WINDOW, FPM, UFRIC, WX2, WY2, ANYWND, SPCDIR,
 !             (*,6); sine^2 of spectral directions                        30.82
 ! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
+!     RDFSIN : reduction factor per frequency for the ST6 wind input of
+!              the thread that calls, for SURF_ROUGH_ECMWF
+   REAL, INTENT(IN) :: RDFSIN(100)
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
 !  Stencil width passed explicitly by the solver; forwarded to the drag law.
@@ -1089,7 +1098,7 @@ SUBROUTINE WINDP1 (WIND10, THETAW, WINDOW, FPM, UFRIC, WX2, WY2, ANYWND, SPCDIR,
       ELSE IF (IDRAG.EQ.6) THEN
 !          ECMWF drag formulation
          CALL SURF_ROUGH_ECMWF(WIND10, UFRIC, GENC0, SPCSIG, &
-            KWAVE, CDRAG, icmax)
+            KWAVE, CDRAG, icmax, RDFSIN)
       END IF
 
 !       *** adapted wind friction velocity and PM-frequency ***
@@ -1117,7 +1126,7 @@ end subroutine WINDP1
 
 !****************************************************************
 
-SUBROUTINE WINDP2 (WINDOW, SIGPKD, FPM, ETOTW, AC2, SPCSIG, WIND10, IGP)
+SUBROUTINE WINDP2 (WINDOW, SIGPKD, FPM, ETOTW, AC2, SPCSIG, WIND10, IGP, TESTFL)
 
 !****************************************************************
 
@@ -1128,7 +1137,6 @@ SUBROUTINE WINDP2 (WINDOW, SIGPKD, FPM, ETOTW, AC2, SPCSIG, WIND10, IGP)
    USE swan_physical_settings
    USE swan_computational_grid
    USE swan_spectral_grid
-   USE swan_test_output
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1221,6 +1229,8 @@ SUBROUTINE WINDP2 (WINDOW, SIGPKD, FPM, ETOTW, AC2, SPCSIG, WIND10, IGP)
 !
 !     SPCSIG: Relative frequencies in computational domain in sigma-space
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    TYPE(spectral_window_t) :: WINDOW
 
    INTEGER, INTENT(IN) :: IGP
@@ -1352,14 +1362,13 @@ end subroutine WINDP2
 
 !********************************************************************
 
-SUBROUTINE WINDP3 (WINDOW, ALIMW, AC2, GROWW, IGP)
+SUBROUTINE WINDP3 (WINDOW, ALIMW, AC2, GROWW, IGP, TESTFL)
 
 !****************************************************************
 
    USE swan_service_interfaces, ONLY: STRACE
    USE swan_computational_grid
    USE swan_spectral_grid
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
 
@@ -1478,6 +1487,8 @@ SUBROUTINE WINDP3 (WINDOW, ALIMW, AC2, GROWW, IGP)
 !
 !************************************************************************
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    TYPE(spectral_window_t) :: WINDOW
 
    INTEGER, INTENT(IN) :: IGP
@@ -1525,7 +1536,7 @@ end subroutine WINDP3
 
 !****************************************************************
 
-SUBROUTINE SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, FPM, PLWNDS, IMATRA, SPCDIR, GENC0, KWAVE, AICELOC, IGP)
+SUBROUTINE SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, FPM, PLWNDS, IMATRA, SPCDIR, GENC0, KWAVE, AICELOC, IGP, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -1626,6 +1637,10 @@ SUBROUTINE SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, FPM, PLWNDS, IMATRA, S
 !             (*,6); sine^2 of spectral directions                        30.82
 ! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    REAL    SPCDIR(MDC,6)
@@ -1843,7 +1858,8 @@ end subroutine SWIND0
 
 !****************************************************************
 
-SUBROUTINE SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, GENC0, WINDOW, AC2, UFRIC, FPM, PLWNDS, SPCDIR, ANYWND, AICELOC, IGP)
+SUBROUTINE SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, GENC0, WINDOW, AC2, UFRIC, FPM, PLWNDS, SPCDIR, &
+      ANYWND, AICELOC, IGP, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -1953,6 +1969,10 @@ SUBROUTINE SWIND3 (SPCSIG, THETAW, KWAVE, IMATRA, GENC0, WINDOW, AC2, UFRIC, FPM
 !             (*,6); sine^2 of spectral directions                        30.82
 ! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    REAL    SPCDIR(MDC,6)
@@ -2097,7 +2117,7 @@ end subroutine SWIND3
 !****************************************************************
 
 SUBROUTINE SWIND4 (WINDOW, SPCSIG, WIND10, THETAW, XIS, DD, KWAVE, IMATRA, GENC0, AC2, UFRIC, &
-      PLWNDS, ITER, USTAR, ZELEN, SPCDIR, ANYWND, IT, TAUWV, AICELOC, IGP)
+      PLWNDS, ITER, USTAR, ZELEN, SPCDIR, ANYWND, IT, TAUWV, AICELOC, IGP, TESTFL, IPTST)
 
 !******************************************************************
 
@@ -2205,6 +2225,10 @@ SUBROUTINE SWIND4 (WINDOW, SPCSIG, WIND10, THETAW, XIS, DD, KWAVE, IMATRA, GENC0
 !             (*,6); sine^2 of spectral directions                        30.82
 ! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    REAL    SPCDIR(MDC,6)
@@ -2655,7 +2679,7 @@ end subroutine SWIND4
 
 !****************************************************************
 
-SUBROUTINE SWIND5 (SPCSIG, THETAW, WINDOW, UFRIC, KWAVE, IMATRA, AC2, ANYWND, PLWNDS, SPCDIR, GENC0, AICELOC, IGP)
+SUBROUTINE SWIND5 (SPCSIG, THETAW, WINDOW, UFRIC, KWAVE, IMATRA, AC2, ANYWND, PLWNDS, SPCDIR, GENC0, AICELOC, IGP, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -2753,6 +2777,10 @@ SUBROUTINE SWIND5 (SPCSIG, THETAW, WINDOW, UFRIC, KWAVE, IMATRA, AC2, ANYWND, PL
 !             (*,6); sine^2 of spectral directions                        30.82
 ! i   SPCSIG: Relative frequencies in computational domain in sigma-space
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    REAL    SPCDIR(MDC,6)

@@ -1,10 +1,31 @@
 # Thread-state manifest
 
-This document lists the OpenMP thread state that the fork keeps, how it
-differs from upstream SWAN 41.51, and where the whitecapping state is held.
+This document lists what each OpenMP thread keeps for itself in the fork, how
+that differs from upstream SWAN 41.51, and where the whitecapping state is
+held.
 
-`scripts/check_thread_state.py` compares the tables below with the source and
-fails if a `THREADPRIVATE` symbol is added or removed.
+The fork has no `THREADPRIVATE` module variable and no `COPYIN` clause.
+Everything a thread keeps for itself is a variable of the solver that the
+thread is running (`SWCOMP` with `SWOMPU`, or `SwanCompUnstruc`), an element
+of an array with one element per thread, or an argument.
+`scripts/check_thread_state.py` fails if a `THREADPRIVATE` or `COPYIN`
+directive appears anywhere under `src/`, and if a name in the table below is
+no longer private to the threads of a solver.
+
+## Why no thread-private module variables
+
+A `THREADPRIVATE` module variable is one that every routine can read without
+it showing in a call, and of which every thread has its own copy. The
+compiler has to reach it through thread-local storage each time. The
+gfortran 16.2 of MSYS2 (ucrt64) on Windows does not always do that at `-O1`
+and higher: in a few places it uses an ordinary global address, so that all
+threads read or write one copy. Upstream's OpenMP build computes Hsig 0
+everywhere on Windows for that reason, and the same wrong address was seen in
+the fork's object code for `RDFSIN` in `SWIND_DBYB`. A variable of a routine,
+an array element and an argument do not depend on thread-local storage, so
+the fork uses only those. It also makes the state visible: a routine that
+needs to know whether its grid point is a test point now says so in its
+argument list.
 
 ## Method
 
@@ -18,127 +39,116 @@ the whitecapping state: a name clash, not shared state.
 Lifetime is the shortest unit over which the value must stay valid:
 `point` (one grid point or vertex), `sweep`, `iteration`, `run`, `process`.
 
-## The four remaining directives
+## What upstream keeps per thread, and where it is in the fork
 
-| # | Location | Module | Symbols | Build variant |
-|---|---|---|---|---|
-| 1 | [swan_stencil.f90:38](../src/swan_stencil.f90#L38) | `swan_stencil` | `RDFSIN` | always |
-| 2 | [swan_test_output.f90:34](../src/swan_test_output.f90#L34) | `swan_test_output` | `IPTST, TESTFL` | always |
-| 3 | [swan_propagation_scheme.f90:27](../src/swan_propagation_scheme.f90#L27) | `swan_propagation_scheme` | `PROPSL` | always |
-| 4 | [swan_time.f90:40](../src/swan_time.f90#L40) | `swan_time` | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | always present; active with `TIMG=ON` |
+Upstream 41.51 has eight `THREADPRIVATE` directives. None exists in the fork:
 
-Directive 4 is ordinary Fortran that is always visible. Upstream hides it
-behind the `!TIMG` switch. In the fork only the calls that change the
-counters sit behind the compile-time constant `timing_enabled`. As a result
-the compiler sees the timing backend in every build, and it stays inactive in
-a standard build.
-
-Upstream 41.51 has eight `THREADPRIVATE` directives. Four of them do not
-exist in the fork:
-
-- the eleven whitecapping scalars in `M_WCAP`. The fork has no such module;
-  the values live in an explicit `wcap_workspace_t` per solver thread;
-- the stencil values `IXCGRD, IYCGRD, KCGRD` and `COSLAT` in `SWCOMM3`;
-- `ICMAX` and `CSETUP` in `SWCOMM3`;
-- the unstructured stencil mirror `vs` in `SwanCompdata`.
-
-In the fork the stencil values are not module data at all. The solvers keep
-track of the active point in thread-local scratch (`st_ix, st_iy, st_kc,
-st_co, st_nm` in `SWOMPU`, and the same in `SwanCompUnstruc`, where `st_nm`
-inherits the serial width through `FIRSTPRIVATE`) and pass each kernel its
-context explicitly, as scalars or `MICMAX` arrays. Only `RDFSIN` stays
-threadprivate, seeded with `COPYIN`.
-
-## COPYIN: which threads are seeded
-
-The two solvers seed different sets. That is design input, not a detail: only
-these symbols must have the master value on entry to the parallel region.
-
-| Symbol | [swancom1.f90:1360-1362](../src/swancom1.f90#L1360-L1362) (structured) | [SwanCompUnstruc.f90:510](../src/SwanCompUnstruc.f90#L510) (unstructured) |
+| Upstream | Symbols | In the fork |
 |---|---|---|
-| `IPTST` | ✅ | ✅ |
-| `TESTFL` | ✅ | ✅ |
-| `RDFSIN` | ✅ | ✅ |
-| `PROPSL` | ✅ | — |
-| `wcap_workspace_t` | explicit per thread | explicit per thread |
+| `SWCOMM3` | `IXCGRD, IYCGRD, KCGRD` | `st_ix, st_iy, st_kc` in `SWOMPU` and `SwanCompUnstruc`, passed as arguments |
+| `SWCOMM3` | `COSLAT` | `st_co`: `SWGEOM` fills it, `ACTION` and `SwanTranspAc` pass it on |
+| `SWCOMM3` | `ICMAX` | `st_nm` in the solvers, the argument `st_n` or `icmax` in the routines |
+| `SWCOMM3` | `CSETUP` | not thread state: `SETUPP` returns it to `SETUP_CONVERGED` of `SWCOMP` |
+| `SWCOMM3` | `RDFSIN` | a variable of the solver per thread, passed as the argument `RDFSIN`; `RDFSIN_MASTER` in `swan_stencil` between two computations |
+| `SWCOMM4` | `IPTST, TESTFL` | variables of the solver per thread, passed as the arguments `TESTFL` and `IPTST`; `TESTFL_MASTER` in `swan_test_output` between two computations |
+| `SWCOMM4` | `PROPSL` | a local variable of `SWOMPU`, passed to `ACTION` and `QCSOURCE` |
+| `M_WCAP` | the eleven whitecapping scalars | `wcap_workspace_t`, one per solver thread (see below) |
+| `SwanCompdata` | `vs` | `st_kc` in `SwanCompUnstruc` |
+| `TIMCOMM` (switch `!TIMG`) | `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | `THREAD_TIMERS` in `swan_time`, one element per thread |
 
-The structured solver in upstream also seeds `ICMAX`, `CSETUP` and `COSLAT`.
-The fork does not: no kernel reads them implicitly. The thread-local width
-(`st_nm`) inherits the serial value through `FIRSTPRIVATE` in the
-unstructured region; the structured call has its own stack copies per point.
+## Per-thread state in the solvers
 
-`PROPSL` is missing from the unstructured region because that solver does not
-use the structured propagation scheme. Unlike upstream, `CSETUP` is not
-thread state: `SETUP2D` returns its convergence status through `SETUPP` to
-the local `SETUP_CONVERGED` of `SWCOMP`.
+Both solvers have one parallel region. The table says how each name is made
+private to a thread there; the script checks the cells that read `PRIVATE` or
+`FIRSTPRIVATE` against the directive in the source.
 
-## Manifest per symbol
+| Symbol | Lifetime | Structured (`swancom1.f90`) | Unstructured (`SwanCompUnstruc.f90`) |
+|---|---|---|---|
+| `TESTFL` | point, and the last point of the thread | `FIRSTPRIVATE` | `FIRSTPRIVATE` |
+| `RDFSIN` | from point to point | `FIRSTPRIVATE` | `FIRSTPRIVATE` |
+| `IPTST` | point | local variable of `SWOMPU` | `PRIVATE` |
+| `PROPSL` | point | local variable of `SWOMPU` | not used |
+| `st_ix, st_iy, st_kc, st_co` | point | local variables of `SWOMPU` | `PRIVATE` |
+| `st_nm` | point | local variable of `SWOMPU` | `FIRSTPRIVATE` |
+| `wcap_workspace_t` | run | `THREAD_WORKSPACES%STRUCTURED(thread)` | `thread_workspaces%unstructured(thread)` |
 
-Categories: **1** run-shared read-only, **2** run-shared mutable, **3**
-thread state seeded through COPYIN, **4** proven write-before-read scratch,
-**5** conditionally written or persisting, **6** solver- or switch-specific.
+A local variable of `SWOMPU` is private because every thread calls `SWOMPU`
+itself, once per grid point.
 
-### `swan_stencil` — stencil and propagation choices
+### `TESTFL` and `IPTST` — is this grid point a test point
 
-`RDFSIN` is the only value in this module (threadprivate, see below). Upstream
-keeps five more stencil values in `SWCOMM3`; in the fork they are not module
-data:
+The solver works out per grid point whether it is a test point (`TESTFL`) and
+which one (`IPTST`): `SWOMPU` does so before it calls anything, and
+`SwanCompUnstruc` at the top of its block per vertex. Every routine that
+writes test output gets the two as arguments; a routine that only prints gets
+`TESTFL` alone. `IPTST` is only read where `TESTFL` is true, so it has no
+meaning outside the grid point.
 
-| Symbol | In the fork | Owner in the fork |
-|---|---|---|
-| `IXCGRD` | not in `swan_stencil` | thread-local `st_ix` in `SWOMPU`/`SwanCompUnstruc`, passed explicitly as scalars/arrays (caller) |
-| `IYCGRD` | same | same (`st_iy`) |
-| `KCGRD` | same | same (`st_kc`) |
-| `COSLAT` | same | `SWGEOM` writes the local `st_co` of `SWOMPU`; `ACTION`/`SwanTranspAc` pass it explicitly |
-| `RDFSIN` | ✅ COPYIN, threadprivate (wind scale per thread) | `swan_stencil` |
-| `ICMAX` | not in `swan_stencil` | thread-local `st_nm`/`st_n`/`icmax` dummy in every kernel; `FIRSTPRIVATE` in the unstructured region |
+`TESTFL` does have a life outside the grid point, and the fork keeps it
+because upstream output depends on it:
 
-The fork also has no copy of the stencil in `SwanCompdata` (upstream's `vs`).
-Each call therefore has one stencil owner: the calling thread's scratch, not
-a module.
+- `SACCUR` runs once per iteration in every thread, after the sweeps, and
+  prints its test output if `TESTFL` is true. That is the value of the last
+  grid point the thread computed. `SWOMPU` therefore returns `TESTFL` to
+  `SWCOMP`, which keeps it per thread and passes it to `SACCUR`.
+- `AC2TST`, called by `SWOUTP`, prints the spectra of all test points if
+  `ITEST` is at least 100 and `TESTFL` is true. Outside the solver that is
+  the value the first thread ended with, or the value `SWINCO` left when it
+  filled the last grid point. This value is `TESTFL_MASTER` in
+  `swan_test_output`: every thread starts a computation with it
+  (`FIRSTPRIVATE`), and the first thread writes its own value back at the end
+  of the parallel region.
 
-### `swan_test_output` and `swan_propagation_scheme` — test status and local propagation
+Both are questionable in upstream: whether these lines are printed depends on
+which grid point a thread happened to compute last, and so on the number of
+threads. The fork reproduces it and does not correct it.
 
-Upstream keeps these three in `SWCOMM4`. The fork splits them into two
-modules: one for the test status and one for the propagation scheme.
+`IPTST` is also the name of the loop counter over the test points in
+`SNEXTI`, `SWINCO`, `BCWAMN`, `SWBCPT`, `RETSTP` and `PLTSRC`. In upstream
+that is the same module variable; in the fork each of these routines has a
+local counter.
 
-| Symbol | Solver | COPYIN | First definition | Lifetime | Cat. | Proposed owner |
-|---|---|---|---|---|---|---|
-| `IPTST` | both | ✅ | [swancom1.f90:3276](../src/swancom1.f90#L3276), [SwanCompUnstruc.f90:1009](../src/SwanCompUnstruc.f90#L1009) | point | 3 | `common_thread_seed_t` |
-| `TESTFL` | both | ✅ | [swanmain.f90:1679](../src/swanmain.f90#L1679) | point | 3 | `common_thread_seed_t` |
-| `PROPSL` | structured | ✅ | [swanmain.f90:1228](../src/swanmain.f90#L1228) | sweep | 3/6 | `structured_thread_workspace_t` |
+### `RDFSIN` — reduction factor of the ST6 wind input
 
-The COPYIN of `IPTST` and `TESTFL` is probably unnecessary. Both solvers set
-the pair to `0`/`.FALSE.` at the top of the per-point block
-([swancom1.f90:3276](../src/swancom1.f90#L3276),
-[SwanCompUnstruc.f90:1009](../src/SwanCompUnstruc.f90#L1009)) before they read
-it, and neither appears inside the parallel region itself
-([swancom1.f90:1348-2415](../src/swancom1.f90#L1348-L2415)): all uses are in
-called routines. That makes them scratch rather than seed. This is not
-proven: nobody has checked whether a routine called earlier in the region
-already reads `TESTFL`. Check that before deleting the COPYIN; until then, the
-COPYIN is unnecessary but not wrong.
+`SWIND_DBYB` computes the factor per frequency for a grid point (through
+`CALC_LFACTOR`) and applies it there. `SURF_ROUGH_ECMWF`, which `WINDP1`
+calls for the ECMWF drag formulation, reads it before `SOURCE` calls
+`SWIND_DBYB` for the grid point, so it reads the factor that the thread
+computed last, at another grid point. The value therefore lives from point
+to point. Each thread
+has its own array in the solver, which starts with `RDFSIN_MASTER` from
+`swan_stencil` (`FIRSTPRIVATE`; `SWPREP` sets it to zero); the first thread
+writes its array back at the end of the parallel region. The routines get
+the array as the argument `RDFSIN`.
 
-`IPTST` is also used as a `DO` loop variable in
-[swanmain.f90:6119](../src/swanmain.f90#L6119) onwards, outside the parallel
-region. That is legal, but it means the symbol carries two meanings. If this
-state moves into a context type, the loop variable should become a local
-variable, not a field of the context.
+### `PROPSL` — propagation scheme of one grid point
+
+`SWOMPU` starts every grid point with the chosen scheme `PROPSC` and falls
+back to a lower order near a boundary, dry land or an obstacle. `ACTION` and
+`SWQCWIG` (through `QCSOURCE`) read the result; nothing else does, and
+nothing reads it before `SWOMPU` has set it. It is a local variable of
+`SWOMPU`. The unstructured solver does not use it; it passes `PROPSC` to
+`QCSOURCE`, which does not read it for an unstructured grid.
+
+## Manifest of the whitecapping state
+
+Categories: **4** proven write-before-read scratch, **5** conditionally
+written or persisting.
 
 ### Whitecapping integrals (upstream `M_WCAP`) — integral parameters per grid point
 
 In upstream, the eleven values are threadprivate module variables in
 `M_WCAP`. They are written only in `SINTGRL`
-([swancom1.f90:5312-5886](../src/swancom1.f90#L5312-L5886)); only five files
+([swancom1.f90:5390-5970](../src/swancom1.f90#L5390-L5970)); only five files
 import the module, and no scalar is in COPYIN.
 
 | Symbol | Default on entry | Write condition | Cat. | Invariant |
 |---|---|---|---|---|
-| `KM_WAM` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L179) | refined when `EDRKTOT > 0.` | 4 | proven |
-| `KM01` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L180) | refined when `EKTOT > 0.` | 4 | proven |
-| `SIGM01` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L181) | refined when `ETOT1 > 0.` | 4 | proven |
-| `SIGM_10` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L182) | refined when `ACTOT > 0.` | 4 | proven |
-| `ACTOT` | **none** | [`IF (ETOT > 0.)`](../src/swancom1.f90#L5652) | **5** | tested: value is kept |
+| `KM_WAM` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L177) | refined when `EDRKTOT > 0.` | 4 | proven |
+| `KM01` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L178) | refined when `EKTOT > 0.` | 4 | proven |
+| `SIGM01` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L179) | refined when `ETOT1 > 0.` | 4 | proven |
+| `SIGM_10` | `10.` [`begin_point`](../src/swan_source_workspaces.f90#L180) | refined when `ACTOT > 0.` | 4 | proven |
+| `ACTOT` | **none** | [`IF (ETOT > 0.)`](../src/swancom1.f90#L5736) | **5** | tested: value is kept |
 | `ETOT1` | **none** | same | **5** | tested: value is kept |
 | `ETOT2` | **none** | same | **5** | tested: value is kept |
 | `ETOT4` | **none** | same | **5** | tested: value is kept |
@@ -153,18 +163,18 @@ workspace. `begin_point` sets only the four entry defaults to 10, as
 upstream `SINTGRL` does; the seven category-5 values are deliberately left alone.
 
 **The category-5 finding.** When `ETOT <= 0.`, `SINTGRL` does not write seven
-of the eleven, while [line 5879](../src/swancom1.f90#L5879) executes
+of the eleven, while [line 5963](../src/swancom1.f90#L5963) executes
 `AC2TOT = ACTOT` unconditionally. The thread then carries over the value from
 the previous point it handled. Upstream behaves the same way.
 
 **Effect on results.** For valid, non-negative spectra, initialising these
 seven values does not change the numerical result of the solver:
 
-- [`SWCAP`](../src/swancom2.f90#L2247) and
-  [`SWCAP8`](../src/swancom2.f90#L2744) return when `ETOT <= 0.` before
+- [`SWCAP`](../src/swancom2.f90#L2284) and
+  [`SWCAP8`](../src/swancom2.f90#L2791) return when `ETOT <= 0.` before
   a workspace value can affect a source term;
 - `SSURF` reads `SIGM_WAM` for `ISURF = 6`, but only uses the chosen
-  frequency behind the [`BB > 0`](../src/swancom2.f90#L2147) condition;
+  frequency behind the [`BB > 0`](../src/swancom2.f90#L2203) condition;
   when `ETOT = 0.` the surf-breaking contribution stays zero;
 - `AC2TOT` has no reader after the call in the structured and unstructured
   solver;
@@ -216,7 +226,7 @@ a fix would be its own small change to this fixture.
 
 ### `SwanCompdata` — no unstructured stencil mirror
 
-Upstream keeps the unstructured stencil in the threadprivate array `vs`. The
+Upstream keeps the unstructured stencil in the thread-private array `vs`. The
 fork has no such array. `SwanCompUnstruc` fills the local `st_kc` directly;
 the kernels below it receive the grid addresses they need as explicit
 arguments. `SwanCompdata` holds no separate stencil state.
@@ -227,26 +237,41 @@ current point, the two upwind neighbour points and `(IX,IY)` from the solver.
 As a result, these routines cannot read the stencil of another thread or
 solver context without anyone noticing.
 
-### `swan_time` — TIMG counters
+### `swan_time` — the timers
 
-| Symbol | Build variant | Lifetime | Cat. | Proposed owner |
-|---|---|---|---|---|
-| `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | always present; active with `TIMG=ON` | process | 6 | `timing_context_t`, outside the context design |
+| Symbol | Build variant | Lifetime | Owner |
+|---|---|---|---|
+| `DCUMTM, TIMERS, NCUMTM, LISTTM, LASTTM` | always present; used with `TIMG=ON` | process | `THREAD_TIMERS(thread)` of type `thread_timers_t` |
 
-Timing is instrumentation, not model state, so this group is not part of the
-context design. The CMake option only decides whether ordinary, visible calls
-are active; the counters therefore belong to the process and not to a model
-run.
+Timing is instrumentation, not model state. Upstream hides it behind the
+`!TIMG` switch. In the fork the code is ordinary Fortran that every build
+compiles; the calls of `SWTSTA`, `SWTSTO` and `SWPRTI` sit behind the
+compile-time constant `timing_enabled`, so a standard build never runs them
+and never allocates the timers.
+
+Every thread has its own set of timers: one element of the array
+`THREAD_TIMERS`, indexed with the OpenMP thread number. `SWMAIN` and both
+solvers call `prepare_thread_timers` in the serial part of the program, so
+that the array has an element for every thread before a parallel region
+starts. `SWTSTA` and `SWTSTO` work on the element of the thread that calls
+them. `SWPRTI` reports the element of the thread that calls it, which is the
+thread that runs the serial part of the program. What the other threads
+measure in the sweeps is not in the report. That was so with the
+thread-private counters as well: `SWPRTI` only ever read the copy of its own
+thread.
+The timers belong to the process and not to a model run, so `SWCLME` does
+not release them.
 
 ## Checks
 
 1. Invariant tests for all seven category-5 values are present, and they pin
    upstream's carry-over behaviour.
-2. The stencil exists once per call, in the calling thread's scratch. The
+2. The stencil exists once per call, in variables of the calling thread. The
    whitecapping workspace does not add another storage layer.
-3. The COPYIN symbols that both solvers share (`IPTST`, `TESTFL` and
-   `RDFSIN`; `PROPSL` only structured) stay in their own modules. The source
-   term workspace does not store this COPYIN state a second time.
+3. `scripts/check_thread_state.py` (CTest `thread_state_manifest`, and a step
+   of CI) finds no `THREADPRIVATE` or `COPYIN` directive under `src/`, and
+   finds the names of the table "Per-thread state in the solvers" in the
+   `PRIVATE` or `FIRSTPRIVATE` clause the table gives.
 4. The OpenMP check must include `TESTFL`/`IPTST`: they determine the `TEST`
    output, so an error shows up in the PRINT diff and not in the Hsig
    statistics. Under OpenMP every CTest reference test runs on 2 threads,

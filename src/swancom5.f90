@@ -49,7 +49,7 @@ subroutine RESET_PROPAGATION_STATE()
    NOWARN = .false.
 end subroutine RESET_PROPAGATION_STATE
 
-SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR, st_ix, st_iy, st_kc, st_n, st_cos )
+SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR, st_ix, st_iy, st_kc, st_n, st_cos, TESTFL )
 
 !****************************************************************
 
@@ -58,7 +58,6 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR, st_ix, st_iy, st_kc, st_n,
    USE swan_stencil, ONLY: MICMAX
    USE swan_computational_grid
    USE swan_math_constants
-   USE swan_test_output
    USE swan_spherical_geometry
    USE swan_diagnostics_level
    USE swan_io_units
@@ -133,6 +132,8 @@ SUBROUTINE SWGEOM ( RDX, RDY, XCGRID, YCGRID, SWPDIR, st_ix, st_iy, st_kc, st_n,
 !     XCGRID      coordinates of computational grid in x-direction
 !     YCGRID      coordinates of computational grid in y-direction
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    INTEGER, INTENT(IN) :: st_ix(MICMAX), st_iy(MICMAX), st_kc(MICMAX), st_n
    REAL, INTENT(OUT) :: st_cos(MICMAX)
    INTEGER SWPDIR
@@ -262,7 +263,7 @@ SUBROUTINE SWPSEL(SWPDIR    ,WINDOW    ,CAX       , &
    SPCDIR    ,RDX       ,RDY       , &
    KGRPNT &
    ,kc1,ix1,iy1 &
-   )
+   , TESTFL)
 
 !******************************************************************
 
@@ -273,7 +274,6 @@ SUBROUTINE SWPSEL(SWPDIR    ,WINDOW    ,CAX       , &
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
    USE M_PARALL
@@ -434,6 +434,8 @@ SUBROUTINE SWPSEL(SWPDIR    ,WINDOW    ,CAX       , &
 !             (*,5); cosine*sine of spectral directions                   30.82
 !             (*,6); sine^2 of spectral directions                        30.82
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    REAL    SPCDIR(MDC,6)
 
 !     INTEGERS:
@@ -891,7 +893,7 @@ SUBROUTINE SPROXY (CAX        , &
    ESIN       ,UX2        ,UY2        , &
    SWPDIR     ,DIFFR &
    ,st_kc,st_n,OLD_LEVEL &
-   )
+   , TESTFL)
 
 !****************************************************************
 
@@ -900,15 +902,17 @@ SUBROUTINE SPROXY (CAX        , &
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
+   LOGICAL, INTENT(IN) :: TESTFL
    TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
    INTEGER, INTENT(IN) :: st_kc(MICMAX), st_n
    LOGICAL, INTENT(IN) :: OLD_LEVEL
+
+!  TESTFL says whether the grid point is a test point.
 
 !  Stencil addresses and width passed explicitly by SWOMPU.
 !
@@ -1184,7 +1188,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
    CAX        ,CAY        , &
    XCGRID     ,YCGRID     ,WINDOW     ,DIFFR &
    ,st_kc5,st_ix1,st_iy1 &
-   )
+   , TESTFL)
 
 !****************************************************************
 
@@ -1198,7 +1202,6 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
    USE M_PARALL
@@ -1321,6 +1324,8 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 !     ST_IX1  : x-index of the active grid point
 !     ST_IY1  : y-index of the active grid point
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    TYPE(diffraction_state_t), INTENT(IN) :: DIFFR
    INTEGER, INTENT(IN) :: st_kc5(5), st_ix1, st_iy1
    TYPE(spectral_window_t), INTENT(IN) :: WINDOW
@@ -2005,7 +2010,7 @@ end subroutine DSPHER
 SUBROUTINE STRSXY (         WINDOW  ,CAX     , &
    CAY     ,AC2     ,AC1     ,IMATRA  ,IMATDA  , &
    RDX     ,RDY     , &
-   OBREDF  ,TRAC0   ,TRAC1   ,st_kc   ,st_cos)
+   OBREDF  ,TRAC0   ,TRAC1   ,st_kc   ,st_cos, TESTFL)
 
 !****************************************************************
 
@@ -2016,13 +2021,15 @@ SUBROUTINE STRSXY (         WINDOW  ,CAX     , &
    USE swan_numerics
    USE swan_computational_grid
    USE swan_spectral_grid
-   USE swan_test_output
    USE swan_spherical_geometry
    USE swan_diagnostics_level
    USE swan_io_units
 
+   LOGICAL, INTENT(IN) :: TESTFL
    REAL, INTENT(IN) :: st_cos(MICMAX)
    INTEGER, INTENT(IN) :: st_kc(MICMAX)
+
+!  TESTFL says whether the grid point is a test point.
 
 !  Stencil addresses and latitude factors passed explicitly by ACTION.
 
@@ -2318,7 +2325,7 @@ end subroutine STRSXY
 
 SUBROUTINE SORDUP (         WINDOW  ,CAX     , &
    CAY     ,AC2     ,IMATRA  ,IMATDA  , &
-   RDX     ,RDY     ,TRAC0   ,TRAC1   ,st_kc   ,st_cos)
+   RDX     ,RDY     ,TRAC0   ,TRAC1   ,st_kc   ,st_cos, TESTFL)
 
 !****************************************************************
 
@@ -2328,15 +2335,17 @@ SUBROUTINE SORDUP (         WINDOW  ,CAX     , &
    USE swan_numerics
    USE swan_computational_grid
    USE swan_spectral_grid
-   USE swan_test_output
    USE swan_spherical_geometry
    USE swan_diagnostics_level
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
+   LOGICAL, INTENT(IN) :: TESTFL
    REAL, INTENT(IN) :: st_cos(MICMAX)
    INTEGER, INTENT(IN) :: st_kc(MICMAX)
+
+!  TESTFL says whether the grid point is a test point.
 
 !  Stencil addresses and latitude factors passed explicitly by ACTION.
 
@@ -2661,7 +2670,7 @@ end subroutine SORDUP
 SUBROUTINE SANDL ( WINDOW  ,CGO     ,CAX     , &
    CAY     ,AC2     ,AC1     ,IMATRA  ,IMATDA  , &
    RDX     ,RDY     ,CAX1    ,CAY1    ,SPCDIR  , &
-   TRAC0   ,TRAC1   ,st_kc   ,st_cos)
+   TRAC0   ,TRAC1   ,st_kc   ,st_cos, TESTFL)
 
 !****************************************************************
 
@@ -2672,7 +2681,6 @@ SUBROUTINE SANDL ( WINDOW  ,CGO     ,CAX     , &
    USE swan_numerics
    USE swan_computational_grid
    USE swan_spectral_grid
-   USE swan_test_output
    USE swan_propagation_scheme
    USE swan_spherical_geometry
    USE swan_diagnostics_level
@@ -2681,8 +2689,11 @@ SUBROUTINE SANDL ( WINDOW  ,CGO     ,CAX     , &
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
+   LOGICAL, INTENT(IN) :: TESTFL
    REAL, INTENT(IN) :: st_cos(MICMAX)
    INTEGER, INTENT(IN) :: st_kc(MICMAX)
+
+!  TESTFL says whether the grid point is a test point.
 
 !  Stencil addresses and latitude factors passed explicitly by ACTION.
 
@@ -3174,7 +3185,7 @@ end subroutine SANDL
 SUBROUTINE STRSSI(SPCSIG  , &
    CAS     ,IMAT5L  ,IMATDA  ,IMAT6U  ,ANYBIN  , &
    IMATRA  ,AC2     ,WINDOW  , &
-   TRAC0   ,TRAC1   ,st_kc1  ,st_n    )
+   TRAC0   ,TRAC1   ,st_kc1  ,st_n, TESTFL    )
 
 !****************************************************************
 
@@ -3183,7 +3194,6 @@ SUBROUTINE STRSSI(SPCSIG  , &
    USE swan_numerics
    USE swan_computational_grid
    USE swan_spectral_grid
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
 
@@ -3263,6 +3273,8 @@ SUBROUTINE STRSSI(SPCSIG  , &
 !
 !     SPCSIG: Relative frequencies in computational domain in sigma-space
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    INTEGER, INTENT(IN) :: st_kc1, st_n
    REAL    SPCSIG(MSC)
 
@@ -3499,7 +3511,7 @@ end subroutine STRSSI
 
 SUBROUTINE STRSSB (WINDOW  ,CAX     ,CAY     , &
    CAS     ,AC2     ,SPCSIG  ,IMATRA  , &
-   ANYBLK  ,RDX     ,RDY     ,TRAC0   ,st_kc1  ,st_n)
+   ANYBLK  ,RDX     ,RDY     ,TRAC0   ,st_kc1  ,st_n, TESTFL)
 
 !****************************************************************
 
@@ -3508,7 +3520,6 @@ SUBROUTINE STRSSB (WINDOW  ,CAX     ,CAY     , &
    USE swan_numerics
    USE swan_computational_grid
    USE swan_spectral_grid
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
 
@@ -3651,6 +3662,8 @@ SUBROUTINE STRSSB (WINDOW  ,CAX     ,CAY     , &
 !
 !     SPCSIG: Relative frequencies in computational domain in sigma-space
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    INTEGER, INTENT(IN) :: st_kc1, st_n
    REAL    SPCSIG(MSC)
 
@@ -3896,7 +3909,7 @@ end subroutine STRSSB
 SUBROUTINE STRSD (DD      ,WINDOW  , &
    CAD     ,IMATLA  ,IMATDA  ,IMATUA  , &
    IMATRA  ,AC2     , &
-   ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1   ,st_kc1  ,st_n)
+   ANYBIN  ,LEAKC1  ,TRAC0   ,TRAC1   ,st_kc1  ,st_n, TESTFL)
 
 !****************************************************************
 
@@ -3905,11 +3918,13 @@ SUBROUTINE STRSD (DD      ,WINDOW  , &
    USE swan_numerics
    USE swan_computational_grid
    USE swan_spectral_grid
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
 
+   LOGICAL, INTENT(IN) :: TESTFL
    INTEGER, INTENT(IN) :: st_kc1, st_n
+
+!  TESTFL says whether the grid point is a test point.
 
 !  Stencil point and width passed explicitly by ACTION/SwanTranspAc.
 
@@ -4187,7 +4202,7 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       , &
    ANYBIN     , &
    XCGRID     ,YCGRID     , &
    RDX        ,RDY        ,OBREDF    ,IGP &
-   ,st_ix1,st_iy1,st_ix2,st_iy2,st_ix3,st_iy3,st_kc2,st_kc3)
+   ,st_ix1,st_iy1,st_ix2,st_iy2,st_ix3,st_iy3,st_kc2,st_kc3, TESTFL)
 
 !****************************************************************
 
@@ -4199,16 +4214,18 @@ SUBROUTINE SPREDT (SWPDIR     ,AC2        ,CAX       , &
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
-   USE swan_test_output
    USE swan_spherical_geometry
    USE swan_diagnostics_level
    USE swan_io_units
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
+   LOGICAL, INTENT(IN) :: TESTFL
    INTEGER, INTENT(IN) :: IGP
    INTEGER, INTENT(IN) :: st_ix1, st_iy1, st_ix2, st_iy2
    INTEGER, INTENT(IN) :: st_ix3, st_iy3, st_kc2, st_kc3
+
+!  TESTFL says whether the grid point is a test point.
 
 !  Stencil neighbours passed explicitly by both solvers.
 
@@ -4515,7 +4532,7 @@ end subroutine SPREDT
 
 !****************************************************************
 
-SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG, st_kc, st_n )
+SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG, st_kc, st_n, TESTFL )
 
 !****************************************************************
 
@@ -4527,7 +4544,6 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG, st_kc, st_n )
    USE swan_physical_settings
    USE swan_computational_grid
    USE swan_spectral_grid
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
    USE m_propcache, ONLY: prop_cache_valid, prop_kwave, &
@@ -4607,6 +4623,8 @@ SUBROUTINE SWAPAR ( DEP, MUDL, KWAVE, CGO, DMW, SPCSIG, st_kc, st_n )
 !
 !     SPCSIG: Relative frequencies in computational domain in sigma-space
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    REAL    SPCSIG(MSC)
 
 !        INTEGERS:
@@ -5168,7 +5186,7 @@ end subroutine ADDDIS
 
 SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA, &
    AC2   , DD    , ANYBIN, LEAKC1, WINDOW, &
-   st_kc1, st_n)
+   st_kc1, st_n, TESTFL)
 
 !****************************************************************
 
@@ -5176,7 +5194,6 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA, &
    USE swan_numerics
    USE swan_computational_grid
    USE swan_spectral_grid
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
 
@@ -5248,6 +5265,8 @@ SUBROUTINE SWFLXD (CAD   , IMATLA, IMATDA, IMATUA, IMATRA, &
 !                 counters in directional space (IDCMIN, IDCMAX) and the
 !                 maximum frequency counter in a sweep (ISSTOP)
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    INTEGER, INTENT(IN) :: st_kc1, st_n
    TYPE(spectral_window_t), INTENT(IN) :: WINDOW
    REAL    DD

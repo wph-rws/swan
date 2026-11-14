@@ -32,12 +32,35 @@ MODULE swan_time
 
    TYPE(time_context_t), SAVE, TARGET :: default_time_context
 
-! Timing instrumentation remains module state because it measures nested
-! process/thread sections rather than simulation-clock state.
+! The timers of SWTSTA, SWTSTO and SWPRTI. They measure sections of the
+! program, not the simulation clock, and are only used in a build with
+! TIMG=ON. Every OpenMP thread has a set of timers of its own, one element
+! of THREAD_TIMERS, so that the threads do not disturb each other's
+! measurements. SWTSTA and SWTSTO work on the set of the thread that calls
+! them. SWPRTI reports the set of the thread that calls it: the thread that
+! runs the serial part of the program.
+!
+!     NSECTM : number of sections that can be timed
+!     MXTIMR : number of sections that can be timed at the same moment
+!     NCUMTM : number of timings per section
+!     LISTTM : the sections that are being timed (-1: position is free)
+!     LASTTM : last position of LISTTM that is in use
+!     DCUMTM : cpu-time (1) and wall-clock time (2) per section, summed
+!     TIMERS : cpu-time and wall-clock time at the start of the sections
+!              in LISTTM
    INTEGER, PARAMETER, PUBLIC :: NSECTM = 300, MXTIMR = 10
-   INTEGER, SAVE, PUBLIC :: NCUMTM(NSECTM), LISTTM(MXTIMR), LASTTM
-   REAL(swan_double), SAVE, PUBLIC :: DCUMTM(NSECTM,2), TIMERS(MXTIMR,2)
-   !$OMP THREADPRIVATE(DCUMTM,TIMERS,NCUMTM,LISTTM,LASTTM)
+   TYPE, PUBLIC :: thread_timers_t
+      INTEGER :: NCUMTM(NSECTM) = 0
+      INTEGER :: LISTTM(MXTIMR) = 0
+      INTEGER :: LASTTM = 0
+      REAL(swan_double) :: DCUMTM(NSECTM,2) = 0.0_swan_double
+      REAL(swan_double) :: TIMERS(MXTIMR,2) = 0.0_swan_double
+   END TYPE thread_timers_t
+
+!     THREAD_TIMERS : the timers of each thread, numbered from 0 as OpenMP
+!                     numbers its threads
+   TYPE(thread_timers_t), ALLOCATABLE, SAVE, PUBLIC :: THREAD_TIMERS(:)
+   PUBLIC :: prepare_thread_timers, timer_thread
 
 !  DTSTTI and DTTIST used to be external procedures declared here; they are
 !  module procedures now. That became possible once UPCASE moved to
@@ -45,6 +68,40 @@ MODULE swan_time
 !  (the parser uses this module, so the pair formed a cycle).
 
 CONTAINS
+
+SUBROUTINE prepare_thread_timers()
+!
+!  Gives every thread that can run from here on a set of timers. Call it
+!  from the serial part of the program, before a parallel region starts:
+!  the threads themselves only use their own set and cannot make one. A
+!  set that exists keeps its contents.
+!
+   TYPE(thread_timers_t), ALLOCATABLE :: GROWN(:)
+   INTEGER :: LAST
+   !$ INTEGER, EXTERNAL :: OMP_GET_MAX_THREADS
+
+   LAST = timer_thread()
+   !$ LAST = MAX(LAST, OMP_GET_MAX_THREADS()-1)
+   IF (.NOT.ALLOCATED(THREAD_TIMERS)) THEN
+      ALLOCATE(THREAD_TIMERS(0:LAST))
+   ELSE IF (UBOUND(THREAD_TIMERS,1).LT.LAST) THEN
+      ALLOCATE(GROWN(0:LAST))
+      GROWN(0:UBOUND(THREAD_TIMERS,1)) = THREAD_TIMERS
+      CALL MOVE_ALLOC(GROWN, THREAD_TIMERS)
+   END IF
+END SUBROUTINE prepare_thread_timers
+
+INTEGER FUNCTION timer_thread()
+!
+!  The number of the thread that calls, which is its index in
+!  THREAD_TIMERS: 0 in the serial part of the program and in a build
+!  without OpenMP.
+!
+   !$ INTEGER, EXTERNAL :: OMP_GET_THREAD_NUM
+
+   timer_thread = 0
+   !$ timer_thread = OMP_GET_THREAD_NUM()
+END FUNCTION timer_thread
 
 SUBROUTINE reset_time_context(context)
    CLASS(time_context_t), INTENT(INOUT) :: context

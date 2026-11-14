@@ -1132,7 +1132,7 @@ end subroutine SWQCUFT
 
 subroutine QCSOURCE (imatra, imatda, iter, ac2, dep2, ux2, uy2, swpdir, ix, iy, rdx, rdy, kwave, &
       cgo, fft_workspace, memqcm, memqcb, plqcs, plwbrk, SOURCE_BUDGET, spcsig, spcdir, WINDOW, &
-      ecos, esin, etot, hm, qb, smebrk, kteta, kmespc, sigm_wam, IGP, qc_kc)
+      ecos, esin, etot, hm, qb, smebrk, kteta, kmespc, sigm_wam, IGP, qc_kc, TESTFL, IPTST, PROPSL)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1195,6 +1195,13 @@ subroutine QCSOURCE (imatra, imatda, iter, ac2, dep2, ux2, uy2, swpdir, ix, iy, 
 
    implicit none(type, external)
 
+   ! TESTFL : whether the grid point is a test point
+   ! IPTST  : sequence number of that test point
+   ! PROPSL : propagation scheme that SWOMPU chose for this grid point;
+   !          not used with an unstructured grid
+   logical, intent(in) :: TESTFL
+   integer, intent(in) :: IPTST
+   integer, intent(in) :: PROPSL
    TYPE(source_budget_t) :: SOURCE_BUDGET
 
    TYPE(spectral_window_t) :: WINDOW
@@ -1295,7 +1302,7 @@ subroutine QCSOURCE (imatra, imatda, iter, ac2, dep2, ux2, uy2, swpdir, ix, iy, 
          ! first iteration and also compute the bulk dissipation
 
          call SSURF (etot, hm, qb, smebrk, kteta, kmespc, spcsig, ac2, imatra, imatda, WINDOW, &
-               plwbrk, SOURCE_BUDGET%dissc0, SOURCE_BUDGET%dissc1, disbk, iter, sigm_wam, IGP)
+               plwbrk, SOURCE_BUDGET%dissc0, SOURCE_BUDGET%dissc1, disbk, iter, sigm_wam, IGP, TESTFL, IPTST)
 
          ! calculate the QC surf breaking for all sweeps together from the
          ! second iteration onwards
@@ -1353,7 +1360,7 @@ subroutine QCSOURCE (imatra, imatda, iter, ac2, dep2, ux2, uy2, swpdir, ix, iy, 
 
          if ( OPTG /= 5 ) then
             ! structured mesh
-            call SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig, qc_kc(1:5) )
+            call SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig, qc_kc(1:5), PROPSL )
          else
             ! unstructured mesh
             call SwanGradWig ( W, dwdx, dwdy, ac2, dep2, spcdir, spcsig , IGP)
@@ -1371,11 +1378,11 @@ subroutine QCSOURCE (imatra, imatda, iter, ac2, dep2, ux2, uy2, swpdir, ix, iy, 
 
    ! get source term values for the bin that fall within a sweep and store in right hand vector
 
-   call FILQCM (imatra, WINDOW, memqcm, memqcb, plqcs, plwbrk, SOURCE_BUDGET%redc0, SOURCE_BUDGET%dissc0, IGP)
+   call FILQCM (imatra, WINDOW, memqcm, memqcb, plqcs, plwbrk, SOURCE_BUDGET%redc0, SOURCE_BUDGET%dissc0, IGP, TESTFL, IPTST)
 
 end subroutine QCSOURCE
 
-subroutine SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig, kc5 )
+subroutine SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig, kc5, PROPSL )
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -1427,12 +1434,13 @@ subroutine SWQCWIG ( W, dwdx, dwdy, ac2, dep2, rdx, rdy, spcdir, spcsig, kc5 )
    use swan_physical_settings
    use swan_computational_grid
    use swan_spectral_grid
-   use swan_propagation_scheme
 
    implicit none(type, external)
 
 !   Five-point stencil addresses passed explicitly by QCSOURCE.
    integer, dimension(5), intent(in) :: kc5
+!   Propagation scheme that SWOMPU chose for this grid point (1=BSBT, 2=SORDUP).
+   integer, intent(in) :: PROPSL
 
 !   Argument variables
 
@@ -3193,7 +3201,7 @@ end subroutine varchk
 
 end subroutine SWQCSURF
 
-subroutine FILQCM (imatra, WINDOW, memqcm, memqcb, plqcs, plwbrk, redc0, dissc0, IGP)
+subroutine FILQCM (imatra, WINDOW, memqcm, memqcb, plqcs, plwbrk, redc0, dissc0, IGP, TESTFL, IPTST)
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -3247,6 +3255,10 @@ subroutine FILQCM (imatra, WINDOW, memqcm, memqcb, plqcs, plwbrk, redc0, dissc0,
 
    implicit none(type, external)
 
+   ! TESTFL : whether the grid point is a test point
+   ! IPTST  : sequence number of that test point
+   logical, intent(in) :: TESTFL
+   integer, intent(in) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
 
 !   Argument variables

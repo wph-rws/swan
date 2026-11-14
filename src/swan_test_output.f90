@@ -8,15 +8,18 @@ module swan_test_output
 !     configured by the TEST, INTE, OUTE and COTES commands and read by the
 !     computational routines only to decide whether to print.
 !
-!     Two of them are per-thread state. IPTST and TESTFL say which test point
-!     the calling thread is on, so every thread needs its own copy; they are in
-!     the thread-state manifest and the OpenMP gate covers them.
+!     Whether the grid point being computed is a test point, and which one,
+!     is not in this module. Every thread computes its own grid point, so the
+!     solvers (SWOMPU and SwanCompUnstruc) work that out per point and hand
+!     the two values, TESTFL and IPTST, to the routines as arguments. Only
+!     the value that is left when a computation ends is kept here, in
+!     TESTFL_MASTER.
 !
    implicit none(type, external)
    private
 
    public :: ICOTES, INTES, IOUTES
-   public :: IPTST, TESTFL
+   public :: TESTFL_MASTER
    public :: IFPAR, IFS1D, IFS2D
    public :: LXDMP, LYDMP
    public :: NPTST, NPTSTA
@@ -27,11 +30,16 @@ module swan_test_output
 !     IOUTES : minimum value for ITEST, set by the undocumented OUTE command
    integer :: ICOTES, INTES, IOUTES
 
-!     IPTST  : sequence number of the test point being computed
-!     TESTFL : whether test output must be written for the current point
-   integer :: IPTST
-   logical :: TESTFL
-   !$OMP THREADPRIVATE(IPTST,TESTFL)
+!     TESTFL_MASTER : the value of TESTFL in the part of the program that
+!                     runs on one thread: whether the grid point that was
+!                     handled there last was a test point. SWINCO sets it
+!                     for each grid point it fills. In the solvers every
+!                     thread starts with it and then keeps its own TESTFL
+!                     per grid point; when the solver is done, the first
+!                     thread puts its last value back here. AC2TST prints on
+!                     this value. This is how upstream behaves, where TESTFL
+!                     is one variable per thread for the whole program.
+   logical :: TESTFL_MASTER
 
 !     IFPAR : unit number for test output of parameters in test points
 !     IFS1D : unit number for test output of 1D source-term spectra

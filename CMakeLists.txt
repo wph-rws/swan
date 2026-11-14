@@ -459,9 +459,10 @@ if( BUILD_TESTING )
   target_link_libraries( test_breaker_index PRIVATE swan${VERSION} )
   add_test( NAME breaker_index COMMAND test_breaker_index )
 
-  # The context migration is designed around the thread-private state inventory,
-  # so an undocumented THREADPRIVATE symbol has to fail a build rather than
-  # silently invalidate the ownership design.
+  # The fork keeps no thread-private module variables, because the Windows
+  # compiler does not always compile them correctly (doc/thread-state-manifest.md).
+  # A THREADPRIVATE or COPYIN directive therefore has to fail a build, and so
+  # does per-thread state of the solvers that is no longer private.
   add_test(
     NAME thread_state_manifest
     COMMAND ${Python3_EXECUTABLE}

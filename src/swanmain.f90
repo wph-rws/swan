@@ -73,7 +73,7 @@ SUBROUTINE SWMAIN
    USE swan_command_reading, ONLY: SWREAD, RESET_COMMAND_STATE
    USE swan_propagation, ONLY: RESET_PROPAGATION_STATE
    USE swan_output_orchestration, ONLY: SWOUTP
-   USE swan_time, ONLY: DCUMTM, NCUMTM
+   USE swan_time, ONLY: THREAD_TIMERS, prepare_thread_timers, timer_thread
    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
    USE swan_file_opening, ONLY: FOR
    USE swan_service_interfaces, ONLY: MSGERR, TXPBLA, STPNOW, SWTSTA, SWTSTO, SWPRTI
@@ -349,8 +349,11 @@ SUBROUTINE SWMAIN
 
 !     --- initialize various data
 
-   DCUMTM(:,1:2) = 0D0
-   NCUMTM(:)     = 0
+   IF (timing_enabled) THEN
+      CALL prepare_thread_timers()
+      THREAD_TIMERS(timer_thread())%DCUMTM(:,1:2) = 0D0
+      THREAD_TIMERS(timer_thread())%NCUMTM(:)     = 0
+   END IF
    IF (timing_enabled) CALL SWTSTA(1)
 
    LEVERR=0
@@ -1238,7 +1241,6 @@ SUBROUTINE SWINIT (INERR, SNL4)
    PROPSS = 2
    PROPSN = 3
    PROPSC = 1
-   PROPSL = 1
    PROPFL = 0
    WAVAGE = 0.
    KSPHER = 0
@@ -1689,7 +1691,7 @@ SUBROUTINE SWINIT (INERR, SNL4)
    ICOTES = 0
    IOUTES = 0
    LTRACE = .FALSE.
-   TESTFL = .FALSE.
+   TESTFL_MASTER = .FALSE.
    NPTST  = 0
    NPTSTA = 1
 !     XYTST holds the test point indices belonging to NPTST. Only the TEST
@@ -3635,7 +3637,7 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
    USE swan_run_mode
    USE swan_input_grids
    USE swan_input_field_files
-   USE swan_stencil, ONLY: RDFSIN
+   USE swan_stencil, ONLY: RDFSIN_MASTER
    USE swan_physics_selection
    USE swan_numerics
    USE swan_physical_settings
@@ -3901,7 +3903,8 @@ SUBROUTINE SWPREP ( BSPECS, BGRIDP, CROSS , XCGRID ,YCGRID , &
 !     initialize reduction factor for wind input term
 !     - this array contains at most 100 frequencies (see module SWCOMM3)
 !     - this factor will be assigned to LFACTOR in SdsBabanin.f90
-   RDFSIN = 0.
+!     - the solvers give every thread a copy of it (see swan_stencil)
+   RDFSIN_MASTER = 0.
 
 !     check negative wind input, if appropriate
    IF ( ZIEGER ) THEN
@@ -6044,6 +6047,8 @@ SUBROUTINE SNEXTI (BSPECS, BGRIDP, COMPDA, AC1   , AC2   , &
    INTEGER :: IERR
    INTEGER :: IBFILE, IBGRID, ID, IDD, INDX, INDXGR, IS, ISS
    INTEGER :: IVP, IX, IXP, IXY, IY, IYP, JVERT, K1, K2
+!     IPTST : counter of test points
+   INTEGER :: IPTST
    REAL        TSTVAL(10)
    REAL :: AA, AADD, ADEG, APER, ASADD, ASTOT, ATOT, AX, AY
    REAL :: CGFACT, CGMAX, DEP, DEPW, ETOT, HS, SIG, SIG2
@@ -7903,6 +7908,8 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
 
    LOGICAL :: INTERN
    INTEGER :: INX, IX, IY, IY1, IY2, JJ
+!     IPTST : counter of test points
+   INTEGER :: IPTST
    INTEGER, SAVE :: IENT = 0
    REAL :: COSYG, FETCH, TDXY, TLEN, WDLOC, WSLOC, WX, WY
    CALL STRACE(IENT,'SWINCO')
@@ -7947,10 +7954,13 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
          INX = KGRPNT(IX,IY)
          IF (INX.LE.1) INTERN = .FALSE.
          IF (INTERN) THEN
-            TESTFL = .FALSE.
+!           the test flag of the part of the program that runs on one
+!           thread; the value of the last grid point stays in it for the
+!           solver and AC2TST (see swan_test_output)
+            TESTFL_MASTER = .FALSE.
             DO IPTST = 1, NPTST
                IF (IX.EQ.XYTST(2*IPTST-1) .AND. &
-                  IY.EQ.XYTST(2*IPTST)) TESTFL = .TRUE.
+                  IY.EQ.XYTST(2*IPTST)) TESTFL_MASTER = .TRUE.
             ENDDO
 
             IF (VARWI) THEN
@@ -7987,7 +7997,7 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
                IF (SPPARM(1).LT.0.05) SPPARM(2) = 2.
                SPPARM(3) = 180. * WDLOC / PI
                SPPARM(4) = 2.
-               IF (TESTFL) WRITE (PRTEST, "(' test point ',6(1X,E12.4))") XCGRID(IX,IY), &
+               IF (TESTFL_MASTER) WRITE (PRTEST, "(' test point ',6(1X,E12.4))") XCGRID(IX,IY), &
                   YCGRID(IX,IY), FDLSS, (SPPARM(JJ), JJ = 1, 3)
             ELSE
                SPPARM(1) = 0.02
@@ -8006,9 +8016,9 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
    DO INX = 1, nverts
 !        internal, exception and ghost vertices only
       IF ( vmark(INX) == 0 .or. vmark(INX) >= excmark ) THEN
-         TESTFL = .FALSE.
+         TESTFL_MASTER = .FALSE.
          DO IPTST = 1, NPTST
-            IF (INX.EQ.XYTST(IPTST)) TESTFL = .TRUE.
+            IF (INX.EQ.XYTST(IPTST)) TESTFL_MASTER = .TRUE.
          ENDDO
 
          IF (VARWI) THEN
@@ -8045,7 +8055,7 @@ SUBROUTINE SWINCO (AC2    ,COMPDA , &
             IF (SPPARM(1).LT.0.05) SPPARM(2) = 2.
             SPPARM(3) = 180. * WDLOC / PI
             SPPARM(4) = 2.
-            IF (TESTFL) WRITE (PRTEST, "(' test point ',6(1X,E12.4))") xcugrd(INX), &
+            IF (TESTFL_MASTER) WRITE (PRTEST, "(' test point ',6(1X,E12.4))") xcugrd(INX), &
                ycugrd(INX), FDLSS, (SPPARM(JJ), JJ = 1, 3)
          ELSE
             SPPARM(1) = 0.02

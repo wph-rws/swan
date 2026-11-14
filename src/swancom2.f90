@@ -34,7 +34,7 @@ module swan_dissipation
 contains
 
 SUBROUTINE SBOT (ABRBOT, DEP2, ECOS, ESIN, AC2, IMATDA, KWAVE, SPCSIG, UBOT, UX2, UY2, WINDOW, IT, &
-      ITER, SWPDIR, PLBTFR, DISSC1, VARFR, FRCOEF, IGP, IXCG, IYCG)
+      ITER, SWPDIR, PLBTFR, DISSC1, VARFR, FRCOEF, IGP, IXCG, IYCG, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -213,6 +213,10 @@ SUBROUTINE SBOT (ABRBOT, DEP2, ECOS, ESIN, AC2, IMATDA, KWAVE, SPCSIG, UBOT, UX2
 !     WINDOW  : spectral window of the sweep: the source term is added
 !             for frequencies 1 to ISSTOP and directions IDCMIN to IDCMAX
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP, IXCG, IYCG
    REAL    SPCSIG(MSC)
@@ -565,7 +569,7 @@ end subroutine SBOT
 
 !****************************************************************
 
-SUBROUTINE SVEG (DEP2, IMATDA, ETOT, SMEBRK, KWAVE, KMESPC, PLVEGT, WINDOW, DISSC1, NPLA2, IGP)
+SUBROUTINE SVEG (DEP2, IMATDA, ETOT, SMEBRK, KWAVE, KMESPC, PLVEGT, WINDOW, DISSC1, NPLA2, IGP, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -767,6 +771,10 @@ SUBROUTINE SVEG (DEP2, IMATDA, ETOT, SMEBRK, KWAVE, KMESPC, PLVEGT, WINDOW, DISS
 !                 IDCMAX) and the maximum counter of wave component in
 !                 frequency space that is propagated (ISSTOP)
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    REAL    DEP2(MCGRD)          , &
@@ -1059,7 +1067,7 @@ end subroutine SVEG
 
 !****************************************************************
 
-SUBROUTINE STURBV (TURBV2, DEP2, IMATDA, WINDOW, KWAVE, DISSC1, PLTURB, SIGPOW, IGP, IXCG, IYCG, ICMAX)
+SUBROUTINE STURBV (TURBV2, DEP2, IMATDA, WINDOW, KWAVE, DISSC1, PLTURB, SIGPOW, IGP, IXCG, IYCG, ICMAX, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -1134,6 +1142,10 @@ SUBROUTINE STURBV (TURBV2, DEP2, IMATDA, WINDOW, KWAVE, DISSC1, PLTURB, SIGPOW, 
 !                 IDCMAX) and the maximum counter of wave component in
 !                 frequency space that is propagated (ISSTOP)
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP, IXCG, IYCG, ICMAX
    REAL             :: IMATDA(1:MDC,1:MSC) ! main diagonal of matrix
@@ -1221,7 +1233,7 @@ end subroutine STURBV
 
 !****************************************************************
 
-SUBROUTINE SMUD (DEP2, IMATDA, KMUD, CGMUD, DMW, WINDOW, DISSC1, PLMUD, IGP, ICMAX)
+SUBROUTINE SMUD (DEP2, IMATDA, KMUD, CGMUD, DMW, WINDOW, DISSC1, PLMUD, IGP, ICMAX, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -1299,6 +1311,10 @@ SUBROUTINE SMUD (DEP2, IMATDA, KMUD, CGMUD, DMW, WINDOW, DISSC1, PLMUD, IGP, ICM
 !                 IDCMAX) and the maximum counter of wave component in
 !                 frequency space that is propagated (ISSTOP)
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP, ICMAX
    REAL             :: IMATDA(1:MDC,1:MSC)
@@ -1392,7 +1408,7 @@ end subroutine SMUD
 
 !****************************************************************
 
-SUBROUTINE SICE (IMATDA, WINDOW, DISSC1, PLICE, AICELOC, HICELOC, SPCSIG, CG)
+SUBROUTINE SICE (IMATDA, WINDOW, DISSC1, PLICE, AICELOC, HICELOC, SPCSIG, CG, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -1483,6 +1499,10 @@ SUBROUTINE SICE (IMATDA, WINDOW, DISSC1, PLICE, AICELOC, HICELOC, SPCSIG, CG)
 !                 (We use lower case "o" to avoid confusion with "zero")
 !     SPCSIG      Relative frequencies in computational domain in sigma-space
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    REAL             :: IMATDA(1:MDC,1:MSC)
    REAL             :: DISSC1(1:MDC,1:MSC,1:MDISP)
@@ -1626,12 +1646,11 @@ end subroutine SICE
 
 !****************************************************************
 
-SUBROUTINE FRABRE ( HM, ETOT, QBLOC, KTETA )
+SUBROUTINE FRABRE ( HM, ETOT, QBLOC, KTETA, TESTFL )
 
 !****************************************************************
 
    USE swan_service_interfaces, ONLY: STRACE
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
 
@@ -1734,6 +1753,8 @@ SUBROUTINE FRABRE ( HM, ETOT, QBLOC, KTETA )
 !     KTETA   input  number of directional partitions
 !     QBLOC   output second iteration of the fraction of breaking waves
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    REAL    ETOT,  HM,  KTETA, QBLOC
 
 !  5. Parameter variables
@@ -1818,7 +1839,7 @@ end subroutine FRABRE
 !****************************************************************
 
 SUBROUTINE SSURF (ETOT, HM, QB, SMEBRK, KTETA, KMESPC, SPCSIG, AC2, IMATRA, IMATDA, WINDOW, PLWBRK, &
-      DISSC0, DISSC1, DISBK, ITER, SIGM_WAM, IGP)
+      DISSC0, DISSC1, DISBK, ITER, SIGM_WAM, IGP, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -2053,6 +2074,10 @@ SUBROUTINE SSURF (ETOT, HM, QB, SMEBRK, KTETA, KMESPC, SPCSIG, AC2, IMATRA, IMAT
 !                       maximum number for counter IDDUM (IDCMIN, IDCMAX)
 !                       and the maximum for counter IS (ISSTOP)
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    REAL, INTENT(IN) :: SIGM_WAM
@@ -2257,7 +2282,7 @@ end subroutine SSURF
 !****************************************************************
 
 SUBROUTINE SWCAP  (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLWCAP, CGO, UFRIC, &
-      CAS, DEP2, DISSC1, DISSC0, WCAP_WORKSPACE, IGP)
+      CAS, DEP2, DISSC1, DISSC0, WCAP_WORKSPACE, IGP, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -2429,6 +2454,10 @@ SUBROUTINE SWCAP  (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLW
 !             sweep (IDCMIN, IDCMAX) and the maximum counter in frequency
 !             space that is propagated within a sweep (ISSTOP)
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
@@ -2562,7 +2591,7 @@ SUBROUTINE SWCAP  (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLW
          HRMS   = SQRT(8. * ETOT)
          IF (IWCAP.EQ.4) HM = PWCAP(6) / KM01
          IF (IWCAP.EQ.5) HM = PWCAP(6) / KM01 ! (PWCAP(8) * KM_WAM)
-         CALL FRABRE(HM, ETOT, QB_WC, 1.)
+         CALL FRABRE(HM, ETOT, QB_WC, 1., TESTFL)
 
 ! Calculate C_BJ
 
@@ -2760,7 +2789,7 @@ end subroutine SWCAP
 !****************************************************************
 
 SUBROUTINE SWCAP8 (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLWCAP, CGO, UFRIC, &
-      DEP2, DISSC1, DISSC0, WCAP_WORKSPACE, IGP)
+      DEP2, DISSC1, DISSC0, WCAP_WORKSPACE, IGP, TESTFL, IPTST)
 
 !****************************************************************
 
@@ -2831,6 +2860,10 @@ SUBROUTINE SWCAP8 (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLW
 !     WINDOW  : Spectral window of the grid point: the source term is added
 !             for frequencies 1 to ISSTOP and directions IDCMIN to IDCMAX
 
+!     TESTFL : whether the grid point is a test point
+!     IPTST  : sequence number of that test point
+   LOGICAL, INTENT(IN) :: TESTFL
+   INTEGER, INTENT(IN) :: IPTST
    TYPE(spectral_window_t) :: WINDOW
    INTEGER, INTENT(IN) :: IGP
    TYPE(wcap_workspace_t), INTENT(INOUT) :: WCAP_WORKSPACE
@@ -2998,7 +3031,8 @@ end subroutine SWCAP8
 
 !****************************************************************
 
-SUBROUTINE BRKPAR (BRCOEF, ECOS, ESIN, AC2, SPCSIG, DEP2, BOTLV, RDX, RDY, KWAVE, WINDOW, FDIR, KTETA, KM_WAM, IGP, KGRD2, KGRD3)
+SUBROUTINE BRKPAR (BRCOEF, ECOS, ESIN, AC2, SPCSIG, DEP2, BOTLV, RDX, RDY, KWAVE, WINDOW, FDIR, &
+      KTETA, KM_WAM, IGP, KGRD2, KGRD3, TESTFL)
 
 !****************************************************************
 
@@ -3008,7 +3042,6 @@ SUBROUTINE BRKPAR (BRCOEF, ECOS, ESIN, AC2, SPCSIG, DEP2, BOTLV, RDX, RDY, KWAVE
    USE swan_computational_grid
    USE swan_spectral_grid
    USE swan_math_constants
-   USE swan_test_output
    USE swan_diagnostics_level
    USE swan_io_units
 
@@ -3122,6 +3155,8 @@ SUBROUTINE BRKPAR (BRCOEF, ECOS, ESIN, AC2, SPCSIG, DEP2, BOTLV, RDX, RDY, KWAVE
 !               arguments IDDLOW and IDDTOP, which the present breaker
 !               formulations do not use either
 
+!     TESTFL : whether the grid point is a test point
+   LOGICAL, INTENT(IN) :: TESTFL
    TYPE(spectral_window_t) :: WINDOW
    REAL, INTENT(IN) :: KM_WAM
    INTEGER, INTENT(IN) :: IGP, KGRD2, KGRD3
@@ -3606,6 +3641,8 @@ SUBROUTINE PLTSRC (PLWNDS        ,PLWNDD        , &
    INTEGER     IS    ,ID
    INTEGER, SAVE :: IENT = 0
    INTEGER     INDX  ,LOOP
+!     IPTST : counter of test points
+   INTEGER     IPTST
    REAL        SWND  ,SIG2AC
 
 !     SIGACT      product of sigma and action density, i.e. energy density

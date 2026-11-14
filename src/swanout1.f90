@@ -284,7 +284,7 @@ SUBROUTINE SWOUTP (AC2             , &
 
 !     processing of output requests
 
-   IF (NPTST.GT.0) CALL AC2TST (XYTST, AC2 ,KGRPNT)
+   IF (NPTST.GT.0) CALL AC2TST (XYTST, AC2 ,KGRPNT, TESTFL_MASTER)
 
    IF (NREOQ.EQ.0) THEN
       CALL MSGERR (1, 'no output requested')

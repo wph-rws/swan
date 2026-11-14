@@ -4998,6 +4998,7 @@ SUBROUTINE BCWAMN (FBCNAM, BCTYPE, BSPFIL, &
    INTEGER :: IBC, IDW, ISW, IFRE, II, ISIDE, IHD ! counters
    INTEGER :: IBNC1, IBNC2 ! counters of nesting points
    INTEGER :: IBSP1, IBSP2 ! counters of nesting points
+   INTEGER :: IPTST ! counter of test points
 
    REAL      XP, YP, XP1, YP1, XP2, YP2, RR, RX, RY, RL2, &
       XANG, XFRE, THD, FR1, CO, XBOU, XDELC, &
@@ -6003,6 +6004,7 @@ SUBROUTINE SWBCPT ( XCGRID, YCGRID, &
    INTEGER, SAVE      :: IBSP0 = 1, IBSP1 = 1, IENT = 0
    INTEGER            :: IBSP2,IGRBND,INDXGR
    INTEGER            :: IXP,IYP,IIPT1
+   INTEGER            :: IPTST ! counter of test points
 
    REAL, SAVE         :: XP0=0., XP1=0., YP0=0., YP1=0.
    REAL               :: XP, YP, RX, RY, RL2
@@ -6596,6 +6598,7 @@ SUBROUTINE RETSTP (LXYTST, XYTST, KGRPNT, KGRBND, XCGRID, YCGRID, &
    INTEGER   ID, IERR, ILPOS, IS, K
    REAL      XC, XP, YC, YP
    INTEGER   ITST, JTST ! test point as entered in IJ form
+   INTEGER   IPTST ! counter of test points
    LOGICAL :: LOCGRI
    TYPE(OPSDAT), POINTER :: OPSTMP
    CALL STRACE (IENT, 'RETSTP')
