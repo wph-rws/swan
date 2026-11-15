@@ -6,7 +6,9 @@
   MPI on one to six workers: Voordelta and nine other decks, the scaling
   with the number of threads, AVX2, profile-guided optimisation, the cost of
   the balance residual and the forms of the DIA. The scripts and the timings
-  are in [`windows/`](windows/).
+  are in [`windows/`](windows/). One section sets the Intel compiler beside
+  gfortran, for the fork and for upstream; that one was measured under WSL2,
+  and its scripts and timings are in [`intel/`](intel/).
 - `benchmark_parallel.py` runs the fork and upstream alternately, reports
   median wall-clock time and scaling, and checks that the generated fields
   and site tables agree.

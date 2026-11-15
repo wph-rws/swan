@@ -83,9 +83,56 @@ the product is often below the smallest normal number; the processor
 computes many times slower with such numbers. The fork lets them become
 zero. Upstream built with the Intel compiler does not have this slowness,
 because that compiler does the same by default, so against such a build the
-factor is smaller; that was not measured under Windows. The rest is work
+factor is smaller: about 2 on one core (next section). The rest is work
 taken out of the sweep that gave the same result every time; the commit
 messages of 13 to 15 November 2026 describe each step.
+
+## With the Intel compiler
+
+Measured on 15 November 2026 at commit `f0ab262`, whose source is that of
+`2466aa4`, with Intel ifx 2026.2.0 and GNU Fortran 16.2.0. This one
+measurement was made under WSL2, because ifx is installed for Linux only.
+WSL does not tell which kind of core a run gets, so these times compare the
+builds with each other and do not belong beside the Windows times of the
+other sections. Voordelta, five runs per build in turn on the same CPU
+numbers; the table gives the median and, in brackets, the fastest and the
+slowest run. The laptop was in use (load 2 to 4).
+
+| Source | Compiler and flags | One core, serial build | Four threads, OpenMP build |
+|---|---|---:|---:|
+| Fork | gfortran `-O3` | 9.80 s (9.61 to 10.01) | 3.84 s (3.40 to 4.33) |
+| Fork | ifx `-O3 -fp-model precise` | 10.39 s (9.96 to 10.48) | 4.20 s (3.49 to 4.77) |
+| Upstream | ifx, its own flags (`-O2`) | 20.11 s (19.66 to 20.66) | 7.21 s (6.67 to 7.97) |
+| Upstream | ifx `-O3` | 20.83 s (19.96 to 21.28) | 6.53 s (6.02 to 6.81) |
+| Upstream | gfortran `-O3` | 27.91 s (27.71 to 28.82) | 10.31 s (9.97 to 11.88) |
+
+What the table says:
+
+- **The Intel compiler does not make the fork faster.** The fork takes 6%
+  longer with ifx on one core, and 9% longer on four threads, where the
+  spread of the runs is larger than that difference.
+- **It does make upstream faster,** 1.3 to 1.4 times on one core and 1.4 to
+  1.6 times on four threads. A program built with ifx starts with abrupt
+  underflow, so upstream does not pay for the subnormal numbers there. With
+  gfortran the fork sets that mode itself, and has nothing left to gain.
+- **With ifx on both sides the fork is 1.9 to 2.0 times as fast as
+  upstream** on one core and 1.6 to 1.7 times on four threads; with
+  gfortran on both sides, in the same series, 2.8 and 2.7 times. The
+  difference between those factors is the subnormal numbers; what is left
+  is the work taken out of the sweep.
+- **The fastest build of each:** the fork with gfortran against upstream
+  with ifx is 2.1 times as fast on one core and 1.7 times on four threads.
+
+Every run took the same number of iterations. The two gfortran builds give
+the same Hsig file byte for byte. The ifx builds do not: the fork with ifx
+differs from the fork with gfortran at 872 of the 9072 wet points, by up to
+1.7 mm (rms 0.08 mm), and upstream with ifx by up to 2.1 mm, with the same
+mean Hsig to five decimals. That is the other mathematical library and the
+order of products (AGENTS.md, "Why compilers give other last digits"). The
+fork with ifx gives the same file on one core and on four threads.
+
+[`intel/`](intel/) holds the two scripts and the times
+([`intel/times.csv`](intel/times.csv)).
 
 ## The fork now against the fork before this work
 

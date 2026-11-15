@@ -372,7 +372,13 @@ Two measured facts to keep in mind when looking for speed:
   computes with abrupt underflow (`IEEE_SET_UNDERFLOW_MODE` in `SWMAIN`, and
   per thread in `SWCOMP` and `SwanCompUnstruc`). A build with the Intel
   compiler has always done that by default, and treats subnormal input as
-  zero as well; gfortran only does it when asked. It took a third off the run time of Voordelta and
+  zero as well; gfortran only does it when asked. So the Intel compiler
+  makes upstream faster and the fork not: on Voordelta upstream runs 1.3
+  to 1.4 times as fast with ifx 2026.2 as with gfortran, the fork 6% slower,
+  and with ifx on both sides the fork is 2.0 times as fast as upstream on
+  one core and 1.6 times on four threads, against 2.8 and 2.7 times with
+  gfortran on both sides (15 November 2026, commit `f0ab262`, under WSL2,
+  five runs in turn; benchmarks/speed-vs-upstream.md). It took a third off the run time of Voordelta and
   more off a deck with the so-rp physics (the commit message has the
   numbers). On the small decks only the test-point source-term spectra
   change, in values seventeen orders below the largest; the so-rp table
