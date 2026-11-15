@@ -13,7 +13,7 @@
     "abrupt underflow": "The fork lets a result below the smallest normal single-precision number (1.2E-38) become zero instead of a subnormal number (IEEE_SET_UNDERFLOW_MODE in SWMAIN), which a build with the Intel compiler does by default; upstream built with gfortran computes with subnormal numbers, many times slower. This is a choice for speed, not the repair of a bug. It shows in the test-point source-term spectra (*_sources.spc) only: values of 1E-35 and smaller become zero, and the largest value that changes at all is 1.1E-13, by 0.1%, in a file with a maximum of 5E4 (quad_dia1). The tables and spectra of these decks are not changed by it. Measured on 13 November 2026 against the commit before, both with gfortran 16.2 at -O3: of 164 output files of 44 small decks only the *_sources.spc of quad_dia1, quad_dia2, quad_dia3, quad_mdia, quad_off and st6_testpoints differ. The same file of quad_full and of the three exact-quadruplet decks (quad_xnl, quad_xnl52, quad_xnl53) changed with it as well: in quad_full 83 values, the largest 2.5E-32. A large deck whose iteration has not settled can shift in its last digits: the table of the operational so-rp deck moved by up to 0.09 mm in Hs. See 'Not counted as bug fixes' in doc/bug-fixes-vs-tu-delft-41.51.md."
   },
   "last_measurement": {
-    "date": "2026-11-13",
+    "date": "2026-11-15",
     "compiler": "GNU Fortran 16.2.0",
     "decks": "all, including the heavy ones"
   },

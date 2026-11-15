@@ -404,6 +404,7 @@ and the history disagree; see [history.md](history.md).
 | BF-68 | `e07f2f9294` | Compute and write every edge point in the Jacobi MPI build (BF-68) |
 | BF-69 | `2db9a5d5f8` | Stop QCM cleanly when no waves come in over the boundary (BF-69) |
 | BF-70 | `7cc677e2e9` | Wait for every thread before filtering the De Wit biphase (BF-70) |
+| BF-71 | `9c8dcf8fe4` | Give every direction its quadruplet source term with a current (BF-71) |
 
 ## Appendix: BF-34 against the literature
 

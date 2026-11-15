@@ -99,14 +99,20 @@ The fork option `EXTRAP` lets the iteration stop only once the change of Hs
 that is still to come, extrapolated over blocks of iterations, is small. The balance residual is an addition of the fork and is
 off by default: `RESIDUAL 0` only measures, a positive value adds a stop
 condition. Switched off, it is not computed at all; switched on, it costs
-2.7% on one core and 4.4% on four threads (11 November 2026; on four threads
-the runs scatter by more than that). No general operational residual threshold has been set
+3.1% on one core and 8.3% on four threads (15 November 2026, commit `2466aa4`,
+under Windows on the performance cores; the rounds of the measurement
+scatter by a few per cent, so neither number is precise). No general operational residual threshold has been set
 ([balance-residual-design.md](balance-residual-design.md)).
 
-**Speed against upstream.** On one core the fork is 1.86 times as fast as
-upstream with upstream's own default build, and 1.28 times as fast when both
-are built at `-O3`. On four OpenMP threads these factors are 1.74 and 1.24
-(11 November 2026; the runs scatter by up to about 12%).
+**Speed against upstream.** On one core the fork is 3.9 times as fast as
+upstream with upstream's own default build, and 2.75 times as fast when both
+are built at `-O3`. On four OpenMP threads these factors are 3.4 and 2.5, and
+on four MPI processes 3.8 and 2.7 (15 November 2026, commit `2466aa4`, the
+Voordelta example under Windows on the performance cores; a factor is good
+to about a tenth of its value). Against the fork before the speed work of
+November 2026 (`e68e9be`) the run time halved or better on every route that
+was timed, from 1.7 times on a deck with a strong current to 2.9 times on a
+nonstationary run.
 Thread counts, pinning and cases are in
 [benchmarks/speed-vs-upstream.md](../benchmarks/speed-vs-upstream.md).
 
@@ -190,18 +196,28 @@ This is the most important section of this document.
   computes x·(x²·x²); the same holds for `x**2.` with a real exponent. The
   fork writes these products out in the optimiser's order
   (`src/swan_integer_powers.f90`, `x*x`), so they are the same at every
-  level. Second, `-O3` vectorises loops with a more generous cost model
-  (`-fvect-cost-model=dynamic`) than `-O2` (`very-cheap`), and the vectorised
-  maths functions from libmvec round one ulp differently in a few per cent of
-  cases. That shifts a few output files of the friction decks and ST6 in the
-  last digits. The references stay at `-O3`, the default of both the fork and
-  the comparison with upstream.
-- **A second compiler.** Intel and NAG have not been tried. Flang 22 compiled the source and passed
-  63 of 66 CTest tests on 10 November 2026; the three differences (two in
-  rounding, one in how the runtime opens a directory) are described in
-  AGENTS.md and `doc/support-matrix.md`. Intel and NAG remain unverified.
-- **Native Windows, IBM, Fujitsu, Cray.** The branches have been kept and
-  compile where that is possible; they have not been tried.
+  level. Second, from `-O2` on gfortran calls glibc's vector versions of the
+  maths functions (libmvec) in vectorised loops, and those round one unit in
+  the last place differently in a few per cent of cases. That shifts a few
+  output files of ST6, of the decks with Madsen friction or ripples and of
+  the exact quadruplets in the last digits; `-O0` and `-O1` give the same
+  output on every example deck, and a build without libmvec does so at every
+  level (15 November 2026, commit `365afb3`; the statements are named in the
+  comment at `SWAN_RUNTIME_CHECKS` in CMakeLists.txt). The references stay at
+  `-O3`, the default of both the fork and the comparison with upstream.
+- **A second compiler.** Flang 22 and Intel ifx 2026.2 compile the source
+  and were run on 14 and 15 November 2026: flang passes 64 of 67 CTest
+  tests, ifx 63 of 67. Every difference with gfortran was traced: the
+  mathematical library, glibc's vector versions of it, the order in which
+  a compiler multiplies an integer power, and the wording of run-time
+  messages; none is a fault in the code (AGENTS.md and
+  `doc/support-matrix.md`). Neither is a supported route: the references
+  and the gates are those of gfortran. NAG has not been tried.
+- **Native Windows.** The fork builds with MSYS2 gfortran 16.2 and MS-MPI and
+  was timed there (benchmarks/speed-vs-upstream.md); the test suite has not
+  been run under Windows.
+- **IBM, Fujitsu, Cray.** The branches have been kept and compile where that
+  is possible; they have not been tried.
 - **The MPI field contract on land.** With BF-40, the wet field of the MPI
   assembly is bit-identical to serial, on 2 and 4 ranks. Quantities that SWAN
   also fills in at inactive points (such as `WIND`) are at the exception

@@ -1,0 +1,175 @@
+--- a/src/swancom1.f90
++++ b/src/swancom1.f90
+@@ -1,3 +1,38 @@
++MODULE p1_probe
++!  test build only: where the threads of the sweep spend their time
++   IMPLICIT NONE
++   REAL(8) :: TACC(8,0:63) = 0D0, TMARK(8,0:63) = -1D0
++CONTAINS
++   SUBROUTINE PBEG (K)
++      INTEGER, INTENT(IN) :: K
++      INTEGER :: T
++      REAL(8), EXTERNAL :: OMP_GET_WTIME
++      INTEGER, EXTERNAL :: OMP_GET_THREAD_NUM
++      T = OMP_GET_THREAD_NUM()
++      IF (TMARK(K,T).LT.0D0) TMARK(K,T) = OMP_GET_WTIME()
++   END SUBROUTINE PBEG
++   SUBROUTINE PEND (K)
++      INTEGER, INTENT(IN) :: K
++      INTEGER :: T
++      REAL(8), EXTERNAL :: OMP_GET_WTIME
++      INTEGER, EXTERNAL :: OMP_GET_THREAD_NUM
++      T = OMP_GET_THREAD_NUM()
++      IF (TMARK(K,T).GE.0D0) THEN
++         TACC(K,T) = TACC(K,T) + OMP_GET_WTIME() - TMARK(K,T)
++         TMARK(K,T) = -1D0
++      END IF
++   END SUBROUTINE PEND
++   SUBROUTINE PREPORT (N)
++      INTEGER, INTENT(IN) :: N
++      INTEGER :: T
++      OPEN (UNIT=977, FILE='p1_probe.txt', STATUS='REPLACE')
++      WRITE (977,'(A)') 'thread lockwait sweeploop endbarrier master region'
++      DO T = 0, N-1
++         WRITE (977,'(I3,5F12.4)') T, TACC(1:5,T)
++      END DO
++      CLOSE (977)
++   END SUBROUTINE PREPORT
++END MODULE p1_probe
+ 
+ !     SWAN/COMPU    file 1 of 5
+ !
+@@ -108,6 +143,7 @@
+ 
+ !******************************************************************
+ 
++   USE p1_probe
+    USE swan_number_formatting, ONLY: INTSTR, NUMSTR
+    USE swan_mpi_backend, ONLY: mpi_backend_enabled
+    USE swan_parallel, ONLY: SWCOLLECT
+@@ -1400,6 +1436,7 @@
+       !$ ' Number of threads during execution of parallel region = ', &
+       !$ OMP_GET_NUM_THREADS()
+    !$OMP END MASTER
++   CALL PBEG (5)
+ 
+    IF (timing_enabled) CALL SWTSTA(101)
+ !
+@@ -1795,6 +1832,7 @@
+ !     Begin master thread region.                                         40.31
+ !----------------------------------------------------------------------   40.31
+       !$OMP MASTER
++   CALL PBEG (4)
+ !                                                                         40.31
+ !       *** If a current is present and a penta-diagonal solver    ***    40.31
+ !       *** is employed, it is possible that the solver does       ***    40.31
+@@ -1879,6 +1917,7 @@
+ !----------------------------------------------------------------------   40.22
+ !     End master thread region.                                           40.22
+ !----------------------------------------------------------------------   40.22
++   CALL PEND (4)
+       !$OMP END MASTER
+ !
+ !----------------------------------------------------------------------   40.22
+@@ -1914,6 +1953,7 @@
+ !     Begin master thread region.                                         40.31
+ !----------------------------------------------------------------------   40.31
+          !$OMP MASTER
++   CALL PBEG (4)
+ !
+ !           make LLOCK False for points on boundary                       40.22
+          IF (SWPDIR.EQ.1) THEN
+@@ -2024,6 +2064,7 @@
+ !----------------------------------------------------------------------   40.31
+ !     End master thread region and synchronize threads                    40.31
+ !----------------------------------------------------------------------   40.31
++   CALL PEND (4)
+          !$OMP END MASTER
+          !$OMP BARRIER
+          !$OMP FLUSH
+@@ -2035,6 +2076,7 @@
+ !     Execute loop over rows of spatial grid in a                         40.22
+ !     pipelined parallel manner within OpenMP environment                 40.22
+ !----------------------------------------------------------------------   40.22
++   CALL PBEG (2)
+          !$OMP DO SCHEDULE(STATIC,1)
+ !
+ !            The WWINT counter table is read-only here: SOURCE computes on
+@@ -2074,10 +2116,12 @@
+                         !$OMP ATOMIC READ
+                         !$ LLOCKED = LLOCK(IX,IY+IYSTEP)
+                         !$ IF (LLOCKED) THEN
++   CALL PBEG (1)
+                            !$OMP TASKYIELD
+                         !$ ENDIF
+                      !$ END DO
+                   !$ END IF
++   CALL PEND (1)
+ !
+                   IF (timing_enabled) CALL SWTSTA(104)
+                   CALL SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, default_time_context%DT, XIS, &
+@@ -2114,6 +2158,8 @@
+             END IF
+          END DO
+          !$OMP ENDDO NOWAIT
++   CALL PEND (2)
++   CALL PBEG (3)
+ 
+          CALL complete_sweep(ISWP, AC2, KGRPNT, STOP_REQUESTED)
+          IF (STOP_REQUESTED) SWCOMP_STOP_REQUESTED = .TRUE.
+@@ -2123,6 +2169,7 @@
+ !     before starting next sweep direction.                               40.22
+ !----------------------------------------------------------------------   40.22
+          !$OMP BARRIER
++   CALL PEND (3)
+       END DO
+ 
+       CALL complete_sweep_iteration(AC2, KGRPNT, STOP_REQUESTED)
+@@ -2146,6 +2193,7 @@
+ !     Begin master thread region.                                         40.22
+ !----------------------------------------------------------------------   40.22
+       !$OMP MASTER
++   CALL PBEG (4)
+ 
+       IF ( ITEST.GE.30 .OR. IDEBUG.EQ.1 ) THEN
+          NWETP = 0
+@@ -2283,6 +2331,7 @@
+ !----------------------------------------------------------------------   40.31
+ !     End master thread region.                                           40.31
+ !----------------------------------------------------------------------   40.31
++   CALL PEND (4)
+       !$OMP END MASTER
+ !
+ !       *** check if numerical accuracy has been reached       ***
+@@ -2310,6 +2359,7 @@
+ !     Begin master thread region.                                         40.31
+ !----------------------------------------------------------------------   40.31
+       !$OMP MASTER
++   CALL PBEG (4)
+ !
+ !       *** info regarding the iteration process and the accuracy ***
+ 
+@@ -2370,6 +2420,7 @@
+ !----------------------------------------------------------------------   40.22
+ !     End master thread region.                                           40.22
+ !----------------------------------------------------------------------   40.22
++   CALL PEND (4)
+       !$OMP END MASTER
+ !
+ !       --- exchange COMPDA at subdomain interfaces
+@@ -2457,6 +2508,7 @@
+ !  the first thread leaves its test flag and its reduction factor of the
+ !  wind input for the part of the program that follows (see the
+ !  declaration of TESTFL and RDFSIN)
++   CALL PEND (5)
+    !$OMP MASTER
+    TESTFL_MASTER = TESTFL
+    RDFSIN_MASTER = RDFSIN
+@@ -2465,6 +2517,7 @@
+ !     End parallel region.                                                40.22
+ !----------------------------------------------------------------------   40.22
+    !$OMP END PARALLEL
++   CALL PREPORT (64)
+ 
+    IF (SWCOMP_STOP_REQUESTED) RETURN
+ 

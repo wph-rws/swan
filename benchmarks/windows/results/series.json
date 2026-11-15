@@ -1,0 +1,3408 @@
+{
+ "B-current_strong": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:12:56",
+    "on_mains": true,
+    "load_percent": [
+     8,
+     1,
+     10,
+     9,
+     3
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:13:09",
+    "on_mains": true,
+    "load_percent": [
+     15,
+     9,
+     5,
+     6,
+     9
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 0.46,
+    "fork_median_s": 0.27,
+    "factor": 1.68,
+    "upstream_s": [
+     0.469,
+     0.471,
+     0.453,
+     0.46,
+     0.455
+    ],
+    "fork_s": [
+     0.268,
+     0.288,
+     0.274,
+     0.276,
+     0.27
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 0.27,
+    "fork_median_s": 0.16,
+    "factor": 1.71,
+    "upstream_s": [
+     0.272,
+     0.206,
+     0.265,
+     0.274,
+     0.282
+    ],
+    "fork_s": [
+     0.146,
+     0.159,
+     0.187,
+     0.264,
+     0.144
+    ]
+   }
+  ],
+  "all_runs_same_answer": false,
+  "failed_runs": 0
+ },
+ "B-nonstat_regular": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:10:27",
+    "on_mains": true,
+    "load_percent": [
+     6,
+     11,
+     15,
+     22,
+     6
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:10:48",
+    "on_mains": true,
+    "load_percent": [
+     25,
+     12,
+     9,
+     3,
+     8
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 2.2,
+    "fork_median_s": 0.77,
+    "factor": 2.86,
+    "upstream_s": [
+     2.197,
+     2.319,
+     2.186
+    ],
+    "fork_s": [
+     0.728,
+     0.882,
+     0.767
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 0.94,
+    "fork_median_s": 0.44,
+    "factor": 2.17,
+    "upstream_s": [
+     0.968,
+     0.929,
+     0.944
+    ],
+    "fork_s": [
+     0.569,
+     0.436,
+     0.433
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "B-nonstat_sandl": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:10:55",
+    "on_mains": true,
+    "load_percent": [
+     11,
+     19,
+     9,
+     16,
+     3
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:11:24",
+    "on_mains": true,
+    "load_percent": [
+     14,
+     11,
+     10,
+     8,
+     19
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 3.73,
+    "fork_median_s": 1.43,
+    "factor": 2.61,
+    "upstream_s": [
+     3.627,
+     3.727,
+     3.805
+    ],
+    "fork_s": [
+     1.428,
+     1.343,
+     1.63
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 1.4,
+    "fork_median_s": 0.68,
+    "factor": 2.05,
+    "upstream_s": [
+     1.414,
+     1.405,
+     1.404
+    ],
+    "fork_s": [
+     0.675,
+     0.72,
+     0.684
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "B-obstacle": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:13:16",
+    "on_mains": true,
+    "load_percent": [
+     4,
+     36,
+     9,
+     5,
+     1
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:13:30",
+    "on_mains": true,
+    "load_percent": [
+     8,
+     0,
+     3,
+     7,
+     16
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 0.36,
+    "fork_median_s": 0.2,
+    "factor": 1.76,
+    "upstream_s": [
+     0.357,
+     0.383,
+     0.358,
+     0.363,
+     0.348
+    ],
+    "fork_s": [
+     0.201,
+     0.207,
+     0.205,
+     0.191,
+     0.203
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 0.24,
+    "fork_median_s": 0.41,
+    "factor": 0.6,
+    "upstream_s": [
+     0.587,
+     0.243,
+     0.237,
+     0.664,
+     0.208
+    ],
+    "fork_s": [
+     0.507,
+     0.406,
+     0.112,
+     0.525,
+     0.135
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "B-slope": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:14:52",
+    "on_mains": true,
+    "load_percent": [
+     7,
+     7,
+     6,
+     5,
+     6
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:17:32",
+    "on_mains": true,
+    "load_percent": [
+     9,
+     6,
+     0,
+     3,
+     19
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 26.59,
+    "fork_median_s": 10.71,
+    "factor": 2.48,
+    "upstream_s": [
+     26.586,
+     25.909,
+     29.492
+    ],
+    "fork_s": [
+     10.709,
+     10.562,
+     11.553
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 8.16,
+    "fork_median_s": 4.19,
+    "factor": 1.94,
+    "upstream_s": [
+     7.872,
+     8.156,
+     8.316
+    ],
+    "fork_s": [
+     4.109,
+     4.194,
+     4.355
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "B-sorp_physics": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:09:31",
+    "on_mains": true,
+    "load_percent": [
+     9,
+     7,
+     15,
+     29,
+     6
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:10:20",
+    "on_mains": true,
+    "load_percent": [
+     11,
+     5,
+     11,
+     7,
+     29
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 4.59,
+    "fork_median_s": 1.76,
+    "factor": 2.61,
+    "upstream_s": [
+     4.239,
+     4.876,
+     4.692,
+     4.593,
+     4.434
+    ],
+    "fork_s": [
+     1.729,
+     1.742,
+     1.996,
+     1.833,
+     1.761
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 1.37,
+    "fork_median_s": 0.64,
+    "factor": 2.13,
+    "upstream_s": [
+     1.373,
+     1.326,
+     1.396,
+     1.378,
+     1.349
+    ],
+    "fork_s": [
+     0.652,
+     0.645,
+     0.643,
+     0.661,
+     0.619
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "B-sphys": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:13:37",
+    "on_mains": true,
+    "load_percent": [
+     10,
+     3,
+     6,
+     4,
+     0
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:14:45",
+    "on_mains": true,
+    "load_percent": [
+     14,
+     8,
+     9,
+     1,
+     8
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 10.68,
+    "fork_median_s": 4.37,
+    "factor": 2.45,
+    "upstream_s": [
+     12.312,
+     10.677,
+     10.292
+    ],
+    "fork_s": [
+     4.559,
+     4.366,
+     4.027
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 3.23,
+    "fork_median_s": 1.57,
+    "factor": 2.06,
+    "upstream_s": [
+     3.227,
+     3.54,
+     3.151
+    ],
+    "fork_s": [
+     1.568,
+     1.704,
+     1.489
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "B-st6": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:11:31",
+    "on_mains": true,
+    "load_percent": [
+     8,
+     7,
+     8,
+     4,
+     15
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:12:49",
+    "on_mains": true,
+    "load_percent": [
+     3,
+     5,
+     6,
+     0,
+     2
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 4.3,
+    "fork_median_s": 2.56,
+    "factor": 1.68,
+    "upstream_s": [
+     4.303,
+     4.2,
+     4.638,
+     4.454,
+     4.23
+    ],
+    "fork_s": [
+     2.563,
+     2.55,
+     2.776,
+     2.623,
+     2.536
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 4.41,
+    "fork_median_s": 2.54,
+    "factor": 1.74,
+    "upstream_s": [
+     4.409,
+     4.377,
+     4.755,
+     4.46,
+     4.348
+    ],
+    "fork_s": [
+     2.535,
+     2.493,
+     2.61,
+     2.643,
+     2.472
+    ]
+   }
+  ],
+  "all_runs_same_answer": false,
+  "failed_runs": 0
+ },
+ "B-unstructured": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:17:41",
+    "on_mains": true,
+    "load_percent": [
+     3,
+     5,
+     8,
+     15,
+     5
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:32:29",
+    "on_mains": true,
+    "load_percent": [
+     15,
+     8,
+     13,
+     0,
+     8
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 198.13,
+    "fork_median_s": 99.47,
+    "factor": 1.99,
+    "upstream_s": [
+     197.863,
+     198.4
+    ],
+    "fork_s": [
+     98.787,
+     100.148
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 93.09,
+    "fork_median_s": 49.73,
+    "factor": 1.87,
+    "upstream_s": [
+     90.661,
+     95.525
+    ],
+    "fork_s": [
+     50.55,
+     48.904
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "C-ecore-1": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 4,
+    "performance_core": false
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:46:05",
+    "on_mains": true,
+    "load_percent": [
+     4,
+     7,
+     3,
+     7,
+     5
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:46:44",
+    "on_mains": true,
+    "load_percent": [
+     4,
+     11,
+     18,
+     0,
+     7
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "4",
+    "upstream_median_s": null,
+    "fork_median_s": 15.8,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     15.83,
+     15.777
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "C-ecore-2": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 4,
+    "performance_core": false
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:47:28",
+    "on_mains": true,
+    "load_percent": [
+     2,
+     6,
+     4,
+     4,
+     9
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:48:08",
+    "on_mains": true,
+    "load_percent": [
+     6,
+     2,
+     20,
+     10,
+     18
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "4",
+    "upstream_median_s": null,
+    "fork_median_s": 16.59,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     17.37,
+     15.808
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "C-ecore-3": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 4,
+    "performance_core": false
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:48:57",
+    "on_mains": true,
+    "load_percent": [
+     9,
+     5,
+     15,
+     17,
+     9
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:49:36",
+    "on_mains": true,
+    "load_percent": [
+     9,
+     8,
+     0,
+     11,
+     5
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "4",
+    "upstream_median_s": null,
+    "fork_median_s": 16.5,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     17.107,
+     15.885
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "C-native-sorp": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:38:07",
+    "on_mains": true,
+    "load_percent": [
+     7,
+     5,
+     8,
+     0,
+     10
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:38:45",
+    "on_mains": true,
+    "load_percent": [
+     2,
+     0,
+     4,
+     6,
+     10
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 1.62,
+    "fork_median_s": 1.61,
+    "factor": 1,
+    "upstream_s": [
+     1.616,
+     1.61,
+     1.615,
+     1.612,
+     1.637,
+     1.704,
+     1.628
+    ],
+    "fork_s": [
+     1.723,
+     1.624,
+     1.599,
+     1.612,
+     1.603,
+     1.773,
+     1.596
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 0.57,
+    "fork_median_s": 0.57,
+    "factor": 0.99,
+    "upstream_s": [
+     0.571,
+     0.566,
+     0.574,
+     0.611,
+     0.551,
+     0.568,
+     0.575
+    ],
+    "fork_s": [
+     0.584,
+     0.581,
+     0.574,
+     0.554,
+     0.57,
+     0.576,
+     0.57
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "C-native-voordelta": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:32:43",
+    "on_mains": true,
+    "load_percent": [
+     8,
+     8,
+     0,
+     25,
+     14
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:35:17",
+    "on_mains": true,
+    "load_percent": [
+     5,
+     4,
+     15,
+     0,
+     8
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 10.55,
+    "fork_median_s": 10.64,
+    "factor": 0.99,
+    "upstream_s": [
+     10.77,
+     10.531,
+     10.893,
+     10.546,
+     10.483
+    ],
+    "fork_s": [
+     10.807,
+     10.645,
+     10.58,
+     10.807,
+     10.222
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 3.87,
+    "fork_median_s": 3.76,
+    "factor": 1.03,
+    "upstream_s": [
+     3.861,
+     3.921,
+     3.916,
+     3.788,
+     3.873
+    ],
+    "fork_s": [
+     4.437,
+     3.745,
+     3.715,
+     3.762,
+     4.014
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "C-pcore-1": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:45:26",
+    "on_mains": true,
+    "load_percent": [
+     4,
+     4,
+     4,
+     2,
+     10
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:45:58",
+    "on_mains": true,
+    "load_percent": [
+     5,
+     0,
+     6,
+     11,
+     7
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": null,
+    "fork_median_s": 12.42,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     12.734,
+     12.112
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "C-pcore-2": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:46:51",
+    "on_mains": true,
+    "load_percent": [
+     5,
+     13,
+     10,
+     6,
+     11
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:47:20",
+    "on_mains": true,
+    "load_percent": [
+     12,
+     4,
+     1,
+     5,
+     13
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": null,
+    "fork_median_s": 11.36,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     11.761,
+     10.958
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "C-pcore-3": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:48:15",
+    "on_mains": true,
+    "load_percent": [
+     26,
+     28,
+     12,
+     4,
+     2
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:48:49",
+    "on_mains": true,
+    "load_percent": [
+     6,
+     15,
+     15,
+     17,
+     29
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": null,
+    "fork_median_s": 13.62,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     15.183,
+     12.055
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "C-pgo-slope": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:43:00",
+    "on_mains": true,
+    "load_percent": [
+     3,
+     18,
+     13,
+     6,
+     0
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:44:58",
+    "on_mains": true,
+    "load_percent": [
+     11,
+     2,
+     8,
+     8,
+     4
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 11.82,
+    "fork_median_s": 11.04,
+    "factor": 1.07,
+    "upstream_s": [
+     11.825,
+     11.823,
+     12.093,
+     11.099,
+     10.371
+    ],
+    "fork_s": [
+     11.174,
+     11.04,
+     10.64,
+     11.375,
+     9.71
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "C-pgo-sorp": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:42:23",
+    "on_mains": true,
+    "load_percent": [
+     8,
+     0,
+     1,
+     4,
+     9
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:42:53",
+    "on_mains": true,
+    "load_percent": [
+     8,
+     4,
+     8,
+     0,
+     13
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 1.65,
+    "fork_median_s": 1.65,
+    "factor": 1,
+    "upstream_s": [
+     1.647,
+     1.617,
+     1.632,
+     1.649,
+     1.659,
+     1.643,
+     1.646
+    ],
+    "fork_s": [
+     1.646,
+     1.627,
+     1.65,
+     1.652,
+     1.726,
+     1.688,
+     1.66
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "C-pgo-voordelta": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:40:25",
+    "on_mains": true,
+    "load_percent": [
+     6,
+     4,
+     0,
+     4,
+     4
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:42:16",
+    "on_mains": true,
+    "load_percent": [
+     7,
+     6,
+     0,
+     0,
+     11
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 10.92,
+    "fork_median_s": 9.94,
+    "factor": 1.1,
+    "upstream_s": [
+     10.931,
+     10.278,
+     10.278,
+     10.918,
+     11.021
+    ],
+    "fork_s": [
+     9.937,
+     9.773,
+     10.076,
+     10.219,
+     9.887
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "C-v3-sorp": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:38:53",
+    "on_mains": true,
+    "load_percent": [
+     4,
+     10,
+     0,
+     14,
+     7
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:39:32",
+    "on_mains": true,
+    "load_percent": [
+     9,
+     8,
+     0,
+     7,
+     3
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 1.66,
+    "fork_median_s": 1.64,
+    "factor": 1.01,
+    "upstream_s": [
+     1.664,
+     1.698,
+     1.665,
+     1.652,
+     1.734,
+     1.631,
+     1.624
+    ],
+    "fork_s": [
+     1.643,
+     1.697,
+     1.648,
+     1.666,
+     1.629,
+     1.626,
+     1.595
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 0.58,
+    "fork_median_s": 0.61,
+    "factor": 0.95,
+    "upstream_s": [
+     0.576,
+     0.591,
+     0.576,
+     0.58,
+     0.573,
+     0.596,
+     0.583
+    ],
+    "fork_s": [
+     0.567,
+     0.611,
+     0.6,
+     0.62,
+     0.923,
+     0.794,
+     0.58
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "C-v3-voordelta": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:35:25",
+    "on_mains": true,
+    "load_percent": [
+     10,
+     5,
+     0,
+     4,
+     0
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:37:59",
+    "on_mains": true,
+    "load_percent": [
+     15,
+     11,
+     1,
+     0,
+     5
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 10.96,
+    "fork_median_s": 10.74,
+    "factor": 1.02,
+    "upstream_s": [
+     11.477,
+     10.96,
+     11.097,
+     10.615,
+     10.43
+    ],
+    "fork_s": [
+     10.999,
+     10.834,
+     10.744,
+     10.551,
+     10.312
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 3.85,
+    "fork_median_s": 3.82,
+    "factor": 1.01,
+    "upstream_s": [
+     3.993,
+     4.159,
+     3.792,
+     3.763,
+     3.853
+    ],
+    "fork_s": [
+     3.797,
+     4.236,
+     3.819,
+     3.661,
+     3.874
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "E-sorp_q1": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T16:00:14",
+    "on_mains": true,
+    "load_percent": [
+     0,
+     8,
+     9,
+     10,
+     14
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T16:00:44",
+    "on_mains": true,
+    "load_percent": [
+     9,
+     2,
+     6,
+     15,
+     10
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": null,
+    "fork_median_s": 2.36,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     2.661,
+     2.615,
+     2.375,
+     2.357,
+     2.338,
+     2.274,
+     2.298
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": null,
+    "fork_median_s": 0.79,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     0.925,
+     0.809,
+     0.785,
+     0.787,
+     0.79,
+     0.791,
+     0.805
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "E-sorp_q2": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:59:12",
+    "on_mains": true,
+    "load_percent": [
+     9,
+     13,
+     18,
+     9,
+     8
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:59:35",
+    "on_mains": true,
+    "load_percent": [
+     4,
+     12,
+     9,
+     8,
+     5
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": null,
+    "fork_median_s": 1.74,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     1.811,
+     1.686,
+     1.828,
+     1.745,
+     1.703,
+     1.712,
+     1.744
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": null,
+    "fork_median_s": 0.62,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     0.662,
+     0.595,
+     0.721,
+     0.618,
+     0.62,
+     0.616,
+     0.618
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "E-sorp_q3": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:59:43",
+    "on_mains": true,
+    "load_percent": [
+     10,
+     5,
+     2,
+     4,
+     6
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T16:00:07",
+    "on_mains": true,
+    "load_percent": [
+     5,
+     11,
+     8,
+     4,
+     7
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": null,
+    "fork_median_s": 1.8,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     1.805,
+     1.801,
+     1.795,
+     1.8,
+     1.838,
+     1.823,
+     1.814
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": null,
+    "fork_median_s": 0.63,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     0.628,
+     0.626,
+     0.614,
+     0.614,
+     0.625,
+     0.682,
+     0.697
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "E-voordelta_q1": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:57:08",
+    "on_mains": true,
+    "load_percent": [
+     2,
+     2,
+     0,
+     9,
+     2
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:59:04",
+    "on_mains": true,
+    "load_percent": [
+     7,
+     10,
+     0,
+     3,
+     3
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": null,
+    "fork_median_s": 16.12,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     16.745,
+     15.408,
+     15.492,
+     16.711,
+     16.118
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": null,
+    "fork_median_s": 5.7,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     5.891,
+     5.312,
+     5.434,
+     5.704,
+     5.741
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "E-voordelta_q2": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:53:53",
+    "on_mains": true,
+    "load_percent": [
+     16,
+     8,
+     6,
+     4,
+     9
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:55:22",
+    "on_mains": true,
+    "load_percent": [
+     7,
+     18,
+     13,
+     0,
+     7
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": null,
+    "fork_median_s": 11.94,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     12.176,
+     11.94,
+     11.931,
+     11.468,
+     12.988
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": null,
+    "fork_median_s": 4.25,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     4.15,
+     4.43,
+     4.31,
+     4.253,
+     4.088
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "E-voordelta_q3": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:55:29",
+    "on_mains": true,
+    "load_percent": [
+     2,
+     17,
+     3,
+     8,
+     7
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:57:01",
+    "on_mains": true,
+    "load_percent": [
+     15,
+     6,
+     6,
+     3,
+     21
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": null,
+    "fork_median_s": 12.18,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     14.196,
+     12.696,
+     12.177,
+     11.783,
+     11.542
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": null,
+    "fork_median_s": 4.24,
+    "factor": null,
+    "upstream_s": [],
+    "fork_s": [
+     4.236,
+     4.634,
+     4.206,
+     4.303,
+     4.164
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "final-vs-old-mpi": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T15:01:52",
+    "on_mains": true,
+    "load_percent": [
+     4,
+     19,
+     14,
+     5,
+     1
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:09:17",
+    "on_mains": true,
+    "load_percent": [
+     0,
+     32,
+     2,
+     8,
+     9
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 25.61,
+    "fork_median_s": 11.5,
+    "factor": 2.23,
+    "upstream_s": [
+     24.866,
+     26.254,
+     25.612,
+     25.391,
+     27.35
+    ],
+    "fork_s": [
+     10.896,
+     11.495,
+     11.163,
+     12.221,
+     11.837
+    ]
+   },
+   {
+    "workers": 2,
+    "cpus": "12 14",
+    "upstream_median_s": 16.66,
+    "fork_median_s": 7.7,
+    "factor": 2.16,
+    "upstream_s": [
+     17.501,
+     15.703,
+     16.38,
+     17.28,
+     16.656
+    ],
+    "fork_s": [
+     7.786,
+     7.701,
+     7.331,
+     7.906,
+     7.367
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 9.79,
+    "fork_median_s": 4.3,
+    "factor": 2.28,
+    "upstream_s": [
+     9.79,
+     9.579,
+     9.952,
+     9.942,
+     9.503
+    ],
+    "fork_s": [
+     4.301,
+     4.026,
+     4.593,
+     4.188,
+     4.416
+    ]
+   },
+   {
+    "workers": 6,
+    "cpus": "12 14 16 18 10 0",
+    "upstream_median_s": 7.96,
+    "fork_median_s": 3.4,
+    "factor": 2.34,
+    "upstream_s": [
+     7.957,
+     7.922,
+     7.849,
+     8.631,
+     8.204
+    ],
+    "fork_s": [
+     3.373,
+     3.372,
+     3.397,
+     4.027,
+     3.43
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "final-vs-old-openmp": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T14:55:10",
+    "on_mains": true,
+    "load_percent": [
+     5,
+     8,
+     4,
+     4,
+     8
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T15:01:44",
+    "on_mains": true,
+    "load_percent": [
+     6,
+     1,
+     2,
+     15,
+     12
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 23.9,
+    "fork_median_s": 11.06,
+    "factor": 2.16,
+    "upstream_s": [
+     23.903,
+     23.04,
+     24.174,
+     23.164,
+     23.975
+    ],
+    "fork_s": [
+     10.693,
+     11.062,
+     10.719,
+     11.082,
+     11.432
+    ]
+   },
+   {
+    "workers": 2,
+    "cpus": "12 14",
+    "upstream_median_s": 13.68,
+    "fork_median_s": 6.7,
+    "factor": 2.04,
+    "upstream_s": [
+     13.675,
+     13.818,
+     13.378,
+     13.562,
+     14.133
+    ],
+    "fork_s": [
+     6.869,
+     6.62,
+     6.703,
+     6.628,
+     7.204
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 7.79,
+    "fork_median_s": 4.22,
+    "factor": 1.84,
+    "upstream_s": [
+     7.787,
+     7.566,
+     7.264,
+     8.519,
+     8.053
+    ],
+    "fork_s": [
+     4.221,
+     3.958,
+     4.355,
+     4.156,
+     4.248
+    ]
+   },
+   {
+    "workers": 6,
+    "cpus": "12 14 16 18 10 0",
+    "upstream_median_s": 6.54,
+    "fork_median_s": 3.26,
+    "factor": 2,
+    "upstream_s": [
+     6.398,
+     5.927,
+     6.625,
+     6.544,
+     6.857
+    ],
+    "fork_s": [
+     3.194,
+     3.086,
+     3.381,
+     3.265,
+     3.575
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "final-vs-old-serial": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T14:52:04",
+    "on_mains": true,
+    "load_percent": [
+     9,
+     1,
+     4,
+     1,
+     11
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T14:55:02",
+    "on_mains": true,
+    "load_percent": [
+     5,
+     3,
+     6,
+     0,
+     5
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 23.04,
+    "fork_median_s": 11.07,
+    "factor": 2.08,
+    "upstream_s": [
+     23.788,
+     23.042,
+     22.882,
+     23.105,
+     23.013
+    ],
+    "fork_s": [
+     11.07,
+     10.818,
+     11.334,
+     11.054,
+     11.099
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "mpi-default": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T14:40:03",
+    "on_mains": true,
+    "load_percent": [
+     14,
+     7,
+     6,
+     16,
+     11
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T14:46:42",
+    "on_mains": true,
+    "load_percent": [
+     4,
+     0,
+     3,
+     2,
+     16
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 43.44,
+    "fork_median_s": 11.84,
+    "factor": 3.67,
+    "upstream_s": [
+     43.441,
+     44.854,
+     43.205
+    ],
+    "fork_s": [
+     11.836,
+     12.892,
+     11.563
+    ]
+   },
+   {
+    "workers": 2,
+    "cpus": "12 14",
+    "upstream_median_s": 29.29,
+    "fork_median_s": 7.35,
+    "factor": 3.99,
+    "upstream_s": [
+     29.611,
+     29.288,
+     28.022
+    ],
+    "fork_s": [
+     7.967,
+     7.349,
+     7.22
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 16.84,
+    "fork_median_s": 4.4,
+    "factor": 3.83,
+    "upstream_s": [
+     16.842,
+     17.953,
+     15.66
+    ],
+    "fork_s": [
+     4.541,
+     4.4,
+     4.206
+    ]
+   },
+   {
+    "workers": 6,
+    "cpus": "12 14 16 18 10 0",
+    "upstream_median_s": 13.57,
+    "fork_median_s": 3.45,
+    "factor": 3.94,
+    "upstream_s": [
+     13.568,
+     14.249,
+     12.655
+    ],
+    "fork_s": [
+     3.758,
+     3.447,
+     3.374
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "mpi-o3": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T14:46:50",
+    "on_mains": true,
+    "load_percent": [
+     8,
+     7,
+     8,
+     25,
+     8
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T14:51:56",
+    "on_mains": true,
+    "load_percent": [
+     9,
+     5,
+     1,
+     6,
+     1
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 31.3,
+    "fork_median_s": 11.28,
+    "factor": 2.78,
+    "upstream_s": [
+     32.887,
+     30.598,
+     31.296
+    ],
+    "fork_s": [
+     11.039,
+     11.383,
+     11.275
+    ]
+   },
+   {
+    "workers": 2,
+    "cpus": "12 14",
+    "upstream_median_s": 20.04,
+    "fork_median_s": 7.1,
+    "factor": 2.82,
+    "upstream_s": [
+     18.953,
+     21.154,
+     20.042
+    ],
+    "fork_s": [
+     6.789,
+     7.097,
+     7.283
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 11.76,
+    "fork_median_s": 4.31,
+    "factor": 2.73,
+    "upstream_s": [
+     11.154,
+     12.33,
+     11.758
+    ],
+    "fork_s": [
+     3.992,
+     4.514,
+     4.309
+    ]
+   },
+   {
+    "workers": 6,
+    "cpus": "12 14 16 18 10 0",
+    "upstream_median_s": 9.89,
+    "fork_median_s": 3.35,
+    "factor": 2.95,
+    "upstream_s": [
+     9.333,
+     10.326,
+     9.886
+    ],
+    "fork_s": [
+     3.349,
+     4.092,
+     3.325
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "openmp-default": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T14:25:03",
+    "on_mains": true,
+    "load_percent": [
+     9,
+     17,
+     7,
+     10,
+     11
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T14:31:04",
+    "on_mains": true,
+    "load_percent": [
+     5,
+     4,
+     3,
+     0,
+     4
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 44.13,
+    "fork_median_s": 10.92,
+    "factor": 4.04,
+    "upstream_s": [
+     44.406,
+     42.352,
+     44.133
+    ],
+    "fork_s": [
+     11.232,
+     10.917,
+     10.923
+    ]
+   },
+   {
+    "workers": 2,
+    "cpus": "12 14",
+    "upstream_median_s": 25.11,
+    "fork_median_s": 6.7,
+    "factor": 3.75,
+    "upstream_s": [
+     25,
+     25.107,
+     25.642
+    ],
+    "fork_s": [
+     6.702,
+     6.577,
+     6.703
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 13.3,
+    "fork_median_s": 3.92,
+    "factor": 3.39,
+    "upstream_s": [
+     12.846,
+     13.342,
+     13.302
+    ],
+    "fork_s": [
+     3.81,
+     3.92,
+     4.073
+    ]
+   },
+   {
+    "workers": 6,
+    "cpus": "12 14 16 18 10 0",
+    "upstream_median_s": 10.37,
+    "fork_median_s": 3.18,
+    "factor": 3.27,
+    "upstream_s": [
+     10.368,
+     11.476,
+     10.335
+    ],
+    "fork_s": [
+     3.175,
+     3.173,
+     3.44
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "openmp-o3": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T14:31:12",
+    "on_mains": true,
+    "load_percent": [
+     9,
+     8,
+     4,
+     3,
+     4
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T14:39:55",
+    "on_mains": true,
+    "load_percent": [
+     5,
+     5,
+     27,
+     5,
+     11
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 32.94,
+    "fork_median_s": 11.28,
+    "factor": 2.92,
+    "upstream_s": [
+     32.935,
+     34.329,
+     31.407
+    ],
+    "fork_s": [
+     12.803,
+     11.285,
+     11.25
+    ]
+   },
+   {
+    "workers": 2,
+    "cpus": "12 14",
+    "upstream_median_s": 18.56,
+    "fork_median_s": 6.8,
+    "factor": 2.73,
+    "upstream_s": [
+     18.558,
+     18.355,
+     19.22
+    ],
+    "fork_s": [
+     6.803,
+     6.673,
+     6.97
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 10.36,
+    "fork_median_s": 4.14,
+    "factor": 2.5,
+    "upstream_s": [
+     10.15,
+     10.919,
+     10.365
+    ],
+    "fork_s": [
+     4.142,
+     4.095,
+     4.207
+    ]
+   },
+   {
+    "workers": 6,
+    "cpus": "12 14 16 18 10 0",
+    "upstream_median_s": 8.39,
+    "fork_median_s": 3.44,
+    "factor": 2.44,
+    "upstream_s": [
+     8.398,
+     8.275,
+     8.39
+    ],
+    "fork_s": [
+     3.441,
+     3.231,
+     3.465
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0,
+  "residual": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "off_median_s": 11.66,
+    "on_median_s": 11.99,
+    "cost_percent": 3.1,
+    "cost_per_round_percent": [
+     3.1,
+     2.6,
+     5.6,
+     -1.8,
+     9.1,
+     2.8,
+     3.6
+    ],
+    "same_answer": true
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "off_median_s": 4.01,
+    "on_median_s": 4.25,
+    "cost_percent": 8.3,
+    "cost_per_round_percent": [
+     3.3,
+     9.8,
+     8.3,
+     1.6,
+     4.6,
+     11.7,
+     9.6
+    ],
+    "same_answer": true
+   }
+  ]
+ },
+ "serial-default": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T14:19:48",
+    "on_mains": true,
+    "load_percent": [
+     10,
+     0,
+     15,
+     1,
+     11
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T14:22:40",
+    "on_mains": true,
+    "load_percent": [
+     4,
+     3,
+     2,
+     6,
+     10
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 42.15,
+    "fork_median_s": 10.84,
+    "factor": 3.89,
+    "upstream_s": [
+     47.425,
+     40.44,
+     42.146
+    ],
+    "fork_s": [
+     12.725,
+     10.673,
+     10.841
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "serial-o3": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-15T14:22:47",
+    "on_mains": true,
+    "load_percent": [
+     3,
+     2,
+     8,
+     17,
+     11
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-15T14:24:56",
+    "on_mains": true,
+    "load_percent": [
+     15,
+     11,
+     5,
+     7,
+     12
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 30.28,
+    "fork_median_s": 11.02,
+    "factor": 2.75,
+    "upstream_s": [
+     30.285,
+     28.27,
+     30.478
+    ],
+    "fork_s": [
+     10.801,
+     11.022,
+     11.503
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ }
+}

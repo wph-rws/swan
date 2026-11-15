@@ -223,12 +223,33 @@ Their output goes to `build-*` directories, which git ignores.
   10 November 2026 (commit `aea2500`, flang 22.1.8) the whole source compiled
   without a Fortran warning, and `-fsyntax-only -pedantic` found only two
   unused variables (`IJ` and `IK`, which only an OpenMP clause uses) and six
-  TARGET arguments, none of which keeps a pointer after the call. Of the 66
-  CTest tests, 63 passed. `setup` and `source_terms_st6` differ only in
-  rounding (34 of 1722 set-up values by one in the last printed digit; Hsig of
-  ST6 within 0.3 mm of the reference), and in `input_validation` the case
-  `BF-49-directory-as-file` fails because the flang runtime opens a directory
-  without an error, where gfortran refuses.
+  TARGET arguments, none of which keeps a pointer after the call. Of the 67
+  CTest tests, 64 pass (15 November 2026, commit `365afb3`). `setup` and
+  `source_terms_st6` differ only in rounding (34 of 1722 set-up values by one
+  in the last printed digit; Hsig of ST6 within 0.7 mm of the reference), and
+  in `input_validation` the case `BF-49-directory-as-file` fails because the
+  flang runtime opens a directory without an error and fails at the first
+  read, where gfortran refuses to open it.
+- **Why compilers give other last digits.** Three causes, all found on
+  15 November 2026, none a fault in the code. (1) The mathematical library:
+  glibc, Intel's library and the Windows run-time library round `exp`,
+  `sinh`, `pow` and others differently in the last bit. (2) glibc's vector
+  versions of those functions, which gfortran calls in vectorised loops from
+  `-O2` on and which round differently from the scalar ones: that is why
+  ST6, Madsen friction, ripples and the exact quadruplets differ between
+  `-O1` and `-O2`; `-O0` and `-O1` agree on every example deck. (3) Integer
+  powers: a compiler may multiply in any order, so powers of four and above
+  are written out (`src/swan_integer_powers.f90`, and `(X*X)**2` for a
+  fourth power). With that, flang gives byte for byte the output of a
+  gfortran build without the vector library (`-nostdinc
+  -fintrinsic-modules-path ...`, or `-fno-tree-vectorize`) on 50 small
+  decks. Leaving the vector library out costs gfortran 0 to 2%; switching
+  all vectorisation off costs 15 to 34% (WSL2, `2466aa4`). Intel ifx needs
+  `-fp-model precise`, which CMake passes: its default model reorders
+  products differently in the serial and the OpenMP build. An iteration
+  that does not settle (Voordelta, ST6) lets one different bit grow to a
+  millimetre in Hsig, so a difference of that size between compilers or
+  between Linux and Windows does not point to an error.
 - **Timing: hyperfine.** `hyperfine -w 1 -r 5 -N --prepare 'cp deck.swn INPUT'
   swan.exe` gives a mean and spread over repeated runs. The rules under
   "Performance measurements" still apply. Callgrind (`valgrind --tool=callgrind`)
@@ -239,6 +260,23 @@ What does not work here: WSL2 gives no hardware performance counters, so
 or IPC cannot be measured; `rr`, likwid and most of VTune need those counters
 as well. The processor has performance and efficiency cores, so pin threads
 for multicore timings.
+
+WSL2 also hides which logical CPU is which kind of core, and a virtual CPU
+is not tied to a physical one: `taskset` in WSL picks a CPU number, not a
+kind of core. Two builds run in turn on the same CPU numbers can still be
+compared. An absolute time or a scaling figure needs a run under Windows
+itself, where the kinds are known (`GetSystemCpuSetInformation`): on this
+machine (Core Ultra 9 185H) the P-cores are the logical CPUs 0-1 and 10-19,
+two per core, the E-cores are 2-9, and 20-21 are the two low-power E-cores.
+`start /affinity` pins a run there, and the MSYS2 ucrt64 gfortran 16.2 builds
+the fork with CMake and Ninja; `powershell.exe` and `cmd.exe` can be called
+from WSL. Measured that way on 13 November 2026 on an earlier state of
+commit `73fa363`, without its changes to the Thomas solver and `SPROXY` (sphys
+and Voordelta, one thread): an E-core takes 1.45 to 1.5 times as long as a
+P-core; on 15 November 2026 at `2466aa4`, with the laptop in use, 1.3 times
+(Voordelta). The sweep is a pipeline of grid rows with `SCHEDULE(STATIC,1)`, in
+which every row waits for the row before it, so the slowest thread sets the
+pace: one E-core among the threads slows all of them.
 
 ## Verification: targeted gate selection
 
@@ -261,9 +299,13 @@ The full breadth below runs **once per change set, before it is merged**
 CTest compares with a relative tolerance of `1e-3`, so a green CTest does not
 show byte-identical output; compare the files when that is the claim.
 
-Runs on the operational so-rp grid take about 6 s per iteration on four
-pinned cores, about 4 minutes for a run of 38 iterations (11 November 2026,
-commit `13f05a6`). Use them only for questions about that deck itself, never as a check
+Runs on the operational so-rp grid take about 2.5 s per iteration on four
+pinned cores, about a minute and a half for a run of 37 iterations
+(13 November 2026, commit `73fa363`: 91 s at the reference condition, against
+207 s at `e68e9be`). On 15 November 2026, at `2466aa4`, the same run took 85 s,
+against 236 s at `e68e9be` and 152 s (35 iterations) for the operational
+binary RWS 41.31A.1, which is an Intel build (one run each on four threads,
+under WSL2 on CPUs 0, 2, 4 and 6, because that binary is a Linux program). Use them only for questions about that deck itself, never as a check
 of a code change. Before starting one, work out the run time and say it, and
 give each process its own cores (`taskset`); `OMP_PROC_BIND` alone puts the
 threads of every process on the same first cores.
@@ -272,7 +314,7 @@ Before merging, not every change needs the full breadth (serial + OpenMP + MPI +
 
 - MPI only for paths that touch MPI: source with mpi/parall/metis/coh/esmf/adcirc in the name, source that calls the parallel layer (a reduction, gather, broadcast or exchange, or the subdomain edge flags), MPI tests, toolchain/CMake. A deck or physics change without a code difference behaves under MPI exactly as in serial on the same code.
 - strict only for source or toolchain changes, or a change to its verdicts. Docs or comments only: no gates.
-- upstream_delta for anything that can shift the output of a deck (source, toolchain, decks, the inventory itself). That gate runs every deck (the four heavy ones only with `--include-skipped`) through its own build of the pinned TU Delft source (`43e9bbb`) and through the fork, and checks the result against `doc/upstream-delta.json`: every difference must have a BF number. For a deck that already differs, the inventory also keeps a fingerprint (SHA-256) of each fork output file, so that a new change in such a deck fails the gate as well, and a fork that crashes or writes nothing is never an accepted difference. The inventory itself is checked on every commit in the pytest gate; the measured half runs under `SWAN_UPSTREAM_DELTA=1` and needs a one-off upstream build in `.upstream/build_O3_gfortran<version>`, with the same compiler as the fork build and at `-O3`, because both the optimisation level and the compiler version change output (use a path without a hyphen, because upstream `switch.pl` loops forever on one).
+- upstream_delta for anything that can shift the output of a deck (source, toolchain, decks, the inventory itself). That gate runs every deck (the four heavy ones only with `--include-skipped`) through its own build of the pinned TU Delft source (`43e9bbb`) and through the fork, and checks the result against `doc/upstream-delta.json`: every difference must have a BF number, or name a deliberate choice of the fork that the inventory describes (abrupt underflow is the only one). For a deck that already differs, the inventory also keeps a fingerprint (SHA-256) of each fork output file, so that a new change in such a deck fails the gate as well, and a fork that crashes or writes nothing is never an accepted difference. The inventory itself is checked on every commit in the pytest gate; the measured half runs under `SWAN_UPSTREAM_DELTA=1` and needs a one-off upstream build in `.upstream/build_O3_gfortran<version>`, with the same compiler as the fork build and at `-O3`, because both the optimisation level and the compiler version change output (use a path without a hyphen, because upstream `switch.pl` loops forever on one).
 - Unknown paths safely choose everything; never silently nothing.
 - Skipped gates stay at their last green commit. Mention that commit with the change, so the release claim stays traceable.
 
@@ -290,12 +332,26 @@ computation; the multicore measurement shows what the user keeps. Give the
 thread count, the pinning and the cores used; without them a time cannot be
 reproduced.
 
+**Time under Windows, on the performance cores, with at most six workers.**
+This machine has six performance cores. Under Windows a run can be pinned to
+them; under WSL it cannot, because WSL does not show which CPU is which kind
+of core (see "Analysis tools"). Give every worker a performance core of its
+own: with more than six workers either an efficiency core takes part, and in
+the row pipeline of the sweep it slows every thread, or two workers share
+one core. So measure times and scaling under Windows with 1, 2, 4 and 6
+workers, each on its own P-core, and do not use eight. Checks of the output
+itself (the gates, a byte comparison) do not depend on the kind of core and
+can run under WSL. A time in this repository that was measured under WSL or
+with eight workers says so; such times are older than this rule (14 November
+2026) and compare builds only on the same CPU numbers.
+
 Two things go with this:
 
 - **Check byte-identical output across thread counts.** The output should not
-  depend on the number of threads. Measure that explicitly at 1, 2, 4 and more
+  depend on the number of threads. Measure that explicitly at 1, 2, 4 and 6
   threads; a speed-up that breaks determinism is not a gain. Run a check
-  more than once and with more threads than cores: a race may show in only
+  more than once and with more threads than cores (pin six threads to fewer
+  CPUs): a race may show in only
   a few runs (BF-70 showed in 11 of 100 runs at two threads; 11 November
   2026, commit `3cd6c83`).
 - **Measure on a quiet machine.** If anything else runs on the same node (a
@@ -306,6 +362,56 @@ This also applies to an option that is off by default: the disabled path must
 be shown to cost nothing, and on several cores that is not a given. One
 unconditional atomic counter in the grid-point loop costs little serially and
 creates a point of contention on several cores.
+
+Two measured facts to keep in mind when looking for speed:
+
+- **Subnormal numbers.** A result below 1.2E-38 is a subnormal number, and
+  the processor computes with those many times slower. The DIA makes them
+  all the time, because it multiplies three energy densities that are tiny
+  in the directions against the wind. Since commit `55c3af3` the run
+  computes with abrupt underflow (`IEEE_SET_UNDERFLOW_MODE` in `SWMAIN`, and
+  per thread in `SWCOMP` and `SwanCompUnstruc`). A build with the Intel
+  compiler has always done that by default, and treats subnormal input as
+  zero as well; gfortran only does it when asked. It took a third off the run time of Voordelta and
+  more off a deck with the so-rp physics (the commit message has the
+  numbers). On the small decks only the test-point source-term spectra
+  change, in values seventeen orders below the largest; the so-rp table
+  shifts by up to 0.09 mm in Hs, because an iteration that has not settled
+  carries a change in the last digit along. The call must stay in those
+  routines themselves: the standard restores the mode when a procedure that
+  changed it returns, on the thread that returns; every other thread puts
+  its own mode back at the end of the parallel region. A simple loop
+  that takes fifty or more clock cycles per element is the sign to look for
+  them again; setting the mode from outside with a small preloaded library
+  (`_mm_setcsr`) shows in one run whether they are the cause.
+- **AVX2 gives next to nothing.** Measured on 13 November 2026 on the
+  same earlier state of commit `73fa363`, under Windows on P-cores
+  (gfortran 16.2, OpenMP, sphys and Voordelta, seven runs per build in
+  turn): `-march=x86-64-v3
+  -ffp-contract=off` is 2 to 4% faster on one core and `SWAN_NATIVE`
+  (`-march=native -ffp-contract=off`) 1 to 2%; on four cores neither shows
+  a difference above the noise of about 10%. Measured again on 15 November
+  2026 at `2466aa4` (Voordelta and the so-rp physics on a small grid, one and
+  four threads): every difference is within 3%, in either direction. Output
+  is byte-identical in all three builds. So the portable Release build is
+  the one to use and to hand out. Profile-guided optimisation gave 10% on
+  Voordelta, 7% on a deck it was not trained on and nothing on the so-rp
+  physics (serial, same day); it is not part of the build.
+- **Where the threads lose time.** On six performance cores Voordelta runs
+  3.4 times as fast as on one, with OpenMP and with MPI alike (15 November
+  2026, `2466aa4`, under Windows). Six serial runs side by side each take 18%
+  longer than one alone, so that much is the hardware. With six threads the
+  computing itself takes 39% more time than on one thread: the rest of that
+  is reading rows that another core has just written. A thread waits for
+  the row before it a tenth of the time. The part that one thread does
+  alone is 0.003 s. benchmarks/speed-vs-upstream.md has the numbers and the
+  build with the timers (`benchmarks/windows/p1_probe.patch`).
+- **`QUADRUPLET 3` is no shortcut.** Computing the DIA once per iteration
+  instead of at every sweep saves no time (Voordelta 12.2 s against 11.9 s,
+  so-rp physics 1.80 s against 1.74 s; same day and commit) and changes the
+  answer: on Voordelta by up to 11 cm in Hsig at the deck's own stop and by
+  up to 22 cm after 200 iterations, on the operational so-rp deck by up to
+  5 mm.
 
 ## Convergence: "converged" is not the same as "stopped changing"
 

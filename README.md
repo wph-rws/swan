@@ -229,6 +229,16 @@ may produce an executable that does not run on older or different CPU models.
 Leave it disabled when distributing binaries. Neither option enables unsafe
 floating-point transformations such as `-ffast-math`.
 
+Measured with gfortran 16.2, neither option is worth its cost. Wider vector
+instructions (`SWAN_NATIVE`, and `-march=x86-64-v3 -ffp-contract=off` as a
+fixed AVX2 target) changed the run time of the Voordelta example and of a
+small deck with the physics of the operational so-rp deck by less than 3%,
+in either direction, on one core and on four (15 November 2026, commit
+`2466aa4`, under Windows on the performance cores). `SWAN_LTO` (13 November
+2026, commit `73fa363`, under WSL2) changed the run time by less than 1% on
+one core and on four threads. The output was byte-identical in every one of
+these builds.
+
 `SWAN_DEBUG_INVARIANTS` enables additional internal consistency checks for
 development and validation builds. Leave it disabled for production runs,
 because the checks can alter compiler optimization and reduce performance.

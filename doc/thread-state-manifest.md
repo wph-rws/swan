@@ -19,9 +19,11 @@ it showing in a call, and of which every thread has its own copy. The
 compiler has to reach it through thread-local storage each time. The
 gfortran 16.2 of MSYS2 (ucrt64) on Windows does not always do that at `-O1`
 and higher: in a few places it uses an ordinary global address, so that all
-threads read or write one copy. Upstream's OpenMP build computes Hsig 0
-everywhere on Windows for that reason, and the same wrong address was seen in
-the fork's object code for `RDFSIN` in `SWIND_DBYB`. A variable of a routine,
+threads read or write one copy. Upstream's OpenMP build (`43e9bbb`) computes
+Hsig 0 everywhere on Windows for that reason, and the same wrong address was
+seen in the fork's object code for `RDFSIN` in `SWIND_DBYB` (both found on
+14 November 2026, the fork at commit `8e293ac`, with GNU Fortran 16.2.0 of
+MSYS2 ucrt64). A variable of a routine,
 an array element and an argument do not depend on thread-local storage, so
 the fork uses only those. It also makes the state visible: a routine that
 needs to know whether its grid point is a test point now says so in its

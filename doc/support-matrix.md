@@ -16,9 +16,9 @@ source revision.
 | Compiler | Version/OS/arch | Status | Evidence |
 |---|---|---|---|
 | GNU 16.2 (reference) | 16.2.0 / Linux x86-64 (WSL2; the CI container installs the same release), OpenMPI 5.0.10 | **passed** (serial/OpenMP/runtime/strict/MPI and the build variants below) | 10-11: CTest 66/66 serial, OpenMP and runtime checks, 73/73 MPI; strict gate green (1030 warnings, the 233 checked ones all with a verdict); delta gate green with upstream on the same compiler and `-O3`. MPI here requires `OMPI_MCA_pml=ob1 OMPI_MCA_btl=self,sm OMPI_MCA_mtl=^ofi OMPI_MCA_osc=^ucx`. 16.2 wrongly rejects a dummy procedure with an interface under `implicit none(type, external)`, so `z_root2` uses `implicit none(type)` there. `gfortran`/`f95` on this machine do not point to 16.2, so choose `gfortran-16` explicitly |
-| Intel `ifx` (IntelLLVM, second implementation) | not installed here | **not run** (toolchain missing) | candidate; first language tests + serial, then OpenMP/MPI/netCDF + operational regressions; the claim "second implementation supported" is ruled out until green |
+| Intel `ifx` (IntelLLVM, second implementation) | 2026.2.0 / Linux x86-64 (WSL2), `/opt/intel/oneapi` | **checked, not supported** | 14-15 November 2026: the source compiles; CTest serial 63/67 at commit `8e293ac`: `setup` and `source_terms_st6` differ in rounding (Intel's mathematical library against glibc's), `input_validation` differs in the wording of five messages (`INQUIRE(NAME=)` gives the full path; a directory given as a file "does not exist"), and `two_cases` failed on a start mode that the test now sets itself. CMake passes `-fp-model precise`: with the default model the serial and the OpenMP build differed by up to 2.1 mm in Hsig on Voordelta, with it they give the same file on one and four threads. The precise model costs 1 to 2% on one core and nothing measurable on four (WSL2, four runs in turn). ifx computes without subnormal numbers by default, so upstream built with it does not have the slowness that gfortran's upstream build has. Against gfortran the output differs in the last digits (up to 1.7 mm on Voordelta) through the mathematical library alone; fork and upstream differ under ifx by up to 2.1 mm through `swan_integer_powers` (see the commit "Give the same numbers with another compiler where the source can"). References and gates stay on gfortran |
 | Intel `ifort` (classic) | not installed | **not run** (toolchain missing) | upstream's build settings are kept; not a target for new work |
-| LLVM Flang 22 | 22.1.8 / Linux x86-64 (system package) | **checked, not supported** | 10-11: compiles without a Fortran warning; CTest 63/66: `setup` and `source_terms_st6` differ only in rounding, and in `input_validation` the case `BF-49-directory-as-file` fails because the flang runtime opens a directory without an error (see AGENTS.md); references and gates stay on gfortran |
+| LLVM Flang 22 | 22.1.8 / Linux x86-64 (system package) | **checked, not supported** | 15 November 2026, commit `365afb3`: compiles; CTest 64/67: `setup` and `source_terms_st6` differ in rounding and `input_validation` fails on `BF-49-directory-as-file`, because the flang runtime opens a directory without an error and fails at the first read. With the fourth powers written as `(X*X)**2` (commit `2466aa4`), flang gives byte for byte the output of a gfortran build without glibc's vector maths library on 50 small decks (179 files); against the default gfortran build only the decks that reach that library differ (ST6, Madsen friction, ripples, the exact quadruplets). References and gates stay on gfortran |
 | IBM Open XL Fortran (IBMFlang) | not installed | **not run** (candidate) | additional check after language tests + serial output evidence |
 | NAG | not installed (licence required) | **not run** (not licensed) | useful additional language/runtime check after licence + tests |
 | IBM XL / Open XL, Fujitsu, HPE Cray | no target hardware here | **not run** (partner runner required) | external qualification per toolchain/hardware/test logs |
@@ -26,7 +26,7 @@ source revision.
 | METIS 32-bit (libmetis-dev 5.1.0, IDX32/REAL32) | /usr/include+libmetis.so | **passed** (METIS, and METIS+MPI with real partitioning) | `metis_partitioning` + `quick_test_mpi` green; header+lib from the same installation; widths 32/32 checked at configure time |
 | METIS 64-bit index | not installed | **not run** (library missing) | requires a derived 64-bit interface + a test with both 32- and 64-bit libs; without METIS there is no dependency |
 | netCDF-Fortran / MPI (OpenMPI, GNU wrapper) | libnetcdff-dev 4.6.4, OpenMPI 5.0.10 from the system packages | **passed** with GNU 16.2 (10 November: see "Build variants") | both `.mod` files come from the system packages and have module version 16, which 16.2 reads |
-| Native Windows (MSYS2 UCRT64-GNU, ifx-Windows) | not measured here | **not run** | separate build/run tests, paths with spaces, I/O, Matlab/netCDF, DLL discovery, installed executable; a green WSL result does not certify a Windows binary |
+| Native Windows (MSYS2 UCRT64 GNU Fortran 16.2.0, MS-MPI 10.1) | Windows 11, Core Ultra 9 185H | **built and timed, not a gate** | 15 November 2026, commit `2466aa4`: serial, OpenMP and MPI builds with CMake and Ninja; Voordelta and nine other decks run to the end and give the same output serially, with OpenMP on 1, 2, 4 and 6 threads and with MPI on 1, 2, 4 and 6 processes (benchmarks/speed-vs-upstream.md). The test suite was not run there. The output differs from the Linux build in the last digits on some decks (Voordelta Hsig up to 2.3 mm), because the Windows run-time library rounds `exp`, `tanh`, `cos`, `sin`, `log` and real powers differently from glibc. Upstream's OpenMP build computes Hsig 0 with this compiler unless built with `-fno-ivopts` (doc/thread-state-manifest.md); the fork has no `THREADPRIVATE` variable. Paths with spaces, netCDF, Matlab output and an installed executable were not tested; `ifx` under Windows was not tried |
 | WSL2, Linux x86-64 | kernel 6.18.58.1-microsoft-standard-WSL2 | **passed** (Linux development + small MPI) | cluster performance on the intended production hardware not measured |
 
 ## Configurations
@@ -51,7 +51,7 @@ directory, and runs the full CTest suite in each. On 10 November 2026 (commit
 | ESMF (with runtime checks) | 67 | passed |
 | ADCIRC | 66 | passed |
 | legacy Cray I/O, legacy SGI I/O | 65 of 66 each | `hotstart_continuation` fails (below) |
-| Intel `ifx` | – | not run: not installed |
+| Intel `ifx` | 2026.2.0 | checked on 14-15 November 2026, not supported: see the compiler table |
 
 The preserved Cray and SGI I/O branches (`SWAN_LEGACY_CRAY_IO`,
 `SWAN_LEGACY_SGI_IO`) fail `hotstart_continuation` because these branches open
@@ -171,7 +171,7 @@ CI with gfortran 16.2 ran once on GitHub, on 29 October 2026, and failed for
 a reason of the CI environment (see closing-account.md §4); it has not run on
 the rebuilt history yet. Locally, on the same source revision: default build
 66/66, strict gate green (1030 warnings), delta gate against upstream
-`43e9bbb` green (every difference has a BF number).
+`43e9bbb` green (every difference has a BF number or is a described choice of the fork).
 
 Required release combinations and available runners are set per release.
 A second implementation is tested as early as possible. A missing candidate
