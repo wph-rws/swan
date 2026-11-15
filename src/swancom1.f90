@@ -534,8 +534,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
 !                     geographical point
 !     NRSCAL    1D    Number of frequency use of rescaling in each
 !                     geographical point
-!     AC2LOC    2D    help array containing action density for
-!                     sending/receiving with MPI
 !     IARR      1D    help array of type integer for MPI communication
 !     ARR       1D    help array of type real for MPI communication
 !     REFLSO    2D    contribution to the source term due to reflection
@@ -994,8 +992,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
 
    INTEGER, ALLOCATABLE :: ISLMIN(:), NFLIM(:), NRSCAL(:)
 
-   REAL, ALLOCATABLE :: AC2LOC(:)
-
 !     Defect of the action balance, accumulated per grid point during the
 !     sweeps and reduced once per iteration; see swan_balance_residual.
    TYPE(balance_residual_t) :: BALANCE_RESIDUAL
@@ -1241,7 +1237,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
 !     *** Lock array for thread management                                40.22
    !$ ALLOCATE(LLOCK(MXC,MYC))
 !
-   IF (mpi_backend_enabled) ALLOCATE(AC2LOC(MCGRD))
 
 !     A residual threshold the solver cannot honour must stop the run: an
 !     ignored stopping criterion looks exactly like a satisfied one.
@@ -1301,11 +1296,19 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
    IF ( LSETUP.GT.0 ) SETPDA = 0.
 
 !     Wave number and group velocity depend only on the depth: cache them
-!     once, unless the depth changes during the run (non-stationary, DYNDEP,
-!     or SETUP, which adds the set-up to the depth after every iteration).
+!     once, unless the depth changes during the run (DYNDEP: a bottom or
+!     water level that varies in time; or SETUP, which adds the set-up to
+!     the depth after every iteration). A nonstationary run with a fixed
+!     depth uses the cache too: the depth of the old time level is then
+!     the same as that of the new one, so the S&L scheme, which asks for
+!     both, gets the same numbers as from KSCIP1. Without the cache that
+!     scheme solves the dispersion relation 24 times per grid point in
+!     every sweep. With a mud layer the nonstationary run keeps the old
+!     path, because the old and the new time level each have their own mud
+!     thickness and the cache holds only the new one.
 
    CALL prop_cache_reset()
-   IF ( NSTATC.EQ.0 .AND. .NOT.DYNDEP .AND. LSETUP.EQ.0 ) THEN
+   IF ( .NOT.DYNDEP .AND. LSETUP.EQ.0 .AND. (NSTATC.EQ.0 .OR. IMUD.NE.1) ) THEN
       CALL SWAPRE ( COMPDA(1,JDP2), COMPDA(1,JMUDL2), SPCSIG )
    ENDIF
 
@@ -2112,7 +2115,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
          END DO
          !$OMP ENDDO NOWAIT
 
-         CALL complete_sweep(ISWP, AC2, AC2LOC, KGRPNT, STOP_REQUESTED)
+         CALL complete_sweep(ISWP, AC2, KGRPNT, STOP_REQUESTED)
          IF (STOP_REQUESTED) SWCOMP_STOP_REQUESTED = .TRUE.
 !
 !----------------------------------------------------------------------   40.22
@@ -2122,7 +2125,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
          !$OMP BARRIER
       END DO
 
-      CALL complete_sweep_iteration(AC2, AC2LOC, KGRPNT, STOP_REQUESTED)
+      CALL complete_sweep_iteration(AC2, KGRPNT, STOP_REQUESTED)
       IF (STOP_REQUESTED) SWCOMP_STOP_REQUESTED = .TRUE.
 !
 !----------------------------------------------------------------------   40.31
@@ -2524,7 +2527,6 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
    DEALLOCATE(MEMSINA)
    DEALLOCATE(MEMSINB)
    !$ DEALLOCATE(LLOCK)
-   IF (ALLOCATED(AC2LOC)) DEALLOCATE(AC2LOC)
    DEALLOCATE(SWTSDA)
    IF (timing_enabled) CALL SWTSTO(101)
 !----------------------------------------------------------------------   40.22
@@ -2548,6 +2550,7 @@ SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, 
    USE swan_services, ONLY: SWTRCF
    USE swan_balance_residual, ONLY: balance_residual_t, accumulate_balance_defect
    USE swan_propagation, ONLY: ADDDIS, DSPHER, SPREDT, SPROSD, SPROXY, SWAPAR, SWGEOM, SWPSEL
+   USE m_propcache, ONLY: prop_cache_valid
    USE swan_wind_source, ONLY: WINDP1, WINDP3
    USE swan_diagnostics_level
    USE swan_io_units
@@ -3028,6 +3031,9 @@ SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, 
 
    LOGICAL  INSIDE
    LOGICAL  LPREDT
+!     SL_SAME_LEVELS : whether the S&L scheme can use the propagation
+!                      velocities of the new time level for the old one
+   LOGICAL  SL_SAME_LEVELS
 
    INTEGER :: XYTST(2*NPTST)
    INTEGER :: KGRPNT(MXC,MYC)
@@ -3066,7 +3072,7 @@ SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, 
 !     per-thread FFT workspace; see swan_source_workspaces.
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER NLINK, ILINK, II, INDEX, ID, IDC, ISC, &
+   INTEGER NLINK, ILINK, II, INDEX, ID, &
       ID_MIN, ID_MAX, IDDUM
    REAL SP, TEMP
 
@@ -3382,7 +3388,18 @@ SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, 
    IF (st_kc(2) .LE. 1) RETURN
    IF (.NOT.ONED .AND. (st_kc(3).LE.1)) RETURN
 
-   IF (PROPSL.EQ.3 .AND. NSTATC.GT.0) THEN
+!     The S&L scheme reads the propagation velocities of the old time
+!     level as well (CAX1, CAY1). They are equal to those of the new level
+!     when the depth is fixed (the stored wave numbers are in use, see
+!     SWCOMP) and there is no current. Then they are computed once, in all
+!     points of the stencil, and ACTION gets CAX and CAY for both levels.
+!     A test point keeps the two computations, because each of them
+!     writes test output.
+
+   SL_SAME_LEVELS = PROPSL.EQ.3 .AND. NSTATC.GT.0 .AND. prop_cache_valid .AND. &
+      ICUR.EQ.0 .AND. .NOT.TESTFL
+
+   IF (PROPSL.EQ.3 .AND. NSTATC.GT.0 .AND. .NOT.SL_SAME_LEVELS) THEN
 
 !         calculate propagation velocities for old time level             40.13
 !         (needed for S&L scheme nonstationary)                           40.13
@@ -3436,7 +3453,7 @@ SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, 
       CAY            ,CGO            ,SPCDIR(1,2)    , &
       SPCDIR(1,3)    ,COMPDA(1,JVX2) ,COMPDA(1,JVY2) , &
       SWPDIR         ,DIFFR &
-      ,st_kc,st_nm,.FALSE. &
+      ,st_kc,st_nm,SL_SAME_LEVELS &
       , TESTFL)
    IF (timing_enabled) CALL SWTSTO(111)
 !
@@ -3582,13 +3599,13 @@ SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, 
 !         *** in the stencil (between the three point on the stencil)    ***
 !         *** REFLSO(:,:) contains the contribution to the source term   ***
 
-               DO IDC = 1, MDC
-                  DO ISC = 1, MSC
-                     OBREDF(IDC,ISC,1) = 1.
-                     OBREDF(IDC,ISC,2) = 1.
-                     REFLSO(IDC,ISC  ) = 0.
-                  ENDDO
-               ENDDO
+!         Each array is set as one block. The loop that stood here ran
+!         over the frequencies inside the directions, so it stepped
+!         through three arrays with a stride of MDC elements at every
+!         point visit.
+
+               CALL FILL_BLOCK(OBREDF, SIZE(OBREDF), 1.)
+               CALL CLEAR_BUDGET(REFLSO, SIZE(REFLSO))
 
                IF (SWPDIR .EQ. 1 ) THEN
                   LINK(1) = CROSS(1,st_kc(1))
@@ -3650,10 +3667,18 @@ SUBROUTINE SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, DT, XIS, SWTSDA, INOCNV, 
 !       *** compute transport of action and fill the matrix ***
 !
       IF (timing_enabled) CALL SWTSTA(118)
-      CALL ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, LSWMAT(1,1,JABLK), &
-            LSWMAT(1,1,JABIN), SWMATR(1,1,JLEK1), AC1, DYNDEP, RDX, RDY, SWPDIR, IX, IY, KSX, KSY, &
-            XCGRID, YCGRID, ITER, KGRPNT, OBREDF, CAX1, CAY1, SPCDIR, CGO, SWMATR(1,1,JTRA0), &
-            SWMATR(1,1,JTRA1), st_kc(1), st_kc, st_co, st_nm, TESTFL, PROPSL)
+      IF (SL_SAME_LEVELS) THEN
+!          the velocities of the old time level are those of the new one
+         CALL ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, LSWMAT(1,1,JABLK), &
+               LSWMAT(1,1,JABIN), SWMATR(1,1,JLEK1), AC1, DYNDEP, RDX, RDY, SWPDIR, IX, IY, KSX, KSY, &
+               XCGRID, YCGRID, ITER, KGRPNT, OBREDF, CAX, CAY, SPCDIR, CGO, SWMATR(1,1,JTRA0), &
+               SWMATR(1,1,JTRA1), st_kc(1), st_kc, st_co, st_nm, TESTFL, PROPSL)
+      ELSE
+         CALL ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, LSWMAT(1,1,JABLK), &
+               LSWMAT(1,1,JABIN), SWMATR(1,1,JLEK1), AC1, DYNDEP, RDX, RDY, SWPDIR, IX, IY, KSX, KSY, &
+               XCGRID, YCGRID, ITER, KGRPNT, OBREDF, CAX1, CAY1, SPCDIR, CGO, SWMATR(1,1,JTRA0), &
+               SWMATR(1,1,JTRA1), st_kc(1), st_kc, st_co, st_nm, TESTFL, PROPSL)
+      ENDIF
       IF (timing_enabled) CALL SWTSTO(118)
 !
 !       matrix is computed now; updating action densities starts
@@ -5257,17 +5282,18 @@ SUBROUTINE ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, ANYBL
    CALL CLEAR_BUDGET(SYSTEM_MATRIX%imat6u, SIZE(SYSTEM_MATRIX%imat6u))
 
 !     set leak coefficient at 0
+!
+!     The leak and the transport coefficients are cleared as one block
+!     each as well: written as a loop or as an array section, the compiler
+!     makes one call of memset for every frequency, some 270 calls at each
+!     point visit.
 
-   DO ISC = 1, MSC
-      DO IDC = 1, MDC
-         LEAKC1(IDC,ISC) = 0.
-      ENDDO
-   ENDDO
+   CALL CLEAR_BUDGET(LEAKC1, SIZE(LEAKC1))
 
 !     *** set all transport coeff at 0 ***
 
-   TRAC0(1:MDC,1:MSC,1:MTRNP) = 0.
-   TRAC1(1:MDC,1:MSC,1:MTRNP) = 0.
+   CALL CLEAR_BUDGET(TRAC0, SIZE(TRAC0))
+   CALL CLEAR_BUDGET(TRAC1, SIZE(TRAC1))
 
    IF (timing_enabled) CALL SWTSTA(140)
 !
@@ -6133,18 +6159,8 @@ SUBROUTINE SOLPRE (AC2, AC2OLD, SYSTEM_MATRIX, WINDOW, ANYBIN, IDTOT, ISTOT, SPC
 !         set to AC2.
 
    IF ( ICUR.EQ.1 .OR. .NOT.FULCIR ) THEN
-      DO IS = 1, MSC
-         DO ID = 1, MDC
-            IF ( .NOT. ANYBIN(ID,IS) ) THEN
-               SYSTEM_MATRIX%imatla(ID,IS) = 0.
-               SYSTEM_MATRIX%imatda(ID,IS) = 1.
-               SYSTEM_MATRIX%imatua(ID,IS) = 0.
-               SYSTEM_MATRIX%imatra(ID,IS) = AC2(ID,IS,IGP)
-               SYSTEM_MATRIX%imat5l(ID,IS) = 0.
-               SYSTEM_MATRIX%imat6u(ID,IS) = 0.
-            END IF
-         ENDDO
-      ENDDO
+      CALL SOLPRE_OUTSIDE (MDC*MSC, ANYBIN, AC2(1,1,IGP), SYSTEM_MATRIX%imatla, SYSTEM_MATRIX%imatda, &
+         SYSTEM_MATRIX%imatua, SYSTEM_MATRIX%imatra, SYSTEM_MATRIX%imat5l, SYSTEM_MATRIX%imat6u)
    END IF
 
 !     *** the action density is stored in an auxiliary array AC2OLD ***
@@ -7268,9 +7284,11 @@ SUBROUTINE SOURCE (ITER, IX, IY, SWPDIR, KWAVE, SPCSIG, ECOS, ESIN, AC2, DEP2, I
 
 !     *** set relevant matrix elements to 0 ***
 
+!     (each as one block, see CLEAR_BUDGET)
+
    IF (OPTG.NE.5) THEN
-      IMATRA = 0.
-      IMATDA = 0.
+      CALL CLEAR_BUDGET(IMATRA, SIZE(IMATRA))
+      CALL CLEAR_BUDGET(IMATDA, SIZE(IMATDA))
    ENDIF
 
 !     *** set all dissipation, generation and redistribution coeff at 0 ***
@@ -7797,10 +7815,14 @@ SUBROUTINE SOURCE (ITER, IX, IY, SWPDIR, KWAVE, SPCSIG, ECOS, ESIN, AC2, DEP2, I
 !
    IF (timing_enabled) CALL SWTSTA(136)
    IF (NUMOBS.NE.0) THEN
+!        MERGE gives every bin a value, so the loop has no branch; a bin
+!        outside the sweep gets its own value back. The sum is made for
+!        every bin of the sweep as before, also where REFLSO is zero: that
+!        keeps a right-hand side of -0.0 turning into +0.0 exactly as it
+!        did.
       DO IS = 1, MSC
          DO ID = 1, MDC
-            IF (ANYBIN(ID,IS)) &
-               IMATRA(ID,IS) = IMATRA(ID,IS) + REFLSO(ID,IS)
+            IMATRA(ID,IS) = MERGE(IMATRA(ID,IS) + REFLSO(ID,IS), IMATRA(ID,IS), ANYBIN(ID,IS))
          END DO
       END DO
    END IF
@@ -7817,6 +7839,45 @@ SUBROUTINE CLEAR_BUDGET(A, N)
    REAL, INTENT(OUT) :: A(N)
    A = 0.
 END SUBROUTINE CLEAR_BUDGET
+
+!     Gives every element of an array the same value, as one block (see
+!     CLEAR_BUDGET).
+SUBROUTINE FILL_BLOCK(A, N, VALUE)
+   INTEGER, INTENT(IN) :: N
+   REAL, INTENT(OUT) :: A(N)
+   REAL, INTENT(IN) :: VALUE
+   A = VALUE
+END SUBROUTINE FILL_BLOCK
+
+!****************************************************************
+
+SUBROUTINE SOLPRE_OUTSIDE(N, ANYBIN, AC2, IMATLA, IMATDA, IMATUA, IMATRA, IMAT5L, IMAT6U)
+
+!     For the bins outside the sweep, make the equation say that the
+!     action density keeps its value: main diagonal 1, the other
+!     coefficients 0 and the right-hand side equal to AC2 (see SOLPRE).
+!
+!     The six arrays of the caller are pointer components, which the
+!     compiler must assume to overlap, so there it writes them one element
+!     at a time behind a test. Here they are separate arrays of known
+!     length. MERGE gives every element a value, so the loop has no branch:
+!     a bin inside the sweep gets its own value written back, bit for bit.
+
+   INTEGER, INTENT(IN) :: N
+   LOGICAL, INTENT(IN) :: ANYBIN(N)
+   REAL, INTENT(IN) :: AC2(N)
+   REAL, INTENT(INOUT) :: IMATLA(N), IMATDA(N), IMATUA(N), IMATRA(N), IMAT5L(N), IMAT6U(N)
+   INTEGER :: I
+
+   DO I = 1, N
+      IMATLA(I) = MERGE(IMATLA(I), 0., ANYBIN(I))
+      IMATDA(I) = MERGE(IMATDA(I), 1., ANYBIN(I))
+      IMATUA(I) = MERGE(IMATUA(I), 0., ANYBIN(I))
+      IMATRA(I) = MERGE(IMATRA(I), AC2(I), ANYBIN(I))
+      IMAT5L(I) = MERGE(IMAT5L(I), 0., ANYBIN(I))
+      IMAT6U(I) = MERGE(IMAT6U(I), 0., ANYBIN(I))
+   END DO
+END SUBROUTINE SOLPRE_OUTSIDE
 
 !************************************************************************
 

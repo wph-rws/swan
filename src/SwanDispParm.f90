@@ -53,6 +53,7 @@ subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig, kcgrd, icmax )
 !   Modules used
 
    use swan_diagnostics_level
+   use m_propcache, only: prop_cache_valid, prop_kwave, prop_cgo, prop_dmw
    use swan_input_grids
    use swan_physics_selection
    use swan_physical_settings
@@ -105,7 +106,16 @@ subroutine SwanDispParm ( kwave, cgo, dmw, dep2, mudl2, spcsig, kcgrd, icmax )
          dm = PMUD(1)
       endif
 
-      if ( deploc > DEPMIN ) then
+      if ( prop_cache_valid ) then
+
+         ! the depth is fixed during this computation: SWAPRE has stored
+         ! what KSCIP1 and KSCIP2 give for this vertex
+
+         kwave(1:MSC,ic) = prop_kwave(1:MSC,ivert)
+         cgo  (1:MSC,ic) = prop_cgo  (1:MSC,ivert)
+         dmw  (1:MSC,ic) = prop_dmw  (1:MSC,ivert)
+
+      elseif ( deploc > DEPMIN ) then
 
          call KSCIP1 (MSC, spcsig, deploc, kwave(1,ic), cgo(1,ic), n, nd)
          if ( IMUD == 1 ) call KSCIP2 (MSC, spcsig, deploc, kwave(1,ic), cgo(1,ic), n, nd, dmw(1,ic), dm)

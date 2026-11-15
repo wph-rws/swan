@@ -129,7 +129,9 @@ subroutine SwanTranspX (amat, rhs, ac2, ac1, cax, cay, rdx, rdy, obredf, WINDOW,
    do is = isslow, WINDOW%ISSTOP
 
       do iddum = WINDOW%IDCMIN(is), WINDOW%IDCMAX(is)
-         id = mod ( iddum - 1 + MDC , MDC ) + 1
+         id = iddum
+         if ( id < 1 ) id = id + MDC
+         if ( id > MDC ) id = id - MDC
 
          ! compute the contributions based on the lowest order upwind scheme
 

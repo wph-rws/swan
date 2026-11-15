@@ -917,11 +917,12 @@ SUBROUTINE SPROXY (CAX        , &
 !  Stencil addresses and width passed explicitly by SWOMPU.
 !
 !  OLD_LEVEL says that the velocities are those of the previous time level
-!  (CAX1, CAY1). The points 4 and 5 of the stencil are read for that level
-!  only, by SANDL. The velocities of the new level are read in the points
-!  1 to 3 and from 6 on (SWPSEL, SPROSD, DSPHER, SPREDT, SWTRCF and the
-!  schemes STRSXY, SORDUP and SANDL), so for that level the points 4 and 5
-!  are left as they are, unless the velocities are printed below.
+!  (CAX1, CAY1), or serve as such (SWOMPU, when both levels are equal). The
+!  points 4 and 5 of the stencil are read for that level only, by SANDL.
+!  The velocities of the new level are read in the points 1 to 3 and from
+!  6 on (SWPSEL, SPROSD, DSPHER, SPREDT, SWTRCF and the schemes STRSXY,
+!  SORDUP and SANDL), so for that level alone the points 4 and 5 are left
+!  as they are, unless the velocities are printed below.
 
 !   --|-----------------------------------------------------------|--
 !     | Delft University of Technology                            |
@@ -5032,7 +5033,7 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
 
    REAL  ARADSTR, DSDD, SDSDD, S1, ACT1, S2
    REAL  ACT2, S3, ACT3, ACT4, ACT5, ACONTR
-   INTEGER ISC, IDC, IDM, IDP
+   INTEGER ISC, IDC, IDM, IDP, NDISP
 
    LOGICAL  ANYBIN(MDC,MSC)
    LOGICAL :: WANT_GENR, WANT_REDS, WANT_TRAN, WANT_RADS
@@ -5049,6 +5050,25 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
    AREDIST(1:MREDS) = 0.
    ATRANSP(1:MTRNP) = 0.
    ARADSTR          = 0.
+
+!     The last four dissipation terms are vegetation (5), turbulence (6),
+!     mud (7) and sea ice (8). Each has coefficients that only the routine
+!     of that physics writes (SVEG, STURBV, SMUD, SICE), and SOURCE calls
+!     that routine only when the physics is switched on. A term that is
+!     off therefore holds the zeros that SOURCE gives the budget at every
+!     point visit: each of its contributions is +0.0, its sum stays the
+!     +0.0 it starts with, and the radiation stress does not change when
+!     +0.0 is subtracted. The terms after the last one that is switched
+!     on are left out of the loop, which with the usual physics halves
+!     the number of terms. Whitecapping, surf breaking, bottom friction
+!     and swell dissipation (1 to 4) are always summed.
+
+   NDISP = 4
+   IF (IVEG.NE.0)   NDISP = 5
+   IF (ITURBV.NE.0) NDISP = 6
+   IF (IMUD.NE.0)   NDISP = 7
+   IF (IICE.NE.0)   NDISP = MDISP
+
    do ISC = 1, MSC
       DSDD  = DDIR * FRINTF * SPCSIG(ISC)
       SDSDD = DSDD * SPCSIG(ISC)
@@ -5061,7 +5081,7 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
 
 !           --- compute for each dissipation term                         40.61
 
-            DO II = 1, MDISP
+            DO II = 1, NDISP
                ACONTR= SDSDD*(DISC0(IDC,ISC,II) + DISC1(IDC,ISC,II)*ACT1)
                ADISSIP(II) = ADISSIP(II) + ACONTR
                IF (WANT_RADS) ARADSTR = ARADSTR - ACONTR
@@ -5090,8 +5110,12 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
 !           --- compute for each propagation term
 
             IF (WANT_TRAN) THEN
-               IDM = MOD ( IDC - 2 + MDC , MDC ) + 1
-               IDP = MOD ( IDC     + MDC , MDC ) + 1
+               IDM = IDC - 1
+               IF (IDM.LT.1) IDM = IDM + MDC
+               IF (IDM.GT.MDC) IDM = IDM - MDC
+               IDP = IDC + 1
+               IF (IDP.LT.1) IDP = IDP + MDC
+               IF (IDP.GT.MDC) IDP = IDP - MDC
                S1   = SPCSIG(ISC)
                IF (ISC.EQ.1) THEN
                   S2   = 0.

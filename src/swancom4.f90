@@ -1363,7 +1363,9 @@ SUBROUTINE SWSNL1 (DIA_WORKSPACE, WINDOW, WWINT, SPCSIG, KMESPC, FACHFR, DEP2, A
    DO I = 1, WINDOW%ISSTOP
       SIGPI = SPCSIG(I) * JACOBI
       DO J = WINDOW%IDCMIN(I), WINDOW%IDCMAX(I)
-         ID = MOD ( J - 1 + MDC , MDC ) + 1
+         ID = J
+         IF (ID.LT.1) ID = ID + MDC
+         IF (ID.GT.MDC) ID = ID - MDC
 !        With the full circle (PERCIR) the interactions are there for
 !        the directions 1 to MDC and, folded, a few on either side. The
 !        range of this frequency can then still be stored with counters
@@ -1881,7 +1883,9 @@ SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2
 !     MDC, which is filled.
 
    DO J = WINDOW%IDDLOW, WINDOW%IDDTOP
-      ID = MOD ( J - 1 + MDC , MDC ) + 1
+      ID = J
+      IF (ID.LT.1) ID = ID + MDC
+      IF (ID.GT.MDC) ID = ID - MDC
       DO I = 1, WINDOW%ISSTOP
          SFNL(I,ID) =   - 2. * ( SA1(I,J) + SA2(I,J) ) &
             + AWG1 * ( SA1(I-ISP1,J-IDP1) + SA2(I-ISP1,J+IDP1) ) &

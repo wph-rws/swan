@@ -125,7 +125,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
    use swan_wind_source, only: WINDP1, WINDP3
    use swan_dissipation, only: PLTSRC
    use swan_nonlinear_interactions, only: FAC3WW, FAC4WW, SWBIPM, SWPRE4W
-   use swan_propagation, only: SPREDT, ADDDIS
+   use swan_propagation, only: SPREDT, ADDDIS, SWAPRE
+   use m_propcache, only: prop_cache_reset
    use swan_coordinate_offset
    use swan_run_mode
    use swan_stencil, only: MICMAX, RDFSIN_MASTER
@@ -508,6 +509,16 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
    TESTFL = TESTFL_MASTER
    RDFSIN = RDFSIN_MASTER
    !
+   ! wave number, group velocity and mud dissipation depend only on the depth:
+   ! store them once per vertex when the depth is fixed during this computation
+   ! (the same conditions as in SWCOMP). Without this, the dispersion relation
+   ! is solved again for every cell around every vertex in every sweep.
+
+   call prop_cache_reset()
+   if ( .not.DYNDEP .and. LSETUP == 0 .and. (NSTATC == 0 .or. IMUD /= 1) ) then
+      call SWAPRE ( compda(1,JDP2), compda(1,JMUDL2), spcsig )
+   endif
+
    ! spawn a parallel region
    !
    !$omp parallel default(shared) &
@@ -1805,6 +1816,8 @@ subroutine SwanCompUnstruc ( ac2, ac1, compda, spcsig, spcdir, xytst, cross, it,
    ! end of parallel region
    !
    !$omp end parallel
+
+   call prop_cache_reset()
    !
    ! store the source terms assembled in test points per time step in the files IFPAR, IFS1D and IFS2D
 

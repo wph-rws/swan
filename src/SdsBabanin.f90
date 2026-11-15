@@ -1281,9 +1281,13 @@ SUBROUTINE CALC_TAU_TOTAL(TAU_TOTAL,LFACTOR,REDUC,S_IN,DF,CINV,WIND10,GRAV, &
 
    LOGICAL          , INTENT(IN)  ::  VECTOR_TAU, TRUE_U10, TESTFL
 
-   REAL             , ALLOCATABLE  :: AEXP(:)
-   REAL             , ALLOCATABLE  :: UOVERC(:)
-   REAL             , ALLOCATABLE  :: S_IN_RED(:,:)
+!   Work arrays of the size of the spectrum. They are automatic arrays:
+!   this routine is called about ten times for every grid point visit
+!   (the iteration for the stress in SWIND_DBYB), and three allocations
+!   per call were a visible part of its time.
+   REAL :: AEXP(SIZE(DF))
+   REAL :: UOVERC(SIZE(DF))
+   REAL :: S_IN_RED(SIZE(S_IN,1),SIZE(DF))
 
    INTEGER :: NF,NDIR,IS,IDIR
    LOGICAL :: IS_THIS_A_NAN
@@ -1292,10 +1296,6 @@ SUBROUTINE CALC_TAU_TOTAL(TAU_TOTAL,LFACTOR,REDUC,S_IN,DF,CINV,WIND10,GRAV, &
    NF=SIZE(DF)
    NDIR=SIZE(S_IN,1)
    PI=2.0*ACOS(0.0)
-
-   ALLOCATE(UOVERC(NF))
-   ALLOCATE(AEXP(NF))
-   ALLOCATE(S_IN_RED(NDIR,NF))
 
    IF(TRUE_U10)THEN
       TEMP2 = WIND10
@@ -1321,7 +1321,9 @@ SUBROUTINE CALC_TAU_TOTAL(TAU_TOTAL,LFACTOR,REDUC,S_IN,DF,CINV,WIND10,GRAV, &
       DO IDIR=1,NDIR
          CTHETA=SPCDIR(IDIR,2)
          STHETA=SPCDIR(IDIR,3)
-         TAU_SIN_SCALAR=TAU_SIN_SCALAR+RHOW*GRAV*S_IN_RED(IDIR,IS)*CINV(IS) &
+!        (the scalar sum is only used by the old method below)
+         IF (.NOT.VECTOR_TAU) &
+            TAU_SIN_SCALAR=TAU_SIN_SCALAR+RHOW*GRAV*S_IN_RED(IDIR,IS)*CINV(IS) &
                         *DF(IS)*DDIR_RAD
          TAU_SIN_X=TAU_SIN_X+RHOW*GRAV*S_IN_RED(IDIR,IS)*CINV(IS)*DF(IS) &
                         *CTHETA*DDIR_RAD
@@ -1354,9 +1356,6 @@ SUBROUTINE CALC_TAU_TOTAL(TAU_TOTAL,LFACTOR,REDUC,S_IN,DF,CINV,WIND10,GRAV, &
    ENDIF
 
 ! Deallocate and return
-   DEALLOCATE(UOVERC)
-   DEALLOCATE(AEXP)
-   DEALLOCATE(S_IN_RED)
 
 END SUBROUTINE CALC_TAU_TOTAL
 

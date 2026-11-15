@@ -56,6 +56,7 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
 !   Modules used
 
    USE swan_diagnostics_level
+   use m_propcache, only: prop_cache_valid, prop_kwave
    USE swan_coordinate_offset
    USE swan_input_grids
    use swan_physics_selection
@@ -302,9 +303,19 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
 
             ! compute wave numbers for all frequencies
 
-            call KSCIP1 (MSC, spcsig, dloc(1), kloc(1,1))
-            call KSCIP1 (MSC, spcsig, dloc(2), kloc(1,2))
-            call KSCIP1 (MSC, spcsig, dloc(3), kloc(1,3))
+            ! (taken from the cache of SWAPRE when the depth is fixed; with a
+            ! mud layer the wave numbers are computed as before, because
+            ! KSCIP2 is called here without the group velocity)
+
+            if ( prop_cache_valid .and. IMUD /= 1 ) then
+               kloc(:,1) = prop_kwave(:,v(1))
+               kloc(:,2) = prop_kwave(:,v(2))
+               kloc(:,3) = prop_kwave(:,v(3))
+            else
+               call KSCIP1 (MSC, spcsig, dloc(1), kloc(1,1))
+               call KSCIP1 (MSC, spcsig, dloc(2), kloc(1,2))
+               call KSCIP1 (MSC, spcsig, dloc(3), kloc(1,3))
+            endif
 
             if ( IMUD == 1 ) then
 
@@ -353,9 +364,19 @@ subroutine SwanGradDepthorK ( dep2, mudl2, spcsig, dhdx, dhdy, dkdx, dkdy, ivert
 
             ! compute wave numbers for all frequencies
 
-            call KSCIP1 (MSC, spcsig, dloc(1), kloc(1,1))
-            call KSCIP1 (MSC, spcsig, dloc(2), kloc(1,2))
-            call KSCIP1 (MSC, spcsig, dloc(3), kloc(1,3))
+            ! (taken from the cache of SWAPRE when the depth is fixed; with a
+            ! mud layer the wave numbers are computed as before, because
+            ! KSCIP2 is called here without the group velocity)
+
+            if ( prop_cache_valid .and. IMUD /= 1 ) then
+               kloc(:,1) = prop_kwave(:,v(1))
+               kloc(:,2) = prop_kwave(:,v(2))
+               kloc(:,3) = prop_kwave(:,v(3))
+            else
+               call KSCIP1 (MSC, spcsig, dloc(1), kloc(1,1))
+               call KSCIP1 (MSC, spcsig, dloc(2), kloc(1,2))
+               call KSCIP1 (MSC, spcsig, dloc(3), kloc(1,3))
+            endif
 
             if ( IMUD == 1 ) then
 

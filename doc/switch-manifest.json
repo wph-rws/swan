@@ -383,7 +383,7 @@
     ],
     "swancom1.f90": [
      "USE swan_mpi_backend, ONLY: mpi_backend_enabled",
-     "IF (mpi_backend_enabled) ALLOCATE(AC2LOC(MCGRD))"
+     "IF (mpi_backend_enabled) THEN"
     ],
     "swanparll.f90": [
      "CALL mpi_backend_communication_constants",

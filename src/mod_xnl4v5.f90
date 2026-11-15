@@ -261,6 +261,12 @@ module m_xnldata
 ! real, allocatable :: nspecx(:,:)      ! extended action density spectrum
 !
 !  information about pre_computed locus, only half the angles need to be saved
+!
+!  The index along the locus comes first, so that the points of one locus
+!  lie next to each other in memory: Q_GETLOCUS copies one locus at a time,
+!  and with the locus index last every element of it lay a whole plane of
+!  the array further on. The order of the elements in the BQF file follows
+!  that of the arrays; its header has a mark for it (see Q_CTRGRID).
 
    integer, allocatable :: quad_nloc(:,:) ! number of points on locus
    integer, allocatable :: quad_ik2(:,:,:) ! lower wave number index of k2
@@ -1278,25 +1284,25 @@ subroutine q_allocate
    if (allocated (q_sk)) deallocate (q_sk)  ; allocate(q_sk(0:nkq))
 
    if (allocated (quad_nloc)) deallocate (quad_nloc) ;  allocate (quad_nloc(mkq,maq))
-   if (allocated (quad_ik2))  deallocate (quad_ik2)  ;  allocate (quad_ik2(mkq,maq,klocus))
-   if (allocated (quad_ia2))  deallocate (quad_ia2)  ;  allocate (quad_ia2(mkq,maq,klocus))
-   if (allocated (quad_ik4))  deallocate (quad_ik4)  ;  allocate (quad_ik4(mkq,maq,klocus))
-   if (allocated (quad_ia4))  deallocate (quad_ia4)  ;  allocate (quad_ia4(mkq,maq,klocus))
-   if (allocated (quad_w1k2)) deallocate (quad_w1k2) ;  allocate (quad_w1k2(mkq,maq,klocus))
-   if (allocated (quad_w2k2)) deallocate (quad_w2k2) ;  allocate (quad_w2k2(mkq,maq,klocus))
-   if (allocated (quad_w3k2)) deallocate (quad_w3k2) ;  allocate (quad_w3k2(mkq,maq,klocus))
-   if (allocated (quad_w4k2)) deallocate (quad_w4k2) ;  allocate (quad_w4k2(mkq,maq,klocus))
-   if (allocated (quad_w1k4)) deallocate (quad_w1k4) ;  allocate (quad_w1k4(mkq,maq,klocus))
-   if (allocated (quad_w2k4)) deallocate (quad_w2k4) ;  allocate (quad_w2k4(mkq,maq,klocus))
-   if (allocated (quad_w3k4)) deallocate (quad_w3k4) ;  allocate (quad_w3k4(mkq,maq,klocus))
-   if (allocated (quad_w4k4)) deallocate (quad_w4k4) ;  allocate (quad_w4k4(mkq,maq,klocus))
-   if (allocated (quad_zz))   deallocate (quad_zz)   ;  allocate (quad_zz(mkq,maq,klocus))
-   if (allocated (quad_t2))   deallocate (quad_t2)   ;  allocate (quad_t2(mkq,maq,klocus))
-   if (allocated (quad_t4))   deallocate (quad_t4)   ;  allocate (quad_t4(mkq,maq,klocus))
-   if (allocated (quad_cple)) deallocate (quad_cple) ;  allocate (quad_cple(mkq,maq,klocus))
-   if (allocated (quad_jac))  deallocate (quad_jac)  ;  allocate (quad_jac(mkq,maq,klocus))
-   if (allocated (quad_sym))  deallocate (quad_sym)  ;  allocate (quad_sym(mkq,maq,klocus))
-   if (allocated (quad_ws))   deallocate (quad_ws)   ;  allocate (quad_ws(mkq,maq,klocus))
+   if (allocated (quad_ik2))  deallocate (quad_ik2)  ;  allocate (quad_ik2(klocus,mkq,maq))
+   if (allocated (quad_ia2))  deallocate (quad_ia2)  ;  allocate (quad_ia2(klocus,mkq,maq))
+   if (allocated (quad_ik4))  deallocate (quad_ik4)  ;  allocate (quad_ik4(klocus,mkq,maq))
+   if (allocated (quad_ia4))  deallocate (quad_ia4)  ;  allocate (quad_ia4(klocus,mkq,maq))
+   if (allocated (quad_w1k2)) deallocate (quad_w1k2) ;  allocate (quad_w1k2(klocus,mkq,maq))
+   if (allocated (quad_w2k2)) deallocate (quad_w2k2) ;  allocate (quad_w2k2(klocus,mkq,maq))
+   if (allocated (quad_w3k2)) deallocate (quad_w3k2) ;  allocate (quad_w3k2(klocus,mkq,maq))
+   if (allocated (quad_w4k2)) deallocate (quad_w4k2) ;  allocate (quad_w4k2(klocus,mkq,maq))
+   if (allocated (quad_w1k4)) deallocate (quad_w1k4) ;  allocate (quad_w1k4(klocus,mkq,maq))
+   if (allocated (quad_w2k4)) deallocate (quad_w2k4) ;  allocate (quad_w2k4(klocus,mkq,maq))
+   if (allocated (quad_w3k4)) deallocate (quad_w3k4) ;  allocate (quad_w3k4(klocus,mkq,maq))
+   if (allocated (quad_w4k4)) deallocate (quad_w4k4) ;  allocate (quad_w4k4(klocus,mkq,maq))
+   if (allocated (quad_zz))   deallocate (quad_zz)   ;  allocate (quad_zz(klocus,mkq,maq))
+   if (allocated (quad_t2))   deallocate (quad_t2)   ;  allocate (quad_t2(klocus,mkq,maq))
+   if (allocated (quad_t4))   deallocate (quad_t4)   ;  allocate (quad_t4(klocus,mkq,maq))
+   if (allocated (quad_cple)) deallocate (quad_cple) ;  allocate (quad_cple(klocus,mkq,maq))
+   if (allocated (quad_jac))  deallocate (quad_jac)  ;  allocate (quad_jac(klocus,mkq,maq))
+   if (allocated (quad_sym))  deallocate (quad_sym)  ;  allocate (quad_sym(klocus,mkq,maq))
+   if (allocated (quad_ws))   deallocate (quad_ws)   ;  allocate (quad_ws(klocus,mkq,maq))
 
    if (allocated(x2_loc))   deallocate(x2_loc)     ;  allocate (x2_loc(mlocus))
    if (allocated(y2_loc))   deallocate(y2_loc)     ;  allocate (y2_loc(mlocus))
@@ -2357,6 +2363,17 @@ subroutine q_ctrgrid(itask,igrid)
       write(q_header,'(3i3.3,7i2.2)') naq,nkq,nlocus0, &
          iq_grid,iq_geom,iq_disp,iq_cple,iq_locus,iq_interp,iq_gauleg
 
+!  The loci are stored in the file with the index along the locus first.
+!  A file of an earlier version of this module has that index last, with a
+!  header that is otherwise the same. To tell the two apart the header gets
+!  the letter L in position 10. That is the first digit of IQ_GRID, which
+!  is 1, 2 or 3 and so is written as 01, 02 or 03: an earlier header always
+!  has a 0 there. A file of the other kind is therefore taken as a file
+!  with another header, by this version and by an earlier one, and the
+!  grid is made again.
+
+      q_header(10:10) = 'L'
+
       if(iq_prt>=2) then
          write(luq_prt,'(2a)')    'Q_CTRGRID: header info:',trim(q_header)
          write(luq_prt,'(a,3i5)') 'Q_CTRGRID: naq nkq nlocus0:',naq,nkq,nlocus0
@@ -3239,30 +3256,30 @@ subroutine q_getlocus(ik1,ia1,ik3,ia3,ifnd)
 
       if(nlocusx==0) exit q_getlocus_flow
 
-      r_ik2(1:nloc)   = quad_ik2(kmem,amem,1:nloc)
-      r_ia2(1:nloc)   = quad_ia2(kmem,amem,1:nloc)
-      r_ik4(1:nloc)   = quad_ik4(kmem,amem,1:nloc)
-      r_ia4(1:nloc)   = quad_ia4(kmem,amem,1:nloc)
+      r_ik2(1:nloc)   = quad_ik2(1:nloc,kmem,amem)
+      r_ia2(1:nloc)   = quad_ia2(1:nloc,kmem,amem)
+      r_ik4(1:nloc)   = quad_ik4(1:nloc,kmem,amem)
+      r_ia4(1:nloc)   = quad_ia4(1:nloc,kmem,amem)
 
-      r_w1k2(1:nloc)  = quad_w1k2(kmem,amem,1:nloc)
-      r_w2k2(1:nloc)  = quad_w2k2(kmem,amem,1:nloc)
-      r_w3k2(1:nloc)  = quad_w3k2(kmem,amem,1:nloc)
-      r_w4k2(1:nloc)  = quad_w4k2(kmem,amem,1:nloc)
+      r_w1k2(1:nloc)  = quad_w1k2(1:nloc,kmem,amem)
+      r_w2k2(1:nloc)  = quad_w2k2(1:nloc,kmem,amem)
+      r_w3k2(1:nloc)  = quad_w3k2(1:nloc,kmem,amem)
+      r_w4k2(1:nloc)  = quad_w4k2(1:nloc,kmem,amem)
 
-      r_w1k4(1:nloc)  = quad_w1k4(kmem,amem,1:nloc)
-      r_w2k4(1:nloc)  = quad_w2k4(kmem,amem,1:nloc)
-      r_w3k4(1:nloc)  = quad_w3k4(kmem,amem,1:nloc)
-      r_w4k4(1:nloc)  = quad_w4k4(kmem,amem,1:nloc)
+      r_w1k4(1:nloc)  = quad_w1k4(1:nloc,kmem,amem)
+      r_w2k4(1:nloc)  = quad_w2k4(1:nloc,kmem,amem)
+      r_w3k4(1:nloc)  = quad_w3k4(1:nloc,kmem,amem)
+      r_w4k4(1:nloc)  = quad_w4k4(1:nloc,kmem,amem)
 
-      r_zz(1:nloc)    = quad_zz(kmem,amem,1:nloc)
+      r_zz(1:nloc)    = quad_zz(1:nloc,kmem,amem)
 
-      r_tail2(1:nloc) = quad_t2(kmem,amem,1:nloc)
-      r_tail4(1:nloc) = quad_t4(kmem,amem,1:nloc)
+      r_tail2(1:nloc) = quad_t2(1:nloc,kmem,amem)
+      r_tail4(1:nloc) = quad_t4(1:nloc,kmem,amem)
 
-      r_jac(1:nloc)  = quad_jac(kmem,amem,1:nloc)
-      r_cple(1:nloc) = quad_cple(kmem,amem,1:nloc)
-      r_sym(1:nloc)  = quad_sym(kmem,amem,1:nloc)
-      r_ws(1:nloc)   = quad_ws(kmem,amem,1:nloc)
+      r_jac(1:nloc)  = quad_jac(1:nloc,kmem,amem)
+      r_cple(1:nloc) = quad_cple(1:nloc,kmem,amem)
+      r_sym(1:nloc)  = quad_sym(1:nloc,kmem,amem)
+      r_ws(1:nloc)   = quad_ws(1:nloc,kmem,amem)
 
 !------------------------------------------------------------------------------
       kdif = ikmin - 1
@@ -4482,13 +4499,13 @@ subroutine q_makegrid
 !  symmetry factor, and tail factor divided by jacobian
 
                   tfac = wt_k2(iloc)*wt_k4(iloc)
-                  quad_zz(kmem,amem,iloc) = cple_mod(iloc)*ds_mod(iloc)*sym_mod(iloc)/jac_mod(iloc)
+                  quad_zz(iloc,kmem,amem) = cple_mod(iloc)*ds_mod(iloc)*sym_mod(iloc)/jac_mod(iloc)
 
 !----------------------------------------------------------------------------------------
 !  compact data by elimating zero-contribution on locus
 !----------------------------------------------------------------------------------------
 
-                  if(iq_compact==1 .and. abs(quad_zz(kmem,amem,iloc)) > 1.e-15) then
+                  if(iq_compact==1 .and. abs(quad_zz(iloc,kmem,amem)) > 1.e-15) then
                      nzloc = nzloc + 1
                      jloc  = nzloc
                      nztot1 = nztot1 + 1
@@ -4499,30 +4516,30 @@ subroutine q_makegrid
 
 !  shift data
 
-                  quad_zz(kmem,amem,jloc)  = quad_zz(kmem,amem,iloc)
+                  quad_zz(jloc,kmem,amem)  = quad_zz(iloc,kmem,amem)
 
-                  quad_ik2(kmem,amem,jloc) = ik2 ! lower wave number index of k2
-                  quad_ia2(kmem,amem,jloc) = ia2 ! lower direction index of k2
-                  quad_ik4(kmem,amem,jloc) = ik4 ! lower wave number index of k4
-                  quad_ia4(kmem,amem,jloc) = ia4 ! lower direction index of k4
+                  quad_ik2(jloc,kmem,amem) = ik2 ! lower wave number index of k2
+                  quad_ia2(jloc,kmem,amem) = ia2 ! lower direction index of k2
+                  quad_ik4(jloc,kmem,amem) = ik4 ! lower wave number index of k4
+                  quad_ia4(jloc,kmem,amem) = ia4 ! lower direction index of k4
 
-                  quad_w1k2(kmem,amem,jloc) = w1k2 ! weight 1 of k2
-                  quad_w2k2(kmem,amem,jloc) = w2k2 ! weight 2 of k2
-                  quad_w3k2(kmem,amem,jloc) = w3k2 ! weight 3 of k2
-                  quad_w4k2(kmem,amem,jloc) = w4k2 ! weight 4 of k2
+                  quad_w1k2(jloc,kmem,amem) = w1k2 ! weight 1 of k2
+                  quad_w2k2(jloc,kmem,amem) = w2k2 ! weight 2 of k2
+                  quad_w3k2(jloc,kmem,amem) = w3k2 ! weight 3 of k2
+                  quad_w4k2(jloc,kmem,amem) = w4k2 ! weight 4 of k2
 
-                  quad_w1k4(kmem,amem,jloc) = w1k4 ! weight 1 of k4
-                  quad_w2k4(kmem,amem,jloc) = w2k4 ! weight 2 of k4
-                  quad_w3k4(kmem,amem,jloc) = w3k4 ! weight 3 of k4
-                  quad_w4k4(kmem,amem,jloc) = w4k4 ! weight 4 of k4
+                  quad_w1k4(jloc,kmem,amem) = w1k4 ! weight 1 of k4
+                  quad_w2k4(jloc,kmem,amem) = w2k4 ! weight 2 of k4
+                  quad_w3k4(jloc,kmem,amem) = w3k4 ! weight 3 of k4
+                  quad_w4k4(jloc,kmem,amem) = w4k4 ! weight 4 of k4
 
-                  quad_t2(kmem,amem,jloc)   = wt_k2(iloc) ! tail factor for k2
-                  quad_t4(kmem,amem,jloc)   = wt_k4(iloc) ! tail factor for k4
+                  quad_t2(jloc,kmem,amem)   = wt_k2(iloc) ! tail factor for k2
+                  quad_t4(jloc,kmem,amem)   = wt_k4(iloc) ! tail factor for k4
 
-                  quad_cple(kmem,amem,jloc) = cple_mod(iloc)
-                  quad_jac(kmem,amem,jloc)  = jac_mod(iloc)
-                  quad_sym(kmem,amem,jloc)  = sym_mod(iloc)
-                  quad_ws(kmem,amem,jloc)   = ds_mod(iloc)
+                  quad_cple(jloc,kmem,amem) = cple_mod(iloc)
+                  quad_jac(jloc,kmem,amem)  = jac_mod(iloc)
+                  quad_sym(jloc,kmem,amem)  = sym_mod(iloc)
+                  quad_ws(jloc,kmem,amem)   = ds_mod(iloc)
 
                end do loc
 

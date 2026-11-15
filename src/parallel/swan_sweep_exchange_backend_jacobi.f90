@@ -1,8 +1,9 @@
 module swan_sweep_exchange_backend
    use swan_build_config, only: timing_enabled
    use swan_computational_grid, only: MCGRD, MXC, MYC
-   use M_PARALL, only: IBLKAD, PARLL
-   use swan_mpi_backend, only: mpi_backend_enabled
+   use M_PARALL, only: IBLKAD, PARLL, SWMPI_CHECK, SWREAL
+   use swan_mpi_backend, only: mpi_backend_enabled, mpi_backend_irecv_real, &
+      mpi_backend_isend_real, mpi_backend_wait_all
    use swan_parallel, only: SWEXCHG_JAC, SWSYNC
    use swan_service_interfaces, only: STPNOW, SWTSTA, SWTSTO
    use swan_spectral_grid, only: MDC, MSC
@@ -127,82 +128,100 @@ subroutine exchange_swan_field(field, group_points)
    call SWEXCHG_JAC(field, 0, group_points)
 end subroutine exchange_swan_field
 
-subroutine complete_sweep(sweep_index, action_density, work, &
-   group_points, stop_requested)
+subroutine complete_sweep(sweep_index, action_density, group_points, &
+   stop_requested)
    integer, intent(in) :: sweep_index
    real, intent(inout) :: action_density(MDC,MSC,MCGRD)
-   real, allocatable, intent(inout) :: work(:)
    integer, intent(in) :: group_points(MXC*MYC)
    logical, intent(out) :: stop_requested
-
-   integer :: direction, frequency, k
-   integer, allocatable :: points(:)
 
    stop_requested = .false.
    if (sweep_index /= 3 .or. .not.mpi_backend_enabled) return
    if (timing_enabled) call SWTSTA(213)
-   !  The exchange reads the field only in the points it sends to a
-   !  neighbour and writes it only in the points it receives, the edges of
-   !  the subdomain. So only those points are copied to the work array and
-   !  back, instead of the whole field for each of the MDC*MSC bins. With
-   !  one process there is no neighbour and nothing to copy.
+   !  With one process there is no neighbour and nothing to exchange.
    if (PARLL) then
-      call exchange_points(group_points, points)
-      do direction = 1, MDC
-         do frequency = 1, MSC
-            do k = 1, size(points)
-               work(points(k)) = action_density(direction,frequency,points(k))
-            end do
-            call exchange_swan_field(work, group_points)
-            if (STPNOW()) then
-               stop_requested = .true.
-               return
-            end if
-            do k = 1, size(points)
-               action_density(direction,frequency,points(k)) = work(points(k))
-            end do
-         end do
-      end do
+      call exchange_action_density(action_density, group_points)
+      if (STPNOW()) then
+         stop_requested = .true.
+         return
+      end if
    end if
    call SWSYNC
    stop_requested = STPNOW()
    if (timing_enabled) call SWTSTO(213)
 end subroutine complete_sweep
 
-!  The grid addresses that SWEXCHG_JAC reads or writes: for every
-!  neighbour, the points to send and the points to receive, as the block
-!  administration IBLKAD lists them. A point may be in the list twice.
-subroutine exchange_points(group_points, points)
+!  Exchange the action density on the edges of the subdomain with the
+!  neighbouring subdomains: for every neighbour one message with all
+!  spectral bins of the points it needs, and one back. SWEXCHG_JAC does
+!  the same for one field at a time, which took MDC*MSC small messages per
+!  neighbour; the values and the order in which they are stored are the
+!  same. The receives are posted first and the sends do not block: two
+!  neighbours send to each other at the same time, and a blocking send of a
+!  message this large waits until the other side receives.
+subroutine exchange_action_density(action_density, group_points)
+   real, intent(inout) :: action_density(MDC,MSC,MCGRD)
    integer, intent(in) :: group_points(MXC*MYC)
-   integer, allocatable, intent(out) :: points(:)
 
-   integer :: neighbour, start, k, n
+   integer, parameter :: tag = 2
+   integer :: neighbour, neighbours, domain, start, count, k, ierr
+   integer, allocatable :: first(:), requests(:)
+   real, allocatable :: incoming(:,:,:), outgoing(:,:,:)
 
-   n = 0
-   do neighbour = 1, IBLKAD(1)
+   neighbours = IBLKAD(1)
+   allocate(first(neighbours+1), requests(2*neighbours))
+   first(1) = 1
+   do neighbour = 1, neighbours
       start = IBLKAD(3*neighbour+1)
-      n = n + 2*IBLKAD(start)
+      first(neighbour+1) = first(neighbour) + IBLKAD(start)
    end do
-   allocate(points(n))
-   n = 0
-   do neighbour = 1, IBLKAD(1)
+   !  one element more than is used, so that the buffer of a neighbour
+   !  without points still has an address
+   allocate(incoming(MDC,MSC,first(neighbours+1)))
+   allocate(outgoing(MDC,MSC,first(neighbours+1)))
+
+   do neighbour = 1, neighbours
+      domain = IBLKAD(3*neighbour-1)
       start = IBLKAD(3*neighbour+1)
-      do k = 1, 2*IBLKAD(start)
-         n = n + 1
-         points(n) = group_points(IBLKAD(start+k))
+      count = IBLKAD(start)
+      call mpi_backend_irecv_real(incoming(1,1,first(neighbour)), &
+         MDC*MSC*count, SWREAL, domain-1, tag, requests(neighbour), ierr)
+      call SWMPI_CHECK(ierr, 'MPI_IRECV')
+   end do
+   do neighbour = 1, neighbours
+      domain = IBLKAD(3*neighbour-1)
+      start = IBLKAD(3*neighbour+1)
+      count = IBLKAD(start)
+      do k = 1, count
+         outgoing(:,:,first(neighbour)+k-1) = &
+            action_density(:,:,group_points(IBLKAD(start+k)))
+      end do
+      call mpi_backend_isend_real(outgoing(1,1,first(neighbour)), &
+         MDC*MSC*count, SWREAL, domain-1, tag, &
+         requests(neighbours+neighbour), ierr)
+      call SWMPI_CHECK(ierr, 'MPI_ISEND')
+   end do
+   call mpi_backend_wait_all(2*neighbours, requests, ierr)
+   call SWMPI_CHECK(ierr, 'MPI_WAITALL')
+
+   do neighbour = 1, neighbours
+      start = IBLKAD(3*neighbour+1)
+      count = IBLKAD(start)
+      do k = 1, count
+         action_density(:,:,group_points(IBLKAD(start+count+k))) = &
+            incoming(:,:,first(neighbour)+k-1)
       end do
    end do
-end subroutine exchange_points
+end subroutine exchange_action_density
 
-subroutine complete_sweep_iteration(action_density, work, group_points, &
+subroutine complete_sweep_iteration(action_density, group_points, &
    stop_requested)
    real, intent(inout) :: action_density(MDC,MSC,MCGRD)
-   real, allocatable, intent(inout) :: work(:)
    integer, intent(in) :: group_points(MXC*MYC)
    logical, intent(out) :: stop_requested
 
    stop_requested = .false.
-   if (.not.mpi_backend_enabled .and. allocated(work)) then
+   if (.not.mpi_backend_enabled) then
       stop_requested = size(action_density) == 0 .and. group_points(1) == 0
    end if
 end subroutine complete_sweep_iteration
