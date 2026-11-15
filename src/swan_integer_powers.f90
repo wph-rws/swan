@@ -18,7 +18,15 @@ module swan_integer_powers
 !     Tm01 difference of 1.2e-3 by time step 5, which kept the Debug route from
 !     reproducing the reference.
 !
-!     X**2, X**3 and X**4 need nothing: both methods form X*X, X*X2 and X2*X2.
+!     X**2 and X**3 need nothing: both methods form X*X and X*X2. For X**4
+!     gfortran forms X2*X2 at every level, but another compiler need not:
+!     LLVM flang 22 multiplies three times, ((X*X)*X)*X, and that rounds
+!     differently. So a fourth power is written as (X*X)**2 where it stands,
+!     which every compiler squares twice. With that, flang gives the output
+!     of a gfortran build without the vector maths library on every example
+!     deck (15 November 2026); for gfortran nothing changes. The Intel
+!     compiler expands X**5 and X**11 by repeated squaring, as -O0 does, so
+!     with it this module is also what makes the result one and the same.
 !
    implicit none(type, external)
    private

@@ -7783,7 +7783,7 @@ real function x_cosk(k)
    case(1) ! deep water
 
       qq = q/sqrt(q_grav)
-      x_cosk = ((qq+sqrt(k))**4 - k**2 - pmag**2)/(2.*k*pmag)
+      x_cosk = ((((qq+sqrt(k)))*((qq+sqrt(k))))**2 - k**2 - pmag**2)/(2.*k*pmag)
 
    case(2) !  finite depth
 

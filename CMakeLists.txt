@@ -98,13 +98,18 @@ if( CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )
   )
 elseif( CMAKE_Fortran_COMPILER_ID STREQUAL "IntelLLVM" )
   # Current Intel route (ifx). Visible strict set; no -W0.
+  # -fp-model precise: the default model of ifx (fast=1) reorders products,
+  # and it does so differently in the OpenMP build than in the serial one
+  # (the SIMD loop of the DIA in SWSNL2). With the precise model the output
+  # does not depend on the build or on the number of threads, as with
+  # gfortran. See doc/support-matrix.md.
   if( UNIX )
     target_compile_options( swan_build_options INTERFACE
-      -warn all -assume byterecl -traceback -stand:f2018
+      -warn all -assume byterecl -traceback -stand:f2018 -fp-model precise
     )
   elseif( WIN32 )
     target_compile_options( swan_build_options INTERFACE
-      /warn:all /assume:byterecl /traceback /stand:f2018 /nologo
+      /warn:all /assume:byterecl /traceback /stand:f2018 /nologo /fp:precise
     )
   endif()
   message( STATUS "IntelLLVM (ifx) recognised: second implementation, qualification required (language probes + serial, then OpenMP/MPI/netCDF); see doc/support-matrix.md" )
@@ -146,9 +151,15 @@ if( SWAN_RUNTIME_CHECKS )
   # goes through libgcc's __powisf2 instead of the optimiser's product chain,
   # and X**2. through powf instead of X*X. Both are written out
   # (src/swan_integer_powers.f90, X**2), so those products are the same at
-  # every level. What remains is -O3 being the odd one out: swancom1 and
-  # SdsBabanin compute the same at -O0, -O1 and -O2 but differently at -O3,
-  # and no single -O3-only flag is responsible. With gfortran 16.2 that stays
+  # every level. What remains comes from glibc's vector maths library
+  # (libmvec). From -O2 on gfortran calls its vector versions of exp, pow,
+  # sinh, sin and cos in vectorised loops, and those round differently from
+  # the scalar functions: in CALC_SDS and CALC_TAU_TOTAL (SdsBabanin, ST6),
+  # in SINTGRL (the bottom orbital velocity, seen with Madsen friction and
+  # ripples), in mod_xnl4v5 (the exact quadruplets) and, at -O3 only, in the
+  # spectral width FSPR of SWOEXA. -O0 and -O1 give the same output on every
+  # example deck; a build without libmvec (-fno-tree-vectorize) does so at
+  # every level (gfortran 16.2, 15 November 2026). The differences stay
   # within the tolerance of the stored references, and a Debug build passes
   # every test.
   if( CMAKE_Fortran_COMPILER_ID MATCHES "GNU" )

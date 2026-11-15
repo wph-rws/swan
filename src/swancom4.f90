@@ -258,7 +258,7 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
 
 !     *** set values for the nonlinear four-wave interactions ***
 
-   SNLC1  = 1. / GRAV**4
+   SNLC1  = 1. / (GRAV*GRAV)**2
 
    LAMM2  = (1.-PQUAD(1))**2
    LAMP2  = (1.+PQUAD(1))**2
@@ -266,8 +266,8 @@ SUBROUTINE FAC4WW (XIS   ,SNLC1 , &
    AUX1   = SIN(DELTH3)
    DELTH4 = ASIN(-AUX1*LAMM2/LAMP2)
 
-   DAL1   = 1. / (1.+PQUAD(1))**4
-   DAL2   = 1. / (1.-PQUAD(1))**4
+   DAL1   = 1. / (((1.+PQUAD(1)))*((1.+PQUAD(1))))**2
+   DAL2   = 1. / (((1.-PQUAD(1)))*((1.-PQUAD(1))))**2
    DAL3   = 2. * DAL1 * DAL2
 
 !     *** Compute directional indices in sigma and theta space ***
@@ -1780,7 +1780,9 @@ SUBROUTINE SWSNL2 (WINDOW, WWINT, WWAWG, UE, SA1, SA2, SPCSIG, SNLC1, DAL1, DAL2
 !     *** Energy at interacting bins  ***
 
    DO ID = IDCLOW , IDCHGH
-      !$OMP SIMD
+!        the values of one bin are named private, so that the loop does
+!        not rest on the compiler finding that out for itself
+      !$OMP SIMD PRIVATE(E00, EP1, EM1, EP2, EM2, FACTOR, SA1A, SA1B, SA2A, SA2B)
       DO IS = ISCLW, ISCHG
          E00    =        UE(IS      ,ID      )
          EP1    = AWG1 * UE(IS+ISP1,ID+IDP1) + &
@@ -3940,8 +3942,8 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG, TRIADS )
 
 !                    --- compute and store the DCTA scaling factors
 
-                     QTRI2(J,IP,1) = FT**4 * CG1 * K1**P
-                     QTRI2(J,IP,2) = FT**4 * CG2 * K2**P
+                     QTRI2(J,IP,1) = (FT*FT)**2 * CG1 * K1**P
+                     QTRI2(J,IP,2) = (FT*FT)**2 * CG2 * K2**P
 
                   ENDIF
 

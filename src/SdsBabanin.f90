@@ -1452,7 +1452,7 @@ SUBROUTINE SWIND0_NRL (SPCSIG,THETAW,ANYWND, &
 
    DO IS = 1, MSC
       ARGU   = MIN (2., FPM / SPCSIG(IS))
-      FILTER = EXP ( - ARGU**4 )
+      FILTER = EXP ( - (ARGU*ARGU)**2 )
 
 ! note that this SIGMA is not in eq A-2 of Ris (1997). Thus, we are calculating
 ! "A/sigma" here, not "A"
@@ -1464,7 +1464,7 @@ SUBROUTINE SWIND0_NRL (SPCSIG,THETAW,ANYWND, &
          IF ( ANYWND(ID) .AND. SPCSIG(IS) .GE. (0.7 * FPM) ) THEN
             THETA  = SPCDIR(ID,1)
             COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
-            TEMP3  = ( UFRIC *  MAX( 0. , COSDIF))**4
+            TEMP3  = ((( UFRIC *  MAX( 0. , COSDIF)))*(( UFRIC *  MAX( 0. , COSDIF))))**2
             SWINEA(ID,IS) = MAX( 0. , TEMP2 * TEMP3 * FILTER )
 
 ! begin method 1 for reduction

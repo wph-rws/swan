@@ -406,7 +406,7 @@ SUBROUTINE WNDPAR (WINDOW, DEP2, WIND10, GENC0, GENC1, THETAW, AC2, KWAVE, IMATR
 
       CALL WINDP2 (WINDOW, SIGPKD, FPM, ETOTW, AC2, SPCSIG, WIND10, IGP, TESTFL)
 
-      EDML = MIN ( PWIND(10) , (GRAV**2 * ETOTW) / WIND10**4 )
+      EDML = MIN ( PWIND(10) , (GRAV**2 * ETOTW) / (WIND10*WIND10)**2 )
       EDML = MAX ( 1.E-25 , EDML )
 
       ARG1 = ABS(PWIND(6))
@@ -428,7 +428,7 @@ SUBROUTINE WNDPAR (WINDOW, DEP2, WIND10, GENC0, GENC1, THETAW, AC2, KWAVE, IMATR
    DO IS = 1, WINDOW%ISSTOP
       TEMP1  = ALPM / ( 2. * KWAVE(IS,1)**3 * CGO(IS,1) )
       ARG2   = MIN ( 2. , SIGPKD / SPCSIG(IS) )
-      TEMP2  = EXP ( (-5./4.) * ARG2**4 )
+      TEMP2  = EXP ( (-5./4.) * (ARG2*ARG2)**2 )
       ALIM1D = TEMP1 * TEMP2 / SPCSIG(IS)
       DO IDDUM = WINDOW%IDWMIN, WINDOW%IDWMAX
          ID     = MOD ( IDDUM - 1 + MDC, MDC ) + 1
@@ -485,7 +485,7 @@ SUBROUTINE WNDPAR (WINDOW, DEP2, WIND10, GENC0, GENC1, THETAW, AC2, KWAVE, IMATR
          IF ( GROWW(ID,IS) ) THEN
 !           *** term A ***
             IF ( SIGMA .GE. ( 0.7 * SIGPKD ) ) THEN
-               ADUM = FACTA * (WIND10 * COSDIF)**4
+               ADUM = FACTA * (((WIND10 * COSDIF))*((WIND10 * COSDIF)))**2
                ADUM = MAX ( 0. , ADUM / SIGTPI )
             ELSE
                ADUM = 0.
@@ -1780,7 +1780,7 @@ SUBROUTINE SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, FPM, PLWNDS, IMATRA, S
 !       **** values of fpm/sigma too small could be some problems ***
 !       **** with some computers to handle small numbers          ***
       ARGU   = MIN (2., FPM / SIGMA)
-      FILTER = EXP ( - ARGU**4 )
+      FILTER = EXP ( - (ARGU*ARGU)**2 )
 !       note that SIGMA below is not in eq A-2 of Ris (1997)
 !       thus, we are calculating "A/sigma" here, not "A"
       TEMP2  = TEMP1 / SIGMA
@@ -1791,7 +1791,7 @@ SUBROUTINE SWIND0 (WINDOW, SPCSIG, THETAW, ANYWND, UFRIC, FPM, PLWNDS, IMATRA, S
          IF ( ANYWND(ID) .AND. SIGMA .GE. (0.7 * FPM) ) THEN
             THETA  = SPCDIR(ID,1)
             COSDIF = SPCDIR(ID,2)*CTW + SPCDIR(ID,3)*STW
-            TEMP3  = ( UFRIC *  MAX( 0. , COSDIF))**4
+            TEMP3  = ((( UFRIC *  MAX( 0. , COSDIF)))*(( UFRIC *  MAX( 0. , COSDIF))))**2
             SWINEA = MAX( 0. , TEMP2 * TEMP3 * FILTER )
 !           see above remarks for rationale on reduction above 1 Hz
             FREQ1 = SIGMA/PI2
@@ -2438,8 +2438,8 @@ SUBROUTINE SWIND4 (WINDOW, SPCSIG, WIND10, THETAW, XIS, DD, KWAVE, IMATRA, GENC0
                ZARG2 = XKAPPA / ( (UFRIC / CW2 + ZALP ) * COS1 )
                ZLOG1 = ZCN1 + ZARG1
                ZLOG2 = ZCN2 + ZARG2
-               IF (ZLOG1.LT.0.) BETA1 = F1 * X1 * EXP (ZLOG1) * ZLOG1**4
-               IF (ZLOG2.LT.0.) BETA2 = F1 * X2 * EXP (ZLOG2) * ZLOG2**4
+               IF (ZLOG1.LT.0.) BETA1 = F1 * X1 * EXP (ZLOG1) * (ZLOG1*ZLOG1)**2
+               IF (ZLOG2.LT.0.) BETA2 = F1 * X2 * EXP (ZLOG2) * (ZLOG2*ZLOG2)**2
             ENDIF
 
 !           *** calculate wave stress by integrating input source ***
@@ -2501,8 +2501,8 @@ SUBROUTINE SWIND4 (WINDOW, SPCSIG, WIND10, THETAW, XIS, DD, KWAVE, IMATRA, GENC0
                ZAHF2 = XKAPPA / ( UFRIC / CW2 + ZALP )
                ZLOG1 = ZCNHF1 + ZAHF1
                ZLOG2 = ZCNHF2 + ZAHF2
-               IF ( ZLOG1 .LT. 0. ) BETA1 = F1 * EXP (ZLOG1) * ZLOG1**4
-               IF ( ZLOG2 .LT. 0. ) BETA2 = F1 * EXP (ZLOG2) * ZLOG2**4
+               IF ( ZLOG1 .LT. 0. ) BETA1 = F1 * EXP (ZLOG1) * (ZLOG1*ZLOG1)**2
+               IF ( ZLOG2 .LT. 0. ) BETA2 = F1 * EXP (ZLOG2) * (ZLOG2*ZLOG2)**2
                AUX = AUX + BETA1 + BETA2
             ENDIF
 
@@ -2632,7 +2632,7 @@ SUBROUTINE SWIND4 (WINDOW, SPCSIG, WIND10, THETAW, XIS, DD, KWAVE, IMATRA, GENC0
             IF ( COS1 .GT. 0.01 ) THEN
                ZARG = XKAPPA / ( (UFRIC / CW1 + ZALP ) * COS1 )
                ZLOG = ZCN + ZARG
-               IF ( ZLOG .LT. 0. ) BETA = F1 * EXP (ZLOG) * ZLOG**4
+               IF ( ZLOG .LT. 0. ) BETA = F1 * EXP (ZLOG) * (ZLOG*ZLOG)**2
             ENDIF
 
 !           *** compute the factor B and store result in array ***

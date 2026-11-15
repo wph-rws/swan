@@ -271,7 +271,7 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
    FAC  = 1.
    spectrum_iteration: DO
       FPK  = (1./PKPER)
-      FPK4 = FPK**4
+      FPK4 = (FPK*FPK)**2
       IF (LSHAPE.EQ.1) THEN
          SALPHA = ((SPPARM(1) ** 2) * (FPK4)) * 5. / 16.
       ELSE IF (LSHAPE.EQ.2 .OR. LSHAPE.EQ.5) THEN
@@ -289,7 +289,7 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
          IF (LSHAPE.EQ.1) THEN
 !         *** LSHAPE = 1 : Pierson and Moskowitz ***
             SF = SPCSIG(IS) / PI2
-            SF4 = SF**4
+            SF4 = (SF*SF)**2
             SF5 = power5(SF)
             RA = (SALPHA/SF5)*EXP(-(5.*FPK4)/(4.*SF4))/(PI2*SPCSIG(IS))
             ACLOC(MDC,IS) = RA
@@ -297,7 +297,7 @@ SUBROUTINE SSHAPE (ACLOC, SPCSIG, SPCDIR, FSHAPL, DSHAPL)
 !         *** LSHAPE = 2 : JONSWAP ***
 !         *** LSHAPE = 5 : TMA     ***
             SF = SPCSIG(IS)/(PI2)
-            SF4 = SF**4
+            SF4 = (SF*SF)**2
             SF5 = power5(SF)
             CPSHAP = 1.25 * FPK4 / SF4
             IF (CPSHAP.GT.10.) THEN

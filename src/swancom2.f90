@@ -1609,7 +1609,7 @@ SUBROUTINE SICE (IMATDA, WINDOW, DISSC1, PLICE, AICELOC, HICELOC, SPCSIG, CG, TE
          IF ( IICE.EQ.3 ) THEN ! R19
 !...for Sice method=IC4M2/R19, ki= C0*f^0 + C1*f^1 ... + C6*f^6
             KI(IS) = C0 + C1*FREQ    + C2*FREQ**2 + C3*FREQ**3 &
-               + C4*FREQ**4 + C5*power5(FREQ) + C6*power6(FREQ)
+               + C4*(FREQ*FREQ)**2 + C5*power5(FREQ) + C6*power6(FREQ)
          ELSEIF ( IICE.EQ.4 ) THEN ! D15
             KI(IS) = CHF * HICELOC * FREQ**2.13
          ELSEIF ( IICE.EQ.5 ) THEN ! M18
@@ -2582,6 +2582,12 @@ SUBROUTINE SWCAP  (SPCDIR, SPCSIG, KWAVE, AC2, WINDOW, ETOT, IMATDA, IMATRA, PLW
             (STP_OV / STP_PM)**N2
 
       ENDIF
+
+!     C_BJ is set for IWCAP 4 and 5 only, but the test further down that
+!     picks the formulation compares it for every IWCAP. Give it a value,
+!     so that this comparison does not read a variable that was never set
+!     (the outcome of the comparison does not matter then).
+      C_BJ = 0.
 
       IF ((IWCAP.EQ.4).OR. &
          (IWCAP.EQ.5)    ) THEN

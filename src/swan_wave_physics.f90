@@ -70,7 +70,7 @@ pure subroutine kscip1_kernel(frequency_count, frequencies, depth, gravity, &
             (snd2 + 1.0_swan_real / &
             (1.0_swan_real + 0.666_swan_real * snd2 + &
              0.445_swan_real * snd2**2 - 0.105_swan_real * snd2**3 + &
-             0.272_swan_real * snd2**4)))
+             0.272_swan_real * (snd2*snd2)**2)))
          wave_number(frequency_index) = frequencies(frequency_index) / c
          knd = wave_number(frequency_index) * depth
          fac1 = 2.0_swan_real * knd / sinh(2.0_swan_real * knd)
