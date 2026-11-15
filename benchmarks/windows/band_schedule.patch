@@ -1,0 +1,405 @@
+diff --git a/src/srclist.cmake b/src/srclist.cmake
+index 95b3763..96d1c72 100644
+--- a/src/srclist.cmake
++++ b/src/srclist.cmake
+@@ -54,6 +54,7 @@ ${SRC}/swan_source_workspaces.f90
+ ${SRC}/swmod2.f90
+ ${SRC}/swan_balance_residual.f90
+ ${SRC}/swan_stop_extrapolation.f90
++${SRC}/swan_sweep_bands.f90
+ ${SRC}/swan_frequency_range.f90
+ ${SRC}/swan_output_formats.f90
+ ${SRC}/swan_vtk_output.f90
+diff --git a/src/swan_sweep_bands.f90 b/src/swan_sweep_bands.f90
+new file mode 100644
+index 0000000..5540c01
+--- /dev/null
++++ b/src/swan_sweep_bands.f90
+@@ -0,0 +1,129 @@
++module swan_sweep_bands
++!
++!     How the threads of the structured sweep share the grid rows (OpenMP
++!     without MPI; a choice of this fork, upstream has only the row pipeline).
++!
++!     Upstream deals the rows out one by one (SCHEDULE(STATIC,1)): thread t
++!     takes rows t, t+N, t+2N, ... and waits, point by point, until the point
++!     of the row before it is done. Every row a thread reads was then just
++!     written by another core. In the band schedule every thread takes a
++!     contiguous band of rows instead and goes through it column by column
++!     in the direction of the sweep: all rows of the band in one column, then
++!     the next column. The band after it in the row direction of the sweep
++!     may compute a column once this band has finished that column. A thread
++!     then reads rows of another core only at the edge of its band.
++!
++!     Why every point sees the same values as in the row pipeline: SWOMPU
++!     reads the action density AC2 (and the Hs of COMPDA) of the stencil
++!     points only upwind in both grid directions, up to three points away
++!     (st_kc 2, 3, 6, 7, 8 and 9, also for the S&L scheme, which reads the
++!     other stencil points only from AC1, the previous time level). Those
++!     values must be the new ones of this sweep. A point upwind in the same
++!     row lies in an earlier column of the same band; a point upwind in the
++!     same column lies earlier in that column of the band, or in a band
++!     before it, which has finished the column. The points downwind (the
++!     end of the row in a domain that repeats in x) must still be old, and
++!     are: they lie in a later column of the band, or in a band after it,
++!     which cannot pass this column before the band itself. The diagonal
++!     points with one index upwind and one downwind are not read from AC2,
++!     which is also why the row pipeline, where they can be old or new,
++!     gives the same output for every number of threads.
++!
++!     The bands are sized by the number of wet points in their rows, the
++!     points where SWOMPU does the work. "blocks:H" deals out bands of H
++!     rows cyclically instead (H = 1 is the row pipeline with a column
++!     counter in place of the lock per point).
++!
++!     The environment variable SWAN_SWEEP_SCHEDULE chooses: "rows" for the
++!     upstream row pipeline, "bands" (the default) or "blocks:H". The
++!     schedule only applies with more than one thread, in a build without
++!     MPI and in a two-dimensional run; otherwise the row pipeline is used.
++!
++   implicit none(type, external)
++   private
++
++   integer, parameter, public :: SCHEDULE_ROWS = 0
++   integer, parameter, public :: SCHEDULE_BANDS = 1
++   integer, parameter, public :: SCHEDULE_BLOCKS = 2
++
++!     one cache line per band counter, so that the counters of two bands do
++!     not share a line
++   integer, parameter, public :: BAND_PAD = 16
++
++   public :: sweep_schedule_from_environment, plan_sweep_bands
++
++contains
++
++subroutine sweep_schedule_from_environment(schedule, block_rows)
++   integer, intent(out) :: schedule, block_rows
++
++   character(len=32) :: value
++   integer :: status, iostat
++
++   schedule = SCHEDULE_BANDS
++   block_rows = 0
++   call get_environment_variable('SWAN_SWEEP_SCHEDULE', value, status=status)
++   if (status /= 0) return
++   if (value == 'rows') then
++      schedule = SCHEDULE_ROWS
++   else if (value(1:7) == 'blocks:') then
++      read (value(8:), *, iostat=iostat) block_rows
++      if (iostat == 0 .and. block_rows >= 1) schedule = SCHEDULE_BLOCKS
++   end if
++end subroutine sweep_schedule_from_environment
++
++!     Divide the rows iy_first, iy_first+row_step, ..., iy_last of a sweep
++!     into bands: band k covers the rows band_first(k) to band_last(k) with
++!     step row_step (no rows when band_first(k) lies beyond band_last(k)).
++subroutine plan_sweep_bands(schedule, block_rows, nthreads, iy_first, &
++   iy_last, row_step, ix_first, ix_last, wet, nband, band_first, band_last)
++   integer, intent(in) :: schedule, block_rows, nthreads
++   integer, intent(in) :: iy_first, iy_last, row_step, ix_first, ix_last
++   logical, intent(in) :: wet(:,:)
++   integer, intent(out) :: nband
++   integer, intent(out) :: band_first(:), band_last(:)
++
++   integer :: nrow, irow, iy, k, ix_low, ix_high
++   integer(kind=8) :: total, cumulative
++
++   nrow = (iy_last - iy_first)/row_step + 1
++   if (schedule == SCHEDULE_BLOCKS) then
++      nband = (nrow + block_rows - 1)/block_rows
++      do k = 1, nband
++         band_first(k) = iy_first + (k-1)*block_rows*row_step
++         band_last(k) = iy_first + (min(k*block_rows, nrow) - 1)*row_step
++      end do
++      return
++   end if
++
++   ix_low = min(ix_first, ix_last)
++   ix_high = max(ix_first, ix_last)
++   total = 0
++   do irow = 1, nrow
++      iy = iy_first + (irow-1)*row_step
++      total = total + count(wet(ix_low:ix_high,iy))
++   end do
++
++   nband = nthreads
++   k = 1
++   band_first(1) = iy_first
++   cumulative = 0
++   do irow = 1, nrow
++      iy = iy_first + (irow-1)*row_step
++      cumulative = cumulative + count(wet(ix_low:ix_high,iy))
++      if (k < nband .and. irow < nrow .and. &
++         cumulative*nband >= int(k,8)*total) then
++         band_last(k) = iy
++         k = k + 1
++         band_first(k) = iy + row_step
++      end if
++   end do
++   band_last(k) = iy_last
++!     bands left without rows
++   do k = k+1, nband
++      band_first(k) = iy_last + row_step
++      band_last(k) = iy_last
++   end do
++end subroutine plan_sweep_bands
++
++end module swan_sweep_bands
+diff --git a/src/swancom1.f90 b/src/swancom1.f90
+index 6ec34f1..66c6e90 100644
+--- a/src/swancom1.f90
++++ b/src/swancom1.f90
+@@ -123,6 +123,8 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
+    USE swan_service_interfaces, ONLY: MSGERR, STRACE, TXPBLA, STPNOW
+    USE swan_frequency_range, ONLY: check_frequency_range
+    USE swan_stop_extrapolation, ONLY: hs_extrapolation_t
++   USE swan_sweep_bands, ONLY: BAND_PAD, SCHEDULE_ROWS, plan_sweep_bands, &
++      sweep_schedule_from_environment
+    USE swan_balance_residual, ONLY: balance_residual_t, &
+       balance_residual_summary_t, summarize_balance_residual, &
+       balance_defect_system, DEFECT_NONE, write_balance_residual, &
+@@ -988,6 +990,12 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
+ 
+    !$ LOGICAL, ALLOCATABLE :: LLOCK(:,:)
+    !$ LOGICAL LLOCKED
++!     Band schedule of the sweep; see swan_sweep_bands. BAND_DONE(1,K) is
++!     the number of columns band K has finished in this sweep; band 0 has
++!     always finished them all.
++   INTEGER :: SWEEP_SCHEDULE, BLOCK_ROWS, NBAND, BAND_STRIDE, IBAND, ICOL, BAND_SEEN
++   LOGICAL :: SWEEP_BANDS
++   INTEGER, ALLOCATABLE :: BAND_FIRST(:), BAND_LAST(:), BAND_DONE(:,:)
+    LOGICAL :: UNDERFLOW_WAS_GRADUAL
+ 
+    INTEGER, ALLOCATABLE :: ISLMIN(:), NFLIM(:), NRSCAL(:)
+@@ -1236,6 +1244,15 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
+ 
+ !     *** Lock array for thread management                                40.22
+    !$ ALLOCATE(LLOCK(MXC,MYC))
++   CALL sweep_schedule_from_environment(SWEEP_SCHEDULE, BLOCK_ROWS)
++   SWEEP_BANDS = .FALSE.
++   NBAND = MYC
++   !$ NBAND = MAX(MYC, OMP_GET_MAX_THREADS())
++   ALLOCATE(BAND_FIRST(NBAND), BAND_LAST(NBAND), BAND_DONE(BAND_PAD,0:NBAND))
++   BAND_DONE = 0
++   BAND_DONE(1,0) = HUGE(1)
++   NBAND = 0
++   BAND_STRIDE = 1
+ !
+ 
+ !     A residual threshold the solver cannot honour must stop the run: an
+@@ -1379,7 +1396,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
+       !$OMP PRIVATE(I1GRD,I2GRD,I1MYC,I2MYC) &
+       !$OMP PRIVATE(JDUM,ROW_ACTIVE,STOP_REQUESTED,SWEEP_LAYOUT) &
+       !$OMP PRIVATE(QTL1,QTL2) &
+-      !$OMP PRIVATE(LLOCKED) &
++      !$OMP PRIVATE(LLOCKED, IBAND, ICOL, BAND_SEEN) &
+       !$OMP PRIVATE(UNDERFLOW_WAS_GRADUAL) &
+       !$OMP FIRSTPRIVATE(TESTFL, RDFSIN)
+ !
+@@ -2005,6 +2022,19 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
+             IYSTEP = 1
+          ENDIF
+ 
++!           *** divide the rows into bands (see swan_sweep_bands); the   ***
++!           *** row pipeline stays for one thread, MPI and 1D runs        ***
++         !$ SWEEP_BANDS = SWEEP_SCHEDULE.NE.SCHEDULE_ROWS .AND. &
++            !$ OMP_GET_NUM_THREADS().GT.1 .AND. .NOT.ONED .AND. &
++            !$ .NOT.mpi_backend_enabled
++         !$ IF (SWEEP_BANDS) THEN
++            !$ CALL plan_sweep_bands(SWEEP_SCHEDULE, BLOCK_ROWS, &
++               !$ OMP_GET_NUM_THREADS(), IY1, IY2, -IYSTEP, IX1, IX2, LLOCK, &
++               !$ NBAND, BAND_FIRST, BAND_LAST)
++            !$ BAND_DONE(1,1:NBAND) = 0
++            !$ BAND_STRIDE = OMP_GET_NUM_THREADS()
++         !$ END IF
++
+          IF (SCREEN.NE.PRINTF) THEN
+             IF (NSTATC.EQ.1) THEN
+                IF (IAMMASTER) WRITE(SCREEN,"('+time ', A18, ', step ',I6, '; iteration ' ,I4, '; sweep ',I1)") CHTIME, IT, &
+@@ -2031,36 +2061,77 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
+          CALL configure_sweep_layout(SWEEP_LAYOUT, SWPDIR, IX1, IX2, IY1, &
+             IY2, KSX, IYSTEP, MXCGL, MYCGL, PARLL, INODE, NPROC)
+ !
++         IF (SWEEP_BANDS) THEN
++!
++!----------------------------------------------------------------------
++!     Band schedule: every thread takes its bands of rows and goes
++!     through each column by column; the band before it must have
++!     finished a column first (see swan_sweep_bands).
++!----------------------------------------------------------------------
++            DO IBAND = THREAD_INDEX, NBAND, BAND_STRIDE
++               ICOL = 0
++               DO II = SWEEP_LAYOUT%inner_first, SWEEP_LAYOUT%inner_last, &
++                  SWEEP_LAYOUT%inner_step
++                  ICOL = ICOL + 1
++                  BAND_SEEN = 0
++                  DO WHILE(BAND_SEEN.LT.ICOL)
++                     !$OMP ATOMIC READ ACQUIRE
++                     BAND_SEEN = BAND_DONE(1,IBAND-1)
++                     IF (BAND_SEEN.LT.ICOL) THEN
++                        !$OMP TASKYIELD
++                     ENDIF
++                  END DO
++                  DO JDUM = BAND_FIRST(IBAND), BAND_LAST(IBAND), &
++                     SWEEP_LAYOUT%outer_step
++                     CALL map_sweep_point(SWEEP_LAYOUT, JDUM, II, &
++                        ROW_ACTIVE, IX, IY)
++                     IF (timing_enabled) CALL SWTSTA(104)
++                     CALL SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, default_time_context%DT, XIS, &
++                        SWTSDA, INOCNT, AC2, COMPDA, SPCDIR, SPCSIG, XYTST, ITER, CGO, CAX, CAY, &
++                        CAS, CAD, SWMATR, LSWMAT, KWAVE, DMW, ALIMW, GROWW, ITERATION_CACHE, QTL1, &
++                        QTL2, SPECTRAL_WINDOW, ANYWND, AC1, IT, XCGRID, YCGRID, KGRPNT, CROSS, &
++                        OBREDF, REFLSO, FBD, ISLMIN, NFLIM, NRSCAL, CAX1, CAY1, DIFFR, TRIADS, SNL4, &
++                        SPECTRAL_POWERS, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%WCAP, &
++                        THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA, &
++                        THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT, BALANCE_RESIDUAL, &
++                        TESTFL, RDFSIN)
++                     IF (timing_enabled) CALL SWTSTO(104)
++                  END DO
++                  !$OMP ATOMIC WRITE RELEASE
++                  BAND_DONE(1,IBAND) = ICOL
++               END DO
++            END DO
++         ELSE
+ !----------------------------------------------------------------------   40.22
+ !     Execute loop over rows of spatial grid in a                         40.22
+ !     pipelined parallel manner within OpenMP environment                 40.22
+ !----------------------------------------------------------------------   40.22
+-         !$OMP DO SCHEDULE(STATIC,1)
++            !$OMP DO SCHEDULE(STATIC,1)
+ !
+ !            The WWINT counter table is read-only here: SOURCE computes on
+ !            local WWINTL/WWINT4 copies and each thread owns its workspace
+ !            copy, so the former FIRSTPRIVATE/LASTPRIVATE pair was redundant
+ !            synchronization.
+ !
+-         DO JDUM = SWEEP_LAYOUT%outer_first, SWEEP_LAYOUT%outer_last, &
+-            SWEEP_LAYOUT%outer_step
+-            CALL map_sweep_point(SWEEP_LAYOUT, JDUM, &
+-               SWEEP_LAYOUT%inner_first, ROW_ACTIVE, IX, IY)
++            DO JDUM = SWEEP_LAYOUT%outer_first, SWEEP_LAYOUT%outer_last, &
++               SWEEP_LAYOUT%outer_step
++               CALL map_sweep_point(SWEEP_LAYOUT, JDUM, &
++                  SWEEP_LAYOUT%inner_first, ROW_ACTIVE, IX, IY)
+ 
+-            IF (ROW_ACTIVE) THEN
++               IF (ROW_ACTIVE) THEN
+ 
+ ! ======================================================================
+ !             Receive action density from the previous updated row in
+ !             the distributed wavefront strategy.
+ ! ======================================================================
+-               CALL receive_sweep_row(SWEEP_LAYOUT, JDUM, SWPDIR, LSTCP, &
+-                  AC2, KGRPNT, STOP_REQUESTED)
+-               IF (STOP_REQUESTED) SWCOMP_STOP_REQUESTED = .TRUE.
++                  CALL receive_sweep_row(SWEEP_LAYOUT, JDUM, SWPDIR, LSTCP, &
++                     AC2, KGRPNT, STOP_REQUESTED)
++                  IF (STOP_REQUESTED) SWCOMP_STOP_REQUESTED = .TRUE.
+ 
+-               DO II = SWEEP_LAYOUT%inner_first, SWEEP_LAYOUT%inner_last, &
+-                  SWEEP_LAYOUT%inner_step
+-                  CALL map_sweep_point(SWEEP_LAYOUT, JDUM, II, &
+-                     ROW_ACTIVE, IX, IY)
++                  DO II = SWEEP_LAYOUT%inner_first, SWEEP_LAYOUT%inner_last, &
++                     SWEEP_LAYOUT%inner_step
++                     CALL map_sweep_point(SWEEP_LAYOUT, JDUM, II, &
++                        ROW_ACTIVE, IX, IY)
+ !
+ !----------------------------------------------------------------------   40.22
+ !               Wait until the upwind row is available.  A scalar atomic
+@@ -2068,52 +2139,53 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
+ !               complete lock array; TASKYIELD lets another ready thread
+ !               progress while this pipeline stage is blocked.
+ !----------------------------------------------------------------------   40.22
+-                  !$ IF ( .NOT.ONED ) THEN
+-                     !$ LLOCKED = .TRUE.
+-                     !$ DO WHILE(LLOCKED)
+-                        !$OMP ATOMIC READ
+-                        !$ LLOCKED = LLOCK(IX,IY+IYSTEP)
+-                        !$ IF (LLOCKED) THEN
+-                           !$OMP TASKYIELD
+-                        !$ ENDIF
+-                     !$ END DO
+-                  !$ END IF
+-!
+-                  IF (timing_enabled) CALL SWTSTA(104)
+-                  CALL SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, default_time_context%DT, XIS, &
+-                        SWTSDA, INOCNT, AC2, COMPDA, SPCDIR, SPCSIG, XYTST, ITER, CGO, CAX, CAY, &
+-                        CAS, CAD, SWMATR, LSWMAT, KWAVE, DMW, ALIMW, GROWW, ITERATION_CACHE, QTL1, &
+-                        QTL2, SPECTRAL_WINDOW, ANYWND, AC1, IT, XCGRID, YCGRID, KGRPNT, CROSS, &
+-                        OBREDF, REFLSO, FBD, ISLMIN, NFLIM, NRSCAL, CAX1, CAY1, DIFFR, TRIADS, SNL4, &
+-                        SPECTRAL_POWERS, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%WCAP, &
+-                        THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA, &
+-                        THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT, BALANCE_RESIDUAL, &
+-                        TESTFL, RDFSIN)
+-                  IF (timing_enabled) CALL SWTSTO(104)
+-                  IF (mpi_backend_enabled) THEN
+-                     IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
+-                  END IF
++                     !$ IF ( .NOT.ONED ) THEN
++                        !$ LLOCKED = .TRUE.
++                        !$ DO WHILE(LLOCKED)
++                           !$OMP ATOMIC READ
++                           !$ LLOCKED = LLOCK(IX,IY+IYSTEP)
++                           !$ IF (LLOCKED) THEN
++                              !$OMP TASKYIELD
++                           !$ ENDIF
++                        !$ END DO
++                     !$ END IF
++!
++                     IF (timing_enabled) CALL SWTSTA(104)
++                     CALL SWOMPU (SWPDIR, KSX, KSY, IX, IY, DDX, DDY, default_time_context%DT, XIS, &
++                           SWTSDA, INOCNT, AC2, COMPDA, SPCDIR, SPCSIG, XYTST, ITER, CGO, CAX, CAY, &
++                           CAS, CAD, SWMATR, LSWMAT, KWAVE, DMW, ALIMW, GROWW, ITERATION_CACHE, QTL1, &
++                           QTL2, SPECTRAL_WINDOW, ANYWND, AC1, IT, XCGRID, YCGRID, KGRPNT, CROSS, &
++                           OBREDF, REFLSO, FBD, ISLMIN, NFLIM, NRSCAL, CAX1, CAY1, DIFFR, TRIADS, SNL4, &
++                           SPECTRAL_POWERS, THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%WCAP, &
++                           THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%DIA, &
++                           THREAD_WORKSPACES%STRUCTURED(THREAD_INDEX)%SOURCE%FFT, BALANCE_RESIDUAL, &
++                           TESTFL, RDFSIN)
++                     IF (timing_enabled) CALL SWTSTO(104)
++                     IF (mpi_backend_enabled) THEN
++                        IF (STPNOW()) SWCOMP_STOP_REQUESTED = .TRUE.
++                     END IF
+ !
+ !----------------------------------------------------------------------   40.22
+ !               Once the computation is done for grid point (IX,IY) the   40.22
+ !               thread signals that the data is available by changing     40.22
+ !               LLOCK(IX,IY).                                             40.22
+ !----------------------------------------------------------------------   40.22
+-                  !$OMP ATOMIC WRITE
+-                  !$ LLOCK(IX,IY) = .FALSE.
++                     !$OMP ATOMIC WRITE
++                     !$ LLOCK(IX,IY) = .FALSE.
+ 
+-               END DO
++                  END DO
+ 
+ ! ======================================================================
+ !             Send action density to the next row in the distributed
+ !             wavefront strategy. The Jacobi backend is an explicit no-op.
+ ! ======================================================================
+-               CALL send_sweep_row(SWEEP_LAYOUT, JDUM, SWPDIR, LSTCP, &
+-                  AC2, KGRPNT, STOP_REQUESTED)
+-               IF (STOP_REQUESTED) SWCOMP_STOP_REQUESTED = .TRUE.
+-            END IF
+-         END DO
+-         !$OMP ENDDO NOWAIT
++                  CALL send_sweep_row(SWEEP_LAYOUT, JDUM, SWPDIR, LSTCP, &
++                     AC2, KGRPNT, STOP_REQUESTED)
++                  IF (STOP_REQUESTED) SWCOMP_STOP_REQUESTED = .TRUE.
++               END IF
++            END DO
++            !$OMP ENDDO NOWAIT
++         END IF
+ 
+          CALL complete_sweep(ISWP, AC2, KGRPNT, STOP_REQUESTED)
+          IF (STOP_REQUESTED) SWCOMP_STOP_REQUESTED = .TRUE.
+@@ -2527,6 +2599,7 @@ SUBROUTINE SWCOMP (AC1        ,AC2        , &
+    DEALLOCATE(MEMSINA)
+    DEALLOCATE(MEMSINB)
+    !$ DEALLOCATE(LLOCK)
++   DEALLOCATE(BAND_FIRST, BAND_LAST, BAND_DONE)
+    DEALLOCATE(SWTSDA)
+    IF (timing_enabled) CALL SWTSTO(101)
+ !----------------------------------------------------------------------   40.22

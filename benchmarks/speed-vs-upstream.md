@@ -147,15 +147,46 @@ threads. The part of the run that only one thread does is 0.003 s.
 
 **The same work costs more.** The last column is the time the threads spend
 computing. It grows by 19 to 39%, more than the 12 to 18% of the hardware
-alone. The difference is what a thread pays for reading rows that another
-core has just written.
+alone. Reading rows that another core has just written explains a part of
+the difference, a quarter to a third (see the trial below); the rest was
+not traced.
 
 So of the factor of 1.8 that is missing on six threads, the hardware takes
-about 1.2, the sharing of rows between cores about 1.2 and the waiting
-about 1.1; the rest is the part of an iteration outside the sweep. MPI, which gives every process a strip of the grid, scales the
-same (11.5 s on one process, 3.4 s on six). Another schedule for the
-threads could win back the last two parts at most; that is not attempted
-here.
+about 1.2, the dearer computing about 1.2 and the waiting about 1.1; the
+rest is the part of an iteration outside the sweep. MPI, which gives every
+process a strip of the grid, scales the same (11.5 s on one process, 3.4 s
+on six).
+
+**A trial with another schedule: no gain.** In the pipeline neighbouring
+rows belong to different threads, so every row reads a row that another
+core wrote. In a trial each thread got one band of neighbouring rows
+instead, with about the same number of wet points in every band, and went
+through it column by column; a band may compute a column once the band
+before it has finished that column (`windows/band_schedule.patch`, on
+`89d4af9`, whose source is that of `2466aa4`). Output was byte for byte that
+of the pipeline on seven decks at 1, 2, 4 and 6 threads, and in every timed
+run. Medians of seven runs in turn, the band schedule against the
+pipeline:
+
+| Deck | 1 thread | 2 threads | 4 threads | 6 threads |
+|---|---:|---:|---:|---:|
+| Voordelta | 10.87 against 10.71 s | 6.71 against 6.62 s | 4.16 against 3.83 s (9% slower) | 3.35 against 3.09 s (8% slower) |
+| so-rp physics, small grid | 1.65 against 1.66 s | 1.07 against 1.09 s | 0.60 against 0.59 s | 0.55 against 0.50 s (10% slower) |
+| `slope` | 10.18 against 10.31 s | 6.38 against 6.46 s | 3.51 against 3.55 s | 2.68 against 2.64 s |
+
+The timers show why. With bands the threads together compute 6% less on
+four threads and 8% less on six (13.4 s against 14.6 s in these runs), so
+the reads from other cores do cost something. But the waiting grows from
+9 to 14% of the sweep on four threads and from 11 to 18% on six, and the
+first bands are done early and wait 0.4 s per thread at the end of each
+sweep. Half the Voordelta grid is dry, and the dry part lies elsewhere in
+every band, so at one column a band waits for the band before it and at
+another the next band waits for it. The pipeline deals the rows out one by
+one and does not have that. On `slope`, where every point is wet, the two
+schedules take the same time: taking away nearly all reads of a row from
+another core gains nothing there. Bands of two rows dealt out in turn were
+within 4% of the pipeline at every thread count, faster and slower (five
+runs). The pipeline stays.
 
 A thread on an efficiency core (logical CPU 4) takes 1.3 times as long as on
 a performance core (medians of six runs in turn: 15.9 s against 12.1 s). In

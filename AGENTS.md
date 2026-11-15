@@ -401,11 +401,18 @@ Two measured facts to keep in mind when looking for speed:
   3.4 times as fast as on one, with OpenMP and with MPI alike (15 November
   2026, `2466aa4`, under Windows). Six serial runs side by side each take 18%
   longer than one alone, so that much is the hardware. With six threads the
-  computing itself takes 39% more time than on one thread: the rest of that
-  is reading rows that another core has just written. A thread waits for
-  the row before it a tenth of the time. The part that one thread does
-  alone is 0.003 s. benchmarks/speed-vs-upstream.md has the numbers and the
-  build with the timers (`benchmarks/windows/p1_probe.patch`).
+  computing itself takes 39% more time than on one thread. A thread waits
+  for the row before it a tenth of the time. The part that one thread does
+  alone is 0.003 s. Another schedule was tried on the same day
+  (`benchmarks/windows/band_schedule.patch` on `89d4af9`): each thread a
+  band of neighbouring rows, so that a row is seldom read from another
+  core. Output stayed byte-identical, but Voordelta became 8 to 9% slower
+  on four and six threads and a fully wet grid no faster: the threads
+  computed 6 to 8% less, and waited more, because the dry points lie
+  differently in every band. So the row pipeline stays, and the reads from
+  other cores are only a small part of the loss.
+  benchmarks/speed-vs-upstream.md has the numbers and the build with the
+  timers (`benchmarks/windows/p1_probe.patch`).
 - **`QUADRUPLET 3` is no shortcut.** Computing the DIA once per iteration
   instead of at every sweep saves no time (Voordelta 12.2 s against 11.9 s,
   so-rp physics 1.80 s against 1.74 s; same day and commit) and changes the
