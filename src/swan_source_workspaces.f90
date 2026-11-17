@@ -27,6 +27,8 @@ module swan_source_workspaces
       real(swan_real) :: mean_frequency_wam
       real(swan_real) :: mean_frequency_10
       real(swan_real) :: mean_frequency_01
+!     SINTGRL fills these temporary frequency integrands at each point.
+      real(swan_real), allocatable :: integral_terms(:,:)
    contains
    procedure :: begin_point => begin_wcap_point
    end type wcap_workspace_t

@@ -727,15 +727,25 @@ SUBROUTINE SWPSEL(SWPDIR    ,WINDOW    ,CAX       , &
       IF (ID.LT.1) ID = ID + MDC
       IF (ID.GT.MDC) ID = ID - MDC
       LOWEST = .TRUE.
-      do IS = 1, MSC
-         IF (ANYBIN(ID,IS)) THEN
-            IF ( LOWEST ) THEN
-               ISCLOW = IS
-               LOWEST = .FALSE.
-            ENDIF
-            ISCHGH = IS
+      IF (ICUR.EQ.0) THEN
+!        The sweep copied the first frequency's directions to all the
+!        others. Each direction is active at every frequency or at none.
+         IF (ANYBIN(ID,1)) THEN
+            ISCLOW = 1
+            ISCHGH = MSC
+            LOWEST = .FALSE.
          END IF
-      end do
+      ELSE
+         do IS = 1, MSC
+            IF (ANYBIN(ID,IS)) THEN
+               IF ( LOWEST ) THEN
+                  ISCLOW = IS
+                  LOWEST = .FALSE.
+               ENDIF
+               ISCHGH = IS
+            END IF
+         end do
+      END IF
 
 !       *** set the minimum and maximum counters in arrays ***
 
@@ -1388,6 +1398,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
    INTEGER  :: IS ! Counter of relative frequency band    !
    INTEGER  :: ID ,ID1   ,ID2 ! Counter of directions  !
    INTEGER  :: IDDUM ! aux. counter of directions !
+   INTEGER  :: IDFIRST, IDLAST ! contiguous ranges in the direction loop
    INTEGER  :: KCG1 ! grid address of the active grid point  !
    INTEGER  :: KCG2  ,KCG3 , KCG4, KCG5 ! grid addresses of neighbouring grid points   !
    INTEGER  :: IX1 ! IX1   Counter of gridpoints in x-direction  !
@@ -1398,9 +1409,9 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 
    REAL  :: KD1 ! KD1           wavenumber * depth
    REAL  :: VLSINH ! VLSINH        sinh of KD1
-   REAL  :: COEF ! COEF          aux. quantity
    REAL  :: CAST1,CAST2,CAST3,CAST4,CAST5 ! aux. quantities to compute Csigma !
    REAL  :: CAD_TMP ! aux. quantity to compute Ctheta  !
+   REAL  :: REFR_COEF, REFR_DX, REFR_DY
    REAL  :: DHDX   ,DHDY ! depth gradient
    REAL  :: DCDX   ,DCDY ! celerity gradient
    REAL  :: DUXDX ,DUXDY ,DUYDX ,DUYDY ! current velocity gradients
@@ -1620,37 +1631,69 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
       CAST2 = ( DLOC1 - DEP1(KCG1) ) * RDTIM
    ENDIF
 
+!     The refraction stencil also needs the bins next to the sweep. If
+!     this covers the full circle, fill each direction once. Otherwise
+!     split the wrapped range into two contiguous parts.
+   IDFIRST = WINDOW%IDDLOW - 1
+   IDLAST = WINDOW%IDDTOP + 1
+   IF (IDLAST-IDFIRST+1.GE.MDC) THEN
+      IDFIRST = 1
+      IDLAST = MDC
+   ELSE IF (IDFIRST.LT.1) THEN
+      IDFIRST = IDFIRST + MDC
+      IDLAST = IDLAST + MDC
+   END IF
+
    DO IS = 1, MSC
 
-      KLOC1=KWAVE(IS,1)
-      KLOC2=KWAVE(IS,2)
-      KLOC3=KWAVE(IS,3)
-      KLOC4=KWAVE(IS,4)
-      KLOC5=KWAVE(IS,5)
+      IF (IGRADK.EQ.0 .OR. ICUR.EQ.1 .OR. (NSTATC.NE.0 .AND. DYNDEP)) THEN
+         KD1 = KWAVE(IS,1) * DLOC1
+         IF (KD1.GT.30.) KD1 = 30.
+         VLSINH = SINH (2.* KD1)
+         REFR_COEF = SPCSIG(IS) / VLSINH
+         CAST1 = KWAVE(IS,1) * REFR_COEF
+      ELSE
+!        With a celerity gradient and fixed depth, neither refraction nor
+!        frequency shift uses the depth derivative of the dispersion relation.
+         CAST1 = 0.
+      END IF
+      CAST5 = CGO(IS,1) * KWAVE(IS,1)
 
-      CGLOC1 = CGO(IS,1)
+      IF (IGRADK.EQ.0) THEN
+         REFR_DX = DHDX
+         REFR_DY = DHDY
+      ELSE
+         KLOC1=KWAVE(IS,1)
+         KLOC2=KWAVE(IS,2)
+         KLOC3=KWAVE(IS,3)
+         KLOC4=KWAVE(IS,4)
+         KLOC5=KWAVE(IS,5)
+         CGLOC1 = CGO(IS,1)
+         CLOC1=SPCSIG(IS)/KLOC1
+         CLOC2=SPCSIG(IS)/KLOC2
+         CLOC3=SPCSIG(IS)/KLOC3
+         CLOC4=SPCSIG(IS)/KLOC4
+         CLOC5=SPCSIG(IS)/KLOC5
+!        Centered derivatives of the phase velocity (Young, 1999, p. 45).
+         DCDX = 0.5*RDX(1) * (CLOC5-CLOC2) + 0.5*RDX(2) * (CLOC4-CLOC3)
+         DCDY = 0.5*RDY(1) * (CLOC5-CLOC2) + 0.5*RDY(2) * (CLOC4-CLOC3)
+         REFR_COEF = CGLOC1/CLOC1
+         REFR_DX = DCDX
+         REFR_DY = DCDY
+      END IF
 
-      CLOC1=SPCSIG(IS)/KLOC1
-      CLOC2=SPCSIG(IS)/KLOC2
-      CLOC3=SPCSIG(IS)/KLOC3
-      CLOC4=SPCSIG(IS)/KLOC4
-      CLOC5=SPCSIG(IS)/KLOC5
-
-!       upwind scheme
-!        DCDX = 1.0*RDX(1) * (CLOC1-CLOC2) + 1.0*RDX(2) * (CLOC1-CLOC3)    40.59
-!        DCDY = 1.0*RDY(1) * (CLOC1-CLOC2) + 1.0*RDY(2) * (CLOC1-CLOC3)    40.59
-!       centered scheme
-      DCDX = 0.5*RDX(1) * (CLOC5-CLOC2) + 0.5*RDX(2) * (CLOC4-CLOC3)
-      DCDY = 0.5*RDY(1) * (CLOC5-CLOC2) + 0.5*RDY(2) * (CLOC4-CLOC3)
-
-!       *** coefficients for CAS -> function of IS only ***
-
-      KD1 = KWAVE(IS,1) * DLOC1
-      IF ( KD1 .GT. 30.0 ) KD1 = 30.
-      VLSINH = SINH (2.* KD1 )
-      COEF   = SPCSIG(IS) / VLSINH ! also needed for CAD, if @h/@x method used
-      CAST1  = KWAVE(IS,1) * COEF
-      CAST5  = CGO(IS,1) * KWAVE(IS,1)
+      IF (ICUR.EQ.0 .AND. IDIFFR.EQ.0) THEN
+         ID1 = IDFIRST
+         ID2 = MIN(IDLAST,MDC)
+         CAD(ID1:ID2,IS,1) = REFR_COEF*(ESIN(ID1:ID2)*REFR_DX-ECOS(ID1:ID2)*REFR_DY)
+         CAS(ID1:ID2,IS,1) = CAST1*CAST2
+         IF (IDLAST.GT.MDC) THEN
+            ID2 = IDLAST-MDC
+            CAD(1:ID2,IS,1) = REFR_COEF*(ESIN(1:ID2)*REFR_DX-ECOS(1:ID2)*REFR_DY)
+            CAS(1:ID2,IS,1) = CAST1*CAST2
+         END IF
+         CYCLE
+      END IF
 
 !       loop over spectral directions
 
@@ -1659,13 +1702,7 @@ SUBROUTINE SPROSD (SPCSIG     ,KWAVE      ,CAS        , &
 
 !          *** computation of CAS and CAD ***
 
-         IF ( IGRADK.EQ.0 ) THEN
-            ! @h/@x method, currents not included , Christoffersen, Tolman, Ris, Won et al.
-            CAD_TMP=COEF*(ESIN(ID)*DHDX-ECOS(ID)*DHDY)
-         ELSE
-            CAD_TMP=(CGLOC1/CLOC1)*(ESIN(ID)*DCDX-ECOS(ID)*DCDY) ! @C/@x method, currents not included, Young method (1999, p. 45)
-!             CAD_TMP=(CGLOC1/KLOC1)*(-1.0)*(ESIN(ID)*DKDX-ECOS(ID)*DKDY)   ! @k/@x method, differs only very slightly from @C/dx
-         ENDIF
+         CAD_TMP = REFR_COEF*(ESIN(ID)*REFR_DX-ECOS(ID)*REFR_DY)
 
 !         Intuitively, one may expect that variable currents could be included via @C/@x. However, this is not the case.
 !         C is determined from sigma and k (and the latter is determined from sigma).
@@ -2330,6 +2367,7 @@ SUBROUTINE SORDUP (         WINDOW  ,CAX     , &
 
 !****************************************************************
 
+   USE, INTRINSIC :: ISO_FORTRAN_ENV, ONLY: INT32
    USE swan_service_interfaces, ONLY: MSGERR, STRACE
    USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
@@ -2516,12 +2554,34 @@ SUBROUTINE SORDUP (         WINDOW  ,CAX     , &
    INTEGER, SAVE :: IENT = 0
    INTEGER  IXY
    LOGICAL  XNUM
+   INTEGER :: FIRST
 
    IF (LTRACE) CALL STRACE (IENT,'SORDUP')
 
    IF(NSTATC.EQ.1)THEN
       CALL MSGERR (3, 'SORDUP scheme is for stationary mode only.')
    END IF
+
+   IND2 = st_kc(2)
+   IND3 = st_kc(3)
+   IND6 = st_kc(6)
+   IND7 = st_kc(7)
+
+!     SWPSEL puts a sector that crosses direction 1 at negative or zero
+!     indices first. Take the two contiguous parts in that order so each
+!     inner loop can work on several directions at once.
+   IF (KSPHER.EQ.0 .AND. .NOT.(TESTFL .AND. ITEST.GE.100)) THEN
+      DO IS = 1, WINDOW%ISSTOP
+         FIRST = WINDOW%IDCMIN(IS)
+         IF (FIRST.LT.1) THEN
+            CALL ADD_CARTESIAN(FIRST+MDC, MDC)
+            FIRST = 1
+         END IF
+         CALL ADD_CARTESIAN(FIRST, WINDOW%IDCMAX(IS))
+      END DO
+      RETURN
+   END IF
+
    IF (TESTFL .AND. ITEST .GE. 120) THEN
       WRITE(PRINTF,*) ' Initial matrix coefficients at SORDUP : '
       WRITE(PRINTF,*) &
@@ -2538,10 +2598,6 @@ SUBROUTINE SORDUP (         WINDOW  ,CAX     , &
    END IF
 
    do IS = 1, WINDOW%ISSTOP
-      IND2 = st_kc(2)
-      IND3 = st_kc(3)
-      IND6 = st_kc(6)
-      IND7 = st_kc(7)
       do IDDUM = WINDOW%IDCMIN(IS), WINDOW%IDCMAX(IS)
          ID = IDDUM
          IF (ID.LT.1) ID = ID + MDC
@@ -2663,8 +2719,45 @@ SUBROUTINE SORDUP (         WINDOW  ,CAX     , &
          ENDDO
       ENDDO
    END IF
-!     End of subroutine SORDUP
-   RETURN
+contains
+
+subroutine ADD_CARTESIAN(FIRST, LAST)
+   INTEGER, INTENT(IN) :: FIRST, LAST
+   INTEGER :: ID
+   INTEGER(INT32) :: MASK
+   REAL :: X1, Y1, X2, Y3, X6, Y7, B2, B3, B6, B7, FXY1, FXY2, XY, YX
+
+   !$OMP SIMD PRIVATE(X1, Y1, X2, Y3, X6, Y7, B2, B3, B6, B7, FXY1, FXY2, XY, YX, MASK)
+   DO ID = FIRST, LAST
+      X1 = RDX(1)*CAX(ID,IS,1) + RDY(1)*CAY(ID,IS,1)
+      Y1 = RDX(2)*CAX(ID,IS,1) + RDY(2)*CAY(ID,IS,1)
+      X2 = RDX(1)*CAX(ID,IS,2) + RDY(1)*CAY(ID,IS,2)
+      Y3 = RDX(2)*CAX(ID,IS,3) + RDY(2)*CAY(ID,IS,3)
+      X6 = RDX(1)*CAX(ID,IS,6) + RDY(1)*CAY(ID,IS,6)
+      Y7 = RDX(2)*CAX(ID,IS,7) + RDY(2)*CAY(ID,IS,7)
+      B2 = AC2(ID,IS,IND2) * 2.0*X2
+      B3 = AC2(ID,IS,IND3) * 2.0*Y3
+      B6 = AC2(ID,IS,IND6) * 0.5*X6
+      B7 = AC2(ID,IS,IND7) * 0.5*Y7
+      FXY1 = 1.5*X1 + 1.5*Y1
+!     The old loop added the four terms in one of two orders, chosen by
+!     whether Y1 or X1 is larger. Both sums are formed here, so that each
+!     direction keeps its own order. The two lines after them do exactly
+!     what FXY2 = MERGE(XY, YX, Y1.GT.X1) does, by choosing the bits of
+!     one of the two numbers. gfortran 16.2 does not vectorize this loop
+!     when the choice is written with MERGE or IF, because by default
+!     (-ftrapping-math) it assumes that a comparison of reals can raise
+!     an exception; checked with -fopt-info-vec on 17 November 2026.
+      XY = B2 - B6 + B3 - B7
+      YX = B3 - B7 + B2 - B6
+      MASK = MERGE(NOT(0_INT32), 0_INT32, Y1.GT.X1)
+      FXY2 = TRANSFER(MERGE_BITS(TRANSFER(XY, 0_INT32), TRANSFER(YX, 0_INT32), MASK), 0.)
+      IMATRA(ID,IS) = IMATRA(ID,IS) + FXY2
+      IMATDA(ID,IS) = IMATDA(ID,IS) + FXY1
+      TRAC0(ID,IS,1) = TRAC0(ID,IS,1) - FXY2
+      TRAC1(ID,IS,1) = TRAC1(ID,IS,1) + FXY1
+   END DO
+end subroutine ADD_CARTESIAN
 end subroutine SORDUP
 !****************************************************************
 
@@ -4772,7 +4865,7 @@ SUBROUTINE SWAPRE ( DEP, MUDL, SPCSIG )
 
 !*******************************************************************
 !
-!     Precompute dispersion quantities for a stationary computation.
+!     Precompute dispersion quantities for a computation with fixed depth.
 !     The resulting module arrays are read-only inside the OpenMP sweeps
 
    USE swan_input_grids
@@ -4781,7 +4874,7 @@ SUBROUTINE SWAPRE ( DEP, MUDL, SPCSIG )
    USE swan_computational_grid
    USE swan_spectral_grid
    USE m_propcache, ONLY: prop_cache_valid, prop_kwave, &
-      prop_cgo, prop_dmw, prop_cache_reset
+      prop_cgo, prop_dmw, prop_cache_reset, prop_sinh2, prop_tanh2, bottom_motion_factors
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -4801,6 +4894,14 @@ SUBROUTINE SWAPRE ( DEP, MUDL, SPCSIG )
          'Allocation problem in SWAPRE: propagation cache')
       RETURN
    ENDIF
+
+!     SINTGRL also uses two functions of wavenumber and depth. Cache these
+!     if there is room. It can still compute them as needed otherwise.
+   ALLOCATE(prop_sinh2(MSC,MCGRD), prop_tanh2(MSC,MCGRD), STAT=ISTAT)
+   IF (ISTAT.NE.0) THEN
+      IF (ALLOCATED(prop_sinh2)) DEALLOCATE(prop_sinh2)
+      IF (ALLOCATED(prop_tanh2)) DEALLOCATE(prop_tanh2)
+   END IF
 
    DO IP = 1, MCGRD
       DEPLOC = DEP(IP)
@@ -4824,6 +4925,8 @@ SUBROUTINE SWAPRE ( DEP, MUDL, SPCSIG )
          ELSE
             prop_dmw(:,IP) = 0.
          ENDIF
+         IF (ALLOCATED(prop_sinh2)) &
+            CALL bottom_motion_factors(MSC, prop_kwave(:,IP), DEPLOC, prop_sinh2(:,IP), prop_tanh2(:,IP))
       ENDIF
    ENDDO
    prop_cache_valid = .TRUE.

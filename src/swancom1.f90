@@ -5424,6 +5424,7 @@ SUBROUTINE SINTGRL(SPCDIR, KWAVE, AC2, DEP2, POINT_INTEGRALS, RDX, RDY, AC2TOT, 
    USE swan_diagnostics_level
    USE swan_io_units
    USE swan_stencil, ONLY: MICMAX
+   USE m_propcache, ONLY: prop_sinh2, prop_tanh2, bottom_motion_factors
    USE swan_physics_selection
    USE swan_numerics
    USE swan_physical_settings
@@ -5661,17 +5662,6 @@ SUBROUTINE SINTGRL(SPCDIR, KWAVE, AC2, DEP2, POINT_INTEGRALS, RDX, RDY, AC2TOT, 
    REAL              :: UT2
    REAL              :: DELL ! delta l for estimating biphase
 
-   REAL              :: ETOT_DSIG(MSC)
-   REAL              :: ACTOT_DSIG(MSC), ETOT_DSHKD2_DSIG(MSC)
-   REAL              :: ETOT_DRK_DSIG(MSC), ETOT_SIG2_DSIG(MSC)
-   REAL              :: ETOT_K_DSIG(MSC), ETOT_SIG_DSIG(MSC)
-   REAL              :: ETOT_SIG2_DSHKD2_DSIG(MSC)
-   REAL              :: ETOT_SIG2_DTHKD2_DSIG(MSC)
-   REAL              :: ETOT_SIG4_DSIG(MSC)
-   REAL              :: SINH_K_X_DEP_2(MSC)
-   REAL              :: TANH_K_X_DEP_2(MSC)
-   REAL              :: ETOT_SIG_2_DSIG(MSC)
-
 !     9. STRUCTURE
 !
 !   ----------------------------------------------------------
@@ -5697,6 +5687,14 @@ SUBROUTINE SINTGRL(SPCDIR, KWAVE, AC2, DEP2, POINT_INTEGRALS, RDX, RDY, AC2TOT, 
 !
 ! 13. Source text:
 
+!     Each thread visits many points with the same number of frequencies.
+!     Keep the integrands in its workspace to avoid allocating them at
+!     every visit. All columns are filled before they are used.
+   IF (ALLOCATED(WCAP_WORKSPACE%integral_terms)) THEN
+      IF (SIZE(WCAP_WORKSPACE%integral_terms,1).NE.MSC) DEALLOCATE(WCAP_WORKSPACE%integral_terms)
+   END IF
+   IF (.NOT.ALLOCATED(WCAP_WORKSPACE%integral_terms)) ALLOCATE(WCAP_WORKSPACE%integral_terms(MSC,13))
+
    ASSOCIATE(ACTOT => WCAP_WORKSPACE%total_action, &
       EDRKTOT => WCAP_WORKSPACE%energy_over_root_wavenumber, &
       EKTOT => WCAP_WORKSPACE%energy_times_wavenumber, &
@@ -5707,7 +5705,20 @@ SUBROUTINE SINTGRL(SPCDIR, KWAVE, AC2, DEP2, POINT_INTEGRALS, RDX, RDY, AC2TOT, 
       KM01 => WCAP_WORKSPACE%mean_wavenumber_01, &
       SIGM_WAM => WCAP_WORKSPACE%mean_frequency_wam, &
       SIGM_10 => WCAP_WORKSPACE%mean_frequency_10, &
-      SIGM01 => WCAP_WORKSPACE%mean_frequency_01)
+      SIGM01 => WCAP_WORKSPACE%mean_frequency_01, &
+      ETOT_DSIG           => WCAP_WORKSPACE%integral_terms(:,1), &
+      ACTOT_DSIG          => WCAP_WORKSPACE%integral_terms(:,2), &
+      ETOT_DSHKD2_DSIG    => WCAP_WORKSPACE%integral_terms(:,3), &
+      ETOT_DRK_DSIG       => WCAP_WORKSPACE%integral_terms(:,4), &
+      ETOT_SIG2_DSIG      => WCAP_WORKSPACE%integral_terms(:,5), &
+      ETOT_K_DSIG         => WCAP_WORKSPACE%integral_terms(:,6), &
+      ETOT_SIG_DSIG       => WCAP_WORKSPACE%integral_terms(:,7), &
+      ETOT_SIG2_DSHKD2_DSIG => WCAP_WORKSPACE%integral_terms(:,8), &
+      ETOT_SIG2_DTHKD2_DSIG => WCAP_WORKSPACE%integral_terms(:,9), &
+      ETOT_SIG4_DSIG      => WCAP_WORKSPACE%integral_terms(:,10), &
+      SINH_K_X_DEP_2      => WCAP_WORKSPACE%integral_terms(:,11), &
+      TANH_K_X_DEP_2      => WCAP_WORKSPACE%integral_terms(:,12), &
+      ETOT_SIG_2_DSIG     => WCAP_WORKSPACE%integral_terms(:,13))
 
       IF (LTRACE) CALL STRACE (IENT,'SINTGRL')
 
@@ -5763,12 +5774,12 @@ SUBROUTINE SINTGRL(SPCDIR, KWAVE, AC2, DEP2, POINT_INTEGRALS, RDX, RDY, AC2TOT, 
 
 !       --- calculate all other integrals
 
-         SINH_K_X_DEP_2(:)   = SINH(MIN(30., &
-            KWAVE(:,1)*DEP2(IGP)) &
-            )**2
-         TANH_K_X_DEP_2(:)   = TANH(MIN(30., &
-            KWAVE(:,1)*DEP2(IGP)) &
-            )**2
+         IF (ALLOCATED(prop_sinh2) .AND. DEP2(IGP).GT.DEPMIN) THEN
+            SINH_K_X_DEP_2(:) = prop_sinh2(:,IGP)
+            TANH_K_X_DEP_2(:) = prop_tanh2(:,IGP)
+         ELSE
+            CALL bottom_motion_factors(MSC, KWAVE(:,1), DEP2(IGP), SINH_K_X_DEP_2, TANH_K_X_DEP_2)
+         END IF
          ACTOT_DSIG(:)       = ACTOT_DSIG(:) * &
             SIGPOW(:,1) * FRINTF_X_DDIR
          ETOT_SIG_DSIG(:)    = ACTOT_DSIG(:) * SIGPOW(:,2)
@@ -8318,6 +8329,7 @@ SUBROUTINE RESCALE (AC2, WINDOW, NRSCAL, IGP, TESTFL)
 
    INTEGER, SAVE :: IENT = 0
    INTEGER  IS      ,ID      ,IDDUM
+   INTEGER :: FIRST, LAST
 
 !         ATOT       integral of action density for one frequency
 !         ATOTP      integral of positive action density for one frequency
@@ -8335,6 +8347,18 @@ SUBROUTINE RESCALE (AC2, WINDOW, NRSCAL, IGP, TESTFL)
 !     *** only the sector computed is rescaled !!                ***
 
    do IS = 1 , WINDOW%ISSTOP
+      FIRST = WINDOW%IDCMIN(IS)
+      LAST = WINDOW%IDCMAX(IS)
+      IF (FIRST.GT.LAST) CYCLE
+
+!     The sums are only used when there is a negative bin. Check the sign
+!     on each contiguous part of the sector first. If rescaling is needed,
+!     sum in the original sweep order.
+      IF (.NOT.ANY(AC2(MAX(1,FIRST):LAST,IS,IGP).LT.0.)) THEN
+         IF (FIRST.GE.1) CYCLE
+         IF (.NOT.ANY(AC2(FIRST+MDC:MDC,IS,IGP).LT.0.)) CYCLE
+      END IF
+
       ATOT   = 0.
       ATOTP  = 0.
       FACTOR = 0.
