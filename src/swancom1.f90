@@ -5016,7 +5016,7 @@ SUBROUTINE ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, ANYBL
 !****************************************************************
 
    USE swan_service_interfaces, ONLY: STRACE
-   USE swan_propagation, ONLY: SANDL, SORDUP, STRSD, STRSSB, STRSSI, STRSXY, SWFLXD
+   USE swan_propagation, ONLY: SANDL, SORDUP, STRSD, STRSSB, STRSSI, STRSXY, SWFLXD, BUDGET_USE
    USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_numerics
@@ -5266,6 +5266,10 @@ SUBROUTINE ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, ANYBL
 
    LOGICAL  ANYBLK(MDC,MSC)     ,ANYBIN(MDC,MSC)
 
+!     which parts of the budget ADDDIS reads (see BUDGET_USE)
+   INTEGER :: NDISP
+   LOGICAL :: WANT_GENR, WANT_REDS, WANT_TRAN, WANT_RADS
+
    INTEGER, SAVE :: IENT = 0
 
    IF (LTRACE) CALL STRACE (IENT,'ACTION')
@@ -5288,12 +5292,27 @@ SUBROUTINE ACTION (WINDOW, SPCSIG, AC2, CAX, CAY, CAS, CAD, SYSTEM_MATRIX, ANYBL
 !     makes one call of memset for every frequency, some 270 calls at each
 !     point visit.
 
-   CALL CLEAR_BUDGET(LEAKC1, SIZE(LEAKC1))
+!
+!     Only ADDDIS reads the leak and the transport coefficients, and it
+!     runs only when an output quantity asks for it (LADDS); the transport
+!     coefficients it reads only for an output quantity that needs them or
+!     for the radiation stress (see BUDGET_USE). Without such output they
+!     are not cleared, which saves writing seven spectra at every point
+!     visit. They then start from the zero that SWCOMP gives them after
+!     allocating them, and hold sums over earlier points that nothing
+!     reads, as the dissipation budget does (see SOURCE).
+
+   IF (LADDS) THEN
+      CALL CLEAR_BUDGET(LEAKC1, SIZE(LEAKC1))
 
 !     *** set all transport coeff at 0 ***
 
-   CALL CLEAR_BUDGET(TRAC0, SIZE(TRAC0))
-   CALL CLEAR_BUDGET(TRAC1, SIZE(TRAC1))
+      CALL BUDGET_USE(NDISP, WANT_GENR, WANT_REDS, WANT_TRAN, WANT_RADS)
+      IF (WANT_TRAN) THEN
+         CALL CLEAR_BUDGET(TRAC0, SIZE(TRAC0))
+         CALL CLEAR_BUDGET(TRAC1, SIZE(TRAC1))
+      END IF
+   END IF
 
    IF (timing_enabled) CALL SWTSTA(140)
 !
@@ -6885,6 +6904,7 @@ SUBROUTINE SOURCE (ITER, IX, IY, SWPDIR, KWAVE, SPCSIG, ECOS, ESIN, AC2, DEP2, I
    USE swan_stencil, ONLY: MICMAX
    USE swan_physics_selection
    USE swan_numerics
+   USE swan_propagation, ONLY: BUDGET_USE
    USE swan_physical_settings
    USE swan_computational_grid
    USE swan_spectral_grid
@@ -7291,6 +7311,10 @@ SUBROUTINE SOURCE (ITER, IX, IY, SWPDIR, KWAVE, SPCSIG, ECOS, ESIN, AC2, DEP2, I
       ANYBIN(MDC,MSC), &
       ANYWND(MDC)
 
+!     which parts of the budget ADDDIS reads (see BUDGET_USE)
+   INTEGER :: NDISP
+   LOGICAL :: WANT_GENR, WANT_REDS, WANT_TRAN, WANT_RADS
+
    IF (LTRACE) CALL STRACE (IENT,'SOURCE')
 
 !     *** set relevant matrix elements to 0 ***
@@ -7327,11 +7351,23 @@ SUBROUTINE SOURCE (ITER, IX, IY, SWPDIR, KWAVE, SPCSIG, ECOS, ESIN, AC2, DEP2, I
 !     generation budget is still cleared at every visit, because WINDP1
 !     reads GENC0 at the next point (see above).
 
+!
+!     With such output, only the part that ADDDIS reads is cleared (see
+!     BUDGET_USE): the dissipation terms up to the last one whose physics
+!     is switched on, and the redistribution terms only when an output
+!     quantity or the radiation stress needs them. With the usual physics
+!     and only the dissipation asked for, as in the so-rp deck, that is 8
+!     spectra at every point visit instead of 24. The budget is stored
+!     term after term, so the first NDISP terms are one block.
+
    IF (LADDS) THEN
-      CALL CLEAR_BUDGET(SOURCE_BUDGET%dissc0, SIZE(SOURCE_BUDGET%dissc0))
-      CALL CLEAR_BUDGET(SOURCE_BUDGET%dissc1, SIZE(SOURCE_BUDGET%dissc1))
-      CALL CLEAR_BUDGET(SOURCE_BUDGET%redc0, SIZE(SOURCE_BUDGET%redc0))
-      CALL CLEAR_BUDGET(SOURCE_BUDGET%redc1, SIZE(SOURCE_BUDGET%redc1))
+      CALL BUDGET_USE(NDISP, WANT_GENR, WANT_REDS, WANT_TRAN, WANT_RADS)
+      CALL CLEAR_BUDGET(SOURCE_BUDGET%dissc0, MDC*MSC*NDISP)
+      CALL CLEAR_BUDGET(SOURCE_BUDGET%dissc1, MDC*MSC*NDISP)
+      IF (WANT_REDS) THEN
+         CALL CLEAR_BUDGET(SOURCE_BUDGET%redc0, SIZE(SOURCE_BUDGET%redc0))
+         CALL CLEAR_BUDGET(SOURCE_BUDGET%redc1, SIZE(SOURCE_BUDGET%redc1))
+      END IF
    END IF
    CALL CLEAR_BUDGET(SOURCE_BUDGET%genc0, SIZE(SOURCE_BUDGET%genc0))
    CALL CLEAR_BUDGET(SOURCE_BUDGET%genc1, SIZE(SOURCE_BUDGET%genc1))

@@ -38,6 +38,7 @@ module swan_propagation
    private
    public :: SWGEOM, SWPSEL, SPROXY, SPROSD, DSPHER, STRSXY, SORDUP, SANDL
    public :: STRSSI, STRSSB, STRSD, SPREDT, SWAPAR, SWAPRE, ADDDIS, SWFLXD, DIFPAR
+   public :: BUDGET_USE
    public :: RESET_PROPAGATION_STATE
 !  SANDL gives its CFL error once per run: the flag must survive successive
 !  COMPUTE commands and time steps, but not the end of the run, or a second
@@ -4936,6 +4937,52 @@ end subroutine SWAPRE
 
 !*******************************************************************
 
+SUBROUTINE BUDGET_USE (NDISP, WANT_GENR, WANT_REDS, WANT_TRAN, WANT_RADS)
+
+!*******************************************************************
+!
+!     Says which parts of the budget of source terms and transport
+!     ADDDIS reads. ADDDIS is the only reader, and it runs only when an
+!     output quantity asks for it (LADDS). SOURCE and ACTION clear the
+!     budget at every point visit and ask here which parts need that, so
+!     that what is cleared and what is read cannot drift apart.
+!
+!     NDISP is the number of dissipation terms that are summed. The last
+!     four are vegetation (5), turbulence (6), mud (7) and sea ice (8).
+!     Each has coefficients that only the routine of that physics writes
+!     (SVEG, STURBV, SMUD, SICE), and SOURCE calls that routine only when
+!     the physics is switched on. The terms after the last one that is
+!     switched on are never written and are left out, which with the
+!     usual physics halves the number of terms. Whitecapping, surf
+!     breaking, bottom friction and swell dissipation (1 to 4) are always
+!     summed.
+!
+!     The generation, redistribution and transport budgets are read only
+!     for an output quantity that needs them, or for the radiation stress.
+
+   USE swan_physics_selection
+   USE swan_compda_layout, ONLY: JGENR, JGSXW, JREDS, JRSXQ, JRSXT, JRSXB, JRSXC, JTRAN, JTSXG, JTSXT, &
+         JTSXS, JRADS
+
+   IMPLICIT NONE(TYPE, EXTERNAL)
+
+   INTEGER, INTENT(OUT) :: NDISP
+   LOGICAL, INTENT(OUT) :: WANT_GENR, WANT_REDS, WANT_TRAN, WANT_RADS
+
+   NDISP = 4
+   IF (IVEG.NE.0)   NDISP = 5
+   IF (ITURBV.NE.0) NDISP = 6
+   IF (IMUD.NE.0)   NDISP = 7
+   IF (IICE.NE.0)   NDISP = MDISP
+
+   WANT_RADS = JRADS.GT.1
+   WANT_GENR = WANT_RADS .OR. JGENR.GT.1 .OR. JGSXW.GT.1
+   WANT_REDS = WANT_RADS .OR. JREDS.GT.1 .OR. JRSXQ.GT.1 .OR. JRSXT.GT.1 .OR. JRSXB.GT.1 .OR. JRSXC.GT.1
+   WANT_TRAN = WANT_RADS .OR. JTRAN.GT.1 .OR. JTSXG.GT.1 .OR. JTSXT.GT.1 .OR. JTSXS.GT.1
+END SUBROUTINE BUDGET_USE
+
+!*******************************************************************
+
 SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
    AC2        ,ANYBIN     , &
    DISC0      ,DISC1      , &
@@ -4964,8 +5011,6 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
    USE swan_physics_selection
    USE swan_computational_grid
    USE swan_spectral_grid
-   USE swan_compda_layout, ONLY: JGENR, JGSXW, JREDS, JRSXQ, JRSXT, JRSXB, JRSXC, JTRAN, JTSXG, JTSXT, &
-         JTSXS, JRADS
 
    IMPLICIT NONE(TYPE, EXTERNAL)
 
@@ -5143,34 +5188,14 @@ SUBROUTINE ADDDIS (DISSXY     ,LEAKXY     , &
    INTEGER, SAVE :: IENT=0
    CALL STRACE (IENT, 'ADDDIS')
 
-   WANT_RADS = JRADS.GT.1
-   WANT_GENR = WANT_RADS .OR. JGENR.GT.1 .OR. JGSXW.GT.1
-   WANT_REDS = WANT_RADS .OR. JREDS.GT.1 .OR. JRSXQ.GT.1 .OR. JRSXT.GT.1 .OR. JRSXB.GT.1 .OR. JRSXC.GT.1
-   WANT_TRAN = WANT_RADS .OR. JTRAN.GT.1 .OR. JTSXG.GT.1 .OR. JTSXT.GT.1 .OR. JTSXS.GT.1
+!     which terms are summed: the same choice as where they are cleared
+   CALL BUDGET_USE(NDISP, WANT_GENR, WANT_REDS, WANT_TRAN, WANT_RADS)
 
    ADISSIP(1:MDISP) = 0.
    AGENERT(1:MGENR) = 0.
    AREDIST(1:MREDS) = 0.
    ATRANSP(1:MTRNP) = 0.
    ARADSTR          = 0.
-
-!     The last four dissipation terms are vegetation (5), turbulence (6),
-!     mud (7) and sea ice (8). Each has coefficients that only the routine
-!     of that physics writes (SVEG, STURBV, SMUD, SICE), and SOURCE calls
-!     that routine only when the physics is switched on. A term that is
-!     off therefore holds the zeros that SOURCE gives the budget at every
-!     point visit: each of its contributions is +0.0, its sum stays the
-!     +0.0 it starts with, and the radiation stress does not change when
-!     +0.0 is subtracted. The terms after the last one that is switched
-!     on are left out of the loop, which with the usual physics halves
-!     the number of terms. Whitecapping, surf breaking, bottom friction
-!     and swell dissipation (1 to 4) are always summed.
-
-   NDISP = 4
-   IF (IVEG.NE.0)   NDISP = 5
-   IF (ITURBV.NE.0) NDISP = 6
-   IF (IMUD.NE.0)   NDISP = 7
-   IF (IICE.NE.0)   NDISP = MDISP
 
    do ISC = 1, MSC
       DSDD  = DDIR * FRINTF * SPCSIG(ISC)
