@@ -3518,7 +3518,7 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG, TRIADS )
       XIS, XISLN
    REAL    A, CG(MSC), CG1, CG2, DEPLOC, DF, DK, FT, ISB, &
       K(MSC), K1, K2, K3, KB, KM, P, SIG1, SIG2, SIG3, WIS
-   REAL    K3A(1), SIG3A(1)
+   REAL    K3A(1), SIG3A(1), KPOWER(MSC)
 
 ! 13. Source text
 
@@ -3865,6 +3865,23 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG, TRIADS )
 
          QTRI1 = 0.
 
+!        The difference frequency and its interpolation weights depend
+!        only on the spectral grid. Index zero marks an omitted pair.
+         J = 0
+         DO IS1 = 1, MSC
+            ISLOW = 1
+            IF (TCOLL) ISLOW = IS1+1
+            DO IS2 = ISLOW, MSC
+               J = J+1
+               SIG3 = ABS(SPCSIG(IS2)-SPCSIG(IS1))
+               IF (SIG3.LE.SPCSIG(1)) CYCLE
+               ISB = LOG(SIG3/SPCSIG(1)) / FRINTF
+               IS3 = INT(ISB)
+               QTRI1(J,1) = ISB-REAL(IS3)
+               QTRI1(J,2) = REAL(IS3+1)
+            ENDDO
+         ENDDO
+
          DO IP = 2, MCGRD
 
             DEPLOC = DEP(IP)
@@ -3878,13 +3895,20 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG, TRIADS )
                CG =  0.
             ENDIF
 
+!           Each wave number occurs in many pairs at this depth.
+!           Use the same scalar power as the pair loop. The vector math
+!           library can round the last bit differently.
+            !GCC$ novector
+            DO IS = 1, MSC
+               KPOWER(IS) = K(IS)**P
+            ENDDO
+
             J = 0
 
             DO IS1 = 1, MSC
 
 !              --- get first wave component
 
-               SIG1 = SPCSIG(IS1)
                K1   = K     (IS1)
                CG1  = CG    (IS1)
 
@@ -3898,27 +3922,13 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG, TRIADS )
 
 !                 --- get second wave component
 
-                  SIG2 = SPCSIG(IS2)
                   K2   = K     (IS2)
                   CG2  = CG    (IS2)
 
-!                 --- determine third component by means of quasi-resonance condition
-                  SIG3 = ABS(SIG2 - SIG1)
-
                   J = J + 1
-
-                  IF ( SIG3.GT.SPCSIG(1) ) THEN
-
-!                    --- obtain and store interpolation factors
-
-                     ISB = LOG( SIG3/SPCSIG(1) ) / FRINTF
-
-                     IS3 = INT(ISB)
-                     WIS = ISB - REAL(IS3)
-                     IS3 = IS3 + 1
-
-                     QTRI1(J,1) = WIS
-                     QTRI1(J,2) = FLOAT(IS3)
+                  IS3 = INT(QTRI1(J,2))
+                  IF (IS3.GT.0) THEN
+                     WIS = QTRI1(J,1)
 
 !                    --- compute the wave number of third component
 
@@ -3942,8 +3952,8 @@ SUBROUTINE FAC3WW ( DEP, SPCSIG, TRIADS )
 
 !                    --- compute and store the DCTA scaling factors
 
-                     QTRI2(J,IP,1) = (FT*FT)**2 * CG1 * K1**P
-                     QTRI2(J,IP,2) = (FT*FT)**2 * CG2 * K2**P
+                     QTRI2(J,IP,1) = (FT*FT)**2 * CG1 * KPOWER(IS1)
+                     QTRI2(J,IP,2) = (FT*FT)**2 * CG2 * KPOWER(IS2)
 
                   ENDIF
 
@@ -4581,11 +4591,11 @@ SUBROUTINE SWDCTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW,
 !     WIS   :     interpolation weight factor
 
    INTEGER, SAVE :: IENT = 0
-   INTEGER ID, IDDUM, IS, IS1, IS2, IS3, J
+   INTEGER ID, IDDUM, IDFIRST, IDLAST, IS, IS1, IS2, IS3, J
    REAL    BETA, BIPH, CG, DEP, E1, E2, E3, FT, FT2, &
       KM, P, SIG1, SIG2, SIG3, SINBPH, &
       STRI, STRI1, STRI2, WIS
-   REAL    E(MSC), SAN(MDC,MSC), SAP(MDC,MSC)
+   REAL    E(MDC,MSC), SAN(MDC,MSC), SAP(MDC,MSC)
 
 ! 13. Source text
 
@@ -4594,10 +4604,6 @@ SUBROUTINE SWDCTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW,
    DEP  = DEP2(IGP)
    BIPH = BIPHAS(IGP)
    P    = PTRIAD(2)
-
-   E   = 0.
-   SAN = 0.
-   SAP = 0.
 
 !     --- compute 3 wave-wave interactions
 
@@ -4614,65 +4620,46 @@ SUBROUTINE SWDCTA (AC2, DEP2, CGO, SPCSIG, IMATRA, IMATDA, REDC0, REDC1, WINDOW,
       FT2  = FT * FT
       BETA = PTRIAD(1) / FT2 * SINBPH * KM**(2.-P)
 
-      DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
-         ID = IDDUM
-         IF (ID.LT.1) ID = ID + MDC
-         IF (ID.GT.MDC) ID = ID - MDC
+!     Each frequency pair uses the same two weights in every direction.
+!     Work along contiguous directions and keep the order in which pairs
+!     contribute to each bin. A sweep can cross the end of the circle.
+      SAN = 0.
+      SAP = 0.
+      IDDUM = WINDOW%IDDLOW
+      DO WHILE (IDDUM.LE.WINDOW%IDDTOP)
+         IDFIRST = MODULO(IDDUM-1,MDC) + 1
+         IDLAST = MIN(MDC, IDFIRST + (WINDOW%IDDTOP-IDDUM))
 
-!          --- compute E(sigma) for each direction
-
-         E(:) = AC2(ID,:,IGP) * SPCSIG(:)
+         DO IS = 1, MSC
+            E(IDFIRST:IDLAST,IS) = AC2(IDFIRST:IDLAST,IS,IGP) * SPCSIG(IS)
+         ENDDO
 
          J = 0
-
-!          --- compute interactions based on DCTA
-
          DO IS1 = 1, MSC
-
-!             --- get first wave component
-
             SIG1 = SPCSIG(IS1)
-            E1   = E     (IS1)
-
             DO IS2 = IS1+1, MSC
-
-!                --- get second wave component
-!                    note: only difference interactions included
-
                SIG2 = SPCSIG(IS2)
-               E2   = E     (IS2)
-
-!                --- determine third component by means of quasi-resonance condition
                SIG3 = SIG2 - SIG1
-
                J = J + 1
-
                IF ( SIG3.GT.SPCSIG(1) ) THEN
-
-!                   --- obtain third energy density by means of interpolation
-
                   WIS = QTL1(J,1)
                   IS3 = INT(QTL1(J,2))
+                  DO ID = IDFIRST, IDLAST
+                     E1 = E(ID,IS1)
+                     E2 = E(ID,IS2)
+                     E3 = (1.-WIS) * E(ID,IS3) + WIS * E(ID,IS3+1)
+                     STRI1 = QTL2(J,1) * E3 * E1
+                     STRI2 = QTL2(J,2) * E3 * E2
 
-                  E3 = (1.-WIS) * E(IS3) + WIS * E(IS3+1)
-
-!                   --- assemble the triad contributions
-
-                  STRI1 = QTL2(J,1) * E3 * E1
-                  STRI2 = QTL2(J,2) * E3 * E2
-
-                  SAN(ID,IS1) = SAN(ID,IS1) + STRI1 * FRINTF * SIG2
-                  SAP(ID,IS1) = SAP(ID,IS1) + STRI2 * FRINTF * SIG2
-
-!                   --- to include sum interactions as well
-
-                  SAN(ID,IS2) = SAN(ID,IS2) + STRI2 * FRINTF * SIG1
-                  SAP(ID,IS2) = SAP(ID,IS2) + STRI1 * FRINTF * SIG1
-
+                     SAN(ID,IS1) = SAN(ID,IS1) + STRI1 * FRINTF * SIG2
+                     SAP(ID,IS1) = SAP(ID,IS1) + STRI2 * FRINTF * SIG2
+                     SAN(ID,IS2) = SAN(ID,IS2) + STRI2 * FRINTF * SIG1
+                     SAP(ID,IS2) = SAP(ID,IS2) + STRI1 * FRINTF * SIG1
+                  ENDDO
                ENDIF
-
             ENDDO
          ENDDO
+         IDDUM = IDDUM + (IDLAST-IDFIRST+1)
       ENDDO
 
 !       --- store results in rhs and main diagonal according
@@ -4912,6 +4899,7 @@ SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0
       SIN12, SINBPH, STRI, STRI1, STRI2, TH1, TH2, TH3, &
       WIS, WID
    REAL    E(MDC,MSC), SAN(MDC,MSC), SAP(MDC,MSC)
+   REAL    PEAK(MSC), UPPER0, UPPER1, UPPER
    LOGICAL OUTSID
 
 !  9. Subroutines calling
@@ -4928,18 +4916,13 @@ SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0
    P     = PTRIAD(2)
    ETRSH = 1.E-4 * ETOT
 
-   SAN = 0.
-   SAP = 0.
-
-!     --- consider energy densities
-
-   DO ID = 1, MDC
-      E(ID,:) = AC2(ID,:,IGP) * SPCSIG(:)
-   END DO
-
-!     --- compute 3 wave-wave interactions
-
    IF ( .NOT.URSELL(IGP).LT.PTRIAD(5) ) THEN
+      SAN = 0.
+      SAP = 0.
+      DO IS = 1, MSC
+         E(:,IS) = AC2(:,IS,IGP) * SPCSIG(IS)
+         PEAK(IS) = MAX(0., MAXVAL(E(:,IS)))
+      END DO
 
 !       --- determine sine of biphase
 
@@ -4952,132 +4935,120 @@ SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0
       FT2  = FT * FT
       BETA = PTRIAD(1) / FT2 * SINBPH * KM**(2.-P)
 
-      DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
-         ID1 = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+      J = 0
+      DO IS1 = 1, MSC
+         SIG1 = SPCSIG(IS1)
+         K1 = KWAVE(IS1,1)
+         DO IS2 = 1, MSC
+            J = J + 1
+            SIG2 = SPCSIG(IS2)
+            SIG3 = ABS(SIG2-SIG1)
+            IF (SIG3.LE.SPCSIG(1)) CYCLE
 
-         J = 0
+            WIS = QTL1(J,1)
+            IS3 = INT(QTL1(J,2))
+!           E3 is a sum of four products. Each angular weight is at most
+!           one. Replace both by one and each energy by its frequency
+!           maximum to bound each product, also after rounding.
+            UPPER0 = (1.-WIS) * PEAK(IS3)
+            UPPER1 = WIS * PEAK(IS3+1)
+            UPPER = UPPER0 + UPPER0 + UPPER1 + UPPER1
+            IF (UPPER * FRINTF * SIG3 * DDIR .LE. ETRSH) CYCLE
 
-         DO IS1 = 1, MSC
-
-!             --- get first wave component
-
-            SIG1 = SPCSIG(IS1)
-            K1   = KWAVE (IS1,1  )
-            E1   = E     (ID1,IS1)
-
-            TH1   = SPCDIR(ID1,1)
-            ECOS1 = SPCDIR(ID1,2)
-            ESIN1 = SPCDIR(ID1,3)
-
-            DO IS2 = 1, MSC
-
-               J = J + 1
-
+            K2 = KWAVE(IS2,1)
+            K3 = (1.-WIS)*KWAVE(IS3,1) + WIS*KWAVE(IS3+1,1)
+            DS2DD = FRINTF * SIG2 * DDIR
+            DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
+               ID1 = MOD ( IDDUM - 1 + MDC , MDC ) + 1
+               E1 = E(ID1,IS1)
+               TH1 = SPCDIR(ID1,1)
+               ECOS1 = SPCDIR(ID1,2)
+               ESIN1 = SPCDIR(ID1,3)
                DO ID2 = 1, MDC
-
-!                   --- get second wave component
-
-                  SIG2 = SPCSIG(IS2)
-                  K2   = KWAVE (IS2,1  )
-                  E2   = E     (ID2,IS2)
-
-                  TH2   = SPCDIR(ID2,1)
+                  E2 = E(ID2,IS2)
+                  TH2 = SPCDIR(ID2,1)
                   ECOS2 = SPCDIR(ID2,2)
                   ESIN2 = SPCDIR(ID2,3)
 
-!                   --- determine third component by means of quasi-resonance condition
-                  SIG3 = ABS(SIG2 - SIG1)
-
-                  IF ( SIG3.GT.SPCSIG(1) ) THEN
-
 !                      --- compute wave number of the sum or difference wave number vector
 
-                     SIN12 = ESIN1*ECOS2 - ECOS1*ESIN2
-                     COS12 = ECOS1*ECOS2 + ESIN1*ESIN2
+                  SIN12 = ESIN1*ECOS2 - ECOS1*ESIN2
+                  COS12 = ECOS1*ECOS2 + ESIN1*ESIN2
 
-                     K12 = SQRT(K1*K1 + K2*K2 - 2. * K1 * K2 * COS12)
+                  K12 = SQRT(K1*K1 + K2*K2 - 2. * K1 * K2 * COS12)
 
 !                      --- compute the corresponding wave direction
 
-                     IF (SIG2.GT.SIG1) THEN
+                  IF (SIG2.GT.SIG1) THEN
 !                         difference interactions
-                        TH3 = TH2 - ASIN(K1/K12*SIN12)
-                     ELSE
+                     TH3 = TH2 - ASIN(K1/K12*SIN12)
+                  ELSE
 !                         sum interactions
-                        TH3 = TH1 - ASIN(-K2/K12*SIN12)
-                     ENDIF
+                     TH3 = TH1 - ASIN(-K2/K12*SIN12)
+                  ENDIF
 
 !                      --- obtain third energy density by means of interpolation
 
-                     WIS = QTL1(J,1)
-                     IS3 = INT(QTL1(J,2))
+                  OUTSID = .FALSE.
 
-                     OUTSID = .FALSE.
-
-                     IF ( FULCIR ) THEN
-                        IDP  = ( TH3 - SPCDIR(1,1) ) / DDIR
-                        I3   = FLOOR(IDP)
-                        WID  = IDP - REAL(I3)
-                        ID3  = MOD( I3     + MDC , MDC ) + 1
-                        ID3P = MOD( I3 + 1 + MDC , MDC ) + 1
+                  IF ( FULCIR ) THEN
+                     IDP  = ( TH3 - SPCDIR(1,1) ) / DDIR
+                     I3   = FLOOR(IDP)
+                     WID  = IDP - REAL(I3)
+                     ID3  = MOD( I3     + MDC , MDC ) + 1
+                     ID3P = MOD( I3 + 1 + MDC , MDC ) + 1
+                  ELSE
+                     TH3 = MOD( (TH3 + PI2), PI2 )
+                     IF ( SPCDIR(1,1).LT.0. .AND. &
+                        TH3.GT.SPCDIR(MDC,1) ) TH3 = TH3 - PI2
+                     IDP = ( TH3 - SPCDIR(1,1) ) / DDIR
+                     IF ( IDP.LT.0. ) THEN
+                        OUTSID = .TRUE.
+                     ELSE IF ( IDP.GT.REAL(MDC-1) ) THEN
+                        OUTSID = .TRUE.
+                     ELSE IF ( .NOT. IDP.NE.REAL(MDC-1) ) THEN
+                        ID3 = MDC - 1
+                        WID = 1.
                      ELSE
-                        TH3 = MOD( (TH3 + PI2), PI2 )
-                        IF ( SPCDIR(1,1).LT.0. .AND. &
-                           TH3.GT.SPCDIR(MDC,1) ) TH3 = TH3 - PI2
-                        IDP = ( TH3 - SPCDIR(1,1) ) / DDIR
-                        IF ( IDP.LT.0. ) THEN
-                           OUTSID = .TRUE.
-                        ELSE IF ( IDP.GT.REAL(MDC-1) ) THEN
-                           OUTSID = .TRUE.
-                        ELSE IF ( .NOT. IDP.NE.REAL(MDC-1) ) THEN
-                           ID3 = MDC - 1
-                           WID = 1.
-                        ELSE
-                           ID3 = INT(IDP)
-                           WID = IDP - REAL(ID3)
-                           ID3 = ID3 + 1
-                        ENDIF
-                        ID3P = ID3 + 1
+                        ID3 = INT(IDP)
+                        WID = IDP - REAL(ID3)
+                        ID3 = ID3 + 1
                      ENDIF
+                     IF (.NOT.OUTSID) ID3P = ID3 + 1
+                  ENDIF
 
-                     K3 = (1.-WIS)*KWAVE(IS3,1) + WIS*KWAVE(IS3+1,1)
+                  IF ( OUTSID ) THEN
+                     E3 = -1.
+                  ELSE
+                     E3 = (1.-WIS)* (1.-WID) * E(ID3 ,IS3  ) + &
+                        (1.-WIS)*     WID  * E(ID3P,IS3  ) + &
+                        WIS * (1.-WID) * E(ID3 ,IS3+1) + &
+                        WIS *     WID  * E(ID3P,IS3+1)
+                  ENDIF
 
-                     IF ( OUTSID ) THEN
-                        E3 = -1.
-                     ELSE
-                        E3 = (1.-WIS)* (1.-WID) * E(ID3 ,IS3  ) + &
-                           (1.-WIS)*     WID  * E(ID3P,IS3  ) + &
-                           WIS * (1.-WID) * E(ID3 ,IS3+1) + &
-                           WIS *     WID  * E(ID3P,IS3+1)
-                     ENDIF
-
-                     IF ( E3 * FRINTF * SIG3 * DDIR .GT. ETRSH ) THEN
+                  IF ( E3 * FRINTF * SIG3 * DDIR .GT. ETRSH ) THEN
 
 !                         --- scale with angle difference between
 !                             the second and third component using
 !                             the transfer function of Sand (1982)
 
-                        COS23 = (K2-K1*COS12) / K12
-                        IF (.NOT.SIG2.GT.SIG1) COS23 = -COS23
+                     COS23 = (K2-K1*COS12) / K12
+                     IF (.NOT.SIG2.GT.SIG1) COS23 = -COS23
 
-                        IF (COS23.NE.1.) THEN
-                           FT = SANDN(COS23)
-                        ELSE
-                           FT = 1.
-                        ENDIF
-                        FT2 = FT * FT
+                     IF (COS23.NE.1.) THEN
+                        FT = SANDN(COS23)
+                     ELSE
+                        FT = 1.
+                     ENDIF
+                     FT2 = FT * FT
 
 !                         --- assemble the triad contributions
 
-                        STRI1 = QTL2(J,1) * FT2 * E3 * E1
-                        STRI2 = QTL2(J,2) * FT2 * E3 * E2
+                     STRI1 = QTL2(J,1) * FT2 * E3 * E1
+                     STRI2 = QTL2(J,2) * FT2 * E3 * E2
 
-                        DS2DD = FRINTF * SIG2 * DDIR
-
-                        SAN(ID1,IS1) = SAN(ID1,IS1) + STRI1 * DS2DD
-                        SAP(ID1,IS1) = SAP(ID1,IS1) + STRI2 * DS2DD
-
-                     ENDIF
+                     SAN(ID1,IS1) = SAN(ID1,IS1) + STRI1 * DS2DD
+                     SAP(ID1,IS1) = SAP(ID1,IS1) + STRI2 * DS2DD
 
                   ENDIF
 
