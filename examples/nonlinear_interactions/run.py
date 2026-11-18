@@ -41,6 +41,12 @@ VARIANTS = {
     ),
     "triad_off": Variant("triad", "triad_off", "triads disabled"),
     "triad_dcta": Variant("triad", "triad_dcta", "DCTA triads"),
+    "triad_dcta_nonc": Variant(
+        "triad", "triad_dcta_nonc", "non-collinear DCTA triads, full circle"
+    ),
+    "triad_dcta_nonc_sector": Variant(
+        "triad", "triad_dcta_nonc_sector", "non-collinear DCTA triads, sector"
+    ),
     "triad_lta": Variant("triad", "triad_lta", "LTA triads"),
     "triad_lta_upstream": Variant(
         "triad", "triad_lta_upstream",
@@ -96,6 +102,8 @@ XNL_KEYS = ("quad_xnl", "quad_xnl52", "quad_xnl53")
 TRIAD_KEYS = (
     "triad_off",
     "triad_dcta",
+    "triad_dcta_nonc",
+    "triad_dcta_nonc_sector",
     "triad_ftim",
     "triad_lta",
     "triad_lta_upstream",
@@ -482,6 +490,35 @@ def validate_results(results: dict[str, RunResult]) -> list[str]:
         messages.append(
             f"TRIAD: DCTA differs {dcta_difference:.1%} and FTIM differs "
             f"{ftim_difference:.1%} from OFF at x=25 m."
+        )
+
+    if {"triad_dcta_nonc", "triad_dcta_nonc_sector"}.issubset(results):
+        # The same 36 directions as a full circle and as a sector. SWDNCTA
+        # takes a different route for each: on the circle it works out the
+        # third direction once for every angle between two directions, on a
+        # sector for every pair, as upstream does. The physics is the same,
+        # so the spectra must agree at every gauge. What is left is the two
+        # ends of the sector: a third direction between them is left out,
+        # and energy does not turn from one end to the other. A slip in the
+        # bookkeeping of the circle would show as a much larger difference.
+        for key in ("triad_dcta_nonc", "triad_dcta_nonc_sector"):
+            if max(abs(row[5]) for row in results[key].table) <= 1.0e-8:
+                raise RuntimeError(f"{key} did not activate triad transfer")
+        circle = results["triad_dcta_nonc"]
+        sector = results["triad_dcta_nonc_sector"]
+        difference = max(
+            relative_spectral_difference(on_sector, on_circle)
+            for on_sector, on_circle in zip(sector.spectra, circle.spectra, strict=True)
+        )
+        if difference > 1.0e-3:
+            raise RuntimeError(
+                "the non-collinear DCTA gives a different spectrum on the full "
+                f"circle than on a sector with the same directions ({difference:.2%})"
+            )
+        messages.append(
+            "TRIAD: non-collinear DCTA on the full circle differs at most "
+            f"{difference:.4%} from the same directions as a sector, over the "
+            f"{len(circle.spectra)} gauges."
         )
 
     if {"triad_lta", "triad_lta11"}.issubset(results):

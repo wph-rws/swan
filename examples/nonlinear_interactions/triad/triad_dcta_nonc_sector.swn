@@ -1,0 +1,40 @@
+$ Shallow-water propagation over a submerged bar with DCTA triads that also
+$ act between waves from different directions (NONC), on a sector
+$
+$ The same deck as triad_dcta_nonc.swn, with the same 36 directions of 10
+$ degrees given as a sector from -175 to 175 degrees and not as a full
+$ circle. On a sector SWDNCTA looks up the third direction for every pair
+$ of directions, as upstream does; on the full circle the fork works it out
+$ once for every angle between two directions. The two decks therefore
+$ run the same physics along the two routes, and their spectra should
+$ agree closely. They are not equal: a sector has two ends, so a third
+$ direction that falls between 175 and 185 degrees is left out, and energy
+$ does not turn from one end to the other.
+$
+PROJECT 'TRIADNOS' '001'
+SET CARTESIAN
+MODE STATIONARY ONEDIMENSIONAL
+COORDINATES CARTESIAN
+
+CGRID REGULAR 0.0 0.0 0.0 30.0 0.0 300 0 &
+      SECTOR -175.0 175.0 35 0.10 2.0 31
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 30 0 1.0 1.0
+READINP BOTTOM 1.0 'bottom.bot' 1 0 FREE
+
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 0.06 2.0 0.0 10.0
+
+GEN3 WESTH
+OFF WINDGROWTH
+OFF WCAPPING
+OFF QUADRUPLET
+TRIAD DCTA NONC
+
+POINTS 'GAUGES' 2.0 0.0 10.0 0.0 15.0 0.0 18.0 0.0 &
+         25.0 0.0 30.0 0.0
+TABLE 'GAUGES' HEADER 'triad_dcta_nonc_sector.tbl' XP DEPTH HSIGN TM01 RTP REDTRIAD REDQUAD
+SPECOUT 'GAUGES' SPEC1D ABS 'triad_dcta_nonc_sector.spc'
+TEST 1 0 POINTS XY 15.0 0.0 S1D 'triad_dcta_nonc_sector_sources.spc'
+
+COMPUTE
+STOP

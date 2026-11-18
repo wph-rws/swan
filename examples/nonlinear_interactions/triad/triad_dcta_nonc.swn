@@ -1,0 +1,39 @@
+$ Shallow-water propagation over a submerged bar with DCTA triads that also
+$ act between waves from different directions (NONC), on the full circle
+$
+$ The same bar as triad_dcta.swn, with a wider incident spectrum (a
+$ directional spread of 10 degrees) on directions of 10 degrees all round.
+$ On a full circle SWDNCTA uses that two directions act on each other in the
+$ same way as two that are both turned by a number of bins, and works out
+$ the third direction once for every angle between them. That is a choice
+$ of this fork for speed: upstream works it out for every pair of
+$ directions, and the two differ in rounding only. triad_dcta_nonc_sector.swn
+$ has the same directions as a sector, which takes the loop of upstream.
+$
+PROJECT 'TRIADNON' '001'
+SET CARTESIAN
+MODE STATIONARY ONEDIMENSIONAL
+COORDINATES CARTESIAN
+
+CGRID REGULAR 0.0 0.0 0.0 30.0 0.0 300 0 &
+      CIRCLE 36 0.10 2.0 31
+INPGRID BOTTOM REGULAR 0.0 0.0 0.0 30 0 1.0 1.0
+READINP BOTTOM 1.0 'bottom.bot' 1 0 FREE
+
+BOUND SHAPESPEC JONSWAP 3.3 PEAK DSPR DEGREES
+BOUNDSPEC SIDE WEST CONSTANT PAR 0.06 2.0 0.0 10.0
+
+GEN3 WESTH
+OFF WINDGROWTH
+OFF WCAPPING
+OFF QUADRUPLET
+TRIAD DCTA NONC
+
+POINTS 'GAUGES' 2.0 0.0 10.0 0.0 15.0 0.0 18.0 0.0 &
+         25.0 0.0 30.0 0.0
+TABLE 'GAUGES' HEADER 'triad_dcta_nonc.tbl' XP DEPTH HSIGN TM01 RTP REDTRIAD REDQUAD
+SPECOUT 'GAUGES' SPEC1D ABS 'triad_dcta_nonc.spc'
+TEST 1 0 POINTS XY 15.0 0.0 S1D 'triad_dcta_nonc_sources.spc'
+
+COMPUTE
+STOP

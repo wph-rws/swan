@@ -198,6 +198,32 @@ are:
   value that was a subnormal number is now zero, a test on its sign can go
   the other way, and an iteration that has not converged carries that
   change of a last digit along;
+- **the rotation in the non-collinear DCTA.** With `TRIAD DCTA NONC` on a
+  full circle of directions, two directions act on each other in the same
+  way as two that are both turned by a number of bins. The fork uses that
+  in `SWDNCTA`: it works out the third direction of a triad and the factor
+  of Sand (1982) once for every angle between two directions, where
+  upstream works them out for every pair of directions, from the sines and
+  cosines of both. The formulas are the same and the rounding is not.
+  That is a matter of speed, not a bug in the model: a deck that spends
+  its time in this term runs 2.4 to 2.7 times as fast
+  (`benchmarks/speed-vs-upstream.md`). On a sector the fork keeps the loop
+  of upstream and the output is equal byte for byte; the collinear DCTA is
+  not touched. Measured on 18 November 2026 against `4ffe8af`, the commit
+  before the change, both with gfortran 16.2 at `-O3`: in the example deck
+  `triad_dcta_nonc` (a full circle) one printed value of the test-point
+  source terms differs, by one in its fourth digit, and the table and the
+  spectra are equal; the same directions given as a sector
+  (`triad_dcta_nonc_sector`) are equal in every file. On a two-dimensional deck of 37 x 9 points with
+  36 directions (`doc/measurements/dcta_decks.py`, with a binary hotfile)
+  about two thirds of the action densities differ in their last bits,
+  after 6 iterations and after 40 alike: the largest difference is 9.3E-13
+  on values up to 5.5E-6, the median relative difference is 1E-6, and
+  single values six orders below the largest differ by up to 10%. The
+  block file of Hs, the table and the spectra of that deck are equal; with
+  a current added, one printed directional spread in the spectra file
+  differs by 0.1 degree, at a density of 6E-8. The delta inventory lists the
+  full-circle deck under `deliberate_differences`;
 - the extension of CMake, CI, tests, examples and verification tools, as far
   as no upstream bug was fixed in the process;
 - removed dead code and compiler warnings without a demonstrated bug in

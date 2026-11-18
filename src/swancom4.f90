@@ -4836,11 +4836,17 @@ SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0
 
 !  6. Local variables
 !
+!     ANGLE :     angle from the second direction to the first
+!     ANGULAR_COS: cosine of the angle between the second and third
+!                 component, for every REL
+!     ANGULAR_FACTOR: square of the transfer function of Sand (1982)
+!                 for every REL for which it was needed
 !     BETA  :     proportionality factor for DCTA
 !     BIPH  :     local biphase
 !     CG    :     local group velocity
 !     COS12 :     = cos(th1-th2)
 !     COS23 :     = cos(th2-th3)
+!     COSINE:     cos(th1-th2) for every REL
 !     DEP   :     water depth
 !     DS2DD :     = dsigma2 * ddir
 !     E     :     energy density
@@ -4852,6 +4858,7 @@ SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0
 !     ESIN1 :     sine of first spectral direction
 !     ESIN2 :     sine of second spectral direction
 !     ETRSH :     threshold to exclude very small contributions
+!     EVALUATED:  whether ANGULAR_FACTOR has been worked out for a REL
 !     FT    :     auxiliary factor
 !     FT2   :     = FT * FT
 !     I3    :     directional index of third component
@@ -4874,14 +4881,19 @@ SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0
 !     K12   :     wave number of difference wave number
 !                 vector k1 - k2
 !     KM    :     mean wave number
+!     OFFSET:     number of bins from the first direction to the third
 !     OUTSID:     indicates if interpolated value is/is not in grid
 !     P     :     shape coefficient (=4/3)
+!     REL   :     number of bins from the first direction to the
+!                 second, counted round the circle (0 to MDC-1)
 !     SAN   :     negative contribution of triad interaction
 !     SAP   :     positive contribution of triad interaction
 !     SIG1  :     frequency of first component
 !     SIG2  :     frequency of second component
 !     SIG3  :     frequency of third component
+!     SHIFT :     whole part of OFFSET, for every REL
 !     SINBPH:     sine of biphase
+!     SINE  :     sin(th1-th2) for every REL
 !     SIN12 :     = sin(th1-th2)
 !     STRI  :     total triad contribution
 !     STRI1 :     triad contribution related to E1
@@ -4889,6 +4901,8 @@ SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0
 !     TH1   :     direction of first component
 !     TH2   :     direction of second component
 !     TH3   :     direction of third component
+!     WEIGHT:     fraction of OFFSET, for every REL; the interpolation
+!                 weight in dir space
 !     WID   :     interpolation weight factor in dir space
 !     WIS   :     interpolation weight factor in freq space
 
@@ -4900,6 +4914,11 @@ SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0
       WIS, WID
    REAL    E(MDC,MSC), SAN(MDC,MSC), SAP(MDC,MSC)
    REAL    PEAK(MSC), UPPER0, UPPER1, UPPER
+   INTEGER REL, SHIFT(0:MDC-1)
+   REAL    ANGLE, OFFSET
+   REAL    COSINE(0:MDC-1), SINE(0:MDC-1), WEIGHT(0:MDC-1)
+   REAL    ANGULAR_COS(0:MDC-1), ANGULAR_FACTOR(0:MDC-1)
+   LOGICAL EVALUATED(0:MDC-1)
    LOGICAL OUTSID
 
 !  9. Subroutines calling
@@ -4935,6 +4954,20 @@ SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0
       FT2  = FT * FT
       BETA = PTRIAD(1) / FT2 * SINBPH * KM**(2.-P)
 
+!       --- on a full circle the directions are evenly spaced all the
+!           way round, so two directions act on each other in the same
+!           way as two that are both turned by a number of bins: only
+!           the angle between them counts. Tabulate the sine and cosine
+!           of that angle for every number of bins REL between them
+
+      IF (FULCIR) THEN
+         DO REL = 0, MDC-1
+            ANGLE = -REAL(REL)*DDIR
+            SINE(REL) = SIN(ANGLE)
+            COSINE(REL) = COS(ANGLE)
+         ENDDO
+      ENDIF
+
       J = 0
       DO IS1 = 1, MSC
          SIG1 = SPCSIG(IS1)
@@ -4958,6 +4991,68 @@ SUBROUTINE SWDNCTA (AC2, DEP2, CGO, SPCSIG, SPCDIR, KWAVE, IMATRA, IMATDA, REDC0
             K2 = KWAVE(IS2,1)
             K3 = (1.-WIS)*KWAVE(IS3,1) + WIS*KWAVE(IS3+1,1)
             DS2DD = FRINTF * SIG2 * DDIR
+!           Full circle. The second direction lies REL bins beyond the
+!           first. The third direction then lies a fixed number of bins
+!           beyond the first (OFFSET, as a rule not a whole number), and
+!           the factor of Sand (1982) is fixed as well, whatever the
+!           first direction is. So both are worked out once for every
+!           REL, and not for every pair of directions. Upstream works
+!           them out per pair, from the sines and cosines of both
+!           directions; the result is the same except for rounding. The
+!           bounds keep a quotient that rounding lifted just above one
+!           inside the domain of ASIN.
+            IF (FULCIR) THEN
+               EVALUATED = .FALSE.
+               DO REL = 0, MDC-1
+                  COS12 = COSINE(REL)
+                  SIN12 = SINE(REL)
+                  K12 = SQRT(K1*K1 + K2*K2 - 2.*K1*K2*COS12)
+                  IF (SIG2.GT.SIG1) THEN
+                     OFFSET = REAL(REL) - ASIN(MAX(-1.,MIN(1.,K1/K12*SIN12))) / DDIR
+                  ELSE
+                     OFFSET = -ASIN(MAX(-1.,MIN(1.,-K2/K12*SIN12))) / DDIR
+                  ENDIF
+                  SHIFT(REL) = MODULO(FLOOR(OFFSET),MDC)
+                  WEIGHT(REL) = OFFSET - REAL(FLOOR(OFFSET))
+                  COS23 = (K2-K1*COS12) / K12
+                  IF (SIG2.LE.SIG1) COS23 = -COS23
+                  ANGULAR_COS(REL) = COS23
+               ENDDO
+               DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
+                  ID1 = MODULO(IDDUM-1,MDC)+1
+                  E1 = E(ID1,IS1)
+                  REL = MODULO(1-ID1,MDC)
+                  DO ID2 = 1, MDC
+                     ID3 = ID1 + SHIFT(REL)
+                     IF (ID3.LT.1) ID3 = ID3 + MDC
+                     IF (ID3.GT.MDC) ID3 = ID3 - MDC
+                     ID3P = ID3+1
+                     IF (ID3P.GT.MDC) ID3P = 1
+                     WID = WEIGHT(REL)
+                     E3 = (1.-WIS)*(1.-WID)*E(ID3,IS3) + (1.-WIS)*WID*E(ID3P,IS3) + &
+                        WIS*(1.-WID)*E(ID3,IS3+1) + WIS*WID*E(ID3P,IS3+1)
+                     IF (E3*FRINTF*SIG3*DDIR.GT.ETRSH) THEN
+                        IF (.NOT.EVALUATED(REL)) THEN
+                           FT = 1.
+                           IF (ANGULAR_COS(REL).NE.1.) FT = SANDN(ANGULAR_COS(REL))
+                           ANGULAR_FACTOR(REL) = FT * FT
+                           EVALUATED(REL) = .TRUE.
+                        ENDIF
+                        FT2 = ANGULAR_FACTOR(REL)
+                        STRI1 = QTL2(J,1)*FT2*E3*E1
+                        STRI2 = QTL2(J,2)*FT2*E3*E(ID2,IS2)
+                        SAN(ID1,IS1) = SAN(ID1,IS1) + STRI1*DS2DD
+                        SAP(ID1,IS1) = SAP(ID1,IS1) + STRI2*DS2DD
+                     ENDIF
+                     REL = REL+1
+                     IF (REL.EQ.MDC) REL = 0
+                  ENDDO
+               ENDDO
+               CYCLE
+            ENDIF
+!           A sector: the directions stop at its two ends, so the third
+!           direction is looked up for every pair. This is the loop of
+!           upstream; its own full-circle branch is no longer reached.
             DO IDDUM = WINDOW%IDDLOW, WINDOW%IDDTOP
                ID1 = MOD ( IDDUM - 1 + MDC , MDC ) + 1
                E1 = E(ID1,IS1)

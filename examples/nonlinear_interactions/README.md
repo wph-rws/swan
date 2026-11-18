@@ -20,7 +20,13 @@ formulation):
   FTIM method isolate the transfer to superharmonics in shallow water. Wind
   input, whitecapping and quadruplets are disabled in all triad variants.
   `triad_lta_upstream` is `triad_lta` with the third harmonic as upstream
-  computes it, without the fix of BF-63 (see below).
+  computes it, without the fix of BF-63 (see below). `triad_dcta_nonc` and
+  `triad_dcta_nonc_sector` run the DCTA that also acts between waves from
+  different directions (`TRIAD DCTA NONC`), with a directional spread of
+  10 degrees, on the same 36 directions given once as a full circle and
+  once as a sector from -175 to 175 degrees. The fork takes a faster
+  route on the full circle than on a sector, where it follows upstream
+  line by line, so the pair shows that the two routes agree.
 - `combined` follows wind-wave growth over a 40 km deep section and subsequent
   transformation down a slope to 2 m water depth. DIA per iteration and FTIM
   are active together, along with breaking and bottom friction.
@@ -43,7 +49,7 @@ cmake --build build --parallel
 python3 examples/nonlinear_interactions/run.py
 ```
 
-The default `standard` selection runs 30 fast variants and takes about a
+The default `standard` selection runs 32 fast variants and takes about a
 minute. Run an individual group with `--case quad`, `--case triad`,
 `--case combined`, `--case sources` or `--case formulations`.
 
@@ -77,6 +83,8 @@ file. It then verifies that:
 - DCTA and FTIM report nonzero triad transfer;
 - DIA measurably changes the spectrum after 100 km of fetch;
 - DCTA and FTIM measurably change the spectrum behind the submerged bar;
+- the non-collinear DCTA gives the same spectrum at every gauge on the
+  full circle as on a sector with the same directions (within 0.1%);
 - the LTA measurably differs from the LTA with `UPSTREAM`, and the
   energy flux behind the bar is reported for both (see below);
 - both nonlinear source terms are active in the combined case;

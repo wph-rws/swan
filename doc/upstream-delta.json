@@ -10,7 +10,8 @@
   "memory_layout": "Both binaries run under setarch -R, with a fixed memory layout. Without that pin, upstream 41.51 gave two answers from run to run on quad_dia2, quad_mdia and src_nobreak: in decks without breaking, FRABRE reads an unset KTETA (valgrind, BF-16). The fork sets that value and does not depend on the memory layout; the pin stays to keep upstream reproducible. Run with --no-pin to see the instability of upstream for yourself.",
   "unexplained_budget": 0,
   "deliberate_differences": {
-    "abrupt underflow": "The fork lets a result below the smallest normal single-precision number (1.2E-38) become zero instead of a subnormal number (IEEE_SET_UNDERFLOW_MODE in SWMAIN), which a build with the Intel compiler does by default; upstream built with gfortran computes with subnormal numbers, many times slower. This is a choice for speed, not the repair of a bug. It shows in the test-point source-term spectra (*_sources.spc) only: values of 1E-35 and smaller become zero, and the largest value that changes at all is 1.1E-13, by 0.1%, in a file with a maximum of 5E4 (quad_dia1). The tables and spectra of these decks are not changed by it. Measured on 13 November 2026 against the commit before, both with gfortran 16.2 at -O3: of 164 output files of 44 small decks only the *_sources.spc of quad_dia1, quad_dia2, quad_dia3, quad_mdia, quad_off and st6_testpoints differ. The same file of quad_full and of the three exact-quadruplet decks (quad_xnl, quad_xnl52, quad_xnl53) changed with it as well: in quad_full 83 values, the largest 2.5E-32. A large deck whose iteration has not settled can shift in its last digits: the table of the operational so-rp deck moved by up to 0.09 mm in Hs. See 'Not counted as bug fixes' in doc/bug-fixes-vs-tu-delft-41.51.md."
+    "abrupt underflow": "The fork lets a result below the smallest normal single-precision number (1.2E-38) become zero instead of a subnormal number (IEEE_SET_UNDERFLOW_MODE in SWMAIN), which a build with the Intel compiler does by default; upstream built with gfortran computes with subnormal numbers, many times slower. This is a choice for speed, not the repair of a bug. It shows in the test-point source-term spectra (*_sources.spc) only: values of 1E-35 and smaller become zero, and the largest value that changes at all is 1.1E-13, by 0.1%, in a file with a maximum of 5E4 (quad_dia1). The tables and spectra of these decks are not changed by it. Measured on 13 November 2026 against the commit before, both with gfortran 16.2 at -O3: of 164 output files of 44 small decks only the *_sources.spc of quad_dia1, quad_dia2, quad_dia3, quad_mdia, quad_off and st6_testpoints differ. The same file of quad_full and of the three exact-quadruplet decks (quad_xnl, quad_xnl52, quad_xnl53) changed with it as well: in quad_full 83 values, the largest 2.5E-32. A large deck whose iteration has not settled can shift in its last digits: the table of the operational so-rp deck moved by up to 0.09 mm in Hs. See 'Not counted as bug fixes' in doc/bug-fixes-vs-tu-delft-41.51.md.",
+    "rotation in the non-collinear DCTA": "With TRIAD DCTA NONC on a full circle of directions, the fork uses that two directions act on each other in the same way as two that are both turned by a number of bins. SWDNCTA works out the third direction and the factor of Sand (1982) once for every angle between two directions; upstream works them out for every pair of directions, from the sines and cosines of both. The formulas are the same and the rounding is not. This is a choice for speed, not the repair of a bug: a deck that spends its time in this term runs 2.4 to 2.7 times as fast (benchmarks/speed-vs-upstream.md). On a sector the fork keeps the loop of upstream, and the output is equal byte for byte (triad_dcta_nonc_sector). Measured on 18 November 2026 against the commit before (4ffe8af), both with gfortran 16.2 at -O3: in triad_dcta_nonc one printed value of the test-point source terms differs, by one in its fourth digit (0.2434E-05 against 0.2433E-05), and the table and the spectra are equal. On a two-dimensional deck of 37 x 9 points with 36 directions (doc/measurements/dcta_decks.py, with a binary hotfile) about two thirds of the action densities differ in their last bits, after 6 iterations and after 40 alike: the largest difference is 9.3E-13 on values up to 5.5E-6, the median relative difference 1E-6, and single values six orders below the largest differ by up to 10%. The block file of Hs, the table and the spectra of that deck are equal; with a current added, one printed directional spread in the spectra file differs by 0.1 degree, at a density of 6E-8. See 'Not counted as bug fixes' in doc/bug-fixes-vs-tu-delft-41.51.md."
   },
   "last_measurement": {
     "date": "2026-11-15",
@@ -263,6 +264,23 @@
     },
     {
       "deck": "nonlinear_interactions/triad/triad_dcta.swn",
+      "status": "identical",
+      "measured": "3 output file(s) equal"
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_dcta_nonc.swn",
+      "status": "differs",
+      "measured": "differs in: triad_dcta_nonc_sources.spc",
+      "fork_output": {
+        "triad_dcta_nonc.spc": "2e201d752022d632010e2495d8a39d1f8cad5d4b931cb30ce696dc6ad470d83a",
+        "triad_dcta_nonc.tbl": "75bef3cfda08daf03f9479f1774758eb2d788b57afdab29ae56c177c5f2901e2",
+        "triad_dcta_nonc_sources.spc": "f1e7ce9f2bd4156ce5c2d99a84cc826a54321a47bd1e27a385f192c80132dabe"
+      },
+      "deliberate": "rotation in the non-collinear DCTA",
+      "note": "TRIAD DCTA NONC on a full circle. The table and the spectra equal those of upstream; in the test-point source terms one value differs by one in its fourth digit."
+    },
+    {
+      "deck": "nonlinear_interactions/triad/triad_dcta_nonc_sector.swn",
       "status": "identical",
       "measured": "3 output file(s) equal"
     },
