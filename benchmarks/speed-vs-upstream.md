@@ -26,6 +26,10 @@ efficiency cores and two low-power efficiency cores.
   both programs gave the same block files and the same numbers in the site
   table.
 
+Four later commits were measured on 17 and 18 November 2026; the section
+"Work taken out on 17 and 18 November 2026" has those numbers, with the fork
+against upstream again.
+
 The measurement script is [`windows/speed_vs_upstream.ps1`](windows/speed_vs_upstream.ps1);
 [`windows/`](windows/) holds the build commands, the scripts of each series
 and the timings ([`windows/results/series.json`](windows/results/series.json)).
@@ -163,6 +167,216 @@ five runs per build in turn):
 The two commits give the same output on these decks, except where they are
 meant to differ: the test-point source spectra of ST6 (abrupt underflow)
 and the deck with a current (BF-71).
+
+## Work taken out on 17 and 18 November 2026
+
+Four commits after `4ea92ec` take more work out of every visit to a grid
+point. The first three give the same output as before, byte for byte. The
+fourth changes the last bits of a deck with `TRIAD DCTA NONC` on a full
+circle of directions, and nothing else.
+
+- **`dc27d92`, the sweep.** `SORDUP` forms the transport terms of several
+  directions at once. `SPROSD` writes the refraction velocity as one
+  coefficient and two gradients per frequency. `SINTGRL` takes the squared
+  `sinh` and `tanh` of wave number times depth from the cache of the
+  dispersion relation when the depth is fixed, and keeps its thirteen
+  temporary arrays in the workspace of the thread. `SWPSEL` no longer
+  scans every frequency for the range of a direction when there is no
+  current. `RESCALE` looks for a negative bin before it sums.
+- **`510d38a`, the budget.** At every visit SWAN cleared the coefficients
+  from which it sums the dissipation, redistribution and transport for
+  output: 31 spectra. It now clears only what the output of the deck
+  reads. For a deck that asks for the dissipation alone, as the
+  operational so-rp deck does, that is 9 spectra; for a deck without
+  such output 7 fewer than before.
+- **`4ffe8af`, the DCTA triads.** The collinear form takes each pair of
+  frequencies once for all directions. The non-collinear form skips a
+  pair when none of its terms can pass the energy threshold that the
+  terms are tested against anyway. `FAC3WW` works out the weights of a
+  pair once, and not at every grid point.
+- **`0ec1db1`, the rotation in the non-collinear DCTA.** For every pair of
+  frequencies the non-collinear form goes through all pairs of directions,
+  and for each it worked out where the third direction of the triad lies
+  and how strongly the three act on each other. On a full circle the
+  directions are evenly spaced all the way round, so that depends only on
+  the angle between the two directions. It is now worked out once for
+  every such angle and looked up for every pair. On a sector the loop of
+  upstream stays.
+
+The commit messages say why the first three steps leave the numbers as
+they were, and what the fourth changes.
+
+### How it was measured
+
+As in "How it was measured" above: under Windows, programs built with
+GNU Fortran 16.2.0 of MSYS2 at `-O3`, one thread per performance core on
+the logical CPUs 12, 14, 16, 18, 10 and 0, the two programs of a series
+in turn, on mains power. A table gives the median of fifteen runs per
+build for the OpenMP builds and of seven for the serial builds. The
+series ran between 22:20 and 23:20 with nothing else started on the
+laptop. Windows showed 0 to 29% load before and after the series; a
+program that keeps the laptop awake and Explorer were the busiest
+processes. The times on four threads spread most: in most series one or
+two of the fifteen runs took one and a half times the median or more.
+The median leaves such runs out. The series of the rotation commit ran on
+18 November from 08:02, in the same way, with 0 to 19% load.
+
+Voordelta and the small deck with the so-rp physics
+(`windows/decks/sorp_physics`, which asks for the dissipation as the
+operational deck does) were forced to run eight iterations with
+`NPNTS=101` and `MXITST=8`. The two DCTA decks come from
+[`dcta_decks.py`](../doc/measurements/dcta_decks.py), which makes them
+from the submerged bar example: a non-collinear deck of 37 x 9 points
+with 36 directions and 21 frequencies, six iterations, and a collinear
+deck of 101 x 13 points with 72 directions and 31 frequencies, twelve
+iterations.
+
+In every series all runs of both programs gave the same block files and
+the same numbers in the table, at every number of threads. That holds for
+the series of the rotation commit as well: on this deck it changes no
+printed digit.
+
+### Each commit against the one before
+
+Voordelta, eight iterations, before / after:
+
+| Threads | `4ea92ec` / `dc27d92` | `dc27d92` / `510d38a` | `4ea92ec` / `4ffe8af` |
+|---:|---:|---:|---:|
+| 1 | 3.576 / 3.223 s | 3.242 / 3.200 s | 3.566 / 3.160 s = 11% less |
+| 2 | 2.195 / 1.967 s | 1.969 / 1.950 s | 2.182 / 1.938 s = 11% less |
+| 4 | 1.300 / 1.196 s | 1.317 / 1.339 s | 1.363 / 1.214 s = 11% less |
+| 6 | 1.090 / 1.019 s | 1.024 / 1.003 s | 1.093 / 1.013 s = 7% less |
+| serial build | 3.578 / 3.281 s | 3.260 / 3.180 s | 3.583 / 3.205 s = 11% less |
+
+The small deck with the so-rp physics, eight iterations:
+
+| Threads | `4ea92ec` / `dc27d92` | `dc27d92` / `510d38a` | `4ea92ec` / `4ffe8af` |
+|---:|---:|---:|---:|
+| 1 | 0.803 / 0.748 s | 0.746 / 0.707 s | 0.801 / 0.698 s = 13% less |
+| 2 | 0.528 / 0.486 s | 0.489 / 0.465 s | 0.535 / 0.470 s = 12% less |
+| 4 | 0.328 / 0.307 s | 0.285 / 0.296 s | 0.315 / 0.282 s = 10% less |
+| 6 | 0.297 / 0.288 s | 0.290 / 0.272 s | 0.295 / 0.261 s = 12% less |
+| serial build | 0.811 / 0.777 s | 0.744 / 0.697 s | 0.787 / 0.698 s = 11% less |
+
+The sweep commit takes 6 to 10% off Voordelta and 3 to 8% off the so-rp
+deck. The budget commit takes 5 to 6% off the so-rp deck, which asks for
+the dissipation, and 1 to 2% off Voordelta, which does not. On four
+threads its two medians lie within the spread of the runs; the fastest
+runs there were 0.274 / 0.267 s and 1.156 / 1.130 s. The last column
+measures the three commits together in one series (the DCTA commit does
+not touch these decks).
+
+The DCTA decks, `510d38a` / `4ffe8af`:
+
+| Threads | Non-collinear (`TRIAD DCTA NONCOLL`) | Collinear (`TRIAD DCTA`) |
+|---:|---:|---:|
+| 1 | 2.216 / 1.719 s = 22% less | 1.514 / 1.366 s = 10% less |
+| 2 | 1.338 / 1.040 s = 22% less | 0.951 / 0.854 s = 10% less |
+| 4 | 0.839 / 0.669 s = 20% less | 0.550 / 0.503 s = 9% less |
+| 6 | 0.778 / 0.617 s = 21% less | 0.461 / 0.431 s = 7% less |
+| serial build | 2.269 / 1.716 s = 24% less | 1.558 / 1.442 s = 7% less |
+
+The non-collinear deck again, `4ffe8af` / `0ec1db1` (18 November):
+
+| Threads | Non-collinear (`TRIAD DCTA NONCOLL`) |
+|---:|---:|
+| 1 | 1.744 / 0.634 s = 2.8 times as fast |
+| 2 | 1.016 / 0.408 s = 2.5 times |
+| 4 | 0.653 / 0.277 s = 2.4 times |
+| 6 | 0.616 / 0.259 s = 2.4 times |
+| serial build | 1.738 / 0.638 s = 2.7 times |
+
+Set beside the times of `510d38a` in the table before it, the two DCTA
+commits together make this deck 3.0 to 3.6 times as fast. The collinear
+deck, and every deck without `TRIAD DCTA NONC` on a full circle, runs the
+same code as at `4ffe8af`.
+
+### The fork against upstream again
+
+The whole Voordelta run, each program to its own stop, upstream
+(`43e9bbb`) at `-O3` against the fork at `4ffe8af`; five runs per build in
+turn. Upstream's OpenMP build has `-fno-ivopts -fno-ipa-cp-clone`, as
+above.
+
+| Workers | Upstream `-O3` | Fork `4ffe8af` | Factor | Factor at `2466aa4` |
+|---:|---:|---:|---:|---:|
+| serial builds | 27.59 s | 9.31 s | 2.96x | 2.75x |
+| 1 thread | 29.63 s | 9.18 s | 3.23x | 2.92x |
+| 2 threads | 17.29 s | 5.58 s | 3.10x | 2.73x |
+| 4 threads | 9.73 s | 3.94 s | 2.47x | 2.50x |
+| 6 threads | 6.84 s | 2.67 s | 2.56x | 2.44x |
+
+So with both sides at `-O3` the fork is now 2.5 to 3.2 times as fast as
+upstream on this deck. All times are lower than on 15 November, upstream's
+too, because the laptop was not in use; compare the factors. On four
+threads the runs of the fork lay between 3.19 and 4.13 s, so that factor
+is the least certain of the five. Upstream and the fork gave the same
+block files and table numbers in every run.
+
+The same whole run for the fork alone, `4ea92ec` / `4ffe8af`: 10.50 /
+9.19 s, 6.41 / 5.75 s, 4.25 / 3.87 s and 3.03 / 2.79 s on 1, 2, 4 and 6
+threads, and 10.34 / 9.31 s for the serial builds: 8 to 12% less.
+
+### The checks of the output
+
+Each of the four commits passed the serial, OpenMP and MPI test suites,
+pytest, the strict gate and the measured upstream-delta gate under Linux
+with gfortran 16.2. Beyond the gates, binary hotfiles and every output
+file were compared with those of `4ea92ec` at 1, 2, 4 and 6 threads and
+with six threads on two CPUs: on Voordelta, on the so-rp physics deck
+with each kind of budget output and with turbulence, mud and sea ice
+switched on, on an unstructured deck, on decks with a strong current, an
+obstacle and the S&L scheme, and on ten DCTA decks (collinear and
+non-collinear, on a full circle, a sector and with a current). For the
+first three commits all were the same byte for byte.
+
+The rotation commit was compared with `4ffe8af` in the same way. The
+non-collinear decks on a sector, with and without a current, and the
+collinear deck are the same byte for byte, and on a full circle the
+output is the same at 1, 2, 4 and 6 threads and with six threads on two
+CPUs. On the full circle it differs from `4ffe8af`, and so from upstream,
+in the last bits: in the binary hotfile of the non-collinear deck above
+about two thirds of the action densities differ, after 6 iterations and
+after 40 alike. The largest difference is 9.3E-13 on values up to 5.5E-6,
+the median relative difference is 1E-6, and single values six orders
+below the largest differ by up to 10%. The block file of Hs, the table
+and the spectra are equal; with a current added, one printed directional
+spread differs by 0.1 degree. Two example decks now run the non-collinear
+form in the test suite, `triad_dcta_nonc` on the full circle and
+`triad_dcta_nonc_sector` on a sector: against upstream the first differs
+in one printed digit of the test-point source terms, and the second is
+equal in every file. The delta inventory records that as a deliberate
+difference, beside abrupt underflow.
+
+### What was tried and did not go in
+
+- **Factoring the group velocity out of `SORDUP`.** With no current or
+  diffraction the propagation velocities are `c_g*cos(theta)` and
+  `c_g*sin(theta)`, so the direction can be projected once per point and
+  reused at each frequency. That saves multiplications and loads and
+  changes where the results are rounded. In a test build of an earlier
+  state of the sweep commit (the
+  [patch](../doc/measurements/sordup_group_projection.patch) applies to
+  `dc27d92`), five runs on the eight-iteration Voordelta deck gave 3.373 /
+  3.335 s on one thread and 1.223 / 1.278 s on four: a small gain on one
+  core, and a higher median on four. The printed Hsig changed by up to 1 mm over
+  9072 wet points on Voordelta (rms 0.015 mm) and over 1071 wet points
+  on the small deck (rms 0.031 mm). Not taken.
+- **Sharing the refraction coefficients between neighbouring directions
+  in `STRSD`, and multiplying by a stored reciprocal in the Thomas
+  solver.** Short series showed no consistent gain for the first; the
+  second moved the printed Hsig by up to 1 mm. Both were timed while
+  another job ran on the laptop, so they have no numbers here.
+
+### Where the time goes now
+
+A profile of the serial build of `4ffe8af` on the so-rp physics deck
+(twelve iterations; `perf` under WSL, which samples the program counter
+and tells nothing about the kind of core): the DIA 11%, clearing memory
+10%, `STRSD` 10%, `ADDDIS` 8%, the transport loop of `SORDUP` 7%,
+`SPROXY` 6%, `PHILIM` 4% and `SINTGRL` 4%. Before `510d38a` clearing
+memory took 17%. `ADDDIS` is bound by its sums: it adds the terms of all
+bins one after the other, and that order fixes the last bit.
 
 ## Scaling with the number of threads
 
@@ -350,6 +564,10 @@ every argument with a hyphen as an option and never ends.
   `compare_F.py` the comparison with Linux output.
 - `windows/collect_results.py` gathers the timings of all series into
   `results/series.json`.
+- `windows/sweep_2026_11_17.ps1` runs the series of 17 and 18 November
+  2026 and says which directories and builds it expects; their timings
+  are in `results/series-2026-11-17.json` and, for the rotation commit,
+  `results/series-2026-11-18.json`.
 
 `benchmark_parallel.py` and `residual_cost.py` in this directory do the same
 kind of measurement under Linux, pinned to CPU numbers. Use them to compare

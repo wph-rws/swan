@@ -1,0 +1,307 @@
+{
+ "noncollinear-c3-c4-omp": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-18T08:02:02",
+    "on_mains": true,
+    "load_percent": [
+     8,
+     8,
+     2,
+     10,
+     6
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-18T08:03:37",
+    "on_mains": true,
+    "load_percent": [
+     6,
+     10,
+     9,
+     0,
+     19
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 1.74,
+    "fork_median_s": 0.63,
+    "factor": 2.75,
+    "upstream_s": [
+     1.79,
+     1.733,
+     1.795,
+     1.744,
+     1.746,
+     1.751,
+     1.736,
+     1.744,
+     1.795,
+     1.73,
+     1.75,
+     1.734,
+     1.744,
+     1.724,
+     1.749
+    ],
+    "fork_s": [
+     0.761,
+     0.638,
+     0.631,
+     0.634,
+     0.641,
+     0.632,
+     0.634,
+     0.634,
+     0.628,
+     0.639,
+     0.626,
+     0.636,
+     0.638,
+     0.641,
+     0.632
+    ]
+   },
+   {
+    "workers": 2,
+    "cpus": "12 14",
+    "upstream_median_s": 1.02,
+    "fork_median_s": 0.41,
+    "factor": 2.49,
+    "upstream_s": [
+     1.009,
+     1.009,
+     1.063,
+     1.037,
+     1.021,
+     1.029,
+     1.009,
+     1.011,
+     1.003,
+     1.042,
+     1.008,
+     1.022,
+     1.038,
+     1.002,
+     1.016
+    ],
+    "fork_s": [
+     0.441,
+     0.394,
+     0.408,
+     0.482,
+     0.398,
+     0.385,
+     0.399,
+     0.401,
+     0.38,
+     0.426,
+     0.426,
+     0.44,
+     0.41,
+     0.432,
+     0.398
+    ]
+   },
+   {
+    "workers": 4,
+    "cpus": "12 14 16 18",
+    "upstream_median_s": 0.65,
+    "fork_median_s": 0.28,
+    "factor": 2.36,
+    "upstream_s": [
+     0.66,
+     0.718,
+     0.655,
+     0.688,
+     0.653,
+     0.644,
+     0.655,
+     0.67,
+     0.63,
+     0.65,
+     0.689,
+     0.65,
+     0.652,
+     0.646,
+     0.648
+    ],
+    "fork_s": [
+     0.324,
+     0.304,
+     0.295,
+     0.308,
+     0.266,
+     0.274,
+     0.273,
+     0.277,
+     0.314,
+     0.273,
+     0.269,
+     0.288,
+     0.31,
+     0.275,
+     0.276
+    ]
+   },
+   {
+    "workers": 6,
+    "cpus": "12 14 16 18 10 0",
+    "upstream_median_s": 0.62,
+    "fork_median_s": 0.26,
+    "factor": 2.38,
+    "upstream_s": [
+     0.643,
+     0.625,
+     0.63,
+     0.604,
+     0.616,
+     0.606,
+     0.75,
+     0.623,
+     0.608,
+     0.761,
+     0.616,
+     0.647,
+     0.612,
+     0.595,
+     0.612
+    ],
+    "fork_s": [
+     0.255,
+     0.259,
+     0.265,
+     0.32,
+     0.252,
+     0.248,
+     0.498,
+     0.257,
+     0.26,
+     0.515,
+     0.25,
+     0.285,
+     0.255,
+     0.28,
+     0.243
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ },
+ "noncollinear-c3-c4-ser": {
+  "logical_cpus": [
+   {
+    "logical_cpu": 12,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 14,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 16,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 18,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 10,
+    "performance_core": true
+   },
+   {
+    "logical_cpu": 0,
+    "performance_core": true
+   }
+  ],
+  "machine": [
+   {
+    "when": "before",
+    "time": "2026-11-18T08:03:44",
+    "on_mains": true,
+    "load_percent": [
+     9,
+     5,
+     0,
+     10,
+     19
+    ]
+   },
+   {
+    "when": "after",
+    "time": "2026-11-18T08:04:08",
+    "on_mains": true,
+    "load_percent": [
+     2,
+     4,
+     4,
+     0,
+     6
+    ]
+   }
+  ],
+  "speed": [
+   {
+    "workers": 1,
+    "cpus": "12",
+    "upstream_median_s": 1.74,
+    "fork_median_s": 0.64,
+    "factor": 2.72,
+    "upstream_s": [
+     1.752,
+     1.726,
+     1.715,
+     1.732,
+     1.738,
+     1.802,
+     1.813
+    ],
+    "fork_s": [
+     0.709,
+     0.628,
+     0.633,
+     0.629,
+     0.638,
+     0.646,
+     0.653
+    ]
+   }
+  ],
+  "all_runs_same_answer": true,
+  "failed_runs": 0
+ }
+}

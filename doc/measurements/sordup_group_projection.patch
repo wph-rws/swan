@@ -1,0 +1,101 @@
+--- a/src/swancom1.f90
++++ b/src/swancom1.f90
+@@ -5308,7 +5308,7 @@
+    ELSE IF (PROPSL.EQ.2) THEN ! use SORDUP scheme
+       CALL SORDUP(WINDOW   ,CAX      , &
+          CAY      ,AC2      ,SYSTEM_MATRIX%imatra   ,SYSTEM_MATRIX%imatda   , &
+-         RDX      ,RDY      ,TRAC0    ,TRAC1    ,st_kc,st_cos, TESTFL)
++         RDX      ,RDY      ,TRAC0    ,TRAC1    ,st_kc,st_cos, TESTFL, CGO, SPCDIR)
+    ELSE ! use BSBT scheme
+       CALL STRSXY(WINDOW   ,CAX      , &
+          CAY      ,AC2      ,AC1      ,SYSTEM_MATRIX%imatra   ,SYSTEM_MATRIX%imatda   , &
+--- a/src/swancom5.f90
++++ b/src/swancom5.f90
+@@ -2353,7 +2353,7 @@
+ 
+ SUBROUTINE SORDUP (         WINDOW  ,CAX     , &
+    CAY     ,AC2     ,IMATRA  ,IMATDA  , &
+-   RDX     ,RDY     ,TRAC0   ,TRAC1   ,st_kc   ,st_cos, TESTFL)
++   RDX     ,RDY     ,TRAC0   ,TRAC1   ,st_kc   ,st_cos, TESTFL, CGO, SPCDIR)
+ 
+ !****************************************************************
+ 
+@@ -2545,6 +2545,9 @@
+    INTEGER  IXY
+    LOGICAL  XNUM
+    INTEGER :: FIRST
++   REAL, INTENT(IN) :: CGO(MSC,MICMAX), SPCDIR(MDC,6)
++   REAL :: GX(MDC), GY(MDC)
++   LOGICAL :: PROJECT_VELOCITY
+ 
+    IF (LTRACE) CALL STRACE (IENT,'SORDUP')
+ 
+@@ -2560,14 +2563,27 @@
+ !     SWPSEL puts a sector that crosses direction 1 at negative or zero
+ !     indices first. Take the two contiguous parts in that order so each
+ !     inner loop can work on several directions at once.
++   PROJECT_VELOCITY = ICUR.EQ.0 .AND. IDIFFR.EQ.0
+    IF (KSPHER.EQ.0 .AND. .NOT.(TESTFL .AND. ITEST.GE.100)) THEN
++      IF (PROJECT_VELOCITY) THEN
++         GX(:) = RDX(1)*SPCDIR(:,2) + RDY(1)*SPCDIR(:,3)
++         GY(:) = RDX(2)*SPCDIR(:,2) + RDY(2)*SPCDIR(:,3)
++      END IF
+       DO IS = 1, WINDOW%ISSTOP
+          FIRST = WINDOW%IDCMIN(IS)
+          IF (FIRST.LT.1) THEN
+-            CALL ADD_CARTESIAN(FIRST+MDC, MDC)
++            IF (PROJECT_VELOCITY) THEN
++               CALL ADD_PROJECTED(FIRST+MDC, MDC)
++            ELSE
++               CALL ADD_CARTESIAN(FIRST+MDC, MDC)
++            END IF
+             FIRST = 1
+          END IF
+-         CALL ADD_CARTESIAN(FIRST, WINDOW%IDCMAX(IS))
++         IF (PROJECT_VELOCITY) THEN
++            CALL ADD_PROJECTED(FIRST, WINDOW%IDCMAX(IS))
++         ELSE
++            CALL ADD_CARTESIAN(FIRST, WINDOW%IDCMAX(IS))
++         END IF
+       END DO
+       RETURN
+    END IF
+@@ -2742,6 +2758,38 @@
+       TRAC1(ID,IS,1) = TRAC1(ID,IS,1) + FXY1
+    END DO
+ end subroutine ADD_CARTESIAN
++
++subroutine ADD_PROJECTED(FIRST, LAST)
++   INTEGER, INTENT(IN) :: FIRST, LAST
++   INTEGER :: ID
++   INTEGER(INT32) :: MASK
++   REAL :: X1, Y1, X2, Y3, X6, Y7, B2, B3, B6, B7, FXY1, FXY2, XY, YX
++
++   !$OMP SIMD PRIVATE(X1, Y1, X2, Y3, X6, Y7, B2, B3, B6, B7, FXY1, FXY2, XY, YX, MASK)
++   DO ID = FIRST, LAST
++      X1 = MERGE(CGO(IS,1), 0., st_kc(1).GT.1) * GX(ID)
++      Y1 = MERGE(CGO(IS,1), 0., st_kc(1).GT.1) * GY(ID)
++      X2 = MERGE(CGO(IS,2), 0., st_kc(2).GT.1) * GX(ID)
++      Y3 = MERGE(CGO(IS,3), 0., st_kc(3).GT.1) * GY(ID)
++      X6 = MERGE(CGO(IS,6), 0., st_kc(6).GT.1) * GX(ID)
++      Y7 = MERGE(CGO(IS,7), 0., st_kc(7).GT.1) * GY(ID)
++      B2 = AC2(ID,IS,IND2) * 2.0*X2
++      B3 = AC2(ID,IS,IND3) * 2.0*Y3
++      B6 = AC2(ID,IS,IND6) * 0.5*X6
++      B7 = AC2(ID,IS,IND7) * 0.5*Y7
++      FXY1 = 1.5*X1 + 1.5*Y1
++!     Preserve both orders of addition. Select by bits so the compiler
++!     can do the selection for several directions in one instruction.
++      XY = B2 - B6 + B3 - B7
++      YX = B3 - B7 + B2 - B6
++      MASK = MERGE(NOT(0_INT32), 0_INT32, Y1.GT.X1)
++      FXY2 = TRANSFER(MERGE_BITS(TRANSFER(XY, 0_INT32), TRANSFER(YX, 0_INT32), MASK), 0.)
++      IMATRA(ID,IS) = IMATRA(ID,IS) + FXY2
++      IMATDA(ID,IS) = IMATDA(ID,IS) + FXY1
++      TRAC0(ID,IS,1) = TRAC0(ID,IS,1) - FXY2
++      TRAC1(ID,IS,1) = TRAC1(ID,IS,1) + FXY1
++   END DO
++end subroutine ADD_PROJECTED
+ end subroutine SORDUP
+ !****************************************************************
+ 
